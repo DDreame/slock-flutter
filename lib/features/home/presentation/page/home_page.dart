@@ -33,6 +33,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Slock')),
       body: switch (state.status) {
+        HomeListStatus.noActiveServer => const _HomeNoServerState(),
         HomeListStatus.initial ||
         HomeListStatus.loading =>
           const Center(child: CircularProgressIndicator()),
@@ -95,6 +96,23 @@ class _HomeEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Text('No channels or direct messages yet.'),
+    );
+  }
+}
+
+class _HomeNoServerState extends StatelessWidget {
+  const _HomeNoServerState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'Select a server to get started.',
+          textAlign: TextAlign.center,
+        ),
+      ),
     );
   }
 }

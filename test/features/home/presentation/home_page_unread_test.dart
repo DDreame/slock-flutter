@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/scope/channel_scope_id.dart';
 import 'package:slock_app/core/scope/direct_message_scope_id.dart';
 import 'package:slock_app/core/scope/server_scope_id.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
@@ -47,6 +48,9 @@ void main() {
 
     container = ProviderContainer(
       overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
           (serverId) async => HomeWorkspaceSnapshot(
             serverId: serverId,

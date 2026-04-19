@@ -53,6 +53,38 @@ void main() {
     expect(repository.requestedServerIds, [const ServerScopeId('server-1')]);
   });
 
+  test('build returns noActiveServer when no server is selected', () {
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(null),
+        homeRepositoryProvider.overrideWithValue(
+          _FakeHomeRepository(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final state = container.read(homeListStoreProvider);
+    expect(state.status, HomeListStatus.noActiveServer);
+    expect(state.serverScopeId, isNull);
+  });
+
+  test('load returns noActiveServer when no server is selected', () async {
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(null),
+        homeRepositoryProvider.overrideWithValue(
+          _FakeHomeRepository(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(homeListStoreProvider.notifier).load();
+    final state = container.read(homeListStoreProvider);
+    expect(state.status, HomeListStatus.noActiveServer);
+  });
+
   test('load stores typed AppFailure in state without rethrowing', () async {
     const failure = ServerFailure(
       message: 'Home snapshot failed.',

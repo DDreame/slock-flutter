@@ -19,6 +19,7 @@ import 'package:slock_app/features/splash/presentation/page/splash_page.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
+import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -43,6 +44,14 @@ String? authRedirect(SessionState session, String path) {
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _SessionRouterNotifier(ref);
+
+  String? syncServerSelection(BuildContext context, GoRouterState state) {
+    final serverId = state.pathParameters['serverId'];
+    if (serverId != null) {
+      ref.read(serverSelectionStoreProvider.notifier).selectServer(serverId);
+    }
+    return null;
+  }
 
   return GoRouter(
     initialLocation: '/splash',
@@ -76,6 +85,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/servers/:serverId/channels/:channelId',
+        redirect: syncServerSelection,
         builder: (context, state) => ChannelPage(
           serverId: state.pathParameters['serverId']!,
           channelId: state.pathParameters['channelId']!,
@@ -83,6 +93,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/servers/:serverId/dms/:channelId',
+        redirect: syncServerSelection,
         builder: (context, state) => MessagesPage(
           serverId: state.pathParameters['serverId']!,
           channelId: state.pathParameters['channelId']!,
@@ -90,6 +101,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/servers/:serverId/threads',
+        redirect: syncServerSelection,
         builder: (context, state) =>
             ThreadsPage(serverId: state.pathParameters['serverId']!),
       ),
@@ -100,11 +112,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/servers/:serverId/tasks',
+        redirect: syncServerSelection,
         builder: (context, state) =>
             TasksPage(serverId: state.pathParameters['serverId']!),
       ),
       GoRoute(
         path: '/servers/:serverId/agents',
+        redirect: syncServerSelection,
         builder: (context, state) =>
             AgentsPage(serverId: state.pathParameters['serverId']),
       ),
@@ -115,6 +129,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/servers/:serverId/machines',
+        redirect: syncServerSelection,
         builder: (context, state) =>
             MachinesPage(serverId: state.pathParameters['serverId']!),
       ),

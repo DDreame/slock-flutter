@@ -48,6 +48,28 @@ void main() {
     expect(find.text('channel:server-1/general'), findsOneWidget);
   });
 
+  testWidgets('shows no-server placeholder when no server is selected', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(null),
+          homeRepositoryProvider.overrideWithValue(
+            const _FakeHomeRepository(_sampleSnapshot),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Select a server to get started.'), findsOneWidget);
+    expect(find.text('Channels'), findsNothing);
+  });
+
   testWidgets('tapping a DM row navigates to the existing DM route', (
     tester,
   ) async {

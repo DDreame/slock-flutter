@@ -12,11 +12,19 @@ class HomeListStore extends Notifier<HomeListState> {
   @override
   HomeListState build() {
     final serverScopeId = ref.watch(activeServerScopeIdProvider);
+    if (serverScopeId == null) {
+      return const HomeListState(status: HomeListStatus.noActiveServer);
+    }
     return HomeListState(serverScopeId: serverScopeId);
   }
 
   Future<void> load() async {
     final serverScopeId = ref.read(activeServerScopeIdProvider);
+    if (serverScopeId == null) {
+      state = const HomeListState(status: HomeListStatus.noActiveServer);
+      return;
+    }
+
     state = state.copyWith(
       serverScopeId: serverScopeId,
       status: HomeListStatus.loading,

@@ -1,6 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/router/app_router.dart';
+import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -114,4 +118,55 @@ void main() {
       expect(authRedirect(session, '/settings'), isNull);
     });
   });
+
+  testWidgets('server-scoped route syncs server selection via redirect', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(sessionStoreProvider.notifier).login(
+          email: 'test@test.com',
+          password: 'password',
+        );
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/servers/my-server/channels/general');
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(serverSelectionStoreProvider).selectedServerId,
+      'my-server',
+    );
+  });
+}
+
+class _FakeSecureStorage implements SecureStorage {
+  final Map<String, String> _store = {};
+
+  @override
+  Future<String?> read({required String key}) async => _store[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _store[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    _store.remove(key);
+  }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 
-enum HomeListStatus { initial, loading, success, failure }
+enum HomeListStatus { initial, loading, success, failure, noActiveServer }
 
 @immutable
 class HomeListState {

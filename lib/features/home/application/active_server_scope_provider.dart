@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
-const _defaultActiveServerScopeId = ServerScopeId('server-1');
-
-final activeServerScopeIdProvider = Provider<ServerScopeId>(
-  (ref) => _defaultActiveServerScopeId,
-);
+final activeServerScopeIdProvider = Provider<ServerScopeId?>((ref) {
+  final selectedId = ref.watch(serverSelectionStoreProvider).selectedServerId;
+  return selectedId != null ? ServerScopeId(selectedId) : null;
+});
