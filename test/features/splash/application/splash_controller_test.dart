@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
@@ -80,6 +81,29 @@ void main() {
 
       final selection = container.read(serverSelectionStoreProvider);
       expect(selection.selectedServerId, isNull);
+    });
+
+    test('sets appReady to true after authenticated bootstrap', () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'saved-token';
+      fakeStorage._store[SessionStorageKeys.userId] = 'user-1';
+      fakeStorage._store[ServerSelectionStorageKeys.selectedServerId] =
+          'server-1';
+
+      expect(container.read(appReadyProvider), isFalse);
+
+      await container.read(splashControllerProvider.future);
+
+      expect(container.read(appReadyProvider), isTrue);
+    });
+
+    test('sets appReady to true after unauthenticated bootstrap', () async {
+      expect(container.read(appReadyProvider), isFalse);
+
+      await container.read(splashControllerProvider.future);
+
+      expect(container.read(sessionStoreProvider).status,
+          AuthStatus.unauthenticated);
+      expect(container.read(appReadyProvider), isTrue);
     });
   });
 }

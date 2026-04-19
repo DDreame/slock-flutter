@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
+import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/app/shell/app_shell.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/auth/presentation/page/forgot_password_page.dart';
@@ -56,8 +58,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: notifier,
-    redirect: (context, state) =>
-        authRedirect(ref.read(sessionStoreProvider), state.uri.path),
+    redirect: (context, state) {
+      final session = ref.read(sessionStoreProvider);
+      final path = state.uri.path;
+      final bootstrapComplete = ref.read(appReadyProvider);
+
+      if (session.status == AuthStatus.unknown &&
+          isConversationDeepLink(path)) {
+        ref.read(pendingDeepLinkProvider.notifier).state = state.uri.toString();
+      }
+
+      if (path == '/splash' && session.isAuthenticated && !bootstrapComplete) {
+        return null;
+      }
+
+      final redirect = authRedirect(session, path);
+
+      if (redirect == '/home') {
+        final pending = ref.read(pendingDeepLinkProvider);
+        if (pending != null) {
+          ref.read(pendingDeepLinkProvider.notifier).state = null;
+          return pending;
+        }
+      }
+
+      return redirect;
+    },
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
@@ -163,6 +189,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 class _SessionRouterNotifier extends ChangeNotifier {
   _SessionRouterNotifier(this._ref) {
     _ref.listen<SessionState>(sessionStoreProvider, (_, __) {
+      notifyListeners();
+    });
+    _ref.listen<bool>(appReadyProvider, (_, __) {
       notifyListeners();
     });
   }

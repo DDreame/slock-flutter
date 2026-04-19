@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/app/router/app_router.dart';
+import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/features/splash/application/splash_controller.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -152,6 +157,324 @@ void main() {
       'my-server',
     );
   });
+
+  group('isConversationDeepLink', () {
+    test('matches channel route', () {
+      expect(
+        isConversationDeepLink('/servers/s1/channels/general'),
+        isTrue,
+      );
+    });
+
+    test('matches DM route', () {
+      expect(
+        isConversationDeepLink('/servers/s1/dms/dm-alice'),
+        isTrue,
+      );
+    });
+
+    test('does not match home', () {
+      expect(isConversationDeepLink('/home'), isFalse);
+    });
+
+    test('does not match threads route', () {
+      expect(isConversationDeepLink('/servers/s1/threads'), isFalse);
+    });
+
+    test('does not match auth routes', () {
+      expect(isConversationDeepLink('/login'), isFalse);
+      expect(isConversationDeepLink('/register'), isFalse);
+    });
+  });
+
+  group('bootstrap gating', () {
+    testWidgets('stays on splash when authenticated but bootstrap not complete',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      expect(router.routeInformationProvider.value.uri.path, '/splash');
+    });
+
+    testWidgets('redirects to home after bootstrap completes', (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+    });
+  });
+
+  group('deep link preservation', () {
+    testWidgets('captures conversation deep link and restores after bootstrap',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      router.go('/servers/server-1/channels/general');
+      await tester.pump();
+
+      expect(
+        container.read(pendingDeepLinkProvider),
+        '/servers/server-1/channels/general',
+      );
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/servers/server-1/channels/general',
+      );
+      expect(container.read(pendingDeepLinkProvider), isNull);
+    });
+
+    testWidgets('captures DM deep link and restores after bootstrap',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      router.go('/servers/server-1/dms/dm-alice');
+      await tester.pump();
+
+      expect(
+        container.read(pendingDeepLinkProvider),
+        '/servers/server-1/dms/dm-alice',
+      );
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/servers/server-1/dms/dm-alice',
+      );
+      expect(container.read(pendingDeepLinkProvider), isNull);
+    });
+
+    testWidgets('does not capture non-conversation routes as deep link',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      router.go('/settings');
+      await tester.pump();
+
+      expect(container.read(pendingDeepLinkProvider), isNull);
+    });
+
+    testWidgets(
+        'cleared deep link does not redirect again on subsequent navigation',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      router.go('/servers/server-1/channels/general');
+      await tester.pump();
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+      await tester.pumpAndSettle();
+
+      expect(container.read(pendingDeepLinkProvider), isNull);
+
+      router.go('/home');
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+    });
+  });
+
+  group('fallback for unresolved target', () {
+    testWidgets('falls back to /home when pending deep link is cleared',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+      expect(container.read(pendingDeepLinkProvider), isNull);
+    });
+
+    testWidgets('invalid pending deep link is consumed and falls back to /home',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      router.go('/servers/nonexistent/channels/missing');
+      await tester.pump();
+
+      expect(
+        container.read(pendingDeepLinkProvider),
+        '/servers/nonexistent/channels/missing',
+      );
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+      await tester.pumpAndSettle();
+
+      expect(container.read(pendingDeepLinkProvider), isNull);
+      expect(
+        container.read(serverSelectionStoreProvider).selectedServerId,
+        'nonexistent',
+      );
+    });
+  });
+}
+
+class _StallingSplashController extends SplashController {
+  @override
+  Future<void> build() => Completer<void>().future;
 }
 
 class _FakeSecureStorage implements SecureStorage {
