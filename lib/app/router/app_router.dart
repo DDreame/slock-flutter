@@ -24,14 +24,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/home',
     routes: [
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashPage(),
-      ),
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginPage(),
-      ),
+      GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
         builder: (context, state) => const RegisterPage(),
@@ -43,10 +37,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(
-            path: '/home',
-            builder: (context, state) => const HomePage(),
-          ),
+          GoRoute(path: '/home', builder: (context, state) => const HomePage()),
           GoRoute(
             path: '/agents',
             builder: (context, state) => const AgentsPage(),
@@ -73,39 +64,33 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/servers/:serverId/threads',
-        builder: (context, state) => ThreadsPage(
-          serverId: state.pathParameters['serverId']!,
-        ),
+        builder: (context, state) =>
+            ThreadsPage(serverId: state.pathParameters['serverId']!),
       ),
       GoRoute(
         path: '/threads/:threadId/replies',
-        builder: (context, state) => ThreadRepliesPage(
-          threadId: state.pathParameters['threadId']!,
-        ),
+        builder: (context, state) =>
+            ThreadRepliesPage(threadId: state.pathParameters['threadId']!),
       ),
       GoRoute(
         path: '/servers/:serverId/tasks',
-        builder: (context, state) => TasksPage(
-          serverId: state.pathParameters['serverId']!,
-        ),
+        builder: (context, state) =>
+            TasksPage(serverId: state.pathParameters['serverId']!),
       ),
       GoRoute(
         path: '/servers/:serverId/agents',
-        builder: (context, state) => AgentsPage(
-          serverId: state.pathParameters['serverId'],
-        ),
+        builder: (context, state) =>
+            AgentsPage(serverId: state.pathParameters['serverId']),
       ),
       GoRoute(
         path: '/agents/:agentId',
-        builder: (context, state) => AgentsPage(
-          agentId: state.pathParameters['agentId'],
-        ),
+        builder: (context, state) =>
+            AgentsPage(agentId: state.pathParameters['agentId']),
       ),
       GoRoute(
         path: '/servers/:serverId/machines',
-        builder: (context, state) => MachinesPage(
-          serverId: state.pathParameters['serverId']!,
-        ),
+        builder: (context, state) =>
+            MachinesPage(serverId: state.pathParameters['serverId']!),
       ),
       GoRoute(
         path: '/saved-messages',
@@ -117,9 +102,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/profile/:userId',
-        builder: (context, state) => ProfilePage(
-          userId: state.pathParameters['userId'],
-        ),
+        builder: (context, state) =>
+            ProfilePage(userId: state.pathParameters['userId']),
       ),
       GoRoute(
         path: '/billing',
@@ -130,10 +114,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ReleaseNotesPage(),
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Page not found: ${state.uri}'),
-      ),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
   );
 });

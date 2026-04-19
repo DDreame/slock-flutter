@@ -27,6 +27,7 @@ void main() {
         }
       }
     }
+
     collectPaths(config.routes);
 
     const expectedRoutes = [

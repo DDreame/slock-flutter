@@ -4,11 +4,7 @@ import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 
 void main() {
-  runApp(
-    const ProviderScope(
-      child: SlockApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: SlockApp()));
 }
 
 class SlockApp extends ConsumerWidget {
