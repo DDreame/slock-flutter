@@ -1,13 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+
+import 'session_store_persistence_test.dart' show FakeSecureStorage;
 
 void main() {
   late ProviderContainer container;
 
   setUp(() {
-    container = ProviderContainer();
+    container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+      ],
+    );
   });
 
   tearDown(() {
@@ -63,7 +70,7 @@ void main() {
         AuthStatus.authenticated,
       );
 
-      container.read(sessionStoreProvider.notifier).logout();
+      await container.read(sessionStoreProvider.notifier).logout();
       final state = container.read(sessionStoreProvider);
       expect(state.status, AuthStatus.unauthenticated);
       expect(state.userId, isNull);
@@ -88,7 +95,7 @@ void main() {
         AuthStatus.authenticated,
       );
 
-      container.read(sessionStoreProvider.notifier).logout();
+      await container.read(sessionStoreProvider.notifier).logout();
       expect(
         container.read(sessionStoreProvider).status,
         AuthStatus.unauthenticated,

@@ -1,12 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/network/network_config.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 typedef AuthTokenReader = Future<String?> Function();
 typedef RefreshAuthToken = Future<String?> Function();
 typedef RequestHeadersBuilder = Future<Map<String, String>> Function();
 
 final authTokenProvider = Provider<AuthTokenReader>((ref) {
-  return () async => null;
+  return () async => ref.read(sessionStoreProvider).token;
 });
 
 final refreshAuthTokenProvider = Provider<RefreshAuthToken>((ref) {

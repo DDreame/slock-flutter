@@ -4,3 +4,4 @@
 
 export 'errors/errors.dart';
 export 'network/network.dart';
+export 'storage/storage.dart';

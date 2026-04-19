@@ -1,12 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
+import '../../stores/session/session_store_persistence_test.dart'
+    show FakeSecureStorage;
+
 void main() {
   test('splash controller triggers restoreSession on build', () async {
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+      ],
+    );
     addTearDown(container.dispose);
 
     expect(container.read(sessionStoreProvider).status, AuthStatus.unknown);
@@ -21,7 +29,11 @@ void main() {
   });
 
   test('splash controller does not re-restore if already resolved', () async {
-    final container = ProviderContainer();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+      ],
+    );
     addTearDown(container.dispose);
 
     await container
