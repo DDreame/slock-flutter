@@ -119,6 +119,25 @@ void main() {
       expect(fakeStorage.snapshot['other_key'], 'other_value');
     });
 
+    test(
+        'restoreSession with empty storage clears stale in-memory session fields',
+        () async {
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'test@example.com', password: 'password');
+      expect(container.read(sessionStoreProvider).token, isNotNull);
+
+      // Clear storage but leave in-memory state as authenticated.
+      await SessionStorageKeys.clear(fakeStorage);
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+      final state = container.read(sessionStoreProvider);
+      expect(state.status, AuthStatus.unauthenticated);
+      expect(state.token, isNull);
+      expect(state.userId, isNull);
+      expect(state.displayName, isNull);
+    });
+
     test('full lifecycle: login -> restore -> logout -> restore', () async {
       await container
           .read(sessionStoreProvider.notifier)

@@ -31,7 +31,7 @@ class SessionStore extends Notifier<SessionState> {
     } catch (_) {
       // Storage read failure — fall through to unauthenticated.
     }
-    state = state.copyWith(status: AuthStatus.unauthenticated);
+    state = const SessionState(status: AuthStatus.unauthenticated);
   }
 
   Future<void> login({required String email, required String password}) async {
