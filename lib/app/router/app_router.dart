@@ -24,29 +24,31 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 const _authRoutes = {'/login', '/register', '/forgot-password'};
 
+@visibleForTesting
+String? authRedirect(SessionState session, String path) {
+  final isSplash = path == '/splash';
+  final isAuthRoute = _authRoutes.contains(path);
+
+  if (session.status == AuthStatus.unknown) {
+    return isSplash ? null : '/splash';
+  }
+  if (session.isUnauthenticated && !isAuthRoute && !isSplash) {
+    return '/login';
+  }
+  if (session.isAuthenticated && (isAuthRoute || isSplash)) {
+    return '/home';
+  }
+  return null;
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final notifier = _SessionRouterNotifier(ref);
 
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: notifier,
-    redirect: (context, state) {
-      final session = ref.read(sessionStoreProvider);
-      final path = state.uri.path;
-      final isSplash = path == '/splash';
-      final isAuthRoute = _authRoutes.contains(path);
-
-      if (session.status == AuthStatus.unknown) {
-        return isSplash ? null : '/splash';
-      }
-      if (session.isUnauthenticated && !isAuthRoute && !isSplash) {
-        return '/login';
-      }
-      if (session.isAuthenticated && (isAuthRoute || isSplash)) {
-        return '/home';
-      }
-      return null;
-    },
+    redirect: (context, state) =>
+        authRedirect(ref.read(sessionStoreProvider), state.uri.path),
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
