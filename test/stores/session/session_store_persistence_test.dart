@@ -1,7 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
+import 'package:slock_app/stores/server_selection/server_selection_state.dart';
+import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -181,6 +184,38 @@ void main() {
       expect(
         container.read(sessionStoreProvider).status,
         AuthStatus.unauthenticated,
+      );
+    });
+
+    test('logout clears server selection state and storage', () async {
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'test@example.com', password: 'password');
+      await container
+          .read(serverSelectionStoreProvider.notifier)
+          .selectServer('server-1');
+      expect(
+        container.read(serverSelectionStoreProvider).selectedServerId,
+        'server-1',
+      );
+      expect(
+        fakeStorage.snapshot[ServerSelectionStorageKeys.selectedServerId],
+        'server-1',
+      );
+
+      await container.read(sessionStoreProvider.notifier).logout();
+
+      expect(
+        container.read(sessionStoreProvider).status,
+        AuthStatus.unauthenticated,
+      );
+      expect(
+        container.read(serverSelectionStoreProvider).selectedServerId,
+        isNull,
+      );
+      expect(
+        fakeStorage.snapshot[ServerSelectionStorageKeys.selectedServerId],
+        isNull,
       );
     });
   });
