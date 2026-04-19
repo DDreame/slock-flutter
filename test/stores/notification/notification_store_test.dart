@@ -181,7 +181,7 @@ void main() {
     });
 
     test('setVisibleTarget sets and clears target', () {
-      final target = VisibleTarget(
+      const target = VisibleTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
@@ -217,12 +217,12 @@ void main() {
 
   group('NotificationState', () {
     test('copyWith preserves fields when not overridden', () {
-      final target = VisibleTarget(
+      const target = VisibleTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
       );
-      final original = NotificationState(
+      const original = NotificationState(
         lifecycleStatus: AppLifecycleStatus.paused,
         visibleTarget: target,
         pushToken: 'token',
@@ -236,7 +236,7 @@ void main() {
 
     test('copyWith clear flags null out fields', () {
       final original = NotificationState(
-        visibleTarget: VisibleTarget(
+        visibleTarget: const VisibleTarget(
           serverId: 's1',
           surface: NotificationSurface.channel,
           channelId: 'c1',
@@ -260,12 +260,12 @@ void main() {
     });
 
     test('equality and hashCode', () {
-      final a = NotificationState(
+      const a = NotificationState(
         lifecycleStatus: AppLifecycleStatus.resumed,
         pushToken: 'tok',
         permissionStatus: NotificationPermissionStatus.granted,
       );
-      final b = NotificationState(
+      const b = NotificationState(
         lifecycleStatus: AppLifecycleStatus.resumed,
         pushToken: 'tok',
         permissionStatus: NotificationPermissionStatus.granted,

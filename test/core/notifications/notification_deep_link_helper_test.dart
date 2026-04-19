@@ -172,12 +172,12 @@ void main() {
 
   group('NotificationTarget', () {
     test('equality', () {
-      final a = NotificationTarget(
+      const a = NotificationTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
       );
-      final b = NotificationTarget(
+      const b = NotificationTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
@@ -187,12 +187,12 @@ void main() {
     });
 
     test('inequality on different fields', () {
-      final a = NotificationTarget(
+      const a = NotificationTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
       );
-      final b = NotificationTarget(
+      const b = NotificationTarget(
         serverId: 's2',
         surface: NotificationSurface.channel,
         channelId: 'c1',
@@ -203,12 +203,12 @@ void main() {
 
   group('VisibleTarget', () {
     test('matches same channel', () {
-      final visible = VisibleTarget(
+      const visible = VisibleTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
       );
-      final target = NotificationTarget(
+      const target = NotificationTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
@@ -217,12 +217,12 @@ void main() {
     });
 
     test('does not match different channel', () {
-      final visible = VisibleTarget(
+      const visible = VisibleTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
       );
-      final target = NotificationTarget(
+      const target = NotificationTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c2',
@@ -231,13 +231,13 @@ void main() {
     });
 
     test('matches when incoming has no threadId', () {
-      final visible = VisibleTarget(
+      const visible = VisibleTarget(
         serverId: 's1',
         surface: NotificationSurface.thread,
         channelId: 'c1',
         threadId: 't1',
       );
-      final target = NotificationTarget(
+      const target = NotificationTarget(
         serverId: 's1',
         surface: NotificationSurface.thread,
         channelId: 'c1',
@@ -246,13 +246,13 @@ void main() {
     });
 
     test('does not match when threadIds differ', () {
-      final visible = VisibleTarget(
+      const visible = VisibleTarget(
         serverId: 's1',
         surface: NotificationSurface.thread,
         channelId: 'c1',
         threadId: 't1',
       );
-      final target = NotificationTarget(
+      const target = NotificationTarget(
         serverId: 's1',
         surface: NotificationSurface.thread,
         channelId: 'c1',
@@ -262,12 +262,12 @@ void main() {
     });
 
     test('equality', () {
-      final a = VisibleTarget(
+      const a = VisibleTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
       );
-      final b = VisibleTarget(
+      const b = VisibleTarget(
         serverId: 's1',
         surface: NotificationSurface.channel,
         channelId: 'c1',
