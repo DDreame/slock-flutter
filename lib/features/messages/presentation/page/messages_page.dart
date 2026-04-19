@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 
 class MessagesPage extends StatelessWidget {
   final String serverId;
@@ -12,9 +15,12 @@ class MessagesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Messages')),
-      body: Center(child: Text('DM $channelId')),
+    final scopeId = DirectMessageScopeId.fromRouteParams(
+      serverId: serverId,
+      directMessageId: channelId,
+    );
+    return ConversationDetailPage(
+      target: ConversationDetailTarget.directMessage(scopeId),
     );
   }
 }
