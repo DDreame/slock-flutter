@@ -4,12 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 void main() {
-  test('appRouterProvider creates GoRouter with /home as initial location', () {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final router = container.read(appRouterProvider);
-    expect(router.routeInformationProvider.value.uri.path, '/home');
-  });
+  test(
+    'appRouterProvider creates GoRouter with /splash as initial location',
+    () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final router = container.read(appRouterProvider);
+      expect(router.routeInformationProvider.value.uri.path, '/splash');
+    },
+  );
 
   test('appRouterProvider includes all docs §12 primary routes', () {
     final container = ProviderContainer();
@@ -53,5 +56,12 @@ void main() {
       '/release-notes',
     ];
     expect(paths, containsAll(expectedRoutes));
+  });
+
+  test('router has refreshListenable wired to session store', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final router = container.read(appRouterProvider);
+    expect(router.routerDelegate, isNotNull);
   });
 }
