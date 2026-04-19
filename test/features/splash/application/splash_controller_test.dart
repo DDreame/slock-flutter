@@ -4,7 +4,6 @@ import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
-import 'package:slock_app/stores/server_selection/server_selection_state.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
