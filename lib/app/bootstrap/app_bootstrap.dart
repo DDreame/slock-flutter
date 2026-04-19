@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/core/telemetry/noop_crash_reporter.dart';
@@ -7,11 +8,13 @@ import 'package:slock_app/core/telemetry/noop_crash_reporter.dart';
 class AppBootstrapResult {
   final CrashReporter reporter;
   final DiagnosticsCollector diagnostics;
+  final NotificationInitializer notificationInitializer;
   final List<Override> overrides;
 
   const AppBootstrapResult({
     required this.reporter,
     required this.diagnostics,
+    required this.notificationInitializer,
     required this.overrides,
   });
 }
@@ -19,15 +22,19 @@ class AppBootstrapResult {
 Future<AppBootstrapResult> appBootstrap() async {
   final reporter = NoOpCrashReporter();
   final diagnostics = DiagnosticsCollector();
+  final notificationInitializer = NoOpNotificationInitializer();
 
   await reporter.init();
 
   return AppBootstrapResult(
     reporter: reporter,
     diagnostics: diagnostics,
+    notificationInitializer: notificationInitializer,
     overrides: [
       crashReporterProvider.overrideWithValue(reporter),
       diagnosticsCollectorProvider.overrideWithValue(diagnostics),
+      notificationInitializerProvider
+          .overrideWithValue(notificationInitializer),
     ],
   );
 }

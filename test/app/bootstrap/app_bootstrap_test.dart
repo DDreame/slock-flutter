@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
+import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
@@ -13,7 +14,8 @@ void main() {
       final result = await appBootstrap();
       expect(result.reporter, isA<CrashReporter>());
       expect(result.diagnostics, isA<DiagnosticsCollector>());
-      expect(result.overrides, hasLength(2));
+      expect(result.notificationInitializer, isA<NotificationInitializer>());
+      expect(result.overrides, hasLength(3));
     });
 
     test('provider overrides resolve correctly', () async {
@@ -29,6 +31,13 @@ void main() {
         identical(
           container.read(diagnosticsCollectorProvider),
           result.diagnostics,
+        ),
+        isTrue,
+      );
+      expect(
+        identical(
+          container.read(notificationInitializerProvider),
+          result.notificationInitializer,
         ),
         isTrue,
       );
