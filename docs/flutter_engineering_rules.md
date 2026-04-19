@@ -147,7 +147,12 @@ Use structural/source-shape tests only where they protect historically fragile w
 
 ## 12. CI Rules
 
-Local default verification should stay test-first:
+Local development constraint:
+
+- developer workspaces are assumed to have a hard `2GB RAM` limit
+- local toolchain choices and verification workflow must be designed around that constraint
+
+Workflow policy:
 
 - run formatting checks, `flutter analyze`, and targeted tests locally as needed
 - do not require full app builds or packaging verification on every task branch
@@ -161,12 +166,12 @@ Baseline CI should include:
 - widget tests
 - one smoke integration/build lane
 
-Full build, packaging, and artifact verification belong to CI/CD lanes by default.
+Full build, packaging, and artifact verification belong to CI/CD lanes.
 
 Exception rule:
 
-- if a change directly touches the build system, native integration, signing, packaging, or is explicitly debugging a build-specific issue, extra build verification may be added to that task's locked scope
-- otherwise, local full-build requirements should not be added implicitly during development or review
+- if a task explicitly touches the build system, native integration, signing, packaging, or is debugging a build-specific issue, that extra build verification must be declared in the task's locked scope
+- even in those cases, the default `2GB RAM` local workspace should not be assumed to carry full-build verification; use CI/CD lanes or a separately provisioned environment when needed
 
 CI should stay fast enough that developers trust it and reviewers can require green runs on every meaningful PR.
 
@@ -187,6 +192,6 @@ Reviewers should explicitly ask:
 11. Does a scope refresh commit atomically, or can the UI observe half-applied data?
 12. Does the change stay within the documented performance budgets?
 13. Are local diagnostics bounded and redacted?
-14. Is local verification staying test-first, with full-build verification owned by CI/CD unless the task is explicitly build-specific?
+14. Is local verification staying test-first under the `2GB RAM` workspace limit, with full-build verification owned by CI/CD rather than local developer machines?
 
 If one of these answers is weak, the change is not ready.
