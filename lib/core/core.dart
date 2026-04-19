@@ -4,4 +4,5 @@
 
 export 'errors/errors.dart';
 export 'network/network.dart';
+export 'realtime/realtime.dart';
 export 'storage/storage.dart';
