@@ -9,6 +9,8 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 void main() {
@@ -50,6 +52,9 @@ void main() {
       overrides: [
         activeServerScopeIdProvider.overrideWithValue(
           const ServerScopeId('server-1'),
+        ),
+        serverListRepositoryProvider.overrideWithValue(
+          _FakeServerListRepository(),
         ),
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
           (serverId) async => HomeWorkspaceSnapshot(
@@ -165,4 +170,9 @@ void main() {
       );
     });
   });
+}
+
+class _FakeServerListRepository implements ServerListRepository {
+  @override
+  Future<List<ServerSummary>> loadServers() async => [];
 }

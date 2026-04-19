@@ -7,6 +7,9 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
 void main() {
   testWidgets('HomePage renders expected channel and direct message rows', (
@@ -17,7 +20,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(
         router: router,
-        repository: const _FakeHomeRepository(_sampleSnapshot),
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
       ),
     );
     await tester.pumpAndSettle();
@@ -37,7 +40,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(
         router: router,
-        repository: const _FakeHomeRepository(_sampleSnapshot),
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
       ),
     );
     await tester.pumpAndSettle();
@@ -60,6 +63,9 @@ void main() {
           homeRepositoryProvider.overrideWithValue(
             const _FakeHomeRepository(_sampleSnapshot),
           ),
+          serverListRepositoryProvider.overrideWithValue(
+            const _FakeServerListRepository([]),
+          ),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),
@@ -67,6 +73,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Select a server to get started.'), findsOneWidget);
+    expect(find.text('Select workspace'), findsOneWidget);
     expect(find.text('Channels'), findsNothing);
   });
 
@@ -78,7 +85,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(
         router: router,
-        repository: const _FakeHomeRepository(_sampleSnapshot),
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
       ),
     );
     await tester.pumpAndSettle();
@@ -87,6 +94,135 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('dm:server-1/dm-alice'), findsOneWidget);
+  });
+
+  testWidgets('AppBar shows server name when server list is loaded', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        serverListRepository: const _FakeServerListRepository(_sampleServers),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Workspace A'), findsOneWidget);
+  });
+
+  testWidgets('AppBar shows Slock when server list is not loaded', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        serverListRepository: const _FakeServerListRepository([]),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Slock'), findsOneWidget);
+  });
+
+  testWidgets('tapping AppBar title opens server switcher sheet', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        serverListRepository: const _FakeServerListRepository(_sampleServers),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.arrow_drop_down));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Switch workspace'), findsOneWidget);
+    expect(find.byKey(const ValueKey('server-server-1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('server-server-2')), findsOneWidget);
+  });
+
+  testWidgets(
+      'tapping Select workspace button in no-server state opens switcher', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(null),
+          homeRepositoryProvider.overrideWithValue(
+            const _FakeHomeRepository(_sampleSnapshot),
+          ),
+          serverListRepositoryProvider.overrideWithValue(
+            const _FakeServerListRepository(_sampleServers),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Select workspace'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Switch workspace'), findsOneWidget);
+  });
+
+  testWidgets(
+      'selecting a server in switcher updates selection and loads workspace', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        homeRepositoryProvider.overrideWithValue(
+          const _FakeHomeRepository(_sampleSnapshot),
+        ),
+        serverListRepositoryProvider.overrideWithValue(
+          const _FakeServerListRepository(_sampleServers),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Select a server to get started.'), findsOneWidget);
+    expect(find.text('Channels'), findsNothing);
+
+    await tester.tap(find.text('Select workspace'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('server-server-1')));
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(serverSelectionStoreProvider).selectedServerId,
+      'server-1',
+    );
+    expect(find.text('Select a server to get started.'), findsNothing);
+    expect(find.text('Channels'), findsOneWidget);
+    expect(find.text('Direct Messages'), findsOneWidget);
+
+    container.dispose();
   });
 }
 
@@ -119,16 +255,24 @@ const _sampleSnapshot = HomeWorkspaceSnapshot(
   ],
 );
 
+const _sampleServers = [
+  ServerSummary(id: 'server-1', name: 'Workspace A'),
+  ServerSummary(id: 'server-2', name: 'Workspace B'),
+];
+
 Widget _buildApp({
   required GoRouter router,
-  required HomeRepository repository,
+  required HomeRepository homeRepository,
+  ServerListRepository serverListRepository =
+      const _FakeServerListRepository([]),
 }) {
   return ProviderScope(
     overrides: [
       activeServerScopeIdProvider.overrideWithValue(
         const ServerScopeId('server-1'),
       ),
-      homeRepositoryProvider.overrideWithValue(repository),
+      homeRepositoryProvider.overrideWithValue(homeRepository),
+      serverListRepositoryProvider.overrideWithValue(serverListRepository),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -171,5 +315,31 @@ class _FakeHomeRepository implements HomeRepository {
   @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
     return snapshot;
+  }
+}
+
+class _FakeServerListRepository implements ServerListRepository {
+  const _FakeServerListRepository(this.servers);
+
+  final List<ServerSummary> servers;
+
+  @override
+  Future<List<ServerSummary>> loadServers() async => servers;
+}
+
+class _FakeSecureStorage implements SecureStorage {
+  final Map<String, String> _store = {};
+
+  @override
+  Future<String?> read({required String key}) async => _store[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _store[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    _store.remove(key);
   }
 }

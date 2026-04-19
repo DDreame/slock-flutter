@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
+import 'package:slock_app/features/servers/application/server_list_state.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -23,9 +27,13 @@ class _HomePageState extends ConsumerState<HomePage> {
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Slock')),
+      appBar: AppBar(
+        title: _HomeAppBarTitle(onTap: () => showServerSwitcherSheet(context)),
+      ),
       body: switch (state.status) {
-        HomeListStatus.noActiveServer => const _HomeNoServerState(),
+        HomeListStatus.noActiveServer => _HomeNoServerState(
+            onSelectServer: () => showServerSwitcherSheet(context),
+          ),
         HomeListStatus.initial ||
         HomeListStatus.loading =>
           const Center(child: CircularProgressIndicator()),
@@ -93,16 +101,28 @@ class _HomeEmptyState extends StatelessWidget {
 }
 
 class _HomeNoServerState extends StatelessWidget {
-  const _HomeNoServerState();
+  const _HomeNoServerState({required this.onSelectServer});
+
+  final VoidCallback onSelectServer;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text(
-          'Select a server to get started.',
-          textAlign: TextAlign.center,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Select a server to get started.',
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: onSelectServer,
+              child: const Text('Select workspace'),
+            ),
+          ],
         ),
       ),
     );
@@ -131,6 +151,41 @@ class _HomeErrorState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HomeAppBarTitle extends ConsumerWidget {
+  const _HomeAppBarTitle({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeServer = ref.watch(activeServerScopeIdProvider);
+    final serverListState = ref.watch(serverListStoreProvider);
+
+    String title = 'Slock';
+    if (activeServer != null &&
+        serverListState.status == ServerListStatus.success) {
+      for (final server in serverListState.servers) {
+        if (server.id == activeServer.value) {
+          title = server.name;
+          break;
+        }
+      }
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+          const SizedBox(width: 4),
+          const Icon(Icons.arrow_drop_down),
+        ],
       ),
     );
   }
