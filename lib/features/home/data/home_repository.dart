@@ -4,12 +4,12 @@ abstract class HomeRepository {
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId);
 }
 
-typedef HomeWorkspaceSnapshotLoader =
-    Future<HomeWorkspaceSnapshot> Function(ServerScopeId serverId);
+typedef HomeWorkspaceSnapshotLoader = Future<HomeWorkspaceSnapshot> Function(
+    ServerScopeId serverId);
 
 class BaselineHomeRepository implements HomeRepository {
   BaselineHomeRepository({required HomeWorkspaceSnapshotLoader loadWorkspace})
-    : _loadWorkspace = loadWorkspace;
+      : _loadWorkspace = loadWorkspace;
 
   final HomeWorkspaceSnapshotLoader _loadWorkspace;
 

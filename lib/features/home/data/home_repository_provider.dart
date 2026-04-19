@@ -4,8 +4,8 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 
 final homeWorkspaceSnapshotLoaderProvider =
     Provider<HomeWorkspaceSnapshotLoader>(
-      (ref) => _loadBaselineHomeWorkspaceSnapshot,
-    );
+  (ref) => _loadBaselineHomeWorkspaceSnapshot,
+);
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
   final loadWorkspace = ref.watch(homeWorkspaceSnapshotLoaderProvider);
