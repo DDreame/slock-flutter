@@ -147,6 +147,12 @@ Use structural/source-shape tests only where they protect historically fragile w
 
 ## 12. CI Rules
 
+Local default verification should stay test-first:
+
+- run formatting checks, `flutter analyze`, and targeted tests locally as needed
+- do not require full app builds or packaging verification on every task branch
+- reviewers should reject "please run a full local build" as a default gate for ordinary feature work
+
 Baseline CI should include:
 
 - `dart format --set-exit-if-changed`
@@ -154,6 +160,13 @@ Baseline CI should include:
 - unit tests
 - widget tests
 - one smoke integration/build lane
+
+Full build, packaging, and artifact verification belong to CI/CD lanes by default.
+
+Exception rule:
+
+- if a change directly touches the build system, native integration, signing, packaging, or is explicitly debugging a build-specific issue, extra build verification may be added to that task's locked scope
+- otherwise, local full-build requirements should not be added implicitly during development or review
 
 CI should stay fast enough that developers trust it and reviewers can require green runs on every meaningful PR.
 
@@ -174,5 +187,6 @@ Reviewers should explicitly ask:
 11. Does a scope refresh commit atomically, or can the UI observe half-applied data?
 12. Does the change stay within the documented performance budgets?
 13. Are local diagnostics bounded and redacted?
+14. Is local verification staying test-first, with full-build verification owned by CI/CD unless the task is explicitly build-specific?
 
 If one of these answers is weak, the change is not ready.
