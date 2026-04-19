@@ -5,6 +5,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
+import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -26,6 +27,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
     final store = ref.read(homeListStoreProvider.notifier);
+    final unreadState = ref.watch(channelUnreadStoreProvider);
+    final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Slock')),
@@ -46,16 +49,23 @@ class _HomePageState extends ConsumerState<HomePage> {
                 HomeChannelRow(
                   key: ValueKey('channel-${channel.scopeId.routeParam}'),
                   channel: channel,
-                  onTap: () =>
-                      context.go(store.channelRoutePath(channel.scopeId)),
+                  unreadCount: unreadState.channelUnreadCount(channel.scopeId),
+                  onTap: () {
+                    unreadStore.markChannelRead(channel.scopeId);
+                    context.go(store.channelRoutePath(channel.scopeId));
+                  },
                 ),
               const _HomeSectionHeader(title: 'Direct Messages'),
               for (final directMessage in state.directMessages)
                 HomeDirectMessageRow(
                   key: ValueKey('dm-${directMessage.scopeId.routeParam}'),
                   directMessage: directMessage,
-                  onTap: () => context
-                      .go(store.directMessageRoutePath(directMessage.scopeId)),
+                  unreadCount: unreadState.dmUnreadCount(directMessage.scopeId),
+                  onTap: () {
+                    unreadStore.markDmRead(directMessage.scopeId);
+                    context.go(
+                        store.directMessageRoutePath(directMessage.scopeId));
+                  },
                 ),
             ],
           ),
