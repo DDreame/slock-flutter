@@ -252,6 +252,18 @@ Rule:
 - shared truth belongs in stores
 - repositories fetch/write data; they do not own presentation state
 
+### 6.1 Drift vs store ownership must be explicit
+
+The architecture must not create two independent writable truths for the same shared concept.
+
+For each domain, pick exactly one runtime source of truth and document it.
+
+- entity-heavy collections that need local query, paging, or offline re-entry may use Drift as persistence truth, with stores/controllers derived from repository or DAO observation
+- ephemeral shared state such as unread counts, latest activity, runtime status, visible-target notification suppression, and optimistic operation overlays must be owned by canonical in-memory stores
+- if persistence is needed for an in-memory store concept, persistence is a mirror, not a second authoritative write path
+
+Do not let Drift entities and in-memory stores both accept independent writes for the same shared concept.
+
 ## 7. Data Stability Rules
 
 This is the most important part of the Flutter architecture.
@@ -382,7 +394,16 @@ Keep the current product semantics:
 - if the app is foregrounded and the user is already viewing the same channel, suppress the extra notification
 - if the app is foregrounded but the incoming event belongs to another channel, allow local/in-app notification behavior
 
-Do this through an explicit `currentVisibleChannelId` in `NotificationStore`, not through route guessing.
+Do not implement this as a bare `channelId` comparison alone.
+
+Foreground suppression should use an explicit visible-target descriptor stored in `NotificationStore`, not route guessing. At minimum the visible target should encode:
+
+- `serverId`
+- `surface`
+- `channelId`
+- `threadId` and/or `messageId` when relevant
+
+Notification policy should compare incoming payloads against that visible-target descriptor, not against a single scalar id or inferred page state.
 
 ### 9.2 Background behavior
 

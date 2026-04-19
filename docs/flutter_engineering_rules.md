@@ -46,6 +46,12 @@ Examples:
 
 Screens may derive view state, but they must not fork shared truth.
 
+If both Drift and an in-memory store exist for the same domain area, the ownership split must be explicit:
+
+- Drift may be the persistence/query truth for entity collections
+- canonical stores own ephemeral shared runtime state and optimistic overlays
+- the same shared concept must not accept independent writes in both places
+
 ## 4. Realtime Events Are Reduced Once
 
 If an event changes shared state, it must be reduced once in the realtime/store layer.
@@ -82,7 +88,7 @@ If a shim is unavoidable:
 
 ## 7. Notification Rules
 
-- foreground suppression must use explicit visible-channel state
+- foreground suppression must use an explicit visible-target descriptor, not a bare channel id
 - background delivery must rely on push, not a permanent background socket
 - deep-link payload parsing must be centralized and tested
 - notification preference logic must live in a reusable policy layer, not a widget
