@@ -11,7 +11,9 @@ final networkLogSinkProvider = Provider<NetworkLogSink>((ref) {
   return noopNetworkLogSink;
 });
 
-final tokenRefreshCoordinatorProvider = Provider<TokenRefreshCoordinator>((ref) {
+final tokenRefreshCoordinatorProvider = Provider<TokenRefreshCoordinator>((
+  ref,
+) {
   final refreshToken = ref.watch(refreshAuthTokenProvider);
   return TokenRefreshCoordinator(refreshToken: refreshToken);
 });

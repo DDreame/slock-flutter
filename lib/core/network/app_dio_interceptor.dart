@@ -46,7 +46,10 @@ class AppDioInterceptor extends Interceptor {
   }
 
   @override
-  void onResponse(Response<dynamic> response, ResponseInterceptorHandler handler) {
+  void onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
     _logSink(
       NetworkLogEvent(
         stage: NetworkLogStage.response,

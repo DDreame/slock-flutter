@@ -74,10 +74,7 @@ void main() {
   test('preserves embedded AppFailure on DioException.error', () {
     const embeddedFailure = CancelledFailure(message: 'cancelled upstream');
     final failure = mapper.map(
-      buildDioException(
-        type: DioExceptionType.unknown,
-        error: embeddedFailure,
-      ),
+      buildDioException(type: DioExceptionType.unknown, error: embeddedFailure),
     );
 
     expect(identical(failure, embeddedFailure), isTrue);

@@ -7,9 +7,7 @@ class NetworkConfig {
     this.connectTimeout = const Duration(seconds: 10),
     this.sendTimeout = const Duration(seconds: 15),
     this.receiveTimeout = const Duration(seconds: 30),
-    this.defaultHeaders = const <String, String>{
-      'Accept': 'application/json',
-    },
+    this.defaultHeaders = const <String, String>{'Accept': 'application/json'},
   });
 
   final String baseUrl;

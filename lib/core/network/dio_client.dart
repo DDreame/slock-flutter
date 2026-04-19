@@ -2,9 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:slock_app/core/network/app_failure_mapper.dart';
 
 class AppDioClient {
-  AppDioClient(Dio dio, {AppFailureMapper failureMapper = const AppFailureMapper()})
-    : _dio = dio,
-      _failureMapper = failureMapper;
+  AppDioClient(
+    Dio dio, {
+    AppFailureMapper failureMapper = const AppFailureMapper(),
+  }) : _dio = dio,
+       _failureMapper = failureMapper;
 
   final Dio _dio;
   final AppFailureMapper _failureMapper;
