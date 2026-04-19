@@ -49,15 +49,17 @@ class ServerSwitcherSheet extends ConsumerWidget {
                 padding: EdgeInsets.all(24),
                 child: Center(child: Text('No workspaces available.')),
               ),
-            ServerListStatus.success => _ServerList(
-                servers: state.servers,
-                selectedServerId: activeServer?.value,
-                onSelect: (server) {
-                  ref
-                      .read(serverSelectionStoreProvider.notifier)
-                      .selectServer(server.id);
-                  Navigator.of(context).pop();
-                },
+            ServerListStatus.success => Flexible(
+                child: _ServerList(
+                  servers: state.servers,
+                  selectedServerId: activeServer?.value,
+                  onSelect: (server) {
+                    ref
+                        .read(serverSelectionStoreProvider.notifier)
+                        .selectServer(server.id);
+                    Navigator.of(context).pop();
+                  },
+                ),
               ),
           },
         ],
@@ -80,7 +82,6 @@ class _ServerList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      shrinkWrap: true,
       itemCount: servers.length,
       itemBuilder: (context, index) {
         final server = servers[index];

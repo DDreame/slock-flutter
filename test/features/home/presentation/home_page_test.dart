@@ -224,6 +224,45 @@ void main() {
 
     container.dispose();
   });
+
+  testWidgets('server switcher sheet scrolls with many servers', (
+    tester,
+  ) async {
+    final manyServers = List.generate(
+      30,
+      (i) => ServerSummary(id: 'server-$i', name: 'Workspace $i'),
+    );
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        serverListRepository: _FakeServerListRepository(manyServers),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.arrow_drop_down));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Switch workspace'), findsOneWidget);
+    expect(find.byKey(const ValueKey('server-server-0')), findsOneWidget);
+
+    final lastServerFinder = find.byKey(const ValueKey('server-server-29'));
+    expect(lastServerFinder, findsNothing);
+
+    await tester.scrollUntilVisible(
+      lastServerFinder,
+      200,
+      scrollable: find.descendant(
+        of: find.byType(BottomSheet),
+        matching: find.byType(Scrollable),
+      ),
+    );
+
+    expect(lastServerFinder, findsOneWidget);
+  });
 }
 
 const _sampleSnapshot = HomeWorkspaceSnapshot(
