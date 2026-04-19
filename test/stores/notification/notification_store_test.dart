@@ -118,13 +118,18 @@ void main() {
     test('refreshToken updates token and persists', () async {
       fakeInitializer.tokenResult = 'new-token';
 
-      await readStore().refreshToken();
+      await readStore().refreshToken(platform: 'ios');
 
       expect(readState().pushToken, 'new-token');
+      expect(readState().pushTokenPlatform, 'ios');
       expect(readState().pushTokenUpdatedAt, isNotNull);
       expect(
         fakeStorage.snapshot[NotificationStorageKeys.pushToken],
         'new-token',
+      );
+      expect(
+        fakeStorage.snapshot[NotificationStorageKeys.pushTokenPlatform],
+        'ios',
       );
       expect(
         fakeStorage.snapshot[NotificationStorageKeys.pushTokenUpdatedAt],
@@ -170,6 +175,22 @@ void main() {
 
       expect(readState().pushToken, isNull);
       expect(readState().pushTokenPlatform, isNull);
+    });
+
+    test('restorePushToken clears stale in-memory token when storage empty',
+        () async {
+      fakeInitializer.tokenResult = 'stale-token';
+      await readStore().refreshToken(platform: 'ios');
+      expect(readState().pushToken, 'stale-token');
+      expect(readState().pushTokenPlatform, 'ios');
+
+      await NotificationStorageKeys.clear(fakeStorage);
+
+      await readStore().restorePushToken();
+
+      expect(readState().pushToken, isNull);
+      expect(readState().pushTokenPlatform, isNull);
+      expect(readState().pushTokenUpdatedAt, isNull);
     });
 
     test('setLifecycleStatus updates state', () {

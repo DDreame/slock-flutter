@@ -30,15 +30,16 @@ class NotificationStore extends Notifier<NotificationState> {
     state = state.copyWith(permissionStatus: status);
   }
 
-  Future<void> refreshToken() async {
+  Future<void> refreshToken({String? platform}) async {
     final token = await _initializer.getToken();
     if (token != null && token != state.pushToken) {
       final now = DateTime.now();
       state = state.copyWith(
         pushToken: token,
+        pushTokenPlatform: platform,
         pushTokenUpdatedAt: now,
       );
-      await _persistPushToken(token, now);
+      await _persistPushToken(token, now, platform: platform);
     }
   }
 
@@ -58,6 +59,12 @@ class NotificationStore extends Notifier<NotificationState> {
         pushTokenPlatform: platform,
         pushTokenUpdatedAt:
             updatedAtStr != null ? DateTime.tryParse(updatedAtStr) : null,
+      );
+    } else {
+      state = state.copyWith(
+        clearPushToken: true,
+        clearPushTokenPlatform: true,
+        clearPushTokenUpdatedAt: true,
       );
     }
   }
@@ -83,7 +90,11 @@ class NotificationStore extends Notifier<NotificationState> {
     await NotificationStorageKeys.clear(_storage);
   }
 
-  Future<void> _persistPushToken(String token, DateTime updatedAt) async {
+  Future<void> _persistPushToken(
+    String token,
+    DateTime updatedAt, {
+    String? platform,
+  }) async {
     await _storage.write(
       key: NotificationStorageKeys.pushToken,
       value: token,
@@ -92,5 +103,11 @@ class NotificationStore extends Notifier<NotificationState> {
       key: NotificationStorageKeys.pushTokenUpdatedAt,
       value: updatedAt.toIso8601String(),
     );
+    if (platform != null) {
+      await _storage.write(
+        key: NotificationStorageKeys.pushTokenPlatform,
+        value: platform,
+      );
+    }
   }
 }
