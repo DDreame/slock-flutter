@@ -51,10 +51,19 @@ If both Drift and an in-memory store exist for the same domain area, the ownersh
 - Drift may be the persistence/query truth for entity collections
 - canonical stores own ephemeral shared runtime state and optimistic overlays
 - the same shared concept must not accept independent writes in both places
+- every canonical store write must validate a monotonic freshness key such as `seq`, `version`, `updatedAt`, or a documented scope-local revision
+- older payloads must be rejected; a late REST response must not overwrite newer socket-reduced or optimistic-confirmed state
 
 ## 4. Realtime Events Are Reduced Once
 
 If an event changes shared state, it must be reduced once in the realtime/store layer.
+
+Scope refreshes must also behave like a single shared-state write:
+
+- normalize the full scope payload first
+- commit related data atomically per scope
+- emit store updates once after the scoped write completes
+- do not let widgets observe half-applied graphs
 
 Only screen-local ephemeral behavior may stay local.
 
@@ -106,10 +115,24 @@ If a shim is unavoidable:
 - every async operation must choose an explicit user-facing failure mode
 - background and realtime failures must create breadcrumbs for diagnostics
 - token refresh must be serialized so concurrent 401s wait on the same refresh future
+- local diagnostics buffers must be bounded by count and age, with sensitive fields redacted by policy
+- diagnostics should prefer request ids, scope ids, seq numbers, and failure types over raw payload dumps
 
 The app should define a typed `AppFailure` hierarchy and use it consistently at repository boundaries.
 
-## 10. Testing Rules
+## 10. Performance Budget Rules
+
+The baseline budgets below are review gates, not aspirations:
+
+- home shell may block on at most 2 requests before first interactive paint
+- message-room initial entry should load one page only; secondary enrichment must stay bounded
+- pagination and search must declare explicit debounce/threshold rules
+- payloads above the agreed threshold must move parse/transform work off the main isolate
+- a single item change should not force a whole-list rewrite when an id-scoped update path exists
+
+If a change exceeds one of these budgets, it needs a written exception and a measurement plan.
+
+## 11. Testing Rules
 
 Minimum preferred stack:
 
@@ -122,7 +145,7 @@ Minimum preferred stack:
 
 Use structural/source-shape tests only where they protect historically fragile wiring.
 
-## 11. CI Rules
+## 12. CI Rules
 
 Baseline CI should include:
 
@@ -134,7 +157,7 @@ Baseline CI should include:
 
 CI should stay fast enough that developers trust it and reviewers can require green runs on every meaningful PR.
 
-## 12. Review Checklist
+## 13. Review Checklist
 
 Reviewers should explicitly ask:
 
@@ -147,5 +170,9 @@ Reviewers should explicitly ask:
 7. Are failures observable and user-reportable?
 8. Are transport failures mapped to typed `AppFailure`, or are raw exceptions leaking to widgets?
 9. Are route parameters scalar IDs only, with no serialized objects?
+10. Can an older payload overwrite newer state, or do reducers enforce monotonic freshness?
+11. Does a scope refresh commit atomically, or can the UI observe half-applied data?
+12. Does the change stay within the documented performance budgets?
+13. Are local diagnostics bounded and redacted?
 
 If one of these answers is weak, the change is not ready.

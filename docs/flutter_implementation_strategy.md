@@ -275,9 +275,11 @@ For list and timeline surfaces, the default flow should be:
 1. controller requests data with explicit scope
 2. repository returns cached local snapshot immediately if it exists
 3. repository refreshes from network in the background
-4. normalized models are written back to Drift and canonical stores
+4. repository normalizes the full scope payload into one scoped write set
 5. before writing back, verify the request still belongs to the current session scope
-6. UI updates from local/store observation, not from ad hoc callback state
+6. reducers/stores validate monotonic freshness keys before accepting each entity or aggregate write
+7. scoped data is committed atomically and stores emit once after the scoped write completes
+8. UI updates from local/store observation, not from ad hoc callback state
 
 This gives fast re-entry without turning the whole app into an uncontrolled offline sync engine.
 
@@ -288,6 +290,16 @@ Recommended pattern:
 - capture a `serverEpoch` or equivalent session-scope version when the request starts
 - when the response resolves, verify that the epoch and `serverId` still match the active session scope
 - if the user switched servers while the request was in flight, drop the result silently instead of writing cross-server data into the cache/store
+
+The read path must also guard against late-arriving older data within the same scope.
+
+Hard rules:
+
+- every write into a canonical store must carry a monotonic freshness key such as `seq`, `version`, `updatedAt`, or an explicit scope-local revision
+- reducers must reject payloads that are older than the currently held state, even if the older payload arrives later
+- a stale REST snapshot must never overwrite newer socket-reduced or optimistic-confirmed state just because it finished later
+- a scope refresh must normalize related entities and commit them atomically per scope so the UI never observes a half-applied graph
+- stores should emit once after the scoped write completes, not once per table/entity fragment
 
 ### 7.2 Write path
 
@@ -328,10 +340,16 @@ Flutter should have one normalized realtime flow:
 
 1. `RealtimeService` receives raw Socket.IO events
 2. event mapper converts them to typed domain events
-3. reducers update canonical stores once
+3. reducers apply freshness guards and update canonical stores once
 4. controllers/pages watch stores
 
 Do not let both list and detail controllers patch the same shared event separately.
+
+The single reduction path must also be the single freshness gate:
+
+- gap-fill responses, reconnect snapshots, live socket events, and optimistic confirmations all go through the same freshness acceptance rules
+- reducers must reject older payloads instead of relying on arrival order
+- stale REST or reconnect data must not roll back newer runtime state already accepted into a store
 
 ### 8.2 Shared vs local consumption
 
@@ -474,16 +492,17 @@ Do not eagerly load all domains on app start.
 - avoid decoding large images synchronously during list build
 - keep upload state in dedicated operation state, not mixed into unrelated screen flags
 
-### 10.5 Performance budget direction
+### 10.5 Performance budget baseline
 
-Before shipping a vertical slice, reviewers should ask:
+The first Flutter vertical slices should ship with explicit V1 budgets that reviewers can enforce:
 
-- does entering this screen require more data than the user can currently see?
-- is the cache bounded?
-- is the optimistic state scoped narrowly?
-- can the same socket event cause multiple list rewrites?
+- home shell: at most 2 blocking requests before first interactive paint
+- message room entry: load one timeline page initially; follow-up enrichment such as `savedIds` or unread side-data must happen in bounded secondary calls
+- pagination/search: debounce and minimum-threshold rules must be explicit in code, not left to ad hoc widget timing
+- large payloads above the agreed threshold must move parse/transform work off the main isolate
+- reducers must not trigger whole-list rewrites for single-item changes when an id-scoped update path exists
 
-If the answer is yes, the implementation is probably over-fetching or over-reducing.
+If a PR exceeds these budgets without a written exception and measurement plan, reviewers should reject it.
 
 ## 11. Error Handling and Crash Feedback
 
@@ -510,6 +529,13 @@ Use Sentry or an equivalent crash/error telemetry layer to capture:
 ### 11.3 Local diagnostics bundle
 
 Also keep a local ring buffer of recent diagnostics so the user can export a report even if remote telemetry is unavailable.
+
+This diagnostics buffer must be bounded and redacted by policy:
+
+- enforce both a max entry count and a max retention age
+- redact sensitive fields such as `Authorization`, cookies, refresh tokens, raw message bodies, and attachment URLs
+- prefer request ids, scope ids, sequence numbers, route context, and failure types over raw payload dumps
+- export enough context to reproduce the issue without turning diagnostics into a second unbounded data store
 
 The exported bundle should include:
 
