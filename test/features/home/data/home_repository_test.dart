@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -5,37 +6,23 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 
 void main() {
-  test(
-    'homeRepositoryProvider wires baseline repository through loader seam',
-    () async {
+  group('homeRepositoryProvider', () {
+    test('loads channel and dm lists through the inferred web contract',
+        () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          '/channels': [
+            {'id': 'channel-1', 'name': 'Engineering'},
+            {'id': 'channel-2', 'name': 'General'},
+          ],
+          '/channels/dm': [
+            {'id': 'dm-1', 'displayName': 'Alice'},
+            {'id': 'dm-2', 'name': 'Bob'},
+          ],
+        },
+      );
       final container = ProviderContainer(
-        overrides: [
-          homeWorkspaceSnapshotLoaderProvider.overrideWithValue((
-            serverId,
-          ) async {
-            return HomeWorkspaceSnapshot(
-              serverId: serverId,
-              channels: [
-                HomeChannelSummary(
-                  scopeId: ChannelScopeId(
-                    serverId: serverId,
-                    value: 'channel-1',
-                  ),
-                  name: 'Engineering',
-                ),
-              ],
-              directMessages: [
-                HomeDirectMessageSummary(
-                  scopeId: DirectMessageScopeId(
-                    serverId: serverId,
-                    value: 'dm-2',
-                  ),
-                  title: 'Alice',
-                ),
-              ],
-            );
-          }),
-        ],
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
       );
       addTearDown(container.dispose);
 
@@ -44,52 +31,169 @@ void main() {
         const ServerScopeId('server-1'),
       );
 
+      expect(
+        appDioClient.requests.map((request) => request.path),
+        ['/channels', '/channels/dm'],
+      );
+      expect(
+        appDioClient.requests.map((request) => request.serverIdHeader),
+        ['server-1', 'server-1'],
+      );
       expect(snapshot.serverId, const ServerScopeId('server-1'));
+      expect(snapshot.channels.length, 2);
       expect(
-        snapshot.channels.single.scopeId.serverId,
-        const ServerScopeId('server-1'),
-      );
+          snapshot.channels.first.scopeId,
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'channel-1',
+          ));
+      expect(snapshot.channels.first.name, 'Engineering');
+      expect(snapshot.directMessages.length, 2);
       expect(
-        snapshot.directMessages.single.scopeId.serverId,
-        const ServerScopeId('server-1'),
-      );
-      expect(snapshot.channels.single.name, 'Engineering');
-      expect(snapshot.directMessages.single.title, 'Alice');
-    },
-  );
+          snapshot.directMessages.first.scopeId,
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'dm-1',
+          ));
+      expect(snapshot.directMessages.first.title, 'Alice');
+      expect(snapshot.directMessages.last.title, 'Bob');
+    });
 
-  test(
-    'baseline repository keeps AppFailure boundary for injected seams',
-    () async {
+    test('rethrows transport AppFailure without wrapping it', () async {
+      const failure = ServerFailure(
+        message: 'upstream exploded',
+        statusCode: 500,
+      );
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          '/channels/dm': [
+            {'id': 'dm-1', 'displayName': 'Alice'},
+          ],
+        },
+        failures: {'/channels': failure},
+      );
       final container = ProviderContainer(
-        overrides: [
-          homeWorkspaceSnapshotLoaderProvider.overrideWithValue((
-            serverId,
-          ) async {
-            throw StateError('boom');
-          }),
-        ],
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
       );
       addTearDown(container.dispose);
 
       final repository = container.read(homeRepositoryProvider);
 
+      await expectLater(
+        repository.loadWorkspace(const ServerScopeId('server-1')),
+        throwsA(same(failure)),
+      );
       expect(
-        () => repository.loadWorkspace(const ServerScopeId('server-1')),
+        appDioClient.requests.map((request) => request.path),
+        ['/channels', '/channels/dm'],
+      );
+    });
+
+    test('throws SerializationFailure for malformed payloads', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          '/channels': [
+            {'id': 'channel-1', 'name': 'Engineering'},
+          ],
+          '/channels/dm': [
+            {'id': 'dm-1'},
+          ],
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(homeRepositoryProvider);
+
+      await expectLater(
+        repository.loadWorkspace(const ServerScopeId('server-1')),
         throwsA(
-          isA<UnknownFailure>()
+          isA<SerializationFailure>()
               .having(
                 (failure) => failure.message,
                 'message',
-                'Failed to load home workspace snapshot.',
+                'Malformed directMessages[0] payload: expected one of displayName, name, title.',
               )
               .having(
                 (failure) => failure.causeType,
                 'causeType',
-                'StateError',
+                'MissingStringField',
               ),
         ),
       );
-    },
-  );
+    });
+  });
+
+  test('baseline repository wraps unexpected seam errors in UnknownFailure',
+      () async {
+    final repository = BaselineHomeRepository(
+      loadWorkspace: (serverId) async => throw StateError('boom'),
+    );
+
+    await expectLater(
+      repository.loadWorkspace(const ServerScopeId('server-1')),
+      throwsA(
+        isA<UnknownFailure>()
+            .having(
+              (failure) => failure.message,
+              'message',
+              'Failed to load home workspace snapshot.',
+            )
+            .having(
+              (failure) => failure.causeType,
+              'causeType',
+              'StateError',
+            ),
+      ),
+    );
+  });
+}
+
+class _FakeAppDioClient extends AppDioClient {
+  _FakeAppDioClient({
+    Map<String, Object?> responses = const {},
+    Map<String, Object> failures = const {},
+  })  : _responses = responses,
+        _failures = failures,
+        super(Dio());
+
+  final Map<String, Object?> _responses;
+  final Map<String, Object> _failures;
+  final List<_CapturedRequest> requests = [];
+
+  @override
+  Future<Response<T>> get<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    final headers = Map<String, Object?>.from(options?.headers ?? const {});
+    requests.add(_CapturedRequest(path: path, headers: headers));
+
+    final failure = _failures[path];
+    if (failure != null) {
+      throw failure;
+    }
+
+    if (!_responses.containsKey(path)) {
+      throw StateError('Missing fake response for $path');
+    }
+
+    return Response<T>(
+      requestOptions: RequestOptions(path: path, headers: headers),
+      data: _responses[path] as T,
+    );
+  }
+}
+
+class _CapturedRequest {
+  const _CapturedRequest({required this.path, required this.headers});
+
+  final String path;
+  final Map<String, Object?> headers;
+
+  String? get serverIdHeader => headers['X-Server-Id'] as String?;
 }
