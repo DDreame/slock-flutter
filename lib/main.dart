@@ -4,6 +4,7 @@ import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const ProviderScope(child: SlockApp()));
 }
 

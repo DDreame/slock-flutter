@@ -19,10 +19,36 @@ import 'package:slock_app/features/splash/presentation/page/splash_page.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
+
+const _authRoutes = {'/login', '/register', '/forgot-password'};
+
+@visibleForTesting
+String? authRedirect(SessionState session, String path) {
+  final isSplash = path == '/splash';
+  final isAuthRoute = _authRoutes.contains(path);
+
+  if (session.status == AuthStatus.unknown) {
+    return isSplash ? null : '/splash';
+  }
+  if (session.isUnauthenticated && !isAuthRoute && !isSplash) {
+    return '/login';
+  }
+  if (session.isAuthenticated && (isAuthRoute || isSplash)) {
+    return '/home';
+  }
+  return null;
+}
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final notifier = _SessionRouterNotifier(ref);
+
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/splash',
+    refreshListenable: notifier,
+    redirect: (context, state) =>
+        authRedirect(ref.read(sessionStoreProvider), state.uri.path),
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
@@ -118,3 +144,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
   );
 });
+
+class _SessionRouterNotifier extends ChangeNotifier {
+  _SessionRouterNotifier(this._ref) {
+    _ref.listen<SessionState>(sessionStoreProvider, (_, __) {
+      notifyListeners();
+    });
+  }
+
+  final Ref _ref;
+}
