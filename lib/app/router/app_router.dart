@@ -3,22 +3,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/shell/app_shell.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
+import 'package:slock_app/features/auth/presentation/page/forgot_password_page.dart';
 import 'package:slock_app/features/auth/presentation/page/login_page.dart';
+import 'package:slock_app/features/auth/presentation/page/register_page.dart';
+import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/release_notes/presentation/page/release_notes_page.dart';
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
+import 'package:slock_app/features/splash/presentation/page/splash_page.dart';
+import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
+import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
+import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/home',
     routes: [
       GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
         path: '/login',
         builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/register',
+        builder: (context, state) => const RegisterPage(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordPage(),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
@@ -52,9 +72,39 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/servers/:serverId/threads',
+        builder: (context, state) => ThreadsPage(
+          serverId: state.pathParameters['serverId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/threads/:threadId/replies',
+        builder: (context, state) => ThreadRepliesPage(
+          threadId: state.pathParameters['threadId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/tasks',
+        builder: (context, state) => TasksPage(
+          serverId: state.pathParameters['serverId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/agents',
+        builder: (context, state) => AgentsPage(
+          serverId: state.pathParameters['serverId'],
+        ),
+      ),
+      GoRoute(
         path: '/agents/:agentId',
         builder: (context, state) => AgentsPage(
           agentId: state.pathParameters['agentId'],
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/machines',
+        builder: (context, state) => MachinesPage(
+          serverId: state.pathParameters['serverId']!,
         ),
       ),
       GoRoute(
@@ -70,6 +120,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ProfilePage(
           userId: state.pathParameters['userId'],
         ),
+      ),
+      GoRoute(
+        path: '/billing',
+        builder: (context, state) => const BillingPage(),
       ),
       GoRoute(
         path: '/release-notes',

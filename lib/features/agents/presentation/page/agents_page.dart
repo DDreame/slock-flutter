@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 class AgentsPage extends StatelessWidget {
   final String? agentId;
+  final String? serverId;
 
-  const AgentsPage({super.key, this.agentId});
+  const AgentsPage({super.key, this.agentId, this.serverId});
 
   @override
   Widget build(BuildContext context) {
