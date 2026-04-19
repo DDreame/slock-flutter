@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       has_flutter_project: ${{ steps.detect.outputs.has_flutter_project }}
+      has_android_scaffold: ${{ steps.detect.outputs.has_android_scaffold }}
     steps:
       - uses: actions/checkout@v4
 
@@ -29,7 +30,19 @@ jobs:
             echo "Flutter project detected at repo root."
           else
             echo "has_flutter_project=false" >> "$GITHUB_OUTPUT"
+            echo "has_android_scaffold=false" >> "$GITHUB_OUTPUT"
             echo "Docs-only repo state detected; CI lanes will stay green until app skeleton lands."
+            exit 0
+          fi
+
+          if [[ -d android ]] \
+            && [[ -f android/app/build.gradle || -f android/app/build.gradle.kts ]] \
+            && [[ -f android/settings.gradle || -f android/settings.gradle.kts ]]; then
+            echo "has_android_scaffold=true" >> "$GITHUB_OUTPUT"
+            echo "Android scaffold detected; smoke-build lane is enabled."
+          else
+            echo "has_android_scaffold=false" >> "$GITHUB_OUTPUT"
+            echo "Flutter project detected without Android scaffold; verify will run and smoke-build will stay green until android/ lands."
           fi
 
   docs-only-bootstrap-guard:
@@ -38,6 +51,13 @@ jobs:
     if: needs.detect-project.outputs.has_flutter_project != 'true'
     steps:
       - run: echo "Skipping Flutter CI lanes because pubspec.yaml is not present yet."
+
+  smoke-build-platform-guard:
+    runs-on: ubuntu-latest
+    needs: detect-project
+    if: needs.detect-project.outputs.has_flutter_project == 'true' && needs.detect-project.outputs.has_android_scaffold != 'true'
+    steps:
+      - run: echo "Skipping smoke-build because Android platform scaffold is not present yet. verify remains enabled for format/analyze/test."
 
   verify:
     runs-on: ubuntu-latest
@@ -67,7 +87,7 @@ jobs:
   smoke-build:
     runs-on: ubuntu-latest
     needs: [detect-project, verify]
-    if: needs.detect-project.outputs.has_flutter_project == 'true'
+    if: needs.detect-project.outputs.has_flutter_project == 'true' && needs.detect-project.outputs.has_android_scaffold == 'true'
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
