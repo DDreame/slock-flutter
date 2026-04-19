@@ -16,14 +16,6 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(homeListStoreProvider.notifier).load();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
     final store = ref.read(homeListStoreProvider.notifier);

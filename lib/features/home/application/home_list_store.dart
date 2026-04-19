@@ -15,6 +15,11 @@ class HomeListStore extends Notifier<HomeListState> {
     if (serverScopeId == null) {
       return const HomeListState(status: HomeListStatus.noActiveServer);
     }
+    Future.microtask(() {
+      if (state.status == HomeListStatus.initial) {
+        load();
+      }
+    });
     return HomeListState(serverScopeId: serverScopeId);
   }
 

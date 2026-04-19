@@ -110,6 +110,46 @@ void main() {
     expect(state.channels, isEmpty);
     expect(state.directMessages, isEmpty);
   });
+
+  test('build auto-loads workspace when active server is set', () async {
+    final repository = _FakeHomeRepository(
+      snapshot: const HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'general',
+            ),
+            name: 'general',
+          ),
+        ],
+        directMessages: [],
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(
+      container.read(homeListStoreProvider).status,
+      HomeListStatus.initial,
+    );
+
+    await Future.delayed(Duration.zero);
+
+    final state = container.read(homeListStoreProvider);
+    expect(state.status, HomeListStatus.success);
+    expect(state.serverScopeId, const ServerScopeId('server-1'));
+    expect(state.channels.single.name, 'general');
+    expect(repository.requestedServerIds, [const ServerScopeId('server-1')]);
+  });
 }
 
 class _FakeHomeRepository implements HomeRepository {
