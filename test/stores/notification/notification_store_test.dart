@@ -147,6 +147,21 @@ void main() {
       expect(readState().pushTokenUpdatedAt, firstUpdatedAt);
     });
 
+    test('refreshToken hydrates platform when token unchanged', () async {
+      fakeInitializer.tokenResult = 'existing-token';
+      await readStore().refreshToken();
+      expect(readState().pushTokenPlatform, isNull);
+
+      await readStore().refreshToken(platform: 'android');
+
+      expect(readState().pushToken, 'existing-token');
+      expect(readState().pushTokenPlatform, 'android');
+      expect(
+        fakeStorage.snapshot[NotificationStorageKeys.pushTokenPlatform],
+        'android',
+      );
+    });
+
     test('refreshToken does not update when token is null', () async {
       fakeInitializer.tokenResult = null;
 

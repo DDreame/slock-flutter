@@ -32,7 +32,11 @@ class NotificationStore extends Notifier<NotificationState> {
 
   Future<void> refreshToken({String? platform}) async {
     final token = await _initializer.getToken();
-    if (token != null && token != state.pushToken) {
+    if (token == null) return;
+    final tokenChanged = token != state.pushToken;
+    final platformChanged =
+        platform != null && platform != state.pushTokenPlatform;
+    if (tokenChanged || platformChanged) {
       final now = DateTime.now();
       state = state.copyWith(
         pushToken: token,
