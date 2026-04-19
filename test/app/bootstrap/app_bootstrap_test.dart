@@ -33,16 +33,15 @@ void main() {
         isTrue,
       );
     });
+  });
 
-    test('FlutterError.onError routes to reporter after wiring', () {
+  group('installErrorHandlers', () {
+    test('FlutterError.onError routes to reporter', () {
       final fake = FakeCrashReporter();
       final previousHandler = FlutterError.onError;
       addTearDown(() => FlutterError.onError = previousHandler);
 
-      FlutterError.onError = (details) {
-        fake.captureFlutterError(details);
-        FlutterError.presentError(details);
-      };
+      installErrorHandlers(fake);
 
       final details = FlutterErrorDetails(exception: Exception('test-error'));
       FlutterError.onError!(details);
@@ -52,6 +51,28 @@ void main() {
         fake.capturedFlutterErrors.first.exception.toString(),
         contains('test-error'),
       );
+    });
+
+    test('FlutterError.onError preserves presentError', () {
+      final fake = FakeCrashReporter();
+      final previousHandler = FlutterError.onError;
+      final presented = <FlutterErrorDetails>[];
+      addTearDown(() => FlutterError.onError = previousHandler);
+
+      final previousPresent = FlutterError.presentError;
+      FlutterError.presentError = (details) {
+        presented.add(details);
+      };
+      addTearDown(() => FlutterError.presentError = previousPresent);
+
+      installErrorHandlers(fake);
+
+      final details = FlutterErrorDetails(exception: Exception('visible'));
+      FlutterError.onError!(details);
+
+      expect(fake.capturedFlutterErrors, hasLength(1));
+      expect(presented, hasLength(1));
+      expect(presented.first, same(details));
     });
 
     test('zone error handler routes to reporter', () {

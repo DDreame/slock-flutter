@@ -1,3 +1,6 @@
+import 'dart:ui';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
@@ -29,4 +32,16 @@ Future<AppBootstrapResult> appBootstrap() async {
       diagnosticsCollectorProvider.overrideWithValue(diagnostics),
     ],
   );
+}
+
+void installErrorHandlers(CrashReporter reporter) {
+  FlutterError.onError = (details) {
+    reporter.captureFlutterError(details);
+    FlutterError.presentError(details);
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    reporter.captureException(error, stackTrace: stack);
+    return true;
+  };
 }

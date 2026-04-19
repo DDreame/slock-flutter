@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,16 +9,7 @@ import 'package:slock_app/app/theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final bootstrap = await appBootstrap();
-
-  FlutterError.onError = (details) {
-    bootstrap.reporter.captureFlutterError(details);
-    FlutterError.presentError(details);
-  };
-
-  PlatformDispatcher.instance.onError = (error, stack) {
-    bootstrap.reporter.captureException(error, stackTrace: stack);
-    return true;
-  };
+  installErrorHandlers(bootstrap.reporter);
 
   runZonedGuarded(
     () => runApp(ProviderScope(
