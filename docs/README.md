@@ -1,23 +1,24 @@
 # Slock Flutter Docs
 
-This repository is currently starting from an empty baseline.
+This repository is still at a docs-first stage.
 
-The initial deliverable in this branch is a reviewable implementation plan derived from:
+The current deliverable is a reviewable Flutter architecture and engineering baseline derived from:
 
-- the current Android `main` branch feature surface
-- the Android team's recent architecture decisions
-- the current delivery/review rules that have been used to ship Android work safely
+- the current Android `origin/main` implementation shape
+- the current Web product behavior in `/home/slock/shared/slock-web/`
+- the Android team's recent cleanup work around shared state, notifications, and review discipline
 
 Recommended reading order:
 
 1. `flutter_implementation_strategy.md`
-2. `android_to_flutter_parity_matrix.md`
+2. `flutter_engineering_rules.md`
+3. `android_to_flutter_parity_matrix.md`
 
 What these docs are for:
 
 - decide the Flutter architecture before scaffolding code
-- keep Flutter aligned with Android product behavior without copying Android's historical baggage
-- give reviewers a concrete basis for approving or adjusting the implementation direction
+- keep Flutter aligned with Android/Web product behavior without copying Android's temporary debt
+- give reviewers a concrete basis for approving, tightening, or objecting to the implementation direction
 
 What these docs intentionally do not do:
 

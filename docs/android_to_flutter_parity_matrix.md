@@ -33,7 +33,7 @@
 | Billing | Merged | subscription summary and plans page | Phase 6 |
 | Release notes | Merged | standalone release notes page | Phase 6 |
 | Saved Messages contract | Merged | data layer already moved to message-level contract | Use as-is from day 1 |
-| Saved Messages toggle | In flight | message-level save/unsave + savedIds lookup | Build directly on final contract |
+| Saved Messages toggle | Merged | message-level save/unsave + savedIds lookup are now landed | Build directly on final contract |
 | Saved Messages UI | In flight | Android still has old `SavedChannels` UI path | Flutter should skip old path and build final message-level screen |
 
 ## Architecture Parity Decisions
