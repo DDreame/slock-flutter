@@ -5,8 +5,8 @@ class AppDioClient {
   AppDioClient(
     Dio dio, {
     AppFailureMapper failureMapper = const AppFailureMapper(),
-  }) : _dio = dio,
-       _failureMapper = failureMapper;
+  })  : _dio = dio,
+        _failureMapper = failureMapper;
 
   final Dio _dio;
   final AppFailureMapper _failureMapper;

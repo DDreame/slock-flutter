@@ -2,7 +2,7 @@ import 'package:slock_app/core/network/auth_token_provider.dart';
 
 class TokenRefreshCoordinator {
   TokenRefreshCoordinator({required RefreshAuthToken refreshToken})
-    : _refreshToken = refreshToken;
+      : _refreshToken = refreshToken;
 
   final RefreshAuthToken _refreshToken;
 

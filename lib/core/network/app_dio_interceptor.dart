@@ -9,9 +9,9 @@ class AppDioInterceptor extends Interceptor {
     required RequestHeadersBuilder buildHeaders,
     required TokenRefreshCoordinator tokenRefreshCoordinator,
     required NetworkLogSink logSink,
-  }) : _buildHeaders = buildHeaders,
-       _tokenRefreshCoordinator = tokenRefreshCoordinator,
-       _logSink = logSink;
+  })  : _buildHeaders = buildHeaders,
+        _tokenRefreshCoordinator = tokenRefreshCoordinator,
+        _logSink = logSink;
 
   final RequestHeadersBuilder _buildHeaders;
   final TokenRefreshCoordinator _tokenRefreshCoordinator;

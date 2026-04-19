@@ -12,12 +12,13 @@ sealed class AppFailure implements Exception {
   final String? causeType;
 
   bool get isRetryable => switch (this) {
-    NetworkFailure() ||
-    TimeoutFailure() ||
-    RateLimitFailure() ||
-    ServerFailure() => true,
-    _ => false,
-  };
+        NetworkFailure() ||
+        TimeoutFailure() ||
+        RateLimitFailure() ||
+        ServerFailure() =>
+          true,
+        _ => false,
+      };
 
   @override
   String toString() {
