@@ -33,19 +33,49 @@ class _ConversationDetailScreen extends ConsumerStatefulWidget {
 
 class _ConversationDetailScreenState
     extends ConsumerState<_ConversationDetailScreen> {
+  late final TextEditingController _composerController;
+  late final FocusNode _composerFocusNode;
+
   @override
   void initState() {
     super.initState();
+    _composerController = TextEditingController();
+    _composerFocusNode = FocusNode();
     Future.microtask(
-        () => ref.read(conversationDetailStoreProvider.notifier).load());
+      () => ref.read(conversationDetailStoreProvider.notifier).load(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _composerController.dispose();
+    _composerFocusNode.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(conversationDetailStoreProvider);
+    if (_composerController.text != state.draft) {
+      _composerController.value = TextEditingValue(
+        text: state.draft,
+        selection: TextSelection.collapsed(offset: state.draft.length),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: Text(state.resolvedTitle)),
+      bottomNavigationBar: state.status == ConversationDetailStatus.success
+          ? _ConversationComposer(
+              controller: _composerController,
+              focusNode: _composerFocusNode,
+              state: state,
+              onChanged: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .updateDraft,
+              onSend: _handleSend,
+            )
+          : null,
       body: switch (state.status) {
         ConversationDetailStatus.initial ||
         ConversationDetailStatus.loading =>
@@ -64,6 +94,14 @@ class _ConversationDetailScreenState
           _ConversationMessageList(state: state),
       },
     );
+  }
+
+  Future<void> _handleSend() async {
+    await ref.read(conversationDetailStoreProvider.notifier).send();
+    final state = ref.read(conversationDetailStoreProvider);
+    if (state.sendFailure == null && state.draft.isEmpty) {
+      _composerFocusNode.unfocus();
+    }
   }
 }
 
@@ -136,6 +174,73 @@ class _ConversationMessageList extends StatelessWidget {
         final message = state.messages[index];
         return _ConversationMessageCard(message: message);
       },
+    );
+  }
+}
+
+class _ConversationComposer extends StatelessWidget {
+  const _ConversationComposer({
+    required this.controller,
+    required this.focusNode,
+    required this.state,
+    required this.onChanged,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final ConversationDetailState state;
+  final ValueChanged<String> onChanged;
+  final Future<void> Function() onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (state.sendFailure != null) ...[
+              Text(
+                state.sendFailure?.message ?? 'Failed to send message.',
+                key: const ValueKey('composer-send-error'),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('composer-input'),
+                    controller: controller,
+                    focusNode: focusNode,
+                    onChanged: onChanged,
+                    onSubmitted: (_) => state.canSend ? onSend() : null,
+                    minLines: 1,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      hintText: 'Write a message',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton(
+                  key: const ValueKey('composer-send'),
+                  onPressed: state.canSend ? onSend : null,
+                  child: Text(state.isSending ? 'Sending...' : 'Send'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

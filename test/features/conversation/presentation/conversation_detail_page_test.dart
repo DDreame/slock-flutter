@@ -169,6 +169,116 @@ void main() {
     expect(find.byKey(const ValueKey('conversation-success')), findsOneWidget);
     expect(find.text('Recovered'), findsOneWidget);
   });
+
+  testWidgets('composer disables send for blank draft and sends clean payload',
+      (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+      ),
+      sentMessage: ConversationMessageSummary(
+        id: 'message-2',
+        content: 'Hello again',
+        createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 2,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final initialButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('composer-send')),
+    );
+    expect(initialButton.onPressed, isNull);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('composer-input')),
+      '  Hello again  ',
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('composer-send')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hello again'), findsOneWidget);
+    expect(repository.sentContents, ['Hello again']);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('composer-input')))
+          .controller
+          ?.text,
+      isEmpty,
+    );
+  });
+
+  testWidgets('composer preserves draft and shows inline send failure', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+      ),
+      sendFailure: const ServerFailure(
+        message: 'Send failed.',
+        statusCode: 500,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('composer-input')),
+      'Keep me',
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('composer-send')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('composer-send-error')), findsOneWidget);
+    expect(find.text('Send failed.'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('composer-input')))
+          .controller
+          ?.text,
+      'Keep me',
+    );
+  });
 }
 
 Widget _buildApp({
@@ -182,10 +292,17 @@ Widget _buildApp({
 }
 
 class _FakeConversationRepository implements ConversationRepository {
-  _FakeConversationRepository({required this.snapshot});
+  _FakeConversationRepository({
+    required this.snapshot,
+    this.sentMessage,
+    this.sendFailure,
+  });
 
   final ConversationDetailSnapshot snapshot;
+  final ConversationMessageSummary? sentMessage;
+  final AppFailure? sendFailure;
   final List<ConversationDetailTarget> requestedTargets = [];
+  final List<String> sentContents = [];
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -193,6 +310,18 @@ class _FakeConversationRepository implements ConversationRepository {
   ) async {
     requestedTargets.add(target);
     return snapshot;
+  }
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content,
+  ) async {
+    sentContents.add(content);
+    if (sendFailure != null) {
+      throw sendFailure!;
+    }
+    return sentMessage!;
   }
 }
 
@@ -210,5 +339,13 @@ class _QueueConversationRepository implements ConversationRepository {
       throw next;
     }
     return next as ConversationDetailSnapshot;
+  }
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content,
+  ) {
+    throw UnimplementedError();
   }
 }

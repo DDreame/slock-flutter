@@ -12,7 +12,10 @@ class ConversationDetailState {
     this.title,
     this.messages = const [],
     this.historyLimited = false,
+    this.draft = '',
+    this.isSending = false,
     this.failure,
+    this.sendFailure,
   });
 
   final ConversationDetailTarget target;
@@ -20,12 +23,20 @@ class ConversationDetailState {
   final String? title;
   final List<ConversationMessageSummary> messages;
   final bool historyLimited;
+  final String draft;
+  final bool isSending;
   final AppFailure? failure;
+  final AppFailure? sendFailure;
 
   bool get isEmpty =>
       status == ConversationDetailStatus.success && messages.isEmpty;
 
   String get resolvedTitle => title ?? target.defaultTitle;
+
+  bool get canSend =>
+      status == ConversationDetailStatus.success &&
+      draft.trim().isNotEmpty &&
+      !isSending;
 
   ConversationDetailState copyWith({
     ConversationDetailTarget? target,
@@ -33,8 +44,12 @@ class ConversationDetailState {
     String? title,
     List<ConversationMessageSummary>? messages,
     bool? historyLimited,
+    String? draft,
+    bool? isSending,
     AppFailure? failure,
+    AppFailure? sendFailure,
     bool clearFailure = false,
+    bool clearSendFailure = false,
   }) {
     return ConversationDetailState(
       target: target ?? this.target,
@@ -42,7 +57,10 @@ class ConversationDetailState {
       title: title ?? this.title,
       messages: messages ?? this.messages,
       historyLimited: historyLimited ?? this.historyLimited,
+      draft: draft ?? this.draft,
+      isSending: isSending ?? this.isSending,
       failure: clearFailure ? null : (failure ?? this.failure),
+      sendFailure: clearSendFailure ? null : (sendFailure ?? this.sendFailure),
     );
   }
 
@@ -56,7 +74,10 @@ class ConversationDetailState {
             title == other.title &&
             listEquals(messages, other.messages) &&
             historyLimited == other.historyLimited &&
-            failure == other.failure;
+            draft == other.draft &&
+            isSending == other.isSending &&
+            failure == other.failure &&
+            sendFailure == other.sendFailure;
   }
 
   @override
@@ -66,6 +87,9 @@ class ConversationDetailState {
         title,
         Object.hashAll(messages),
         historyLimited,
+        draft,
+        isSending,
         failure,
+        sendFailure,
       );
 }

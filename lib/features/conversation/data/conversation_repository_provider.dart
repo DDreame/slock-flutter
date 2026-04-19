@@ -4,6 +4,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 const _messagePageSize = 50;
+const _sendMessagePath = '/messages';
 const _messagesPathPrefix = '/messages/channel/';
 const _channelsPath = '/channels';
 const _directMessageChannelsPath = '/channels/dm';
@@ -42,7 +43,6 @@ class _ApiConversationRepository implements ConversationRepository {
 
       final messagesPayload = _parseMessagesPayload(
         responses[0].data,
-        target: target,
       );
       return ConversationDetailSnapshot(
         target: target,
@@ -62,6 +62,34 @@ class _ApiConversationRepository implements ConversationRepository {
       );
     }
   }
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content,
+  ) async {
+    try {
+      final response = await _appDioClient.post<Object?>(
+        _sendMessagePath,
+        data: {
+          'channelId': target.conversationId,
+          'content': content.trim(),
+        },
+        options: _serverScopedOptions(target.serverId),
+      );
+      return _parseSingleMessage(
+        response.data,
+        payloadName: 'sendMessageResponse',
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to send message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
 }
 
 Options _serverScopedOptions(ServerScopeId serverId) {
@@ -76,9 +104,8 @@ String _metadataPath(ConversationSurface surface) {
 }
 
 _MessagesPayload _parseMessagesPayload(
-  Object? payload, {
-  required ConversationDetailTarget target,
-}) {
+  Object? payload,
+) {
   if (payload is List) {
     return _MessagesPayload(
       messages: _parseMessageList(
@@ -111,31 +138,38 @@ List<ConversationMessageSummary> _parseMessageList(
   required String payloadName,
 }) {
   return List<ConversationMessageSummary>.generate(payload.length, (index) {
-    final item = _requireMap(
+    return _parseSingleMessage(
       payload[index],
       payloadName: '$payloadName[$index]',
     );
-    return ConversationMessageSummary(
-      id: _requireStringField(
-        item,
-        field: 'id',
-        payloadName: '$payloadName[$index]',
-      ),
-      content: _requireStringField(
-        item,
-        field: 'content',
-        payloadName: '$payloadName[$index]',
-      ),
-      createdAt: _requireDateTimeField(
-        item,
-        field: 'createdAt',
-        payloadName: '$payloadName[$index]',
-      ),
-      senderType: _readOptionalString(item['senderType']) ?? 'system',
-      messageType: _readOptionalString(item['messageType']) ?? 'message',
-      seq: _readOptionalInt(item['seq']),
-    );
   }, growable: false);
+}
+
+ConversationMessageSummary _parseSingleMessage(
+  Object? payload, {
+  required String payloadName,
+}) {
+  final item = _requireMap(payload, payloadName: payloadName);
+  return ConversationMessageSummary(
+    id: _requireStringField(
+      item,
+      field: 'id',
+      payloadName: payloadName,
+    ),
+    content: _requireStringField(
+      item,
+      field: 'content',
+      payloadName: payloadName,
+    ),
+    createdAt: _requireDateTimeField(
+      item,
+      field: 'createdAt',
+      payloadName: payloadName,
+    ),
+    senderType: _readOptionalString(item['senderType']) ?? 'system',
+    messageType: _readOptionalString(item['messageType']) ?? 'message',
+    seq: _readOptionalInt(item['seq']),
+  );
 }
 
 String _resolveTitle(

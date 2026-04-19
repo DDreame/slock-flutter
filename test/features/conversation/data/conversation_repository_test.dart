@@ -172,6 +172,86 @@ void main() {
       ),
     );
   });
+
+  test('sendMessage posts trimmed content with explicit server header',
+      () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages': {
+          'id': 'message-2',
+          'content': 'Hello again',
+          'createdAt': '2026-04-19T15:05:00Z',
+          'senderType': 'human',
+          'messageType': 'message',
+          'seq': 2,
+        },
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final message = await repository.sendMessage(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      '  Hello again  ',
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/messages');
+    expect(request.serverIdHeader, 'server-1');
+    expect(request.data, {
+      'channelId': 'general',
+      'content': 'Hello again',
+    });
+    expect(message.id, 'message-2');
+    expect(message.content, 'Hello again');
+    expect(message.seq, 2);
+  });
+
+  test('sendMessage throws SerializationFailure for malformed response',
+      () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages': {
+          'content': 'Hello again',
+          'createdAt': '2026-04-19T15:05:00Z',
+        },
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    await expectLater(
+      repository.sendMessage(
+        ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+        'Hello again',
+      ),
+      throwsA(
+        isA<SerializationFailure>().having(
+          (failure) => failure.message,
+          'message',
+          'Malformed sendMessageResponse payload: missing string field "id".',
+        ),
+      ),
+    );
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {
@@ -220,18 +300,61 @@ class _FakeAppDioClient extends AppDioClient {
       data: _responses[path] as T,
     );
   }
+
+  @override
+  Future<Response<T>> post<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    final headers = Map<String, Object?>.from(options?.headers ?? const {});
+    requests.add(
+      _CapturedRequest(
+        method: 'POST',
+        path: path,
+        headers: headers,
+        queryParameters: queryParameters ?? const {},
+        data: data,
+      ),
+    );
+
+    final failure = _failures[path];
+    if (failure != null) {
+      throw failure;
+    }
+
+    if (!_responses.containsKey(path)) {
+      throw StateError('Missing fake response for $path');
+    }
+
+    return Response<T>(
+      requestOptions: RequestOptions(
+        path: path,
+        headers: headers,
+        queryParameters: queryParameters,
+        data: data,
+      ),
+      data: _responses[path] as T,
+    );
+  }
 }
 
 class _CapturedRequest {
   const _CapturedRequest({
+    this.method = 'GET',
     required this.path,
     required this.headers,
     required this.queryParameters,
+    this.data,
   });
 
+  final String method;
   final String path;
   final Map<String, Object?> headers;
   final Map<String, dynamic> queryParameters;
+  final Object? data;
 
   String? get serverIdHeader => headers['X-Server-Id'] as String?;
 }

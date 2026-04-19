@@ -37,6 +37,7 @@ class ConversationDetailStore
       messages: const [],
       historyLimited: false,
       clearFailure: true,
+      clearSendFailure: true,
     );
 
     try {
@@ -53,6 +54,7 @@ class ConversationDetailStore
         messages: snapshot.messages,
         historyLimited: snapshot.historyLimited,
         clearFailure: true,
+        clearSendFailure: true,
       );
     } on AppFailure catch (failure) {
       if (!_isCurrentRequest(requestEpoch, target)) {
@@ -65,11 +67,57 @@ class ConversationDetailStore
         messages: const [],
         historyLimited: false,
         failure: failure,
+        clearSendFailure: true,
       );
     }
   }
 
   Future<void> retry() => load();
+
+  void updateDraft(String value) {
+    state = state.copyWith(
+      draft: value,
+      clearSendFailure: true,
+    );
+  }
+
+  Future<void> send() async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final content = state.draft.trim();
+    if (state.status != ConversationDetailStatus.success ||
+        state.isSending ||
+        content.isEmpty) {
+      return;
+    }
+
+    state = state.copyWith(
+      isSending: true,
+      clearSendFailure: true,
+    );
+
+    try {
+      final message = await ref
+          .read(conversationRepositoryProvider)
+          .sendMessage(target, content);
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      state = state.copyWith(
+        messages: _appendDedupedMessage(state.messages, message),
+        draft: '',
+        isSending: false,
+        clearSendFailure: true,
+      );
+    } on AppFailure catch (failure) {
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      state = state.copyWith(
+        isSending: false,
+        sendFailure: failure,
+      );
+    }
+  }
 
   bool _isCurrentRequest(
     int requestEpoch,
@@ -77,5 +125,15 @@ class ConversationDetailStore
   ) {
     return requestEpoch == _requestEpoch &&
         ref.read(currentConversationDetailTargetProvider) == target;
+  }
+
+  List<ConversationMessageSummary> _appendDedupedMessage(
+    List<ConversationMessageSummary> existing,
+    ConversationMessageSummary next,
+  ) {
+    if (existing.any((message) => message.id == next.id)) {
+      return existing;
+    }
+    return [...existing, next];
   }
 }

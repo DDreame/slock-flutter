@@ -56,6 +56,11 @@ abstract class ConversationRepository {
   Future<ConversationDetailSnapshot> loadConversation(
     ConversationDetailTarget target,
   );
+
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content,
+  );
 }
 
 @immutable
