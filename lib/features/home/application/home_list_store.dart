@@ -40,6 +40,7 @@ class HomeListStore extends Notifier<HomeListState> {
       final snapshot = await ref.read(homeRepositoryProvider).loadWorkspace(
             serverScopeId,
           );
+      if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
       state = state.copyWith(
         serverScopeId: snapshot.serverId,
         status: HomeListStatus.success,
@@ -48,6 +49,7 @@ class HomeListStore extends Notifier<HomeListState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
       state = state.copyWith(
         serverScopeId: serverScopeId,
         status: HomeListStatus.failure,

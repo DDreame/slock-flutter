@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -6,6 +8,8 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+
+final _testActiveServerProvider = StateProvider<ServerScopeId?>((ref) => null);
 
 void main() {
   test('load populates channel and direct message lists on success', () async {
@@ -150,6 +154,52 @@ void main() {
     expect(state.channels.single.name, 'general');
     expect(repository.requestedServerIds, [const ServerScopeId('server-1')]);
   });
+
+  test('stale load is discarded when active server changes during fetch',
+      () async {
+    final completer = Completer<HomeWorkspaceSnapshot>();
+
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider
+            .overrideWith((ref) => ref.watch(_testActiveServerProvider)),
+        homeRepositoryProvider.overrideWithValue(
+          _DelayedHomeRepository(completer),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(_testActiveServerProvider.notifier).state =
+        const ServerScopeId('server-a');
+
+    final loadFuture = container.read(homeListStoreProvider.notifier).load();
+
+    container.read(_testActiveServerProvider.notifier).state =
+        const ServerScopeId('server-b');
+
+    completer.complete(
+      const HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-a'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-a'),
+              value: 'ch-a',
+            ),
+            name: 'channel-a',
+          ),
+        ],
+        directMessages: [],
+      ),
+    );
+
+    await loadFuture;
+
+    final state = container.read(homeListStoreProvider);
+    expect(state.serverScopeId, const ServerScopeId('server-b'));
+    expect(state.channels, isEmpty);
+  });
 }
 
 class _FakeHomeRepository implements HomeRepository {
@@ -166,5 +216,16 @@ class _FakeHomeRepository implements HomeRepository {
       throw failure!;
     }
     return snapshot!;
+  }
+}
+
+class _DelayedHomeRepository implements HomeRepository {
+  _DelayedHomeRepository(this.completer);
+
+  final Completer<HomeWorkspaceSnapshot> completer;
+
+  @override
+  Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) {
+    return completer.future;
   }
 }
