@@ -3,8 +3,8 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 final registerControllerProvider =
     AutoDisposeAsyncNotifierProvider<RegisterController, void>(
-      RegisterController.new,
-    );
+  RegisterController.new,
+);
 
 class RegisterController extends AutoDisposeAsyncNotifier<void> {
   @override

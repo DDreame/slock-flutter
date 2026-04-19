@@ -3,8 +3,8 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 final forgotPasswordControllerProvider =
     AutoDisposeAsyncNotifierProvider<ForgotPasswordController, void>(
-      ForgotPasswordController.new,
-    );
+  ForgotPasswordController.new,
+);
 
 class ForgotPasswordController extends AutoDisposeAsyncNotifier<void> {
   @override

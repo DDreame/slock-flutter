@@ -41,8 +41,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               onPressed: state.isLoading
                   ? null
                   : () => ref
-                        .read(forgotPasswordControllerProvider.notifier)
-                        .submit(email: _emailController.text),
+                      .read(forgotPasswordControllerProvider.notifier)
+                      .submit(email: _emailController.text),
               child: state.isLoading
                   ? const SizedBox(
                       height: 20,

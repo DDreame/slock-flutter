@@ -55,13 +55,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             FilledButton(
               onPressed: state.isLoading
                   ? null
-                  : () => ref
-                        .read(registerControllerProvider.notifier)
-                        .submit(
-                          email: _emailController.text,
-                          password: _passwordController.text,
-                          displayName: _displayNameController.text,
-                        ),
+                  : () => ref.read(registerControllerProvider.notifier).submit(
+                        email: _emailController.text,
+                        password: _passwordController.text,
+                        displayName: _displayNameController.text,
+                      ),
               child: state.isLoading
                   ? const SizedBox(
                       height: 20,

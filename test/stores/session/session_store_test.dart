@@ -43,9 +43,7 @@ void main() {
     });
 
     test('register transitions to authenticated', () async {
-      await container
-          .read(sessionStoreProvider.notifier)
-          .register(
+      await container.read(sessionStoreProvider.notifier).register(
             email: 'test@example.com',
             password: 'password',
             displayName: 'Test User',

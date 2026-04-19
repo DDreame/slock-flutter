@@ -4,8 +4,8 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 final splashControllerProvider =
     AutoDisposeAsyncNotifierProvider<SplashController, void>(
-      SplashController.new,
-    );
+  SplashController.new,
+);
 
 class SplashController extends AutoDisposeAsyncNotifier<void> {
   @override

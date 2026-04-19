@@ -48,12 +48,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             FilledButton(
               onPressed: state.isLoading
                   ? null
-                  : () => ref
-                        .read(loginControllerProvider.notifier)
-                        .submit(
-                          email: _emailController.text,
-                          password: _passwordController.text,
-                        ),
+                  : () => ref.read(loginControllerProvider.notifier).submit(
+                        email: _emailController.text,
+                        password: _passwordController.text,
+                      ),
               child: state.isLoading
                   ? const SizedBox(
                       height: 20,
