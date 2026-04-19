@@ -31,6 +31,9 @@ Required examples:
 Forbidden pattern:
 
 - hidden global state that implicitly changes network/database scope
+- writing request results back after the user has already switched to another server scope
+
+Long-running reads should carry a `serverEpoch` or equivalent scope version and must drop stale responses if the active session scope has changed before the response resolves.
 
 ## 3. One Shared Truth Per Domain Concept
 
@@ -67,6 +70,8 @@ Any optimistic action must define:
 
 No optimistic mutation should ship with an undefined rollback behavior.
 
+Temporary optimistic message IDs should use a deterministic prefix such as `optimistic-`. Any batch API call that takes message IDs must filter those temporary IDs out before sending.
+
 ## 6. Compatibility Shims Must Be Temporary and Explicit
 
 If a shim is unavoidable:
@@ -82,14 +87,23 @@ If a shim is unavoidable:
 - deep-link payload parsing must be centralized and tested
 - notification preference logic must live in a reusable policy layer, not a widget
 
-## 8. Failure Handling Rules
+## 8. Realtime Recovery Rules
+
+- reconnect recovery must prefer gap-fill (`lastSeq` / `sync:resume` style) over full timeline reload
+- forced reconnect watchdogs should track both heartbeat age and any-event age
+- socket libraries' built-in reconnect loops are not sufficient as the only health mechanism
+
+## 9. Failure Handling Rules
 
 - map transport failures to typed app failures
 - do not leak raw transport exceptions to widgets
 - every async operation must choose an explicit user-facing failure mode
 - background and realtime failures must create breadcrumbs for diagnostics
+- token refresh must be serialized so concurrent 401s wait on the same refresh future
 
-## 9. Testing Rules
+The app should define a typed `AppFailure` hierarchy and use it consistently at repository boundaries.
+
+## 10. Testing Rules
 
 Minimum preferred stack:
 
@@ -102,7 +116,7 @@ Minimum preferred stack:
 
 Use structural/source-shape tests only where they protect historically fragile wiring.
 
-## 10. CI Rules
+## 11. CI Rules
 
 Baseline CI should include:
 
@@ -114,7 +128,7 @@ Baseline CI should include:
 
 CI should stay fast enough that developers trust it and reviewers can require green runs on every meaningful PR.
 
-## 11. Review Checklist
+## 12. Review Checklist
 
 Reviewers should explicitly ask:
 
@@ -125,5 +139,7 @@ Reviewers should explicitly ask:
 5. Is the implementation using final contracts rather than introducing new shims?
 6. Does this change worsen startup load, list recomposition, or cache size?
 7. Are failures observable and user-reportable?
+8. Are transport failures mapped to typed `AppFailure`, or are raw exceptions leaking to widgets?
+9. Are route parameters scalar IDs only, with no serialized objects?
 
 If one of these answers is weak, the change is not ready.

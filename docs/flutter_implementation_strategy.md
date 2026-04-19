@@ -139,6 +139,13 @@ The backend surface needs:
 
 Dio is the most pragmatic fit.
 
+Token refresh in the Dio layer must be serialized:
+
+- only one refresh request may be in flight at a time
+- concurrent 401s must wait on the same refresh future
+- repositories/controllers must not each trigger their own refresh race
+- do not use blocking primitives that would stall the Dart event loop
+
 #### GoRouter
 
 Deep-link semantics are not optional in this product:
@@ -257,9 +264,18 @@ For list and timeline surfaces, the default flow should be:
 2. repository returns cached local snapshot immediately if it exists
 3. repository refreshes from network in the background
 4. normalized models are written back to Drift and canonical stores
-5. UI updates from local/store observation, not from ad hoc callback state
+5. before writing back, verify the request still belongs to the current session scope
+6. UI updates from local/store observation, not from ad hoc callback state
 
 This gives fast re-entry without turning the whole app into an uncontrolled offline sync engine.
+
+The read path must explicitly guard against stale responses after a server switch.
+
+Recommended pattern:
+
+- capture a `serverEpoch` or equivalent session-scope version when the request starts
+- when the response resolves, verify that the epoch and `serverId` still match the active session scope
+- if the user switched servers while the request was in flight, drop the result silently instead of writing cross-server data into the cache/store
 
 ### 7.2 Write path
 
@@ -271,6 +287,8 @@ For message send, mark read/unread, save/unsave, task mutations, agent control, 
 4. REST request is performed
 5. socket or refresh reconciliation de-duplicates by id/seq/version
 6. failure rolls back and emits user-facing feedback
+
+Any batch API that takes message IDs must filter out optimistic IDs before sending. Temporary optimistic message IDs should use a deterministic prefix such as `optimistic-` so they are easy to exclude from real API calls.
 
 ### 7.3 Explicit rules
 
@@ -327,6 +345,31 @@ Bad:
 ```dart
 await ref.read(channelRepositoryProvider).getChannels();
 ```
+
+### 8.4 Reconnect recovery
+
+Flutter should not fall back to a full reload on every reconnect.
+
+Recommended reconnect recovery model:
+
+- persist a last known sequence number (`lastSeq`) for each active timeline scope
+- on reconnect, emit a `sync:resume` style request with that sequence number
+- process the server's gap-fill response through the same reducer/store path as normal realtime events
+- if the response indicates `hasMore`, continue incremental fetch from the same scope
+- fall back to a full reload only when the gap is truly unbridgeable
+
+This keeps reconnect recovery fast and avoids unnecessary visual reset on large timelines.
+
+### 8.5 Connection health watchdog
+
+Do not rely on the socket library's built-in reconnection loop alone.
+
+Flutter should implement a connection-health watchdog with two independent clocks:
+
+- `lastHeartbeatAt`
+- `lastAnyEventAt`
+
+If the heartbeat age exceeds one threshold and the any-event age exceeds a larger threshold, force a reconnect. This protects against half-open TCP connections, silent proxy drops, and other states where the socket appears connected but no useful traffic is flowing.
 
 ## 9. Notification Architecture
 
@@ -467,6 +510,17 @@ Every async action should choose one of these intentionally:
 
 "Do nothing" is not an acceptable failure policy.
 
+Repositories must map transport and backend errors into a typed failure domain. The app should define a sealed `AppFailure` hierarchy at minimum covering:
+
+- `NetworkFailure`
+- `AuthExpired`
+- `ServerError(code, message)`
+- `NotFound`
+- `Timeout`
+- `Unknown`
+
+Widgets should receive typed failures or presentation-ready messages, never raw `DioException` objects.
+
 ## 12. Routing Model
 
 Recommended primary routes:
@@ -494,8 +548,11 @@ Recommended primary routes:
 Rules:
 
 - params carry scope explicitly
+- params must be scalar ids only; never serialize full domain objects into route params
 - notification deep links are built in one helper layer
 - route parsing gets direct tests
+
+If a destination needs a full object, it should resolve that object from a store or repository using the passed id.
 
 ## 13. Delivery Order
 
