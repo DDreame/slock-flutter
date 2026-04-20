@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
+import 'package:slock_app/core/notifications/android_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
@@ -41,6 +42,35 @@ void main() {
         ),
         isTrue,
       );
+    });
+  });
+
+  group('createNotificationInitializer', () {
+    test('returns Android initializer for Android platform', () {
+      final initializer = createNotificationInitializer(
+        platform: TargetPlatform.android,
+        isWeb: false,
+      );
+
+      expect(initializer, isA<AndroidNotificationInitializer>());
+    });
+
+    test('returns NoOp initializer for non-Android platform', () {
+      final initializer = createNotificationInitializer(
+        platform: TargetPlatform.iOS,
+        isWeb: false,
+      );
+
+      expect(initializer, isA<NoOpNotificationInitializer>());
+    });
+
+    test('returns NoOp initializer on web even for Android target', () {
+      final initializer = createNotificationInitializer(
+        platform: TargetPlatform.android,
+        isWeb: true,
+      );
+
+      expect(initializer, isA<NoOpNotificationInitializer>());
     });
   });
 
