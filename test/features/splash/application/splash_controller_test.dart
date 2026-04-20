@@ -4,6 +4,8 @@ import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -26,6 +28,11 @@ class FakeSecureStorage implements SecureStorage {
   }
 }
 
+class FakeServerListRepository implements ServerListRepository {
+  @override
+  Future<List<ServerSummary>> loadServers() async => const [];
+}
+
 void main() {
   late ProviderContainer container;
   late FakeSecureStorage fakeStorage;
@@ -35,6 +42,9 @@ void main() {
     container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(fakeStorage),
+        serverListRepositoryProvider.overrideWithValue(
+          FakeServerListRepository(),
+        ),
       ],
     );
   });

@@ -21,6 +21,7 @@ import 'package:slock_app/features/splash/presentation/page/splash_page.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -80,10 +81,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ref.read(pendingDeepLinkProvider.notifier).state = null;
           if (isConversationDeepLink(pending)) {
             final pendingServerId = extractDeepLinkServerId(pending);
-            final selectedServerId =
-                ref.read(serverSelectionStoreProvider).selectedServerId;
+            final servers = ref.read(serverListStoreProvider).servers;
             if (pendingServerId != null &&
-                pendingServerId == selectedServerId) {
+                servers.any((s) => s.id == pendingServerId)) {
               return pending;
             }
           }

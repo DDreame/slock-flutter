@@ -7,6 +7,9 @@ import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -298,6 +301,9 @@ void main() {
           secureStorageProvider.overrideWithValue(storage),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
+          serverListRepositoryProvider.overrideWithValue(
+            _FakeServerListRepository(['server-1']),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -326,6 +332,7 @@ void main() {
       await container
           .read(serverSelectionStoreProvider.notifier)
           .restoreSelection();
+      await container.read(serverListStoreProvider.notifier).load();
       container.read(appReadyProvider.notifier).state = true;
       await tester.pumpAndSettle();
 
@@ -345,6 +352,9 @@ void main() {
           secureStorageProvider.overrideWithValue(storage),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
+          serverListRepositoryProvider.overrideWithValue(
+            _FakeServerListRepository(['server-1']),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -373,6 +383,7 @@ void main() {
       await container
           .read(serverSelectionStoreProvider.notifier)
           .restoreSelection();
+      await container.read(serverListStoreProvider.notifier).load();
       container.read(appReadyProvider.notifier).state = true;
       await tester.pumpAndSettle();
 
@@ -420,6 +431,9 @@ void main() {
           secureStorageProvider.overrideWithValue(storage),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
+          serverListRepositoryProvider.overrideWithValue(
+            _FakeServerListRepository(['server-1']),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -443,6 +457,7 @@ void main() {
       await container
           .read(serverSelectionStoreProvider.notifier)
           .restoreSelection();
+      await container.read(serverListStoreProvider.notifier).load();
       container.read(appReadyProvider.notifier).state = true;
       await tester.pumpAndSettle();
 
@@ -496,6 +511,9 @@ void main() {
           secureStorageProvider.overrideWithValue(storage),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
+          serverListRepositoryProvider.overrideWithValue(
+            _FakeServerListRepository(['server-1']),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -524,11 +542,64 @@ void main() {
       await container
           .read(serverSelectionStoreProvider.notifier)
           .restoreSelection();
+      await container.read(serverListStoreProvider.notifier).load();
       container.read(appReadyProvider.notifier).state = true;
       await tester.pumpAndSettle();
 
       expect(container.read(pendingDeepLinkProvider), isNull);
       expect(router.routeInformationProvider.value.uri.path, '/home');
+    });
+
+    testWidgets(
+        'cross-server deep link to valid server lands instead of fallback',
+        (tester) async {
+      final storage = _FakeSecureStorage();
+      storage._store[ServerSelectionStorageKeys.selectedServerId] = 'server-1';
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(storage),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+          serverListRepositoryProvider.overrideWithValue(
+            _FakeServerListRepository(['server-1', 'server-2']),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      router.go('/servers/server-2/channels/general');
+      await tester.pump();
+
+      expect(
+        container.read(pendingDeepLinkProvider),
+        '/servers/server-2/channels/general',
+      );
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      await container
+          .read(serverSelectionStoreProvider.notifier)
+          .restoreSelection();
+      await container.read(serverListStoreProvider.notifier).load();
+      container.read(appReadyProvider.notifier).state = true;
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/servers/server-2/channels/general',
+      );
+      expect(container.read(pendingDeepLinkProvider), isNull);
     });
 
     testWidgets(
@@ -587,4 +658,15 @@ class _FakeSecureStorage implements SecureStorage {
   Future<void> delete({required String key}) async {
     _store.remove(key);
   }
+}
+
+class _FakeServerListRepository implements ServerListRepository {
+  _FakeServerListRepository(List<String> serverIds)
+      : _servers =
+            serverIds.map((id) => ServerSummary(id: id, name: id)).toList();
+
+  final List<ServerSummary> _servers;
+
+  @override
+  Future<List<ServerSummary>> loadServers() async => _servers;
 }
