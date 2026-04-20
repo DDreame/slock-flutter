@@ -69,4 +69,21 @@ class AppDioClient {
       options: options,
     );
   }
+
+  Future<Response<T>> delete<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) {
+    return request<T>(
+      path,
+      method: 'DELETE',
+      data: data,
+      queryParameters: queryParameters,
+      cancelToken: cancelToken,
+      options: options,
+    );
+  }
 }
