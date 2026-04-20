@@ -53,12 +53,43 @@ class _ApiConversationRepository implements ConversationRepository {
         ),
         messages: messagesPayload.messages,
         historyLimited: messagesPayload.historyLimited,
+        hasOlder: messagesPayload.hasOlder,
       );
     } on AppFailure {
       rethrow;
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to load conversation detail.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  }) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        '$_messagesPathPrefix${target.conversationId}',
+        queryParameters: {
+          'limit': _messagePageSize,
+          'before': beforeSeq,
+        },
+        options: _serverScopedOptions(target.serverId),
+      );
+      final payload = _parseMessagesPayload(response.data);
+      return ConversationMessagePage(
+        messages: payload.messages,
+        historyLimited: payload.historyLimited,
+        hasOlder: payload.hasOlder,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load older conversation history.',
         causeType: error.runtimeType.toString(),
       );
     }
@@ -114,6 +145,7 @@ _MessagesPayload _parseMessagesPayload(
         payloadName: 'messages',
       ),
       historyLimited: false,
+      hasOlder: payload.length >= _messagePageSize,
     );
   }
 
@@ -131,6 +163,11 @@ _MessagesPayload _parseMessagesPayload(
       field: 'historyLimited',
       payloadName: 'messagesResponse',
     ),
+    hasOlder: _requireList(
+          map['messages'],
+          payloadName: 'messagesResponse.messages',
+        ).length >=
+        _messagePageSize,
   );
 }
 
@@ -237,8 +274,10 @@ class _MessagesPayload {
   const _MessagesPayload({
     required this.messages,
     required this.historyLimited,
+    required this.hasOlder,
   });
 
   final List<ConversationMessageSummary> messages;
   final bool historyLimited;
+  final bool hasOlder;
 }

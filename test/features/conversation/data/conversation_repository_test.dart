@@ -52,6 +52,7 @@ void main() {
     );
     expect(snapshot.title, '#general');
     expect(snapshot.historyLimited, isTrue);
+    expect(snapshot.hasOlder, isFalse);
     expect(snapshot.messages.single.id, 'message-1');
     expect(snapshot.messages.single.content, 'Hello world');
     expect(snapshot.messages.single.senderType, 'human');
@@ -96,6 +97,49 @@ void main() {
       ['/messages/channel/dm-1', '/channels/dm'],
     );
     expect(snapshot.title, 'Alice');
+    expect(snapshot.hasOlder, isFalse);
+  });
+
+  test('loads older history with before query and hasOlder truth', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': List<Object?>.generate(50, (index) {
+            final seq = index + 1;
+            return {
+              'id': 'message-$seq',
+              'content': 'Message $seq',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'seq': seq,
+            };
+          }),
+          'historyLimited': true,
+        },
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final page = await repository.loadOlderMessages(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      beforeSeq: 51,
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.path, '/messages/channel/general');
+    expect(request.queryParameters, {'limit': 50, 'before': 51});
+    expect(request.serverIdHeader, 'server-1');
+    expect(page.messages, hasLength(50));
+    expect(page.hasOlder, isTrue);
+    expect(page.historyLimited, isTrue);
   });
 
   test('rethrows transport AppFailure without wrapping it', () async {

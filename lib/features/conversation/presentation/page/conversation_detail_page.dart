@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -36,19 +37,46 @@ class _ConversationDetailScreenState
     extends ConsumerState<_ConversationDetailScreen> {
   late final TextEditingController _composerController;
   late final FocusNode _composerFocusNode;
+  late final ScrollController _scrollController;
+  late final bool _restoredFromSession;
+  ProviderSubscription<ConversationDetailState>? _stateSubscription;
+  bool _didApplyInitialLanding = false;
+  double? _olderLoadAnchorOffset;
+  double? _olderLoadAnchorMaxExtent;
 
   @override
   void initState() {
     super.initState();
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final cachedSession =
+        ref.read(conversationDetailSessionStoreProvider)[target];
     _composerController = TextEditingController();
     _composerFocusNode = FocusNode();
+    _restoredFromSession = cachedSession != null;
+    _scrollController = ScrollController(
+      initialScrollOffset: cachedSession?.scrollOffset ?? 0,
+    )..addListener(_handleScroll);
+    _stateSubscription = ref.listenManual<ConversationDetailState>(
+      conversationDetailStoreProvider,
+      _handleStateChange,
+      fireImmediately: true,
+    );
     Future.microtask(
-      () => ref.read(conversationDetailStoreProvider.notifier).load(),
+      () => ref.read(conversationDetailStoreProvider.notifier).ensureLoaded(),
     );
   }
 
   @override
   void dispose() {
+    _stateSubscription?.close();
+    if (_scrollController.hasClients) {
+      ref
+          .read(conversationDetailStoreProvider.notifier)
+          .updateViewportOffset(_scrollController.offset);
+    }
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
     _composerController.dispose();
     _composerFocusNode.dispose();
     super.dispose();
@@ -96,8 +124,10 @@ class _ConversationDetailScreenState
           ),
         ConversationDetailStatus.success when state.isEmpty =>
           _ConversationEmptyView(title: state.resolvedTitle),
-        ConversationDetailStatus.success =>
-          _ConversationMessageList(state: state),
+        ConversationDetailStatus.success => _ConversationMessageList(
+            controller: _scrollController,
+            state: state,
+          ),
       },
     );
   }
@@ -107,6 +137,89 @@ class _ConversationDetailScreenState
     final state = ref.read(conversationDetailStoreProvider);
     if (state.sendFailure == null && state.draft.isEmpty) {
       _composerFocusNode.unfocus();
+    }
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    ref
+        .read(conversationDetailStoreProvider.notifier)
+        .updateViewportOffset(_scrollController.offset);
+
+    if (_scrollController.offset > 80) {
+      return;
+    }
+
+    final state = ref.read(conversationDetailStoreProvider);
+    if (state.status != ConversationDetailStatus.success ||
+        state.isLoadingOlder ||
+        !state.hasOlder) {
+      return;
+    }
+
+    _olderLoadAnchorOffset = _scrollController.offset;
+    _olderLoadAnchorMaxExtent = _scrollController.position.maxScrollExtent;
+    ref.read(conversationDetailStoreProvider.notifier).loadOlder();
+  }
+
+  void _handleStateChange(
+    ConversationDetailState? previous,
+    ConversationDetailState next,
+  ) {
+    if (!_scrollController.hasClients) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        _syncScrollState(previous, next);
+      });
+      return;
+    }
+    _syncScrollState(previous, next);
+  }
+
+  void _syncScrollState(
+    ConversationDetailState? previous,
+    ConversationDetailState next,
+  ) {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+
+    if (!_didApplyInitialLanding &&
+        !_restoredFromSession &&
+        next.status == ConversationDetailStatus.success &&
+        next.messages.isNotEmpty) {
+      _didApplyInitialLanding = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) {
+          return;
+        }
+        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      });
+    }
+
+    if (previous?.isLoadingOlder == true &&
+        next.status == ConversationDetailStatus.success &&
+        !next.isLoadingOlder &&
+        next.messages.length > (previous?.messages.length ?? 0) &&
+        _olderLoadAnchorOffset != null &&
+        _olderLoadAnchorMaxExtent != null) {
+      final anchorOffset = _olderLoadAnchorOffset!;
+      final previousMaxExtent = _olderLoadAnchorMaxExtent!;
+      _olderLoadAnchorOffset = null;
+      _olderLoadAnchorMaxExtent = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_scrollController.hasClients) {
+          return;
+        }
+        final maxExtentDelta =
+            _scrollController.position.maxScrollExtent - previousMaxExtent;
+        _scrollController.jumpTo(anchorOffset + maxExtentDelta);
+      });
     }
   }
 }
@@ -165,22 +278,76 @@ class _ConversationEmptyView extends StatelessWidget {
 }
 
 class _ConversationMessageList extends StatelessWidget {
-  const _ConversationMessageList({required this.state});
+  const _ConversationMessageList({
+    required this.controller,
+    required this.state,
+  });
 
+  final ScrollController controller;
   final ConversationDetailState state;
 
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
       key: const ValueKey('conversation-success'),
+      controller: controller,
       padding: const EdgeInsets.all(16),
-      itemCount: state.messages.length,
+      itemCount: state.messages.length + 1,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final message = state.messages[index];
+        if (index == 0) {
+          return _ConversationHistoryHeader(state: state);
+        }
+        final message = state.messages[index - 1];
         return _ConversationMessageCard(message: message);
       },
     );
+  }
+}
+
+class _ConversationHistoryHeader extends StatelessWidget {
+  const _ConversationHistoryHeader({required this.state});
+
+  final ConversationDetailState state;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.isLoadingOlder) {
+      return const Center(
+        key: ValueKey('conversation-loading-older'),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 8),
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    if (state.hasOlder) {
+      return const Center(
+        key: ValueKey('conversation-has-older'),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Text('Pull up to load older messages'),
+        ),
+      );
+    }
+
+    if (state.historyLimited) {
+      return const Center(
+        key: ValueKey('conversation-history-limited'),
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Text('Earlier history is limited.'),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink(
+        key: ValueKey('conversation-history-complete'));
   }
 }
 

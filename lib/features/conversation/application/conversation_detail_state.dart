@@ -12,8 +12,10 @@ class ConversationDetailState {
     this.title,
     this.messages = const [],
     this.historyLimited = false,
+    this.hasOlder = false,
     this.draft = '',
     this.isSending = false,
+    this.isLoadingOlder = false,
     this.failure,
     this.sendFailure,
   });
@@ -23,8 +25,10 @@ class ConversationDetailState {
   final String? title;
   final List<ConversationMessageSummary> messages;
   final bool historyLimited;
+  final bool hasOlder;
   final String draft;
   final bool isSending;
+  final bool isLoadingOlder;
   final AppFailure? failure;
   final AppFailure? sendFailure;
 
@@ -44,8 +48,10 @@ class ConversationDetailState {
     String? title,
     List<ConversationMessageSummary>? messages,
     bool? historyLimited,
+    bool? hasOlder,
     String? draft,
     bool? isSending,
+    bool? isLoadingOlder,
     AppFailure? failure,
     AppFailure? sendFailure,
     bool clearFailure = false,
@@ -57,8 +63,10 @@ class ConversationDetailState {
       title: title ?? this.title,
       messages: messages ?? this.messages,
       historyLimited: historyLimited ?? this.historyLimited,
+      hasOlder: hasOlder ?? this.hasOlder,
       draft: draft ?? this.draft,
       isSending: isSending ?? this.isSending,
+      isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
       failure: clearFailure ? null : (failure ?? this.failure),
       sendFailure: clearSendFailure ? null : (sendFailure ?? this.sendFailure),
     );
@@ -74,8 +82,10 @@ class ConversationDetailState {
             title == other.title &&
             listEquals(messages, other.messages) &&
             historyLimited == other.historyLimited &&
+            hasOlder == other.hasOlder &&
             draft == other.draft &&
             isSending == other.isSending &&
+            isLoadingOlder == other.isLoadingOlder &&
             failure == other.failure &&
             sendFailure == other.sendFailure;
   }
@@ -87,8 +97,10 @@ class ConversationDetailState {
         title,
         Object.hashAll(messages),
         historyLimited,
+        hasOlder,
         draft,
         isSending,
+        isLoadingOlder,
         failure,
         sendFailure,
       );

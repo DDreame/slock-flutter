@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -30,6 +31,8 @@ class ConversationDetailStore
   ConversationDetailState build() {
     final target = ref.watch(currentConversationDetailTargetProvider);
     final ingress = ref.watch(realtimeReductionIngressProvider);
+    final cachedSession =
+        ref.read(conversationDetailSessionStoreProvider)[target];
 
     final subscription = ingress.acceptedEvents.listen((event) {
       if (event.eventType != _realtimeMessageCreatedEventType ||
@@ -53,11 +56,20 @@ class ConversationDetailStore
       state = state.copyWith(
         messages: _appendDedupedMessage(state.messages, incoming.message),
       );
+      _persistSession();
     });
     ref.onDispose(() {
       unawaited(subscription.cancel());
     });
-    return ConversationDetailState(target: target);
+    return cachedSession?.toState(target) ??
+        ConversationDetailState(target: target);
+  }
+
+  Future<void> ensureLoaded() async {
+    if (state.status != ConversationDetailStatus.initial) {
+      return;
+    }
+    await load();
   }
 
   Future<void> load() async {
@@ -69,6 +81,7 @@ class ConversationDetailStore
       status: ConversationDetailStatus.loading,
       messages: const [],
       historyLimited: false,
+      hasOlder: false,
       clearFailure: true,
       clearSendFailure: true,
     );
@@ -86,9 +99,11 @@ class ConversationDetailStore
         title: snapshot.title,
         messages: snapshot.messages,
         historyLimited: snapshot.historyLimited,
+        hasOlder: snapshot.hasOlder,
         clearFailure: true,
         clearSendFailure: true,
       );
+      _persistSession();
     } on AppFailure catch (failure) {
       if (!_isCurrentRequest(requestEpoch, target)) {
         return;
@@ -99,6 +114,7 @@ class ConversationDetailStore
         title: target.defaultTitle,
         messages: const [],
         historyLimited: false,
+        hasOlder: false,
         failure: failure,
         clearSendFailure: true,
       );
@@ -106,6 +122,60 @@ class ConversationDetailStore
   }
 
   Future<void> retry() => load();
+
+  Future<void> loadOlder() async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success ||
+        state.isLoadingOlder ||
+        !state.hasOlder ||
+        state.messages.isEmpty) {
+      return;
+    }
+
+    final beforeSeq = state.messages
+        .map((message) => message.seq)
+        .whereType<int>()
+        .fold<int?>(null, (current, next) {
+      if (current == null || next < current) {
+        return next;
+      }
+      return current;
+    });
+    if (beforeSeq == null) {
+      return;
+    }
+
+    state = state.copyWith(isLoadingOlder: true, clearFailure: true);
+
+    try {
+      final page =
+          await ref.read(conversationRepositoryProvider).loadOlderMessages(
+                target,
+                beforeSeq: beforeSeq,
+              );
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      state = state.copyWith(
+        messages: _prependDedupedMessages(state.messages, page.messages),
+        historyLimited: state.historyLimited || page.historyLimited,
+        hasOlder: page.hasOlder,
+        isLoadingOlder: false,
+        clearFailure: true,
+      );
+      _persistSession();
+    } on AppFailure catch (failure) {
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      state = state.copyWith(
+        isLoadingOlder: false,
+        failure: failure,
+      );
+    }
+  }
 
   void updateDraft(String value) {
     state = state.copyWith(
@@ -141,6 +211,7 @@ class ConversationDetailStore
         isSending: false,
         clearSendFailure: true,
       );
+      _persistSession();
     } on AppFailure catch (failure) {
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
@@ -150,6 +221,12 @@ class ConversationDetailStore
         sendFailure: failure,
       );
     }
+  }
+
+  void updateViewportOffset(double offset) {
+    ref
+        .read(conversationDetailSessionStoreProvider.notifier)
+        .saveScrollOffset(state.target, offset);
   }
 
   bool _isCurrentRequest(
@@ -168,5 +245,29 @@ class ConversationDetailStore
       return existing;
     }
     return [...existing, next];
+  }
+
+  List<ConversationMessageSummary> _prependDedupedMessages(
+    List<ConversationMessageSummary> existing,
+    List<ConversationMessageSummary> olderMessages,
+  ) {
+    final existingIds = existing.map((message) => message.id).toSet();
+    final dedupedOlder = olderMessages
+        .where((message) => !existingIds.contains(message.id))
+        .toList(growable: false);
+    if (dedupedOlder.isEmpty) {
+      return existing;
+    }
+    return [...dedupedOlder, ...existing];
+  }
+
+  void _persistSession() {
+    ref.read(conversationDetailSessionStoreProvider.notifier).saveSuccessState(
+          state,
+          scrollOffset: ref
+                  .read(conversationDetailSessionStoreProvider)[state.target]
+                  ?.scrollOffset ??
+              0,
+        );
   }
 }

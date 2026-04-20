@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -33,6 +34,7 @@ void main() {
           ),
         ],
         historyLimited: true,
+        hasOlder: false,
       ),
     );
 
@@ -76,6 +78,7 @@ void main() {
           ),
         ],
         historyLimited: false,
+        hasOlder: false,
       ),
     );
 
@@ -111,6 +114,7 @@ void main() {
         title: '#general',
         messages: const [],
         historyLimited: false,
+        hasOlder: false,
       ),
     );
 
@@ -151,6 +155,7 @@ void main() {
           ),
         ],
         historyLimited: false,
+        hasOlder: false,
       ),
     ]);
 
@@ -187,6 +192,7 @@ void main() {
         title: '#general',
         messages: const [],
         historyLimited: false,
+        hasOlder: false,
       ),
       sentMessage: ConversationMessageSummary(
         id: 'message-2',
@@ -246,6 +252,7 @@ void main() {
         title: '#general',
         messages: const [],
         historyLimited: false,
+        hasOlder: false,
       ),
       sendFailure: const ServerFailure(
         message: 'Send failed.',
@@ -296,6 +303,7 @@ void main() {
         title: '#general',
         messages: const [],
         historyLimited: false,
+        hasOlder: false,
       ),
     );
     final container = ProviderContainer(
@@ -325,6 +333,210 @@ void main() {
 
     expect(container.read(currentOpenConversationTargetProvider), isNull);
   });
+
+  testWidgets('scrolling to top loads older history and prepends it', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: List<ConversationMessageSummary>.generate(12, (index) {
+          final seq = index + 20;
+          return ConversationMessageSummary(
+            id: 'message-$seq',
+            content: 'Message $seq',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: seq,
+          );
+        }),
+        historyLimited: false,
+        hasOlder: true,
+      ),
+      olderPages: {
+        20: ConversationMessagePage(
+          messages: List<ConversationMessageSummary>.generate(3, (index) {
+            final seq = index + 17;
+            return ConversationMessageSummary(
+              id: 'message-$seq',
+              content: 'Message $seq',
+              createdAt: DateTime.parse('2026-04-19T14:59:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: seq,
+            );
+          }),
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      },
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        conversationRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(home: ConversationDetailPage(target: target)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byKey(const ValueKey('conversation-success')),
+      const Offset(0, 3000),
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    final cachedSession =
+        container.read(conversationDetailSessionStoreProvider)[target];
+
+    expect(repository.olderRequests, [20]);
+    expect(
+      cachedSession?.messages.map((message) => message.id),
+      [
+        'message-17',
+        'message-18',
+        'message-19',
+        'message-20',
+        'message-21',
+        'message-22',
+        'message-23',
+        'message-24',
+        'message-25',
+        'message-26',
+        'message-27',
+        'message-28',
+        'message-29',
+        'message-30',
+        'message-31',
+      ],
+    );
+    expect(cachedSession?.hasOlder, isFalse);
+    expect(cachedSession?.historyLimited, isFalse);
+  });
+
+  testWidgets(
+      'reopening same conversation restores loaded window and scroll offset', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: List<ConversationMessageSummary>.generate(12, (index) {
+          final seq = index + 20;
+          return ConversationMessageSummary(
+            id: 'message-$seq',
+            content: 'Message $seq',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: seq,
+          );
+        }),
+        historyLimited: false,
+        hasOlder: true,
+      ),
+      olderPages: {
+        20: ConversationMessagePage(
+          messages: List<ConversationMessageSummary>.generate(3, (index) {
+            final seq = index + 17;
+            return ConversationMessageSummary(
+              id: 'message-$seq',
+              content: 'Message $seq',
+              createdAt: DateTime.parse('2026-04-19T14:59:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: seq,
+            );
+          }),
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [
+        conversationRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    Future<void> pumpDetailPage() async {
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(home: ConversationDetailPage(target: target)),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await pumpDetailPage();
+
+    await tester.drag(
+      find.byKey(const ValueKey('conversation-success')),
+      const Offset(0, 3000),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('conversation-success')),
+      const Offset(0, -250),
+    );
+    await tester.pumpAndSettle();
+
+    final beforeDisposeOffset = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .pixels;
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: SizedBox.shrink()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await pumpDetailPage();
+
+    final restoredOffset = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position
+        .pixels;
+    final restoredSession =
+        container.read(conversationDetailSessionStoreProvider)[target];
+
+    expect(repository.requestedTargets, [target]);
+    expect(repository.olderRequests, [20]);
+    expect(
+      restoredSession?.messages.map((message) => message.id).first,
+      'message-17',
+    );
+    expect(restoredSession?.messages, hasLength(15));
+    expect(restoredOffset, closeTo(beforeDisposeOffset, 1));
+  });
 }
 
 Widget _buildApp({
@@ -340,14 +552,17 @@ Widget _buildApp({
 class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({
     required this.snapshot,
+    this.olderPages = const {},
     this.sentMessage,
     this.sendFailure,
   });
 
   final ConversationDetailSnapshot snapshot;
+  final Map<int, ConversationMessagePage> olderPages;
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
   final List<ConversationDetailTarget> requestedTargets = [];
+  final List<int> olderRequests = [];
   final List<String> sentContents = [];
 
   @override
@@ -356,6 +571,15 @@ class _FakeConversationRepository implements ConversationRepository {
   ) async {
     requestedTargets.add(target);
     return snapshot;
+  }
+
+  @override
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  }) async {
+    olderRequests.add(beforeSeq);
+    return olderPages[beforeSeq]!;
   }
 
   @override
@@ -385,6 +609,14 @@ class _QueueConversationRepository implements ConversationRepository {
       throw next;
     }
     return next as ConversationDetailSnapshot;
+  }
+
+  @override
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  }) {
+    throw UnimplementedError();
   }
 
   @override

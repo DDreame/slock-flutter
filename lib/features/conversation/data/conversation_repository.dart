@@ -57,6 +57,11 @@ abstract class ConversationRepository {
     ConversationDetailTarget target,
   );
 
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  });
+
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
     String content,
@@ -70,12 +75,27 @@ class ConversationDetailSnapshot {
     required this.title,
     required this.messages,
     required this.historyLimited,
+    required this.hasOlder,
   });
 
   final ConversationDetailTarget target;
   final String title;
   final List<ConversationMessageSummary> messages;
   final bool historyLimited;
+  final bool hasOlder;
+}
+
+@immutable
+class ConversationMessagePage {
+  const ConversationMessagePage({
+    required this.messages,
+    required this.historyLimited,
+    required this.hasOlder,
+  });
+
+  final List<ConversationMessageSummary> messages;
+  final bool historyLimited;
+  final bool hasOlder;
 }
 
 @immutable
