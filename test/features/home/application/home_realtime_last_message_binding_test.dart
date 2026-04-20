@@ -8,6 +8,8 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 import '../../../stores/session/session_store_persistence_test.dart'
     show FakeSecureStorage;
@@ -165,6 +167,48 @@ void main() {
           .firstWhere((c) => c.scopeId == channelScopeId);
       expect(channel.lastMessageId, 'msg-300');
       expect(channel.lastMessagePreview, 'While open');
+    });
+
+    test('self-sent message updates lastMessage but does not increment unread',
+        () async {
+      final container = createContainer();
+      container.read(homeRealtimeUnreadBindingProvider);
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'test@example.com', password: 'password');
+      await container.read(homeListStoreProvider.notifier).load();
+
+      container.read(realtimeReductionIngressProvider).accept(
+            RealtimeEventEnvelope(
+              eventType: realtimeMessageCreatedEventType,
+              scopeKey: RealtimeEventEnvelope.globalScopeKey,
+              receivedAt: DateTime(2026, 4, 20),
+              seq: 1,
+              payload: messagePayload(
+                id: 'msg-self',
+                channelId: channelScopeId.value,
+                content: 'My own message',
+                senderId: 'stub-user-id',
+                createdAt: '2026-04-20T05:00:00Z',
+              ),
+            ),
+          );
+      await Future<void>.delayed(Duration.zero);
+
+      final channel = container
+          .read(homeListStoreProvider)
+          .channels
+          .firstWhere((c) => c.scopeId == channelScopeId);
+      expect(channel.lastMessageId, 'msg-self');
+      expect(channel.lastMessagePreview, 'My own message');
+      expect(channel.lastActivityAt, DateTime.parse('2026-04-20T05:00:00Z'));
+
+      expect(
+        container
+            .read(channelUnreadStoreProvider)
+            .channelUnreadCount(channelScopeId),
+        0,
+      );
     });
   });
 

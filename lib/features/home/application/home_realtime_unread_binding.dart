@@ -37,16 +37,15 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
     return;
   }
 
-  final currentUserId = ref.read(sessionStoreProvider).userId;
-  if (currentUserId != null && incoming.senderId == currentUserId) {
-    return;
-  }
-
   final homeState = ref.read(homeListStoreProvider);
   if (homeState.status != HomeListStatus.success ||
       homeState.serverScopeId == null) {
     return;
   }
+
+  final currentUserId = ref.read(sessionStoreProvider).userId;
+  final isSelfMessage =
+      currentUserId != null && incoming.senderId == currentUserId;
 
   final openTarget = ref.read(currentOpenConversationTargetProvider);
   final isOpen = openTarget != null &&
@@ -67,7 +66,7 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
       preview: incoming.message.content,
       activityAt: incoming.message.createdAt,
     );
-    if (!isOpen) {
+    if (!isSelfMessage && !isOpen) {
       ref
           .read(channelUnreadStoreProvider.notifier)
           .incrementChannelUnread(matchedChannel);
@@ -81,7 +80,7 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
       preview: incoming.message.content,
       activityAt: incoming.message.createdAt,
     );
-    if (!isOpen) {
+    if (!isSelfMessage && !isOpen) {
       ref
           .read(channelUnreadStoreProvider.notifier)
           .incrementDmUnread(matchedDirectMessage);
@@ -90,7 +89,7 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
   }
 
   if (matchedChannel == null && matchedDirectMessage == null) {
-    if (isOpen) return;
+    if (isSelfMessage || isOpen) return;
     final newScopeId = DirectMessageScopeId(
       serverId: homeState.serverScopeId!,
       value: incoming.conversationId,
