@@ -6,8 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.google.firebase.messaging.FirebaseMessaging
@@ -20,6 +19,7 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val methodChannelName = "slock/notifications/methods"
         private const val tapEventChannelName = "slock/notifications/taps"
+        private const val notificationPermissionRequestCode = 1001
         private const val tag = "SlockNotifications"
     }
 
@@ -27,23 +27,10 @@ class MainActivity : FlutterActivity() {
     private var pendingTapPayload: Map<String, Any?>? = null
     private var initialNotificationPayload: Map<String, Any?>? = null
     private var pendingPermissionResult: MethodChannel.Result? = null
-    private lateinit var permissionLauncher: ActivityResultLauncher<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initialNotificationPayload = extractNotificationPayload(intent)
-        permissionLauncher = registerForActivityResult(
-            ActivityResultContracts.RequestPermission(),
-        ) { granted ->
-            val result = pendingPermissionResult ?: return@registerForActivityResult
-            pendingPermissionResult = null
-            val status = if (granted) {
-                PermissionStatus.granted
-            } else {
-                readPermissionStatus()
-            }
-            result.success(status.wireValue)
-        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -98,6 +85,28 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != notificationPermissionRequestCode) {
+            return
+        }
+
+        val result = pendingPermissionResult ?: return
+        pendingPermissionResult = null
+
+        val isGranted = grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED
+        val status = if (isGranted) {
+            PermissionStatus.granted
+        } else {
+            readPermissionStatus()
+        }
+        result.success(status.wireValue)
+    }
+
     private fun requestNotificationPermission(result: MethodChannel.Result) {
         val currentStatus = readPermissionStatus()
         if (currentStatus == PermissionStatus.granted ||
@@ -113,7 +122,11 @@ class MainActivity : FlutterActivity() {
         }
 
         pendingPermissionResult = result
-        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+            notificationPermissionRequestCode,
+        )
     }
 
     private fun getNotificationToken(result: MethodChannel.Result) {
