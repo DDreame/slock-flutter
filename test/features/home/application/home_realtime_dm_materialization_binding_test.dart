@@ -79,7 +79,7 @@ void main() {
             seq: 1,
             payload: const {
               'channelId': 'dm-new-conversation',
-              'displayName': 'Bob',
+              'participant': {'displayName': 'Bob'},
             },
           ),
         );

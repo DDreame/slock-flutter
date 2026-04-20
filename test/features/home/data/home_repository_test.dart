@@ -16,8 +16,15 @@ void main() {
             {'id': 'channel-2', 'name': 'General'},
           ],
           '/channels/dm': [
-            {'id': 'dm-1', 'displayName': 'Alice'},
-            {'id': 'dm-2', 'name': 'Bob'},
+            {
+              'id': 'dm-1',
+              'participant': {'displayName': 'Alice'},
+            },
+            {
+              'id': 'dm-2',
+              'peer': {'name': 'Bob'},
+            },
+            {'id': 'dm-3'},
           ],
         },
       );
@@ -48,7 +55,7 @@ void main() {
             value: 'channel-1',
           ));
       expect(snapshot.channels.first.name, 'Engineering');
-      expect(snapshot.directMessages.length, 2);
+      expect(snapshot.directMessages.length, 3);
       expect(
           snapshot.directMessages.first.scopeId,
           const DirectMessageScopeId(
@@ -56,7 +63,8 @@ void main() {
             value: 'dm-1',
           ));
       expect(snapshot.directMessages.first.title, 'Alice');
-      expect(snapshot.directMessages.last.title, 'Bob');
+      expect(snapshot.directMessages[1].title, 'Bob');
+      expect(snapshot.directMessages.last.title, 'dm-3');
     });
 
     test('rethrows transport AppFailure without wrapping it', () async {
@@ -96,7 +104,7 @@ void main() {
             {'id': 'channel-1', 'name': 'Engineering'},
           ],
           '/channels/dm': [
-            {'id': 'dm-1'},
+            {'displayName': 'Alice'},
           ],
         },
       );
@@ -114,12 +122,12 @@ void main() {
               .having(
                 (failure) => failure.message,
                 'message',
-                'Malformed directMessages[0] payload: expected one of displayName, name, title.',
+                'Malformed directMessages[0] payload: missing string field "id".',
               )
               .having(
                 (failure) => failure.causeType,
                 'causeType',
-                'MissingStringField',
+                'Null',
               ),
         ),
       );

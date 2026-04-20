@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
+import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -94,10 +95,12 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
       serverId: homeState.serverScopeId!,
       value: incoming.conversationId,
     );
+    final title =
+        resolveDirectMessageTitle(event.payload) ?? incoming.conversationId;
     notifier.addDirectMessage(
       HomeDirectMessageSummary(
         scopeId: newScopeId,
-        title: incoming.conversationId,
+        title: title,
         lastMessageId: incoming.message.id,
         lastMessagePreview: incoming.message.content,
         lastActivityAt: incoming.message.createdAt,

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 
 const _channelsPath = '/channels';
@@ -94,20 +95,17 @@ List<HomeDirectMessageSummary> _parseDirectMessageSummaries(
       directMessages[index],
       payloadName: 'directMessages[$index]',
     );
-    return HomeDirectMessageSummary(
-      scopeId: DirectMessageScopeId(
-        serverId: serverId,
-        value: _requireStringField(
-          item,
-          field: 'id',
-          payloadName: 'directMessages[$index]',
-        ),
-      ),
-      title: _requireFirstStringField(
+    final scopeId = DirectMessageScopeId(
+      serverId: serverId,
+      value: _requireStringField(
         item,
-        fields: const ['displayName', 'name', 'title'],
+        field: 'id',
         payloadName: 'directMessages[$index]',
       ),
+    );
+    return HomeDirectMessageSummary(
+      scopeId: scopeId,
+      title: resolveDirectMessageTitle(item) ?? scopeId.value,
     );
   }, growable: false);
 }
@@ -148,24 +146,6 @@ String _requireStringField(
   throw SerializationFailure(
     message: 'Malformed $payloadName payload: missing string field "$field".',
     causeType: _describeType(value),
-  );
-}
-
-String _requireFirstStringField(
-  Map<String, dynamic> payload, {
-  required List<String> fields,
-  required String payloadName,
-}) {
-  for (final field in fields) {
-    final value = payload[field];
-    if (value is String && value.isNotEmpty) {
-      return value;
-    }
-  }
-  throw SerializationFailure(
-    message:
-        'Malformed $payloadName payload: expected one of ${fields.join(', ')}.',
-    causeType: 'MissingStringField',
   );
 }
 

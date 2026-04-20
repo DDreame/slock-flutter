@@ -130,6 +130,47 @@ void main() {
     expect(find.text('No messages in #general yet.'), findsOneWidget);
   });
 
+  testWidgets('ConversationDetailPage renders hydrated sender name', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Hello world',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            senderName: 'Robin',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Robin'), findsOneWidget);
+    expect(find.byKey(const ValueKey('message-message-1')), findsOneWidget);
+  });
+
   testWidgets('ConversationDetailPage shows error state and retries', (
     tester,
   ) async {

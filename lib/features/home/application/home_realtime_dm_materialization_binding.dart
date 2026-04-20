@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -40,10 +41,7 @@ final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
       value: channelId,
     );
 
-    final title = readOptionalConversationPayloadString(map['displayName']) ??
-        readOptionalConversationPayloadString(map['name']) ??
-        readOptionalConversationPayloadString(map['title']) ??
-        channelId;
+    final title = resolveDirectMessageTitle(map) ?? channelId;
 
     ref.read(homeListStoreProvider.notifier).addDirectMessage(
           HomeDirectMessageSummary(scopeId: scopeId, title: title),

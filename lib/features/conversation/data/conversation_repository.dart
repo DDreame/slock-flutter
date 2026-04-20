@@ -142,6 +142,7 @@ class ConversationMessageSummary {
     required this.createdAt,
     required this.senderType,
     required this.messageType,
+    this.senderName,
     this.seq,
     this.attachments,
     this.threadId,
@@ -152,13 +153,16 @@ class ConversationMessageSummary {
   final DateTime createdAt;
   final String senderType;
   final String messageType;
+  final String? senderName;
   final int? seq;
   final List<MessageAttachment>? attachments;
   final String? threadId;
 
   bool get isSystem => messageType == 'system';
 
-  String get senderLabel => switch (senderType) {
+  String get senderLabel =>
+      senderName ??
+      switch (senderType) {
         'agent' => 'Agent',
         'human' || 'member' || 'user' => 'Member',
         _ => 'System',
@@ -175,6 +179,7 @@ class ConversationMessageSummary {
       createdAt: createdAt,
       senderType: senderType,
       messageType: messageType,
+      senderName: senderName,
       seq: seq,
       attachments: attachments ?? this.attachments,
       threadId: threadId ?? this.threadId,
@@ -191,6 +196,7 @@ class ConversationMessageSummary {
             createdAt == other.createdAt &&
             senderType == other.senderType &&
             messageType == other.messageType &&
+            senderName == other.senderName &&
             seq == other.seq &&
             _listEquals(attachments, other.attachments) &&
             threadId == other.threadId;
@@ -203,6 +209,7 @@ class ConversationMessageSummary {
         createdAt,
         senderType,
         messageType,
+        senderName,
         seq,
         attachments == null ? null : Object.hashAll(attachments!),
         threadId,

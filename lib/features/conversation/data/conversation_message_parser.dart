@@ -1,4 +1,5 @@
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 class ConversationIncomingMessage {
@@ -65,6 +66,7 @@ ConversationMessageSummary parseConversationMessageSummary(
         readOptionalConversationPayloadString(item['senderType']) ?? 'system',
     messageType:
         readOptionalConversationPayloadString(item['messageType']) ?? 'message',
+    senderName: resolveConversationSenderName(item),
     seq: readOptionalConversationPayloadInt(item['seq']),
     attachments: _parseAttachments(item['attachments']),
     threadId: readOptionalConversationPayloadString(item['threadId']),

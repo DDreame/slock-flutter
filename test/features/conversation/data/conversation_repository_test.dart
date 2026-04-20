@@ -15,6 +15,7 @@ void main() {
               'id': 'message-1',
               'content': 'Hello world',
               'createdAt': '2026-04-19T15:00:00Z',
+              'senderName': 'Alice',
               'senderType': 'human',
               'messageType': 'message',
               'seq': 1,
@@ -55,6 +56,8 @@ void main() {
     expect(snapshot.hasOlder, isFalse);
     expect(snapshot.messages.single.id, 'message-1');
     expect(snapshot.messages.single.content, 'Hello world');
+    expect(snapshot.messages.single.senderName, 'Alice');
+    expect(snapshot.messages.single.senderLabel, 'Alice');
     expect(snapshot.messages.single.senderType, 'human');
     expect(snapshot.messages.single.messageType, 'message');
     expect(snapshot.messages.single.seq, 1);
@@ -73,7 +76,10 @@ void main() {
           ],
         },
         '/channels/dm': [
-          {'id': 'dm-1', 'displayName': 'Alice'},
+          {
+            'id': 'dm-1',
+            'participant': {'displayName': 'Alice'},
+          },
         ],
       },
     );

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
@@ -242,10 +243,7 @@ String _resolveTitle(
           return '#$name';
         }
       case ConversationSurface.directMessage:
-        final title = _firstPresentString(
-          item,
-          fields: const ['displayName', 'name', 'title'],
-        );
+        final title = resolveDirectMessageTitle(item);
         if (title != null && title.isNotEmpty) {
           return title;
         }
@@ -280,19 +278,6 @@ bool _readBool(
     message: 'Malformed $payloadName payload: invalid bool field "$field".',
     causeType: _describeType(value),
   );
-}
-
-String? _firstPresentString(
-  Map<String, dynamic> payload, {
-  required List<String> fields,
-}) {
-  for (final field in fields) {
-    final value = _readOptionalString(payload[field]);
-    if (value != null) {
-      return value;
-    }
-  }
-  return null;
 }
 
 String? _readOptionalString(Object? value) {

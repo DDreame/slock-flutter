@@ -151,7 +151,10 @@ void main() {
             scopeKey: RealtimeEventEnvelope.globalScopeKey,
             receivedAt: DateTime(2026, 4, 20),
             seq: 1,
-            payload: _messagePayload(channelId: 'unknown-dm'),
+            payload: _messagePayload(
+              channelId: 'unknown-dm',
+              senderName: 'Bob',
+            ),
           ),
         );
     await Future<void>.delayed(Duration.zero);
@@ -160,6 +163,12 @@ void main() {
     expect(
       homeState.directMessages.any((dm) => dm.scopeId.value == 'unknown-dm'),
       isTrue,
+    );
+    expect(
+      homeState.directMessages
+          .firstWhere((dm) => dm.scopeId.value == 'unknown-dm')
+          .title,
+      'Bob',
     );
 
     const unknownScopeId = DirectMessageScopeId(
@@ -252,6 +261,7 @@ void main() {
 Map<String, Object?> _messagePayload({
   required String channelId,
   String senderId = 'other-user',
+  String? senderName,
 }) {
   return {
     'id': 'message-$channelId',
@@ -259,6 +269,7 @@ Map<String, Object?> _messagePayload({
     'content': 'Realtime hello',
     'createdAt': '2026-04-20T01:00:00Z',
     'senderId': senderId,
+    if (senderName != null) 'senderName': senderName,
     'senderType': 'human',
     'messageType': 'message',
     'seq': 1,
