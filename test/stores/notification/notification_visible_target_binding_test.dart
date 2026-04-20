@@ -8,7 +8,6 @@ import 'package:slock_app/core/scope/server_scope_id.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
-import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
 
@@ -55,8 +54,8 @@ void main() {
 
     test('maps channel target', () {
       final target = ConversationDetailTarget.channel(
-        ChannelScopeId(
-          serverId: const ServerScopeId('s1'),
+        const ChannelScopeId(
+          serverId: ServerScopeId('s1'),
           value: 'c1',
         ),
       );
@@ -72,8 +71,8 @@ void main() {
 
     test('maps direct message target', () {
       final target = ConversationDetailTarget.directMessage(
-        DirectMessageScopeId(
-          serverId: const ServerScopeId('s1'),
+        const DirectMessageScopeId(
+          serverId: ServerScopeId('s1'),
           value: 'dm1',
         ),
       );
@@ -108,8 +107,8 @@ void main() {
       container.read(notificationVisibleTargetBindingProvider);
 
       final target = ConversationDetailTarget.channel(
-        ChannelScopeId(
-          serverId: const ServerScopeId('s1'),
+        const ChannelScopeId(
+          serverId: ServerScopeId('s1'),
           value: 'c1',
         ),
       );
@@ -127,8 +126,8 @@ void main() {
       container.read(notificationVisibleTargetBindingProvider);
 
       final target = ConversationDetailTarget.channel(
-        ChannelScopeId(
-          serverId: const ServerScopeId('s1'),
+        const ChannelScopeId(
+          serverId: ServerScopeId('s1'),
           value: 'c1',
         ),
       );
@@ -151,8 +150,8 @@ void main() {
       container.read(notificationVisibleTargetBindingProvider);
 
       final channel = ConversationDetailTarget.channel(
-        ChannelScopeId(
-          serverId: const ServerScopeId('s1'),
+        const ChannelScopeId(
+          serverId: ServerScopeId('s1'),
           value: 'c1',
         ),
       );
@@ -164,8 +163,8 @@ void main() {
       );
 
       final dm = ConversationDetailTarget.directMessage(
-        DirectMessageScopeId(
-          serverId: const ServerScopeId('s1'),
+        const DirectMessageScopeId(
+          serverId: ServerScopeId('s1'),
           value: 'dm1',
         ),
       );

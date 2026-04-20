@@ -5,7 +5,6 @@ import 'package:slock_app/core/notifications/foreground_notification_policy.dart
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/stores/notification/notification_lifecycle_binding.dart';
-import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 
 class _FakeNotificationInitializer implements NotificationInitializer {
