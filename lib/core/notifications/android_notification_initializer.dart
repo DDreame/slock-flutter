@@ -4,7 +4,8 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 
 const _notificationMethodChannelName = 'slock/notifications/methods';
 const _notificationTapEventChannelName = 'slock/notifications/taps';
-const _notificationForegroundEventChannelName = 'slock/notifications/foreground';
+const _notificationForegroundEventChannelName =
+    'slock/notifications/foreground';
 
 abstract class AndroidNotificationPlatformBridge {
   Future<void> init();
