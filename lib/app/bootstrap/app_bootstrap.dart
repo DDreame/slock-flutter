@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/notifications/android_notification_initializer.dart';
+import 'package:slock_app/core/notifications/ios_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
@@ -47,6 +48,9 @@ NotificationInitializer createNotificationInitializer({
   final targetPlatform = platform ?? defaultTargetPlatform;
   if (!isWeb && targetPlatform == TargetPlatform.android) {
     return const AndroidNotificationInitializer();
+  }
+  if (!isWeb && targetPlatform == TargetPlatform.iOS) {
+    return const IosNotificationInitializer();
   }
   return NoOpNotificationInitializer();
 }
