@@ -17,15 +17,20 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
       if (previous == null) return;
       final oldToken = previous.pushToken;
       final newToken = next.pushToken;
-      if (oldToken == newToken) return;
+      final platformChanged =
+          previous.pushTokenPlatform != next.pushTokenPlatform;
+
+      if (oldToken == newToken && !platformChanged) return;
 
       final session = ref.read(sessionStoreProvider);
       if (!session.isAuthenticated) return;
 
-      if (oldToken != null && newToken != null) {
+      if (oldToken != null && newToken != null && oldToken != newToken) {
         unawaited(_deregisterThenRegister(repo, oldToken, newToken,
             platform: next.pushTokenPlatform));
       } else if (oldToken == null && newToken != null) {
+        unawaited(_register(repo, newToken, platform: next.pushTokenPlatform));
+      } else if (oldToken == newToken && newToken != null && platformChanged) {
         unawaited(_register(repo, newToken, platform: next.pushTokenPlatform));
       }
     },

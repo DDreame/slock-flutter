@@ -261,4 +261,29 @@ void main() {
 
     expect(fakeRepo.calls, isEmpty);
   });
+
+  test('platform-only change re-registers with updated platform', () async {
+    final container = createContainer();
+    container.read(pushTokenLifecycleBindingProvider);
+
+    await container
+        .read(sessionStoreProvider.notifier)
+        .login(email: 'a@b.com', password: 'p');
+    await container.read(notificationStoreProvider.notifier).refreshToken();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(fakeRepo.calls, hasLength(1));
+    expect(fakeRepo.calls.first.platform, 'unknown');
+    fakeRepo.calls.clear();
+
+    await container
+        .read(notificationStoreProvider.notifier)
+        .refreshToken(platform: 'android');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(fakeRepo.calls, hasLength(1));
+    expect(fakeRepo.calls.first.method, 'register');
+    expect(fakeRepo.calls.first.token, 'fcm-token-1');
+    expect(fakeRepo.calls.first.platform, 'android');
+  });
 }
