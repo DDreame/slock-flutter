@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 const _messagePageSize = 50;
@@ -149,27 +150,7 @@ ConversationMessageSummary _parseSingleMessage(
   Object? payload, {
   required String payloadName,
 }) {
-  final item = _requireMap(payload, payloadName: payloadName);
-  return ConversationMessageSummary(
-    id: _requireStringField(
-      item,
-      field: 'id',
-      payloadName: payloadName,
-    ),
-    content: _requireStringField(
-      item,
-      field: 'content',
-      payloadName: payloadName,
-    ),
-    createdAt: _requireDateTimeField(
-      item,
-      field: 'createdAt',
-      payloadName: payloadName,
-    ),
-    senderType: _readOptionalString(item['senderType']) ?? 'system',
-    messageType: _readOptionalString(item['messageType']) ?? 'message',
-    seq: _readOptionalInt(item['seq']),
-  );
+  return parseConversationMessageSummary(payload, payloadName: payloadName);
 }
 
 String _resolveTitle(
@@ -207,59 +188,12 @@ String _resolveTitle(
 }
 
 List<Object?> _requireList(Object? payload, {required String payloadName}) {
-  if (payload is List) {
-    return List<Object?>.from(payload);
-  }
-  throw SerializationFailure(
-    message: 'Malformed $payloadName payload: expected a list.',
-    causeType: _describeType(payload),
-  );
+  return requireConversationPayloadList(payload, payloadName: payloadName);
 }
 
 Map<String, dynamic> _requireMap(Object? payload,
     {required String payloadName}) {
-  if (payload is Map<String, dynamic>) {
-    return payload;
-  }
-  if (payload is Map) {
-    return Map<String, dynamic>.from(payload);
-  }
-  throw SerializationFailure(
-    message: 'Malformed $payloadName payload: expected an object.',
-    causeType: _describeType(payload),
-  );
-}
-
-String _requireStringField(
-  Map<String, dynamic> payload, {
-  required String field,
-  required String payloadName,
-}) {
-  final value = _readOptionalString(payload[field]);
-  if (value != null) {
-    return value;
-  }
-  throw SerializationFailure(
-    message: 'Malformed $payloadName payload: missing string field "$field".',
-    causeType: _describeType(payload[field]),
-  );
-}
-
-DateTime _requireDateTimeField(
-  Map<String, dynamic> payload, {
-  required String field,
-  required String payloadName,
-}) {
-  final rawValue = _readOptionalString(payload[field]);
-  final parsed = rawValue != null ? DateTime.tryParse(rawValue) : null;
-  if (parsed != null) {
-    return parsed;
-  }
-  throw SerializationFailure(
-    message:
-        'Malformed $payloadName payload: invalid ISO datetime field "$field".',
-    causeType: _describeType(payload[field]),
-  );
+  return requireConversationPayloadMap(payload, payloadName: payloadName);
 }
 
 bool _readBool(
@@ -294,20 +228,10 @@ String? _firstPresentString(
 }
 
 String? _readOptionalString(Object? value) {
-  if (value is String && value.isNotEmpty) {
-    return value;
-  }
-  return null;
+  return readOptionalConversationPayloadString(value);
 }
 
-int? _readOptionalInt(Object? value) {
-  if (value is int) {
-    return value;
-  }
-  return null;
-}
-
-String _describeType(Object? value) => value?.runtimeType.toString() ?? 'Null';
+String _describeType(Object? value) => describeConversationPayloadType(value);
 
 class _MessagesPayload {
   const _MessagesPayload({

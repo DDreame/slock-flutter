@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/realtime/realtime.dart';
+import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,6 +29,8 @@ class SlockApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(realtimeLifecycleBindingProvider);
+    ref.watch(homeRealtimeUnreadBindingProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
       title: 'Slock',

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
+import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
@@ -278,6 +279,51 @@ void main() {
           ?.text,
       'Keep me',
     );
+  });
+
+  testWidgets('page registers and clears current open target on dispose', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        conversationRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(home: ConversationDetailPage(target: target)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(container.read(currentOpenConversationTargetProvider), target);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const MaterialApp(home: SizedBox.shrink()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(container.read(currentOpenConversationTargetProvider), isNull);
   });
 }
 

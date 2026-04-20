@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -55,6 +56,11 @@ class _ConversationDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(
+      currentOpenConversationRegistrationProvider(
+        ref.read(currentConversationDetailTargetProvider),
+      ),
+    );
     final state = ref.watch(conversationDetailStoreProvider);
     if (_composerController.text != state.draft) {
       _composerController.value = TextEditingValue(
