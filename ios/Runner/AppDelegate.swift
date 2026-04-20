@@ -107,7 +107,7 @@ import UserNotifications
       return
     }
 
-    if !didConsumeInitialNotification && initialNotificationPayload == nil {
+    if !didConsumeInitialNotification {
       initialNotificationPayload = payload
     } else {
       pendingTapPayload = payload
