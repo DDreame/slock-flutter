@@ -3,8 +3,7 @@ import UIKit
 import UserNotifications
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, FlutterStreamHandler,
-  UNUserNotificationCenterDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, FlutterStreamHandler {
   private let notificationMethodChannelName = "slock/notifications/methods"
   private let notificationTapEventChannelName = "slock/notifications/taps"
   private let apnsTokenDefaultsKey = "slock.notifications.apnsToken"
