@@ -351,6 +351,75 @@ void main() {
 
     expect(repository.requestedTargets, [target]);
   });
+  test('realtime-first then send response deduplicates by message id',
+      () async {
+    final ingress = RealtimeReductionIngress();
+    final sentMessage = ConversationMessageSummary(
+      id: 'message-2',
+      content: 'Race message',
+      createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+      senderType: 'human',
+      messageType: 'message',
+      seq: 2,
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+      sentMessage: sentMessage,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        currentConversationDetailTargetProvider.overrideWithValue(target),
+        conversationRepositoryProvider.overrideWithValue(repository),
+        realtimeReductionIngressProvider.overrideWithValue(ingress),
+      ],
+    );
+    final subscription = container.listen(
+      conversationDetailStoreProvider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(() async {
+      subscription.close();
+      container.dispose();
+      await ingress.dispose();
+    });
+
+    await container.read(conversationDetailStoreProvider.notifier).load();
+    final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+    notifier.updateDraft('Race message');
+
+    ingress.accept(
+      RealtimeEventEnvelope(
+        eventType: 'message:new',
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime(2026, 4, 20),
+        seq: 2,
+        payload: {
+          'id': 'message-2',
+          'channelId': target.conversationId,
+          'content': 'Race message',
+          'createdAt': '2026-04-19T15:05:00Z',
+          'senderType': 'human',
+          'messageType': 'message',
+          'senderId': 'other-user',
+          'seq': 2,
+        },
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    await notifier.send();
+
+    final state = container.read(conversationDetailStoreProvider);
+    expect(state.messages.map((message) => message.id), ['message-2']);
+  });
 }
 
 class _FakeConversationRepository implements ConversationRepository {

@@ -23,6 +23,13 @@ class HomeChannelRow extends StatelessWidget {
             ? const TextStyle(fontWeight: FontWeight.bold)
             : null,
       ),
+      subtitle: channel.lastMessagePreview != null
+          ? Text(
+              channel.lastMessagePreview!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : null,
       trailing: unreadCount > 0 ? _UnreadBadge(count: unreadCount) : null,
       onTap: onTap,
     );

@@ -22,6 +22,7 @@ final conversationDetailStoreProvider = NotifierProvider.autoDispose<
 );
 
 const _realtimeMessageCreatedEventType = 'message:new';
+const _realtimeMessageUpdatedEventType = 'message:updated';
 
 class ConversationDetailStore
     extends AutoDisposeNotifier<ConversationDetailState> {
@@ -35,28 +36,15 @@ class ConversationDetailStore
         ref.read(conversationDetailSessionStoreProvider)[target];
 
     final subscription = ingress.acceptedEvents.listen((event) {
-      if (event.eventType != _realtimeMessageCreatedEventType ||
-          event.payload == null) {
+      if (event.payload == null) {
         return;
       }
 
-      final incoming = tryParseConversationIncomingMessage(
-        event.payload,
-        payloadName: 'message:new',
-      );
-      if (incoming == null ||
-          incoming.conversationId != target.conversationId) {
-        return;
+      if (event.eventType == _realtimeMessageCreatedEventType) {
+        _handleMessageCreated(event.payload!, target);
+      } else if (event.eventType == _realtimeMessageUpdatedEventType) {
+        _handleMessageUpdated(event.payload!, target);
       }
-
-      if (state.status != ConversationDetailStatus.success) {
-        return;
-      }
-
-      state = state.copyWith(
-        messages: _appendDedupedMessage(state.messages, incoming.message),
-      );
-      _persistSession();
     });
     ref.onDispose(() {
       unawaited(subscription.cancel());
@@ -259,6 +247,56 @@ class ConversationDetailStore
       return existing;
     }
     return [...dedupedOlder, ...existing];
+  }
+
+  void _handleMessageCreated(Object payload, ConversationDetailTarget target) {
+    final incoming = tryParseConversationIncomingMessage(
+      payload,
+      payloadName: 'message:new',
+    );
+    if (incoming == null || incoming.conversationId != target.conversationId) {
+      return;
+    }
+
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    state = state.copyWith(
+      messages: _appendDedupedMessage(state.messages, incoming.message),
+    );
+    _persistSession();
+  }
+
+  void _handleMessageUpdated(Object payload, ConversationDetailTarget target) {
+    final updated = tryParseMessageUpdatedPayload(payload);
+    if (updated == null || updated.channelId != target.conversationId) {
+      return;
+    }
+
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    final index = state.messages.indexWhere((m) => m.id == updated.id);
+    if (index == -1) {
+      return;
+    }
+
+    final existing = state.messages[index];
+    final patched = ConversationMessageSummary(
+      id: existing.id,
+      content: updated.content,
+      createdAt: existing.createdAt,
+      senderType: existing.senderType,
+      messageType: existing.messageType,
+      seq: existing.seq,
+    );
+
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = patched;
+    state = state.copyWith(messages: messages);
+    _persistSession();
   }
 
   void _persistSession() {

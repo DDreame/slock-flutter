@@ -23,6 +23,13 @@ class HomeDirectMessageRow extends StatelessWidget {
             ? const TextStyle(fontWeight: FontWeight.bold)
             : null,
       ),
+      subtitle: directMessage.lastMessagePreview != null
+          ? Text(
+              directMessage.lastMessagePreview!,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : null,
       trailing: unreadCount > 0 ? _UnreadBadge(count: unreadCount) : null,
       onTap: onTap,
     );

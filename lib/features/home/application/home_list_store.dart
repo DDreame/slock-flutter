@@ -69,6 +69,76 @@ class HomeListStore extends Notifier<HomeListState> {
     state = state.copyWith(directMessages: [dm, ...state.directMessages]);
   }
 
+  void updateChannelLastMessage({
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) {
+    if (state.status != HomeListStatus.success) return;
+    final index =
+        state.channels.indexWhere((c) => c.scopeId.value == conversationId);
+    if (index == -1) return;
+    final channels = List<HomeChannelSummary>.of(state.channels);
+    channels[index] = channels[index].copyWith(
+      lastMessageId: messageId,
+      lastMessagePreview: preview,
+      lastActivityAt: activityAt,
+    );
+    state = state.copyWith(channels: channels);
+  }
+
+  void updateDmLastMessage({
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) {
+    if (state.status != HomeListStatus.success) return;
+    final index = state.directMessages
+        .indexWhere((d) => d.scopeId.value == conversationId);
+    if (index == -1) return;
+    final dms = List<HomeDirectMessageSummary>.of(state.directMessages);
+    dms[index] = dms[index].copyWith(
+      lastMessageId: messageId,
+      lastMessagePreview: preview,
+      lastActivityAt: activityAt,
+    );
+    state = state.copyWith(directMessages: dms);
+  }
+
+  void updateChannelPreview({
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) {
+    if (state.status != HomeListStatus.success) return;
+    final index =
+        state.channels.indexWhere((c) => c.scopeId.value == conversationId);
+    if (index == -1) return;
+    final channel = state.channels[index];
+    if (channel.lastMessageId != messageId) return;
+    final channels = List<HomeChannelSummary>.of(state.channels);
+    channels[index] = channel.copyWith(lastMessagePreview: preview);
+    state = state.copyWith(channels: channels);
+  }
+
+  void updateDmPreview({
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) {
+    if (state.status != HomeListStatus.success) return;
+    final index = state.directMessages
+        .indexWhere((d) => d.scopeId.value == conversationId);
+    if (index == -1) return;
+    final dm = state.directMessages[index];
+    if (dm.lastMessageId != messageId) return;
+    final dms = List<HomeDirectMessageSummary>.of(state.directMessages);
+    dms[index] = dm.copyWith(lastMessagePreview: preview);
+    state = state.copyWith(directMessages: dms);
+  }
+
   String channelRoutePath(ChannelScopeId scopeId) {
     return '/servers/${scopeId.serverId.routeParam}/channels/${scopeId.routeParam}';
   }

@@ -147,6 +147,34 @@ int? readOptionalConversationPayloadInt(Object? value) {
   return null;
 }
 
+class MessageUpdatedPayload {
+  const MessageUpdatedPayload({
+    required this.id,
+    required this.channelId,
+    required this.content,
+  });
+
+  final String id;
+  final String channelId;
+  final String content;
+}
+
+MessageUpdatedPayload? tryParseMessageUpdatedPayload(Object? payload) {
+  if (payload is! Map) {
+    return null;
+  }
+  final map = payload is Map<String, dynamic>
+      ? payload
+      : Map<String, dynamic>.from(payload);
+  final id = readOptionalConversationPayloadString(map['id']);
+  final channelId = readOptionalConversationPayloadString(map['channelId']);
+  final content = readOptionalConversationPayloadString(map['content']);
+  if (id == null || channelId == null || content == null) {
+    return null;
+  }
+  return MessageUpdatedPayload(id: id, channelId: channelId, content: content);
+}
+
 String describeConversationPayloadType(Object? value) {
   return value?.runtimeType.toString() ?? 'Null';
 }

@@ -11,72 +11,15 @@ import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 const realtimeMessageCreatedEventType = 'message:new';
+const realtimeMessageUpdatedEventType = 'message:updated';
 
 final homeRealtimeUnreadBindingProvider = Provider<void>((ref) {
   final ingress = ref.watch(realtimeReductionIngressProvider);
   final subscription = ingress.acceptedEvents.listen((event) {
-    if (event.eventType != realtimeMessageCreatedEventType) {
-      return;
-    }
-
-    final incoming = tryParseConversationIncomingMessage(
-      event.payload,
-      payloadName: 'message:new',
-    );
-    if (incoming == null) {
-      return;
-    }
-
-    final currentUserId = ref.read(sessionStoreProvider).userId;
-    if (currentUserId != null && incoming.senderId == currentUserId) {
-      return;
-    }
-
-    final homeState = ref.read(homeListStoreProvider);
-    if (homeState.status != HomeListStatus.success ||
-        homeState.serverScopeId == null) {
-      return;
-    }
-
-    final openTarget = ref.read(currentOpenConversationTargetProvider);
-    if (openTarget != null &&
-        openTarget.serverId == homeState.serverScopeId &&
-        openTarget.conversationId == incoming.conversationId) {
-      return;
-    }
-
-    final matchedChannel =
-        _matchChannelScopeId(homeState, incoming.conversationId);
-    final matchedDirectMessage =
-        _matchDirectMessageScopeId(homeState, incoming.conversationId);
-
-    if (matchedChannel != null && matchedDirectMessage == null) {
-      ref
-          .read(channelUnreadStoreProvider.notifier)
-          .incrementChannelUnread(matchedChannel);
-      return;
-    }
-    if (matchedDirectMessage != null && matchedChannel == null) {
-      ref
-          .read(channelUnreadStoreProvider.notifier)
-          .incrementDmUnread(matchedDirectMessage);
-      return;
-    }
-
-    if (matchedChannel == null && matchedDirectMessage == null) {
-      final newScopeId = DirectMessageScopeId(
-        serverId: homeState.serverScopeId!,
-        value: incoming.conversationId,
-      );
-      ref.read(homeListStoreProvider.notifier).addDirectMessage(
-            HomeDirectMessageSummary(
-              scopeId: newScopeId,
-              title: incoming.conversationId,
-            ),
-          );
-      ref
-          .read(channelUnreadStoreProvider.notifier)
-          .incrementDmUnread(newScopeId);
+    if (event.eventType == realtimeMessageCreatedEventType) {
+      _handleMessageNew(ref, event);
+    } else if (event.eventType == realtimeMessageUpdatedEventType) {
+      _handleMessageUpdated(ref, event);
     }
   });
 
@@ -84,6 +27,111 @@ final homeRealtimeUnreadBindingProvider = Provider<void>((ref) {
     unawaited(subscription.cancel());
   });
 });
+
+void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
+  final incoming = tryParseConversationIncomingMessage(
+    event.payload,
+    payloadName: 'message:new',
+  );
+  if (incoming == null) {
+    return;
+  }
+
+  final currentUserId = ref.read(sessionStoreProvider).userId;
+  if (currentUserId != null && incoming.senderId == currentUserId) {
+    return;
+  }
+
+  final homeState = ref.read(homeListStoreProvider);
+  if (homeState.status != HomeListStatus.success ||
+      homeState.serverScopeId == null) {
+    return;
+  }
+
+  final openTarget = ref.read(currentOpenConversationTargetProvider);
+  final isOpen = openTarget != null &&
+      openTarget.serverId == homeState.serverScopeId &&
+      openTarget.conversationId == incoming.conversationId;
+
+  final matchedChannel =
+      _matchChannelScopeId(homeState, incoming.conversationId);
+  final matchedDirectMessage =
+      _matchDirectMessageScopeId(homeState, incoming.conversationId);
+
+  final notifier = ref.read(homeListStoreProvider.notifier);
+
+  if (matchedChannel != null && matchedDirectMessage == null) {
+    notifier.updateChannelLastMessage(
+      conversationId: incoming.conversationId,
+      messageId: incoming.message.id,
+      preview: incoming.message.content,
+      activityAt: incoming.message.createdAt,
+    );
+    if (!isOpen) {
+      ref
+          .read(channelUnreadStoreProvider.notifier)
+          .incrementChannelUnread(matchedChannel);
+    }
+    return;
+  }
+  if (matchedDirectMessage != null && matchedChannel == null) {
+    notifier.updateDmLastMessage(
+      conversationId: incoming.conversationId,
+      messageId: incoming.message.id,
+      preview: incoming.message.content,
+      activityAt: incoming.message.createdAt,
+    );
+    if (!isOpen) {
+      ref
+          .read(channelUnreadStoreProvider.notifier)
+          .incrementDmUnread(matchedDirectMessage);
+    }
+    return;
+  }
+
+  if (matchedChannel == null && matchedDirectMessage == null) {
+    if (isOpen) return;
+    final newScopeId = DirectMessageScopeId(
+      serverId: homeState.serverScopeId!,
+      value: incoming.conversationId,
+    );
+    notifier.addDirectMessage(
+      HomeDirectMessageSummary(
+        scopeId: newScopeId,
+        title: incoming.conversationId,
+        lastMessageId: incoming.message.id,
+        lastMessagePreview: incoming.message.content,
+        lastActivityAt: incoming.message.createdAt,
+      ),
+    );
+    ref.read(channelUnreadStoreProvider.notifier).incrementDmUnread(newScopeId);
+  }
+}
+
+void _handleMessageUpdated(Ref ref, RealtimeEventEnvelope event) {
+  final updated = tryParseMessageUpdatedPayload(event.payload);
+  if (updated == null) {
+    return;
+  }
+
+  final homeState = ref.read(homeListStoreProvider);
+  if (homeState.status != HomeListStatus.success) {
+    return;
+  }
+
+  final notifier = ref.read(homeListStoreProvider.notifier);
+
+  notifier.updateChannelPreview(
+    conversationId: updated.channelId,
+    messageId: updated.id,
+    preview: updated.content,
+  );
+  notifier.updateDmPreview(
+    conversationId: updated.channelId,
+    messageId: updated.id,
+    preview: updated.content,
+  );
+}
 
 ChannelScopeId? _matchChannelScopeId(
     HomeListState state, String conversationId) {
