@@ -6,6 +6,7 @@ import 'package:slock_app/features/conversation/application/current_open_convers
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -59,6 +60,23 @@ final homeRealtimeUnreadBindingProvider = Provider<void>((ref) {
       ref
           .read(channelUnreadStoreProvider.notifier)
           .incrementDmUnread(matchedDirectMessage);
+      return;
+    }
+
+    if (matchedChannel == null && matchedDirectMessage == null) {
+      final newScopeId = DirectMessageScopeId(
+        serverId: homeState.serverScopeId!,
+        value: incoming.conversationId,
+      );
+      ref.read(homeListStoreProvider.notifier).addDirectMessage(
+            HomeDirectMessageSummary(
+              scopeId: newScopeId,
+              title: incoming.conversationId,
+            ),
+          );
+      ref
+          .read(channelUnreadStoreProvider.notifier)
+          .incrementDmUnread(newScopeId);
     }
   });
 

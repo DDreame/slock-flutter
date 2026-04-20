@@ -6,6 +6,7 @@ import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/realtime/realtime.dart';
+import 'package:slock_app/features/home/application/home_realtime_dm_materialization_binding.dart';
 import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
 
 void main() async {
@@ -31,6 +32,7 @@ class SlockApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(realtimeLifecycleBindingProvider);
     ref.watch(homeRealtimeUnreadBindingProvider);
+    ref.watch(homeRealtimeDmMaterializationBindingProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
       title: 'Slock',
