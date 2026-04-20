@@ -32,6 +32,7 @@ class FakeSecureStorage implements SecureStorage {
 
 class FakeNotificationInitializer implements NotificationInitializer {
   int initCount = 0;
+  bool shouldThrowOnInit = false;
   NotificationPermissionStatus permissionResult =
       NotificationPermissionStatus.granted;
   String? tokenResult;
@@ -42,6 +43,7 @@ class FakeNotificationInitializer implements NotificationInitializer {
   @override
   Future<void> init() async {
     initCount++;
+    if (shouldThrowOnInit) throw Exception('init failed');
   }
 
   @override
@@ -268,6 +270,26 @@ void main() {
       await readStore().init();
 
       expect(fakeInitializer.initCount, 1);
+    });
+
+    test('init retries after transient failure', () async {
+      fakeInitializer.shouldThrowOnInit = true;
+
+      await expectLater(readStore().init(), throwsException);
+      expect(fakeInitializer.initCount, 1);
+
+      fakeInitializer.shouldThrowOnInit = false;
+      fakeInitializer.initialNotificationResult = {
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+      };
+
+      await readStore().init();
+
+      expect(fakeInitializer.initCount, 2);
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/servers/s1/channels/c1');
     });
 
     test('init consumes cold-start channel notification', () async {

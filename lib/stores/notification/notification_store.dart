@@ -36,15 +36,21 @@ class NotificationStore extends Notifier<NotificationState> {
 
   Future<void> init() async {
     if (_initialized) return;
-    _initialized = true;
-    await _initializer.init();
-    await restorePushToken();
-    final initial = await _initializer.getInitialNotification();
-    if (initial != null) {
-      handleNotificationTap(initial);
+    try {
+      await _initializer.init();
+      await restorePushToken();
+      final initial = await _initializer.getInitialNotification();
+      if (initial != null) {
+        handleNotificationTap(initial);
+      }
+      _tapSubscription =
+          _initializer.onNotificationTapped.listen(handleNotificationTap);
+      _initialized = true;
+    } catch (_) {
+      _tapSubscription?.cancel();
+      _tapSubscription = null;
+      rethrow;
     }
-    _tapSubscription =
-        _initializer.onNotificationTapped.listen(handleNotificationTap);
   }
 
   void handleNotificationTap(Map<String, dynamic> payload) {
