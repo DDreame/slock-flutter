@@ -56,7 +56,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     return null;
   }
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: '/splash',
     refreshListenable: notifier,
     redirect: (context, state) {
@@ -192,6 +192,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     errorBuilder: (context, state) =>
         Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
   );
+
+  ref.listen<String?>(pendingDeepLinkProvider, (prev, next) {
+    if (next == null) return;
+    final session = ref.read(sessionStoreProvider);
+    final bootstrapComplete = ref.read(appReadyProvider);
+    if (!session.isAuthenticated || !bootstrapComplete) return;
+
+    ref.read(pendingDeepLinkProvider.notifier).state = null;
+    if (isConversationDeepLink(next)) {
+      final serverId = extractDeepLinkServerId(next);
+      final servers = ref.read(serverListStoreProvider).servers;
+      if (serverId != null && servers.any((s) => s.id == serverId)) {
+        router.go(next);
+      }
+    }
+  });
+
+  return router;
 });
 
 class _SessionRouterNotifier extends ChangeNotifier {
