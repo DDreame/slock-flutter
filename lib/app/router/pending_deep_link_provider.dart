@@ -9,3 +9,11 @@ final _conversationLandingPattern = RegExp(
 bool isConversationDeepLink(String path) {
   return _conversationLandingPattern.hasMatch(path);
 }
+
+String? extractDeepLinkServerId(String path) {
+  final segments = Uri.parse(path).pathSegments;
+  if (segments.length >= 2 && segments[0] == 'servers') {
+    return segments[1];
+  }
+  return null;
+}

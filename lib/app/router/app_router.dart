@@ -79,7 +79,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         if (pending != null) {
           ref.read(pendingDeepLinkProvider.notifier).state = null;
           if (isConversationDeepLink(pending)) {
-            return pending;
+            final pendingServerId = extractDeepLinkServerId(pending);
+            final selectedServerId =
+                ref.read(serverSelectionStoreProvider).selectedServerId;
+            if (pendingServerId != null &&
+                pendingServerId == selectedServerId) {
+              return pending;
+            }
           }
         }
       }

@@ -6,6 +6,7 @@ import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -187,6 +188,27 @@ void main() {
     });
   });
 
+  group('extractDeepLinkServerId', () {
+    test('extracts serverId from channel route', () {
+      expect(
+        extractDeepLinkServerId('/servers/my-server/channels/general'),
+        'my-server',
+      );
+    });
+
+    test('extracts serverId from DM route', () {
+      expect(
+        extractDeepLinkServerId('/servers/s1/dms/dm-alice'),
+        's1',
+      );
+    });
+
+    test('returns null for non-server route', () {
+      expect(extractDeepLinkServerId('/home'), isNull);
+      expect(extractDeepLinkServerId('/login'), isNull);
+    });
+  });
+
   group('bootstrap gating', () {
     testWidgets('stays on splash when authenticated but bootstrap not complete',
         (tester) async {
@@ -269,9 +291,11 @@ void main() {
   group('deep link preservation', () {
     testWidgets('captures conversation deep link and restores after bootstrap',
         (tester) async {
+      final storage = _FakeSecureStorage();
+      storage._store[ServerSelectionStorageKeys.selectedServerId] = 'server-1';
       final container = ProviderContainer(
         overrides: [
-          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          secureStorageProvider.overrideWithValue(storage),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -299,6 +323,9 @@ void main() {
       await container
           .read(sessionStoreProvider.notifier)
           .login(email: 'a@b.com', password: 'p');
+      await container
+          .read(serverSelectionStoreProvider.notifier)
+          .restoreSelection();
       container.read(appReadyProvider.notifier).state = true;
       await tester.pumpAndSettle();
 
@@ -311,9 +338,11 @@ void main() {
 
     testWidgets('captures DM deep link and restores after bootstrap',
         (tester) async {
+      final storage = _FakeSecureStorage();
+      storage._store[ServerSelectionStorageKeys.selectedServerId] = 'server-1';
       final container = ProviderContainer(
         overrides: [
-          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          secureStorageProvider.overrideWithValue(storage),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -341,6 +370,9 @@ void main() {
       await container
           .read(sessionStoreProvider.notifier)
           .login(email: 'a@b.com', password: 'p');
+      await container
+          .read(serverSelectionStoreProvider.notifier)
+          .restoreSelection();
       container.read(appReadyProvider.notifier).state = true;
       await tester.pumpAndSettle();
 
@@ -381,9 +413,11 @@ void main() {
     testWidgets(
         'cleared deep link does not redirect again on subsequent navigation',
         (tester) async {
+      final storage = _FakeSecureStorage();
+      storage._store[ServerSelectionStorageKeys.selectedServerId] = 'server-1';
       final container = ProviderContainer(
         overrides: [
-          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          secureStorageProvider.overrideWithValue(storage),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -406,6 +440,9 @@ void main() {
       await container
           .read(sessionStoreProvider.notifier)
           .login(email: 'a@b.com', password: 'p');
+      await container
+          .read(serverSelectionStoreProvider.notifier)
+          .restoreSelection();
       container.read(appReadyProvider.notifier).state = true;
       await tester.pumpAndSettle();
 
@@ -450,11 +487,13 @@ void main() {
     });
 
     testWidgets(
-        'valid conversation deep link to nonexistent server still navigates',
+        'unresolved server in conversation deep link falls back to /home',
         (tester) async {
+      final storage = _FakeSecureStorage();
+      storage._store[ServerSelectionStorageKeys.selectedServerId] = 'server-1';
       final container = ProviderContainer(
         overrides: [
-          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          secureStorageProvider.overrideWithValue(storage),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -482,14 +521,14 @@ void main() {
       await container
           .read(sessionStoreProvider.notifier)
           .login(email: 'a@b.com', password: 'p');
+      await container
+          .read(serverSelectionStoreProvider.notifier)
+          .restoreSelection();
       container.read(appReadyProvider.notifier).state = true;
       await tester.pumpAndSettle();
 
       expect(container.read(pendingDeepLinkProvider), isNull);
-      expect(
-        container.read(serverSelectionStoreProvider).selectedServerId,
-        'nonexistent',
-      );
+      expect(router.routeInformationProvider.value.uri.path, '/home');
     });
 
     testWidgets(
