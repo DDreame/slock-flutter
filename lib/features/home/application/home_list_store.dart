@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 
 final homeListStoreProvider = NotifierProvider<HomeListStore, HomeListState>(
@@ -61,6 +62,12 @@ class HomeListStore extends Notifier<HomeListState> {
   }
 
   Future<void> retry() => load();
+
+  void addDirectMessage(HomeDirectMessageSummary dm) {
+    if (state.status != HomeListStatus.success) return;
+    if (state.directMessages.any((d) => d.scopeId == dm.scopeId)) return;
+    state = state.copyWith(directMessages: [dm, ...state.directMessages]);
+  }
 
   String channelRoutePath(ChannelScopeId scopeId) {
     return '/servers/${scopeId.serverId.routeParam}/channels/${scopeId.routeParam}';

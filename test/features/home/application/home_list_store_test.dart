@@ -200,6 +200,121 @@ void main() {
     expect(state.serverScopeId, const ServerScopeId('server-b'));
     expect(state.channels, isEmpty);
   });
+
+  group('addDirectMessage', () {
+    test('prepends new DM to front of list when status is success', () async {
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(
+            _FakeHomeRepository(
+              snapshot: const HomeWorkspaceSnapshot(
+                serverId: ServerScopeId('server-1'),
+                channels: [],
+                directMessages: [
+                  HomeDirectMessageSummary(
+                    scopeId: DirectMessageScopeId(
+                      serverId: ServerScopeId('server-1'),
+                      value: 'dm-existing',
+                    ),
+                    title: 'Existing',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      const newDm = HomeDirectMessageSummary(
+        scopeId: DirectMessageScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'dm-new',
+        ),
+        title: 'New DM',
+      );
+      container.read(homeListStoreProvider.notifier).addDirectMessage(newDm);
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.directMessages.length, 2);
+      expect(state.directMessages.first.scopeId.value, 'dm-new');
+      expect(state.directMessages.last.scopeId.value, 'dm-existing');
+    });
+
+    test('deduplicates by scopeId', () async {
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(
+            _FakeHomeRepository(
+              snapshot: const HomeWorkspaceSnapshot(
+                serverId: ServerScopeId('server-1'),
+                channels: [],
+                directMessages: [
+                  HomeDirectMessageSummary(
+                    scopeId: DirectMessageScopeId(
+                      serverId: ServerScopeId('server-1'),
+                      value: 'dm-alice',
+                    ),
+                    title: 'Alice',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      const duplicate = HomeDirectMessageSummary(
+        scopeId: DirectMessageScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'dm-alice',
+        ),
+        title: 'Alice duplicate',
+      );
+      container
+          .read(homeListStoreProvider.notifier)
+          .addDirectMessage(duplicate);
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.directMessages.length, 1);
+      expect(state.directMessages.first.title, 'Alice');
+    });
+
+    test('no-op when status is not success', () {
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(null),
+          homeRepositoryProvider.overrideWithValue(
+            _FakeHomeRepository(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      const dm = HomeDirectMessageSummary(
+        scopeId: DirectMessageScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'dm-new',
+        ),
+        title: 'New DM',
+      );
+      container.read(homeListStoreProvider.notifier).addDirectMessage(dm);
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.directMessages, isEmpty);
+    });
+  });
 }
 
 class _FakeHomeRepository implements HomeRepository {
