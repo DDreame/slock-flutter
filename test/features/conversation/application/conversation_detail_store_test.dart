@@ -633,14 +633,6 @@ void main() {
           1: ConversationMessagePage(
             messages: [
               ConversationMessageSummary(
-                id: 'message-1',
-                content: 'First',
-                createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
-                senderType: 'human',
-                messageType: 'message',
-                seq: 1,
-              ),
-              ConversationMessageSummary(
                 id: 'message-2',
                 content: 'Second',
                 createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
@@ -653,26 +645,70 @@ void main() {
             hasOlder: false,
             hasNewer: true,
           ),
+          2: ConversationMessagePage(
+            messages: [
+              ConversationMessageSummary(
+                id: 'message-3',
+                content: 'Third',
+                createdAt: DateTime.parse('2026-04-19T15:10:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 3,
+              ),
+            ],
+            historyLimited: false,
+            hasOlder: false,
+          ),
         },
       );
       final container = ProviderContainer(
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
         ],
       );
       addTearDown(container.dispose);
 
+      final sub1 = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
       await container.read(conversationDetailStoreProvider.notifier).load();
+      sub1.close();
+      await Future<void>.delayed(Duration.zero);
+
+      container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(
+        container
+            .read(conversationDetailStoreProvider)
+            .messages
+            .map((m) => m.id),
+        ['message-1', 'message-2'],
+      );
+      expect(
+        container.read(conversationDetailStoreProvider).hasNewer,
+        isTrue,
+      );
+
       await container
           .read(conversationDetailStoreProvider.notifier)
           .loadNewer();
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.map((m) => m.id), ['message-1', 'message-2']);
-      expect(state.hasNewer, isTrue);
+      expect(state.messages.map((m) => m.id),
+          ['message-1', 'message-2', 'message-3']);
+      expect(state.hasNewer, isFalse);
       expect(state.isLoadingNewer, isFalse);
-      expect(repository.newerRequests, [1]);
+      expect(repository.newerRequests, [1, 2]);
     });
 
     test('stores failure on loadNewer error', () async {
@@ -697,7 +733,78 @@ void main() {
           historyLimited: false,
           hasOlder: false,
         ),
-        newerFailure: failure,
+        newerPages: {
+          1: ConversationMessagePage(
+            messages: [
+              ConversationMessageSummary(
+                id: 'message-2',
+                content: 'Second',
+                createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 2,
+              ),
+            ],
+            historyLimited: false,
+            hasOlder: false,
+            hasNewer: true,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub1 = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      sub1.close();
+      await Future<void>.delayed(Duration.zero);
+
+      container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      repository.newerFailure = failure;
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadNewer();
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.isLoadingNewer, isFalse);
+      expect(state.failure, failure);
+    });
+
+    test('guards: no-op when hasNewer is false', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
       );
       final container = ProviderContainer(
         overrides: [
@@ -712,9 +819,7 @@ void main() {
           .read(conversationDetailStoreProvider.notifier)
           .loadNewer();
 
-      final state = container.read(conversationDetailStoreProvider);
-      expect(state.isLoadingNewer, isFalse);
-      expect(state.failure, failure);
+      expect(repository.newerRequests, isEmpty);
     });
 
     test('guards: no-op when not in success status', () async {
@@ -817,7 +922,7 @@ class _FakeConversationRepository implements ConversationRepository {
   final AppFailure? failure;
   final Map<int, ConversationMessagePage> olderPages;
   final Map<int, ConversationMessagePage> newerPages;
-  final AppFailure? newerFailure;
+  AppFailure? newerFailure;
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
   final List<ConversationDetailTarget> requestedTargets = [];

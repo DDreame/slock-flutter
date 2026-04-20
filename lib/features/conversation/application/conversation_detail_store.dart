@@ -174,6 +174,7 @@ class ConversationDetailStore
     final target = ref.read(currentConversationDetailTargetProvider);
     if (state.status != ConversationDetailStatus.success ||
         state.isLoadingNewer ||
+        !state.hasNewer ||
         state.messages.isEmpty) {
       return;
     }
