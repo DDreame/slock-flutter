@@ -296,6 +296,113 @@ void main() {
       ),
     );
   });
+
+  test('loads newer messages with after query and hasNewer truth', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': List<Object?>.generate(50, (index) {
+            final seq = index + 51;
+            return {
+              'id': 'message-$seq',
+              'content': 'Message $seq',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'seq': seq,
+            };
+          }),
+          'historyLimited': false,
+        },
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final page = await repository.loadNewerMessages(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      afterSeq: 50,
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.path, '/messages/channel/general');
+    expect(request.queryParameters, {'limit': 50, 'after': 50});
+    expect(request.serverIdHeader, 'server-1');
+    expect(page.messages, hasLength(50));
+    expect(page.hasNewer, isTrue);
+    expect(page.hasOlder, isFalse);
+  });
+
+  test('loadNewerMessages hasNewer is false when under page size', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'message-2',
+              'content': 'Just one',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'seq': 2,
+            },
+          ],
+          'historyLimited': false,
+        },
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final page = await repository.loadNewerMessages(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      afterSeq: 1,
+    );
+
+    expect(page.messages, hasLength(1));
+    expect(page.hasNewer, isFalse);
+  });
+
+  test('loadNewerMessages rethrows transport AppFailure', () async {
+    const failure = ServerFailure(
+      message: 'upstream exploded',
+      statusCode: 500,
+    );
+    final appDioClient = _FakeAppDioClient(
+      failures: {'/messages/channel/general': failure},
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    await expectLater(
+      repository.loadNewerMessages(
+        ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+        afterSeq: 1,
+      ),
+      throwsA(same(failure)),
+    );
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {

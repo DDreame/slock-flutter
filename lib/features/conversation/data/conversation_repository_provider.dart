@@ -96,6 +96,37 @@ class _ApiConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        '$_messagesPathPrefix${target.conversationId}',
+        queryParameters: {
+          'limit': _messagePageSize,
+          'after': afterSeq,
+        },
+        options: _serverScopedOptions(target.serverId),
+      );
+      final payload = _parseMessagesPayload(response.data);
+      return ConversationMessagePage(
+        messages: payload.messages,
+        historyLimited: payload.historyLimited,
+        hasOlder: false,
+        hasNewer: payload.messages.length >= _messagePageSize,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load newer conversation history.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
     String content,

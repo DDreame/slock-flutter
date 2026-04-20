@@ -49,8 +49,12 @@ class ConversationDetailStore
     ref.onDispose(() {
       unawaited(subscription.cancel());
     });
-    return cachedSession?.toState(target) ??
+    final initialState = cachedSession?.toState(target) ??
         ConversationDetailState(target: target);
+    if (cachedSession != null) {
+      Future.microtask(() => _refreshFromCache(target));
+    }
+    return initialState;
   }
 
   Future<void> ensureLoaded() async {
@@ -70,6 +74,7 @@ class ConversationDetailStore
       messages: const [],
       historyLimited: false,
       hasOlder: false,
+      hasNewer: false,
       clearFailure: true,
       clearSendFailure: true,
     );
@@ -160,6 +165,50 @@ class ConversationDetailStore
       }
       state = state.copyWith(
         isLoadingOlder: false,
+        failure: failure,
+      );
+    }
+  }
+
+  Future<void> loadNewer() async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success ||
+        state.isLoadingNewer ||
+        state.messages.isEmpty) {
+      return;
+    }
+
+    final afterSeq = _maxSeq(state.messages);
+    if (afterSeq == null) {
+      return;
+    }
+
+    state = state.copyWith(isLoadingNewer: true, clearFailure: true);
+
+    try {
+      final page =
+          await ref.read(conversationRepositoryProvider).loadNewerMessages(
+                target,
+                afterSeq: afterSeq,
+              );
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      state = state.copyWith(
+        messages: _appendDedupedMessages(state.messages, page.messages),
+        hasNewer: page.hasNewer,
+        isLoadingNewer: false,
+        clearFailure: true,
+      );
+      _persistSession();
+    } on AppFailure catch (failure) {
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      state = state.copyWith(
+        isLoadingNewer: false,
         failure: failure,
       );
     }
@@ -297,6 +346,65 @@ class ConversationDetailStore
     messages[index] = patched;
     state = state.copyWith(messages: messages);
     _persistSession();
+  }
+
+  Future<void> _refreshFromCache(ConversationDetailTarget target) async {
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    final afterSeq = _maxSeq(state.messages);
+    if (afterSeq == null) {
+      return;
+    }
+
+    try {
+      final page =
+          await ref.read(conversationRepositoryProvider).loadNewerMessages(
+                target,
+                afterSeq: afterSeq,
+              );
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      if (page.messages.isEmpty) {
+        return;
+      }
+      state = state.copyWith(
+        messages: _appendDedupedMessages(state.messages, page.messages),
+        hasNewer: page.hasNewer,
+      );
+      _persistSession();
+    } on AppFailure {
+      // Fail-soft: keep cached window as-is.
+    }
+  }
+
+  int? _maxSeq(List<ConversationMessageSummary> messages) {
+    return messages
+        .map((message) => message.seq)
+        .whereType<int>()
+        .fold<int?>(null, (current, next) {
+      if (current == null || next > current) {
+        return next;
+      }
+      return current;
+    });
+  }
+
+  List<ConversationMessageSummary> _appendDedupedMessages(
+    List<ConversationMessageSummary> existing,
+    List<ConversationMessageSummary> newerMessages,
+  ) {
+    final existingIds = existing.map((message) => message.id).toSet();
+    final dedupedNewer = newerMessages
+        .where((message) => !existingIds.contains(message.id))
+        .toList(growable: false);
+    if (dedupedNewer.isEmpty) {
+      return existing;
+    }
+    return [...existing, ...dedupedNewer];
   }
 
   void _persistSession() {

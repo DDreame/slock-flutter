@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -420,6 +421,385 @@ void main() {
     final state = container.read(conversationDetailStoreProvider);
     expect(state.messages.map((message) => message.id), ['message-2']);
   });
+
+  group('reopen refresh from cache', () {
+    test('appends newer messages when reopening from stale cache', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Cached',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerPages: {
+          1: ConversationMessagePage(
+            messages: [
+              ConversationMessageSummary(
+                id: 'message-2',
+                content: 'Newer',
+                createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 2,
+              ),
+            ],
+            historyLimited: false,
+            hasOlder: false,
+            hasNewer: true,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub1 = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      expect(repository.requestedTargets, [target]);
+      sub1.close();
+      await Future<void>.delayed(Duration.zero);
+
+      container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      final restoredState = container.read(conversationDetailStoreProvider);
+      expect(restoredState.status, ConversationDetailStatus.success);
+      expect(restoredState.messages.map((m) => m.id), ['message-1']);
+
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final refreshedState = container.read(conversationDetailStoreProvider);
+      expect(
+          refreshedState.messages.map((m) => m.id), ['message-1', 'message-2']);
+      expect(refreshedState.hasNewer, isTrue);
+      expect(repository.newerRequests, [1]);
+    });
+
+    test('no-ops when cache is current (no newer messages)', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Latest',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerPages: {
+          1: const ConversationMessagePage(
+            messages: [],
+            historyLimited: false,
+            hasOlder: false,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub1 = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      sub1.close();
+      await Future<void>.delayed(Duration.zero);
+
+      container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages.map((m) => m.id), ['message-1']);
+      expect(repository.newerRequests, [1]);
+    });
+
+    test('keeps cached window when refresh fails (fail-soft)', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Cached',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerFailure: const ServerFailure(
+          message: 'Network error',
+          statusCode: 500,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub1 = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      sub1.close();
+      await Future<void>.delayed(Duration.zero);
+
+      container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.status, ConversationDetailStatus.success);
+      expect(state.messages.map((m) => m.id), ['message-1']);
+      expect(state.failure, isNull);
+    });
+  });
+
+  group('loadNewer', () {
+    test('appends deduped newer messages and updates hasNewer', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerPages: {
+          1: ConversationMessagePage(
+            messages: [
+              ConversationMessageSummary(
+                id: 'message-1',
+                content: 'First',
+                createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 1,
+              ),
+              ConversationMessageSummary(
+                id: 'message-2',
+                content: 'Second',
+                createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 2,
+              ),
+            ],
+            historyLimited: false,
+            hasOlder: false,
+            hasNewer: true,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadNewer();
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages.map((m) => m.id), ['message-1', 'message-2']);
+      expect(state.hasNewer, isTrue);
+      expect(state.isLoadingNewer, isFalse);
+      expect(repository.newerRequests, [1]);
+    });
+
+    test('stores failure on loadNewer error', () async {
+      const failure = ServerFailure(
+        message: 'Newer load failed.',
+        statusCode: 500,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerFailure: failure,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadNewer();
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.isLoadingNewer, isFalse);
+      expect(state.failure, failure);
+    });
+
+    test('guards: no-op when not in success status', () async {
+      final repository = _FakeConversationRepository(
+        failure: const ServerFailure(
+          message: 'Load failed.',
+          statusCode: 500,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadNewer();
+
+      expect(repository.newerRequests, isEmpty);
+    });
+
+    test('guards: no-op when messages are empty', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadNewer();
+
+      expect(repository.newerRequests, isEmpty);
+    });
+
+    test('guards: no-op when all message seqs are null', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'No seq',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadNewer();
+
+      expect(repository.newerRequests, isEmpty);
+    });
+  });
 }
 
 class _FakeConversationRepository implements ConversationRepository {
@@ -427,6 +807,8 @@ class _FakeConversationRepository implements ConversationRepository {
     this.snapshot,
     this.failure,
     this.olderPages = const {},
+    this.newerPages = const {},
+    this.newerFailure,
     this.sentMessage,
     this.sendFailure,
   });
@@ -434,10 +816,13 @@ class _FakeConversationRepository implements ConversationRepository {
   final ConversationDetailSnapshot? snapshot;
   final AppFailure? failure;
   final Map<int, ConversationMessagePage> olderPages;
+  final Map<int, ConversationMessagePage> newerPages;
+  final AppFailure? newerFailure;
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
   final List<ConversationDetailTarget> requestedTargets = [];
   final List<int> olderRequests = [];
+  final List<int> newerRequests = [];
   final List<String> sentContents = [];
 
   @override
@@ -458,6 +843,23 @@ class _FakeConversationRepository implements ConversationRepository {
   }) async {
     olderRequests.add(beforeSeq);
     return olderPages[beforeSeq]!;
+  }
+
+  @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    newerRequests.add(afterSeq);
+    if (newerFailure != null) {
+      throw newerFailure!;
+    }
+    return newerPages[afterSeq] ??
+        const ConversationMessagePage(
+          messages: [],
+          historyLimited: false,
+          hasOlder: false,
+        );
   }
 
   @override

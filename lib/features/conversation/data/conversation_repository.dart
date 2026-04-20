@@ -62,6 +62,11 @@ abstract class ConversationRepository {
     required int beforeSeq,
   });
 
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  });
+
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
     String content,
@@ -91,11 +96,13 @@ class ConversationMessagePage {
     required this.messages,
     required this.historyLimited,
     required this.hasOlder,
+    this.hasNewer = false,
   });
 
   final List<ConversationMessageSummary> messages;
   final bool historyLimited;
   final bool hasOlder;
+  final bool hasNewer;
 }
 
 @immutable

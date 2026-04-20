@@ -593,6 +593,18 @@ class _FakeConversationRepository implements ConversationRepository {
     }
     return sentMessage!;
   }
+
+  @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+    );
+  }
 }
 
 class _QueueConversationRepository implements ConversationRepository {
@@ -617,6 +629,18 @@ class _QueueConversationRepository implements ConversationRepository {
     required int beforeSeq,
   }) {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+    );
   }
 
   @override

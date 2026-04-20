@@ -248,6 +248,14 @@ class _FakeConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
     String content,

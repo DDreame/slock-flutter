@@ -13,9 +13,11 @@ class ConversationDetailState {
     this.messages = const [],
     this.historyLimited = false,
     this.hasOlder = false,
+    this.hasNewer = false,
     this.draft = '',
     this.isSending = false,
     this.isLoadingOlder = false,
+    this.isLoadingNewer = false,
     this.failure,
     this.sendFailure,
   });
@@ -26,9 +28,11 @@ class ConversationDetailState {
   final List<ConversationMessageSummary> messages;
   final bool historyLimited;
   final bool hasOlder;
+  final bool hasNewer;
   final String draft;
   final bool isSending;
   final bool isLoadingOlder;
+  final bool isLoadingNewer;
   final AppFailure? failure;
   final AppFailure? sendFailure;
 
@@ -49,9 +53,11 @@ class ConversationDetailState {
     List<ConversationMessageSummary>? messages,
     bool? historyLimited,
     bool? hasOlder,
+    bool? hasNewer,
     String? draft,
     bool? isSending,
     bool? isLoadingOlder,
+    bool? isLoadingNewer,
     AppFailure? failure,
     AppFailure? sendFailure,
     bool clearFailure = false,
@@ -64,9 +70,11 @@ class ConversationDetailState {
       messages: messages ?? this.messages,
       historyLimited: historyLimited ?? this.historyLimited,
       hasOlder: hasOlder ?? this.hasOlder,
+      hasNewer: hasNewer ?? this.hasNewer,
       draft: draft ?? this.draft,
       isSending: isSending ?? this.isSending,
       isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
+      isLoadingNewer: isLoadingNewer ?? this.isLoadingNewer,
       failure: clearFailure ? null : (failure ?? this.failure),
       sendFailure: clearSendFailure ? null : (sendFailure ?? this.sendFailure),
     );
@@ -83,9 +91,11 @@ class ConversationDetailState {
             listEquals(messages, other.messages) &&
             historyLimited == other.historyLimited &&
             hasOlder == other.hasOlder &&
+            hasNewer == other.hasNewer &&
             draft == other.draft &&
             isSending == other.isSending &&
             isLoadingOlder == other.isLoadingOlder &&
+            isLoadingNewer == other.isLoadingNewer &&
             failure == other.failure &&
             sendFailure == other.sendFailure;
   }
@@ -98,9 +108,11 @@ class ConversationDetailState {
         Object.hashAll(messages),
         historyLimited,
         hasOlder,
+        hasNewer,
         draft,
         isSending,
         isLoadingOlder,
+        isLoadingNewer,
         failure,
         sendFailure,
       );
