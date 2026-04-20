@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 SKIP_MESSAGE := Skipping: Flutter app skeleton has not landed yet (missing pubspec.yaml).
 
-.PHONY: format analyze test ci-test-all ci-build-smoke
+.PHONY: format analyze test ci-test-all ci-build-smoke ci-build-ios-smoke
 
 format:
 	@if [ ! -f pubspec.yaml ]; then \
@@ -40,4 +40,11 @@ ci-build-smoke:
 		echo "$(SKIP_MESSAGE)"; \
 	else \
 		flutter build apk --debug; \
+	fi
+
+ci-build-ios-smoke:
+	@if [ ! -f pubspec.yaml ]; then \
+		echo "$(SKIP_MESSAGE)"; \
+	else \
+		flutter build ios --debug --no-codesign; \
 	fi
