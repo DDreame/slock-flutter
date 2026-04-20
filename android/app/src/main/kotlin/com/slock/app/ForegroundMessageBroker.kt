@@ -6,6 +6,9 @@ object ForegroundMessageBroker {
     @Volatile
     private var sink: EventChannel.EventSink? = null
 
+    @Volatile
+    private var foregroundActive: Boolean = false
+
     fun attachSink(eventSink: EventChannel.EventSink) {
         sink = eventSink
     }
@@ -14,7 +17,13 @@ object ForegroundMessageBroker {
         sink = null
     }
 
+    fun setForegroundActive(active: Boolean) {
+        foregroundActive = active
+    }
+
     fun push(payload: Map<String, Any?>) {
-        sink?.success(payload)
+        if (foregroundActive) {
+            sink?.success(payload)
+        }
     }
 }

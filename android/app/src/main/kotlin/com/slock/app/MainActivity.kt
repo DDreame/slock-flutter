@@ -117,6 +117,16 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        ForegroundMessageBroker.setForegroundActive(true)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        ForegroundMessageBroker.setForegroundActive(false)
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
