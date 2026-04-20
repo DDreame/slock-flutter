@@ -77,7 +77,7 @@ void main() {
             scopeKey: RealtimeEventEnvelope.globalScopeKey,
             receivedAt: DateTime(2026, 4, 20),
             seq: 1,
-            payload: {
+            payload: const {
               'channelId': 'dm-new-conversation',
               'displayName': 'Bob',
             },
@@ -104,7 +104,7 @@ void main() {
             scopeKey: RealtimeEventEnvelope.globalScopeKey,
             receivedAt: DateTime(2026, 4, 20),
             seq: 1,
-            payload: {'channelId': 'dm-new-conversation'},
+            payload: const {'channelId': 'dm-new-conversation'},
           ),
         );
     await Future<void>.delayed(Duration.zero);
@@ -128,7 +128,10 @@ void main() {
             scopeKey: RealtimeEventEnvelope.globalScopeKey,
             receivedAt: DateTime(2026, 4, 20),
             seq: 1,
-            payload: {'channelId': 'dm-early', 'displayName': 'Early Bob'},
+            payload: const {
+              'channelId': 'dm-early',
+              'displayName': 'Early Bob'
+            },
           ),
         );
     await Future<void>.delayed(Duration.zero);
@@ -169,7 +172,10 @@ void main() {
             scopeKey: RealtimeEventEnvelope.globalScopeKey,
             receivedAt: DateTime(2026, 4, 20),
             seq: 1,
-            payload: {'channelId': 'dm-existing', 'displayName': 'Existing'},
+            payload: const {
+              'channelId': 'dm-existing',
+              'displayName': 'Existing'
+            },
           ),
         );
     await Future<void>.delayed(Duration.zero);

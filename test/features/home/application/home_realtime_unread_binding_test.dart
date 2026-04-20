@@ -162,7 +162,7 @@ void main() {
       isTrue,
     );
 
-    final unknownScopeId = DirectMessageScopeId(
+    const unknownScopeId = DirectMessageScopeId(
       serverId: serverId,
       value: 'unknown-dm',
     );
@@ -238,7 +238,7 @@ void main() {
         .where((dm) => dm.scopeId.value == 'unknown-dm');
     expect(unknownDms.length, 1);
 
-    final unknownScopeId = DirectMessageScopeId(
+    const unknownScopeId = DirectMessageScopeId(
       serverId: serverId,
       value: 'unknown-dm',
     );
