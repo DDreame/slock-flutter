@@ -4,6 +4,7 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 
 const _notificationMethodChannelName = 'slock/notifications/methods';
 const _notificationTapEventChannelName = 'slock/notifications/taps';
+const _notificationForegroundEventChannelName = 'slock/notifications/foreground';
 
 abstract class AndroidNotificationPlatformBridge {
   Future<void> init();
@@ -11,6 +12,8 @@ abstract class AndroidNotificationPlatformBridge {
   Future<String?> getToken();
   Future<Map<String, dynamic>?> getInitialNotification();
   Stream<Map<String, dynamic>> get onNotificationTapped;
+  Stream<Map<String, dynamic>> get onForegroundMessage;
+  Future<void> showLocalNotification(Map<String, dynamic> payload);
 }
 
 class AndroidNotificationInitializer implements NotificationInitializer {
@@ -38,6 +41,14 @@ class AndroidNotificationInitializer implements NotificationInitializer {
   @override
   Stream<Map<String, dynamic>> get onNotificationTapped =>
       _bridge.onNotificationTapped;
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage =>
+      _bridge.onForegroundMessage;
+
+  @override
+  Future<void> showLocalNotification(Map<String, dynamic> payload) =>
+      _bridge.showLocalNotification(payload);
 }
 
 class MethodChannelAndroidNotificationPlatformBridge
@@ -49,6 +60,9 @@ class MethodChannelAndroidNotificationPlatformBridge
   );
   static const EventChannel _tapEventChannel = EventChannel(
     _notificationTapEventChannelName,
+  );
+  static const EventChannel _foregroundEventChannel = EventChannel(
+    _notificationForegroundEventChannelName,
   );
 
   @override
@@ -81,6 +95,18 @@ class MethodChannelAndroidNotificationPlatformBridge
       .map(coerceNotificationPayload)
       .where((payload) => payload != null)
       .cast<Map<String, dynamic>>();
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage =>
+      _foregroundEventChannel
+          .receiveBroadcastStream()
+          .map(coerceNotificationPayload)
+          .where((payload) => payload != null)
+          .cast<Map<String, dynamic>>();
+
+  @override
+  Future<void> showLocalNotification(Map<String, dynamic> payload) =>
+      _methodChannel.invokeMethod<void>('showLocalNotification', payload);
 }
 
 NotificationPermissionStatus parseNotificationPermissionStatus(String? value) {

@@ -36,6 +36,12 @@ class _FakeNotificationInitializer implements NotificationInitializer {
 
   @override
   Stream<Map<String, dynamic>> get onNotificationTapped => const Stream.empty();
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage => const Stream.empty();
+
+  @override
+  Future<void> showLocalNotification(Map<String, dynamic> payload) async {}
 }
 
 class _RecordingPushTokenRepository implements PushTokenRepository {

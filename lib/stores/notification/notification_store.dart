@@ -55,7 +55,7 @@ class NotificationStore extends Notifier<NotificationState> {
 
   void handleNotificationTap(Map<String, dynamic> payload) {
     final route = resolveNotificationRoute(payload);
-    if (route != null && isConversationDeepLink(route)) {
+    if (route != null) {
       ref.read(pendingDeepLinkProvider.notifier).state = route;
     }
   }

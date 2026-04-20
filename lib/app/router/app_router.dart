@@ -65,7 +65,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final bootstrapComplete = ref.read(appReadyProvider);
 
       if (session.status == AuthStatus.unknown &&
-          isConversationDeepLink(path)) {
+          isNotificationDeepLink(path)) {
         ref.read(pendingDeepLinkProvider.notifier).state = state.uri.toString();
       }
 
@@ -86,6 +86,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 servers.any((s) => s.id == pendingServerId)) {
               return pending;
             }
+          } else if (isNotificationDeepLink(pending)) {
+            return pending;
           }
         }
       }
@@ -206,6 +208,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (serverId != null && servers.any((s) => s.id == serverId)) {
         router.go(next);
       }
+    } else if (isNotificationDeepLink(next)) {
+      router.go(next);
     }
   });
 

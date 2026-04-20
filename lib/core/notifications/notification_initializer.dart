@@ -8,6 +8,8 @@ abstract class NotificationInitializer {
   Future<String?> getToken();
   Future<Map<String, dynamic>?> getInitialNotification();
   Stream<Map<String, dynamic>> get onNotificationTapped;
+  Stream<Map<String, dynamic>> get onForegroundMessage;
+  Future<void> showLocalNotification(Map<String, dynamic> payload);
 }
 
 class NoOpNotificationInitializer implements NotificationInitializer {
@@ -26,6 +28,12 @@ class NoOpNotificationInitializer implements NotificationInitializer {
 
   @override
   Stream<Map<String, dynamic>> get onNotificationTapped => const Stream.empty();
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage => const Stream.empty();
+
+  @override
+  Future<void> showLocalNotification(Map<String, dynamic> payload) async {}
 }
 
 final notificationInitializerProvider =

@@ -9,6 +9,9 @@ import 'package:slock_app/core/realtime/realtime.dart';
 import 'package:slock_app/features/home/application/home_realtime_dm_materialization_binding.dart';
 import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
 import 'package:slock_app/features/push_token/application/push_token_lifecycle_binding.dart';
+import 'package:slock_app/stores/notification/notification_lifecycle_binding.dart';
+import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
+import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +38,9 @@ class SlockApp extends ConsumerWidget {
     ref.watch(homeRealtimeUnreadBindingProvider);
     ref.watch(homeRealtimeDmMaterializationBindingProvider);
     ref.watch(pushTokenLifecycleBindingProvider);
+    ref.watch(notificationLifecycleBindingProvider);
+    ref.watch(notificationVisibleTargetBindingProvider);
+    ref.watch(notificationForegroundSuppressionBindingProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
       title: 'Slock',

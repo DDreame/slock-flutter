@@ -59,6 +59,12 @@ class FakeNotificationInitializer implements NotificationInitializer {
 
   @override
   Stream<Map<String, dynamic>> get onNotificationTapped => tapController.stream;
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage => const Stream.empty();
+
+  @override
+  Future<void> showLocalNotification(Map<String, dynamic> payload) async {}
 }
 
 void main() {
@@ -318,7 +324,7 @@ void main() {
       expect(pending, '/servers/s1/dms/d1');
     });
 
-    test('init does not write pending link for unsupported type', () async {
+    test('init consumes cold-start thread notification', () async {
       fakeInitializer.initialNotificationResult = {
         'type': 'thread',
         'threadId': 't1',
@@ -327,7 +333,7 @@ void main() {
       await readStore().init();
 
       final pending = container.read(pendingDeepLinkProvider);
-      expect(pending, isNull);
+      expect(pending, '/threads/t1/replies');
     });
 
     test('handleNotificationTap writes pending link for channel', () {
@@ -352,14 +358,34 @@ void main() {
       expect(pending, '/servers/s1/dms/d1');
     });
 
-    test('handleNotificationTap ignores thread notification', () {
+    test('handleNotificationTap writes pending link for thread', () {
       readStore().handleNotificationTap({
         'type': 'thread',
         'threadId': 't1',
       });
 
       final pending = container.read(pendingDeepLinkProvider);
-      expect(pending, isNull);
+      expect(pending, '/threads/t1/replies');
+    });
+
+    test('handleNotificationTap writes pending link for agent', () {
+      readStore().handleNotificationTap({
+        'type': 'agent',
+        'agentId': 'a1',
+      });
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/agents/a1');
+    });
+
+    test('handleNotificationTap writes pending link for profile', () {
+      readStore().handleNotificationTap({
+        'type': 'profile',
+        'userId': 'u1',
+      });
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/profile/u1');
     });
 
     test('handleNotificationTap ignores invalid payload', () {
