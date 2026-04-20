@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
@@ -32,6 +35,9 @@ class FakeNotificationInitializer implements NotificationInitializer {
   NotificationPermissionStatus permissionResult =
       NotificationPermissionStatus.granted;
   String? tokenResult;
+  Map<String, dynamic>? initialNotificationResult;
+  final StreamController<Map<String, dynamic>> tapController =
+      StreamController<Map<String, dynamic>>.broadcast();
 
   @override
   Future<void> init() async {
@@ -44,6 +50,13 @@ class FakeNotificationInitializer implements NotificationInitializer {
 
   @override
   Future<String?> getToken() async => tokenResult;
+
+  @override
+  Future<Map<String, dynamic>?> getInitialNotification() async =>
+      initialNotificationResult;
+
+  @override
+  Stream<Map<String, dynamic>> get onNotificationTapped => tapController.stream;
 }
 
 void main() {
@@ -248,6 +261,104 @@ void main() {
         fakeStorage.snapshot[NotificationStorageKeys.pushTokenUpdatedAt],
         isNull,
       );
+    });
+
+    test('init is idempotent — second call is a no-op', () async {
+      await readStore().init();
+      await readStore().init();
+
+      expect(fakeInitializer.initCount, 1);
+    });
+
+    test('init consumes cold-start channel notification', () async {
+      fakeInitializer.initialNotificationResult = {
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+      };
+
+      await readStore().init();
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/servers/s1/channels/c1');
+    });
+
+    test('init consumes cold-start DM notification', () async {
+      fakeInitializer.initialNotificationResult = {
+        'type': 'dm',
+        'serverId': 's1',
+        'channelId': 'd1',
+      };
+
+      await readStore().init();
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/servers/s1/dms/d1');
+    });
+
+    test('init does not write pending link for unsupported type', () async {
+      fakeInitializer.initialNotificationResult = {
+        'type': 'thread',
+        'threadId': 't1',
+      };
+
+      await readStore().init();
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, isNull);
+    });
+
+    test('handleNotificationTap writes pending link for channel', () {
+      readStore().handleNotificationTap({
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+      });
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/servers/s1/channels/c1');
+    });
+
+    test('handleNotificationTap writes pending link for DM', () {
+      readStore().handleNotificationTap({
+        'type': 'dm',
+        'serverId': 's1',
+        'channelId': 'd1',
+      });
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/servers/s1/dms/d1');
+    });
+
+    test('handleNotificationTap ignores thread notification', () {
+      readStore().handleNotificationTap({
+        'type': 'thread',
+        'threadId': 't1',
+      });
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, isNull);
+    });
+
+    test('handleNotificationTap ignores invalid payload', () {
+      readStore().handleNotificationTap({});
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, isNull);
+    });
+
+    test('mid-session tap via stream writes pending link', () async {
+      await readStore().init();
+
+      fakeInitializer.tapController.add({
+        'type': 'channel',
+        'serverId': 's2',
+        'channelId': 'c2',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/servers/s2/channels/c2');
     });
   });
 

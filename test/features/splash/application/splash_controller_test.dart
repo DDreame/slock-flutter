@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
+import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
@@ -33,17 +34,44 @@ class FakeServerListRepository implements ServerListRepository {
   Future<List<ServerSummary>> loadServers() async => const [];
 }
 
+class FakeNotificationInitializer implements NotificationInitializer {
+  int initCount = 0;
+
+  @override
+  Future<void> init() async {
+    initCount++;
+  }
+
+  @override
+  Future<NotificationPermissionStatus> requestPermission() async =>
+      NotificationPermissionStatus.unknown;
+
+  @override
+  Future<String?> getToken() async => null;
+
+  @override
+  Future<Map<String, dynamic>?> getInitialNotification() async => null;
+
+  @override
+  Stream<Map<String, dynamic>> get onNotificationTapped => const Stream.empty();
+}
+
 void main() {
   late ProviderContainer container;
   late FakeSecureStorage fakeStorage;
+  late FakeNotificationInitializer fakeNotificationInitializer;
 
   setUp(() {
     fakeStorage = FakeSecureStorage();
+    fakeNotificationInitializer = FakeNotificationInitializer();
     container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(fakeStorage),
         serverListRepositoryProvider.overrideWithValue(
           FakeServerListRepository(),
+        ),
+        notificationInitializerProvider.overrideWithValue(
+          fakeNotificationInitializer,
         ),
       ],
     );
@@ -114,6 +142,22 @@ void main() {
       expect(container.read(sessionStoreProvider).status,
           AuthStatus.unauthenticated);
       expect(container.read(appReadyProvider), isTrue);
+    });
+
+    test('calls notification store init during bootstrap', () async {
+      await container.read(splashControllerProvider.future);
+
+      expect(fakeNotificationInitializer.initCount, 1);
+    });
+
+    test('calls notification store init during authenticated bootstrap',
+        () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'saved-token';
+      fakeStorage._store[SessionStorageKeys.userId] = 'user-1';
+
+      await container.read(splashControllerProvider.future);
+
+      expect(fakeNotificationInitializer.initCount, 1);
     });
   });
 }

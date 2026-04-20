@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 
-@visibleForTesting
 String? resolveNotificationRoute(Map<String, dynamic> payload) {
   final type = payload['type'] as String?;
   final serverId = payload['serverId'] as String?;
