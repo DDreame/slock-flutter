@@ -114,6 +114,37 @@ void main() {
     expect(fakeSocket.emitted.first.$2, 'dm-new-conversation');
   });
 
+  test('dm:new before homeListStore success still emits join:channel',
+      () async {
+    final fakeSocket = _FakeRealtimeSocketClient();
+    final container = createContainer(fakeSocket: fakeSocket);
+
+    container.read(homeRealtimeDmMaterializationBindingProvider);
+    // Do NOT call load() — homeListStore stays in initial status
+
+    container.read(realtimeReductionIngressProvider).accept(
+          RealtimeEventEnvelope(
+            eventType: realtimeDmNewEventType,
+            scopeKey: RealtimeEventEnvelope.globalScopeKey,
+            receivedAt: DateTime(2026, 4, 20),
+            seq: 1,
+            payload: {'channelId': 'dm-early', 'displayName': 'Early Bob'},
+          ),
+        );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(fakeSocket.emitted, hasLength(1));
+    expect(fakeSocket.emitted.first.$1, 'join:channel');
+    expect(fakeSocket.emitted.first.$2, 'dm-early');
+
+    final state = container.read(homeListStoreProvider);
+    expect(
+      state.directMessages.any((dm) => dm.scopeId.value == 'dm-early'),
+      isFalse,
+      reason: 'DM should not be materialized when homeListStore is not ready',
+    );
+  });
+
   test('dm:new for already-known DM is deduped', () async {
     final fakeSocket = _FakeRealtimeSocketClient();
     final container = createContainer(
