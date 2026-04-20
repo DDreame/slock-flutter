@@ -27,6 +27,8 @@ final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
     final channelId = readOptionalConversationPayloadString(map['channelId']);
     if (channelId == null) return;
 
+    ref.read(realtimeSocketClientProvider).emit('join:channel', channelId);
+
     final homeState = ref.read(homeListStoreProvider);
     if (homeState.status != HomeListStatus.success ||
         homeState.serverScopeId == null) {
@@ -46,8 +48,6 @@ final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
     ref.read(homeListStoreProvider.notifier).addDirectMessage(
           HomeDirectMessageSummary(scopeId: scopeId, title: title),
         );
-
-    ref.read(realtimeSocketClientProvider).emit('join:channel', channelId);
   });
 
   ref.onDispose(() {
