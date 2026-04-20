@@ -23,6 +23,18 @@ void main() {
       final token = await initializer.getToken();
       expect(token, isNull);
     });
+
+    test('getInitialNotification returns null', () async {
+      final payload = await initializer.getInitialNotification();
+      expect(payload, isNull);
+    });
+
+    test('onNotificationTapped emits nothing', () async {
+      await expectLater(
+        initializer.onNotificationTapped,
+        emitsDone,
+      );
+    });
   });
 
   group('notificationInitializerProvider', () {
