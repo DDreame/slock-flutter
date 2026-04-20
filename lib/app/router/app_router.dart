@@ -78,7 +78,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         final pending = ref.read(pendingDeepLinkProvider);
         if (pending != null) {
           ref.read(pendingDeepLinkProvider.notifier).state = null;
-          return pending;
+          if (isConversationDeepLink(pending)) {
+            return pending;
+          }
         }
       }
 
@@ -188,7 +190,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
 class _SessionRouterNotifier extends ChangeNotifier {
   _SessionRouterNotifier(this._ref) {
-    _ref.listen<SessionState>(sessionStoreProvider, (_, __) {
+    _ref.listen<SessionState>(sessionStoreProvider, (_, next) {
+      if (!next.isAuthenticated) {
+        _ref.read(appReadyProvider.notifier).state = false;
+      }
       notifyListeners();
     });
     _ref.listen<bool>(appReadyProvider, (_, __) {

@@ -243,6 +243,27 @@ void main() {
 
       expect(router.routeInformationProvider.value.uri.path, '/home');
     });
+
+    test('appReady resets to false when session becomes unauthenticated',
+        () async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(appRouterProvider);
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+      expect(container.read(appReadyProvider), isTrue);
+
+      await container.read(sessionStoreProvider.notifier).logout();
+      expect(container.read(appReadyProvider), isFalse);
+    });
   });
 
   group('deep link preservation', () {
@@ -428,7 +449,8 @@ void main() {
       expect(container.read(pendingDeepLinkProvider), isNull);
     });
 
-    testWidgets('invalid pending deep link is consumed and falls back to /home',
+    testWidgets(
+        'valid conversation deep link to nonexistent server still navigates',
         (tester) async {
       final container = ProviderContainer(
         overrides: [
@@ -468,6 +490,40 @@ void main() {
         container.read(serverSelectionStoreProvider).selectedServerId,
         'nonexistent',
       );
+    });
+
+    testWidgets(
+        'non-conversation pending deep link is cleared and falls back to /home',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      container.read(pendingDeepLinkProvider.notifier).state = '/settings';
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+      await tester.pumpAndSettle();
+
+      expect(container.read(pendingDeepLinkProvider), isNull);
+      expect(router.routeInformationProvider.value.uri.path, '/home');
     });
   });
 }
