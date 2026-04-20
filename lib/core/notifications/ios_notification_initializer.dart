@@ -38,6 +38,12 @@ class IosNotificationInitializer implements NotificationInitializer {
   @override
   Stream<Map<String, dynamic>> get onNotificationTapped =>
       _bridge.onNotificationTapped;
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage => const Stream.empty();
+
+  @override
+  Future<void> showLocalNotification(Map<String, dynamic> payload) async {}
 }
 
 class MethodChannelIosNotificationPlatformBridge
