@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:slock_app/features/profile/application/profile_detail_store.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
@@ -57,9 +56,9 @@ void main() {
 
   testWidgets('ProfileAvatar shows initials when no avatarUrl', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: Scaffold(
-          body: const ProfileAvatar(displayName: 'Bob', radius: 30),
+          body: ProfileAvatar(displayName: 'Bob', radius: 30),
         ),
       ),
     );
@@ -72,9 +71,9 @@ void main() {
 
   testWidgets('ProfileAvatar shows ? for empty displayName', (tester) async {
     await tester.pumpWidget(
-      MaterialApp(
+      const MaterialApp(
         home: Scaffold(
-          body: const ProfileAvatar(displayName: '', radius: 30),
+          body: ProfileAvatar(displayName: '', radius: 30),
         ),
       ),
     );
