@@ -315,4 +315,22 @@ class _FakeConversationRepository implements ConversationRepository {
     }
     return sendResult!;
   }
+
+  @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async {
+    return message;
+  }
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    return null;
+  }
 }
