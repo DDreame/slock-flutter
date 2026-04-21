@@ -17,4 +17,5 @@ android/local.properties
 **/GeneratedPluginRegistrant.java
 **/GeneratedPluginRegistrant.swift
 **/*.g.dart
+!lib/core/local_data/app_database.g.dart
 **/*.freezed.dart
