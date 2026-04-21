@@ -11,6 +11,7 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
+import '../../../core/local_data/fake_conversation_local_store.dart';
 import '../../../stores/session/session_store_persistence_test.dart'
     show FakeSecureStorage;
 
@@ -32,6 +33,9 @@ void main() {
         secureStorageProvider.overrideWithValue(FakeSecureStorage()),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         activeServerScopeIdProvider.overrideWithValue(serverId),
+        conversationLocalStoreProvider.overrideWithValue(
+          FakeConversationLocalStore(),
+        ),
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
           (scopeId) async => HomeWorkspaceSnapshot(
             serverId: scopeId,

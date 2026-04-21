@@ -7,6 +7,7 @@ import 'package:slock_app/features/home/application/home_realtime_dm_materializa
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 
+import '../../../core/local_data/fake_conversation_local_store.dart';
 import '../../../stores/session/session_store_persistence_test.dart'
     show FakeSecureStorage;
 
@@ -48,6 +49,9 @@ void main() {
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         realtimeSocketClientProvider.overrideWithValue(fakeSocket),
         activeServerScopeIdProvider.overrideWithValue(serverId),
+        conversationLocalStoreProvider.overrideWithValue(
+          FakeConversationLocalStore(),
+        ),
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
           (scopeId) async => HomeWorkspaceSnapshot(
             serverId: scopeId,
