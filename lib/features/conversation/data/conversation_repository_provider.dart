@@ -4,9 +4,11 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 const _messagePageSize = 50;
 const _sendMessagePath = '/messages';
+const _uploadPath = '/upload';
 const _messagesPathPrefix = '/messages/channel/';
 const _channelsPath = '/channels';
 const _directMessageChannelsPath = '/channels/dm';
@@ -128,17 +130,64 @@ class _ApiConversationRepository implements ConversationRepository {
   }
 
   @override
-  Future<ConversationMessageSummary> sendMessage(
+  Future<String> uploadAttachment(
     ConversationDetailTarget target,
-    String content,
+    PendingAttachment attachment,
   ) async {
     try {
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          attachment.path,
+          filename: attachment.name,
+          contentType: DioMediaType.parse(attachment.mimeType),
+        ),
+      });
+      final response = await _appDioClient.post<Object?>(
+        _uploadPath,
+        data: formData,
+        options: _serverScopedOptions(target.serverId).copyWith(
+          sendTimeout: const Duration(minutes: 2),
+        ),
+      );
+      final map = requireConversationPayloadMap(
+        response.data,
+        payloadName: 'uploadResponse',
+      );
+      final id = readOptionalConversationPayloadString(map['id']);
+      if (id == null || id.isEmpty) {
+        throw const SerializationFailure(
+          message: 'Upload response missing attachment id.',
+          causeType: 'uploadResponse',
+        );
+      }
+      return id;
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to upload attachment.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content, {
+    List<String>? attachmentIds,
+  }) async {
+    try {
+      final data = <String, dynamic>{
+        'channelId': target.conversationId,
+        'content': content.trim(),
+      };
+      if (attachmentIds != null && attachmentIds.isNotEmpty) {
+        data['attachmentIds'] = attachmentIds;
+      }
       final response = await _appDioClient.post<Object?>(
         _sendMessagePath,
-        data: {
-          'channelId': target.conversationId,
-          'content': content.trim(),
-        },
+        data: data,
         options: _serverScopedOptions(target.serverId),
       );
       return _parseSingleMessage(

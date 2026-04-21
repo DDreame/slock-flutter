@@ -5,6 +5,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 void main() {
   final target = ConversationDetailTarget.channel(
@@ -258,7 +259,16 @@ class _FakeConversationRepository implements ConversationRepository {
   @override
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
-    String content,
+    String content, {
+    List<String>? attachmentIds,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<String> uploadAttachment(
+    ConversationDetailTarget target,
+    PendingAttachment attachment,
   ) async {
     throw UnimplementedError();
   }

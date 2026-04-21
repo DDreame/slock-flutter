@@ -7,6 +7,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 final currentConversationDetailTargetProvider =
     Provider<ConversationDetailTarget>((ref) {
@@ -222,12 +223,30 @@ class ConversationDetailStore
     );
   }
 
+  void addPendingAttachment(PendingAttachment attachment) {
+    state = state.copyWith(
+      pendingAttachments: [...state.pendingAttachments, attachment],
+      clearSendFailure: true,
+    );
+  }
+
+  void removePendingAttachment(int index) {
+    if (index < 0 || index >= state.pendingAttachments.length) {
+      return;
+    }
+    final updated = List<PendingAttachment>.of(state.pendingAttachments)
+      ..removeAt(index);
+    state = state.copyWith(pendingAttachments: updated);
+  }
+
   Future<void> send() async {
     final target = ref.read(currentConversationDetailTargetProvider);
     final content = state.draft.trim();
+    final pendingFiles =
+        state.pendingAttachments.isNotEmpty ? state.pendingAttachments : null;
     if (state.status != ConversationDetailStatus.success ||
         state.isSending ||
-        content.isEmpty) {
+        (content.isEmpty && (pendingFiles == null || pendingFiles.isEmpty))) {
       return;
     }
 
@@ -237,15 +256,42 @@ class ConversationDetailStore
     );
 
     try {
-      final message = await ref
-          .read(conversationRepositoryProvider)
-          .sendMessage(target, content);
+      final repo = ref.read(conversationRepositoryProvider);
+
+      List<String>? attachmentIds;
+      List<PendingAttachment> failedUploads = const [];
+      if (pendingFiles != null) {
+        attachmentIds = <String>[];
+        final failed = <PendingAttachment>[];
+        for (final file in pendingFiles) {
+          try {
+            final id = await repo.uploadAttachment(target, file);
+            attachmentIds.add(id);
+          } on AppFailure {
+            failed.add(file);
+          }
+        }
+        failedUploads = failed;
+        if (attachmentIds.isEmpty && content.isEmpty) {
+          throw const UnknownFailure(
+            message: 'All attachment uploads failed.',
+            causeType: 'uploadFailure',
+          );
+        }
+      }
+
+      final message = await repo.sendMessage(
+        target,
+        content,
+        attachmentIds: attachmentIds,
+      );
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
       state = state.copyWith(
         messages: _appendDedupedMessage(state.messages, message),
         draft: '',
+        pendingAttachments: failedUploads,
         isSending: false,
         clearSendFailure: true,
       );

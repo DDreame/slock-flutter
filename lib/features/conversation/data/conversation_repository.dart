@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 enum ConversationSurface { channel, directMessage }
 
@@ -67,10 +68,16 @@ abstract class ConversationRepository {
     required int afterSeq,
   });
 
+  Future<String> uploadAttachment(
+    ConversationDetailTarget target,
+    PendingAttachment attachment,
+  );
+
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
-    String content,
-  );
+    String content, {
+    List<String>? attachmentIds,
+  });
 }
 
 @immutable

@@ -7,6 +7,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 
@@ -624,7 +625,13 @@ void main() {
     expect(find.byKey(const ValueKey('message-attachments')), findsOneWidget);
     expect(find.text('report.pdf'), findsOneWidget);
     expect(find.text('application/pdf'), findsOneWidget);
-    expect(find.byIcon(Icons.attach_file), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('message-attachments')),
+        matching: find.byIcon(Icons.attach_file),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('renders thread indicator for messages with threadId', (
@@ -768,10 +775,19 @@ class _FakeConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<String> uploadAttachment(
+    ConversationDetailTarget target,
+    PendingAttachment attachment,
+  ) async {
+    return 'test-attachment-id';
+  }
+
+  @override
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
-    String content,
-  ) async {
+    String content, {
+    List<String>? attachmentIds,
+  }) async {
     sentContents.add(content);
     if (sendFailure != null) {
       throw sendFailure!;
@@ -829,10 +845,19 @@ class _QueueConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<String> uploadAttachment(
+    ConversationDetailTarget target,
+    PendingAttachment attachment,
+  ) async {
+    return 'test-attachment-id';
+  }
+
+  @override
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,
-    String content,
-  ) {
+    String content, {
+    List<String>? attachmentIds,
+  }) {
     throw UnimplementedError();
   }
 }

@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
@@ -5,6 +6,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 class ConversationDetailPage extends StatelessWidget {
   const ConversationDetailPage({
@@ -108,6 +110,12 @@ class _ConversationDetailScreenState
                   .read(conversationDetailStoreProvider.notifier)
                   .updateDraft,
               onSend: _handleSend,
+              onPickAttachment: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .addPendingAttachment,
+              onRemoveAttachment: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .removePendingAttachment,
             )
           : null,
       body: switch (state.status) {
@@ -135,7 +143,9 @@ class _ConversationDetailScreenState
   Future<void> _handleSend() async {
     await ref.read(conversationDetailStoreProvider.notifier).send();
     final state = ref.read(conversationDetailStoreProvider);
-    if (state.sendFailure == null && state.draft.isEmpty) {
+    if (state.sendFailure == null &&
+        state.draft.isEmpty &&
+        state.pendingAttachments.isEmpty) {
       _composerFocusNode.unfocus();
     }
   }
@@ -358,6 +368,8 @@ class _ConversationComposer extends StatelessWidget {
     required this.state,
     required this.onChanged,
     required this.onSend,
+    required this.onPickAttachment,
+    required this.onRemoveAttachment,
   });
 
   final TextEditingController controller;
@@ -365,6 +377,8 @@ class _ConversationComposer extends StatelessWidget {
   final ConversationDetailState state;
   final ValueChanged<String> onChanged;
   final Future<void> Function() onSend;
+  final ValueChanged<PendingAttachment> onPickAttachment;
+  final ValueChanged<int> onRemoveAttachment;
 
   @override
   Widget build(BuildContext context) {
@@ -386,8 +400,33 @@ class _ConversationComposer extends StatelessWidget {
               ),
               const SizedBox(height: 8),
             ],
+            if (state.pendingAttachments.isNotEmpty) ...[
+              Wrap(
+                key: const ValueKey('composer-pending-attachments'),
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (var i = 0; i < state.pendingAttachments.length; i++)
+                    Chip(
+                      key: ValueKey('pending-attachment-$i'),
+                      avatar: const Icon(Icons.attach_file, size: 16),
+                      label: Text(
+                        state.pendingAttachments[i].name,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onDeleted: () => onRemoveAttachment(i),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
             Row(
               children: [
+                IconButton(
+                  key: const ValueKey('composer-attach'),
+                  icon: const Icon(Icons.attach_file),
+                  onPressed: state.isSending ? null : () => _pickFile(context),
+                ),
                 Expanded(
                   child: TextField(
                     key: const ValueKey('composer-input'),
@@ -415,6 +454,41 @@ class _ConversationComposer extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _pickFile(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result == null || result.files.isEmpty) {
+      return;
+    }
+    final file = result.files.first;
+    if (file.path == null) {
+      return;
+    }
+    final extension = file.extension ?? '';
+    final mimeType = _mimeFromExtension(extension);
+    onPickAttachment(PendingAttachment(
+      path: file.path!,
+      name: file.name,
+      mimeType: mimeType,
+    ));
+  }
+
+  static String _mimeFromExtension(String ext) {
+    return switch (ext.toLowerCase()) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+      'gif' => 'image/gif',
+      'webp' => 'image/webp',
+      'pdf' => 'application/pdf',
+      'doc' => 'application/msword',
+      'docx' =>
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'txt' => 'text/plain',
+      'mp4' => 'video/mp4',
+      'mp3' => 'audio/mpeg',
+      _ => 'application/octet-stream',
+    };
   }
 }
 

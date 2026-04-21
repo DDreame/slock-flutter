@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 enum ConversationDetailStatus { initial, loading, success, failure }
 
@@ -15,6 +16,7 @@ class ConversationDetailState {
     this.hasOlder = false,
     this.hasNewer = false,
     this.draft = '',
+    this.pendingAttachments = const [],
     this.isSending = false,
     this.isLoadingOlder = false,
     this.isLoadingNewer = false,
@@ -30,6 +32,7 @@ class ConversationDetailState {
   final bool hasOlder;
   final bool hasNewer;
   final String draft;
+  final List<PendingAttachment> pendingAttachments;
   final bool isSending;
   final bool isLoadingOlder;
   final bool isLoadingNewer;
@@ -43,7 +46,7 @@ class ConversationDetailState {
 
   bool get canSend =>
       status == ConversationDetailStatus.success &&
-      draft.trim().isNotEmpty &&
+      (draft.trim().isNotEmpty || pendingAttachments.isNotEmpty) &&
       !isSending;
 
   ConversationDetailState copyWith({
@@ -55,6 +58,7 @@ class ConversationDetailState {
     bool? hasOlder,
     bool? hasNewer,
     String? draft,
+    List<PendingAttachment>? pendingAttachments,
     bool? isSending,
     bool? isLoadingOlder,
     bool? isLoadingNewer,
@@ -72,6 +76,7 @@ class ConversationDetailState {
       hasOlder: hasOlder ?? this.hasOlder,
       hasNewer: hasNewer ?? this.hasNewer,
       draft: draft ?? this.draft,
+      pendingAttachments: pendingAttachments ?? this.pendingAttachments,
       isSending: isSending ?? this.isSending,
       isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
       isLoadingNewer: isLoadingNewer ?? this.isLoadingNewer,
@@ -93,6 +98,7 @@ class ConversationDetailState {
             hasOlder == other.hasOlder &&
             hasNewer == other.hasNewer &&
             draft == other.draft &&
+            listEquals(pendingAttachments, other.pendingAttachments) &&
             isSending == other.isSending &&
             isLoadingOlder == other.isLoadingOlder &&
             isLoadingNewer == other.isLoadingNewer &&
@@ -110,6 +116,7 @@ class ConversationDetailState {
         hasOlder,
         hasNewer,
         draft,
+        Object.hashAll(pendingAttachments),
         isSending,
         isLoadingOlder,
         isLoadingNewer,
