@@ -359,11 +359,12 @@ class ConversationDetailStore
     }
 
     unawaited(() async {
-      final persisted = await ref.read(conversationRepositoryProvider).persistMessage(
-            target,
-            message: incoming.message,
-            senderId: incoming.senderId,
-          );
+      final persisted =
+          await ref.read(conversationRepositoryProvider).persistMessage(
+                target,
+                message: incoming.message,
+                senderId: incoming.senderId,
+              );
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;

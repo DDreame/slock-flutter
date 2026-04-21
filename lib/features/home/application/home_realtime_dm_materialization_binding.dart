@@ -44,11 +44,10 @@ final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
 
     final title = resolveDirectMessageTitle(map) ?? channelId;
 
-    final summary = await ref
-        .read(homeRepositoryProvider)
-        .persistDirectMessageSummary(
-          HomeDirectMessageSummary(scopeId: scopeId, title: title),
-        );
+    final summary =
+        await ref.read(homeRepositoryProvider).persistDirectMessageSummary(
+              HomeDirectMessageSummary(scopeId: scopeId, title: title),
+            );
 
     ref.read(homeListStoreProvider.notifier).addDirectMessage(
           summary,
