@@ -334,14 +334,7 @@ class ConversationDetailStore
     }
 
     final existing = state.messages[index];
-    final patched = ConversationMessageSummary(
-      id: existing.id,
-      content: updated.content,
-      createdAt: existing.createdAt,
-      senderType: existing.senderType,
-      messageType: existing.messageType,
-      seq: existing.seq,
-    );
+    final patched = existing.copyWith(content: updated.content);
 
     final messages = List<ConversationMessageSummary>.of(state.messages);
     messages[index] = patched;

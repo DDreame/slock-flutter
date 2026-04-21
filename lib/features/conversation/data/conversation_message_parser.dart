@@ -66,6 +66,8 @@ ConversationMessageSummary parseConversationMessageSummary(
     messageType:
         readOptionalConversationPayloadString(item['messageType']) ?? 'message',
     seq: readOptionalConversationPayloadInt(item['seq']),
+    attachments: _parseAttachments(item['attachments']),
+    threadId: readOptionalConversationPayloadString(item['threadId']),
   );
 }
 
@@ -177,4 +179,26 @@ MessageUpdatedPayload? tryParseMessageUpdatedPayload(Object? payload) {
 
 String describeConversationPayloadType(Object? value) {
   return value?.runtimeType.toString() ?? 'Null';
+}
+
+List<MessageAttachment>? _parseAttachments(Object? value) {
+  if (value is! List || value.isEmpty) {
+    return null;
+  }
+  final results = <MessageAttachment>[];
+  for (final item in value) {
+    if (item is! Map) continue;
+    final map =
+        item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item);
+    final name = readOptionalConversationPayloadString(map['name']);
+    final type = readOptionalConversationPayloadString(map['type']);
+    if (name == null || type == null) continue;
+    results.add(MessageAttachment(
+      name: name,
+      type: type,
+      url: readOptionalConversationPayloadString(map['url']),
+      id: readOptionalConversationPayloadString(map['id']),
+    ));
+  }
+  return results.isEmpty ? null : results;
 }

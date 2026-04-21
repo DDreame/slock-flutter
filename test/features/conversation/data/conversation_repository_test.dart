@@ -403,6 +403,187 @@ void main() {
       throwsA(same(failure)),
     );
   });
+
+  test('parses attachments and threadId from message payload', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'content': 'With file',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 1,
+              'threadId': 'thread-abc',
+              'attachments': [
+                {
+                  'name': 'report.pdf',
+                  'type': 'application/pdf',
+                  'url': 'https://example.com/report.pdf',
+                  'id': 'att-1',
+                },
+              ],
+            },
+          ],
+          'historyLimited': false,
+        },
+        '/channels': [
+          {'id': 'general', 'name': 'general'},
+        ],
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+
+    final message = snapshot.messages.single;
+    expect(message.threadId, 'thread-abc');
+    expect(message.attachments, hasLength(1));
+    expect(message.attachments![0].name, 'report.pdf');
+    expect(message.attachments![0].type, 'application/pdf');
+    expect(message.attachments![0].url, 'https://example.com/report.pdf');
+    expect(message.attachments![0].id, 'att-1');
+  });
+
+  test('attachments and threadId are null when absent from payload', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'content': 'Plain message',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 1,
+            },
+          ],
+          'historyLimited': false,
+        },
+        '/channels': [
+          {'id': 'general', 'name': 'general'},
+        ],
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+
+    final message = snapshot.messages.single;
+    expect(message.threadId, isNull);
+    expect(message.attachments, isNull);
+  });
+
+  test('attachments with missing name/type fields are skipped', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'content': 'Partial attachments',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 1,
+              'attachments': [
+                {'name': 'good.pdf', 'type': 'application/pdf'},
+                {'name': 'missing-type'},
+                {'type': 'image/png'},
+              ],
+            },
+          ],
+          'historyLimited': false,
+        },
+        '/channels': [
+          {'id': 'general', 'name': 'general'},
+        ],
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+
+    final message = snapshot.messages.single;
+    expect(message.attachments, hasLength(1));
+    expect(message.attachments![0].name, 'good.pdf');
+  });
+
+  test('empty attachments array results in null', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'content': 'Empty attachments',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 1,
+              'attachments': <Object>[],
+            },
+          ],
+          'historyLimited': false,
+        },
+        '/channels': [
+          {'id': 'general', 'name': 'general'},
+        ],
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+
+    expect(snapshot.messages.single.attachments, isNull);
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {

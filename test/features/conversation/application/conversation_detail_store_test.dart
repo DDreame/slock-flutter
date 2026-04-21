@@ -905,6 +905,75 @@ void main() {
       expect(repository.newerRequests, isEmpty);
     });
   });
+
+  test('message:updated via copyWith preserves attachments and threadId',
+      () async {
+    final ingress = RealtimeReductionIngress();
+    final container = ProviderContainer(
+      overrides: [
+        currentConversationDetailTargetProvider.overrideWithValue(target),
+        conversationRepositoryProvider.overrideWithValue(
+          _FakeConversationRepository(
+            snapshot: ConversationDetailSnapshot(
+              target: target,
+              title: '#general',
+              messages: [
+                ConversationMessageSummary(
+                  id: 'msg-1',
+                  content: 'Original',
+                  createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+                  senderType: 'human',
+                  messageType: 'message',
+                  seq: 1,
+                  attachments: const [
+                    MessageAttachment(
+                        name: 'file.pdf', type: 'application/pdf'),
+                  ],
+                  threadId: 'thread-abc',
+                ),
+              ],
+              historyLimited: false,
+              hasOlder: false,
+            ),
+          ),
+        ),
+        realtimeReductionIngressProvider.overrideWithValue(ingress),
+      ],
+    );
+    final subscription = container.listen(
+      conversationDetailStoreProvider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(() async {
+      subscription.close();
+      container.dispose();
+      await ingress.dispose();
+    });
+
+    await container.read(conversationDetailStoreProvider.notifier).load();
+
+    ingress.accept(
+      RealtimeEventEnvelope(
+        eventType: 'message:updated',
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime(2026, 4, 20),
+        seq: 2,
+        payload: {
+          'id': 'msg-1',
+          'channelId': target.conversationId,
+          'content': 'Edited',
+        },
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(conversationDetailStoreProvider);
+    expect(state.messages[0].content, 'Edited');
+    expect(state.messages[0].attachments, hasLength(1));
+    expect(state.messages[0].attachments![0].name, 'file.pdf');
+    expect(state.messages[0].threadId, 'thread-abc');
+  });
 }
 
 class _FakeConversationRepository implements ConversationRepository {

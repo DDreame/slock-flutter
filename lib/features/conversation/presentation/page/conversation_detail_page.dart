@@ -426,37 +426,152 @@ class _ConversationMessageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timestamp = _formatTimestamp(message.createdAt);
+    final theme = Theme.of(context);
 
     return Container(
       key: ValueKey('message-${message.id}'),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (message.threadId != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                'In thread',
+                key: const ValueKey('message-thread-indicator'),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ),
           Row(
             children: [
               Expanded(
                 child: Text(
                   message.senderLabel,
-                  style: Theme.of(context).textTheme.labelMedium,
+                  style: theme.textTheme.labelMedium,
                 ),
               ),
-              Text(timestamp, style: Theme.of(context).textTheme.bodySmall),
+              Text(timestamp, style: theme.textTheme.bodySmall),
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            message.content,
-            style: message.isSystem
-                ? Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontStyle: FontStyle.italic,
-                    )
-                : Theme.of(context).textTheme.bodyMedium,
-          ),
+          _MessageContentBody(message: message),
+          if (message.attachments != null && message.attachments!.isNotEmpty)
+            _AttachmentSection(attachments: message.attachments!),
+        ],
+      ),
+    );
+  }
+}
+
+class _MessageContentBody extends StatelessWidget {
+  const _MessageContentBody({required this.message});
+
+  final ConversationMessageSummary message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final baseStyle = message.isSystem
+        ? theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)
+        : theme.textTheme.bodyMedium;
+
+    final spans = _buildLinkifiedSpans(message.content, baseStyle, theme);
+    if (spans.length == 1 && spans.first is! WidgetSpan) {
+      return Text.rich(spans.first, key: const ValueKey('message-content'));
+    }
+    return Text.rich(
+      TextSpan(children: spans),
+      key: const ValueKey('message-content'),
+    );
+  }
+}
+
+final _urlPattern = RegExp(
+  r'https?://[^\s<>\[\]()]+',
+  caseSensitive: false,
+);
+
+List<InlineSpan> _buildLinkifiedSpans(
+  String text,
+  TextStyle? baseStyle,
+  ThemeData theme,
+) {
+  final matches = _urlPattern.allMatches(text).toList();
+  if (matches.isEmpty) {
+    return [TextSpan(text: text, style: baseStyle)];
+  }
+
+  final linkStyle = (baseStyle ?? const TextStyle()).copyWith(
+    color: theme.colorScheme.primary,
+    decoration: TextDecoration.underline,
+  );
+
+  final spans = <InlineSpan>[];
+  var lastEnd = 0;
+  for (final match in matches) {
+    if (match.start > lastEnd) {
+      spans.add(TextSpan(
+          text: text.substring(lastEnd, match.start), style: baseStyle));
+    }
+    spans.add(TextSpan(text: match.group(0), style: linkStyle));
+    lastEnd = match.end;
+  }
+  if (lastEnd < text.length) {
+    spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
+  }
+  return spans;
+}
+
+class _AttachmentSection extends StatelessWidget {
+  const _AttachmentSection({required this.attachments});
+
+  final List<MessageAttachment> attachments;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        key: const ValueKey('message-attachments'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final attachment in attachments)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.attach_file,
+                    size: 16,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      attachment.name,
+                      style: theme.textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    attachment.type,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

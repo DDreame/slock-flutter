@@ -106,6 +106,35 @@ class ConversationMessagePage {
 }
 
 @immutable
+class MessageAttachment {
+  const MessageAttachment({
+    required this.name,
+    required this.type,
+    this.url,
+    this.id,
+  });
+
+  final String name;
+  final String type;
+  final String? url;
+  final String? id;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is MessageAttachment &&
+            runtimeType == other.runtimeType &&
+            name == other.name &&
+            type == other.type &&
+            url == other.url &&
+            id == other.id;
+  }
+
+  @override
+  int get hashCode => Object.hash(name, type, url, id);
+}
+
+@immutable
 class ConversationMessageSummary {
   const ConversationMessageSummary({
     required this.id,
@@ -114,6 +143,8 @@ class ConversationMessageSummary {
     required this.senderType,
     required this.messageType,
     this.seq,
+    this.attachments,
+    this.threadId,
   });
 
   final String id;
@@ -122,6 +153,8 @@ class ConversationMessageSummary {
   final String senderType;
   final String messageType;
   final int? seq;
+  final List<MessageAttachment>? attachments;
+  final String? threadId;
 
   bool get isSystem => messageType == 'system';
 
@@ -130,6 +163,23 @@ class ConversationMessageSummary {
         'human' || 'member' || 'user' => 'Member',
         _ => 'System',
       };
+
+  ConversationMessageSummary copyWith({
+    String? content,
+    List<MessageAttachment>? attachments,
+    String? threadId,
+  }) {
+    return ConversationMessageSummary(
+      id: id,
+      content: content ?? this.content,
+      createdAt: createdAt,
+      senderType: senderType,
+      messageType: messageType,
+      seq: seq,
+      attachments: attachments ?? this.attachments,
+      threadId: threadId ?? this.threadId,
+    );
+  }
 
   @override
   bool operator ==(Object other) {
@@ -141,7 +191,9 @@ class ConversationMessageSummary {
             createdAt == other.createdAt &&
             senderType == other.senderType &&
             messageType == other.messageType &&
-            seq == other.seq;
+            seq == other.seq &&
+            _listEquals(attachments, other.attachments) &&
+            threadId == other.threadId;
   }
 
   @override
@@ -152,5 +204,17 @@ class ConversationMessageSummary {
         senderType,
         messageType,
         seq,
+        attachments == null ? null : Object.hashAll(attachments!),
+        threadId,
       );
+
+  static bool _listEquals<T>(List<T>? a, List<T>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return a == b;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }

@@ -537,6 +537,150 @@ void main() {
     expect(restoredSession?.messages, hasLength(15));
     expect(restoredOffset, closeTo(beforeDisposeOffset, 1));
   });
+
+  testWidgets('renders attachment section for messages with attachments', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'See attached',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            attachments: const [
+              MessageAttachment(
+                name: 'report.pdf',
+                type: 'application/pdf',
+              ),
+            ],
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('message-attachments')), findsOneWidget);
+    expect(find.text('report.pdf'), findsOneWidget);
+    expect(find.text('application/pdf'), findsOneWidget);
+    expect(find.byIcon(Icons.attach_file), findsOneWidget);
+  });
+
+  testWidgets('renders thread indicator for messages with threadId', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Threaded message',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            threadId: 'thread-abc',
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('message-thread-indicator')), findsOneWidget);
+    expect(find.text('In thread'), findsOneWidget);
+  });
+
+  testWidgets('URL linkification styles URLs distinctly in message content', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Check https://example.com for details',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final richTextFinder = find.byKey(const ValueKey('message-content'));
+    expect(richTextFinder, findsOneWidget);
+    final richText = tester.widget<RichText>(
+      find.descendant(
+        of: richTextFinder,
+        matching: find.byType(RichText),
+      ),
+    );
+    final outerSpan = richText.text as TextSpan;
+    final innerSpan = outerSpan.children!.first as TextSpan;
+    expect(innerSpan.children, hasLength(3));
+    expect((innerSpan.children![0] as TextSpan).text, 'Check ');
+    expect((innerSpan.children![1] as TextSpan).text, 'https://example.com');
+    expect((innerSpan.children![1] as TextSpan).style?.decoration,
+        TextDecoration.underline);
+    expect((innerSpan.children![2] as TextSpan).text, ' for details');
+  });
 }
 
 Widget _buildApp({
