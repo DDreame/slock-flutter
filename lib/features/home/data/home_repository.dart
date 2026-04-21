@@ -2,16 +2,62 @@ import 'package:slock_app/core/core.dart';
 
 abstract class HomeRepository {
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId);
+
+  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
+    HomeDirectMessageSummary summary,
+  );
+
+  Future<void> persistConversationActivity({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  });
+
+  Future<void> persistConversationPreviewUpdate({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  });
 }
 
 typedef HomeWorkspaceSnapshotLoader = Future<HomeWorkspaceSnapshot> Function(
     ServerScopeId serverId);
+typedef HomeDirectMessageSummaryPersister = Future<HomeDirectMessageSummary>
+    Function(HomeDirectMessageSummary summary);
+typedef HomeConversationActivityPersister = Future<void> Function({
+  required ServerScopeId serverId,
+  required String conversationId,
+  required String messageId,
+  required String preview,
+  required DateTime activityAt,
+});
+typedef HomeConversationPreviewUpdatePersister = Future<void> Function({
+  required ServerScopeId serverId,
+  required String conversationId,
+  required String messageId,
+  required String preview,
+});
 
 class BaselineHomeRepository implements HomeRepository {
-  BaselineHomeRepository({required HomeWorkspaceSnapshotLoader loadWorkspace})
-      : _loadWorkspace = loadWorkspace;
+  BaselineHomeRepository({
+    required HomeWorkspaceSnapshotLoader loadWorkspace,
+    required HomeDirectMessageSummaryPersister persistDirectMessageSummary,
+    required HomeConversationActivityPersister persistConversationActivity,
+    required HomeConversationPreviewUpdatePersister
+        persistConversationPreviewUpdate,
+  })  : _loadWorkspace = loadWorkspace,
+        _persistDirectMessageSummary = persistDirectMessageSummary,
+        _persistConversationActivity = persistConversationActivity,
+        _persistConversationPreviewUpdate = persistConversationPreviewUpdate;
 
   final HomeWorkspaceSnapshotLoader _loadWorkspace;
+  final HomeDirectMessageSummaryPersister _persistDirectMessageSummary;
+  final HomeConversationActivityPersister _persistConversationActivity;
+  final HomeConversationPreviewUpdatePersister
+      _persistConversationPreviewUpdate;
 
   @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
@@ -22,6 +68,72 @@ class BaselineHomeRepository implements HomeRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to load home workspace snapshot.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
+    HomeDirectMessageSummary summary,
+  ) async {
+    try {
+      return await _persistDirectMessageSummary(summary);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to persist direct message summary.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> persistConversationActivity({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) async {
+    try {
+      await _persistConversationActivity(
+        serverId: serverId,
+        conversationId: conversationId,
+        messageId: messageId,
+        preview: preview,
+        activityAt: activityAt,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to persist conversation activity.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> persistConversationPreviewUpdate({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) async {
+    try {
+      await _persistConversationPreviewUpdate(
+        serverId: serverId,
+        conversationId: conversationId,
+        messageId: messageId,
+        preview: preview,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to persist conversation preview update.',
         causeType: error.runtimeType.toString(),
       );
     }

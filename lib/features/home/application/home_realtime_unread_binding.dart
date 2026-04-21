@@ -8,6 +8,7 @@ import 'package:slock_app/features/conversation/data/conversation_message_parser
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -61,6 +62,13 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
   final notifier = ref.read(homeListStoreProvider.notifier);
 
   if (matchedChannel != null && matchedDirectMessage == null) {
+    unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
+          serverId: homeState.serverScopeId!,
+          conversationId: incoming.conversationId,
+          messageId: incoming.message.id,
+          preview: incoming.message.content,
+          activityAt: incoming.message.createdAt,
+        ));
     notifier.updateChannelLastMessage(
       conversationId: incoming.conversationId,
       messageId: incoming.message.id,
@@ -75,6 +83,13 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
     return;
   }
   if (matchedDirectMessage != null && matchedChannel == null) {
+    unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
+          serverId: homeState.serverScopeId!,
+          conversationId: incoming.conversationId,
+          messageId: incoming.message.id,
+          preview: incoming.message.content,
+          activityAt: incoming.message.createdAt,
+        ));
     notifier.updateDmLastMessage(
       conversationId: incoming.conversationId,
       messageId: incoming.message.id,
@@ -97,15 +112,19 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
     );
     final title =
         resolveDirectMessageTitle(event.payload) ?? incoming.conversationId;
-    notifier.addDirectMessage(
-      HomeDirectMessageSummary(
-        scopeId: newScopeId,
-        title: title,
-        lastMessageId: incoming.message.id,
-        lastMessagePreview: incoming.message.content,
-        lastActivityAt: incoming.message.createdAt,
-      ),
-    );
+    unawaited(() async {
+      final summary =
+          await ref.read(homeRepositoryProvider).persistDirectMessageSummary(
+                HomeDirectMessageSummary(
+                  scopeId: newScopeId,
+                  title: title,
+                  lastMessageId: incoming.message.id,
+                  lastMessagePreview: incoming.message.content,
+                  lastActivityAt: incoming.message.createdAt,
+                ),
+              );
+      notifier.addDirectMessage(summary);
+    }());
     ref.read(channelUnreadStoreProvider.notifier).incrementDmUnread(newScopeId);
   }
 }
@@ -122,6 +141,13 @@ void _handleMessageUpdated(Ref ref, RealtimeEventEnvelope event) {
   }
 
   final notifier = ref.read(homeListStoreProvider.notifier);
+
+  unawaited(ref.read(homeRepositoryProvider).persistConversationPreviewUpdate(
+        serverId: homeState.serverScopeId!,
+        conversationId: updated.channelId,
+        messageId: updated.id,
+        preview: updated.content,
+      ));
 
   notifier.updateChannelPreview(
     conversationId: updated.channelId,

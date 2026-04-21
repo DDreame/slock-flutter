@@ -3,6 +3,7 @@
 // notifications, realtime, storage, telemetry, utils.
 
 export 'errors/errors.dart';
+export 'local_data/local_data.dart';
 export 'network/network.dart';
 export 'notifications/notifications.dart';
 export 'realtime/realtime.dart';

@@ -78,6 +78,18 @@ abstract class ConversationRepository {
     String content, {
     List<String>? attachmentIds,
   });
+
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  });
+
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  });
 }
 
 @immutable

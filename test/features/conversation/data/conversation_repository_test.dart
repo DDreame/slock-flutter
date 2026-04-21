@@ -5,6 +5,19 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 
+import '../../../core/local_data/fake_conversation_local_store.dart';
+
+ProviderContainer _createContainer(_FakeAppDioClient appDioClient) {
+  return ProviderContainer(
+    overrides: [
+      appDioClientProvider.overrideWithValue(appDioClient),
+      conversationLocalStoreProvider.overrideWithValue(
+        FakeConversationLocalStore(),
+      ),
+    ],
+  );
+}
+
 void main() {
   test('loads channel detail with message and metadata requests', () async {
     final appDioClient = _FakeAppDioClient(
@@ -28,9 +41,7 @@ void main() {
         ],
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -83,9 +94,7 @@ void main() {
         ],
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -123,9 +132,7 @@ void main() {
         },
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -161,9 +168,7 @@ void main() {
       },
       failures: {'/messages/channel/general': failure},
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -197,9 +202,7 @@ void main() {
         ],
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -237,9 +240,7 @@ void main() {
         },
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -276,9 +277,7 @@ void main() {
         },
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -320,9 +319,7 @@ void main() {
         },
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -361,9 +358,7 @@ void main() {
         },
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -389,9 +384,7 @@ void main() {
     final appDioClient = _FakeAppDioClient(
       failures: {'/messages/channel/general': failure},
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -440,9 +433,7 @@ void main() {
         ],
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -485,9 +476,7 @@ void main() {
         ],
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -531,9 +520,7 @@ void main() {
         ],
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -573,9 +560,7 @@ void main() {
         ],
       },
     );
-    final container = ProviderContainer(
-      overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-    );
+    final container = _createContainer(appDioClient);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);

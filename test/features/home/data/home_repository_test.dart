@@ -5,6 +5,19 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 
+import '../../../core/local_data/fake_conversation_local_store.dart';
+
+ProviderContainer _createContainer(_FakeAppDioClient appDioClient) {
+  return ProviderContainer(
+    overrides: [
+      appDioClientProvider.overrideWithValue(appDioClient),
+      conversationLocalStoreProvider.overrideWithValue(
+        FakeConversationLocalStore(),
+      ),
+    ],
+  );
+}
+
 void main() {
   group('homeRepositoryProvider', () {
     test('loads channel and dm lists through the inferred web contract',
@@ -28,9 +41,7 @@ void main() {
           ],
         },
       );
-      final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-      );
+      final container = _createContainer(appDioClient);
       addTearDown(container.dispose);
 
       final repository = container.read(homeRepositoryProvider);
@@ -80,9 +91,7 @@ void main() {
         },
         failures: {'/channels': failure},
       );
-      final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-      );
+      final container = _createContainer(appDioClient);
       addTearDown(container.dispose);
 
       final repository = container.read(homeRepositoryProvider);
@@ -108,9 +117,7 @@ void main() {
           ],
         },
       );
-      final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
-      );
+      final container = _createContainer(appDioClient);
       addTearDown(container.dispose);
 
       final repository = container.read(homeRepositoryProvider);
@@ -138,6 +145,20 @@ void main() {
       () async {
     final repository = BaselineHomeRepository(
       loadWorkspace: (serverId) async => throw StateError('boom'),
+      persistDirectMessageSummary: (summary) async => summary,
+      persistConversationActivity: ({
+        required serverId,
+        required conversationId,
+        required messageId,
+        required preview,
+        required activityAt,
+      }) async {},
+      persistConversationPreviewUpdate: ({
+        required serverId,
+        required conversationId,
+        required messageId,
+        required preview,
+      }) async {},
     );
 
     await expectLater(

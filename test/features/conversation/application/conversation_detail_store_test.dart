@@ -999,6 +999,8 @@ class _FakeConversationRepository implements ConversationRepository {
   final List<int> olderRequests = [];
   final List<int> newerRequests = [];
   final List<String> sentContents = [];
+  final List<ConversationMessageSummary> persistedMessages = [];
+  final Map<String, String> updatedContents = {};
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -1056,5 +1058,46 @@ class _FakeConversationRepository implements ConversationRepository {
     PendingAttachment attachment,
   ) async {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async {
+    persistedMessages.add(message);
+    return message;
+  }
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    updatedContents[messageId] = content;
+    for (final message in statefulMessages()) {
+      if (message.id == messageId) {
+        return message.copyWith(content: content);
+      }
+    }
+    return null;
+  }
+
+  Iterable<ConversationMessageSummary> statefulMessages() sync* {
+    if (snapshot != null) {
+      yield* snapshot!.messages;
+    }
+    for (final page in olderPages.values) {
+      yield* page.messages;
+    }
+    for (final page in newerPages.values) {
+      yield* page.messages;
+    }
+    if (sentMessage != null) {
+      yield sentMessage!;
+    }
+    yield* persistedMessages;
   }
 }

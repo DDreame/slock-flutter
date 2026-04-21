@@ -358,10 +358,21 @@ class ConversationDetailStore
       return;
     }
 
-    state = state.copyWith(
-      messages: _appendDedupedMessage(state.messages, incoming.message),
-    );
-    _persistSession();
+    unawaited(() async {
+      final persisted = await ref.read(conversationRepositoryProvider).persistMessage(
+            target,
+            message: incoming.message,
+            senderId: incoming.senderId,
+          );
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      state = state.copyWith(
+        messages: _appendDedupedMessage(state.messages, persisted),
+      );
+      _persistSession();
+    }());
   }
 
   void _handleMessageUpdated(Object payload, ConversationDetailTarget target) {
@@ -374,18 +385,29 @@ class ConversationDetailStore
       return;
     }
 
-    final index = state.messages.indexWhere((m) => m.id == updated.id);
-    if (index == -1) {
-      return;
-    }
+    unawaited(() async {
+      final patched = await ref
+          .read(conversationRepositoryProvider)
+          .updateStoredMessageContent(
+            target,
+            messageId: updated.id,
+            content: updated.content,
+          );
+      if (patched == null ||
+          ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      final index = state.messages.indexWhere((m) => m.id == updated.id);
+      if (index == -1) {
+        return;
+      }
 
-    final existing = state.messages[index];
-    final patched = existing.copyWith(content: updated.content);
-
-    final messages = List<ConversationMessageSummary>.of(state.messages);
-    messages[index] = patched;
-    state = state.copyWith(messages: messages);
-    _persistSession();
+      final messages = List<ConversationMessageSummary>.of(state.messages);
+      messages[index] = patched;
+      state = state.copyWith(messages: messages);
+      _persistSession();
+    }());
   }
 
   Future<void> _refreshFromCache(ConversationDetailTarget target) async {

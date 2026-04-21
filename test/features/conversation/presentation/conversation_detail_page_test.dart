@@ -796,6 +796,24 @@ class _FakeConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async {
+    return message;
+  }
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    return null;
+  }
+
+  @override
   Future<ConversationMessagePage> loadNewerMessages(
     ConversationDetailTarget target, {
     required int afterSeq,
@@ -859,5 +877,23 @@ class _QueueConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
   }) {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async {
+    return message;
+  }
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    return null;
   }
 }

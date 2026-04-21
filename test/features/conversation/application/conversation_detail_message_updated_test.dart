@@ -272,4 +272,28 @@ class _FakeConversationRepository implements ConversationRepository {
   ) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async {
+    return message;
+  }
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    for (final message
+        in snapshot?.messages ?? const <ConversationMessageSummary>[]) {
+      if (message.id == messageId) {
+        return message.copyWith(content: content);
+      }
+    }
+    return null;
+  }
 }

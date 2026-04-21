@@ -7,12 +7,13 @@ import 'package:slock_app/features/conversation/data/conversation_message_parser
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/data/home_repository_provider.dart';
 
 const realtimeDmNewEventType = 'dm:new';
 
 final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
   final ingress = ref.watch(realtimeReductionIngressProvider);
-  final subscription = ingress.acceptedEvents.listen((event) {
+  final subscription = ingress.acceptedEvents.listen((event) async {
     if (event.eventType != realtimeDmNewEventType) {
       return;
     }
@@ -43,8 +44,14 @@ final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
 
     final title = resolveDirectMessageTitle(map) ?? channelId;
 
-    ref.read(homeListStoreProvider.notifier).addDirectMessage(
+    final summary = await ref
+        .read(homeRepositoryProvider)
+        .persistDirectMessageSummary(
           HomeDirectMessageSummary(scopeId: scopeId, title: title),
+        );
+
+    ref.read(homeListStoreProvider.notifier).addDirectMessage(
+          summary,
         );
   });
 
