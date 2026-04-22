@@ -22,9 +22,8 @@ class BillingStore extends AutoDisposeNotifier<BillingState> {
     state = state.copyWith(status: BillingStatus.loading, clearFailure: true);
 
     try {
-      final summary = await ref
-          .read(billingRepositoryProvider)
-          .loadSubscription();
+      final summary =
+          await ref.read(billingRepositoryProvider).loadSubscription();
       state = state.copyWith(
         status: BillingStatus.success,
         summary: summary,

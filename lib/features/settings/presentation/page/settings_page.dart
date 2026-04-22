@@ -150,9 +150,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     try {
       final store = ref.read(notificationStoreProvider.notifier);
       await store.requestPermission();
-      final permissionStatus = ref
-          .read(notificationStoreProvider)
-          .permissionStatus;
+      final permissionStatus =
+          ref.read(notificationStoreProvider).permissionStatus;
       if (permissionStatus == NotificationPermissionStatus.granted ||
           permissionStatus == NotificationPermissionStatus.provisional) {
         await store.refreshToken(
@@ -220,7 +219,8 @@ String _notificationSubtitle(NotificationState state) {
 String _notificationActionLabel(NotificationState state) {
   return switch (state.permissionStatus) {
     NotificationPermissionStatus.granted ||
-    NotificationPermissionStatus.provisional => 'Refresh Device Registration',
+    NotificationPermissionStatus.provisional =>
+      'Refresh Device Registration',
     NotificationPermissionStatus.denied => 'Retry Notification Access',
     NotificationPermissionStatus.unknown => 'Enable Push Notifications',
   };

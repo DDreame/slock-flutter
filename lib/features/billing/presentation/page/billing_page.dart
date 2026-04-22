@@ -28,30 +28,30 @@ class _BillingPageState extends ConsumerState<BillingPage> {
       appBar: AppBar(title: const Text('Billing')),
       body: switch (state.status) {
         BillingStatus.initial || BillingStatus.loading => const Center(
-          key: ValueKey('billing-loading'),
-          child: CircularProgressIndicator(),
-        ),
+            key: ValueKey('billing-loading'),
+            child: CircularProgressIndicator(),
+          ),
         BillingStatus.failure => Center(
-          key: const ValueKey('billing-error'),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.failure?.message ?? 'Could not load billing summary.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () =>
-                      ref.read(billingStoreProvider.notifier).load(),
-                  child: const Text('Retry'),
-                ),
-              ],
+            key: const ValueKey('billing-error'),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    state.failure?.message ?? 'Could not load billing summary.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () =>
+                        ref.read(billingStoreProvider.notifier).load(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         BillingStatus.success => _BillingSuccess(summary: state.summary),
       },
     );

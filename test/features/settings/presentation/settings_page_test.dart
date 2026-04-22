@@ -117,11 +117,11 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   SessionState build() => const SessionState(
-    status: AuthStatus.authenticated,
-    userId: 'user-123',
-    displayName: 'Alice',
-    token: 'token',
-  );
+        status: AuthStatus.authenticated,
+        userId: 'user-123',
+        displayName: 'Alice',
+        token: 'token',
+      );
 
   @override
   Future<void> logout() async {
@@ -136,8 +136,8 @@ class _FakeNotificationStore extends NotificationStore {
 
   @override
   NotificationState build() => const NotificationState(
-    permissionStatus: NotificationPermissionStatus.unknown,
-  );
+        permissionStatus: NotificationPermissionStatus.unknown,
+      );
 
   @override
   Future<void> requestPermission() async {

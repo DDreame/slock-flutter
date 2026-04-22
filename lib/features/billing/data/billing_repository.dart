@@ -62,9 +62,8 @@ BillingSummary parseBillingSummary(Object? payload) {
     ),
     amountLabel:
         _firstPresentString(scoped, fields: const ['amountLabel', 'price']) ??
-        _readAmountLabel(scoped),
-    renewalLabel:
-        _firstPresentString(
+            _readAmountLabel(scoped),
+    renewalLabel: _firstPresentString(
           scoped,
           fields: const [
             'renewalLabel',
