@@ -47,10 +47,7 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
 
     try {
       final repo = ref.read(agentsRepositoryProvider);
-      final updated = await repo.startAgent(agentId);
-      state = state.copyWith(
-        items: state.items.map((a) => a.id == agentId ? updated : a).toList(),
-      );
+      await repo.startAgent(agentId);
     } on AppFailure {
       state = state.copyWith(items: previousItems);
       rethrow;
@@ -69,10 +66,7 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
 
     try {
       final repo = ref.read(agentsRepositoryProvider);
-      final updated = await repo.stopAgent(agentId);
-      state = state.copyWith(
-        items: state.items.map((a) => a.id == agentId ? updated : a).toList(),
-      );
+      await repo.stopAgent(agentId);
     } on AppFailure {
       state = state.copyWith(items: previousItems);
       rethrow;
@@ -82,10 +76,7 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
   Future<void> resetAgent(String agentId) async {
     try {
       final repo = ref.read(agentsRepositoryProvider);
-      final updated = await repo.resetAgent(agentId, mode: 'session');
-      state = state.copyWith(
-        items: state.items.map((a) => a.id == agentId ? updated : a).toList(),
-      );
+      await repo.resetAgent(agentId, mode: 'session');
     } on AppFailure {
       rethrow;
     }

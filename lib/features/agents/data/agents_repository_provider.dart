@@ -32,12 +32,11 @@ class _ApiAgentsRepository implements AgentsRepository {
   }
 
   @override
-  Future<AgentItem> startAgent(String agentId) async {
+  Future<void> startAgent(String agentId) async {
     try {
-      final response = await _appDioClient.post<Object?>(
+      await _appDioClient.post<Object?>(
         '$_agentsPath/$agentId/start',
       );
-      return _parseSingleAgent(response.data);
     } on AppFailure {
       rethrow;
     } catch (error) {
@@ -49,12 +48,11 @@ class _ApiAgentsRepository implements AgentsRepository {
   }
 
   @override
-  Future<AgentItem> stopAgent(String agentId) async {
+  Future<void> stopAgent(String agentId) async {
     try {
-      final response = await _appDioClient.post<Object?>(
+      await _appDioClient.post<Object?>(
         '$_agentsPath/$agentId/stop',
       );
-      return _parseSingleAgent(response.data);
     } on AppFailure {
       rethrow;
     } catch (error) {
@@ -66,13 +64,12 @@ class _ApiAgentsRepository implements AgentsRepository {
   }
 
   @override
-  Future<AgentItem> resetAgent(String agentId, {required String mode}) async {
+  Future<void> resetAgent(String agentId, {required String mode}) async {
     try {
-      final response = await _appDioClient.post<Object?>(
+      await _appDioClient.post<Object?>(
         '$_agentsPath/$agentId/reset',
         data: {'mode': mode},
       );
-      return _parseSingleAgent(response.data);
     } on AppFailure {
       rethrow;
     } catch (error) {
@@ -105,25 +102,14 @@ class _ApiAgentsRepository implements AgentsRepository {
   }
 
   List<AgentItem> _parseAgentList(Object? payload) {
-    final map = _requireMap(payload);
-    final agents = map['agents'];
-    if (agents is! List) return [];
-    return agents
-        .whereType<Map>()
-        .map((a) => _parseAgentItem(
-            a is Map<String, dynamic> ? a : Map<String, dynamic>.from(a)))
-        .toList();
-  }
-
-  AgentItem _parseSingleAgent(Object? payload) {
-    final map = _requireMap(payload);
-    final agent = map['agent'];
-    if (agent is Map<String, dynamic>) return _parseAgentItem(agent);
-    if (agent is Map) return _parseAgentItem(Map<String, dynamic>.from(agent));
-    throw const UnknownFailure(
-      message: 'Invalid agent response.',
-      causeType: 'ParseError',
-    );
+    if (payload is List) {
+      return payload
+          .whereType<Map>()
+          .map((a) => _parseAgentItem(
+              a is Map<String, dynamic> ? a : Map<String, dynamic>.from(a)))
+          .toList();
+    }
+    return [];
   }
 
   AgentItem _parseAgentItem(Map<String, dynamic> map) {

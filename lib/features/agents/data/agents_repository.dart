@@ -2,9 +2,9 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 
 abstract class AgentsRepository {
   Future<List<AgentItem>> listAgents();
-  Future<AgentItem> startAgent(String agentId);
-  Future<AgentItem> stopAgent(String agentId);
-  Future<AgentItem> resetAgent(String agentId, {required String mode});
+  Future<void> startAgent(String agentId);
+  Future<void> stopAgent(String agentId);
+  Future<void> resetAgent(String agentId, {required String mode});
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,

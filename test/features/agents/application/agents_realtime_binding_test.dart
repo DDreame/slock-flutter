@@ -139,15 +139,13 @@ class _FakeAgentsRepository implements AgentsRepository {
   }
 
   @override
-  Future<AgentItem> startAgent(String agentId) async =>
-      throw UnimplementedError();
+  Future<void> startAgent(String agentId) async => throw UnimplementedError();
 
   @override
-  Future<AgentItem> stopAgent(String agentId) async =>
-      throw UnimplementedError();
+  Future<void> stopAgent(String agentId) async => throw UnimplementedError();
 
   @override
-  Future<AgentItem> resetAgent(String agentId, {required String mode}) async =>
+  Future<void> resetAgent(String agentId, {required String mode}) async =>
       throw UnimplementedError();
 
   @override

@@ -9,19 +9,17 @@ void main() {
     test('listAgents sends GET /agents', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
-          ('GET', '/agents'): {
-            'agents': [
-              {
-                'id': 'agent-1',
-                'name': 'Bot Alpha',
-                'model': 'sonnet',
-                'runtime': 'claude',
-                'status': 'active',
-                'activity': 'online',
-                'activityDetail': 'Idle',
-              },
-            ],
-          },
+          ('GET', '/agents'): [
+            {
+              'id': 'agent-1',
+              'name': 'Bot Alpha',
+              'model': 'sonnet',
+              'runtime': 'claude',
+              'status': 'active',
+              'activity': 'online',
+              'activityDetail': 'Idle',
+            },
+          ],
         },
       );
       final container = ProviderContainer(
@@ -43,16 +41,7 @@ void main() {
     test('startAgent sends POST /agents/:id/start', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
-          ('POST', '/agents/agent-1/start'): {
-            'agent': {
-              'id': 'agent-1',
-              'name': 'Bot',
-              'model': 'sonnet',
-              'runtime': 'claude',
-              'status': 'active',
-              'activity': 'working',
-            },
-          },
+          ('POST', '/agents/agent-1/start'): null,
         },
       );
       final container = ProviderContainer(
@@ -61,10 +50,8 @@ void main() {
       addTearDown(container.dispose);
 
       final repo = container.read(agentsRepositoryProvider);
-      final agent = await repo.startAgent('agent-1');
+      await repo.startAgent('agent-1');
 
-      expect(agent.status, 'active');
-      expect(agent.activity, 'working');
       expect(appDioClient.requests.single.method, 'POST');
       expect(appDioClient.requests.single.path, '/agents/agent-1/start');
     });
@@ -72,16 +59,7 @@ void main() {
     test('stopAgent sends POST /agents/:id/stop', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
-          ('POST', '/agents/agent-1/stop'): {
-            'agent': {
-              'id': 'agent-1',
-              'name': 'Bot',
-              'model': 'sonnet',
-              'runtime': 'claude',
-              'status': 'stopped',
-              'activity': 'offline',
-            },
-          },
+          ('POST', '/agents/agent-1/stop'): null,
         },
       );
       final container = ProviderContainer(
@@ -90,26 +68,16 @@ void main() {
       addTearDown(container.dispose);
 
       final repo = container.read(agentsRepositoryProvider);
-      final agent = await repo.stopAgent('agent-1');
+      await repo.stopAgent('agent-1');
 
-      expect(agent.status, 'stopped');
-      expect(agent.activity, 'offline');
+      expect(appDioClient.requests.single.method, 'POST');
       expect(appDioClient.requests.single.path, '/agents/agent-1/stop');
     });
 
     test('resetAgent sends POST /agents/:id/reset with mode', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
-          ('POST', '/agents/agent-1/reset'): {
-            'agent': {
-              'id': 'agent-1',
-              'name': 'Bot',
-              'model': 'sonnet',
-              'runtime': 'claude',
-              'status': 'active',
-              'activity': 'online',
-            },
-          },
+          ('POST', '/agents/agent-1/reset'): null,
         },
       );
       final container = ProviderContainer(
@@ -118,9 +86,10 @@ void main() {
       addTearDown(container.dispose);
 
       final repo = container.read(agentsRepositoryProvider);
-      final agent = await repo.resetAgent('agent-1', mode: 'session');
+      await repo.resetAgent('agent-1', mode: 'session');
 
-      expect(agent.activity, 'online');
+      expect(appDioClient.requests.single.method, 'POST');
+      expect(appDioClient.requests.single.path, '/agents/agent-1/reset');
       expect(appDioClient.requests.single.data, {'mode': 'session'});
     });
 

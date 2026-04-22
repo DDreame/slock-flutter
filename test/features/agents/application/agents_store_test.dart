@@ -79,9 +79,6 @@ void main() {
       ];
       await store().load();
 
-      fakeRepo.startResult =
-          makeAgent(id: 'a1', status: 'active', activity: 'working');
-
       await store().startAgent('a1');
 
       expect(state().items.first.status, 'active');
@@ -112,9 +109,6 @@ void main() {
       ];
       await store().load();
 
-      fakeRepo.stopResult =
-          makeAgent(id: 'a1', status: 'stopped', activity: 'offline');
-
       await store().stopAgent('a1');
 
       expect(state().items.first.status, 'stopped');
@@ -139,11 +133,9 @@ void main() {
       expect(state().items.first.activity, 'working');
     });
 
-    test('resetAgent updates from server response', () async {
+    test('resetAgent completes without error', () async {
       fakeRepo.listResult = [makeAgent(id: 'a1')];
       await store().load();
-
-      fakeRepo.resetResult = makeAgent(id: 'a1', activity: 'online');
 
       await store().resetAgent('a1');
 
@@ -196,9 +188,6 @@ void main() {
 
 class _FakeAgentsRepository implements AgentsRepository {
   List<AgentItem>? listResult;
-  AgentItem? startResult;
-  AgentItem? stopResult;
-  AgentItem? resetResult;
   bool shouldFail = false;
 
   @override
@@ -213,36 +202,33 @@ class _FakeAgentsRepository implements AgentsRepository {
   }
 
   @override
-  Future<AgentItem> startAgent(String agentId) async {
+  Future<void> startAgent(String agentId) async {
     if (shouldFail) {
       throw const UnknownFailure(
         message: 'Start failed',
         causeType: 'test',
       );
     }
-    return startResult!;
   }
 
   @override
-  Future<AgentItem> stopAgent(String agentId) async {
+  Future<void> stopAgent(String agentId) async {
     if (shouldFail) {
       throw const UnknownFailure(
         message: 'Stop failed',
         causeType: 'test',
       );
     }
-    return stopResult!;
   }
 
   @override
-  Future<AgentItem> resetAgent(String agentId, {required String mode}) async {
+  Future<void> resetAgent(String agentId, {required String mode}) async {
     if (shouldFail) {
       throw const UnknownFailure(
         message: 'Reset failed',
         causeType: 'test',
       );
     }
-    return resetResult!;
   }
 
   @override
