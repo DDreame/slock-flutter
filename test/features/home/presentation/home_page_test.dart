@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/data/channel_management_repository.dart';
+import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
@@ -94,6 +96,121 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('dm:server-1/dm-alice'), findsOneWidget);
+  });
+
+  testWidgets('create channel opens dialog and navigates when id is returned',
+      (tester) async {
+    final router = _buildRouter();
+    final channelManagementRepository = _FakeChannelManagementRepository(
+      createdChannelId: 'support',
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        channelManagementRepository: channelManagementRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('channel-create-button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('create-channel-name')),
+      'support',
+    );
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.pumpAndSettle();
+
+    expect(channelManagementRepository.createdNames, ['support']);
+    expect(find.text('channel:server-1/support'), findsOneWidget);
+  });
+
+  testWidgets('create channel stays on home when response omits id', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+    final channelManagementRepository = _FakeChannelManagementRepository();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        channelManagementRepository: channelManagementRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('channel-create-button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('create-channel-name')),
+      'support',
+    );
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.pumpAndSettle();
+
+    expect(channelManagementRepository.createdNames, ['support']);
+    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.text('channel:server-1/support'), findsNothing);
+  });
+
+  testWidgets('edit/delete/leave actions call the channel management seam', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+    final channelManagementRepository = _FakeChannelManagementRepository();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        channelManagementRepository: channelManagementRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final menuFinder = find.byKey(const ValueKey('channel-menu-general'));
+
+    await tester.ensureVisible(menuFinder);
+    await tester.tap(menuFinder, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit channel'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('edit-channel-name')),
+      'general-2',
+    );
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(menuFinder);
+    await tester.tap(menuFinder, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete channel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(menuFinder);
+    await tester.tap(menuFinder, warnIfMissed: false);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Leave channel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Leave'));
+    await tester.pumpAndSettle();
+
+    expect(channelManagementRepository.updatedChannels,
+        [('general', 'general-2')]);
+    expect(channelManagementRepository.deletedChannelIds, ['general']);
+    expect(channelManagementRepository.leftChannelIds, ['general']);
   });
 
   testWidgets('AppBar shows server name when server list is loaded', (
@@ -304,6 +421,7 @@ Widget _buildApp({
   required HomeRepository homeRepository,
   ServerListRepository serverListRepository =
       const _FakeServerListRepository([]),
+  ChannelManagementRepository? channelManagementRepository,
 }) {
   return ProviderScope(
     overrides: [
@@ -312,6 +430,9 @@ Widget _buildApp({
       ),
       homeRepositoryProvider.overrideWithValue(homeRepository),
       serverListRepositoryProvider.overrideWithValue(serverListRepository),
+      if (channelManagementRepository != null)
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelManagementRepository),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -341,6 +462,10 @@ GoRouter _buildRouter() {
             ),
           ),
         ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/search',
+        builder: (context, state) => const SizedBox.shrink(),
       ),
     ],
   );
@@ -404,5 +529,49 @@ class _FakeSecureStorage implements SecureStorage {
   @override
   Future<void> delete({required String key}) async {
     _store.remove(key);
+  }
+}
+
+class _FakeChannelManagementRepository implements ChannelManagementRepository {
+  _FakeChannelManagementRepository({this.createdChannelId});
+
+  final String? createdChannelId;
+  final List<String> createdNames = [];
+  final List<(String, String)> updatedChannels = [];
+  final List<String> deletedChannelIds = [];
+  final List<String> leftChannelIds = [];
+
+  @override
+  Future<String?> createChannel(
+    ServerScopeId serverId, {
+    required String name,
+  }) async {
+    createdNames.add(name);
+    return createdChannelId;
+  }
+
+  @override
+  Future<void> updateChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String name,
+  }) async {
+    updatedChannels.add((channelId, name));
+  }
+
+  @override
+  Future<void> deleteChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    deletedChannelIds.add(channelId);
+  }
+
+  @override
+  Future<void> leaveChannel(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    leftChannelIds.add(channelId);
   }
 }
