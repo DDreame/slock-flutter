@@ -63,7 +63,7 @@ void main() {
       '/servers/:serverId/agents',
       '/agents/:agentId',
       '/servers/:serverId/machines',
-      '/saved-messages',
+      '/servers/:serverId/saved-messages',
       '/profile',
       '/profile/:userId',
       '/billing',
