@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -41,6 +42,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(tasksRealtimeBindingProvider);
     final state = ref.watch(tasksStoreProvider);
 
     return Scaffold(

@@ -9,7 +9,8 @@ const _taskCreatedEvent = 'task:created';
 const _taskUpdatedEvent = 'task:updated';
 const _taskDeletedEvent = 'task:deleted';
 
-final tasksRealtimeBindingProvider = Provider<void>((ref) {
+final tasksRealtimeBindingProvider = Provider.autoDispose<void>((ref) {
+  ref.watch(currentTasksServerIdProvider);
   final ingress = ref.watch(realtimeReductionIngressProvider);
   final subscription = ingress.acceptedEvents.listen((event) {
     switch (event.eventType) {

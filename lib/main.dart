@@ -9,7 +9,6 @@ import 'package:slock_app/core/realtime/realtime.dart';
 import 'package:slock_app/features/home/application/home_realtime_dm_materialization_binding.dart';
 import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
 import 'package:slock_app/features/push_token/application/push_token_lifecycle_binding.dart';
-import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/stores/notification/notification_lifecycle_binding.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
@@ -38,7 +37,6 @@ class SlockApp extends ConsumerWidget {
     ref.watch(realtimeLifecycleBindingProvider);
     ref.watch(homeRealtimeUnreadBindingProvider);
     ref.watch(homeRealtimeDmMaterializationBindingProvider);
-    ref.watch(tasksRealtimeBindingProvider);
     ref.watch(pushTokenLifecycleBindingProvider);
     ref.watch(notificationLifecycleBindingProvider);
     ref.watch(notificationVisibleTargetBindingProvider);
