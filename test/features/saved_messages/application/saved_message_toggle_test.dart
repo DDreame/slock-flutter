@@ -39,25 +39,25 @@ void main() {
   ];
 
   late _FakeSavedMessagesRepository fakeSavedRepo;
+  late _FakeConversationRepository fakeConversationRepo;
 
-  ProviderContainer createContainer() {
+  ProviderContainer createContainer({bool hasOlder = false}) {
     final ingress = RealtimeReductionIngress();
     final fakeLocalStore = FakeConversationLocalStore();
     fakeSavedRepo = _FakeSavedMessagesRepository();
+    fakeConversationRepo = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: messages,
+        historyLimited: false,
+        hasOlder: hasOlder,
+      ),
+    );
     final container = ProviderContainer(
       overrides: [
         currentConversationDetailTargetProvider.overrideWithValue(target),
-        conversationRepositoryProvider.overrideWithValue(
-          _FakeConversationRepository(
-            snapshot: ConversationDetailSnapshot(
-              target: target,
-              title: '#general',
-              messages: messages,
-              historyLimited: false,
-              hasOlder: false,
-            ),
-          ),
-        ),
+        conversationRepositoryProvider.overrideWithValue(fakeConversationRepo),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         conversationLocalStoreProvider.overrideWithValue(fakeLocalStore),
         savedMessagesRepositoryProvider.overrideWithValue(fakeSavedRepo),
@@ -148,6 +148,44 @@ void main() {
       final state = container.read(conversationDetailStoreProvider);
       expect(state.savedMessageIds, isEmpty);
     });
+
+    test('loadOlder triggers refreshSavedMessageIds with all message ids',
+        () async {
+      final container = createContainer(hasOlder: true);
+      addTearDown(container.dispose);
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await Future<void>.delayed(Duration.zero);
+
+      final checkCountAfterLoad = fakeSavedRepo.checkCalls.length;
+
+      fakeConversationRepo.olderPage = ConversationMessagePage(
+        messages: [
+          ConversationMessageSummary(
+            id: 'msg-old',
+            content: 'Old message',
+            createdAt: DateTime.parse('2026-04-20T10:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 0,
+          ),
+        ],
+        hasOlder: false,
+        hasNewer: false,
+        historyLimited: false,
+      );
+
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadOlder();
+      // Let unawaited refreshSavedMessageIds settle
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeSavedRepo.checkCalls.length, greaterThan(checkCountAfterLoad));
+      final lastCheck = fakeSavedRepo.checkCalls.last;
+      expect(lastCheck, contains('msg-old'));
+    });
   });
 }
 
@@ -157,6 +195,7 @@ class _FakeSavedMessagesRepository implements SavedMessagesRepository {
   bool shouldFailCheck = false;
   final List<String> savedIds = [];
   final List<String> unsavedIds = [];
+  final List<List<String>> checkCalls = [];
 
   @override
   Future<SavedMessagesPage> listSavedMessages(
@@ -194,6 +233,7 @@ class _FakeSavedMessagesRepository implements SavedMessagesRepository {
     ServerScopeId serverId,
     List<String> messageIds,
   ) async {
+    checkCalls.add(List.of(messageIds));
     if (shouldFailCheck) {
       throw const UnknownFailure(
         message: 'Check failed',
@@ -208,6 +248,7 @@ class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({this.snapshot});
 
   final ConversationDetailSnapshot? snapshot;
+  ConversationMessagePage? olderPage;
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -221,7 +262,13 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required int beforeSeq,
   }) async {
-    throw UnimplementedError();
+    return olderPage ??
+        const ConversationMessagePage(
+          messages: [],
+          hasOlder: false,
+          hasNewer: false,
+          historyLimited: false,
+        );
   }
 
   @override

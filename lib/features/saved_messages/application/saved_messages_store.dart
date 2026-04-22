@@ -77,5 +77,18 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
     );
   }
 
+  Future<void> unsaveMessage(String messageId) async {
+    final serverId = ref.read(currentSavedMessagesServerIdProvider);
+    final previousItems = state.items;
+    removeLocally(messageId);
+
+    try {
+      final repo = ref.read(savedMessagesRepositoryProvider);
+      await repo.unsaveMessage(serverId, messageId);
+    } on AppFailure {
+      state = state.copyWith(items: previousItems);
+    }
+  }
+
   void retry() => load();
 }

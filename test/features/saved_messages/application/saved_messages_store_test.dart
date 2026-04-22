@@ -143,12 +143,62 @@ void main() {
       expect(state().items.length, 1);
       expect(state().items.first.message.id, 'msg-2');
     });
+
+    test('unsaveMessage calls API and removes item', () async {
+      fakeRepo.listResult = SavedMessagesPage(
+        items: [
+          SavedMessageItem(
+            message: ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'Hello',
+              createdAt: DateTime(2026, 4, 21),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: false,
+      );
+
+      await store().load();
+      await store().unsaveMessage('msg-1');
+
+      expect(state().items, isEmpty);
+      expect(fakeRepo.unsavedIds, contains('msg-1'));
+    });
+
+    test('unsaveMessage reverts on failure', () async {
+      fakeRepo.listResult = SavedMessagesPage(
+        items: [
+          SavedMessageItem(
+            message: ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'Hello',
+              createdAt: DateTime(2026, 4, 21),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: false,
+      );
+
+      await store().load();
+      fakeRepo.shouldFail = true;
+      await store().unsaveMessage('msg-1');
+
+      expect(state().items.length, 1);
+      expect(state().items.first.message.id, 'msg-1');
+    });
   });
 }
 
 class _FakeSavedMessagesRepository implements SavedMessagesRepository {
   SavedMessagesPage? listResult;
   bool shouldFail = false;
+  final List<String> unsavedIds = [];
 
   @override
   Future<SavedMessagesPage> listSavedMessages(
@@ -183,6 +233,7 @@ class _FakeSavedMessagesRepository implements SavedMessagesRepository {
         causeType: 'test',
       );
     }
+    unsavedIds.add(messageId);
   }
 
   @override

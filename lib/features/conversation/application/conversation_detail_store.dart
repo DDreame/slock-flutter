@@ -161,6 +161,7 @@ class ConversationDetailStore
         clearFailure: true,
       );
       _persistSession();
+      unawaited(refreshSavedMessageIds());
     } on AppFailure catch (failure) {
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {

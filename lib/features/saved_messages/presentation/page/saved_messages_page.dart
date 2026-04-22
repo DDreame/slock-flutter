@@ -86,6 +86,7 @@ class _SavedMessagesList extends ConsumerWidget {
         return _SavedMessageCard(
           item: item,
           onTap: () => _navigateToConversation(context, ref, item),
+          onLongPress: () => _showUnsaveSheet(context, ref, item),
         );
       },
     );
@@ -102,67 +103,100 @@ class _SavedMessagesList extends ConsumerWidget {
     final segment = item.surface == 'direct_message' ? 'dms' : 'channels';
     context.go('/servers/$serverId/$segment/${item.channelId}');
   }
+
+  void _showUnsaveSheet(
+    BuildContext context,
+    WidgetRef ref,
+    SavedMessageItem item,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const ValueKey('saved-message-action-unsave'),
+              leading: const Icon(Icons.bookmark_remove),
+              title: const Text('Unsave message'),
+              onTap: () {
+                Navigator.of(context).pop();
+                ref
+                    .read(savedMessagesStoreProvider.notifier)
+                    .unsaveMessage(item.message.id);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _SavedMessageCard extends StatelessWidget {
   const _SavedMessageCard({
     required this.item,
     required this.onTap,
+    this.onLongPress,
   });
 
   final SavedMessageItem item;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final message = item.message;
 
-    return InkWell(
-      key: ValueKey('saved-message-${message.id}'),
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (item.channelName != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  '#${item.channelName}',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-            Row(
-              children: [
-                Expanded(
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: InkWell(
+        key: ValueKey('saved-message-${message.id}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (item.channelName != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
-                    message.senderLabel,
-                    style: theme.textTheme.labelMedium,
+                    '#${item.channelName}',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
-                Text(
-                  _formatTimestamp(message.createdAt),
-                  style: theme.textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              message.content,
-              style: theme.textTheme.bodyMedium,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      message.senderLabel,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ),
+                  Text(
+                    _formatTimestamp(message.createdAt),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                message.content,
+                style: theme.textTheme.bodyMedium,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ),
     );
