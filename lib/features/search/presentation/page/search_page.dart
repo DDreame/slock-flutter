@@ -148,7 +148,8 @@ class _SearchResultsList extends StatelessWidget {
     final serverId = ProviderScope.containerOf(context)
         .read(currentSearchServerIdProvider)
         .value;
-    context.go('/servers/$serverId/channels/${result.channelId}');
+    final segment = result.surface == 'direct_message' ? 'dms' : 'channels';
+    context.go('/servers/$serverId/$segment/${result.channelId}');
   }
 }
 

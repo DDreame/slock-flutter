@@ -78,6 +78,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
           ),
           channelId: summary.conversationId,
           channelName: summary.title,
+          surface: summary.surface,
         ),
       for (final message in localMessages)
         SearchResultMessage(

@@ -26,11 +26,13 @@ class SearchResultMessage {
     required this.message,
     this.channelId,
     this.channelName,
+    this.surface,
   });
 
   final ConversationMessageSummary message;
   final String? channelId;
   final String? channelName;
+  final String? surface;
 
   @override
   bool operator ==(Object other) {
@@ -39,9 +41,10 @@ class SearchResultMessage {
             runtimeType == other.runtimeType &&
             message == other.message &&
             channelId == other.channelId &&
-            channelName == other.channelName;
+            channelName == other.channelName &&
+            surface == other.surface;
   }
 
   @override
-  int get hashCode => Object.hash(message, channelId, channelName);
+  int get hashCode => Object.hash(message, channelId, channelName, surface);
 }

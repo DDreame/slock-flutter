@@ -70,6 +70,7 @@ class _ApiSearchRepository implements SearchRepository {
         channelId: readOptionalConversationPayloadString(itemMap['channelId']),
         channelName:
             readOptionalConversationPayloadString(itemMap['channelName']),
+        surface: readOptionalConversationPayloadString(itemMap['surface']),
       ));
     }
 
