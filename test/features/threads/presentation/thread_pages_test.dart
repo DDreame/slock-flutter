@@ -17,8 +17,8 @@ void main() {
   ) async {
     final threadRepository = _FakeThreadRepository(
       items: [
-        ThreadInboxItem(
-          routeTarget: const ThreadRouteTarget(
+        const ThreadInboxItem(
+          routeTarget: ThreadRouteTarget(
             serverId: 'server-1',
             parentChannelId: 'general',
             parentMessageId: 'message-1',
@@ -30,7 +30,7 @@ void main() {
           senderName: 'Robin',
           replyCount: 2,
           unreadCount: 1,
-          participantIds: const ['u1', 'u2'],
+          participantIds: ['u1', 'u2'],
         ),
       ],
     );
@@ -95,8 +95,8 @@ void main() {
       _buildApp(
         threadRepository: threadRepository,
         conversationRepository: conversationRepository,
-        child: ThreadRepliesPage(
-          routeTarget: const ThreadRouteTarget(
+        child: const ThreadRepliesPage(
+          routeTarget: ThreadRouteTarget(
             serverId: 'server-1',
             parentChannelId: 'general',
             parentMessageId: 'message-1',
