@@ -63,9 +63,12 @@ void main() {
       '/servers/:serverId/agents',
       '/agents/:agentId',
       '/servers/:serverId/machines',
+      '/servers/:serverId/search',
+      '/servers/:serverId/members',
       '/servers/:serverId/saved-messages',
       '/profile',
       '/profile/:userId',
+      '/servers/:serverId/profile/:userId',
       '/billing',
       '/release-notes',
     ];
