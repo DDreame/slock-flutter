@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 
-const _profilePath = '/profile';
+const _serversPath = '/servers';
 const _serverHeaderName = 'X-Server-Id';
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {
@@ -24,7 +24,7 @@ class _ApiProfileRepository implements ProfileRepository {
   }) async {
     try {
       final response = await _appDioClient.get<Object?>(
-        '$_profilePath/$userId',
+        '$_serversPath/${serverId.routeParam}/members/$userId/profile',
         options: Options(headers: {_serverHeaderName: serverId.value}),
       );
       return parseMemberProfilePayload(
