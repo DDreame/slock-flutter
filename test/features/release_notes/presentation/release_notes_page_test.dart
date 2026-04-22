@@ -13,6 +13,11 @@ void main() {
       find.text('Search and channel management foundations landed'),
       findsOneWidget,
     );
+
+    await tester.scrollUntilVisible(
+      find.text('Notifications and realtime groundwork stabilized'),
+      200,
+    );
     expect(
       find.text('Notifications and realtime groundwork stabilized'),
       findsOneWidget,

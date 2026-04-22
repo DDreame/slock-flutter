@@ -35,6 +35,10 @@ void main() {
       router.go('/settings');
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('settings-billing')),
+        200,
+      );
       await tester.tap(find.byKey(const ValueKey('settings-billing')));
       await tester.pumpAndSettle();
       expect(find.text('billing-route'), findsOneWidget);
@@ -42,6 +46,10 @@ void main() {
       router.go('/settings');
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('settings-release-notes')),
+        200,
+      );
       await tester.tap(find.byKey(const ValueKey('settings-release-notes')));
       await tester.pumpAndSettle();
       expect(find.text('release-notes-route'), findsOneWidget);
