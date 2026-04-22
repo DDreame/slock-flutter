@@ -8,6 +8,7 @@ import 'package:slock_app/features/conversation/data/conversation_message_parser
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 
 final currentConversationDetailTargetProvider =
     Provider<ConversationDetailTarget>((ref) {
@@ -98,6 +99,7 @@ class ConversationDetailStore
         clearSendFailure: true,
       );
       _persistSession();
+      unawaited(refreshSavedMessageIds());
     } on AppFailure catch (failure) {
       if (!_isCurrentRequest(requestEpoch, target)) {
         return;
@@ -361,6 +363,57 @@ class ConversationDetailStore
         (state.currentSearchMatchIndex - 1 + state.searchMatchIds.length) %
             state.searchMatchIds.length;
     state = state.copyWith(currentSearchMatchIndex: prev);
+  }
+
+  Future<void> refreshSavedMessageIds() async {
+    if (state.status != ConversationDetailStatus.success ||
+        state.messages.isEmpty) {
+      return;
+    }
+
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final serverId = target.serverId;
+    final messageIds = state.messages.map((m) => m.id).toList(growable: false);
+
+    try {
+      final repo = ref.read(savedMessagesRepositoryProvider);
+      final savedIds = await repo.checkSavedMessages(serverId, messageIds);
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      state = state.copyWith(savedMessageIds: savedIds);
+    } on AppFailure {
+      // Fail-soft: keep existing saved state.
+    }
+  }
+
+  Future<void> toggleSaveMessage(String messageId) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final serverId = target.serverId;
+    final isSaved = state.savedMessageIds.contains(messageId);
+    final previousIds = state.savedMessageIds;
+
+    // Optimistic update
+    final updatedIds = Set<String>.of(previousIds);
+    if (isSaved) {
+      updatedIds.remove(messageId);
+    } else {
+      updatedIds.add(messageId);
+    }
+    state = state.copyWith(savedMessageIds: updatedIds);
+
+    try {
+      final repo = ref.read(savedMessagesRepositoryProvider);
+      if (isSaved) {
+        await repo.unsaveMessage(serverId, messageId);
+      } else {
+        await repo.saveMessage(serverId, messageId);
+      }
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(savedMessageIds: previousIds);
+    }
   }
 
   bool _isCurrentRequest(

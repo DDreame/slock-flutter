@@ -26,6 +26,7 @@ class ConversationDetailState {
     this.searchQuery = '',
     this.searchMatchIds = const [],
     this.currentSearchMatchIndex = -1,
+    this.savedMessageIds = const {},
   });
 
   final ConversationDetailTarget target;
@@ -46,6 +47,7 @@ class ConversationDetailState {
   final String searchQuery;
   final List<String> searchMatchIds;
   final int currentSearchMatchIndex;
+  final Set<String> savedMessageIds;
 
   bool get isEmpty =>
       status == ConversationDetailStatus.success && messages.isEmpty;
@@ -78,6 +80,7 @@ class ConversationDetailState {
     String? searchQuery,
     List<String>? searchMatchIds,
     int? currentSearchMatchIndex,
+    Set<String>? savedMessageIds,
   }) {
     return ConversationDetailState(
       target: target ?? this.target,
@@ -99,6 +102,7 @@ class ConversationDetailState {
       searchMatchIds: searchMatchIds ?? this.searchMatchIds,
       currentSearchMatchIndex:
           currentSearchMatchIndex ?? this.currentSearchMatchIndex,
+      savedMessageIds: savedMessageIds ?? this.savedMessageIds,
     );
   }
 
@@ -124,7 +128,8 @@ class ConversationDetailState {
             isSearchActive == other.isSearchActive &&
             searchQuery == other.searchQuery &&
             listEquals(searchMatchIds, other.searchMatchIds) &&
-            currentSearchMatchIndex == other.currentSearchMatchIndex;
+            currentSearchMatchIndex == other.currentSearchMatchIndex &&
+            setEquals(savedMessageIds, other.savedMessageIds);
   }
 
   @override
@@ -147,5 +152,6 @@ class ConversationDetailState {
         searchQuery,
         Object.hashAll(searchMatchIds),
         currentSearchMatchIndex,
+        Object.hashAll(savedMessageIds),
       );
 }

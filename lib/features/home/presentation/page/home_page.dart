@@ -63,6 +63,17 @@ class _HomePageState extends ConsumerState<HomePage> {
         HomeListStatus.success => ListView(
             padding: const EdgeInsets.symmetric(vertical: 12),
             children: [
+              ListTile(
+                key: const ValueKey('home-saved-messages'),
+                leading: const Icon(Icons.bookmark_outline),
+                title: const Text('Saved Messages'),
+                onTap: () {
+                  final serverId = ref.read(activeServerScopeIdProvider);
+                  if (serverId != null) {
+                    context.go('/servers/${serverId.value}/saved-messages');
+                  }
+                },
+              ),
               _HomeSectionHeader(
                 title: 'Channels',
                 onAdd: _showCreateChannelDialog,

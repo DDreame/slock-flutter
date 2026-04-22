@@ -562,7 +562,7 @@ class _ConversationComposer extends StatelessWidget {
   }
 }
 
-class _ConversationMessageCard extends StatelessWidget {
+class _ConversationMessageCard extends ConsumerWidget {
   const _ConversationMessageCard({
     required this.target,
     required this.message,
@@ -574,63 +574,108 @@ class _ConversationMessageCard extends StatelessWidget {
   final String highlightQuery;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final timestamp = _formatTimestamp(message.createdAt);
     final theme = Theme.of(context);
+    final savedIds = ref.watch(
+      conversationDetailStoreProvider.select((s) => s.savedMessageIds),
+    );
+    final isSaved = savedIds.contains(message.id);
 
-    return Container(
-      key: ValueKey('message-${message.id}'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (message.threadId != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: InkWell(
-                key: const ValueKey('message-thread-entry'),
-                onTap: () {
-                  context.push(
-                    ThreadRouteTarget(
-                      serverId: target.serverId.value,
-                      parentChannelId: target.conversationId,
-                      parentMessageId: message.id,
-                      threadChannelId: message.threadId,
-                    ).toLocation(),
-                  );
-                },
-                child: Text(
-                  'In thread',
-                  key: const ValueKey('message-thread-indicator'),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
+    return GestureDetector(
+      onLongPress: () => _showMessageActions(context, ref, isSaved),
+      child: Container(
+        key: ValueKey('message-${message.id}'),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (message.threadId != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: InkWell(
+                  key: const ValueKey('message-thread-entry'),
+                  onTap: () {
+                    context.push(
+                      ThreadRouteTarget(
+                        serverId: target.serverId.value,
+                        parentChannelId: target.conversationId,
+                        parentMessageId: message.id,
+                        threadChannelId: message.threadId,
+                      ).toLocation(),
+                    );
+                  },
+                  child: Text(
+                    'In thread',
+                    key: const ValueKey('message-thread-indicator'),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
-            ),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  message.senderLabel,
-                  style: theme.textTheme.labelMedium,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    message.senderLabel,
+                    style: theme.textTheme.labelMedium,
+                  ),
                 ),
-              ),
-              Text(timestamp, style: theme.textTheme.bodySmall),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _MessageContentBody(
-            message: message,
-            highlightQuery: highlightQuery,
-          ),
-          if (message.attachments != null && message.attachments!.isNotEmpty)
-            _AttachmentSection(attachments: message.attachments!),
-        ],
+                if (isSaved)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(
+                      Icons.bookmark,
+                      size: 14,
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                Text(timestamp, style: theme.textTheme.bodySmall),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _MessageContentBody(
+              message: message,
+              highlightQuery: highlightQuery,
+            ),
+            if (message.attachments != null && message.attachments!.isNotEmpty)
+              _AttachmentSection(attachments: message.attachments!),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMessageActions(
+    BuildContext context,
+    WidgetRef ref,
+    bool isSaved,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const ValueKey('message-action-save'),
+              leading:
+                  Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
+              title: Text(isSaved ? 'Unsave message' : 'Save message'),
+              onTap: () {
+                Navigator.of(context).pop();
+                ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .toggleSaveMessage(message.id);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
