@@ -98,6 +98,25 @@ void main() {
     expect(find.text('dm:server-1/dm-alice'), findsOneWidget);
   });
 
+  testWidgets('members AppBar action navigates to the members route', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('home-members')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('members:server-1'), findsOneWidget);
+  });
+
   testWidgets('create channel opens dialog and navigates when id is returned',
       (tester) async {
     final router = _buildRouter();
@@ -466,6 +485,14 @@ GoRouter _buildRouter() {
       GoRoute(
         path: '/servers/:serverId/search',
         builder: (context, state) => const SizedBox.shrink(),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/members',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text('members:${state.pathParameters['serverId']}'),
+          ),
+        ),
       ),
     ],
   );

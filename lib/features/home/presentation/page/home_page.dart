@@ -37,6 +37,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: _HomeAppBarTitle(onTap: () => showServerSwitcherSheet(context)),
         actions: [
           IconButton(
+            key: const ValueKey('home-members'),
+            icon: const Icon(Icons.people_outline),
+            onPressed: () {
+              final serverId = ref.read(activeServerScopeIdProvider);
+              if (serverId != null) {
+                context.go('/servers/${serverId.value}/members');
+              }
+            },
+          ),
+          IconButton(
             key: const ValueKey('home-search'),
             icon: const Icon(Icons.search),
             onPressed: () {

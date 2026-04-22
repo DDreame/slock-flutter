@@ -12,6 +12,7 @@ import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
+import 'package:slock_app/features/members/presentation/page/members_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/release_notes/presentation/page/release_notes_page.dart';
@@ -181,6 +182,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             SearchPage(serverId: state.pathParameters['serverId']!),
       ),
       GoRoute(
+        path: '/servers/:serverId/members',
+        redirect: syncServerSelection,
+        builder: (context, state) =>
+            MembersPage(serverId: state.pathParameters['serverId']!),
+      ),
+      GoRoute(
         path: '/servers/:serverId/saved-messages',
         redirect: syncServerSelection,
         builder: (context, state) =>
@@ -194,6 +201,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/profile/:userId',
         builder: (context, state) =>
             ProfilePage(userId: state.pathParameters['userId']),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/profile/:userId',
+        redirect: syncServerSelection,
+        builder: (context, state) => ProfilePage(
+          serverId: state.pathParameters['serverId'],
+          userId: state.pathParameters['userId'],
+        ),
       ),
       GoRoute(
         path: '/billing',
