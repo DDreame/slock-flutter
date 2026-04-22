@@ -39,6 +39,9 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         agent: agent,
         isLoading: state.status == AgentsStatus.loading ||
             state.status == AgentsStatus.initial,
+        isFailure: state.status == AgentsStatus.failure,
+        failureMessage: state.failure?.message,
+        onRetry: ref.read(agentsStoreProvider.notifier).retry,
         onStart: _startAgent,
         onStop: _stopAgent,
         onReset: _resetAgent,
@@ -304,6 +307,9 @@ class _AgentDetailScaffold extends StatelessWidget {
   const _AgentDetailScaffold({
     required this.agent,
     required this.isLoading,
+    required this.isFailure,
+    required this.failureMessage,
+    required this.onRetry,
     required this.onStart,
     required this.onStop,
     required this.onReset,
@@ -311,6 +317,9 @@ class _AgentDetailScaffold extends StatelessWidget {
 
   final AgentItem? agent;
   final bool isLoading;
+  final bool isFailure;
+  final String? failureMessage;
+  final VoidCallback onRetry;
   final Future<void> Function(AgentItem) onStart;
   final Future<void> Function(AgentItem) onStop;
   final Future<void> Function(AgentItem) onReset;
@@ -320,11 +329,14 @@ class _AgentDetailScaffold extends StatelessWidget {
     if (agent == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Agent')),
-        body: Center(
-          child: isLoading
-              ? const CircularProgressIndicator()
-              : const Text('Agent not found.'),
-        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : isFailure
+                ? _AgentsFailureView(
+                    message: failureMessage ?? 'Failed to load agents.',
+                    onRetry: onRetry,
+                  )
+                : const Center(child: Text('Agent not found.')),
       );
     }
 
