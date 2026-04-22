@@ -18,8 +18,13 @@ String? resolveNotificationRoute(Map<String, dynamic> payload) {
       if (serverId == null || channelId == null) return null;
       return '/servers/$serverId/dms/$channelId';
     case 'thread':
-      if (threadId == null) return null;
-      return '/threads/$threadId/replies';
+      if (serverId == null || channelId == null || threadId == null) {
+        return null;
+      }
+      return Uri(
+        path: '/servers/$serverId/threads/$threadId/replies',
+        queryParameters: {'channelId': channelId},
+      ).toString();
     case 'agent':
       if (agentId == null) return null;
       return '/agents/$agentId';

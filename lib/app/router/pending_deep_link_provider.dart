@@ -7,15 +7,15 @@ final _conversationLandingPattern = RegExp(
 );
 
 bool isConversationDeepLink(String path) {
-  return _conversationLandingPattern.hasMatch(path);
+  return _conversationLandingPattern.hasMatch(Uri.parse(path).path);
 }
 
 final _notificationDeepLinkPattern = RegExp(
-  r'^(/servers/[^/]+/(channels|dms)/[^/]+|/threads/[^/]+/replies|/agents/[^/]+|/profile/[^/]+)$',
+  r'^(/servers/[^/]+/(channels|dms)/[^/]+|/servers/[^/]+/threads/[^/]+/replies|/agents/[^/]+|/profile/[^/]+)$',
 );
 
 bool isNotificationDeepLink(String path) {
-  return _notificationDeepLinkPattern.hasMatch(path);
+  return _notificationDeepLinkPattern.hasMatch(Uri.parse(path).path);
 }
 
 String? extractDeepLinkServerId(String path) {

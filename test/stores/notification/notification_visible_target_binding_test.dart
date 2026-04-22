@@ -8,6 +8,8 @@ import 'package:slock_app/core/scope/server_scope_id.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/threads/application/current_open_thread_target_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
 
@@ -83,6 +85,22 @@ void main() {
       expect(result!.serverId, 's1');
       expect(result.surface, NotificationSurface.dm);
       expect(result.channelId, 'dm1');
+    });
+
+    test('maps thread target', () {
+      final result = threadTargetToVisibleTarget(
+        const ThreadRouteTarget(
+          serverId: 's1',
+          parentChannelId: 'c1',
+          parentMessageId: 't1',
+        ),
+      );
+
+      expect(result, isNotNull);
+      expect(result!.serverId, 's1');
+      expect(result.surface, NotificationSurface.thread);
+      expect(result.channelId, 'c1');
+      expect(result.threadId, 't1');
     });
   });
 
@@ -172,6 +190,38 @@ void main() {
       final state = container.read(notificationStoreProvider);
       expect(state.visibleTarget!.surface, NotificationSurface.dm);
       expect(state.visibleTarget!.channelId, 'dm1');
+    });
+
+    test('thread target takes precedence over conversation target', () {
+      container.read(notificationVisibleTargetBindingProvider);
+
+      container.read(currentOpenConversationTargetProvider.notifier).state =
+          ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('s1'),
+          value: 'c1',
+        ),
+      );
+
+      container.read(currentOpenThreadTargetProvider.notifier).state =
+          const ThreadRouteTarget(
+        serverId: 's1',
+        parentChannelId: 'c1',
+        parentMessageId: 't1',
+      );
+
+      final threadVisible =
+          container.read(notificationStoreProvider).visibleTarget;
+      expect(threadVisible, isNotNull);
+      expect(threadVisible!.surface, NotificationSurface.thread);
+      expect(threadVisible.threadId, 't1');
+
+      container.read(currentOpenThreadTargetProvider.notifier).state = null;
+      final fallbackVisible =
+          container.read(notificationStoreProvider).visibleTarget;
+      expect(fallbackVisible, isNotNull);
+      expect(fallbackVisible!.surface, NotificationSurface.channel);
+      expect(fallbackVisible.channelId, 'c1');
     });
   });
 }

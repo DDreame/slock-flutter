@@ -25,9 +25,11 @@ void main() {
     test('returns thread route', () {
       final route = resolveNotificationRoute({
         'type': 'thread',
+        'serverId': 's1',
+        'channelId': 'c1',
         'threadId': 't1',
       });
-      expect(route, '/threads/t1/replies');
+      expect(route, '/servers/s1/threads/t1/replies?channelId=c1');
     });
 
     test('returns agent route', () {
@@ -73,7 +75,29 @@ void main() {
     });
 
     test('returns null for thread without threadId', () {
-      final route = resolveNotificationRoute({'type': 'thread'});
+      final route = resolveNotificationRoute({
+        'type': 'thread',
+        'serverId': 's1',
+        'channelId': 'c1',
+      });
+      expect(route, isNull);
+    });
+
+    test('returns null for thread without serverId', () {
+      final route = resolveNotificationRoute({
+        'type': 'thread',
+        'channelId': 'c1',
+        'threadId': 't1',
+      });
+      expect(route, isNull);
+    });
+
+    test('returns null for thread without channelId', () {
+      final route = resolveNotificationRoute({
+        'type': 'thread',
+        'serverId': 's1',
+        'threadId': 't1',
+      });
       expect(route, isNull);
     });
 

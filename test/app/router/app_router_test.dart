@@ -58,7 +58,7 @@ void main() {
       '/servers/:serverId/channels/:channelId',
       '/servers/:serverId/dms/:channelId',
       '/servers/:serverId/threads',
-      '/threads/:threadId/replies',
+      '/servers/:serverId/threads/:threadId/replies',
       '/servers/:serverId/tasks',
       '/servers/:serverId/agents',
       '/agents/:agentId',
@@ -228,7 +228,10 @@ void main() {
     });
 
     test('matches thread route', () {
-      expect(isNotificationDeepLink('/threads/t1/replies'), isTrue);
+      expect(
+        isNotificationDeepLink('/servers/s1/threads/t1/replies?channelId=c1'),
+        isTrue,
+      );
     });
 
     test('matches agent route', () {
@@ -483,12 +486,12 @@ void main() {
       );
       await tester.pump();
 
-      router.go('/threads/t1/replies');
+      router.go('/servers/server-1/threads/t1/replies?channelId=c1');
       await tester.pump();
 
       expect(
         container.read(pendingDeepLinkProvider),
-        '/threads/t1/replies',
+        '/servers/server-1/threads/t1/replies?channelId=c1',
       );
 
       await container
@@ -498,8 +501,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        router.routeInformationProvider.value.uri.path,
-        '/threads/t1/replies',
+        router.routeInformationProvider.value.uri.toString(),
+        '/servers/server-1/threads/t1/replies?channelId=c1',
       );
       expect(container.read(pendingDeepLinkProvider), isNull);
     });
@@ -866,12 +869,12 @@ void main() {
       await tester.pumpAndSettle();
 
       container.read(pendingDeepLinkProvider.notifier).state =
-          '/threads/t1/replies';
+          '/servers/server-1/threads/t1/replies?channelId=c1';
       await tester.pumpAndSettle();
 
       expect(
-        router.routeInformationProvider.value.uri.path,
-        '/threads/t1/replies',
+        router.routeInformationProvider.value.uri.toString(),
+        '/servers/server-1/threads/t1/replies?channelId=c1',
       );
       expect(container.read(pendingDeepLinkProvider), isNull);
     });

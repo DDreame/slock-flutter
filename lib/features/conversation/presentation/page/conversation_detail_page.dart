@@ -1,20 +1,34 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+
+typedef ConversationAppBarActionsBuilder = List<Widget> Function(
+  BuildContext context,
+  WidgetRef ref,
+  ConversationDetailState state,
+);
 
 class ConversationDetailPage extends StatelessWidget {
   const ConversationDetailPage({
     super.key,
     required ConversationDetailTarget target,
+    this.titleOverride,
+    this.appBarActionsBuilder,
+    this.registerOpenTarget = true,
   }) : _target = target;
 
   final ConversationDetailTarget _target;
+  final String? titleOverride;
+  final ConversationAppBarActionsBuilder? appBarActionsBuilder;
+  final bool registerOpenTarget;
 
   @override
   Widget build(BuildContext context) {
@@ -22,13 +36,25 @@ class ConversationDetailPage extends StatelessWidget {
       overrides: [
         currentConversationDetailTargetProvider.overrideWithValue(_target),
       ],
-      child: const _ConversationDetailScreen(),
+      child: _ConversationDetailScreen(
+        titleOverride: titleOverride,
+        appBarActionsBuilder: appBarActionsBuilder,
+        registerOpenTarget: registerOpenTarget,
+      ),
     );
   }
 }
 
 class _ConversationDetailScreen extends ConsumerStatefulWidget {
-  const _ConversationDetailScreen();
+  const _ConversationDetailScreen({
+    this.titleOverride,
+    this.appBarActionsBuilder,
+    required this.registerOpenTarget,
+  });
+
+  final String? titleOverride;
+  final ConversationAppBarActionsBuilder? appBarActionsBuilder;
+  final bool registerOpenTarget;
 
   @override
   ConsumerState<_ConversationDetailScreen> createState() =>
@@ -86,11 +112,13 @@ class _ConversationDetailScreenState
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(
-      currentOpenConversationRegistrationProvider(
-        ref.read(currentConversationDetailTargetProvider),
-      ),
-    );
+    if (widget.registerOpenTarget) {
+      ref.watch(
+        currentOpenConversationRegistrationProvider(
+          ref.read(currentConversationDetailTargetProvider),
+        ),
+      );
+    }
     final state = ref.watch(conversationDetailStoreProvider);
     if (_composerController.text != state.draft) {
       _composerController.value = TextEditingValue(
@@ -100,7 +128,10 @@ class _ConversationDetailScreenState
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(state.resolvedTitle)),
+      appBar: AppBar(
+        title: Text(widget.titleOverride ?? state.resolvedTitle),
+        actions: widget.appBarActionsBuilder?.call(context, ref, state),
+      ),
       bottomNavigationBar: state.status == ConversationDetailStatus.success
           ? _ConversationComposer(
               controller: _composerController,
@@ -309,7 +340,10 @@ class _ConversationMessageList extends StatelessWidget {
           return _ConversationHistoryHeader(state: state);
         }
         final message = state.messages[index - 1];
-        return _ConversationMessageCard(message: message);
+        return _ConversationMessageCard(
+          target: state.target,
+          message: message,
+        );
       },
     );
   }
@@ -493,8 +527,12 @@ class _ConversationComposer extends StatelessWidget {
 }
 
 class _ConversationMessageCard extends StatelessWidget {
-  const _ConversationMessageCard({required this.message});
+  const _ConversationMessageCard({
+    required this.target,
+    required this.message,
+  });
 
+  final ConversationDetailTarget target;
   final ConversationMessageSummary message;
 
   @override
@@ -515,11 +553,24 @@ class _ConversationMessageCard extends StatelessWidget {
           if (message.threadId != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: Text(
-                'In thread',
-                key: const ValueKey('message-thread-indicator'),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.primary,
+              child: InkWell(
+                key: const ValueKey('message-thread-entry'),
+                onTap: () {
+                  context.push(
+                    ThreadRouteTarget(
+                      serverId: target.serverId.value,
+                      parentChannelId: target.conversationId,
+                      parentMessageId: message.id,
+                      threadChannelId: message.threadId,
+                    ).toLocation(),
+                  );
+                },
+                child: Text(
+                  'In thread',
+                  key: const ValueKey('message-thread-indicator'),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ),
             ),

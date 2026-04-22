@@ -327,13 +327,15 @@ void main() {
     test('init consumes cold-start thread notification', () async {
       fakeInitializer.initialNotificationResult = {
         'type': 'thread',
+        'serverId': 's1',
+        'channelId': 'c1',
         'threadId': 't1',
       };
 
       await readStore().init();
 
       final pending = container.read(pendingDeepLinkProvider);
-      expect(pending, '/threads/t1/replies');
+      expect(pending, '/servers/s1/threads/t1/replies?channelId=c1');
     });
 
     test('handleNotificationTap writes pending link for channel', () {
@@ -361,11 +363,13 @@ void main() {
     test('handleNotificationTap writes pending link for thread', () {
       readStore().handleNotificationTap({
         'type': 'thread',
+        'serverId': 's1',
+        'channelId': 'c1',
         'threadId': 't1',
       });
 
       final pending = container.read(pendingDeepLinkProvider);
-      expect(pending, '/threads/t1/replies');
+      expect(pending, '/servers/s1/threads/t1/replies?channelId=c1');
     });
 
     test('handleNotificationTap writes pending link for agent', () {
