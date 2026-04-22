@@ -22,6 +22,10 @@ class ConversationDetailState {
     this.isLoadingNewer = false,
     this.failure,
     this.sendFailure,
+    this.isSearchActive = false,
+    this.searchQuery = '',
+    this.searchMatchIds = const [],
+    this.currentSearchMatchIndex = -1,
   });
 
   final ConversationDetailTarget target;
@@ -38,6 +42,10 @@ class ConversationDetailState {
   final bool isLoadingNewer;
   final AppFailure? failure;
   final AppFailure? sendFailure;
+  final bool isSearchActive;
+  final String searchQuery;
+  final List<String> searchMatchIds;
+  final int currentSearchMatchIndex;
 
   bool get isEmpty =>
       status == ConversationDetailStatus.success && messages.isEmpty;
@@ -66,6 +74,10 @@ class ConversationDetailState {
     AppFailure? sendFailure,
     bool clearFailure = false,
     bool clearSendFailure = false,
+    bool? isSearchActive,
+    String? searchQuery,
+    List<String>? searchMatchIds,
+    int? currentSearchMatchIndex,
   }) {
     return ConversationDetailState(
       target: target ?? this.target,
@@ -82,6 +94,11 @@ class ConversationDetailState {
       isLoadingNewer: isLoadingNewer ?? this.isLoadingNewer,
       failure: clearFailure ? null : (failure ?? this.failure),
       sendFailure: clearSendFailure ? null : (sendFailure ?? this.sendFailure),
+      isSearchActive: isSearchActive ?? this.isSearchActive,
+      searchQuery: searchQuery ?? this.searchQuery,
+      searchMatchIds: searchMatchIds ?? this.searchMatchIds,
+      currentSearchMatchIndex:
+          currentSearchMatchIndex ?? this.currentSearchMatchIndex,
     );
   }
 
@@ -103,7 +120,11 @@ class ConversationDetailState {
             isLoadingOlder == other.isLoadingOlder &&
             isLoadingNewer == other.isLoadingNewer &&
             failure == other.failure &&
-            sendFailure == other.sendFailure;
+            sendFailure == other.sendFailure &&
+            isSearchActive == other.isSearchActive &&
+            searchQuery == other.searchQuery &&
+            listEquals(searchMatchIds, other.searchMatchIds) &&
+            currentSearchMatchIndex == other.currentSearchMatchIndex;
   }
 
   @override
@@ -122,5 +143,9 @@ class ConversationDetailState {
         isLoadingNewer,
         failure,
         sendFailure,
+        isSearchActive,
+        searchQuery,
+        Object.hashAll(searchMatchIds),
+        currentSearchMatchIndex,
       );
 }

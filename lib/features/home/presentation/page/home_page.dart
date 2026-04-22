@@ -29,6 +29,18 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: _HomeAppBarTitle(onTap: () => showServerSwitcherSheet(context)),
+        actions: [
+          IconButton(
+            key: const ValueKey('home-search'),
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              final serverId = ref.read(activeServerScopeIdProvider);
+              if (serverId != null) {
+                context.go('/servers/${serverId.value}/search');
+              }
+            },
+          ),
+        ],
       ),
       body: switch (state.status) {
         HomeListStatus.noActiveServer => _HomeNoServerState(

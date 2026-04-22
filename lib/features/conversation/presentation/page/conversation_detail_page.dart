@@ -130,7 +130,19 @@ class _ConversationDetailScreenState
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.titleOverride ?? state.resolvedTitle),
-        actions: widget.appBarActionsBuilder?.call(context, ref, state),
+        actions: [
+          if (state.status == ConversationDetailStatus.success)
+            IconButton(
+              key: const ValueKey('conversation-search-toggle'),
+              icon: Icon(
+                state.isSearchActive ? Icons.search_off : Icons.search,
+              ),
+              onPressed: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .toggleSearch,
+            ),
+          ...?widget.appBarActionsBuilder?.call(context, ref, state),
+        ],
       ),
       bottomNavigationBar: state.status == ConversationDetailStatus.success
           ? _ConversationComposer(
@@ -149,25 +161,48 @@ class _ConversationDetailScreenState
                   .removePendingAttachment,
             )
           : null,
-      body: switch (state.status) {
-        ConversationDetailStatus.initial ||
-        ConversationDetailStatus.loading =>
-          const Center(
-            key: ValueKey('conversation-loading'),
-            child: CircularProgressIndicator(),
+      body: Column(
+        children: [
+          if (state.isSearchActive)
+            _ConversationSearchBar(
+              state: state,
+              onChanged: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .updateSearchQuery,
+              onNext: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .nextSearchResult,
+              onPrevious: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .previousSearchResult,
+              onClose: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .toggleSearch,
+            ),
+          Expanded(
+            child: switch (state.status) {
+              ConversationDetailStatus.initial ||
+              ConversationDetailStatus.loading =>
+                const Center(
+                  key: ValueKey('conversation-loading'),
+                  child: CircularProgressIndicator(),
+                ),
+              ConversationDetailStatus.failure => _ConversationFailureView(
+                  state: state,
+                  onRetry: () => ref
+                      .read(conversationDetailStoreProvider.notifier)
+                      .retry(),
+                ),
+              ConversationDetailStatus.success when state.isEmpty =>
+                _ConversationEmptyView(title: state.resolvedTitle),
+              ConversationDetailStatus.success => _ConversationMessageList(
+                  controller: _scrollController,
+                  state: state,
+                ),
+            },
           ),
-        ConversationDetailStatus.failure => _ConversationFailureView(
-            state: state,
-            onRetry: () =>
-                ref.read(conversationDetailStoreProvider.notifier).retry(),
-          ),
-        ConversationDetailStatus.success when state.isEmpty =>
-          _ConversationEmptyView(title: state.resolvedTitle),
-        ConversationDetailStatus.success => _ConversationMessageList(
-            controller: _scrollController,
-            state: state,
-          ),
-      },
+        ],
+      ),
     );
   }
 
@@ -343,6 +378,7 @@ class _ConversationMessageList extends StatelessWidget {
         return _ConversationMessageCard(
           target: state.target,
           message: message,
+          highlightQuery: state.searchQuery,
         );
       },
     );
@@ -530,10 +566,12 @@ class _ConversationMessageCard extends StatelessWidget {
   const _ConversationMessageCard({
     required this.target,
     required this.message,
+    this.highlightQuery = '',
   });
 
   final ConversationDetailTarget target;
   final ConversationMessageSummary message;
+  final String highlightQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -586,7 +624,10 @@ class _ConversationMessageCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          _MessageContentBody(message: message),
+          _MessageContentBody(
+            message: message,
+            highlightQuery: highlightQuery,
+          ),
           if (message.attachments != null && message.attachments!.isNotEmpty)
             _AttachmentSection(attachments: message.attachments!),
         ],
@@ -596,9 +637,13 @@ class _ConversationMessageCard extends StatelessWidget {
 }
 
 class _MessageContentBody extends StatelessWidget {
-  const _MessageContentBody({required this.message});
+  const _MessageContentBody({
+    required this.message,
+    this.highlightQuery = '',
+  });
 
   final ConversationMessageSummary message;
+  final String highlightQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -606,6 +651,18 @@ class _MessageContentBody extends StatelessWidget {
     final baseStyle = message.isSystem
         ? theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)
         : theme.textTheme.bodyMedium;
+
+    if (highlightQuery.isNotEmpty) {
+      return Text.rich(
+        _buildHighlightedSpan(
+          message.content,
+          highlightQuery,
+          baseStyle,
+          theme.colorScheme.primaryContainer,
+        ),
+        key: const ValueKey('message-content'),
+      );
+    }
 
     final spans = _buildLinkifiedSpans(message.content, baseStyle, theme);
     if (spans.length == 1 && spans.first is! WidgetSpan) {
@@ -652,6 +709,147 @@ List<InlineSpan> _buildLinkifiedSpans(
     spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
   }
   return spans;
+}
+
+TextSpan _buildHighlightedSpan(
+  String text,
+  String query,
+  TextStyle? baseStyle,
+  Color highlightColor,
+) {
+  if (query.isEmpty) {
+    return TextSpan(text: text, style: baseStyle);
+  }
+
+  final lowerText = text.toLowerCase();
+  final lowerQuery = query.toLowerCase();
+  final spans = <InlineSpan>[];
+  var lastEnd = 0;
+
+  var index = lowerText.indexOf(lowerQuery);
+  while (index != -1) {
+    if (index > lastEnd) {
+      spans.add(
+          TextSpan(text: text.substring(lastEnd, index), style: baseStyle));
+    }
+    spans.add(TextSpan(
+      text: text.substring(index, index + query.length),
+      style: (baseStyle ?? const TextStyle()).copyWith(
+        backgroundColor: highlightColor,
+        fontWeight: FontWeight.bold,
+      ),
+    ));
+    lastEnd = index + query.length;
+    index = lowerText.indexOf(lowerQuery, lastEnd);
+  }
+
+  if (lastEnd < text.length) {
+    spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
+  }
+
+  if (spans.isEmpty) {
+    return TextSpan(text: text, style: baseStyle);
+  }
+  return TextSpan(children: spans);
+}
+
+class _ConversationSearchBar extends StatefulWidget {
+  const _ConversationSearchBar({
+    required this.state,
+    required this.onChanged,
+    required this.onNext,
+    required this.onPrevious,
+    required this.onClose,
+  });
+
+  final ConversationDetailState state;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onNext;
+  final VoidCallback onPrevious;
+  final VoidCallback onClose;
+
+  @override
+  State<_ConversationSearchBar> createState() => _ConversationSearchBarState();
+}
+
+class _ConversationSearchBarState extends State<_ConversationSearchBar> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.state.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final matchCount = widget.state.searchMatchIds.length;
+    final currentMatch = widget.state.currentSearchMatchIndex;
+
+    return Container(
+      key: const ValueKey('conversation-search-bar'),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              key: const ValueKey('conversation-search-input'),
+              controller: _controller,
+              autofocus: true,
+              decoration: const InputDecoration(
+                hintText: 'Search in conversation...',
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 8),
+              ),
+              onChanged: widget.onChanged,
+            ),
+          ),
+          if (matchCount > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                '${currentMatch + 1}/$matchCount',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          if (matchCount > 1) ...[
+            IconButton(
+              key: const ValueKey('search-previous'),
+              icon: const Icon(Icons.keyboard_arrow_up, size: 20),
+              onPressed: widget.onPrevious,
+              visualDensity: VisualDensity.compact,
+            ),
+            IconButton(
+              key: const ValueKey('search-next'),
+              icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+              onPressed: widget.onNext,
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+          IconButton(
+            key: const ValueKey('search-close'),
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: widget.onClose,
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _AttachmentSection extends StatelessWidget {

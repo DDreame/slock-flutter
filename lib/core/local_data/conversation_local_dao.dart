@@ -211,6 +211,42 @@ class ConversationLocalDao extends DatabaseAccessor<AppDatabase>
       }
     });
   }
+
+  @override
+  Future<List<LocalStoredMessageRecord>> searchMessages(
+    String serverId,
+    String query, {
+    int limit = 30,
+  }) async {
+    final pattern = '%$query%';
+    final rows = await (select(messages)
+          ..where(
+            (table) =>
+                table.serverId.equals(serverId) & table.content.like(pattern),
+          )
+          ..orderBy([(table) => OrderingTerm.desc(table.seq)])
+          ..limit(limit))
+        .get();
+    return rows.map(_messageRecordFromRow).toList(growable: false);
+  }
+
+  @override
+  Future<List<LocalConversationSummaryRecord>> searchConversationSummaries(
+    String serverId,
+    String query,
+  ) async {
+    final pattern = '%$query%';
+    final rows = await (select(conversationSummaries)
+          ..where(
+            (table) =>
+                table.serverId.equals(serverId) &
+                (table.title.like(pattern) |
+                    table.lastMessagePreview.like(pattern)),
+          )
+          ..orderBy([(table) => OrderingTerm.asc(table.sortIndex)]))
+        .get();
+    return rows.map(_summaryRecordFromRow).toList(growable: false);
+  }
 }
 
 LocalConversationSummaryRecord _summaryRecordFromRow(ConversationSummary row) {

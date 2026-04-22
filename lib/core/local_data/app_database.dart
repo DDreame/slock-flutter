@@ -185,4 +185,15 @@ abstract class ConversationLocalStore {
   });
 
   Future<void> upsertIdentities(Iterable<LocalIdentityUpsert> entries);
+
+  Future<List<LocalStoredMessageRecord>> searchMessages(
+    String serverId,
+    String query, {
+    int limit = 30,
+  });
+
+  Future<List<LocalConversationSummaryRecord>> searchConversationSummaries(
+    String serverId,
+    String query,
+  );
 }

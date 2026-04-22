@@ -202,6 +202,52 @@ class FakeConversationLocalStore implements ConversationLocalStore {
     }
   }
 
+  @override
+  Future<List<LocalStoredMessageRecord>> searchMessages(
+    String serverId,
+    String query, {
+    int limit = 30,
+  }) async {
+    final lowerQuery = query.toLowerCase();
+    final rows = _messages.values
+        .where(
+          (row) =>
+              row.serverId == serverId &&
+              row.content.toLowerCase().contains(lowerQuery),
+        )
+        .toList(growable: false)
+      ..sort((left, right) {
+        final leftSeq = left.seq;
+        final rightSeq = right.seq;
+        if (leftSeq != null && rightSeq != null) {
+          return rightSeq.compareTo(leftSeq);
+        }
+        if (leftSeq != null) return 1;
+        if (rightSeq != null) return -1;
+        return right.createdAt.compareTo(left.createdAt);
+      });
+    return rows.take(limit).toList(growable: false);
+  }
+
+  @override
+  Future<List<LocalConversationSummaryRecord>> searchConversationSummaries(
+    String serverId,
+    String query,
+  ) async {
+    final lowerQuery = query.toLowerCase();
+    final rows = _summaries.values
+        .where(
+          (row) =>
+              row.serverId == serverId &&
+              (row.title.toLowerCase().contains(lowerQuery) ||
+                  (row.lastMessagePreview?.toLowerCase().contains(lowerQuery) ??
+                      false)),
+        )
+        .toList(growable: false)
+      ..sort((left, right) => left.sortIndex.compareTo(right.sortIndex));
+    return rows;
+  }
+
   List<LocalConversationSummaryRecord> get conversationSummaries =>
       _summaries.values.toList(growable: false);
 
