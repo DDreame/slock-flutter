@@ -74,6 +74,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                   }
                 },
               ),
+              ListTile(
+                key: const ValueKey('home-tasks'),
+                leading: const Icon(Icons.check_circle_outline),
+                title: const Text('Tasks'),
+                onTap: () {
+                  final serverId = ref.read(activeServerScopeIdProvider);
+                  if (serverId != null) {
+                    context.go('/servers/${serverId.value}/tasks');
+                  }
+                },
+              ),
               _HomeSectionHeader(
                 title: 'Channels',
                 onAdd: _showCreateChannelDialog,
