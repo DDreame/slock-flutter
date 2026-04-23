@@ -138,8 +138,8 @@ class _ApiChannelMemberRepository implements ChannelMemberRepository {
     final agents = map['agents'];
     if (humans is List || agents is List) {
       return [
-        if (humans is List) ...humans.whereType<Map>().map(_parseMemberMap),
-        if (agents is List) ...agents.whereType<Map>().map(_parseMemberMap),
+        if (humans is List) ...humans.whereType<Map>().map(_parseHumanEntity),
+        if (agents is List) ...agents.whereType<Map>().map(_parseAgentEntity),
       ];
     }
     final members = map['members'];
@@ -161,6 +161,34 @@ class _ApiChannelMemberRepository implements ChannelMemberRepository {
       agentName: _readNestedName(map['agent']),
       avatarUrl:
           _readNestedAvatar(map['user']) ?? _readNestedAvatar(map['agent']),
+    );
+  }
+
+  ChannelMember _parseHumanEntity(Map<dynamic, dynamic> raw) {
+    final map =
+        raw is Map<String, dynamic> ? raw : Map<String, dynamic>.from(raw);
+    final id = _requireString(map, 'id');
+    return ChannelMember(
+      id: id,
+      channelId: '',
+      userId: id,
+      userName:
+          _optionalString(map['displayName']) ?? _optionalString(map['name']),
+      avatarUrl: _optionalString(map['avatarUrl']),
+    );
+  }
+
+  ChannelMember _parseAgentEntity(Map<dynamic, dynamic> raw) {
+    final map =
+        raw is Map<String, dynamic> ? raw : Map<String, dynamic>.from(raw);
+    final id = _requireString(map, 'id');
+    return ChannelMember(
+      id: id,
+      channelId: '',
+      agentId: id,
+      agentName:
+          _optionalString(map['displayName']) ?? _optionalString(map['name']),
+      avatarUrl: _optionalString(map['avatarUrl']),
     );
   }
 
