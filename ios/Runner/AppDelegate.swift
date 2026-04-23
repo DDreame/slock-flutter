@@ -3,17 +3,22 @@ import UIKit
 import UserNotifications
 
 @main
-@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, FlutterStreamHandler {
+@objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
   private let notificationMethodChannelName = "slock/notifications/methods"
   private let notificationTapEventChannelName = "slock/notifications/taps"
+  private let notificationForegroundEventChannelName = "slock/notifications/foreground"
   private let apnsTokenDefaultsKey = "slock.notifications.apnsToken"
 
   private var tapEventSink: FlutterEventSink?
+  private var foregroundEventSink: FlutterEventSink?
   private var pendingTapPayload: [String: Any]?
   private var initialNotificationPayload: [String: Any]?
   private var didConsumeInitialNotification = false
   private var cachedApnsToken: String?
   private var permissionRequestInFlight = false
+
+  private let tapStreamHandler = StreamHandler()
+  private let foregroundStreamHandler = StreamHandler()
 
   override func application(
     _ application: UIApplication,
@@ -56,6 +61,11 @@ import UserNotifications
         } else {
           result(nil)
         }
+      case "showLocalNotification":
+        if let payload = call.arguments as? [String: Any] {
+          self.postLocalNotification(payload: payload)
+        }
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
@@ -65,7 +75,29 @@ import UserNotifications
       name: notificationTapEventChannelName,
       binaryMessenger: messenger
     )
-    tapEventChannel.setStreamHandler(self)
+    tapStreamHandler.onSinkReady = { [weak self] sink in
+      self?.tapEventSink = sink
+      if let payload = self?.pendingTapPayload {
+        self?.pendingTapPayload = nil
+        sink(payload)
+      }
+    }
+    tapStreamHandler.onSinkRemoved = { [weak self] in
+      self?.tapEventSink = nil
+    }
+    tapEventChannel.setStreamHandler(tapStreamHandler)
+
+    let foregroundEventChannel = FlutterEventChannel(
+      name: notificationForegroundEventChannelName,
+      binaryMessenger: messenger
+    )
+    foregroundStreamHandler.onSinkReady = { [weak self] sink in
+      self?.foregroundEventSink = sink
+    }
+    foregroundStreamHandler.onSinkRemoved = { [weak self] in
+      self?.foregroundEventSink = nil
+    }
+    foregroundEventChannel.setStreamHandler(foregroundStreamHandler)
   }
 
   override func application(
@@ -113,18 +145,15 @@ import UserNotifications
     }
   }
 
-  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
-    tapEventSink = events
-    if let payload = pendingTapPayload {
-      pendingTapPayload = nil
-      events(payload)
+  override func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    willPresent notification: UNNotification,
+    withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+    if let payload = notificationPayload(from: notification.request.content.userInfo) {
+      foregroundEventSink?(payload)
     }
-    return nil
-  }
-
-  func onCancel(withArguments arguments: Any?) -> FlutterError? {
-    tapEventSink = nil
-    return nil
+    completionHandler([])
   }
 
   private func initializeNotifications(result: @escaping FlutterResult) {
@@ -203,6 +232,21 @@ import UserNotifications
     }
   }
 
+  private func postLocalNotification(payload: [String: Any]) {
+    let content = UNMutableNotificationContent()
+    content.title = payload["title"] as? String ?? ""
+    content.body = payload["body"] as? String ?? ""
+    content.sound = .default
+    content.userInfo = payload
+
+    let request = UNNotificationRequest(
+      identifier: UUID().uuidString,
+      content: content,
+      trigger: nil
+    )
+    UNUserNotificationCenter.current().add(request)
+  }
+
   private func notificationPayload(from userInfo: [AnyHashable: Any]?) -> [String: Any]? {
     guard let userInfo, !userInfo.isEmpty else {
       return nil
@@ -211,5 +255,23 @@ import UserNotifications
     return userInfo.reduce(into: [String: Any]()) { result, entry in
       result[String(describing: entry.key)] = entry.value
     }
+  }
+}
+
+private class StreamHandler: NSObject, FlutterStreamHandler {
+  var onSinkReady: ((FlutterEventSink) -> Void)?
+  var onSinkRemoved: (() -> Void)?
+
+  func onListen(
+    withArguments arguments: Any?,
+    eventSink events: @escaping FlutterEventSink
+  ) -> FlutterError? {
+    onSinkReady?(events)
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    onSinkRemoved?()
+    return nil
   }
 }
