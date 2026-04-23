@@ -209,6 +209,35 @@ void main() {
       expect(state().items.length, 1);
       expect(state().items.first.id, 'task-2');
     });
+
+    test('convertMessageToTask appends converted task to state', () async {
+      fakeRepo.listResult = [makeTask()];
+      await store().load();
+
+      fakeRepo.convertResult = makeTask(
+        id: 'task-converted',
+        taskNumber: 2,
+        title: 'Converted from message',
+      );
+
+      final result = await store().convertMessageToTask(messageId: 'msg-1');
+
+      expect(result.id, 'task-converted');
+      expect(state().items.length, 2);
+      expect(state().items.last.title, 'Converted from message');
+    });
+
+    test('convertMessageToTask rethrows on failure', () async {
+      fakeRepo.listResult = [makeTask()];
+      await store().load();
+
+      fakeRepo.shouldFail = true;
+
+      expect(
+        () => store().convertMessageToTask(messageId: 'msg-1'),
+        throwsA(isA<AppFailure>()),
+      );
+    });
   });
 }
 
@@ -218,6 +247,7 @@ class _FakeTasksRepository implements TasksRepository {
   TaskItem? statusResult;
   TaskItem? claimResult;
   TaskItem? unclaimResult;
+  TaskItem? convertResult;
   bool shouldFail = false;
 
   @override
@@ -300,5 +330,19 @@ class _FakeTasksRepository implements TasksRepository {
       );
     }
     return unclaimResult!;
+  }
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async {
+    if (shouldFail) {
+      throw const UnknownFailure(
+        message: 'Convert failed',
+        causeType: 'test',
+      );
+    }
+    return convertResult!;
   }
 }

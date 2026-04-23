@@ -154,6 +154,28 @@ class _ApiTasksRepository implements TasksRepository {
     }
   }
 
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async {
+    try {
+      final response = await _appDioClient.post<Object?>(
+        '$_tasksPath/convert-message',
+        data: {'messageId': messageId},
+        options: _serverOptions(serverId),
+      );
+      return _parseSingleTask(response.data);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to convert message to task.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
   List<TaskItem> _parseTaskList(Object? payload) {
     final map = _requireMap(payload);
     final tasks = map['tasks'];

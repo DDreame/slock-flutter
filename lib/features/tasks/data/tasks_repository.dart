@@ -30,4 +30,9 @@ abstract class TasksRepository {
     ServerScopeId serverId, {
     required String taskId,
   });
+
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  });
 }

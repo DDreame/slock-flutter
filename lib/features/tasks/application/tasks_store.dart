@@ -135,6 +135,19 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     }
   }
 
+  Future<TaskItem> convertMessageToTask({required String messageId}) async {
+    final serverId = ref.read(currentTasksServerIdProvider);
+    try {
+      final repo = ref.read(tasksRepositoryProvider);
+      final task =
+          await repo.convertMessageToTask(serverId, messageId: messageId);
+      state = state.copyWith(items: [...state.items, task]);
+      return task;
+    } on AppFailure {
+      rethrow;
+    }
+  }
+
   void upsertTask(TaskItem task) {
     final index = state.items.indexWhere((t) => t.id == task.id);
     if (index >= 0) {
