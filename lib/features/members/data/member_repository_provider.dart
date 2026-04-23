@@ -5,6 +5,7 @@ import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 
 const _membersPath = '/members';
+const _serversPath = '/servers';
 const _directMessagePath = '/channels/dm';
 const _serverHeaderName = 'X-Server-Id';
 
@@ -15,7 +16,7 @@ final memberRepositoryProvider = Provider<MemberRepository>((ref) {
 
 class _ApiMemberRepository implements MemberRepository {
   const _ApiMemberRepository({required AppDioClient appDioClient})
-      : _appDioClient = appDioClient;
+    : _appDioClient = appDioClient;
 
   final AppDioClient _appDioClient;
 
@@ -40,6 +41,74 @@ class _ApiMemberRepository implements MemberRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to load members.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<String> createInvite(ServerScopeId serverId) async {
+    try {
+      final response = await _appDioClient.post<Object?>(
+        _serverInvitesPath(serverId),
+        options: _serverScopedOptions(serverId),
+      );
+      final inviteCode = _readInviteCode(response.data);
+      if (inviteCode == null) {
+        throw const SerializationFailure(
+          message:
+              'Malformed invite payload: missing invite link, code, or token.',
+        );
+      }
+      return inviteCode;
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to create invite.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> updateMemberRole(
+    ServerScopeId serverId, {
+    required String userId,
+    required String role,
+  }) async {
+    try {
+      await _appDioClient.request<Object?>(
+        _serverMemberPath(serverId, userId: userId),
+        method: 'PATCH',
+        data: {'role': role},
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to update member role.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> removeMember(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {
+    try {
+      await _appDioClient.delete<Object?>(
+        _serverMemberPath(serverId, userId: userId),
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to remove member.',
         causeType: error.runtimeType.toString(),
       );
     }
@@ -77,6 +146,14 @@ class _ApiMemberRepository implements MemberRepository {
   Options _serverScopedOptions(ServerScopeId serverId) {
     return Options(headers: {_serverHeaderName: serverId.value});
   }
+}
+
+String _serverInvitesPath(ServerScopeId serverId) {
+  return '$_serversPath/${serverId.routeParam}/invites';
+}
+
+String _serverMemberPath(ServerScopeId serverId, {required String userId}) {
+  return '$_serversPath/${serverId.routeParam}/members/$userId';
 }
 
 List<Object?> _readMemberEntries(Object? payload) {
@@ -121,6 +198,34 @@ String? _readOptionalChannelId(Object? payload) {
     if (id is String && id.isNotEmpty) {
       return id;
     }
+  }
+  return null;
+}
+
+String? _readInviteCode(Object? payload) {
+  final root = _readOptionalMap(payload);
+  if (root == null) {
+    return null;
+  }
+
+  final nested = _readOptionalMap(root['invite']);
+  final invite = nested ?? root;
+  for (final field in const ['url', 'inviteUrl', 'link', 'code', 'token']) {
+    final value = invite[field];
+    if (value is String && value.isNotEmpty) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+Map<String, dynamic>? _readOptionalMap(Object? payload) {
+  if (payload is Map<String, dynamic>) {
+    return payload;
+  }
+  if (payload is Map) {
+    return Map<String, dynamic>.from(payload);
   }
   return null;
 }
