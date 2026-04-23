@@ -242,7 +242,8 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         threadRepositoryProvider.overrideWithValue(threadRepository),
-        conversationRepositoryProvider.overrideWithValue(conversationRepository),
+        conversationRepositoryProvider
+            .overrideWithValue(conversationRepository),
         realtimeSocketClientProvider.overrideWithValue(socket),
       ],
     );
