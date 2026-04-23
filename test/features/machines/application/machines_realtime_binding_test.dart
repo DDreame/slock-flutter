@@ -116,6 +116,33 @@ void main() {
       'offline',
     );
   });
+
+  test('foreign server scopes do not reduce into the mounted store', () async {
+    fakeRepository.snapshot = const MachinesSnapshot(
+      items: [MachineItem(id: 'machine-1', name: 'Builder', status: 'online')],
+    );
+    await container.read(machinesStoreProvider.notifier).load();
+
+    ingress.accept(
+      RealtimeEventEnvelope(
+        eventType: 'machine:status',
+        scopeKey: 'server:server-10/machines',
+        seq: 1,
+        receivedAt: DateTime.now(),
+        payload: const {
+          'machineId': 'machine-1',
+          'status': 'offline',
+          'statusVersion': 2,
+        },
+      ),
+    );
+
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(machinesStoreProvider);
+    expect(state.items.single.status, 'online');
+    expect(state.items.single.statusVersion, isNull);
+  });
 }
 
 class _FakeMachinesRepository implements MachinesRepository {

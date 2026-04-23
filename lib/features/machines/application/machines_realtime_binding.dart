@@ -40,8 +40,10 @@ bool _belongsToCurrentServer(
   RealtimeEventEnvelope event,
 ) {
   final scopeKey = event.scopeKey;
+  final serverScopePrefix = 'server:${serverId.value}';
   return scopeKey == RealtimeEventEnvelope.globalScopeKey ||
-      scopeKey.contains(serverId.value);
+      scopeKey == serverScopePrefix ||
+      scopeKey.startsWith('$serverScopePrefix/');
 }
 
 void _handleMachineStatus(Ref ref, RealtimeEventEnvelope event) {
