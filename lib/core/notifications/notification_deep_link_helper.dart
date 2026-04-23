@@ -30,6 +30,9 @@ String? resolveNotificationRoute(Map<String, dynamic> payload) {
       return '/agents/$agentId';
     case 'profile':
       if (userId == null) return null;
+      if (serverId != null) {
+        return '/servers/$serverId/profile/$userId';
+      }
       return '/profile/$userId';
     default:
       return null;
