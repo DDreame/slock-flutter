@@ -9,28 +9,31 @@ const _machineStatusEvent = 'machine:status';
 const _machineCapabilitiesEvent = 'machine:capabilities';
 const _daemonStatusEvent = 'daemon:status';
 
-final machinesRealtimeBindingProvider = Provider.autoDispose<void>((ref) {
-  final serverId = ref.watch(currentMachinesServerIdProvider);
-  final ingress = ref.watch(realtimeReductionIngressProvider);
-  final subscription = ingress.acceptedEvents.listen((event) {
-    if (!_belongsToCurrentServer(serverId, event)) {
-      return;
-    }
+final machinesRealtimeBindingProvider = Provider.autoDispose<void>(
+  (ref) {
+    final serverId = ref.watch(currentMachinesServerIdProvider);
+    final ingress = ref.watch(realtimeReductionIngressProvider);
+    final subscription = ingress.acceptedEvents.listen((event) {
+      if (!_belongsToCurrentServer(serverId, event)) {
+        return;
+      }
 
-    switch (event.eventType) {
-      case _machineStatusEvent:
-        _handleMachineStatus(ref, event);
-      case _machineCapabilitiesEvent:
-        _handleMachineCapabilities(ref, event);
-      case _daemonStatusEvent:
-        _handleDaemonStatus(ref, event);
-    }
-  });
+      switch (event.eventType) {
+        case _machineStatusEvent:
+          _handleMachineStatus(ref, event);
+        case _machineCapabilitiesEvent:
+          _handleMachineCapabilities(ref, event);
+        case _daemonStatusEvent:
+          _handleDaemonStatus(ref, event);
+      }
+    });
 
-  ref.onDispose(() {
-    unawaited(subscription.cancel());
-  });
-});
+    ref.onDispose(() {
+      unawaited(subscription.cancel());
+    });
+  },
+  dependencies: [currentMachinesServerIdProvider],
+);
 
 bool _belongsToCurrentServer(
   ServerScopeId serverId,
