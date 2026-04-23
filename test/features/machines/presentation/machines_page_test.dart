@@ -35,7 +35,10 @@ void main() {
     expect(find.text('1 machine(s)'), findsOneWidget);
     expect(find.text('Builder'), findsOneWidget);
     expect(find.text('Latest daemon'), findsOneWidget);
-    expect(find.text('builder.local'), findsOneWidget);
+    expect(
+      find.textContaining('builder.local', findRichText: true),
+      findsOneWidget,
+    );
   });
 
   testWidgets('empty state can register machine and reveal api key', (
