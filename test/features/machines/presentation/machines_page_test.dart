@@ -28,9 +28,10 @@ void main() {
     );
 
     await tester.pumpWidget(_buildApp(repository));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('machines-list')), findsOneWidget);
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('machines-list')),
+    );
     expect(find.text('1 machine(s)'), findsOneWidget);
     expect(find.text('Builder'), findsOneWidget);
     expect(find.text('Latest daemon'), findsOneWidget);
@@ -49,9 +50,10 @@ void main() {
     );
 
     await tester.pumpWidget(_buildApp(repository));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('machines-empty')), findsOneWidget);
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('machines-empty')),
+    );
 
     await tester.tap(find.byKey(const ValueKey('machines-create-empty')));
     await tester.pumpAndSettle();
@@ -85,7 +87,10 @@ void main() {
     );
 
     await tester.pumpWidget(_buildApp(repository));
-    await tester.pumpAndSettle();
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('machine-actions-machine-1')),
+    );
 
     await tester.tap(find.byKey(const ValueKey('machine-actions-machine-1')));
     await tester.pumpAndSettle();
@@ -137,24 +142,45 @@ void main() {
     );
 
     await tester.pumpWidget(_buildApp(repository));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('machines-error')), findsOneWidget);
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('machines-error')),
+    );
     expect(find.text('Load failed'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('machines-list')), findsOneWidget);
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('machines-list')),
+    );
     expect(find.text('Builder'), findsOneWidget);
   });
 }
 
 Widget _buildApp(_FakeMachinesRepository repository) {
+  final ingress = RealtimeReductionIngress();
   return ProviderScope(
-    overrides: [machinesRepositoryProvider.overrideWithValue(repository)],
+    overrides: [
+      machinesRepositoryProvider.overrideWithValue(repository),
+      realtimeReductionIngressProvider.overrideWithValue(ingress),
+    ],
     child: MaterialApp(home: MachinesPage(serverId: 'server-1')),
   );
+}
+
+Future<void> _pumpUntilFound(
+  WidgetTester tester,
+  Finder finder, {
+  int maxPumps = 20,
+}) async {
+  for (var attempt = 0; attempt < maxPumps; attempt += 1) {
+    await tester.pump(const Duration(milliseconds: 50));
+    if (finder.evaluate().isNotEmpty) {
+      return;
+    }
+  }
+
+  expect(finder, findsOneWidget);
 }
 
 class _FakeMachinesRepository implements MachinesRepository {
