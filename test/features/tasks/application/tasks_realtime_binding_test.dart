@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -55,22 +57,28 @@ void main() {
 
   late _FakeTasksRepository fakeRepo;
   late RealtimeReductionIngress ingress;
+  late _FakeRealtimeSocketClient socket;
   late ProviderContainer container;
   late ProviderSubscription<TasksState> stateSub;
+  late ProviderSubscription<void> bindingSub;
 
   setUp(() {
     fakeRepo = _FakeTasksRepository();
     ingress = RealtimeReductionIngress();
+    socket = _FakeRealtimeSocketClient();
     container = ProviderContainer(overrides: [
       currentTasksServerIdProvider.overrideWithValue(serverId),
       tasksRepositoryProvider.overrideWithValue(fakeRepo),
       realtimeReductionIngressProvider.overrideWithValue(ingress),
+      realtimeSocketClientProvider.overrideWithValue(socket),
     ]);
     // Keep the autoDispose store alive for the duration of the test.
     stateSub = container.listen(tasksStoreProvider, (_, __) {});
+    bindingSub = container.listen(tasksRealtimeBindingProvider, (_, __) {});
   });
 
   tearDown(() {
+    bindingSub.close();
     stateSub.close();
     container.dispose();
     ingress.dispose();
@@ -145,6 +153,64 @@ void main() {
       expect(state().items.length, 1);
       expect(state().items.first.id, 'task-2');
     });
+
+    test(
+      'mounted binding survives reconnect and sync:resume without page re-entry',
+      () async {
+        fakeRepo.listResult = [makeTask(id: 'task-1', status: 'todo')];
+        await container.read(tasksStoreProvider.notifier).load();
+
+        final service = container.read(realtimeServiceProvider.notifier);
+        await service.connect();
+        socket.push(const RealtimeSocketConnected());
+        await Future<void>.delayed(Duration.zero);
+
+        socket.push(
+          RealtimeSocketRawEvent(
+            eventName: 'task:updated',
+            payload: {
+              'scopeKey': 'server:server-1/tasks',
+              'seq': 1,
+              'task': taskJson(id: 'task-1', status: 'in_progress'),
+            },
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(state().items.single.status, 'in_progress');
+
+        await service.forceReconnect(reason: 'test reconnect');
+        socket.push(const RealtimeSocketConnected());
+        await Future<void>.delayed(Duration.zero);
+
+        expect(socket.emittedEvents.last.$1, 'sync:resume');
+        expect(socket.emittedEvents.last.$2, {
+          'lastSeqByScope': {'server:server-1/tasks': 1},
+        });
+
+        socket.push(
+          RealtimeSocketRawEvent(
+            eventName: 'task:created',
+            payload: {
+              'scopeKey': 'server:server-1/tasks',
+              'seq': 2,
+              'tasks': [
+                taskJson(
+                  id: 'task-2',
+                  taskNumber: 2,
+                  title: 'From resume',
+                ),
+              ],
+            },
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(state().items.length, 2);
+        expect(state().items.last.id, 'task-2');
+        expect(state().items.last.title, 'From resume');
+      },
+    );
   });
 }
 
@@ -198,4 +264,41 @@ class _FakeTasksRepository implements TasksRepository {
     required String taskId,
   }) async =>
       throw UnimplementedError();
+}
+
+class _FakeRealtimeSocketClient implements RealtimeSocketClient {
+  final StreamController<RealtimeSocketSignal> _signalsController =
+      StreamController<RealtimeSocketSignal>.broadcast();
+  final List<(String, Object?)> emittedEvents = <(String, Object?)>[];
+  bool _isConnected = false;
+
+  @override
+  Stream<RealtimeSocketSignal> get signals => _signalsController.stream;
+
+  @override
+  bool get isConnected => _isConnected;
+
+  @override
+  Future<void> connect() async {
+    _isConnected = true;
+  }
+
+  @override
+  Future<void> disconnect() async {
+    _isConnected = false;
+  }
+
+  @override
+  void emit(String eventName, Object? payload) {
+    emittedEvents.add((eventName, payload));
+  }
+
+  void push(RealtimeSocketSignal signal) {
+    _signalsController.add(signal);
+  }
+
+  @override
+  Future<void> dispose() async {
+    await _signalsController.close();
+  }
 }

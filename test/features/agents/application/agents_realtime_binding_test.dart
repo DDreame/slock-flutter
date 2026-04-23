@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -27,20 +29,26 @@ void main() {
 
   late _FakeAgentsRepository fakeRepo;
   late RealtimeReductionIngress ingress;
+  late _FakeRealtimeSocketClient socket;
   late ProviderContainer container;
   late ProviderSubscription<AgentsState> stateSub;
+  late ProviderSubscription<void> bindingSub;
 
   setUp(() {
     fakeRepo = _FakeAgentsRepository();
     ingress = RealtimeReductionIngress();
+    socket = _FakeRealtimeSocketClient();
     container = ProviderContainer(overrides: [
       agentsRepositoryProvider.overrideWithValue(fakeRepo),
       realtimeReductionIngressProvider.overrideWithValue(ingress),
+      realtimeSocketClientProvider.overrideWithValue(socket),
     ]);
     stateSub = container.listen(agentsStoreProvider, (_, __) {});
+    bindingSub = container.listen(agentsRealtimeBindingProvider, (_, __) {});
   });
 
   tearDown(() {
+    bindingSub.close();
     stateSub.close();
     container.dispose();
     ingress.dispose();
@@ -120,6 +128,66 @@ void main() {
       expect(state().items.length, 1);
       expect(state().items.first.id, 'a1');
     });
+
+    test(
+      'mounted binding survives reconnect and sync:resume without page re-entry',
+      () async {
+        fakeRepo.listResult = [makeAgent(id: 'a1', activity: 'online')];
+        await container.read(agentsStoreProvider.notifier).load();
+
+        final service = container.read(realtimeServiceProvider.notifier);
+        await service.connect();
+        socket.push(const RealtimeSocketConnected());
+        await Future<void>.delayed(Duration.zero);
+
+        socket.push(
+          const RealtimeSocketRawEvent(
+            eventName: 'agent:activity',
+            payload: {
+              'scopeKey': 'agents',
+              'seq': 1,
+              'agentId': 'a1',
+              'activity': 'thinking',
+              'detail': 'Before reconnect',
+            },
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        expect(state().items.single.activity, 'thinking');
+        expect(state().items.single.activityDetail, 'Before reconnect');
+
+        await service.forceReconnect(reason: 'test reconnect');
+        socket.push(const RealtimeSocketConnected());
+        await Future<void>.delayed(Duration.zero);
+
+        expect(socket.emittedEvents.last.$1, 'sync:resume');
+        expect(socket.emittedEvents.last.$2, {
+          'lastSeqByScope': {'agents': 1},
+        });
+
+        fakeRepo.listResult = [
+          makeAgent(id: 'a1', activity: 'thinking'),
+          makeAgent(id: 'a2', name: 'New agent'),
+        ];
+
+        socket.push(
+          const RealtimeSocketRawEvent(
+            eventName: 'agent:created',
+            payload: {
+              'scopeKey': 'agents',
+              'seq': 2,
+            },
+          ),
+        );
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(state().items.length, 2);
+        expect(state().items.last.id, 'a2');
+        expect(state().items.last.name, 'New agent');
+      },
+    );
   });
 }
 
@@ -154,4 +222,41 @@ class _FakeAgentsRepository implements AgentsRepository {
     int limit = 50,
   }) async =>
       [];
+}
+
+class _FakeRealtimeSocketClient implements RealtimeSocketClient {
+  final StreamController<RealtimeSocketSignal> _signalsController =
+      StreamController<RealtimeSocketSignal>.broadcast();
+  final List<(String, Object?)> emittedEvents = <(String, Object?)>[];
+  bool _isConnected = false;
+
+  @override
+  Stream<RealtimeSocketSignal> get signals => _signalsController.stream;
+
+  @override
+  bool get isConnected => _isConnected;
+
+  @override
+  Future<void> connect() async {
+    _isConnected = true;
+  }
+
+  @override
+  Future<void> disconnect() async {
+    _isConnected = false;
+  }
+
+  @override
+  void emit(String eventName, Object? payload) {
+    emittedEvents.add((eventName, payload));
+  }
+
+  void push(RealtimeSocketSignal signal) {
+    _signalsController.add(signal);
+  }
+
+  @override
+  Future<void> dispose() async {
+    await _signalsController.close();
+  }
 }
