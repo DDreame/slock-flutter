@@ -57,33 +57,25 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
   Future<void> addHumanMember(String userId) async {
     final serverId = ref.read(currentChannelMemberServerIdProvider);
     final channelId = ref.read(currentChannelMemberChannelIdProvider);
-    try {
-      final repo = ref.read(channelMemberRepositoryProvider);
-      final member = await repo.addHumanMember(
-        serverId,
-        channelId: channelId,
-        userId: userId,
-      );
-      state = state.copyWith(items: [...state.items, member]);
-    } on AppFailure {
-      rethrow;
-    }
+    final repo = ref.read(channelMemberRepositoryProvider);
+    await repo.addHumanMember(
+      serverId,
+      channelId: channelId,
+      userId: userId,
+    );
+    await load();
   }
 
   Future<void> addAgentMember(String agentId) async {
     final serverId = ref.read(currentChannelMemberServerIdProvider);
     final channelId = ref.read(currentChannelMemberChannelIdProvider);
-    try {
-      final repo = ref.read(channelMemberRepositoryProvider);
-      final member = await repo.addAgentMember(
-        serverId,
-        channelId: channelId,
-        agentId: agentId,
-      );
-      state = state.copyWith(items: [...state.items, member]);
-    } on AppFailure {
-      rethrow;
-    }
+    final repo = ref.read(channelMemberRepositoryProvider);
+    await repo.addAgentMember(
+      serverId,
+      channelId: channelId,
+      agentId: agentId,
+    );
+    await load();
   }
 
   Future<void> removeHumanMember(String userId) async {

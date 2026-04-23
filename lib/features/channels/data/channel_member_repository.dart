@@ -7,13 +7,13 @@ abstract class ChannelMemberRepository {
     required String channelId,
   });
 
-  Future<ChannelMember> addHumanMember(
+  Future<void> addHumanMember(
     ServerScopeId serverId, {
     required String channelId,
     required String userId,
   });
 
-  Future<ChannelMember> addAgentMember(
+  Future<void> addAgentMember(
     ServerScopeId serverId, {
     required String channelId,
     required String agentId,

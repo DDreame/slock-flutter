@@ -44,18 +44,17 @@ class _ApiChannelMemberRepository implements ChannelMemberRepository {
   }
 
   @override
-  Future<ChannelMember> addHumanMember(
+  Future<void> addHumanMember(
     ServerScopeId serverId, {
     required String channelId,
     required String userId,
   }) async {
     try {
-      final response = await _appDioClient.post<Object?>(
+      await _appDioClient.post<Object?>(
         '$_channelsPath/$channelId/members',
         data: {'userId': userId},
         options: _serverOptions(serverId),
       );
-      return _parseSingleMember(response.data);
     } on AppFailure {
       rethrow;
     } catch (error) {
@@ -67,18 +66,17 @@ class _ApiChannelMemberRepository implements ChannelMemberRepository {
   }
 
   @override
-  Future<ChannelMember> addAgentMember(
+  Future<void> addAgentMember(
     ServerScopeId serverId, {
     required String channelId,
     required String agentId,
   }) async {
     try {
-      final response = await _appDioClient.post<Object?>(
+      await _appDioClient.post<Object?>(
         '$_channelsPath/$channelId/members',
         data: {'agentId': agentId},
         options: _serverOptions(serverId),
       );
-      return _parseSingleMember(response.data);
     } on AppFailure {
       rethrow;
     } catch (error) {
@@ -136,18 +134,19 @@ class _ApiChannelMemberRepository implements ChannelMemberRepository {
       return payload.whereType<Map>().map(_parseMemberMap).toList();
     }
     final map = _requireMap(payload);
+    final humans = map['humans'];
+    final agents = map['agents'];
+    if (humans is List || agents is List) {
+      return [
+        if (humans is List) ...humans.whereType<Map>().map(_parseMemberMap),
+        if (agents is List) ...agents.whereType<Map>().map(_parseMemberMap),
+      ];
+    }
     final members = map['members'];
     if (members is List) {
       return members.whereType<Map>().map(_parseMemberMap).toList();
     }
     return [];
-  }
-
-  ChannelMember _parseSingleMember(Object? payload) {
-    final map = _requireMap(payload);
-    final member = map['member'];
-    if (member is Map) return _parseMemberMap(member);
-    return _parseMemberMap(map);
   }
 
   ChannelMember _parseMemberMap(Map<dynamic, dynamic> raw) {

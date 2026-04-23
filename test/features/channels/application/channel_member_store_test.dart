@@ -87,7 +87,10 @@ void main() {
       ];
       await store().load();
 
-      fakeRepo.addResult = makeMember(id: 'm2', userId: 'u2', userName: 'Bob');
+      fakeRepo.members = [
+        makeMember(id: 'm1', userId: 'u1', userName: 'Alice'),
+        makeMember(id: 'm2', userId: 'u2', userName: 'Bob'),
+      ];
       await store().addHumanMember('u2');
 
       expect(state().items.length, 2);
@@ -111,8 +114,9 @@ void main() {
       fakeRepo.members = [];
       await store().load();
 
-      fakeRepo.addResult =
-          makeMember(id: 'm1', agentId: 'a1', agentName: 'Bot');
+      fakeRepo.members = [
+        makeMember(id: 'm1', agentId: 'a1', agentName: 'Bot'),
+      ];
       await store().addAgentMember('a1');
 
       expect(state().items.length, 1);
@@ -197,7 +201,6 @@ void main() {
 
 class _FakeChannelMemberRepository implements ChannelMemberRepository {
   List<ChannelMember> members = const [];
-  ChannelMember? addResult;
   AppFailure? failure;
 
   @override
@@ -210,23 +213,21 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
   }
 
   @override
-  Future<ChannelMember> addHumanMember(
+  Future<void> addHumanMember(
     ServerScopeId serverId, {
     required String channelId,
     required String userId,
   }) async {
     if (failure != null) throw failure!;
-    return addResult!;
   }
 
   @override
-  Future<ChannelMember> addAgentMember(
+  Future<void> addAgentMember(
     ServerScopeId serverId, {
     required String channelId,
     required String agentId,
   }) async {
     if (failure != null) throw failure!;
-    return addResult!;
   }
 
   @override
