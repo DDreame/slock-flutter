@@ -150,7 +150,12 @@ import UserNotifications
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
-    if let payload = notificationPayload(from: notification.request.content.userInfo) {
+    let userInfo = notification.request.content.userInfo
+    if userInfo["slock.localRepost"] as? Bool == true {
+      completionHandler([.banner, .sound])
+      return
+    }
+    if let payload = notificationPayload(from: userInfo) {
       foregroundEventSink?(payload)
     }
     completionHandler([])
@@ -237,7 +242,9 @@ import UserNotifications
     content.title = payload["title"] as? String ?? ""
     content.body = payload["body"] as? String ?? ""
     content.sound = .default
-    content.userInfo = payload
+    var userInfo = payload
+    userInfo["slock.localRepost"] = true
+    content.userInfo = userInfo
 
     let request = UNNotificationRequest(
       identifier: UUID().uuidString,
