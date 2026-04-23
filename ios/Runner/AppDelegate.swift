@@ -152,7 +152,11 @@ import UserNotifications
   ) {
     let userInfo = notification.request.content.userInfo
     if userInfo["slock.localRepost"] as? Bool == true {
-      completionHandler([.banner, .sound])
+      if #available(iOS 14.0, *) {
+        completionHandler([.banner, .sound])
+      } else {
+        completionHandler([.alert, .sound])
+      }
       return
     }
     if let payload = notificationPayload(from: userInfo) {
@@ -266,7 +270,7 @@ import UserNotifications
 }
 
 private class StreamHandler: NSObject, FlutterStreamHandler {
-  var onSinkReady: ((FlutterEventSink) -> Void)?
+  var onSinkReady: ((@escaping FlutterEventSink) -> Void)?
   var onSinkRemoved: (() -> Void)?
 
   func onListen(
