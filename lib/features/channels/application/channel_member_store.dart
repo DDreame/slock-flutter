@@ -120,5 +120,5 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
     }
   }
 
-  void retry() => load();
+  Future<void> retry() => load();
 }

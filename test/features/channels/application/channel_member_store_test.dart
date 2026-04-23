@@ -190,8 +190,7 @@ void main() {
         makeMember(id: 'm1', userId: 'u1', userName: 'Alice'),
       ];
 
-      store().retry();
-      await Future<void>.delayed(Duration.zero);
+      await store().retry();
 
       expect(state().status, ChannelMemberStatus.success);
       expect(state().items.length, 1);
