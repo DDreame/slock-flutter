@@ -39,9 +39,8 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        final snapshot = await container
-            .read(machinesRepositoryProvider)
-            .loadMachines();
+        final snapshot =
+            await container.read(machinesRepositoryProvider).loadMachines();
 
         expect(snapshot.latestDaemonVersion, '1.2.3');
         expect(snapshot.items, hasLength(1));
@@ -163,8 +162,8 @@ void main() {
 
 class _FakeAppDioClient extends AppDioClient {
   _FakeAppDioClient({Map<(String, String), Object?> responses = const {}})
-    : _responses = responses,
-      super(Dio());
+      : _responses = responses,
+        super(Dio());
 
   final Map<(String, String), Object?> _responses;
   final List<_CapturedRequest> requests = [];

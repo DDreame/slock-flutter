@@ -22,8 +22,8 @@ class _ApiMachinesRepository implements MachinesRepository {
   const _ApiMachinesRepository({
     required AppDioClient appDioClient,
     required ServerScopeId serverId,
-  }) : _appDioClient = appDioClient,
-       _serverId = serverId;
+  })  : _appDioClient = appDioClient,
+        _serverId = serverId;
 
   final AppDioClient _appDioClient;
   final ServerScopeId _serverId;

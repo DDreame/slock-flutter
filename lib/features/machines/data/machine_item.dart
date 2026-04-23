@@ -46,14 +46,12 @@ class MachineItem {
       status: status ?? this.status,
       statusVersion: statusVersion ?? this.statusVersion,
       runtimes: runtimes ?? this.runtimes,
-      apiKeyPrefix: clearApiKeyPrefix
-          ? null
-          : (apiKeyPrefix ?? this.apiKeyPrefix),
+      apiKeyPrefix:
+          clearApiKeyPrefix ? null : (apiKeyPrefix ?? this.apiKeyPrefix),
       hostname: clearHostname ? null : (hostname ?? this.hostname),
       os: clearOs ? null : (os ?? this.os),
-      daemonVersion: clearDaemonVersion
-          ? null
-          : (daemonVersion ?? this.daemonVersion),
+      daemonVersion:
+          clearDaemonVersion ? null : (daemonVersion ?? this.daemonVersion),
     );
   }
 
@@ -74,14 +72,14 @@ class MachineItem {
 
   @override
   int get hashCode => Object.hash(
-    id,
-    name,
-    status,
-    statusVersion,
-    Object.hashAll(runtimes),
-    apiKeyPrefix,
-    hostname,
-    os,
-    daemonVersion,
-  );
+        id,
+        name,
+        status,
+        statusVersion,
+        Object.hashAll(runtimes),
+        apiKeyPrefix,
+        hostname,
+        os,
+        daemonVersion,
+      );
 }

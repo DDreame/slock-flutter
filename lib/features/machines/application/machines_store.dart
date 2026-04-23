@@ -7,9 +7,9 @@ import 'package:slock_app/features/machines/data/machines_repository_provider.da
 
 final machinesStoreProvider =
     AutoDisposeNotifierProvider<MachinesStore, MachinesState>(
-      MachinesStore.new,
-      dependencies: [currentMachinesServerIdProvider],
-    );
+  MachinesStore.new,
+  dependencies: [currentMachinesServerIdProvider],
+);
 
 class MachinesStore extends AutoDisposeNotifier<MachinesState> {
   @override
@@ -30,9 +30,8 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
     state = state.copyWith(status: MachinesStatus.loading, clearFailure: true);
 
     try {
-      final snapshot = await ref
-          .read(machinesRepositoryProvider)
-          .loadMachines();
+      final snapshot =
+          await ref.read(machinesRepositoryProvider).loadMachines();
       state = state.copyWith(
         status: MachinesStatus.success,
         items: _sortMachines(snapshot.items),

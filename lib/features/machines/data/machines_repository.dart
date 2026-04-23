@@ -51,17 +51,17 @@ MachinesSnapshot parseMachinesSnapshot(Object? payload) {
   final rawMachines = root['machines'];
   final items = rawMachines is List
       ? rawMachines
-            .map(_readMap)
-            .whereType<Map<String, dynamic>>()
-            .map(parseMachineItem)
-            .toList(growable: false)
+          .map(_readMap)
+          .whereType<Map<String, dynamic>>()
+          .map(parseMachineItem)
+          .toList(growable: false)
       : payload is List
-      ? payload
-            .map(_readMap)
-            .whereType<Map<String, dynamic>>()
-            .map(parseMachineItem)
-            .toList(growable: false)
-      : const <MachineItem>[];
+          ? payload
+              .map(_readMap)
+              .whereType<Map<String, dynamic>>()
+              .map(parseMachineItem)
+              .toList(growable: false)
+          : const <MachineItem>[];
 
   return MachinesSnapshot(
     items: items,
@@ -96,18 +96,15 @@ String readApiKeyFromPayload(Object? payload) {
 
 MachineItem parseMachineItem(Map<String, dynamic> map) {
   final capabilities = _readMap(map['capabilities']);
-  final runtimes =
-      _readStringList(map['runtimes']) ??
+  final runtimes = _readStringList(map['runtimes']) ??
       _readStringList(capabilities?['runtimes']) ??
       const <String>[];
 
   return MachineItem(
     id: _requiredString(map, 'id'),
-    name:
-        _firstPresentString(map, fields: const ['name', 'hostname']) ??
+    name: _firstPresentString(map, fields: const ['name', 'hostname']) ??
         'Unnamed machine',
-    status:
-        _firstPresentString(
+    status: _firstPresentString(
           map,
           fields: const ['status', 'connectionStatus'],
         ) ??
@@ -118,14 +115,11 @@ MachineItem parseMachineItem(Map<String, dynamic> map) {
       map,
       fields: const ['apiKeyPrefix', 'keyPrefix', 'apiKeyPreview'],
     ),
-    hostname:
-        _firstPresentString(map, fields: const ['hostname']) ??
+    hostname: _firstPresentString(map, fields: const ['hostname']) ??
         _firstPresentString(capabilities, fields: const ['hostname']),
-    os:
-        _firstPresentString(map, fields: const ['os']) ??
+    os: _firstPresentString(map, fields: const ['os']) ??
         _firstPresentString(capabilities, fields: const ['os']),
-    daemonVersion:
-        _firstPresentString(map, fields: const ['daemonVersion']) ??
+    daemonVersion: _firstPresentString(map, fields: const ['daemonVersion']) ??
         _firstPresentString(capabilities, fields: const ['daemonVersion']),
   );
 }

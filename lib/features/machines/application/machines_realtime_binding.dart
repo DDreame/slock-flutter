@@ -93,9 +93,7 @@ void _handleMachineCapabilities(Ref ref, RealtimeEventEnvelope event) {
   }
 
   try {
-    ref
-        .read(machinesStoreProvider.notifier)
-        .updateMachineCapabilities(
+    ref.read(machinesStoreProvider.notifier).updateMachineCapabilities(
           machineId,
           runtimes: _stringList(map['runtimes']),
           hostname: _optionalString(map['hostname']),

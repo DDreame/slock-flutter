@@ -81,13 +81,13 @@ class MachinesState {
 
   @override
   int get hashCode => Object.hash(
-    status,
-    Object.hashAll(items),
-    latestDaemonVersion,
-    failure,
-    isCreating,
-    Object.hashAll(renamingMachineIds),
-    Object.hashAll(rotatingKeyMachineIds),
-    Object.hashAll(deletingMachineIds),
-  );
+        status,
+        Object.hashAll(items),
+        latestDaemonVersion,
+        failure,
+        isCreating,
+        Object.hashAll(renamingMachineIds),
+        Object.hashAll(rotatingKeyMachineIds),
+        Object.hashAll(deletingMachineIds),
+      );
 }
