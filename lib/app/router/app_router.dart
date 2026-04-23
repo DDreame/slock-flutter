@@ -76,6 +76,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
+      if (path == '/splash' && session.isUnauthenticated && bootstrapComplete) {
+        return '/login';
+      }
+
       final redirect = authRedirect(session, path);
 
       if (redirect == '/home') {

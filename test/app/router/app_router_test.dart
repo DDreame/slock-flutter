@@ -340,6 +340,58 @@ void main() {
       await container.read(sessionStoreProvider.notifier).logout();
       expect(container.read(appReadyProvider), isFalse);
     });
+
+    testWidgets(
+        'stays on splash when unauthenticated and bootstrap not complete',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      expect(router.routeInformationProvider.value.uri.path, '/splash');
+    });
+
+    testWidgets(
+        'redirects to login when unauthenticated and bootstrap complete',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(appReadyProvider.notifier).state = true;
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/login');
+    });
   });
 
   group('deep link preservation', () {
