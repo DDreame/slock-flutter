@@ -355,6 +355,8 @@ void main() {
 
       final router = container.read(appRouterProvider);
 
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -378,9 +380,10 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      container.read(appReadyProvider.notifier).state = true;
-
       final router = container.read(appRouterProvider);
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+      container.read(appReadyProvider.notifier).state = true;
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -388,7 +391,7 @@ void main() {
           child: MaterialApp.router(routerConfig: router),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(router.routeInformationProvider.value.uri.path, '/login');
     });
