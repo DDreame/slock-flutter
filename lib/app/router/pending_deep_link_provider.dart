@@ -11,7 +11,7 @@ bool isConversationDeepLink(String path) {
 }
 
 final _notificationDeepLinkPattern = RegExp(
-  r'^(/servers/[^/]+/(channels|dms)/[^/]+|/servers/[^/]+/threads/[^/]+/replies|/agents/[^/]+|/profile/[^/]+)$',
+  r'^(/servers/[^/]+/(channels|dms)/[^/]+|/servers/[^/]+/threads/[^/]+/replies|/servers/[^/]+/profile/[^/]+|/agents/[^/]+|/profile/[^/]+)$',
 );
 
 bool isNotificationDeepLink(String path) {

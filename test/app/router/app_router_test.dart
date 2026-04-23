@@ -245,6 +245,10 @@ void main() {
       expect(isNotificationDeepLink('/profile/u1'), isTrue);
     });
 
+    test('matches server-scoped profile route', () {
+      expect(isNotificationDeepLink('/servers/s1/profile/u1'), isTrue);
+    });
+
     test('does not match home', () {
       expect(isNotificationDeepLink('/home'), isFalse);
     });
@@ -951,6 +955,45 @@ void main() {
       );
       expect(container.read(pendingDeepLinkProvider), isNull);
     });
+
+    testWidgets(
+      'server-scoped profile deep link navigates from /home',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            splashControllerProvider
+                .overrideWith(() => _StallingSplashController()),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(appReadyProvider.notifier).state = true;
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        container.read(pendingDeepLinkProvider.notifier).state =
+            '/servers/s1/profile/u1';
+        await tester.pumpAndSettle();
+
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          '/servers/s1/profile/u1',
+        );
+        expect(container.read(pendingDeepLinkProvider), isNull);
+      },
+    );
 
     test('does not consume pending link when not authenticated', () async {
       final container = ProviderContainer(

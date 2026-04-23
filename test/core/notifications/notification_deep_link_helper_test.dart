@@ -48,6 +48,15 @@ void main() {
       expect(route, '/profile/u1');
     });
 
+    test('returns server-scoped profile route when serverId is present', () {
+      final route = resolveNotificationRoute({
+        'type': 'profile',
+        'serverId': 's1',
+        'userId': 'u1',
+      });
+      expect(route, '/servers/s1/profile/u1');
+    });
+
     test('returns null for unknown type', () {
       final route = resolveNotificationRoute({'type': 'unknown'});
       expect(route, isNull);

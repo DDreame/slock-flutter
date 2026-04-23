@@ -392,6 +392,20 @@ void main() {
       expect(pending, '/profile/u1');
     });
 
+    test(
+      'handleNotificationTap preserves server-scoped profile context',
+      () {
+        readStore().handleNotificationTap({
+          'type': 'profile',
+          'serverId': 's1',
+          'userId': 'u1',
+        });
+
+        final pending = container.read(pendingDeepLinkProvider);
+        expect(pending, '/servers/s1/profile/u1');
+      },
+    );
+
     test('handleNotificationTap ignores invalid payload', () {
       readStore().handleNotificationTap({});
 
