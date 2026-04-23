@@ -9,6 +9,7 @@ import 'package:slock_app/features/auth/presentation/page/forgot_password_page.d
 import 'package:slock_app/features/auth/presentation/page/login_page.dart';
 import 'package:slock_app/features/auth/presentation/page/register_page.dart';
 import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
+import 'package:slock_app/features/channels/presentation/page/channel_members_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
@@ -126,6 +127,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/servers/:serverId/channels/:channelId',
         redirect: syncServerSelection,
         builder: (context, state) => ChannelPage(
+          serverId: state.pathParameters['serverId']!,
+          channelId: state.pathParameters['channelId']!,
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/channels/:channelId/members',
+        redirect: syncServerSelection,
+        builder: (context, state) => ChannelMembersPage(
           serverId: state.pathParameters['serverId']!,
           channelId: state.pathParameters['channelId']!,
         ),

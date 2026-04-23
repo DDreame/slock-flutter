@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
@@ -21,6 +22,14 @@ class ChannelPage extends StatelessWidget {
     );
     return ConversationDetailPage(
       target: ConversationDetailTarget.channel(scopeId),
+      appBarActionsBuilder: (context, ref, state) => [
+        IconButton(
+          icon: const Icon(Icons.group),
+          onPressed: () => context.push(
+            '/servers/$serverId/channels/$channelId/members',
+          ),
+        ),
+      ],
     );
   }
 }
