@@ -36,7 +36,10 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     state = state.copyWith(
       status: MemberListStatus.loading,
       clearFailure: true,
+      isCreatingInvite: false,
       clearOpeningDirectMessage: true,
+      updatingRoleMemberIds: const {},
+      removingMemberIds: const {},
     );
 
     try {
@@ -53,14 +56,90 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
             )
             .toList(growable: false),
         clearFailure: true,
+        isCreatingInvite: false,
         clearOpeningDirectMessage: true,
+        updatingRoleMemberIds: const {},
+        removingMemberIds: const {},
       );
     } on AppFailure catch (failure) {
       state = state.copyWith(
         status: MemberListStatus.failure,
         failure: failure,
+        isCreatingInvite: false,
         clearOpeningDirectMessage: true,
+        updatingRoleMemberIds: const {},
+        removingMemberIds: const {},
       );
+    }
+  }
+
+  Future<String> createInvite() async {
+    final serverId = ref.read(currentMembersServerIdProvider);
+    state = state.copyWith(isCreatingInvite: true, clearFailure: true);
+
+    try {
+      final inviteCode =
+          await ref.read(memberRepositoryProvider).createInvite(serverId);
+      state = state.copyWith(isCreatingInvite: false);
+      return inviteCode;
+    } on AppFailure catch (failure) {
+      state = state.copyWith(failure: failure, isCreatingInvite: false);
+      rethrow;
+    }
+  }
+
+  Future<void> updateMemberRole(String userId, String role) async {
+    final serverId = ref.read(currentMembersServerIdProvider);
+    final updatingRoleMemberIds = {...state.updatingRoleMemberIds, userId};
+    state = state.copyWith(
+      clearFailure: true,
+      updatingRoleMemberIds: updatingRoleMemberIds,
+    );
+
+    try {
+      await ref
+          .read(memberRepositoryProvider)
+          .updateMemberRole(serverId, userId: userId, role: role);
+      state = state.copyWith(
+        members: [
+          for (final member in state.members)
+            if (member.id == userId) member.copyWith(role: role) else member,
+        ],
+        updatingRoleMemberIds: {...state.updatingRoleMemberIds}..remove(userId),
+      );
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        failure: failure,
+        updatingRoleMemberIds: {...state.updatingRoleMemberIds}..remove(userId),
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> removeMember(String userId) async {
+    final serverId = ref.read(currentMembersServerIdProvider);
+    state = state.copyWith(
+      clearFailure: true,
+      removingMemberIds: {...state.removingMemberIds, userId},
+    );
+
+    try {
+      await ref
+          .read(memberRepositoryProvider)
+          .removeMember(serverId, userId: userId);
+      state = state.copyWith(
+        members: [
+          for (final member in state.members)
+            if (member.id != userId) member,
+        ],
+        removingMemberIds: {...state.removingMemberIds}..remove(userId),
+      );
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        failure: failure,
+        removingMemberIds: {...state.removingMemberIds}..remove(userId),
+      );
+      rethrow;
     }
   }
 
@@ -72,18 +151,13 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     );
 
     try {
-      final channelId =
-          await ref.read(memberRepositoryProvider).openDirectMessage(
-                serverId,
-                userId: userId,
-              );
+      final channelId = await ref
+          .read(memberRepositoryProvider)
+          .openDirectMessage(serverId, userId: userId);
       state = state.copyWith(clearOpeningDirectMessage: true);
       return channelId;
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        failure: failure,
-        clearOpeningDirectMessage: true,
-      );
+      state = state.copyWith(failure: failure, clearOpeningDirectMessage: true);
       rethrow;
     }
   }

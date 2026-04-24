@@ -10,32 +10,54 @@ class MemberListState {
     this.status = MemberListStatus.initial,
     this.members = const [],
     this.failure,
+    this.isCreatingInvite = false,
     this.openingDirectMessageMemberId,
+    this.updatingRoleMemberIds = const {},
+    this.removingMemberIds = const {},
   });
 
   final MemberListStatus status;
   final List<MemberProfile> members;
   final AppFailure? failure;
+  final bool isCreatingInvite;
   final String? openingDirectMessageMemberId;
+  final Set<String> updatingRoleMemberIds;
+  final Set<String> removingMemberIds;
 
   bool isOpeningDirectMessage(String userId) =>
       openingDirectMessageMemberId == userId;
+
+  bool isUpdatingRole(String userId) => updatingRoleMemberIds.contains(userId);
+
+  bool isRemovingMember(String userId) => removingMemberIds.contains(userId);
+
+  bool isMutatingMember(String userId) =>
+      isOpeningDirectMessage(userId) ||
+      isUpdatingRole(userId) ||
+      isRemovingMember(userId);
 
   MemberListState copyWith({
     MemberListStatus? status,
     List<MemberProfile>? members,
     AppFailure? failure,
     bool clearFailure = false,
+    bool? isCreatingInvite,
     String? openingDirectMessageMemberId,
     bool clearOpeningDirectMessage = false,
+    Set<String>? updatingRoleMemberIds,
+    Set<String>? removingMemberIds,
   }) {
     return MemberListState(
       status: status ?? this.status,
       members: members ?? this.members,
       failure: clearFailure ? null : (failure ?? this.failure),
+      isCreatingInvite: isCreatingInvite ?? this.isCreatingInvite,
       openingDirectMessageMemberId: clearOpeningDirectMessage
           ? null
           : (openingDirectMessageMemberId ?? this.openingDirectMessageMemberId),
+      updatingRoleMemberIds:
+          updatingRoleMemberIds ?? this.updatingRoleMemberIds,
+      removingMemberIds: removingMemberIds ?? this.removingMemberIds,
     );
   }
 
@@ -47,13 +69,19 @@ class MemberListState {
           status == other.status &&
           listEquals(members, other.members) &&
           failure == other.failure &&
-          openingDirectMessageMemberId == other.openingDirectMessageMemberId;
+          isCreatingInvite == other.isCreatingInvite &&
+          openingDirectMessageMemberId == other.openingDirectMessageMemberId &&
+          setEquals(updatingRoleMemberIds, other.updatingRoleMemberIds) &&
+          setEquals(removingMemberIds, other.removingMemberIds);
 
   @override
   int get hashCode => Object.hash(
         status,
         Object.hashAll(members),
         failure,
+        isCreatingInvite,
         openingDirectMessageMemberId,
+        Object.hashAll([...updatingRoleMemberIds]..sort()),
+        Object.hashAll([...removingMemberIds]..sort()),
       );
 }

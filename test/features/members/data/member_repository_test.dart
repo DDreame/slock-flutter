@@ -43,14 +43,65 @@ void main() {
       expect(appDioClient.requests.single.serverIdHeader, 's1');
     });
 
-    test('openDirectMessage posts payload and returns nested channel id',
-        () async {
-      final appDioClient = _FakeAppDioClient(
-        responses: {
-          ('POST', '/channels/dm'): {
-            'channel': {'id': 'dm-123'},
+    test(
+      'openDirectMessage posts payload and returns nested channel id',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('POST', '/channels/dm'): {
+              'channel': {'id': 'dm-123'},
+            },
           },
-        },
+        );
+        final container = ProviderContainer(
+          overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        );
+        addTearDown(container.dispose);
+
+        final repository = container.read(memberRepositoryProvider);
+        final channelId = await repository.openDirectMessage(
+          const ServerScopeId('s1'),
+          userId: 'user-2',
+        );
+
+        expect(channelId, 'dm-123');
+        expect(appDioClient.requests.single.method, 'POST');
+        expect(appDioClient.requests.single.path, '/channels/dm');
+        expect(appDioClient.requests.single.serverIdHeader, 's1');
+        expect(appDioClient.requests.single.data, {'userId': 'user-2'});
+      },
+    );
+
+    test(
+      'createInvite posts to server invite path and parses invite url',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('POST', '/servers/s1/invites'): {
+              'invite': {'url': 'https://slock.ai/invite/token-123'},
+            },
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        );
+        addTearDown(container.dispose);
+
+        final repository = container.read(memberRepositoryProvider);
+        final inviteCode = await repository.createInvite(
+          const ServerScopeId('s1'),
+        );
+
+        expect(inviteCode, 'https://slock.ai/invite/token-123');
+        expect(appDioClient.requests.single.method, 'POST');
+        expect(appDioClient.requests.single.path, '/servers/s1/invites');
+        expect(appDioClient.requests.single.serverIdHeader, 's1');
+      },
+    );
+
+    test('updateMemberRole patches server member role', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {('PATCH', '/servers/s1/members/user-2'): null},
       );
       final container = ProviderContainer(
         overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
@@ -58,16 +109,36 @@ void main() {
       addTearDown(container.dispose);
 
       final repository = container.read(memberRepositoryProvider);
-      final channelId = await repository.openDirectMessage(
+      await repository.updateMemberRole(
+        const ServerScopeId('s1'),
+        userId: 'user-2',
+        role: 'admin',
+      );
+
+      expect(appDioClient.requests.single.method, 'PATCH');
+      expect(appDioClient.requests.single.path, '/servers/s1/members/user-2');
+      expect(appDioClient.requests.single.serverIdHeader, 's1');
+      expect(appDioClient.requests.single.data, {'role': 'admin'});
+    });
+
+    test('removeMember deletes server member path', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {('DELETE', '/servers/s1/members/user-2'): null},
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(memberRepositoryProvider);
+      await repository.removeMember(
         const ServerScopeId('s1'),
         userId: 'user-2',
       );
 
-      expect(channelId, 'dm-123');
-      expect(appDioClient.requests.single.method, 'POST');
-      expect(appDioClient.requests.single.path, '/channels/dm');
+      expect(appDioClient.requests.single.method, 'DELETE');
+      expect(appDioClient.requests.single.path, '/servers/s1/members/user-2');
       expect(appDioClient.requests.single.serverIdHeader, 's1');
-      expect(appDioClient.requests.single.data, {'userId': 'user-2'});
     });
   });
 }

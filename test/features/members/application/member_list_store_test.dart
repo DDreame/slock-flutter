@@ -58,26 +58,75 @@ void main() {
     expect(state().failure?.message, 'Members failed');
   });
 
-  test('openDirectMessage returns channel id and clears in-flight flag',
-      () async {
-    fakeRepository.members = const [
-      MemberProfile(id: 'user-456', displayName: 'Bob'),
-    ];
-    await store().load();
+  test(
+    'openDirectMessage returns channel id and clears in-flight flag',
+    () async {
+      fakeRepository.members = const [
+        MemberProfile(id: 'user-456', displayName: 'Bob'),
+      ];
+      await store().load();
 
-    final channelId = await store().openDirectMessage('user-456');
+      final channelId = await store().openDirectMessage('user-456');
 
-    expect(channelId, 'dm-456');
-    expect(fakeRepository.openRequests, [(serverId, 'user-456')]);
-    expect(state().isOpeningDirectMessage('user-456'), isFalse);
+      expect(channelId, 'dm-456');
+      expect(fakeRepository.openRequests, [(serverId, 'user-456')]);
+      expect(state().isOpeningDirectMessage('user-456'), isFalse);
+    },
+  );
+
+  test('createInvite returns code and clears invite busy state', () async {
+    final inviteCode = await store().createInvite();
+
+    expect(inviteCode, 'https://slock.ai/invite/token-123');
+    expect(fakeRepository.inviteRequests, [serverId]);
+    expect(state().isCreatingInvite, isFalse);
   });
+
+  test(
+    'updateMemberRole patches repository and updates local member role',
+    () async {
+      fakeRepository.members = const [
+        MemberProfile(id: 'user-456', displayName: 'Bob', role: 'member'),
+      ];
+      await store().load();
+
+      await store().updateMemberRole('user-456', 'admin');
+
+      expect(fakeRepository.roleRequests, [(serverId, 'user-456', 'admin')]);
+      expect(state().members.single.role, 'admin');
+      expect(state().isUpdatingRole('user-456'), isFalse);
+    },
+  );
+
+  test(
+    'removeMember deletes repository entry and removes member locally',
+    () async {
+      fakeRepository.members = const [
+        MemberProfile(id: 'user-456', displayName: 'Bob'),
+        MemberProfile(id: 'user-789', displayName: 'Carol'),
+      ];
+      await store().load();
+
+      await store().removeMember('user-456');
+
+      expect(fakeRepository.removeRequests, [(serverId, 'user-456')]);
+      expect(state().members, const [
+        MemberProfile(id: 'user-789', displayName: 'Carol'),
+      ]);
+      expect(state().isRemovingMember('user-456'), isFalse);
+    },
+  );
 }
 
 class _FakeMemberRepository implements MemberRepository {
   List<MemberProfile> members = const [];
   AppFailure? failure;
+  String inviteCode = 'https://slock.ai/invite/token-123';
   final List<ServerScopeId> listRequests = [];
+  final List<ServerScopeId> inviteRequests = [];
   final List<(ServerScopeId, String)> openRequests = [];
+  final List<(ServerScopeId, String, String)> roleRequests = [];
+  final List<(ServerScopeId, String)> removeRequests = [];
 
   @override
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
@@ -86,6 +135,38 @@ class _FakeMemberRepository implements MemberRepository {
       throw failure!;
     }
     return members;
+  }
+
+  @override
+  Future<String> createInvite(ServerScopeId serverId) async {
+    inviteRequests.add(serverId);
+    if (failure != null) {
+      throw failure!;
+    }
+    return inviteCode;
+  }
+
+  @override
+  Future<void> updateMemberRole(
+    ServerScopeId serverId, {
+    required String userId,
+    required String role,
+  }) async {
+    roleRequests.add((serverId, userId, role));
+    if (failure != null) {
+      throw failure!;
+    }
+  }
+
+  @override
+  Future<void> removeMember(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {
+    removeRequests.add((serverId, userId));
+    if (failure != null) {
+      throw failure!;
+    }
   }
 
   @override

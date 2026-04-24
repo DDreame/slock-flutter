@@ -21,11 +21,7 @@ void main() {
               displayName: 'Alice',
               username: 'alice',
             ),
-            MemberProfile(
-              id: 'user-2',
-              displayName: 'Bob',
-              presence: 'online',
-            ),
+            MemberProfile(id: 'user-2', displayName: 'Bob', presence: 'online'),
           ],
         ),
       ),
@@ -39,14 +35,13 @@ void main() {
     expect(find.text('Bob'), findsOneWidget);
   });
 
-  testWidgets('tapping a member row navigates to server-scoped profile route',
-      (tester) async {
+  testWidgets('tapping a member row navigates to server-scoped profile route', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _buildApp(
         repository: _FakeMemberRepository(
-          members: const [
-            MemberProfile(id: 'user-1', displayName: 'Alice'),
-          ],
+          members: const [MemberProfile(id: 'user-1', displayName: 'Alice')],
         ),
       ),
     );
@@ -62,9 +57,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(
         repository: _FakeMemberRepository(
-          members: const [
-            MemberProfile(id: 'user-2', displayName: 'Bob'),
-          ],
+          members: const [MemberProfile(id: 'user-2', displayName: 'Bob')],
           channelId: 'dm-200',
         ),
       ),
@@ -75,6 +68,89 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('dm:server-1/dm-200'), findsOneWidget);
+  });
+
+  testWidgets('create invite opens dialog with copyable invite code', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildApp(
+        repository: _FakeMemberRepository(
+          members: const [
+            MemberProfile(
+              id: 'user-123',
+              displayName: 'Alice',
+              role: 'admin',
+            ),
+            MemberProfile(id: 'user-2', displayName: 'Bob'),
+          ],
+          inviteCode: 'https://slock.ai/invite/token-200',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('members-create-invite')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('members-invite-code')), findsOneWidget);
+    expect(find.text('https://slock.ai/invite/token-200'), findsOneWidget);
+  });
+
+  testWidgets('member admin actions update role and remove member', (
+    tester,
+  ) async {
+    final repository = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'user-123', displayName: 'Alice', role: 'admin'),
+        MemberProfile(id: 'user-2', displayName: 'Bob', role: 'member'),
+      ],
+    );
+
+    await tester.pumpWidget(_buildApp(repository: repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('member-actions-user-2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make admin').last);
+    await tester.pumpAndSettle();
+
+    expect(repository.roleRequests, [('server-1', 'user-2', 'admin')]);
+    expect(find.byKey(const ValueKey('member-role-user-2')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('member-actions-user-2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remove member').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('members-confirm-remove')));
+    await tester.pumpAndSettle();
+
+    expect(repository.removeRequests, [('server-1', 'user-2')]);
+    expect(find.byKey(const ValueKey('member-user-2')), findsNothing);
+  });
+
+  testWidgets('non-admin viewers do not see invite or member admin actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildApp(
+        repository: _FakeMemberRepository(
+          members: const [
+            MemberProfile(
+              id: 'user-123',
+              displayName: 'Alice',
+              role: 'member',
+            ),
+            MemberProfile(id: 'user-2', displayName: 'Bob', role: 'member'),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('members-create-invite')), findsNothing);
+    expect(find.byKey(const ValueKey('member-actions-user-2')), findsNothing);
+    expect(find.byKey(const ValueKey('member-message-user-2')), findsOneWidget);
   });
 }
 
@@ -115,14 +191,44 @@ Widget _buildApp({required _FakeMemberRepository repository}) {
 }
 
 class _FakeMemberRepository implements MemberRepository {
-  _FakeMemberRepository({required this.members, this.channelId = 'dm-100'});
+  _FakeMemberRepository({
+    required this.members,
+    this.channelId = 'dm-100',
+    this.inviteCode = 'https://slock.ai/invite/token-100',
+  });
 
-  final List<MemberProfile> members;
+  final List<(String, String, String)> roleRequests = [];
+  final List<(String, String)> removeRequests = [];
+  List<MemberProfile> members;
   final String channelId;
+  final String inviteCode;
 
   @override
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
     return members;
+  }
+
+  @override
+  Future<String> createInvite(ServerScopeId serverId) async {
+    return inviteCode;
+  }
+
+  @override
+  Future<void> updateMemberRole(
+    ServerScopeId serverId, {
+    required String userId,
+    required String role,
+  }) async {
+    roleRequests.add((serverId.value, userId, role));
+  }
+
+  @override
+  Future<void> removeMember(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {
+    removeRequests.add((serverId.value, userId));
+    members = members.where((member) => member.id != userId).toList();
   }
 
   @override
