@@ -11,6 +11,7 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
+import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
@@ -98,6 +99,8 @@ class _HomePageState extends ConsumerState<HomePage> {
               _HomeSectionHeader(
                 title: 'Channels',
                 onAdd: _showCreateChannelDialog,
+                addButtonKey: const ValueKey('channel-create-button'),
+                addTooltip: 'Create channel',
               ),
               for (final channel in state.channels)
                 HomeChannelRow(
@@ -113,7 +116,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onDelete: () => _showDeleteChannelDialog(channel),
                   onLeave: () => _showLeaveChannelDialog(channel),
                 ),
-              const _HomeSectionHeader(title: 'Direct Messages'),
+              _HomeSectionHeader(
+                title: 'Direct Messages',
+                onAdd: _showNewDmDialog,
+                addButtonKey: const ValueKey('dm-create-button'),
+                addTooltip: 'New message',
+              ),
               for (final directMessage in state.directMessages)
                 HomeDirectMessageRow(
                   key: ValueKey('dm-${directMessage.scopeId.routeParam}'),
@@ -177,6 +185,23 @@ class _HomePageState extends ConsumerState<HomePage> {
         );
       },
     );
+  }
+
+  Future<void> _showNewDmDialog() async {
+    final serverId = ref.read(activeServerScopeIdProvider);
+    if (serverId == null) {
+      return;
+    }
+    final pageContext = context;
+
+    final channelId = await showDialog<String>(
+      context: pageContext,
+      builder: (_) => NewDmDialog(serverId: serverId),
+    );
+
+    if (channelId != null && mounted && pageContext.mounted) {
+      pageContext.go('/servers/${serverId.value}/dms/$channelId');
+    }
   }
 
   Future<void> _showEditChannelDialog(HomeChannelSummary channel) async {
@@ -316,10 +341,17 @@ class _HomePageState extends ConsumerState<HomePage> {
 }
 
 class _HomeSectionHeader extends StatelessWidget {
-  const _HomeSectionHeader({required this.title, this.onAdd});
+  const _HomeSectionHeader({
+    required this.title,
+    this.onAdd,
+    this.addButtonKey,
+    this.addTooltip,
+  });
 
   final String title;
   final VoidCallback? onAdd;
+  final Key? addButtonKey;
+  final String? addTooltip;
 
   @override
   Widget build(BuildContext context) {
@@ -335,10 +367,10 @@ class _HomeSectionHeader extends StatelessWidget {
           ),
           if (onAdd != null)
             IconButton(
-              key: const ValueKey('channel-create-button'),
+              key: addButtonKey,
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              tooltip: 'Create channel',
+              tooltip: addTooltip,
             ),
         ],
       ),
