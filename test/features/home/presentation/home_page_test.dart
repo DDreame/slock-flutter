@@ -696,22 +696,6 @@ class _FakeMemberRepository implements MemberRepository {
     openedDmUserIds.add(userId);
     return dmChannelId;
   }
-
-  @override
-  Future<String> createInvite(ServerScopeId serverId) async => '';
-
-  @override
-  Future<void> updateMemberRole(
-    ServerScopeId serverId, {
-    required String userId,
-    required String role,
-  }) async {}
-
-  @override
-  Future<void> removeMember(
-    ServerScopeId serverId, {
-    required String userId,
-  }) async {}
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {

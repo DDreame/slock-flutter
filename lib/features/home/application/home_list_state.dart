@@ -31,7 +31,8 @@ class HomeListState {
       status == HomeListStatus.success &&
       pinnedChannels.isEmpty &&
       channels.isEmpty &&
-      directMessages.isEmpty;
+      directMessages.isEmpty &&
+      hiddenDirectMessages.isEmpty;
 
   HomeListState copyWith({
     ServerScopeId? serverScopeId,

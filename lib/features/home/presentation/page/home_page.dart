@@ -386,30 +386,48 @@ class _HomePageState extends ConsumerState<HomePage> {
               return const SizedBox.shrink();
             }
             return SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Text(
-                      'Hidden conversations',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  for (final dm in hiddenDms)
-                    ListTile(
-                      key: ValueKey('hidden-dm-${dm.scopeId.routeParam}'),
-                      leading: const Icon(Icons.person_outline),
-                      title: Text(dm.title),
-                      trailing: TextButton(
-                        key: ValueKey('unhide-dm-${dm.scopeId.routeParam}'),
-                        onPressed: () => homeStore.unhideDm(dm.scopeId),
-                        child: const Text('Unhide'),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.6,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Text(
+                        'Hidden conversations',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                ],
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: [
+                          for (final dm in hiddenDms)
+                            ListTile(
+                              key: ValueKey(
+                                'hidden-dm-${dm.scopeId.routeParam}',
+                              ),
+                              leading: const Icon(Icons.person_outline),
+                              title: Text(dm.title),
+                              trailing: TextButton(
+                                key: ValueKey(
+                                  'unhide-dm-${dm.scopeId.routeParam}',
+                                ),
+                                onPressed: () => homeStore.unhideDm(dm.scopeId),
+                                child: const Text('Unhide'),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
