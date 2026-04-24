@@ -14,16 +14,13 @@ class BillingPage extends ConsumerStatefulWidget {
 
 class _BillingPageState extends ConsumerState<BillingPage> {
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(
-      () => ref.read(billingStoreProvider.notifier).ensureLoaded(),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
     final state = ref.watch(billingStoreProvider);
+    if (state.status == BillingStatus.initial) {
+      Future.microtask(
+        () => ref.read(billingStoreProvider.notifier).ensureLoaded(),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Billing')),
@@ -55,6 +52,8 @@ class _BillingPageState extends ConsumerState<BillingPage> {
           ),
         BillingStatus.success => _BillingSuccess(
             summary: state.summary,
+            usage: state.usage,
+            hasActiveServerScope: state.hasActiveServerScope,
             onOpenManagePortal: _openManagePortal,
           ),
       },
@@ -78,15 +77,20 @@ class _BillingPageState extends ConsumerState<BillingPage> {
 class _BillingSuccess extends StatelessWidget {
   const _BillingSuccess({
     required this.summary,
+    required this.usage,
+    required this.hasActiveServerScope,
     required this.onOpenManagePortal,
   });
 
   final BillingSummary? summary;
+  final BillingUsageSummary? usage;
+  final bool hasActiveServerScope;
   final ValueChanged<String> onOpenManagePortal;
 
   @override
   Widget build(BuildContext context) {
     final effectiveSummary = summary ?? const BillingSummary();
+    final effectiveUsage = usage;
 
     return ListView(
       key: const ValueKey('billing-success'),
@@ -148,7 +152,110 @@ class _BillingSuccess extends StatelessWidget {
                   onTap: () => onOpenManagePortal(effectiveSummary.manageUrl!),
                 ),
         ),
+        const SizedBox(height: 12),
+        _BillingUsageCard(
+          summary: effectiveSummary,
+          usage: effectiveUsage,
+          hasActiveServerScope: hasActiveServerScope,
+        ),
       ],
+    );
+  }
+}
+
+class _BillingUsageCard extends StatelessWidget {
+  const _BillingUsageCard({
+    required this.summary,
+    required this.usage,
+    required this.hasActiveServerScope,
+  });
+
+  final BillingSummary summary;
+  final BillingUsageSummary? usage;
+  final bool hasActiveServerScope;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!hasActiveServerScope) {
+      return const Card(
+        child: ListTile(
+          key: ValueKey('billing-usage-select-server'),
+          leading: Icon(Icons.dns_outlined),
+          title: Text('Server usage and limits'),
+          subtitle: Text(
+            'Select a server to see current usage and plan limits.',
+          ),
+        ),
+      );
+    }
+
+    if (usage == null || usage!.isEmpty) {
+      return const Card(
+        child: ListTile(
+          key: ValueKey('billing-usage-unavailable'),
+          leading: Icon(Icons.bar_chart_outlined),
+          title: Text('Server usage and limits'),
+          subtitle: Text('Usage details are unavailable right now.'),
+        ),
+      );
+    }
+
+    final effectiveUsage = usage!;
+
+    return Card(
+      key: const ValueKey('billing-usage-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Server usage and limits',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              effectiveUsage.planName ?? 'Plan details unavailable',
+              key: const ValueKey('billing-usage-plan-name'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            if (effectiveUsage.planCode != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  effectiveUsage.planCode!.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelMedium,
+                ),
+              ),
+            const SizedBox(height: 16),
+            for (final resource in effectiveUsage.resources)
+              _BillingUsageRow(resource: resource),
+            if (effectiveUsage.messageHistoryDays != null)
+              _BillingDetailRow(
+                label: 'Message history',
+                value: _formatMessageHistoryDays(
+                  effectiveUsage.messageHistoryDays!,
+                ),
+              ),
+            if (effectiveUsage.planDowngradedAt != null) ...[
+              const SizedBox(height: 8),
+              _BillingUsagePrompt(
+                key: const ValueKey('billing-plan-downgraded'),
+                message:
+                    'This server plan was downgraded on ${effectiveUsage.planDowngradedAt}. Upgrade to restore higher limits.',
+              ),
+            ] else if (effectiveUsage.hasUpgradePrompt) ...[
+              const SizedBox(height: 8),
+              _BillingUsagePrompt(
+                key: const ValueKey('billing-upgrade-prompt'),
+                message: summary.manageUrl != null
+                    ? 'Need more capacity? Open the billing portal to upgrade this server plan.'
+                    : 'Need more capacity? Upgrade options will appear here when billing management is available.',
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -173,4 +280,81 @@ class _BillingDetailRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BillingUsageRow extends StatelessWidget {
+  const _BillingUsageRow({required this.resource});
+
+  final BillingUsageResource resource;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = resource.hasFiniteLimit
+        ? '${resource.used} / ${resource.limit}'
+        : '${resource.used}';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              resource.label,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+          Text(
+            value,
+            key: ValueKey('billing-usage-${resource.label.toLowerCase()}'),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: resource.atOrOverLimit
+                      ? Theme.of(context).colorScheme.error
+                      : null,
+                  fontWeight: resource.atOrOverLimit ? FontWeight.w600 : null,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BillingUsagePrompt extends StatelessWidget {
+  const _BillingUsagePrompt({required this.message, super.key});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(Icons.upgrade, size: 18),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _formatMessageHistoryDays(int days) {
+  if (days < 0) {
+    return 'Unlimited';
+  }
+  if (days == 1) {
+    return '1 day';
+  }
+  return '$days days';
 }
