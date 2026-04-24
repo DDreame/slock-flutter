@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/billing/application/billing_state.dart';
 import 'package:slock_app/features/billing/application/billing_store.dart';
 import 'package:slock_app/features/billing/data/billing_repository.dart';
+import 'package:slock_app/features/billing/presentation/billing_portal_launcher.dart';
 
 class BillingPage extends ConsumerStatefulWidget {
   const BillingPage({super.key});
@@ -28,40 +29,61 @@ class _BillingPageState extends ConsumerState<BillingPage> {
       appBar: AppBar(title: const Text('Billing')),
       body: switch (state.status) {
         BillingStatus.initial || BillingStatus.loading => const Center(
-            key: ValueKey('billing-loading'),
-            child: CircularProgressIndicator(),
-          ),
+          key: ValueKey('billing-loading'),
+          child: CircularProgressIndicator(),
+        ),
         BillingStatus.failure => Center(
-            key: const ValueKey('billing-error'),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    state.failure?.message ?? 'Could not load billing summary.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () =>
-                        ref.read(billingStoreProvider.notifier).load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+          key: const ValueKey('billing-error'),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  state.failure?.message ?? 'Could not load billing summary.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () =>
+                      ref.read(billingStoreProvider.notifier).load(),
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
           ),
-        BillingStatus.success => _BillingSuccess(summary: state.summary),
+        ),
+        BillingStatus.success => _BillingSuccess(
+          summary: state.summary,
+          onOpenManagePortal: _openManagePortal,
+        ),
       },
+    );
+  }
+
+  Future<void> _openManagePortal(String url) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final opened = await ref
+        .read(billingPortalLauncherProvider)
+        .openManageUrl(url);
+    if (!mounted || opened) {
+      return;
+    }
+
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Could not open billing management.')),
     );
   }
 }
 
 class _BillingSuccess extends StatelessWidget {
-  const _BillingSuccess({required this.summary});
+  const _BillingSuccess({
+    required this.summary,
+    required this.onOpenManagePortal,
+  });
 
   final BillingSummary? summary;
+  final ValueChanged<String> onOpenManagePortal;
 
   @override
   Widget build(BuildContext context) {
@@ -107,20 +129,25 @@ class _BillingSuccess extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Card(
-          child: ListTile(
-            key: const ValueKey('billing-web-note'),
-            leading: const Icon(Icons.language),
-            title: Text(
-              effectiveSummary.manageUrl == null
-                  ? 'Manage billing on the web'
-                  : 'Web billing management is available',
-            ),
-            subtitle: Text(
-              effectiveSummary.manageUrl == null
-                  ? 'This baseline shows your current subscription summary only.'
-                  : 'A manage/portal URL is present in the payload, but opening external billing flows stays out of scope here.',
-            ),
-          ),
+          child: effectiveSummary.manageUrl == null
+              ? const ListTile(
+                  key: ValueKey('billing-web-note'),
+                  leading: Icon(Icons.language),
+                  title: Text('Manage billing on the web'),
+                  subtitle: Text(
+                    'This baseline shows your current subscription summary only.',
+                  ),
+                )
+              : ListTile(
+                  key: const ValueKey('billing-manage-action'),
+                  leading: const Icon(Icons.open_in_new),
+                  title: const Text('Open billing portal'),
+                  subtitle: const Text(
+                    'Manage your subscription with the web billing portal.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => onOpenManagePortal(effectiveSummary.manageUrl!),
+                ),
         ),
       ],
     );
