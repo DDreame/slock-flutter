@@ -660,6 +660,24 @@ class _FakeMemberRepository implements MemberRepository {
   }
 
   @override
+  Future<String> createInvite(ServerScopeId serverId) async {
+    return 'invite-code';
+  }
+
+  @override
+  Future<void> updateMemberRole(
+    ServerScopeId serverId, {
+    required String userId,
+    required String role,
+  }) async {}
+
+  @override
+  Future<void> removeMember(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {}
+
+  @override
   Future<String> openDirectMessage(
     ServerScopeId serverId, {
     required String userId,
