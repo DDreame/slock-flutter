@@ -12,7 +12,7 @@ final billingRepositoryProvider = Provider<BillingRepository>((ref) {
 
 class _ApiBillingRepository implements BillingRepository {
   const _ApiBillingRepository({required AppDioClient appDioClient})
-    : _appDioClient = appDioClient;
+      : _appDioClient = appDioClient;
 
   final AppDioClient _appDioClient;
 

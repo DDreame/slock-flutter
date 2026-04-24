@@ -86,12 +86,12 @@ class BillingUsageSummary {
 
   @override
   int get hashCode => Object.hash(
-    planCode,
-    planName,
-    planDowngradedAt,
-    messageHistoryDays,
-    Object.hashAll(resources),
-  );
+        planCode,
+        planName,
+        planDowngradedAt,
+        messageHistoryDays,
+        Object.hashAll(resources),
+      );
 }
 
 @immutable
@@ -148,9 +148,8 @@ BillingSummary parseBillingSummary(Object? payload) {
     ),
     amountLabel:
         _firstPresentString(scoped, fields: const ['amountLabel', 'price']) ??
-        _readAmountLabel(scoped),
-    renewalLabel:
-        _firstPresentString(
+            _readAmountLabel(scoped),
+    renewalLabel: _firstPresentString(
           scoped,
           fields: const [
             'renewalLabel',
@@ -177,21 +176,18 @@ BillingUsageSummary parseBillingUsageSummary(Object? payload) {
   }
 
   final usageMap = _readMap(scoped['usage']);
-  final limitsMap =
-      _readMap(scoped['limits']) ??
+  final limitsMap = _readMap(scoped['limits']) ??
       _readMap(scoped['planLimits']) ??
       _readMap(scoped['quota']);
   final planMap = _readMap(scoped['plan']);
   final maps = [scoped, usageMap, limitsMap, planMap];
 
-  final planCode =
-      _firstPresentStringInMaps(
+  final planCode = _firstPresentStringInMaps(
         maps,
         fields: const ['planCode', 'code', 'id'],
       ) ??
       _readOptionalString(scoped['plan']);
-  final planName =
-      _firstPresentStringInMaps(
+  final planName = _firstPresentStringInMaps(
         maps,
         fields: const ['planName', 'displayName', 'label', 'name'],
       ) ??

@@ -26,45 +26,44 @@ class _BillingPageState extends ConsumerState<BillingPage> {
       appBar: AppBar(title: const Text('Billing')),
       body: switch (state.status) {
         BillingStatus.initial || BillingStatus.loading => const Center(
-          key: ValueKey('billing-loading'),
-          child: CircularProgressIndicator(),
-        ),
+            key: ValueKey('billing-loading'),
+            child: CircularProgressIndicator(),
+          ),
         BillingStatus.failure => Center(
-          key: const ValueKey('billing-error'),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.failure?.message ?? 'Could not load billing summary.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () =>
-                      ref.read(billingStoreProvider.notifier).load(),
-                  child: const Text('Retry'),
-                ),
-              ],
+            key: const ValueKey('billing-error'),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    state.failure?.message ?? 'Could not load billing summary.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () =>
+                        ref.read(billingStoreProvider.notifier).load(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         BillingStatus.success => _BillingSuccess(
-          summary: state.summary,
-          usage: state.usage,
-          hasActiveServerScope: state.hasActiveServerScope,
-          onOpenManagePortal: _openManagePortal,
-        ),
+            summary: state.summary,
+            usage: state.usage,
+            hasActiveServerScope: state.hasActiveServerScope,
+            onOpenManagePortal: _openManagePortal,
+          ),
       },
     );
   }
 
   Future<void> _openManagePortal(String url) async {
     final messenger = ScaffoldMessenger.of(context);
-    final opened = await ref
-        .read(billingPortalLauncherProvider)
-        .openManageUrl(url);
+    final opened =
+        await ref.read(billingPortalLauncherProvider).openManageUrl(url);
     if (!mounted || opened) {
       return;
     }
@@ -308,11 +307,11 @@ class _BillingUsageRow extends StatelessWidget {
             value,
             key: ValueKey('billing-usage-${resource.label.toLowerCase()}'),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: resource.atOrOverLimit
-                  ? Theme.of(context).colorScheme.error
-                  : null,
-              fontWeight: resource.atOrOverLimit ? FontWeight.w600 : null,
-            ),
+                  color: resource.atOrOverLimit
+                      ? Theme.of(context).colorScheme.error
+                      : null,
+                  fontWeight: resource.atOrOverLimit ? FontWeight.w600 : null,
+                ),
           ),
         ],
       ),
