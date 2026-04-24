@@ -6,6 +6,8 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_realtime_dm_materialization_binding.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 import '../../../stores/session/session_store_persistence_test.dart'
@@ -52,6 +54,8 @@ void main() {
         conversationLocalStoreProvider.overrideWithValue(
           FakeConversationLocalStore(),
         ),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
           (scopeId) async => HomeWorkspaceSnapshot(
             serverId: scopeId,
@@ -189,4 +193,19 @@ void main() {
     expect(state.directMessages.first.title, 'Existing DM');
     expect(fakeSocket.emitted, hasLength(1));
   });
+}
+
+class _FakeSidebarOrderRepository implements SidebarOrderRepository {
+  const _FakeSidebarOrderRepository();
+
+  @override
+  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
+    return const SidebarOrder();
+  }
+
+  @override
+  Future<void> updateSidebarOrder(
+    ServerScopeId serverId, {
+    required Map<String, Object> patch,
+  }) async {}
 }

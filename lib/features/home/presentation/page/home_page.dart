@@ -96,6 +96,26 @@ class _HomePageState extends ConsumerState<HomePage> {
                   }
                 },
               ),
+              if (state.pinnedChannels.isNotEmpty) ...[
+                const _HomeSectionHeader(title: 'Pinned'),
+                for (final channel in state.pinnedChannels)
+                  HomeChannelRow(
+                    key: ValueKey('pinned-${channel.scopeId.routeParam}'),
+                    channel: channel,
+                    unreadCount:
+                        unreadState.channelUnreadCount(channel.scopeId),
+                    isMutating: managementState.isBusy,
+                    isPinned: true,
+                    onTap: () {
+                      unreadStore.markChannelRead(channel.scopeId);
+                      context.go(homeStore.channelRoutePath(channel.scopeId));
+                    },
+                    onEdit: () => _showEditChannelDialog(channel),
+                    onDelete: () => _showDeleteChannelDialog(channel),
+                    onLeave: () => _showLeaveChannelDialog(channel),
+                    onTogglePin: () => homeStore.unpinChannel(channel.scopeId),
+                  ),
+              ],
               _HomeSectionHeader(
                 title: 'Channels',
                 onAdd: _showCreateChannelDialog,
@@ -115,6 +135,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onEdit: () => _showEditChannelDialog(channel),
                   onDelete: () => _showDeleteChannelDialog(channel),
                   onLeave: () => _showLeaveChannelDialog(channel),
+                  onTogglePin: () => homeStore.pinChannel(channel.scopeId),
                 ),
               _HomeSectionHeader(
                 title: 'Direct Messages',
@@ -132,6 +153,16 @@ class _HomePageState extends ConsumerState<HomePage> {
                     context.go(homeStore
                         .directMessageRoutePath(directMessage.scopeId));
                   },
+                  onHide: () => homeStore.hideDm(directMessage.scopeId),
+                ),
+              if (state.hiddenDirectMessages.isNotEmpty)
+                ListTile(
+                  key: const ValueKey('home-hidden-dms'),
+                  leading: const Icon(Icons.visibility_off_outlined),
+                  title: Text(
+                    'Hidden conversations (${state.hiddenDirectMessages.length})',
+                  ),
+                  onTap: () => _showHiddenDmsSheet(homeStore, unreadStore),
                 ),
             ],
           ),
@@ -337,6 +368,54 @@ class _HomePageState extends ConsumerState<HomePage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showHiddenDmsSheet(
+    HomeListStore homeStore,
+    ChannelUnreadStore unreadStore,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) {
+        return Consumer(
+          builder: (_, ref, __) {
+            final hiddenDms =
+                ref.watch(homeListStoreProvider).hiddenDirectMessages;
+            if (hiddenDms.isEmpty) {
+              Navigator.of(sheetContext).pop();
+              return const SizedBox.shrink();
+            }
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      'Hidden conversations',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  for (final dm in hiddenDms)
+                    ListTile(
+                      key: ValueKey('hidden-dm-${dm.scopeId.routeParam}'),
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(dm.title),
+                      trailing: TextButton(
+                        key: ValueKey('unhide-dm-${dm.scopeId.routeParam}'),
+                        onPressed: () => homeStore.unhideDm(dm.scopeId),
+                        child: const Text('Unhide'),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 

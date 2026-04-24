@@ -8,6 +8,8 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 
 void main() {
   test('createChannel refreshes home list and returns created id', () async {
@@ -23,6 +25,8 @@ void main() {
         homeRepositoryProvider.overrideWithValue(homeRepository),
         channelManagementRepositoryProvider
             .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -51,6 +55,8 @@ void main() {
         homeRepositoryProvider.overrideWithValue(homeRepository),
         channelManagementRepositoryProvider
             .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -168,4 +174,19 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   }) async {
     leftChannelIds.add(channelId);
   }
+}
+
+class _FakeSidebarOrderRepository implements SidebarOrderRepository {
+  const _FakeSidebarOrderRepository();
+
+  @override
+  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
+    return const SidebarOrder();
+  }
+
+  @override
+  Future<void> updateSidebarOrder(
+    ServerScopeId serverId, {
+    required Map<String, Object> patch,
+  }) async {}
 }

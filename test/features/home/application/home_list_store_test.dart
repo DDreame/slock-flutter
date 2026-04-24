@@ -8,6 +8,8 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 
 final _testActiveServerProvider = StateProvider<ServerScopeId?>((ref) => null);
 
@@ -42,6 +44,8 @@ void main() {
           const ServerScopeId('server-1'),
         ),
         homeRepositoryProvider.overrideWithValue(repository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -102,6 +106,8 @@ void main() {
         homeRepositoryProvider.overrideWithValue(
           _FakeHomeRepository(failure: failure),
         ),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -137,6 +143,8 @@ void main() {
           const ServerScopeId('server-1'),
         ),
         homeRepositoryProvider.overrideWithValue(repository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -166,6 +174,8 @@ void main() {
         homeRepositoryProvider.overrideWithValue(
           _DelayedHomeRepository(completer),
         ),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -225,6 +235,8 @@ void main() {
               ),
             ),
           ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
         ],
       );
       addTearDown(container.dispose);
@@ -269,6 +281,8 @@ void main() {
               ),
             ),
           ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
         ],
       );
       addTearDown(container.dispose);
@@ -390,5 +404,20 @@ class _DelayedHomeRepository implements HomeRepository {
     required String conversationId,
     required String messageId,
     required String preview,
+  }) async {}
+}
+
+class _FakeSidebarOrderRepository implements SidebarOrderRepository {
+  const _FakeSidebarOrderRepository();
+
+  @override
+  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
+    return const SidebarOrder();
+  }
+
+  @override
+  Future<void> updateSidebarOrder(
+    ServerScopeId serverId, {
+    required Map<String, Object> patch,
   }) async {}
 }
