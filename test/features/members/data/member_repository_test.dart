@@ -145,8 +145,8 @@ void main() {
 
 class _FakeAppDioClient extends AppDioClient {
   _FakeAppDioClient({Map<(String, String), Object?> responses = const {}})
-    : _responses = responses,
-      super(Dio());
+      : _responses = responses,
+        super(Dio());
 
   final Map<(String, String), Object?> _responses;
   final List<_CapturedRequest> requests = [];

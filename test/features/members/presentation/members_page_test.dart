@@ -211,9 +211,9 @@ class _FakeMemberRepository implements MemberRepository {
 class _FakeSessionStore extends SessionStore {
   @override
   SessionState build() => const SessionState(
-    status: AuthStatus.authenticated,
-    userId: 'user-123',
-    displayName: 'Alice',
-    token: 'test-token',
-  );
+        status: AuthStatus.authenticated,
+        userId: 'user-123',
+        displayName: 'Alice',
+        token: 'test-token',
+      );
 }

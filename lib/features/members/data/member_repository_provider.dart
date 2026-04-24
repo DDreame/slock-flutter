@@ -16,7 +16,7 @@ final memberRepositoryProvider = Provider<MemberRepository>((ref) {
 
 class _ApiMemberRepository implements MemberRepository {
   const _ApiMemberRepository({required AppDioClient appDioClient})
-    : _appDioClient = appDioClient;
+      : _appDioClient = appDioClient;
 
   final AppDioClient _appDioClient;
 

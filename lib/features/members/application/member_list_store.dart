@@ -12,9 +12,9 @@ final currentMembersServerIdProvider = Provider<ServerScopeId>((ref) {
 
 final memberListStoreProvider =
     AutoDisposeNotifierProvider<MemberListStore, MemberListState>(
-      MemberListStore.new,
-      dependencies: [currentMembersServerIdProvider],
-    );
+  MemberListStore.new,
+  dependencies: [currentMembersServerIdProvider],
+);
 
 class MemberListStore extends AutoDisposeNotifier<MemberListState> {
   @override
@@ -44,9 +44,8 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
 
     try {
       final sessionUserId = ref.read(sessionStoreProvider).userId;
-      final members = await ref
-          .read(memberRepositoryProvider)
-          .listMembers(serverId);
+      final members =
+          await ref.read(memberRepositoryProvider).listMembers(serverId);
       state = state.copyWith(
         status: MemberListStatus.success,
         members: members
@@ -79,9 +78,8 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     state = state.copyWith(isCreatingInvite: true, clearFailure: true);
 
     try {
-      final inviteCode = await ref
-          .read(memberRepositoryProvider)
-          .createInvite(serverId);
+      final inviteCode =
+          await ref.read(memberRepositoryProvider).createInvite(serverId);
       state = state.copyWith(isCreatingInvite: false);
       return inviteCode;
     } on AppFailure catch (failure) {

@@ -76,12 +76,12 @@ class MemberListState {
 
   @override
   int get hashCode => Object.hash(
-    status,
-    Object.hashAll(members),
-    failure,
-    isCreatingInvite,
-    openingDirectMessageMemberId,
-    Object.hashAll([...updatingRoleMemberIds]..sort()),
-    Object.hashAll([...removingMemberIds]..sort()),
-  );
+        status,
+        Object.hashAll(members),
+        failure,
+        isCreatingInvite,
+        openingDirectMessageMemberId,
+        Object.hashAll([...updatingRoleMemberIds]..sort()),
+        Object.hashAll([...removingMemberIds]..sort()),
+      );
 }
