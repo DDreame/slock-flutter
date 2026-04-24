@@ -264,6 +264,13 @@ class _FakeTasksRepository implements TasksRepository {
     required String taskId,
   }) async =>
       throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async =>
+      throw UnimplementedError();
 }
 
 class _FakeRealtimeSocketClient implements RealtimeSocketClient {

@@ -2,12 +2,14 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
@@ -674,10 +676,48 @@ class _ConversationMessageCard extends ConsumerWidget {
                     .toggleSaveMessage(message.id);
               },
             ),
+            if (target.surface == ConversationSurface.channel)
+              ListTile(
+                key: const ValueKey('message-action-create-task'),
+                leading: const Icon(Icons.task_alt),
+                title: const Text('Create task'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _convertMessageToTask(context, ref);
+                },
+              ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _convertMessageToTask(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    try {
+      final repo = ref.read(tasksRepositoryProvider);
+      await repo.convertMessageToTask(
+        target.serverId,
+        messageId: message.id,
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Task created.')),
+        );
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to create task.'),
+          ),
+        );
+    }
   }
 }
 
