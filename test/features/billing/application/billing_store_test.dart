@@ -16,6 +16,11 @@ void main() {
       overrides: [billingRepositoryProvider.overrideWithValue(repository)],
     );
     addTearDown(container.dispose);
+    final subscription = container.listen(
+      billingStoreProvider,
+      (_, __) {},
+    );
+    addTearDown(subscription.close);
 
     await container.read(billingStoreProvider.notifier).ensureLoaded();
 
@@ -55,6 +60,11 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
+      final subscription = container.listen(
+        billingStoreProvider,
+        (_, __) {},
+      );
+      addTearDown(subscription.close);
 
       await container.read(billingStoreProvider.notifier).ensureLoaded();
 
@@ -97,6 +107,11 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    final subscription = container.listen(
+      billingStoreProvider,
+      (_, __) {},
+    );
+    addTearDown(subscription.close);
 
     await container.read(billingStoreProvider.notifier).load();
 
@@ -133,6 +148,11 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+    final subscription = container.listen(
+      billingStoreProvider,
+      (_, __) {},
+    );
+    addTearDown(subscription.close);
 
     await container.read(billingStoreProvider.notifier).load();
 
