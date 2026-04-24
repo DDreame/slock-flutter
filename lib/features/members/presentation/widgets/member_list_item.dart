@@ -6,6 +6,7 @@ class MemberListItem extends StatelessWidget {
   const MemberListItem({
     super.key,
     required this.member,
+    required this.canManageMember,
     required this.onTap,
     required this.onMessage,
     required this.onChangeRole,
@@ -16,6 +17,7 @@ class MemberListItem extends StatelessWidget {
   });
 
   final MemberProfile member;
+  final bool canManageMember;
   final VoidCallback onTap;
   final VoidCallback onMessage;
   final ValueChanged<String> onChangeRole;
@@ -62,7 +64,7 @@ class MemberListItem extends StatelessWidget {
             onPressed: isOpeningDirectMessage ? null : onMessage,
             tooltip: 'Message',
           ),
-          if (!member.isSelf)
+          if (canManageMember && !member.isSelf)
             isUpdatingRole || isRemoving
                 ? const SizedBox.square(
                     dimension: 18,

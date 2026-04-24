@@ -43,11 +43,12 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(memberListStoreProvider);
     final serverId = ref.read(currentMembersServerIdProvider);
+    final canManageMembers = _canManageMembers(state.members);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Members'),
-        actions: state.status == MemberListStatus.success
+        actions: state.status == MemberListStatus.success && canManageMembers
             ? [
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
@@ -108,6 +109,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                 isOpeningDirectMessage: state.isOpeningDirectMessage(member.id),
                 isUpdatingRole: state.isUpdatingRole(member.id),
                 isRemoving: state.isRemovingMember(member.id),
+                canManageMember: canManageMembers,
                 onTap: () => context
                     .go('/servers/${serverId.value}/profile/${member.id}'),
                 onMessage: () => _openDirectMessage(context, member.id),
@@ -280,5 +282,14 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
         );
       },
     );
+  }
+
+  bool _canManageMembers(List<MemberProfile> members) {
+    for (final member in members) {
+      if (member.isSelf) {
+        return member.role == 'admin';
+      }
+    }
+    return false;
   }
 }

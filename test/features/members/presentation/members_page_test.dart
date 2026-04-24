@@ -76,7 +76,14 @@ void main() {
     await tester.pumpWidget(
       _buildApp(
         repository: _FakeMemberRepository(
-          members: const [MemberProfile(id: 'user-2', displayName: 'Bob')],
+          members: const [
+            MemberProfile(
+              id: 'user-123',
+              displayName: 'Alice',
+              role: 'admin',
+            ),
+            MemberProfile(id: 'user-2', displayName: 'Bob'),
+          ],
           inviteCode: 'https://slock.ai/invite/token-200',
         ),
       ),
@@ -95,6 +102,7 @@ void main() {
   ) async {
     final repository = _FakeMemberRepository(
       members: const [
+        MemberProfile(id: 'user-123', displayName: 'Alice', role: 'admin'),
         MemberProfile(id: 'user-2', displayName: 'Bob', role: 'member'),
       ],
     );
@@ -119,6 +127,30 @@ void main() {
 
     expect(repository.removeRequests, [('server-1', 'user-2')]);
     expect(find.byKey(const ValueKey('member-user-2')), findsNothing);
+  });
+
+  testWidgets('non-admin viewers do not see invite or member admin actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _buildApp(
+        repository: _FakeMemberRepository(
+          members: const [
+            MemberProfile(
+              id: 'user-123',
+              displayName: 'Alice',
+              role: 'member',
+            ),
+            MemberProfile(id: 'user-2', displayName: 'Bob', role: 'member'),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('members-create-invite')), findsNothing);
+    expect(find.byKey(const ValueKey('member-actions-user-2')), findsNothing);
+    expect(find.byKey(const ValueKey('member-message-user-2')), findsOneWidget);
   });
 }
 
