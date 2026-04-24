@@ -9,6 +9,9 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/members/data/member_repository.dart';
+import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
@@ -177,6 +180,41 @@ void main() {
     expect(channelManagementRepository.createdNames, ['support']);
     expect(find.byType(HomePage), findsOneWidget);
     expect(find.text('channel:server-1/support'), findsNothing);
+  });
+
+  testWidgets('DM create button opens dialog and navigates on member select', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+    final memberRepository = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'user-1', displayName: 'Charlie'),
+        MemberProfile(id: 'user-2', displayName: 'Dana'),
+      ],
+      dmChannelId: 'dm-new-dana',
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        memberRepository: memberRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('dm-create-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New message'), findsOneWidget);
+    expect(find.text('Charlie'), findsOneWidget);
+    expect(find.text('Dana'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('dm-member-user-2')));
+    await tester.pumpAndSettle();
+
+    expect(memberRepository.openedDmUserIds, ['user-2']);
+    expect(find.text('dm:server-1/dm-new-dana'), findsOneWidget);
   });
 
   testWidgets('edit/delete/leave actions call the channel management seam', (
@@ -441,6 +479,7 @@ Widget _buildApp({
   ServerListRepository serverListRepository =
       const _FakeServerListRepository([]),
   ChannelManagementRepository? channelManagementRepository,
+  MemberRepository? memberRepository,
 }) {
   return ProviderScope(
     overrides: [
@@ -452,6 +491,8 @@ Widget _buildApp({
       if (channelManagementRepository != null)
         channelManagementRepositoryProvider
             .overrideWithValue(channelManagementRepository),
+      if (memberRepository != null)
+        memberRepositoryProvider.overrideWithValue(memberRepository),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -600,5 +641,30 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     required String channelId,
   }) async {
     leftChannelIds.add(channelId);
+  }
+}
+
+class _FakeMemberRepository implements MemberRepository {
+  _FakeMemberRepository({
+    this.members = const [],
+    this.dmChannelId = 'dm-channel-1',
+  });
+
+  final List<MemberProfile> members;
+  final String dmChannelId;
+  final List<String> openedDmUserIds = [];
+
+  @override
+  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
+    return members;
+  }
+
+  @override
+  Future<String> openDirectMessage(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {
+    openedDmUserIds.add(userId);
+    return dmChannelId;
   }
 }
