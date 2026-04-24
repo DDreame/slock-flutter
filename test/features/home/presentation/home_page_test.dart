@@ -188,10 +188,10 @@ void main() {
     final router = _buildRouter();
     final memberRepository = _FakeMemberRepository(
       members: const [
-        MemberProfile(id: 'user-1', displayName: 'Alice'),
-        MemberProfile(id: 'user-2', displayName: 'Bob'),
+        MemberProfile(id: 'user-1', displayName: 'Charlie'),
+        MemberProfile(id: 'user-2', displayName: 'Dana'),
       ],
-      dmChannelId: 'dm-new-bob',
+      dmChannelId: 'dm-new-dana',
     );
 
     await tester.pumpWidget(
@@ -207,14 +207,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('New message'), findsOneWidget);
-    expect(find.text('Alice'), findsOneWidget);
-    expect(find.text('Bob'), findsOneWidget);
+    expect(find.text('Charlie'), findsOneWidget);
+    expect(find.text('Dana'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('dm-member-user-2')));
     await tester.pumpAndSettle();
 
     expect(memberRepository.openedDmUserIds, ['user-2']);
-    expect(find.text('dm:server-1/dm-new-bob'), findsOneWidget);
+    expect(find.text('dm:server-1/dm-new-dana'), findsOneWidget);
   });
 
   testWidgets('edit/delete/leave actions call the channel management seam', (
