@@ -193,7 +193,7 @@ void main() {
     expect(fakeRepo.calls, hasLength(1));
     expect(fakeRepo.calls.first.method, 'deregister');
     expect(fakeRepo.calls.first.token, 'fcm-token-1');
-    expect(fakeRepo.calls.first.authToken, 'fake-token');
+    expect(fakeRepo.calls.first.authToken, 'fake-access-token');
   });
 
   test('logout does not clear local push token', () async {

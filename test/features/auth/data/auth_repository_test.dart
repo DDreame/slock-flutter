@@ -25,11 +25,10 @@ void main() {
   AuthRepository repo() => container.read(authRepositoryProvider);
 
   group('login', () {
-    test('returns AuthResult on valid response', () async {
+    test('returns AuthResult with accessToken and refreshToken', () async {
       fakeDio.nextResponse = {
-        'token': 'jwt-abc',
-        'userId': 'user-1',
-        'displayName': 'Alice',
+        'accessToken': 'at-123',
+        'refreshToken': 'rt-456',
       };
 
       final result = await repo().login(
@@ -37,9 +36,9 @@ void main() {
         password: 'secret',
       );
 
-      expect(result.token, 'jwt-abc');
-      expect(result.userId, 'user-1');
-      expect(result.displayName, 'Alice');
+      expect(result.accessToken, 'at-123');
+      expect(result.refreshToken, 'rt-456');
+      expect(fakeDio.lastMethod, 'POST');
       expect(fakeDio.lastPath, '/auth/login');
       expect(fakeDio.lastData, {
         'email': 'alice@example.com',
@@ -47,22 +46,8 @@ void main() {
       });
     });
 
-    test('displayName is null when missing from response', () async {
-      fakeDio.nextResponse = {
-        'token': 'jwt-abc',
-        'userId': 'user-1',
-      };
-
-      final result = await repo().login(
-        email: 'alice@example.com',
-        password: 'secret',
-      );
-
-      expect(result.displayName, isNull);
-    });
-
-    test('throws SerializationFailure when token is missing', () async {
-      fakeDio.nextResponse = {'userId': 'user-1'};
+    test('throws SerializationFailure when accessToken is missing', () async {
+      fakeDio.nextResponse = {'refreshToken': 'rt-456'};
 
       expect(
         () => repo().login(email: 'a@b.com', password: 'p'),
@@ -70,8 +55,8 @@ void main() {
       );
     });
 
-    test('throws SerializationFailure when userId is missing', () async {
-      fakeDio.nextResponse = {'token': 'jwt'};
+    test('throws SerializationFailure when refreshToken is missing', () async {
+      fakeDio.nextResponse = {'accessToken': 'at-123'};
 
       expect(
         () => repo().login(email: 'a@b.com', password: 'p'),
@@ -111,40 +96,86 @@ void main() {
   });
 
   group('register', () {
-    test('returns AuthResult on valid response', () async {
+    test('returns AuthResult and sends name field', () async {
       fakeDio.nextResponse = {
-        'token': 'jwt-reg',
-        'userId': 'user-2',
-        'displayName': 'Bob',
+        'accessToken': 'at-reg',
+        'refreshToken': 'rt-reg',
       };
 
       final result = await repo().register(
         email: 'bob@example.com',
         password: 'secret',
-        displayName: 'Bob',
+        name: 'Bob',
       );
 
-      expect(result.token, 'jwt-reg');
-      expect(result.userId, 'user-2');
-      expect(result.displayName, 'Bob');
+      expect(result.accessToken, 'at-reg');
+      expect(result.refreshToken, 'rt-reg');
       expect(fakeDio.lastPath, '/auth/register');
       expect(fakeDio.lastData, {
         'email': 'bob@example.com',
         'password': 'secret',
-        'displayName': 'Bob',
+        'name': 'Bob',
       });
     });
 
-    test('throws SerializationFailure when token is empty', () async {
-      fakeDio.nextResponse = {'token': '', 'userId': 'user-2'};
+    test('throws SerializationFailure when accessToken is empty', () async {
+      fakeDio.nextResponse = {'accessToken': '', 'refreshToken': 'rt'};
 
       expect(
         () => repo().register(
           email: 'a@b.com',
           password: 'p',
-          displayName: 'X',
+          name: 'X',
         ),
         throwsA(isA<SerializationFailure>()),
+      );
+    });
+  });
+
+  group('getMe', () {
+    test('returns AuthUser with id and name', () async {
+      fakeDio.nextResponse = {
+        'id': 'user-1',
+        'email': 'alice@example.com',
+        'name': 'Alice',
+        'avatar': 'https://example.com/avatar.png',
+      };
+
+      final user = await repo().getMe();
+
+      expect(user.id, 'user-1');
+      expect(user.name, 'Alice');
+      expect(fakeDio.lastMethod, 'GET');
+      expect(fakeDio.lastPath, '/auth/me');
+    });
+
+    test('name is null when missing from response', () async {
+      fakeDio.nextResponse = {'id': 'user-1'};
+
+      final user = await repo().getMe();
+
+      expect(user.id, 'user-1');
+      expect(user.name, isNull);
+    });
+
+    test('throws SerializationFailure when id is missing', () async {
+      fakeDio.nextResponse = {'name': 'Alice'};
+
+      expect(
+        () => repo().getMe(),
+        throwsA(isA<SerializationFailure>()),
+      );
+    });
+
+    test('rethrows AppFailure from network layer', () async {
+      fakeDio.nextError = const ServerFailure(
+        message: 'Unauthorized',
+        statusCode: 401,
+      );
+
+      expect(
+        () => repo().getMe(),
+        throwsA(isA<ServerFailure>()),
       );
     });
   });
@@ -186,6 +217,7 @@ class _FakeDioClient implements AppDioClient {
   Object? nextResponse;
   Object? nextError;
   String? lastPath;
+  String? lastMethod;
   Object? lastData;
 
   @override
@@ -200,18 +232,8 @@ class _FakeDioClient implements AppDioClient {
     Options? options,
     CancelToken? cancelToken,
   }) async {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Response<T>> post<T>(
-    String path, {
-    Object? data,
-    Map<String, dynamic>? queryParameters,
-    CancelToken? cancelToken,
-    Options? options,
-  }) async {
     lastPath = path;
+    lastMethod = method;
     lastData = data;
     if (nextError != null) {
       final err = nextError!;
@@ -228,13 +250,24 @@ class _FakeDioClient implements AppDioClient {
   }
 
   @override
+  Future<Response<T>> post<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    return request<T>(path, method: 'POST', data: data);
+  }
+
+  @override
   Future<Response<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
     CancelToken? cancelToken,
     Options? options,
   }) async {
-    throw UnimplementedError();
+    return request<T>(path, method: 'GET');
   }
 
   @override
@@ -245,6 +278,6 @@ class _FakeDioClient implements AppDioClient {
     CancelToken? cancelToken,
     Options? options,
   }) async {
-    throw UnimplementedError();
+    return request<T>(path, method: 'DELETE', data: data);
   }
 }

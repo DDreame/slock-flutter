@@ -37,22 +37,24 @@ class FakeAuthRepository implements AuthRepository {
     required String password,
   }) async =>
       const AuthResult(
-        token: 'fake-token',
-        userId: 'fake-uid',
-        displayName: 'Fake User',
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
       );
 
   @override
   Future<AuthResult> register({
     required String email,
     required String password,
-    required String displayName,
+    required String name,
   }) async =>
-      AuthResult(
-        token: 'fake-token',
-        userId: 'fake-uid',
-        displayName: displayName,
+      const AuthResult(
+        accessToken: 'fake-access-token',
+        refreshToken: 'fake-refresh-token',
       );
+
+  @override
+  Future<AuthUser> getMe() async =>
+      const AuthUser(id: 'fake-uid', name: 'Fake User');
 
   @override
   Future<void> requestPasswordReset({required String email}) async {}
@@ -106,7 +108,14 @@ void main() {
           .read(sessionStoreProvider.notifier)
           .login(email: 'test@example.com', password: 'password');
 
-      expect(fakeStorage.snapshot[SessionStorageKeys.token], 'fake-token');
+      expect(
+        fakeStorage.snapshot[SessionStorageKeys.token],
+        'fake-access-token',
+      );
+      expect(
+        fakeStorage.snapshot[SessionStorageKeys.refreshToken],
+        'fake-refresh-token',
+      );
       expect(fakeStorage.snapshot[SessionStorageKeys.userId], 'fake-uid');
       expect(fakeStorage.snapshot[SessionStorageKeys.displayName], 'Fake User');
     });
@@ -118,11 +127,18 @@ void main() {
             displayName: 'Test User',
           );
 
-      expect(fakeStorage.snapshot[SessionStorageKeys.token], 'fake-token');
+      expect(
+        fakeStorage.snapshot[SessionStorageKeys.token],
+        'fake-access-token',
+      );
+      expect(
+        fakeStorage.snapshot[SessionStorageKeys.refreshToken],
+        'fake-refresh-token',
+      );
       expect(fakeStorage.snapshot[SessionStorageKeys.userId], 'fake-uid');
       expect(
         fakeStorage.snapshot[SessionStorageKeys.displayName],
-        'Test User',
+        'Fake User',
       );
     });
 
@@ -135,6 +151,7 @@ void main() {
       await container.read(sessionStoreProvider.notifier).logout();
 
       expect(fakeStorage.snapshot[SessionStorageKeys.token], isNull);
+      expect(fakeStorage.snapshot[SessionStorageKeys.refreshToken], isNull);
       expect(fakeStorage.snapshot[SessionStorageKeys.userId], isNull);
       expect(fakeStorage.snapshot[SessionStorageKeys.displayName], isNull);
 
@@ -196,7 +213,7 @@ void main() {
         container.read(sessionStoreProvider).status,
         AuthStatus.authenticated,
       );
-      expect(container.read(sessionStoreProvider).token, 'fake-token');
+      expect(container.read(sessionStoreProvider).token, 'fake-access-token');
 
       await container.read(sessionStoreProvider.notifier).logout();
       expect(

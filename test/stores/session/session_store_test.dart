@@ -60,7 +60,7 @@ void main() {
           );
       final state = container.read(sessionStoreProvider);
       expect(state.status, AuthStatus.authenticated);
-      expect(state.displayName, 'Test User');
+      expect(state.displayName, 'Fake User');
       expect(state.token, isNotNull);
     });
 

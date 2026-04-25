@@ -1,13 +1,18 @@
 class AuthResult {
   const AuthResult({
-    required this.token,
-    required this.userId,
-    this.displayName,
+    required this.accessToken,
+    required this.refreshToken,
   });
 
-  final String token;
-  final String userId;
-  final String? displayName;
+  final String accessToken;
+  final String refreshToken;
+}
+
+class AuthUser {
+  const AuthUser({required this.id, this.name});
+
+  final String id;
+  final String? name;
 }
 
 abstract class AuthRepository {
@@ -19,8 +24,10 @@ abstract class AuthRepository {
   Future<AuthResult> register({
     required String email,
     required String password,
-    required String displayName,
+    required String name,
   });
+
+  Future<AuthUser> getMe();
 
   Future<void> requestPasswordReset({required String email});
 }
