@@ -4,6 +4,9 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_realtime_dm_materialization_binding.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
@@ -56,6 +59,8 @@ void main() {
         ),
         sidebarOrderRepositoryProvider
             .overrideWithValue(const _FakeSidebarOrderRepository()),
+        agentsRepositoryProvider
+            .overrideWithValue(const _FakeAgentsRepository()),
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
           (scopeId) async => HomeWorkspaceSnapshot(
             serverId: scopeId,
@@ -193,6 +198,29 @@ void main() {
     expect(state.directMessages.first.title, 'Existing DM');
     expect(fakeSocket.emitted, hasLength(1));
   });
+}
+
+class _FakeAgentsRepository implements AgentsRepository {
+  const _FakeAgentsRepository();
+
+  @override
+  Future<List<AgentItem>> listAgents() async => const [];
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
