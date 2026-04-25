@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+const placeholderApiBaseUrl = 'https://api.slock.invalid';
+
 class NetworkConfig {
   const NetworkConfig({
     required this.baseUrl,
@@ -28,5 +30,5 @@ class NetworkConfig {
 }
 
 final networkConfigProvider = Provider<NetworkConfig>((ref) {
-  return const NetworkConfig(baseUrl: 'https://api.slock.invalid');
+  return const NetworkConfig(baseUrl: placeholderApiBaseUrl);
 });

@@ -1,27 +1,32 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
+import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/notifications/android_notification_initializer.dart';
 import 'package:slock_app/core/notifications/ios_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
+import 'package:slock_app/core/realtime/providers.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
 import '../../core/telemetry/crash_reporter_test.dart' show FakeCrashReporter;
 
+const _apiBaseUrl = 'https://api.example.com';
+const _realtimeUrl = 'https://realtime.example.com';
+
 void main() {
   group('appBootstrap', () {
     test('returns valid result with overrides', () async {
-      final result = await appBootstrap();
+      final result = await appBootstrap(environmentReader: _environmentReader);
       expect(result.reporter, isA<CrashReporter>());
       expect(result.diagnostics, isA<DiagnosticsCollector>());
       expect(result.notificationInitializer, isA<NotificationInitializer>());
-      expect(result.overrides, hasLength(3));
+      expect(result.overrides, hasLength(5));
     });
 
     test('provider overrides resolve correctly', () async {
-      final result = await appBootstrap();
+      final result = await appBootstrap(environmentReader: _environmentReader);
       final container = ProviderContainer(overrides: result.overrides);
       addTearDown(container.dispose);
 
@@ -43,7 +48,50 @@ void main() {
         ),
         isTrue,
       );
+      expect(container.read(networkConfigProvider).baseUrl, _apiBaseUrl);
+      expect(container.read(realtimeSocketOptionsProvider).uri, _realtimeUrl);
     });
+
+    test('fails fast when API base URL is missing', () async {
+      await expectLater(
+        appBootstrap(
+          environmentReader: (key) => switch (key) {
+            apiBaseUrlEnvironmentKey => '',
+            realtimeUrlEnvironmentKey => _realtimeUrl,
+            _ => '',
+          },
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains(apiBaseUrlEnvironmentKey),
+          ),
+        ),
+      );
+    });
+
+    test(
+      'fails fast when realtime URL still points at placeholder host',
+      () async {
+        await expectLater(
+          appBootstrap(
+            environmentReader: (key) => switch (key) {
+              apiBaseUrlEnvironmentKey => _apiBaseUrl,
+              realtimeUrlEnvironmentKey => placeholderRealtimeUrl,
+              _ => '',
+            },
+          ),
+          throwsA(
+            isA<StateError>().having(
+              (error) => error.message,
+              'message',
+              contains(realtimeUrlEnvironmentKey),
+            ),
+          ),
+        );
+      },
+    );
   });
 
   group('createNotificationInitializer', () {
@@ -126,4 +174,12 @@ void main() {
       expect(fake.capturedErrors.first, error);
     });
   });
+}
+
+String _environmentReader(String key) {
+  return switch (key) {
+    apiBaseUrlEnvironmentKey => _apiBaseUrl,
+    realtimeUrlEnvironmentKey => _realtimeUrl,
+    _ => '',
+  };
 }
