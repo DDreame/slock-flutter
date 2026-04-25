@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/application/channel_realtime_binding.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 
-class ChannelPage extends StatelessWidget {
+class ChannelPage extends ConsumerWidget {
   final String serverId;
   final String channelId;
 
@@ -15,7 +17,8 @@ class ChannelPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(channelPageRealtimeBindingProvider);
     final scopeId = ChannelScopeId.fromRouteParams(
       serverId: serverId,
       channelId: channelId,

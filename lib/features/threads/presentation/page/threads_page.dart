@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/threads/application/threads_realtime_binding.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_state.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_store.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
@@ -28,6 +29,7 @@ class _ThreadsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(threadsInboxRealtimeBindingProvider);
     final state = ref.watch(threadsInboxStoreProvider);
     final store = ref.read(threadsInboxStoreProvider.notifier);
 

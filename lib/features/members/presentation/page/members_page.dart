@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
+import 'package:slock_app/features/members/application/members_realtime_binding.dart';
 import 'package:slock_app/features/members/presentation/widgets/member_list_item.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 
@@ -41,6 +42,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(membersRealtimeBindingProvider);
     final state = ref.watch(memberListStoreProvider);
     final serverId = ref.read(currentMembersServerIdProvider);
     final canManageMembers = _canManageMembers(state.members);

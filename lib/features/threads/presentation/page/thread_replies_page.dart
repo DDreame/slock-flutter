@@ -6,6 +6,7 @@ import 'package:slock_app/features/threads/application/current_open_thread_targe
 import 'package:slock_app/features/threads/application/thread_replies_state.dart';
 import 'package:slock_app/features/threads/application/thread_replies_store.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/application/threads_realtime_binding.dart';
 
 class ThreadRepliesPage extends StatelessWidget {
   const ThreadRepliesPage({super.key, required this.routeTarget});
@@ -41,6 +42,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final routeTarget = ref.watch(currentThreadRouteTargetProvider);
     ref.watch(currentOpenThreadRegistrationProvider(routeTarget));
+    ref.watch(threadRepliesRealtimeBindingProvider);
     final state = ref.watch(threadRepliesStoreProvider);
     final store = ref.read(threadRepliesStoreProvider.notifier);
 
