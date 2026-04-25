@@ -9,28 +9,39 @@ import 'package:slock_app/core/realtime/realtime_socket_client.dart';
 import 'package:slock_app/core/realtime/realtime_watchdog.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
+const placeholderRealtimeUrl = 'https://realtime.slock.invalid';
+
 final realtimeClockProvider = Provider<Clock>((ref) => DateTime.now);
+
+RealtimeSocketOptions buildRealtimeSocketOptions({
+  required String uri,
+  required String? token,
+}) {
+  return RealtimeSocketOptions(
+    uri: uri,
+    extraHeaders: {
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    },
+  );
+}
 
 final realtimeSocketOptionsProvider = Provider<RealtimeSocketOptions>((ref) {
   final token = ref.watch(
     sessionStoreProvider.select((sessionState) => sessionState.token),
   );
 
-  return RealtimeSocketOptions(
-    uri: 'https://realtime.slock.invalid',
-    extraHeaders: {
-      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
-    },
-  );
+  return buildRealtimeSocketOptions(uri: placeholderRealtimeUrl, token: token);
 });
 
-final realtimeEventNormalizerProvider =
-    Provider<RealtimeEventNormalizer>((ref) {
+final realtimeEventNormalizerProvider = Provider<RealtimeEventNormalizer>((
+  ref,
+) {
   return defaultRealtimeEventNormalizer;
 });
 
-final realtimeReductionIngressProvider =
-    Provider<RealtimeReductionIngress>((ref) {
+final realtimeReductionIngressProvider = Provider<RealtimeReductionIngress>((
+  ref,
+) {
   final ingress = RealtimeReductionIngress();
   ref.onDispose(() {
     unawaited(ingress.dispose());

@@ -6,6 +6,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 
 void main() {
+  test('networkConfigProvider accepts runtime-injected bootstrap override', () {
+    final container = ProviderContainer(
+      overrides: [
+        networkConfigProvider.overrideWithValue(
+          const NetworkConfig(baseUrl: 'https://runtime.example.com'),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(
+      container.read(networkConfigProvider).baseUrl,
+      'https://runtime.example.com',
+    );
+  });
+
   test(
     'requestHeadersBuilderProvider merges default and auth headers',
     () async {
