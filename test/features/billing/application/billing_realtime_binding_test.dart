@@ -69,7 +69,7 @@ void main() {
         ),
       );
 
-      await Future<void>.delayed(Duration.zero);
+      await _drainAsyncWork();
 
       expect(fakeRepository.loadSubscriptionCount, 2);
       expect(fakeRepository.loadServerUsageCount, 2);
@@ -101,7 +101,7 @@ void main() {
         ),
       );
 
-      await Future<void>.delayed(Duration.zero);
+      await _drainAsyncWork();
 
       expect(fakeRepository.loadSubscriptionCount, 1);
       expect(fakeRepository.loadServerUsageCount, 1);
@@ -129,7 +129,7 @@ void main() {
       ),
     );
 
-    await Future<void>.delayed(Duration.zero);
+    await _drainAsyncWork();
 
     expect(fakeRepository.loadSubscriptionCount, 1);
     expect(fakeRepository.loadServerUsageCount, 1);
@@ -164,11 +164,17 @@ void main() {
       ),
     );
 
-    await Future<void>.delayed(Duration.zero);
+    await _drainAsyncWork();
 
     expect(fakeRepository.loadSubscriptionCount, 0);
     expect(fakeRepository.loadServerUsageCount, 0);
   });
+}
+
+Future<void> _drainAsyncWork() async {
+  for (var i = 0; i < 3; i += 1) {
+    await Future<void>.delayed(Duration.zero);
+  }
 }
 
 class _FakeBillingRepository implements BillingRepository {
