@@ -8,31 +8,34 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 
 const _serverPlanUpdatedEvent = 'server:plan-updated';
 
-final billingRealtimeBindingProvider = Provider.autoDispose<void>((ref) {
-  final serverId = ref.watch(activeServerScopeIdProvider);
-  if (serverId == null) {
-    return;
-  }
-
-  final ingress = ref.watch(realtimeReductionIngressProvider);
-  final subscription = ingress.acceptedEvents.listen((event) {
-    if (event.eventType != _serverPlanUpdatedEvent) {
-      return;
-    }
-    if (!_belongsToCurrentServer(serverId, event)) {
-      return;
-    }
-    if (ref.read(billingStoreProvider).status == BillingStatus.loading) {
+final billingRealtimeBindingProvider = Provider.autoDispose<void>(
+  (ref) {
+    final serverId = ref.watch(activeServerScopeIdProvider);
+    if (serverId == null) {
       return;
     }
 
-    unawaited(ref.read(billingStoreProvider.notifier).load());
-  });
+    final ingress = ref.watch(realtimeReductionIngressProvider);
+    final subscription = ingress.acceptedEvents.listen((event) {
+      if (event.eventType != _serverPlanUpdatedEvent) {
+        return;
+      }
+      if (!_belongsToCurrentServer(serverId, event)) {
+        return;
+      }
+      if (ref.read(billingStoreProvider).status == BillingStatus.loading) {
+        return;
+      }
 
-  ref.onDispose(() {
-    unawaited(subscription.cancel());
-  });
-}, dependencies: [activeServerScopeIdProvider]);
+      unawaited(ref.read(billingStoreProvider.notifier).load());
+    });
+
+    ref.onDispose(() {
+      unawaited(subscription.cancel());
+    });
+  },
+  dependencies: [activeServerScopeIdProvider, billingStoreProvider],
+);
 
 bool _belongsToCurrentServer(
   ServerScopeId serverId,
