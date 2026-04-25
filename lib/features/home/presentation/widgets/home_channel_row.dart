@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 
-enum _HomeChannelAction { edit, delete, leave }
+enum _HomeChannelAction { edit, delete, leave, togglePin }
 
 class HomeChannelRow extends StatelessWidget {
   const HomeChannelRow({
@@ -9,24 +9,28 @@ class HomeChannelRow extends StatelessWidget {
     required this.channel,
     required this.onTap,
     this.unreadCount = 0,
+    this.isPinned = false,
     this.onEdit,
     this.onDelete,
     this.onLeave,
+    this.onTogglePin,
     this.isMutating = false,
   });
 
   final HomeChannelSummary channel;
   final VoidCallback onTap;
   final int unreadCount;
+  final bool isPinned;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onLeave;
+  final VoidCallback? onTogglePin;
   final bool isMutating;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.tag),
+      leading: Icon(isPinned ? Icons.push_pin : Icons.tag),
       title: Text(
         channel.name,
         style: unreadCount > 0
@@ -46,7 +50,10 @@ class HomeChannelRow extends StatelessWidget {
   }
 
   Widget? _buildTrailing(BuildContext context) {
-    final showMenu = onEdit != null || onDelete != null || onLeave != null;
+    final showMenu = onEdit != null ||
+        onDelete != null ||
+        onLeave != null ||
+        onTogglePin != null;
     if (!showMenu && unreadCount == 0) {
       return null;
     }
@@ -68,9 +75,16 @@ class HomeChannelRow extends StatelessWidget {
                   onDelete?.call();
                 case _HomeChannelAction.leave:
                   onLeave?.call();
+                case _HomeChannelAction.togglePin:
+                  onTogglePin?.call();
               }
             },
             itemBuilder: (context) => [
+              if (onTogglePin != null)
+                PopupMenuItem<_HomeChannelAction>(
+                  value: _HomeChannelAction.togglePin,
+                  child: Text(isPinned ? 'Unpin channel' : 'Pin channel'),
+                ),
               if (onEdit != null)
                 const PopupMenuItem<_HomeChannelAction>(
                   value: _HomeChannelAction.edit,

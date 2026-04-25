@@ -1,17 +1,29 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 
 final homeListStoreProvider = NotifierProvider<HomeListStore, HomeListState>(
   HomeListStore.new,
 );
 
 class HomeListStore extends Notifier<HomeListState> {
+  List<HomeChannelSummary> _allChannels = const [];
+  List<HomeDirectMessageSummary> _allDirectMessages = const [];
+  SidebarOrder _sidebarOrder = const SidebarOrder();
+
   @override
   HomeListState build() {
+    _allChannels = const [];
+    _allDirectMessages = const [];
+    _sidebarOrder = const SidebarOrder();
+
     final serverScopeId = ref.watch(activeServerScopeIdProvider);
     if (serverScopeId == null) {
       return const HomeListState(status: HomeListStatus.noActiveServer);
@@ -38,16 +50,22 @@ class HomeListStore extends Notifier<HomeListState> {
     );
 
     try {
-      final snapshot = await ref.read(homeRepositoryProvider).loadWorkspace(
-            serverScopeId,
-          );
+      final results = await Future.wait([
+        ref.read(homeRepositoryProvider).loadWorkspace(serverScopeId),
+        _loadSidebarOrderSafe(serverScopeId),
+      ]);
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
-      state = state.copyWith(
+
+      final snapshot = results[0] as HomeWorkspaceSnapshot;
+      final sidebarOrder = results[1] as SidebarOrder;
+
+      _allChannels = List.of(snapshot.channels);
+      _allDirectMessages = List.of(snapshot.directMessages);
+      _sidebarOrder = sidebarOrder;
+
+      _emitPersonalizedState(
         serverScopeId: snapshot.serverId,
         status: HomeListStatus.success,
-        channels: snapshot.channels,
-        directMessages: snapshot.directMessages,
-        clearFailure: true,
       );
     } on AppFailure catch (failure) {
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
@@ -61,12 +79,25 @@ class HomeListStore extends Notifier<HomeListState> {
     }
   }
 
+  Future<SidebarOrder> _loadSidebarOrderSafe(
+    ServerScopeId serverScopeId,
+  ) async {
+    try {
+      return await ref
+          .read(sidebarOrderRepositoryProvider)
+          .loadSidebarOrder(serverScopeId);
+    } catch (_) {
+      return const SidebarOrder();
+    }
+  }
+
   Future<void> retry() => load();
 
   void addDirectMessage(HomeDirectMessageSummary dm) {
     if (state.status != HomeListStatus.success) return;
-    if (state.directMessages.any((d) => d.scopeId == dm.scopeId)) return;
-    state = state.copyWith(directMessages: [dm, ...state.directMessages]);
+    if (_allDirectMessages.any((d) => d.scopeId == dm.scopeId)) return;
+    _allDirectMessages = [dm, ..._allDirectMessages];
+    _emitPersonalizedState();
   }
 
   void updateChannelLastMessage({
@@ -77,15 +108,16 @@ class HomeListStore extends Notifier<HomeListState> {
   }) {
     if (state.status != HomeListStatus.success) return;
     final index =
-        state.channels.indexWhere((c) => c.scopeId.value == conversationId);
+        _allChannels.indexWhere((c) => c.scopeId.value == conversationId);
     if (index == -1) return;
-    final channels = List<HomeChannelSummary>.of(state.channels);
+    final channels = List<HomeChannelSummary>.of(_allChannels);
     channels[index] = channels[index].copyWith(
       lastMessageId: messageId,
       lastMessagePreview: preview,
       lastActivityAt: activityAt,
     );
-    state = state.copyWith(channels: channels);
+    _allChannels = channels;
+    _emitPersonalizedState();
   }
 
   void updateDmLastMessage({
@@ -95,16 +127,17 @@ class HomeListStore extends Notifier<HomeListState> {
     required DateTime activityAt,
   }) {
     if (state.status != HomeListStatus.success) return;
-    final index = state.directMessages
-        .indexWhere((d) => d.scopeId.value == conversationId);
+    final index =
+        _allDirectMessages.indexWhere((d) => d.scopeId.value == conversationId);
     if (index == -1) return;
-    final dms = List<HomeDirectMessageSummary>.of(state.directMessages);
+    final dms = List<HomeDirectMessageSummary>.of(_allDirectMessages);
     dms[index] = dms[index].copyWith(
       lastMessageId: messageId,
       lastMessagePreview: preview,
       lastActivityAt: activityAt,
     );
-    state = state.copyWith(directMessages: dms);
+    _allDirectMessages = dms;
+    _emitPersonalizedState();
   }
 
   void updateChannelPreview({
@@ -114,13 +147,14 @@ class HomeListStore extends Notifier<HomeListState> {
   }) {
     if (state.status != HomeListStatus.success) return;
     final index =
-        state.channels.indexWhere((c) => c.scopeId.value == conversationId);
+        _allChannels.indexWhere((c) => c.scopeId.value == conversationId);
     if (index == -1) return;
-    final channel = state.channels[index];
+    final channel = _allChannels[index];
     if (channel.lastMessageId != messageId) return;
-    final channels = List<HomeChannelSummary>.of(state.channels);
+    final channels = List<HomeChannelSummary>.of(_allChannels);
     channels[index] = channel.copyWith(lastMessagePreview: preview);
-    state = state.copyWith(channels: channels);
+    _allChannels = channels;
+    _emitPersonalizedState();
   }
 
   void updateDmPreview({
@@ -129,14 +163,114 @@ class HomeListStore extends Notifier<HomeListState> {
     required String preview,
   }) {
     if (state.status != HomeListStatus.success) return;
-    final index = state.directMessages
-        .indexWhere((d) => d.scopeId.value == conversationId);
+    final index =
+        _allDirectMessages.indexWhere((d) => d.scopeId.value == conversationId);
     if (index == -1) return;
-    final dm = state.directMessages[index];
+    final dm = _allDirectMessages[index];
     if (dm.lastMessageId != messageId) return;
-    final dms = List<HomeDirectMessageSummary>.of(state.directMessages);
+    final dms = List<HomeDirectMessageSummary>.of(_allDirectMessages);
     dms[index] = dm.copyWith(lastMessagePreview: preview);
-    state = state.copyWith(directMessages: dms);
+    _allDirectMessages = dms;
+    _emitPersonalizedState();
+  }
+
+  Future<void> pinChannel(ChannelScopeId scopeId) async {
+    if (state.status != HomeListStatus.success) return;
+    final channelId = scopeId.value;
+    if (_sidebarOrder.isChannelPinned(channelId)) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      pinnedChannelIds: [..._sidebarOrder.pinnedChannelIds, channelId],
+      pinnedOrder: [..._sidebarOrder.pinnedOrder, channelId],
+    );
+    _emitPersonalizedState();
+
+    try {
+      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
+            scopeId.serverId,
+            patch: _sidebarOrder.toPatchMap(
+              includePinnedChannelIds: true,
+              includePinnedOrder: true,
+            ),
+          );
+    } on AppFailure {
+      _sidebarOrder = previous;
+      _emitPersonalizedState();
+    }
+  }
+
+  Future<void> unpinChannel(ChannelScopeId scopeId) async {
+    if (state.status != HomeListStatus.success) return;
+    final channelId = scopeId.value;
+    if (!_sidebarOrder.isChannelPinned(channelId)) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      pinnedChannelIds: _sidebarOrder.pinnedChannelIds
+          .where((id) => id != channelId)
+          .toList(),
+      pinnedOrder:
+          _sidebarOrder.pinnedOrder.where((id) => id != channelId).toList(),
+    );
+    _emitPersonalizedState();
+
+    try {
+      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
+            scopeId.serverId,
+            patch: _sidebarOrder.toPatchMap(
+              includePinnedChannelIds: true,
+              includePinnedOrder: true,
+            ),
+          );
+    } on AppFailure {
+      _sidebarOrder = previous;
+      _emitPersonalizedState();
+    }
+  }
+
+  Future<void> hideDm(DirectMessageScopeId scopeId) async {
+    if (state.status != HomeListStatus.success) return;
+    final dmId = scopeId.value;
+    if (_sidebarOrder.isDmHidden(dmId)) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      hiddenDmIds: [..._sidebarOrder.hiddenDmIds, dmId],
+    );
+    _emitPersonalizedState();
+
+    try {
+      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
+            scopeId.serverId,
+            patch: _sidebarOrder.toPatchMap(includeHiddenDmIds: true),
+          );
+    } on AppFailure {
+      _sidebarOrder = previous;
+      _emitPersonalizedState();
+    }
+  }
+
+  Future<void> unhideDm(DirectMessageScopeId scopeId) async {
+    if (state.status != HomeListStatus.success) return;
+    final dmId = scopeId.value;
+    if (!_sidebarOrder.isDmHidden(dmId)) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      hiddenDmIds: _sidebarOrder.hiddenDmIds.where((id) => id != dmId).toList(),
+    );
+    _emitPersonalizedState();
+
+    try {
+      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
+            scopeId.serverId,
+            patch: _sidebarOrder.toPatchMap(includeHiddenDmIds: true),
+          );
+    } on AppFailure {
+      _sidebarOrder = previous;
+      _emitPersonalizedState();
+    }
   }
 
   String channelRoutePath(ChannelScopeId scopeId) {
@@ -146,4 +280,74 @@ class HomeListStore extends Notifier<HomeListState> {
   String directMessageRoutePath(DirectMessageScopeId scopeId) {
     return '/servers/${scopeId.serverId.routeParam}/dms/${scopeId.routeParam}';
   }
+
+  void _emitPersonalizedState({
+    ServerScopeId? serverScopeId,
+    HomeListStatus? status,
+  }) {
+    final order = _sidebarOrder;
+
+    final sortedChannels = _sortByOrder(
+      _allChannels,
+      order.channelOrder,
+      (c) => c.scopeId.value,
+    );
+
+    final pinnedSet = order.pinnedChannelIds.toSet();
+    final pinned = <HomeChannelSummary>[];
+    final unpinned = <HomeChannelSummary>[];
+    for (final ch in sortedChannels) {
+      if (pinnedSet.contains(ch.scopeId.value)) {
+        pinned.add(ch);
+      } else {
+        unpinned.add(ch);
+      }
+    }
+
+    final pinnedSorted = _sortByOrder(
+      pinned,
+      order.pinnedOrder,
+      (c) => c.scopeId.value,
+    );
+
+    final hiddenSet = order.hiddenDmIds.toSet();
+    final sortedDms = _sortByOrder(
+      _allDirectMessages,
+      order.dmOrder,
+      (d) => d.scopeId.value,
+    );
+    final visibleDms =
+        sortedDms.where((d) => !hiddenSet.contains(d.scopeId.value)).toList();
+    final hiddenDms =
+        sortedDms.where((d) => hiddenSet.contains(d.scopeId.value)).toList();
+
+    state = state.copyWith(
+      serverScopeId: serverScopeId,
+      status: status,
+      pinnedChannels: pinnedSorted,
+      channels: unpinned,
+      directMessages: visibleDms,
+      hiddenDirectMessages: hiddenDms,
+      sidebarOrder: order,
+      clearFailure: status == HomeListStatus.success,
+    );
+  }
+}
+
+List<T> _sortByOrder<T>(
+  List<T> items,
+  List<String> order,
+  String Function(T) idOf,
+) {
+  if (order.isEmpty) return List.of(items);
+  final orderMap = {
+    for (var i = 0; i < order.length; i++) order[i]: i,
+  };
+  final sorted = List.of(items);
+  sorted.sort((a, b) {
+    final ai = orderMap[idOf(a)] ?? orderMap.length;
+    final bi = orderMap[idOf(b)] ?? orderMap.length;
+    return ai.compareTo(bi);
+  });
+  return sorted;
 }

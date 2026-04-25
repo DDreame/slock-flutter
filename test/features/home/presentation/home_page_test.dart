@@ -8,6 +8,8 @@ import 'package:slock_app/features/channels/data/channel_management_repository_p
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
@@ -71,6 +73,8 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             const _FakeServerListRepository([]),
           ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),
@@ -342,6 +346,8 @@ void main() {
           serverListRepositoryProvider.overrideWithValue(
             const _FakeServerListRepository(_sampleServers),
           ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
         ],
         child: MaterialApp.router(routerConfig: router),
       ),
@@ -368,6 +374,8 @@ void main() {
         serverListRepositoryProvider.overrideWithValue(
           const _FakeServerListRepository(_sampleServers),
         ),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
       ],
     );
 
@@ -480,6 +488,8 @@ Widget _buildApp({
       const _FakeServerListRepository([]),
   ChannelManagementRepository? channelManagementRepository,
   MemberRepository? memberRepository,
+  SidebarOrderRepository sidebarOrderRepository =
+      const _FakeSidebarOrderRepository(),
 }) {
   return ProviderScope(
     overrides: [
@@ -488,6 +498,7 @@ Widget _buildApp({
       ),
       homeRepositoryProvider.overrideWithValue(homeRepository),
       serverListRepositoryProvider.overrideWithValue(serverListRepository),
+      sidebarOrderRepositoryProvider.overrideWithValue(sidebarOrderRepository),
       if (channelManagementRepository != null)
         channelManagementRepositoryProvider
             .overrideWithValue(channelManagementRepository),
@@ -685,4 +696,19 @@ class _FakeMemberRepository implements MemberRepository {
     openedDmUserIds.add(userId);
     return dmChannelId;
   }
+}
+
+class _FakeSidebarOrderRepository implements SidebarOrderRepository {
+  const _FakeSidebarOrderRepository();
+
+  @override
+  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
+    return const SidebarOrder();
+  }
+
+  @override
+  Future<void> updateSidebarOrder(
+    ServerScopeId serverId, {
+    required Map<String, Object> patch,
+  }) async {}
 }
