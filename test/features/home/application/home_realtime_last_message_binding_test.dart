@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
@@ -15,7 +16,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 import '../../../stores/session/session_store_persistence_test.dart'
-    show FakeSecureStorage;
+    show FakeSecureStorage, FakeAuthRepository;
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -33,6 +34,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         activeServerScopeIdProvider.overrideWithValue(serverId),
         conversationLocalStoreProvider.overrideWithValue(
@@ -196,7 +198,7 @@ void main() {
                 id: 'msg-self',
                 channelId: channelScopeId.value,
                 content: 'My own message',
-                senderId: 'stub-user-id',
+                senderId: 'fake-uid',
                 createdAt: '2026-04-20T05:00:00Z',
               ),
             ),

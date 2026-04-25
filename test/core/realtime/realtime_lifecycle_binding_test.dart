@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 import '../../stores/session/session_store_persistence_test.dart'
-    show FakeSecureStorage;
+    show FakeSecureStorage, FakeAuthRepository;
 
 void main() {
   test('does not connect until bootstrap is ready, then connects once',
@@ -18,6 +19,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(storage),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         realtimeSocketClientProvider.overrideWithValue(socket),
       ],
@@ -49,6 +51,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(storage),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         realtimeSocketClientProvider.overrideWithValue(socket),
       ],

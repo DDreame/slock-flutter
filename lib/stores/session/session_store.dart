@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
+import 'package:slock_app/features/auth/data/auth_repository.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 
@@ -36,11 +38,25 @@ class SessionStore extends Notifier<SessionState> {
   }
 
   Future<void> login({required String email, required String password}) async {
-    state = state.copyWith(
+    final repo = ref.read(authRepositoryProvider);
+    final result = await repo.login(email: email, password: password);
+
+    await _storage.write(
+      key: SessionStorageKeys.refreshToken,
+      value: result.refreshToken,
+    );
+    state = state.copyWith(token: result.accessToken);
+
+    AuthUser? user;
+    try {
+      user = await repo.getMe();
+    } catch (_) {}
+
+    state = SessionState(
       status: AuthStatus.authenticated,
-      userId: 'stub-user-id',
-      displayName: email.split('@').first,
-      token: 'stub-token',
+      token: result.accessToken,
+      userId: user?.id,
+      displayName: user?.name,
     );
     await _persistSession();
   }
@@ -50,16 +66,36 @@ class SessionStore extends Notifier<SessionState> {
     required String password,
     required String displayName,
   }) async {
-    state = state.copyWith(
+    final repo = ref.read(authRepositoryProvider);
+    final result = await repo.register(
+      email: email,
+      password: password,
+      name: displayName,
+    );
+
+    await _storage.write(
+      key: SessionStorageKeys.refreshToken,
+      value: result.refreshToken,
+    );
+    state = state.copyWith(token: result.accessToken);
+
+    AuthUser? user;
+    try {
+      user = await repo.getMe();
+    } catch (_) {}
+
+    state = SessionState(
       status: AuthStatus.authenticated,
-      userId: 'stub-user-id',
-      displayName: displayName,
-      token: 'stub-token',
+      token: result.accessToken,
+      userId: user?.id,
+      displayName: user?.name ?? displayName,
     );
     await _persistSession();
   }
 
-  Future<void> requestPasswordReset({required String email}) async {}
+  Future<void> requestPasswordReset({required String email}) async {
+    await ref.read(authRepositoryProvider).requestPasswordReset(email: email);
+  }
 
   Future<void> logout() async {
     await ref.read(serverSelectionStoreProvider.notifier).clearSelection();
