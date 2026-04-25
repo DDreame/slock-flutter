@@ -298,7 +298,6 @@ class HomeListStore extends Notifier<HomeListState> {
     final previous = _sidebarOrder;
     _sidebarOrder = _sidebarOrder.copyWith(
       pinnedAgentIds: [..._sidebarOrder.pinnedAgentIds, agentId],
-      agentOrder: [..._sidebarOrder.agentOrder, agentId],
     );
     _emitPersonalizedState();
 
@@ -307,7 +306,6 @@ class HomeListStore extends Notifier<HomeListState> {
             serverScopeId,
             patch: _sidebarOrder.toPatchMap(
               includePinnedAgentIds: true,
-              includeAgentOrder: true,
             ),
           );
     } on AppFailure {
@@ -326,8 +324,6 @@ class HomeListStore extends Notifier<HomeListState> {
     _sidebarOrder = _sidebarOrder.copyWith(
       pinnedAgentIds:
           _sidebarOrder.pinnedAgentIds.where((id) => id != agentId).toList(),
-      agentOrder:
-          _sidebarOrder.agentOrder.where((id) => id != agentId).toList(),
     );
     _emitPersonalizedState();
 
@@ -336,7 +332,6 @@ class HomeListStore extends Notifier<HomeListState> {
             serverScopeId,
             patch: _sidebarOrder.toPatchMap(
               includePinnedAgentIds: true,
-              includeAgentOrder: true,
             ),
           );
     } on AppFailure {

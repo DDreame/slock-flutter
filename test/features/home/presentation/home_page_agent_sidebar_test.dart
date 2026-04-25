@@ -209,11 +209,11 @@ Widget _buildApp({
         builder: (context, state) => const SizedBox.shrink(),
       ),
       GoRoute(
-        path: '/servers/:serverId/agents/:agentId',
+        path: '/agents/:agentId',
         builder: (context, state) => Scaffold(
           body: Center(
             child: Text(
-              'agent:${state.pathParameters['serverId']}/${state.pathParameters['agentId']}',
+              'agent:${state.pathParameters['agentId']}',
             ),
           ),
         ),

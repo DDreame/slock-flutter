@@ -172,14 +172,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     key: ValueKey('pinned-agent-${agent.id}'),
                     agent: agent,
                     isPinned: true,
-                    onTap: () {
-                      final serverId = ref.read(activeServerScopeIdProvider);
-                      if (serverId != null) {
-                        context.go(
-                          '/servers/${serverId.value}/agents/${agent.id}',
-                        );
-                      }
-                    },
+                    onTap: () => context.go('/agents/${agent.id}'),
                     onTogglePin: () => homeStore.unpinAgent(agent.id),
                   ),
               ],
@@ -190,14 +183,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     key: ValueKey('agent-${agent.id}'),
                     agent: agent,
                     isPinned: false,
-                    onTap: () {
-                      final serverId = ref.read(activeServerScopeIdProvider);
-                      if (serverId != null) {
-                        context.go(
-                          '/servers/${serverId.value}/agents/${agent.id}',
-                        );
-                      }
-                    },
+                    onTap: () => context.go('/agents/${agent.id}'),
                     onTogglePin: () => homeStore.pinAgent(agent.id),
                   ),
               ],
