@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
@@ -490,6 +493,7 @@ Widget _buildApp({
   MemberRepository? memberRepository,
   SidebarOrderRepository sidebarOrderRepository =
       const _FakeSidebarOrderRepository(),
+  AgentsRepository agentsRepository = const _FakeAgentsRepository(),
 }) {
   return ProviderScope(
     overrides: [
@@ -499,6 +503,7 @@ Widget _buildApp({
       homeRepositoryProvider.overrideWithValue(homeRepository),
       serverListRepositoryProvider.overrideWithValue(serverListRepository),
       sidebarOrderRepositoryProvider.overrideWithValue(sidebarOrderRepository),
+      agentsRepositoryProvider.overrideWithValue(agentsRepository),
       if (channelManagementRepository != null)
         channelManagementRepositoryProvider
             .overrideWithValue(channelManagementRepository),
@@ -711,4 +716,29 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
     ServerScopeId serverId, {
     required Map<String, Object> patch,
   }) async {}
+}
+
+class _FakeAgentsRepository implements AgentsRepository {
+  const _FakeAgentsRepository({this.agents = const []});
+
+  final List<AgentItem> agents;
+
+  @override
+  Future<List<AgentItem>> listAgents() async => agents;
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
 }

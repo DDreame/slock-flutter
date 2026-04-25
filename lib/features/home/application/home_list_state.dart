@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 
@@ -14,6 +15,8 @@ class HomeListState {
     this.channels = const [],
     this.directMessages = const [],
     this.hiddenDirectMessages = const [],
+    this.pinnedAgents = const [],
+    this.agents = const [],
     this.sidebarOrder = const SidebarOrder(),
     this.failure,
   });
@@ -24,6 +27,8 @@ class HomeListState {
   final List<HomeChannelSummary> channels;
   final List<HomeDirectMessageSummary> directMessages;
   final List<HomeDirectMessageSummary> hiddenDirectMessages;
+  final List<AgentItem> pinnedAgents;
+  final List<AgentItem> agents;
   final SidebarOrder sidebarOrder;
   final AppFailure? failure;
 
@@ -32,7 +37,9 @@ class HomeListState {
       pinnedChannels.isEmpty &&
       channels.isEmpty &&
       directMessages.isEmpty &&
-      hiddenDirectMessages.isEmpty;
+      hiddenDirectMessages.isEmpty &&
+      pinnedAgents.isEmpty &&
+      agents.isEmpty;
 
   HomeListState copyWith({
     ServerScopeId? serverScopeId,
@@ -41,6 +48,8 @@ class HomeListState {
     List<HomeChannelSummary>? channels,
     List<HomeDirectMessageSummary>? directMessages,
     List<HomeDirectMessageSummary>? hiddenDirectMessages,
+    List<AgentItem>? pinnedAgents,
+    List<AgentItem>? agents,
     SidebarOrder? sidebarOrder,
     AppFailure? failure,
     bool clearFailure = false,
@@ -52,6 +61,8 @@ class HomeListState {
       channels: channels ?? this.channels,
       directMessages: directMessages ?? this.directMessages,
       hiddenDirectMessages: hiddenDirectMessages ?? this.hiddenDirectMessages,
+      pinnedAgents: pinnedAgents ?? this.pinnedAgents,
+      agents: agents ?? this.agents,
       sidebarOrder: sidebarOrder ?? this.sidebarOrder,
       failure: clearFailure ? null : (failure ?? this.failure),
     );
@@ -68,6 +79,8 @@ class HomeListState {
             listEquals(channels, other.channels) &&
             listEquals(directMessages, other.directMessages) &&
             listEquals(hiddenDirectMessages, other.hiddenDirectMessages) &&
+            listEquals(pinnedAgents, other.pinnedAgents) &&
+            listEquals(agents, other.agents) &&
             sidebarOrder == other.sidebarOrder &&
             failure == other.failure;
   }
@@ -80,6 +93,8 @@ class HomeListState {
         Object.hashAll(channels),
         Object.hashAll(directMessages),
         Object.hashAll(hiddenDirectMessages),
+        Object.hashAll(pinnedAgents),
+        Object.hashAll(agents),
         sidebarOrder,
         failure,
       );

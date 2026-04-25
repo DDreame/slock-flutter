@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -16,12 +19,14 @@ final homeListStoreProvider = NotifierProvider<HomeListStore, HomeListState>(
 class HomeListStore extends Notifier<HomeListState> {
   List<HomeChannelSummary> _allChannels = const [];
   List<HomeDirectMessageSummary> _allDirectMessages = const [];
+  List<AgentItem> _allAgents = const [];
   SidebarOrder _sidebarOrder = const SidebarOrder();
 
   @override
   HomeListState build() {
     _allChannels = const [];
     _allDirectMessages = const [];
+    _allAgents = const [];
     _sidebarOrder = const SidebarOrder();
 
     final serverScopeId = ref.watch(activeServerScopeIdProvider);
@@ -53,14 +58,17 @@ class HomeListStore extends Notifier<HomeListState> {
       final results = await Future.wait([
         ref.read(homeRepositoryProvider).loadWorkspace(serverScopeId),
         _loadSidebarOrderSafe(serverScopeId),
+        _loadAgentsSafe(),
       ]);
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
 
       final snapshot = results[0] as HomeWorkspaceSnapshot;
       final sidebarOrder = results[1] as SidebarOrder;
+      final agents = results[2] as List<AgentItem>;
 
       _allChannels = List.of(snapshot.channels);
       _allDirectMessages = List.of(snapshot.directMessages);
+      _allAgents = List.of(agents);
       _sidebarOrder = sidebarOrder;
 
       _emitPersonalizedState(
@@ -88,6 +96,14 @@ class HomeListStore extends Notifier<HomeListState> {
           .loadSidebarOrder(serverScopeId);
     } catch (_) {
       return const SidebarOrder();
+    }
+  }
+
+  Future<List<AgentItem>> _loadAgentsSafe() async {
+    try {
+      return await ref.read(agentsRepositoryProvider).listAgents();
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -273,6 +289,62 @@ class HomeListStore extends Notifier<HomeListState> {
     }
   }
 
+  Future<void> pinAgent(String agentId) async {
+    if (state.status != HomeListStatus.success) return;
+    if (_sidebarOrder.isAgentPinned(agentId)) return;
+    final serverScopeId = state.serverScopeId;
+    if (serverScopeId == null) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      pinnedAgentIds: [..._sidebarOrder.pinnedAgentIds, agentId],
+      agentOrder: [..._sidebarOrder.agentOrder, agentId],
+    );
+    _emitPersonalizedState();
+
+    try {
+      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
+            serverScopeId,
+            patch: _sidebarOrder.toPatchMap(
+              includePinnedAgentIds: true,
+              includeAgentOrder: true,
+            ),
+          );
+    } on AppFailure {
+      _sidebarOrder = previous;
+      _emitPersonalizedState();
+    }
+  }
+
+  Future<void> unpinAgent(String agentId) async {
+    if (state.status != HomeListStatus.success) return;
+    if (!_sidebarOrder.isAgentPinned(agentId)) return;
+    final serverScopeId = state.serverScopeId;
+    if (serverScopeId == null) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      pinnedAgentIds:
+          _sidebarOrder.pinnedAgentIds.where((id) => id != agentId).toList(),
+      agentOrder:
+          _sidebarOrder.agentOrder.where((id) => id != agentId).toList(),
+    );
+    _emitPersonalizedState();
+
+    try {
+      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
+            serverScopeId,
+            patch: _sidebarOrder.toPatchMap(
+              includePinnedAgentIds: true,
+              includeAgentOrder: true,
+            ),
+          );
+    } on AppFailure {
+      _sidebarOrder = previous;
+      _emitPersonalizedState();
+    }
+  }
+
   String channelRoutePath(ChannelScopeId scopeId) {
     return '/servers/${scopeId.serverId.routeParam}/channels/${scopeId.routeParam}';
   }
@@ -321,6 +393,22 @@ class HomeListStore extends Notifier<HomeListState> {
     final hiddenDms =
         sortedDms.where((d) => hiddenSet.contains(d.scopeId.value)).toList();
 
+    final sortedAgents = _sortByOrder(
+      _allAgents,
+      order.agentOrder,
+      (a) => a.id,
+    );
+    final pinnedAgentSet = order.pinnedAgentIds.toSet();
+    final pinnedAgentList = <AgentItem>[];
+    final unpinnedAgentList = <AgentItem>[];
+    for (final agent in sortedAgents) {
+      if (pinnedAgentSet.contains(agent.id)) {
+        pinnedAgentList.add(agent);
+      } else {
+        unpinnedAgentList.add(agent);
+      }
+    }
+
     state = state.copyWith(
       serverScopeId: serverScopeId,
       status: status,
@@ -328,6 +416,8 @@ class HomeListStore extends Notifier<HomeListState> {
       channels: unpinned,
       directMessages: visibleDms,
       hiddenDirectMessages: hiddenDms,
+      pinnedAgents: pinnedAgentList,
+      agents: unpinnedAgentList,
       sidebarOrder: order,
       clearFailure: status == HomeListStatus.success,
     );

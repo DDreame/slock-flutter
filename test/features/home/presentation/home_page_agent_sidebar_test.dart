@@ -16,205 +16,156 @@ import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 
 void main() {
-  group('pinned channels section', () {
-    testWidgets('renders Pinned header and pinned rows when pins exist', (
-      tester,
-    ) async {
+  group('agent sidebar sections', () {
+    testWidgets('renders Agents section when agents exist', (tester) async {
       await tester.pumpWidget(
-        _buildApp(
-          sidebarOrder: const SidebarOrder(
-            pinnedChannelIds: ['general'],
-            pinnedOrder: ['general'],
-          ),
-        ),
+        _buildApp(agents: [_agentA, _agentB]),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Pinned'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('pinned-general')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('channel-random')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('channel-general')),
-        findsNothing,
-      );
+      expect(find.text('Agents'), findsOneWidget);
+      expect(find.byKey(const ValueKey('agent-agent-a')), findsOneWidget);
+      expect(find.byKey(const ValueKey('agent-agent-b')), findsOneWidget);
     });
 
-    testWidgets('no Pinned header when nothing is pinned', (tester) async {
+    testWidgets('does not render Agents header when no agents', (
+      tester,
+    ) async {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Pinned'), findsNothing);
-      expect(
-        find.byKey(const ValueKey('channel-general')),
-        findsOneWidget,
-      );
+      expect(find.text('Agents'), findsNothing);
+      expect(find.text('Pinned Agents'), findsNothing);
     });
 
-    testWidgets('pinned channel shows push_pin icon', (tester) async {
+    testWidgets('renders Pinned Agents section when pinned agents exist', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _buildApp(
+          agents: [_agentA, _agentB],
           sidebarOrder: const SidebarOrder(
-            pinnedChannelIds: ['general'],
-            pinnedOrder: ['general'],
+            pinnedAgentIds: ['agent-a'],
+            agentOrder: ['agent-a', 'agent-b'],
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      final pinnedRow = find.byKey(const ValueKey('pinned-general'));
+      expect(find.text('Pinned Agents'), findsOneWidget);
       expect(
-        find.descendant(of: pinnedRow, matching: find.byIcon(Icons.push_pin)),
+        find.byKey(const ValueKey('pinned-agent-agent-a')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('agent-agent-b')), findsOneWidget);
+      expect(find.byKey(const ValueKey('agent-agent-a')), findsNothing);
     });
 
-    testWidgets('pin channel via menu moves channel to pinned section', (
-      tester,
-    ) async {
+    testWidgets('pin agent via popup menu', (tester) async {
       final sidebarRepo = _FakeSidebarOrderRepository();
       await tester.pumpWidget(
-        _buildApp(sidebarOrderRepository: sidebarRepo),
+        _buildApp(
+          agents: [_agentA],
+          sidebarOrderRepository: sidebarRepo,
+        ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Pinned'), findsNothing);
-
-      final menuFinder = find.byKey(const ValueKey('channel-menu-general'));
-      await tester.tap(menuFinder, warnIfMissed: false);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Pin channel'));
+      await tester.tap(find.byKey(const ValueKey('agent-menu-agent-a')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Pinned'), findsOneWidget);
+      await tester.tap(find.text('Pin'));
+      await tester.pumpAndSettle();
+
       expect(
-        find.byKey(const ValueKey('pinned-general')),
+        find.byKey(const ValueKey('pinned-agent-agent-a')),
         findsOneWidget,
       );
       expect(sidebarRepo.patchCalls, 1);
     });
 
-    testWidgets('unpin channel via menu moves channel back to Channels', (
-      tester,
-    ) async {
+    testWidgets('unpin agent via popup menu', (tester) async {
       final sidebarRepo = _FakeSidebarOrderRepository(
         sidebarOrder: const SidebarOrder(
-          pinnedChannelIds: ['general'],
-          pinnedOrder: ['general'],
+          pinnedAgentIds: ['agent-a'],
+          agentOrder: ['agent-a'],
         ),
       );
-      await tester.pumpWidget(
-        _buildApp(sidebarOrderRepository: sidebarRepo),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Pinned'), findsOneWidget);
-
-      final menuFinder = find.byKey(const ValueKey('channel-menu-general'));
-      await tester.tap(menuFinder, warnIfMissed: false);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Unpin channel'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Pinned'), findsNothing);
-      expect(
-        find.byKey(const ValueKey('channel-general')),
-        findsOneWidget,
-      );
-      expect(sidebarRepo.patchCalls, 1);
-    });
-  });
-
-  group('hidden DMs', () {
-    testWidgets('hidden DMs are not shown in main list', (tester) async {
       await tester.pumpWidget(
         _buildApp(
-          sidebarOrder: const SidebarOrder(hiddenDmIds: ['dm-alice']),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const ValueKey('dm-dm-alice')), findsNothing);
-      expect(find.byKey(const ValueKey('dm-dm-bob')), findsOneWidget);
-    });
-
-    testWidgets('hidden conversations tile shows count', (tester) async {
-      await tester.pumpWidget(
-        _buildApp(
-          sidebarOrder: const SidebarOrder(hiddenDmIds: ['dm-alice']),
+          agents: [_agentA],
+          sidebarOrderRepository: sidebarRepo,
         ),
       );
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const ValueKey('home-hidden-dms')),
+        find.byKey(const ValueKey('pinned-agent-agent-a')),
         findsOneWidget,
       );
-      expect(find.text('Hidden conversations (1)'), findsOneWidget);
-    });
 
-    testWidgets('no hidden tile when no DMs are hidden', (tester) async {
-      await tester.pumpWidget(_buildApp());
+      await tester.tap(find.byKey(const ValueKey('agent-menu-agent-a')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Unpin'));
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const ValueKey('home-hidden-dms')),
+        find.byKey(const ValueKey('pinned-agent-agent-a')),
         findsNothing,
       );
+      expect(find.byKey(const ValueKey('agent-agent-a')), findsOneWidget);
+      expect(sidebarRepo.patchCalls, 1);
     });
 
-    testWidgets('tapping hidden tile opens bottom sheet with hidden DMs', (
-      tester,
-    ) async {
+    testWidgets('agents are sorted by agentOrder', (tester) async {
       await tester.pumpWidget(
         _buildApp(
-          sidebarOrder: const SidebarOrder(hiddenDmIds: ['dm-alice']),
+          agents: [_agentA, _agentB],
+          sidebarOrder: const SidebarOrder(
+            agentOrder: ['agent-b', 'agent-a'],
+          ),
         ),
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('home-hidden-dms')));
-      await tester.pumpAndSettle();
+      final agentBFinder = find.byKey(const ValueKey('agent-agent-b'));
+      final agentAFinder = find.byKey(const ValueKey('agent-agent-a'));
 
-      expect(find.text('Hidden conversations'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('hidden-dm-dm-alice')),
-        findsOneWidget,
-      );
-      expect(find.text('Unhide'), findsOneWidget);
+      final agentBY = tester.getTopLeft(agentBFinder).dy;
+      final agentAY = tester.getTopLeft(agentAFinder).dy;
+      expect(agentBY, lessThan(agentAY));
     });
 
-    testWidgets('hide DM via menu removes it from visible list', (
-      tester,
-    ) async {
-      final sidebarRepo = _FakeSidebarOrderRepository();
-      await tester.pumpWidget(
-        _buildApp(sidebarOrderRepository: sidebarRepo),
-      );
+    testWidgets('agent row shows label and activity', (tester) async {
+      await tester.pumpWidget(_buildApp(agents: [_agentA]));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('dm-dm-alice')), findsOneWidget);
-
-      final menuFinder = find.byKey(const ValueKey('dm-menu-dm-alice'));
-      await tester.tap(menuFinder, warnIfMissed: false);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Hide conversation'));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const ValueKey('dm-dm-alice')), findsNothing);
-      expect(
-        find.byKey(const ValueKey('home-hidden-dms')),
-        findsOneWidget,
-      );
-      expect(sidebarRepo.patchCalls, 1);
+      expect(find.text('Agent Alpha'), findsOneWidget);
+      expect(find.text('working'), findsOneWidget);
     });
   });
 }
+
+const _agentA = AgentItem(
+  id: 'agent-a',
+  name: 'alpha',
+  displayName: 'Agent Alpha',
+  model: 'claude-sonnet-4-6',
+  runtime: 'docker',
+  status: 'active',
+  activity: 'working',
+);
+
+const _agentB = AgentItem(
+  id: 'agent-b',
+  name: 'beta',
+  displayName: 'Agent Beta',
+  model: 'claude-haiku-4-5-20251001',
+  runtime: 'docker',
+  status: 'active',
+  activity: 'online',
+);
 
 const _sampleSnapshot = HomeWorkspaceSnapshot(
   serverId: ServerScopeId('server-1'),
@@ -226,13 +177,6 @@ const _sampleSnapshot = HomeWorkspaceSnapshot(
       ),
       name: 'general',
     ),
-    HomeChannelSummary(
-      scopeId: ChannelScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'random',
-      ),
-      name: 'random',
-    ),
   ],
   directMessages: [
     HomeDirectMessageSummary(
@@ -242,17 +186,11 @@ const _sampleSnapshot = HomeWorkspaceSnapshot(
       ),
       title: 'Alice',
     ),
-    HomeDirectMessageSummary(
-      scopeId: DirectMessageScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'dm-bob',
-      ),
-      title: 'Bob',
-    ),
   ],
 );
 
 Widget _buildApp({
+  List<AgentItem> agents = const [],
   SidebarOrder sidebarOrder = const SidebarOrder(),
   _FakeSidebarOrderRepository? sidebarOrderRepository,
 }) {
@@ -269,6 +207,16 @@ Widget _buildApp({
       GoRoute(
         path: '/servers/:serverId/dms/:channelId',
         builder: (context, state) => const SizedBox.shrink(),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/agents/:agentId',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text(
+              'agent:${state.pathParameters['serverId']}/${state.pathParameters['agentId']}',
+            ),
+          ),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/search',
@@ -301,7 +249,9 @@ Widget _buildApp({
         const _FakeServerListRepository([]),
       ),
       sidebarOrderRepositoryProvider.overrideWithValue(sidebarRepo),
-      agentsRepositoryProvider.overrideWithValue(const _FakeAgentsRepository()),
+      agentsRepositoryProvider.overrideWithValue(
+        _FakeAgentsRepository(agents: agents),
+      ),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
