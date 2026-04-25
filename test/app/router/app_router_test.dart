@@ -16,6 +16,10 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+
+import '../../stores/session/session_store_persistence_test.dart'
+    show FakeAuthRepository;
 
 void main() {
   test(
@@ -137,6 +141,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -269,6 +274,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -296,6 +302,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -325,6 +332,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         ],
       );
       addTearDown(container.dispose);
@@ -347,6 +355,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -374,6 +383,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -405,6 +415,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(storage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
           serverListRepositoryProvider.overrideWithValue(
@@ -456,6 +467,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(storage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
           serverListRepositoryProvider.overrideWithValue(
@@ -505,6 +517,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -532,6 +545,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -577,6 +591,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(storage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
           serverListRepositoryProvider.overrideWithValue(
@@ -624,6 +639,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -657,6 +673,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(storage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
           serverListRepositoryProvider.overrideWithValue(
@@ -706,6 +723,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(storage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
           serverListRepositoryProvider.overrideWithValue(
@@ -756,6 +774,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -789,6 +808,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
           serverListRepositoryProvider.overrideWithValue(
@@ -831,6 +851,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
           serverListRepositoryProvider.overrideWithValue(
@@ -872,6 +893,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
           serverListRepositoryProvider.overrideWithValue(
@@ -909,6 +931,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -945,6 +968,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -980,6 +1004,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
@@ -1017,6 +1042,8 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
             splashControllerProvider
                 .overrideWith(() => _StallingSplashController()),
           ],
@@ -1054,6 +1081,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         ],
       );
       addTearDown(container.dispose);
@@ -1073,6 +1101,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         ],
       );
       addTearDown(container.dispose);

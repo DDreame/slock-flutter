@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
+import 'package:slock_app/features/auth/data/auth_repository.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -26,6 +28,36 @@ class FakeSecureStorage implements SecureStorage {
   Map<String, String> get snapshot => Map.unmodifiable(_store);
 }
 
+class FakeAuthRepository implements AuthRepository {
+  const FakeAuthRepository();
+
+  @override
+  Future<AuthResult> login({
+    required String email,
+    required String password,
+  }) async =>
+      const AuthResult(
+        token: 'fake-token',
+        userId: 'fake-uid',
+        displayName: 'Fake User',
+      );
+
+  @override
+  Future<AuthResult> register({
+    required String email,
+    required String password,
+    required String displayName,
+  }) async =>
+      AuthResult(
+        token: 'fake-token',
+        userId: 'fake-uid',
+        displayName: displayName,
+      );
+
+  @override
+  Future<void> requestPasswordReset({required String email}) async {}
+}
+
 void main() {
   late ProviderContainer container;
   late FakeSecureStorage fakeStorage;
@@ -35,6 +67,7 @@ void main() {
     container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(fakeStorage),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
       ],
     );
   });
@@ -73,9 +106,9 @@ void main() {
           .read(sessionStoreProvider.notifier)
           .login(email: 'test@example.com', password: 'password');
 
-      expect(fakeStorage.snapshot[SessionStorageKeys.token], 'stub-token');
-      expect(fakeStorage.snapshot[SessionStorageKeys.userId], 'stub-user-id');
-      expect(fakeStorage.snapshot[SessionStorageKeys.displayName], 'test');
+      expect(fakeStorage.snapshot[SessionStorageKeys.token], 'fake-token');
+      expect(fakeStorage.snapshot[SessionStorageKeys.userId], 'fake-uid');
+      expect(fakeStorage.snapshot[SessionStorageKeys.displayName], 'Fake User');
     });
 
     test('register persists session to storage', () async {
@@ -85,8 +118,8 @@ void main() {
             displayName: 'Test User',
           );
 
-      expect(fakeStorage.snapshot[SessionStorageKeys.token], 'stub-token');
-      expect(fakeStorage.snapshot[SessionStorageKeys.userId], 'stub-user-id');
+      expect(fakeStorage.snapshot[SessionStorageKeys.token], 'fake-token');
+      expect(fakeStorage.snapshot[SessionStorageKeys.userId], 'fake-uid');
       expect(
         fakeStorage.snapshot[SessionStorageKeys.displayName],
         'Test User',
@@ -163,7 +196,7 @@ void main() {
         container.read(sessionStoreProvider).status,
         AuthStatus.authenticated,
       );
-      expect(container.read(sessionStoreProvider).token, 'stub-token');
+      expect(container.read(sessionStoreProvider).token, 'fake-token');
 
       await container.read(sessionStoreProvider.notifier).logout();
       expect(

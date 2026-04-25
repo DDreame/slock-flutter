@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/push_token/application/push_token_lifecycle_binding.dart';
 import 'package:slock_app/features/push_token/data/push_token_repository.dart';
 import 'package:slock_app/features/push_token/data/push_token_repository_provider.dart';
@@ -10,7 +11,7 @@ import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 import '../../../stores/session/session_store_persistence_test.dart'
-    show FakeSecureStorage;
+    show FakeSecureStorage, FakeAuthRepository;
 
 class _FakeNotificationInitializer implements NotificationInitializer {
   final List<String> tokens;
@@ -100,6 +101,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         pushTokenRepositoryProvider.overrideWithValue(fakeRepo),
         notificationInitializerProvider
             .overrideWithValue(_FakeNotificationInitializer(tokens)),
@@ -191,7 +193,7 @@ void main() {
     expect(fakeRepo.calls, hasLength(1));
     expect(fakeRepo.calls.first.method, 'deregister');
     expect(fakeRepo.calls.first.token, 'fcm-token-1');
-    expect(fakeRepo.calls.first.authToken, 'stub-token');
+    expect(fakeRepo.calls.first.authToken, 'fake-token');
   });
 
   test('logout does not clear local push token', () async {

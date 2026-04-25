@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 
@@ -36,11 +37,15 @@ class SessionStore extends Notifier<SessionState> {
   }
 
   Future<void> login({required String email, required String password}) async {
+    final result = await ref.read(authRepositoryProvider).login(
+          email: email,
+          password: password,
+        );
     state = state.copyWith(
       status: AuthStatus.authenticated,
-      userId: 'stub-user-id',
-      displayName: email.split('@').first,
-      token: 'stub-token',
+      userId: result.userId,
+      displayName: result.displayName,
+      token: result.token,
     );
     await _persistSession();
   }
@@ -50,16 +55,23 @@ class SessionStore extends Notifier<SessionState> {
     required String password,
     required String displayName,
   }) async {
+    final result = await ref.read(authRepositoryProvider).register(
+          email: email,
+          password: password,
+          displayName: displayName,
+        );
     state = state.copyWith(
       status: AuthStatus.authenticated,
-      userId: 'stub-user-id',
-      displayName: displayName,
-      token: 'stub-token',
+      userId: result.userId,
+      displayName: result.displayName ?? displayName,
+      token: result.token,
     );
     await _persistSession();
   }
 
-  Future<void> requestPasswordReset({required String email}) async {}
+  Future<void> requestPasswordReset({required String email}) async {
+    await ref.read(authRepositoryProvider).requestPasswordReset(email: email);
+  }
 
   Future<void> logout() async {
     await ref.read(serverSelectionStoreProvider.notifier).clearSelection();
