@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/features/billing/application/billing_realtime_binding.dart';
 import 'package:slock_app/features/billing/application/billing_state.dart';
 import 'package:slock_app/features/billing/application/billing_store.dart';
 import 'package:slock_app/features/billing/data/billing_repository.dart';
@@ -15,6 +16,7 @@ class BillingPage extends ConsumerStatefulWidget {
 class _BillingPageState extends ConsumerState<BillingPage> {
   @override
   Widget build(BuildContext context) {
+    ref.watch(billingRealtimeBindingProvider);
     final state = ref.watch(billingStoreProvider);
     if (state.status == BillingStatus.initial) {
       Future.microtask(
