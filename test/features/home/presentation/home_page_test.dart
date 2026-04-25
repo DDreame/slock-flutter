@@ -719,12 +719,10 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
 }
 
 class _FakeAgentsRepository implements AgentsRepository {
-  const _FakeAgentsRepository({this.agents = const []});
-
-  final List<AgentItem> agents;
+  const _FakeAgentsRepository();
 
   @override
-  Future<List<AgentItem>> listAgents() async => agents;
+  Future<List<AgentItem>> listAgents() async => const [];
 
   @override
   Future<void> startAgent(String agentId) async {}
