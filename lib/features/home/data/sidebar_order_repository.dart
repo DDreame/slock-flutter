@@ -72,6 +72,8 @@ SidebarOrder _parseSidebarOrder(Object? payload) {
     pinnedChannelIds: _parseStringList(payload['pinnedChannelIds']),
     pinnedOrder: _parseStringList(payload['pinnedOrder']),
     hiddenDmIds: _parseStringList(payload['hiddenDmIds']),
+    agentOrder: _parseStringList(payload['agentOrder']),
+    pinnedAgentIds: _parseStringList(payload['pinnedAgentIds']),
   );
 }
 

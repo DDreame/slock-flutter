@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
 import 'package:slock_app/features/channels/presentation/widgets/channel_management_dialogs.dart';
@@ -164,6 +165,28 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   onTap: () => _showHiddenDmsSheet(homeStore, unreadStore),
                 ),
+              if (state.pinnedAgents.isNotEmpty) ...[
+                const _HomeSectionHeader(title: 'Pinned Agents'),
+                for (final agent in state.pinnedAgents)
+                  _HomeAgentRow(
+                    key: ValueKey('pinned-agent-${agent.id}'),
+                    agent: agent,
+                    isPinned: true,
+                    onTap: () => context.go('/agents/${agent.id}'),
+                    onTogglePin: () => homeStore.unpinAgent(agent.id),
+                  ),
+              ],
+              if (state.agents.isNotEmpty || state.pinnedAgents.isNotEmpty) ...[
+                const _HomeSectionHeader(title: 'Agents'),
+                for (final agent in state.agents)
+                  _HomeAgentRow(
+                    key: ValueKey('agent-${agent.id}'),
+                    agent: agent,
+                    isPinned: false,
+                    onTap: () => context.go('/agents/${agent.id}'),
+                    onTogglePin: () => homeStore.pinAgent(agent.id),
+                  ),
+              ],
             ],
           ),
       },
@@ -433,6 +456,43 @@ class _HomePageState extends ConsumerState<HomePage> {
           },
         );
       },
+    );
+  }
+}
+
+class _HomeAgentRow extends StatelessWidget {
+  const _HomeAgentRow({
+    super.key,
+    required this.agent,
+    required this.isPinned,
+    required this.onTap,
+    required this.onTogglePin,
+  });
+
+  final AgentItem agent;
+  final bool isPinned;
+  final VoidCallback onTap;
+  final VoidCallback onTogglePin;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.smart_toy_outlined),
+      title: Text(agent.label),
+      subtitle: Text(agent.activity),
+      trailing: PopupMenuButton<String>(
+        key: ValueKey('agent-menu-${agent.id}'),
+        onSelected: (value) {
+          if (value == 'toggle_pin') onTogglePin();
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'toggle_pin',
+            child: Text(isPinned ? 'Unpin' : 'Pin'),
+          ),
+        ],
+      ),
+      onTap: onTap,
     );
   }
 }
