@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 final currentOpenConversationTargetProvider =
@@ -20,6 +21,9 @@ final currentOpenConversationRegistrationProvider =
 
   ref.onDispose(() {
     disposed = true;
+    ref
+        .read(realtimeSocketClientProvider)
+        .emit('leave:channel', target.conversationId);
     if (!openTargetNotifier.mounted) {
       return;
     }

@@ -348,9 +348,11 @@ void main() {
         hasOlder: false,
       ),
     );
+    final socket = _FakeRealtimeSocketClient();
     final container = ProviderContainer(
       overrides: [
         conversationRepositoryProvider.overrideWithValue(repository),
+        realtimeSocketClientProvider.overrideWithValue(socket),
       ],
     );
     addTearDown(container.dispose);
@@ -374,6 +376,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(container.read(currentOpenConversationTargetProvider), isNull);
+    expect(socket.emitted, [('leave:channel', 'general')]);
   });
 
   testWidgets('scrolling to top loads older history and prepends it', (
@@ -824,6 +827,30 @@ class _FakeConversationRepository implements ConversationRepository {
       hasOlder: false,
     );
   }
+}
+
+class _FakeRealtimeSocketClient implements RealtimeSocketClient {
+  final List<(String, Object?)> emitted = [];
+
+  @override
+  Stream<RealtimeSocketSignal> get signals => const Stream.empty();
+
+  @override
+  bool get isConnected => true;
+
+  @override
+  Future<void> connect() async {}
+
+  @override
+  Future<void> disconnect() async {}
+
+  @override
+  void emit(String eventName, Object? payload) {
+    emitted.add((eventName, payload));
+  }
+
+  @override
+  Future<void> dispose() async {}
 }
 
 class _QueueConversationRepository implements ConversationRepository {
