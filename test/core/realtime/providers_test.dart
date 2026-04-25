@@ -58,11 +58,11 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   SessionState build() => SessionState(
-    status: token == null
-        ? AuthStatus.unauthenticated
-        : AuthStatus.authenticated,
-    userId: token == null ? null : 'user-123',
-    displayName: token == null ? null : 'Alice',
-    token: token,
-  );
+        status: token == null
+            ? AuthStatus.unauthenticated
+            : AuthStatus.authenticated,
+        userId: token == null ? null : 'user-123',
+        displayName: token == null ? null : 'Alice',
+        token: token,
+      );
 }

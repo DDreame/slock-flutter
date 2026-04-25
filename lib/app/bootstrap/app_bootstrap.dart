@@ -72,11 +72,11 @@ Future<AppBootstrapResult> appBootstrap({
 String _readCompileTimeEnvironment(String key) {
   return switch (key) {
     apiBaseUrlEnvironmentKey => const String.fromEnvironment(
-      apiBaseUrlEnvironmentKey,
-    ),
+        apiBaseUrlEnvironmentKey,
+      ),
     realtimeUrlEnvironmentKey => const String.fromEnvironment(
-      realtimeUrlEnvironmentKey,
-    ),
+        realtimeUrlEnvironmentKey,
+      ),
     _ => '',
   };
 }

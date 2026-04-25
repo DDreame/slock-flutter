@@ -69,10 +69,10 @@ final realtimeWatchdogProvider = Provider<RealtimeWatchdog>((ref) {
 
 final realtimeWatchdogTimerFactoryProvider =
     Provider<RealtimePeriodicTimerFactory>((ref) {
-      return (interval, onTick) => Timer.periodic(interval, (_) => onTick());
-    });
+  return (interval, onTick) => Timer.periodic(interval, (_) => onTick());
+});
 
 final realtimeServiceProvider =
     NotifierProvider<RealtimeService, RealtimeConnectionState>(
-      RealtimeService.new,
-    );
+  RealtimeService.new,
+);
