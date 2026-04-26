@@ -277,6 +277,22 @@ void main() {
       );
     });
 
+    test('clearPushToken preserves notification preference', () async {
+      await readStore().setNotificationPreference(
+        NotificationPreference.mute,
+      );
+      fakeInitializer.tokenResult = 'to-clear';
+      await readStore().refreshToken();
+
+      await readStore().clearPushToken();
+
+      expect(readState().notificationPreference, NotificationPreference.mute);
+      expect(
+        fakeStorage.snapshot[NotificationStorageKeys.notificationPreference],
+        'mute',
+      );
+    });
+
     test('init is idempotent — second call is a no-op', () async {
       await readStore().init();
       await readStore().init();

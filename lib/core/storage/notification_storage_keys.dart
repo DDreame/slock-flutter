@@ -6,15 +6,14 @@ abstract final class NotificationStorageKeys {
   static const pushTokenUpdatedAt = 'notification_push_token_updated_at';
   static const notificationPreference = 'notification_preference';
 
-  static const _all = [
+  static const _tokenKeys = [
     pushToken,
     pushTokenPlatform,
     pushTokenUpdatedAt,
-    notificationPreference,
   ];
 
   static Future<void> clear(SecureStorage storage) async {
-    for (final key in _all) {
+    for (final key in _tokenKeys) {
       await storage.delete(key: key);
     }
   }
