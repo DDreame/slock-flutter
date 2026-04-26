@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -10,10 +9,9 @@ import 'package:slock_app/core/network/token_refresh_coordinator.dart';
 void main() {
   group('AppDioInterceptor token refresh + retry', () {
     test('401 with successful refresh retries and resolves', () async {
-      var requestCount = 0;
       final adapter = _SequenceAdapter([
-        _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
-        _StubResponse(statusCode: 200, body: '{"data":"ok"}'),
+        const _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
+        const _StubResponse(statusCode: 200, body: '{"data":"ok"}'),
       ]);
 
       final coordinator = TokenRefreshCoordinator(
@@ -24,10 +22,7 @@ void main() {
       dio.httpClientAdapter = adapter;
       dio.interceptors.add(
         AppDioInterceptor(
-          buildHeaders: () async {
-            requestCount++;
-            return {'Authorization': 'Bearer old-token'};
-          },
+          buildHeaders: () async => {'Authorization': 'Bearer old-token'},
           tokenRefreshCoordinator: coordinator,
           logSink: noopNetworkLogSink,
           dioForRetry: () => dio,
@@ -43,7 +38,7 @@ void main() {
 
     test('401 with null refresh propagates UnauthorizedFailure', () async {
       final adapter = _SequenceAdapter([
-        _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
+        const _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
       ]);
 
       final coordinator = TokenRefreshCoordinator(
@@ -72,7 +67,7 @@ void main() {
     test('retried request with _tokenRetried flag skips refresh', () async {
       var refreshCalls = 0;
       final adapter = _SequenceAdapter([
-        _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
+        const _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
       ]);
 
       final coordinator = TokenRefreshCoordinator(
@@ -109,7 +104,7 @@ void main() {
     test('non-401 errors are not retried', () async {
       var refreshCalls = 0;
       final adapter = _SequenceAdapter([
-        _StubResponse(statusCode: 500, body: '{"error":"server"}'),
+        const _StubResponse(statusCode: 500, body: '{"error":"server"}'),
       ]);
 
       final coordinator = TokenRefreshCoordinator(
@@ -142,8 +137,8 @@ void main() {
 
     test('refresh succeeds but retry fails surfaces retry error', () async {
       final adapter = _SequenceAdapter([
-        _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
-        _StubResponse(statusCode: 500, body: '{"error":"server"}'),
+        const _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
+        const _StubResponse(statusCode: 500, body: '{"error":"server"}'),
       ]);
 
       final coordinator = TokenRefreshCoordinator(
@@ -173,8 +168,8 @@ void main() {
 
     test('retry preserves original request method and body', () async {
       final adapter = _SequenceAdapter([
-        _StubResponse(statusCode: 401, body: '{}'),
-        _StubResponse(statusCode: 200, body: '{"created":true}'),
+        const _StubResponse(statusCode: 401, body: '{}'),
+        const _StubResponse(statusCode: 200, body: '{"created":true}'),
       ]);
 
       var currentToken = 'stale';
