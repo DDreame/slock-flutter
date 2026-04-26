@@ -4,18 +4,23 @@ import 'package:slock_app/core/network/auth_token_provider.dart';
 import 'package:slock_app/core/network/network_log_event.dart';
 import 'package:slock_app/core/network/token_refresh_coordinator.dart';
 
+const tokenRetriedKey = '_tokenRetried';
+
 class AppDioInterceptor extends Interceptor {
   AppDioInterceptor({
     required RequestHeadersBuilder buildHeaders,
     required TokenRefreshCoordinator tokenRefreshCoordinator,
     required NetworkLogSink logSink,
+    required Dio Function() dioForRetry,
   })  : _buildHeaders = buildHeaders,
         _tokenRefreshCoordinator = tokenRefreshCoordinator,
-        _logSink = logSink;
+        _logSink = logSink,
+        _dioForRetry = dioForRetry;
 
   final RequestHeadersBuilder _buildHeaders;
   final TokenRefreshCoordinator _tokenRefreshCoordinator;
   final NetworkLogSink _logSink;
+  final Dio Function() _dioForRetry;
   final AppFailureMapper _failureMapper = const AppFailureMapper();
 
   @override
@@ -67,9 +72,11 @@ class AppDioInterceptor extends Interceptor {
     DioException err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401) {
+    if (err.response?.statusCode == 401 &&
+        err.requestOptions.extra[tokenRetriedKey] != true) {
+      String? newToken;
       try {
-        await _tokenRefreshCoordinator.refreshToken();
+        newToken = await _tokenRefreshCoordinator.refreshToken();
         _logSink(
           NetworkLogEvent(
             stage: NetworkLogStage.refresh,
@@ -79,7 +86,17 @@ class AppDioInterceptor extends Interceptor {
           ),
         );
       } catch (_) {
-        // Refresh failures are surfaced through the original request failure.
+        // Refresh failed — fall through to original 401 error.
+      }
+      if (newToken != null && newToken.isNotEmpty) {
+        try {
+          final opts = err.requestOptions;
+          opts.extra[tokenRetriedKey] = true;
+          final response = await _dioForRetry().fetch<dynamic>(opts);
+          return handler.resolve(response);
+        } on DioException catch (retryErr) {
+          err = retryErr;
+        }
       }
     }
 

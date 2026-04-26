@@ -30,6 +30,7 @@ final dioProvider = Provider<Dio>((ref) {
       buildHeaders: buildHeaders,
       tokenRefreshCoordinator: tokenRefreshCoordinator,
       logSink: logSink,
+      dioForRetry: () => dio,
     ),
   );
   return dio;
