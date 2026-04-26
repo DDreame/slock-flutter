@@ -8,6 +8,7 @@ final currentOpenConversationTargetProvider =
 final currentOpenConversationRegistrationProvider =
     Provider.autoDispose.family<void, ConversationDetailTarget>((ref, target) {
   var disposed = false;
+  final realtimeSocketClient = ref.read(realtimeSocketClientProvider);
   final openTargetNotifier = ref.read(
     currentOpenConversationTargetProvider.notifier,
   );
@@ -21,9 +22,7 @@ final currentOpenConversationRegistrationProvider =
 
   ref.onDispose(() {
     disposed = true;
-    ref
-        .read(realtimeSocketClientProvider)
-        .emit('leave:channel', target.conversationId);
+    realtimeSocketClient.emit('leave:channel', target.conversationId);
     if (!openTargetNotifier.mounted) {
       return;
     }
