@@ -23,6 +23,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('agent-agent-b')),
+        200,
+      );
       expect(find.text('Agents'), findsOneWidget);
       expect(find.byKey(const ValueKey('agent-agent-a')), findsOneWidget);
       expect(find.byKey(const ValueKey('agent-agent-b')), findsOneWidget);
@@ -52,6 +56,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('agent-agent-b')),
+        200,
+      );
       expect(find.text('Pinned Agents'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('pinned-agent-agent-a')),
@@ -129,6 +137,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('agent-agent-a')),
+        200,
+      );
       final agentBFinder = find.byKey(const ValueKey('agent-agent-b'));
       final agentAFinder = find.byKey(const ValueKey('agent-agent-a'));
 
@@ -232,6 +244,10 @@ Widget _buildApp({
       ),
       GoRoute(
         path: '/servers/:serverId/tasks',
+        builder: (context, state) => const SizedBox.shrink(),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/machines',
         builder: (context, state) => const SizedBox.shrink(),
       ),
     ],
