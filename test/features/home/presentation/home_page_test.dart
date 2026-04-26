@@ -410,6 +410,25 @@ void main() {
     container.dispose();
   });
 
+  testWidgets('Machines entry navigates to the machines route', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('home-machines')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('machines:server-1'), findsOneWidget);
+  });
+
   testWidgets('server switcher sheet scrolls with many servers', (
     tester,
   ) async {
@@ -548,6 +567,14 @@ GoRouter _buildRouter() {
         builder: (context, state) => Scaffold(
           body: Center(
             child: Text('members:${state.pathParameters['serverId']}'),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/machines',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text('machines:${state.pathParameters['serverId']}'),
           ),
         ),
       ),

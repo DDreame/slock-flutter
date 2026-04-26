@@ -99,6 +99,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                   }
                 },
               ),
+              ListTile(
+                key: const ValueKey('home-machines'),
+                leading: const Icon(Icons.memory_outlined),
+                title: const Text('Machines'),
+                onTap: () {
+                  final serverId = ref.read(activeServerScopeIdProvider);
+                  if (serverId != null) {
+                    context.go('/servers/${serverId.value}/machines');
+                  }
+                },
+              ),
               if (state.pinnedChannels.isNotEmpty) ...[
                 const _HomeSectionHeader(title: 'Pinned'),
                 for (final channel in state.pinnedChannels)
