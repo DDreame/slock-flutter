@@ -38,8 +38,11 @@ void main() {
   testWidgets('tapping a member row navigates to server-scoped profile route', (
     tester,
   ) async {
+    final router = _buildRouter();
+
     await tester.pumpWidget(
       _buildApp(
+        router: router,
         repository: _FakeMemberRepository(
           members: const [MemberProfile(id: 'user-1', displayName: 'Alice')],
         ),
@@ -52,15 +55,18 @@ void main() {
 
     expect(find.text('profile:server-1/user-1'), findsOneWidget);
 
-    await tester.pageBack();
+    router.pop();
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('members-list')), findsOneWidget);
   });
 
   testWidgets('message button opens direct-message route', (tester) async {
+    final router = _buildRouter();
+
     await tester.pumpWidget(
       _buildApp(
+        router: router,
         repository: _FakeMemberRepository(
           members: const [MemberProfile(id: 'user-2', displayName: 'Bob')],
           channelId: 'dm-200',
@@ -74,7 +80,7 @@ void main() {
 
     expect(find.text('dm:server-1/dm-200'), findsOneWidget);
 
-    await tester.pageBack();
+    router.pop();
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('members-list')), findsOneWidget);
@@ -156,8 +162,23 @@ void main() {
   });
 }
 
-Widget _buildApp({required _FakeMemberRepository repository}) {
-  final router = GoRouter(
+Widget _buildApp({
+  required _FakeMemberRepository repository,
+  GoRouter? router,
+}) {
+  final appRouter = router ?? _buildRouter();
+
+  return ProviderScope(
+    overrides: [
+      sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      memberRepositoryProvider.overrideWithValue(repository),
+    ],
+    child: MaterialApp.router(routerConfig: appRouter),
+  );
+}
+
+GoRouter _buildRouter() {
+  return GoRouter(
     initialLocation: '/',
     routes: [
       GoRoute(
@@ -181,14 +202,6 @@ Widget _buildApp({required _FakeMemberRepository repository}) {
         ),
       ),
     ],
-  );
-
-  return ProviderScope(
-    overrides: [
-      sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
-      memberRepositoryProvider.overrideWithValue(repository),
-    ],
-    child: MaterialApp.router(routerConfig: router),
   );
 }
 
