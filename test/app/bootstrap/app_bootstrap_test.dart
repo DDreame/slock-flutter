@@ -9,6 +9,8 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/realtime/providers.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/core/telemetry/noop_crash_reporter.dart';
+import 'package:slock_app/core/telemetry/sentry_crash_reporter.dart';
 
 import '../../core/telemetry/crash_reporter_test.dart' show FakeCrashReporter;
 
@@ -19,7 +21,7 @@ void main() {
   group('appBootstrap', () {
     test('returns valid result with overrides', () async {
       final result = await appBootstrap(environmentReader: _environmentReader);
-      expect(result.reporter, isA<CrashReporter>());
+      expect(result.reporter, isA<NoOpCrashReporter>());
       expect(result.diagnostics, isA<DiagnosticsCollector>());
       expect(result.notificationInitializer, isA<NotificationInitializer>());
       expect(result.overrides, hasLength(5));
@@ -172,6 +174,23 @@ void main() {
 
       expect(fake.capturedErrors, hasLength(1));
       expect(fake.capturedErrors.first, error);
+    });
+  });
+
+  group('createCrashReporter', () {
+    test('returns NoOpCrashReporter when DSN is empty', () {
+      final reporter = createCrashReporter(dsn: '');
+      expect(reporter, isA<NoOpCrashReporter>());
+    });
+
+    test('returns NoOpCrashReporter when DSN is whitespace only', () {
+      final reporter = createCrashReporter(dsn: '   ');
+      expect(reporter, isA<NoOpCrashReporter>());
+    });
+
+    test('returns SentryCrashReporter when DSN is present', () {
+      final reporter = createCrashReporter(dsn: 'https://key@sentry.io/123');
+      expect(reporter, isA<SentryCrashReporter>());
     });
   });
 }
