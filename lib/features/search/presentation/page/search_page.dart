@@ -16,8 +16,9 @@ class SearchPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ProviderScope(
       overrides: [
-        currentSearchServerIdProvider
-            .overrideWithValue(ServerScopeId(serverId)),
+        currentSearchServerIdProvider.overrideWithValue(
+          ServerScopeId(serverId),
+        ),
       ],
       child: const _SearchScreen(),
     );
@@ -76,24 +77,24 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
       ),
       body: switch (state.status) {
         SearchStatus.idle => const Center(
-            key: ValueKey('search-idle'),
-            child: Text('Type to search messages.'),
-          ),
+          key: ValueKey('search-idle'),
+          child: Text('Type to search messages.'),
+        ),
         SearchStatus.searching when !state.hasResults => const Center(
-            key: ValueKey('search-searching'),
-            child: CircularProgressIndicator(),
-          ),
+          key: ValueKey('search-searching'),
+          child: CircularProgressIndicator(),
+        ),
         SearchStatus.failure when !state.hasResults => _SearchFailureView(
-            message: state.failure?.message ?? 'Search failed.',
-          ),
+          message: state.failure?.message ?? 'Search failed.',
+        ),
         _ when state.hasResults => _SearchResultsList(
-            state: state,
-            query: state.query,
-          ),
+          state: state,
+          query: state.query,
+        ),
         SearchStatus.success when !state.hasResults => const Center(
-            key: ValueKey('search-empty'),
-            child: Text('No results found.'),
-          ),
+          key: ValueKey('search-empty'),
+          child: Text('No results found.'),
+        ),
         _ => const SizedBox.shrink(),
       },
     );
@@ -101,10 +102,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
 }
 
 class _SearchResultsList extends StatelessWidget {
-  const _SearchResultsList({
-    required this.state,
-    required this.query,
-  });
+  const _SearchResultsList({required this.state, required this.query});
 
   final SearchState state;
   final String query;
@@ -145,11 +143,11 @@ class _SearchResultsList extends StatelessWidget {
     SearchResultMessage result,
   ) {
     if (result.channelId == null) return;
-    final serverId = ProviderScope.containerOf(context)
-        .read(currentSearchServerIdProvider)
-        .value;
+    final serverId = ProviderScope.containerOf(
+      context,
+    ).read(currentSearchServerIdProvider).value;
     final segment = result.surface == 'direct_message' ? 'dms' : 'channels';
-    context.go('/servers/$serverId/$segment/${result.channelId}');
+    context.push('/servers/$serverId/$segment/${result.channelId}');
   }
 }
 

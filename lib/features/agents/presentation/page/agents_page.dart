@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_realtime_binding.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
@@ -22,9 +23,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => ref.read(agentsStoreProvider.notifier).load(),
-    );
+    Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
   }
 
   @override
@@ -33,11 +32,13 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     final state = ref.watch(agentsStoreProvider);
 
     if (widget.agentId != null) {
-      final agent =
-          state.items.where((a) => a.id == widget.agentId).firstOrNull;
+      final agent = state.items
+          .where((a) => a.id == widget.agentId)
+          .firstOrNull;
       return _AgentDetailScaffold(
         agent: agent,
-        isLoading: state.status == AgentsStatus.loading ||
+        isLoading:
+            state.status == AgentsStatus.loading ||
             state.status == AgentsStatus.initial,
         isFailure: state.status == AgentsStatus.failure,
         failureMessage: state.failure?.message,
@@ -51,33 +52,29 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Agents')),
       body: switch (state.status) {
-        AgentsStatus.initial ||
-        AgentsStatus.loading =>
-          const Center(child: CircularProgressIndicator()),
+        AgentsStatus.initial || AgentsStatus.loading => const Center(
+          child: CircularProgressIndicator(),
+        ),
         AgentsStatus.failure => _AgentsFailureView(
-            message: state.failure?.message ?? 'Failed to load agents.',
-            onRetry: ref.read(agentsStoreProvider.notifier).retry,
-          ),
+          message: state.failure?.message ?? 'Failed to load agents.',
+          onRetry: ref.read(agentsStoreProvider.notifier).retry,
+        ),
         AgentsStatus.success when state.items.isEmpty => const Center(
-            child: Text('No agents yet.'),
-          ),
+          child: Text('No agents yet.'),
+        ),
         AgentsStatus.success => _AgentsListView(
-            items: state.items,
-            onTap: _openAgentDetail,
-            onStart: _startAgent,
-            onStop: _stopAgent,
-            onReset: _resetAgent,
-          ),
+          items: state.items,
+          onTap: _openAgentDetail,
+          onStart: _startAgent,
+          onStop: _stopAgent,
+          onReset: _resetAgent,
+        ),
       },
     );
   }
 
   void _openAgentDetail(AgentItem agent) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AgentsPage(agentId: agent.id),
-      ),
-    );
+    context.push('/agents/${agent.id}');
   }
 
   Future<void> _startAgent(AgentItem agent) async {
@@ -176,10 +173,7 @@ class _AgentSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      child: Text(title, style: Theme.of(context).textTheme.titleMedium),
     );
   }
 }
@@ -332,11 +326,11 @@ class _AgentDetailScaffold extends StatelessWidget {
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
             : isFailure
-                ? _AgentsFailureView(
-                    message: failureMessage ?? 'Failed to load agents.',
-                    onRetry: onRetry,
-                  )
-                : const Center(child: Text('Agent not found.')),
+            ? _AgentsFailureView(
+                message: failureMessage ?? 'Failed to load agents.',
+                onRetry: onRetry,
+              )
+            : const Center(child: Text('Agent not found.')),
       );
     }
 
@@ -476,10 +470,7 @@ class _AgentDetailBodyState extends State<_AgentDetailBody> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      entry.entry,
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    child: Text(entry.entry, style: theme.textTheme.bodySmall),
                   ),
                 ],
               ),
@@ -525,10 +516,7 @@ class _DetailRow extends StatelessWidget {
 }
 
 class _AgentsFailureView extends StatelessWidget {
-  const _AgentsFailureView({
-    required this.message,
-    required this.onRetry,
-  });
+  const _AgentsFailureView({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -543,10 +531,7 @@ class _AgentsFailureView extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),

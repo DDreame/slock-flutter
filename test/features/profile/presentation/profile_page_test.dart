@@ -14,27 +14,38 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
-  testWidgets('self profile shows avatar, displayName, userId, and self badge',
-      (tester) async {
-    await tester.pumpWidget(_buildApp(child: const ProfilePage()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'self profile shows avatar, displayName, userId, and self badge',
+    (tester) async {
+      await tester.pumpWidget(_buildApp(child: const ProfilePage()));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(ProfileAvatar), findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('profile-avatar-initials')), findsOneWidget);
-    expect(find.text('A'), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-display-name')), findsOneWidget);
-    expect(find.text('Alice'), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-user-id')), findsOneWidget);
-    expect(find.text('user-123'), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-self-badge')), findsOneWidget);
-    expect(find.text('This is you'), findsOneWidget);
-    expect(find.text('My Profile'), findsOneWidget);
-    expect(find.byKey(const ValueKey('profile-message-button')), findsNothing);
-  });
+      expect(find.byType(ProfileAvatar), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('profile-avatar-initials')),
+        findsOneWidget,
+      );
+      expect(find.text('A'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('profile-display-name')),
+        findsOneWidget,
+      );
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.byKey(const ValueKey('profile-user-id')), findsOneWidget);
+      expect(find.text('user-123'), findsOneWidget);
+      expect(find.byKey(const ValueKey('profile-self-badge')), findsOneWidget);
+      expect(find.text('This is you'), findsOneWidget);
+      expect(find.text('My Profile'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('profile-message-button')),
+        findsNothing,
+      );
+    },
+  );
 
-  testWidgets('server-scoped other-user profile shows remote info and DM CTA',
-      (tester) async {
+  testWidgets('server-scoped other-user profile shows remote info and DM CTA', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _buildApp(
         child: const ProfilePage(serverId: 'server-1', userId: 'other-456'),
@@ -63,21 +74,22 @@ void main() {
     expect(find.byKey(const ValueKey('profile-role')), findsOneWidget);
     expect(find.text('member'), findsOneWidget);
     expect(
-        find.byKey(const ValueKey('profile-message-button')), findsOneWidget);
+      find.byKey(const ValueKey('profile-message-button')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('profile-self-badge')), findsNothing);
   });
 
-  testWidgets('message CTA opens DM route for server-scoped profile',
-      (tester) async {
+  testWidgets('message CTA opens DM route for server-scoped profile', (
+    tester,
+  ) async {
     final router = GoRouter(
       initialLocation: '/',
       routes: [
         GoRoute(
           path: '/',
-          builder: (context, state) => const ProfilePage(
-            serverId: 'server-1',
-            userId: 'other-456',
-          ),
+          builder: (context, state) =>
+              const ProfilePage(serverId: 'server-1', userId: 'other-456'),
         ),
         GoRoute(
           path: '/servers/:serverId/dms/:channelId',
@@ -112,6 +124,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('dm:server-1/dm-789'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('profile-message-button')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('settings page shows My Profile tile', (tester) async {
@@ -126,24 +146,22 @@ void main() {
   testWidgets('ProfileAvatar shows initials when no avatarUrl', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(
-          body: ProfileAvatar(displayName: 'Bob', radius: 30),
-        ),
+        home: Scaffold(body: ProfileAvatar(displayName: 'Bob', radius: 30)),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(
-        find.byKey(const ValueKey('profile-avatar-initials')), findsOneWidget);
+      find.byKey(const ValueKey('profile-avatar-initials')),
+      findsOneWidget,
+    );
     expect(find.text('B'), findsOneWidget);
   });
 
   testWidgets('ProfileAvatar shows ? for empty displayName', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
-        home: Scaffold(
-          body: ProfileAvatar(displayName: '', radius: 30),
-        ),
+        home: Scaffold(body: ProfileAvatar(displayName: '', radius: 30)),
       ),
     );
     await tester.pumpAndSettle();
@@ -172,11 +190,11 @@ Widget _buildApp({
 class _FakeSessionStore extends SessionStore {
   @override
   SessionState build() => const SessionState(
-        status: AuthStatus.authenticated,
-        userId: 'user-123',
-        displayName: 'Alice',
-        token: 'test-token',
-      );
+    status: AuthStatus.authenticated,
+    userId: 'user-123',
+    displayName: 'Alice',
+    token: 'test-token',
+  );
 }
 
 class _FakeProfileRepository implements ProfileRepository {

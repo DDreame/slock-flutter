@@ -11,7 +11,7 @@ import 'package:slock_app/features/profile/data/profile_repository.dart';
 
 class MembersPage extends StatelessWidget {
   MembersPage({super.key, required String serverId})
-      : _serverId = ServerScopeId(serverId);
+    : _serverId = ServerScopeId(serverId);
 
   final ServerScopeId _serverId;
 
@@ -73,53 +73,54 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
       ),
       body: switch (state.status) {
         MemberListStatus.initial || MemberListStatus.loading => const Center(
-            key: ValueKey('members-loading'),
-            child: CircularProgressIndicator(),
-          ),
+          key: ValueKey('members-loading'),
+          child: CircularProgressIndicator(),
+        ),
         MemberListStatus.failure => Center(
-            key: const ValueKey('members-error'),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    state.failure?.message ?? 'Could not load members.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () =>
-                        ref.read(memberListStoreProvider.notifier).load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
+          key: const ValueKey('members-error'),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  state.failure?.message ?? 'Could not load members.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: () =>
+                      ref.read(memberListStoreProvider.notifier).load(),
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
           ),
+        ),
         MemberListStatus.success when state.members.isEmpty => const Center(
-            key: ValueKey('members-empty'),
-            child: Text('No members found.'),
-          ),
+          key: ValueKey('members-empty'),
+          child: Text('No members found.'),
+        ),
         MemberListStatus.success => ListView.builder(
-            key: const ValueKey('members-list'),
-            itemCount: state.members.length,
-            itemBuilder: (context, index) {
-              final member = state.members[index];
-              return MemberListItem(
-                member: member,
-                isOpeningDirectMessage: state.isOpeningDirectMessage(member.id),
-                isUpdatingRole: state.isUpdatingRole(member.id),
-                isRemoving: state.isRemovingMember(member.id),
-                canManageMember: canManageMembers,
-                onTap: () => context
-                    .go('/servers/${serverId.value}/profile/${member.id}'),
-                onMessage: () => _openDirectMessage(context, member.id),
-                onChangeRole: (role) => _changeMemberRole(member, role),
-                onRemove: () => _removeMember(member),
-              );
-            },
-          ),
+          key: const ValueKey('members-list'),
+          itemCount: state.members.length,
+          itemBuilder: (context, index) {
+            final member = state.members[index];
+            return MemberListItem(
+              member: member,
+              isOpeningDirectMessage: state.isOpeningDirectMessage(member.id),
+              isUpdatingRole: state.isUpdatingRole(member.id),
+              isRemoving: state.isRemovingMember(member.id),
+              canManageMember: canManageMembers,
+              onTap: () => context.push(
+                '/servers/${serverId.value}/profile/${member.id}',
+              ),
+              onMessage: () => _openDirectMessage(context, member.id),
+              onChangeRole: (role) => _changeMemberRole(member, role),
+              onRemove: () => _removeMember(member),
+            );
+          },
+        ),
       },
     );
   }
@@ -128,8 +129,9 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     final messenger = ScaffoldMessenger.of(context);
 
     try {
-      final inviteCode =
-          await ref.read(memberListStoreProvider.notifier).createInvite();
+      final inviteCode = await ref
+          .read(memberListStoreProvider.notifier)
+          .createInvite();
       if (!mounted) {
         return;
       }
@@ -156,7 +158,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
       if (!mounted) {
         return;
       }
-      router.go('/servers/${serverId.value}/dms/$channelId');
+      router.push('/servers/${serverId.value}/dms/$channelId');
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
@@ -200,7 +202,8 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
 
   Future<void> _removeMember(MemberProfile member) async {
     final messenger = ScaffoldMessenger.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) {
             return AlertDialog(

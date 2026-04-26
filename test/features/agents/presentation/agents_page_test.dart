@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
@@ -16,12 +17,11 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
-            realtimeReductionIngressProvider
-                .overrideWithValue(RealtimeReductionIngress()),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1'),
-          ),
+          child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
         ),
       );
 
@@ -33,30 +33,31 @@ void main() {
     });
 
     testWidgets('retry reloads after failure', (tester) async {
-      final fakeRepo = _QueueAgentsRepository(results: [
-        const _RepoResult.failure('Failed to load agents.'),
-        const _RepoResult.success([
-          AgentItem(
-            id: 'agent-1',
-            name: 'Bot',
-            model: 'sonnet',
-            runtime: 'claude',
-            status: 'active',
-            activity: 'online',
-          ),
-        ]),
-      ]);
+      final fakeRepo = _QueueAgentsRepository(
+        results: [
+          const _RepoResult.failure('Failed to load agents.'),
+          const _RepoResult.success([
+            AgentItem(
+              id: 'agent-1',
+              name: 'Bot',
+              model: 'sonnet',
+              runtime: 'claude',
+              status: 'active',
+              activity: 'online',
+            ),
+          ]),
+        ],
+      );
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
-            realtimeReductionIngressProvider
-                .overrideWithValue(RealtimeReductionIngress()),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1'),
-          ),
+          child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
         ),
       );
 
@@ -69,6 +70,65 @@ void main() {
 
       expect(find.text('Bot'), findsOneWidget);
       expect(find.text('Failed to load agents.'), findsNothing);
+    });
+
+    testWidgets('list tap pushes detail route and preserves list back stack', (
+      tester,
+    ) async {
+      final fakeRepo = _QueueAgentsRepository(
+        results: [
+          const _RepoResult.success([
+            AgentItem(
+              id: 'agent-1',
+              name: 'Bot',
+              model: 'sonnet',
+              runtime: 'claude',
+              status: 'active',
+              activity: 'online',
+            ),
+          ]),
+        ],
+      );
+      final router = GoRouter(
+        initialLocation: '/agents',
+        routes: [
+          GoRoute(
+            path: '/agents',
+            builder: (context, state) => const AgentsPage(),
+          ),
+          GoRoute(
+            path: '/agents/:agentId',
+            builder: (context, state) => Scaffold(
+              body: Text('agent:${state.pathParameters['agentId']}'),
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-agent-1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('agent:agent-1'), findsOneWidget);
+
+      router.pop();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('agents-list')), findsOneWidget);
+      expect(find.text('Bot'), findsOneWidget);
     });
   });
 }
@@ -96,8 +156,7 @@ class _FailingAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async =>
-      [];
+  }) async => [];
 }
 
 sealed class _RepoResult {
@@ -118,7 +177,7 @@ class _FailureResult extends _RepoResult {
 
 class _QueueAgentsRepository implements AgentsRepository {
   _QueueAgentsRepository({required List<_RepoResult> results})
-      : _results = List.of(results);
+    : _results = List.of(results);
 
   final List<_RepoResult> _results;
   int _index = 0;
@@ -129,9 +188,9 @@ class _QueueAgentsRepository implements AgentsRepository {
     return switch (result) {
       _SuccessResult(:final items) => items,
       _FailureResult(:final message) => throw UnknownFailure(
-          message: message,
-          causeType: 'test',
-        ),
+        message: message,
+        causeType: 'test',
+      ),
     };
   }
 
@@ -149,6 +208,5 @@ class _QueueAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async =>
-      [];
+  }) async => [];
 }

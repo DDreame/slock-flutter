@@ -15,8 +15,9 @@ class SavedMessagesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ProviderScope(
       overrides: [
-        currentSavedMessagesServerIdProvider
-            .overrideWithValue(ServerScopeId(serverId)),
+        currentSavedMessagesServerIdProvider.overrideWithValue(
+          ServerScopeId(serverId),
+        ),
       ],
       child: const _SavedMessagesScreen(),
     );
@@ -47,16 +48,15 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Saved Messages')),
       body: switch (state.status) {
-        SavedMessagesStatus.initial ||
-        SavedMessagesStatus.loading =>
+        SavedMessagesStatus.initial || SavedMessagesStatus.loading =>
           const Center(child: CircularProgressIndicator()),
         SavedMessagesStatus.failure => _SavedMessagesFailureView(
-            message: state.failure?.message ?? 'Failed to load saved messages.',
-            onRetry: ref.read(savedMessagesStoreProvider.notifier).retry,
-          ),
+          message: state.failure?.message ?? 'Failed to load saved messages.',
+          onRetry: ref.read(savedMessagesStoreProvider.notifier).retry,
+        ),
         SavedMessagesStatus.success when state.items.isEmpty => const Center(
-            child: Text('No saved messages yet.'),
-          ),
+          child: Text('No saved messages yet.'),
+        ),
         SavedMessagesStatus.success => _SavedMessagesList(state: state),
       },
     );
@@ -97,11 +97,11 @@ class _SavedMessagesList extends ConsumerWidget {
     WidgetRef ref,
     SavedMessageItem item,
   ) {
-    final serverId = ProviderScope.containerOf(context)
-        .read(currentSavedMessagesServerIdProvider)
-        .value;
+    final serverId = ProviderScope.containerOf(
+      context,
+    ).read(currentSavedMessagesServerIdProvider).value;
     final segment = item.surface == 'direct_message' ? 'dms' : 'channels';
-    context.go('/servers/$serverId/$segment/${item.channelId}');
+    context.push('/servers/$serverId/$segment/${item.channelId}');
   }
 
   void _showUnsaveSheet(
@@ -222,10 +222,7 @@ class _SavedMessagesFailureView extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),

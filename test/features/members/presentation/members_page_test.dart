@@ -51,6 +51,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('profile:server-1/user-1'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('members-list')), findsOneWidget);
   });
 
   testWidgets('message button opens direct-message route', (tester) async {
@@ -68,6 +73,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('dm:server-1/dm-200'), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('members-list')), findsOneWidget);
   });
 
   testWidgets('create invite opens dialog with copyable invite code', (
@@ -77,11 +87,7 @@ void main() {
       _buildApp(
         repository: _FakeMemberRepository(
           members: const [
-            MemberProfile(
-              id: 'user-123',
-              displayName: 'Alice',
-              role: 'admin',
-            ),
+            MemberProfile(id: 'user-123', displayName: 'Alice', role: 'admin'),
             MemberProfile(id: 'user-2', displayName: 'Bob'),
           ],
           inviteCode: 'https://slock.ai/invite/token-200',
@@ -136,11 +142,7 @@ void main() {
       _buildApp(
         repository: _FakeMemberRepository(
           members: const [
-            MemberProfile(
-              id: 'user-123',
-              displayName: 'Alice',
-              role: 'member',
-            ),
+            MemberProfile(id: 'user-123', displayName: 'Alice', role: 'member'),
             MemberProfile(id: 'user-2', displayName: 'Bob', role: 'member'),
           ],
         ),
@@ -243,9 +245,9 @@ class _FakeMemberRepository implements MemberRepository {
 class _FakeSessionStore extends SessionStore {
   @override
   SessionState build() => const SessionState(
-        status: AuthStatus.authenticated,
-        userId: 'user-123',
-        displayName: 'Alice',
-        token: 'test-token',
-      );
+    status: AuthStatus.authenticated,
+    userId: 'user-123',
+    displayName: 'Alice',
+    token: 'test-token',
+  );
 }
