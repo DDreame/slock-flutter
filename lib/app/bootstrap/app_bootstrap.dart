@@ -8,12 +8,14 @@ import 'package:slock_app/core/realtime/providers.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/core/telemetry/noop_crash_reporter.dart';
+import 'package:slock_app/core/telemetry/sentry_crash_reporter.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 typedef EnvironmentReader = String Function(String key);
 
 const apiBaseUrlEnvironmentKey = 'SLOCK_API_BASE_URL';
 const realtimeUrlEnvironmentKey = 'SLOCK_REALTIME_URL';
+const sentryDsnEnvironmentKey = 'SENTRY_DSN';
 
 class AppBootstrapResult {
   final CrashReporter reporter;
@@ -32,7 +34,9 @@ class AppBootstrapResult {
 Future<AppBootstrapResult> appBootstrap({
   EnvironmentReader environmentReader = _readCompileTimeEnvironment,
 }) async {
-  final reporter = NoOpCrashReporter();
+  final reporter = createCrashReporter(
+    dsn: environmentReader(sentryDsnEnvironmentKey),
+  );
   final diagnostics = DiagnosticsCollector();
   final notificationInitializer = createNotificationInitializer();
   final apiBaseUrl = _validatedRuntimeEndpoint(
@@ -77,8 +81,20 @@ String _readCompileTimeEnvironment(String key) {
     realtimeUrlEnvironmentKey => const String.fromEnvironment(
         realtimeUrlEnvironmentKey,
       ),
+    sentryDsnEnvironmentKey => const String.fromEnvironment(
+        sentryDsnEnvironmentKey,
+      ),
     _ => '',
   };
+}
+
+@visibleForTesting
+CrashReporter createCrashReporter({required String dsn}) {
+  final trimmed = dsn.trim();
+  if (trimmed.isEmpty) {
+    return NoOpCrashReporter();
+  }
+  return SentryCrashReporter(dsn: trimmed);
 }
 
 String _validatedRuntimeEndpoint({
