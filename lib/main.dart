@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
+import 'package:slock_app/app/bootstrap/fatal_bootstrap_screen.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/realtime/realtime.dart';
@@ -15,7 +16,15 @@ import 'package:slock_app/stores/notification/notification_visible_target_bindin
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final bootstrap = await appBootstrap();
+
+  final AppBootstrapResult bootstrap;
+  try {
+    bootstrap = await appBootstrap();
+  } catch (error) {
+    runApp(FatalBootstrapScreen(error: error));
+    return;
+  }
+
   installErrorHandlers(bootstrap.reporter);
 
   runZonedGuarded(
