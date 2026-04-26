@@ -18,9 +18,7 @@ class ProfilePage extends StatelessWidget {
       serverId: serverId == null ? null : ServerScopeId(serverId!),
     );
     return ProviderScope(
-      overrides: [
-        currentProfileTargetProvider.overrideWithValue(target),
-      ],
+      overrides: [currentProfileTargetProvider.overrideWithValue(target)],
       child: const _ProfileDetailScreen(),
     );
   }
@@ -45,7 +43,7 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
       if (!mounted || target.serverId == null) {
         return;
       }
-      context.go('/servers/${target.serverId!.value}/dms/$channelId');
+      context.push('/servers/${target.serverId!.value}/dms/$channelId');
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
@@ -54,9 +52,7 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(
-              failure.message ?? 'Failed to open direct message.',
-            ),
+            content: Text(failure.message ?? 'Failed to open direct message.'),
           ),
         );
     }

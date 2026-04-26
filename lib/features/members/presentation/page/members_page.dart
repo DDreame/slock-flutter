@@ -112,8 +112,9 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                 isUpdatingRole: state.isUpdatingRole(member.id),
                 isRemoving: state.isRemovingMember(member.id),
                 canManageMember: canManageMembers,
-                onTap: () => context
-                    .go('/servers/${serverId.value}/profile/${member.id}'),
+                onTap: () => context.push(
+                  '/servers/${serverId.value}/profile/${member.id}',
+                ),
                 onMessage: () => _openDirectMessage(context, member.id),
                 onChangeRole: (role) => _changeMemberRole(member, role),
                 onRemove: () => _removeMember(member),
@@ -156,7 +157,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
       if (!mounted) {
         return;
       }
-      router.go('/servers/${serverId.value}/dms/$channelId');
+      router.push('/servers/${serverId.value}/dms/$channelId');
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;

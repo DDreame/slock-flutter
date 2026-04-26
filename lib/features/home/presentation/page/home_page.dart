@@ -46,7 +46,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             onPressed: () {
               final serverId = ref.read(activeServerScopeIdProvider);
               if (serverId != null) {
-                context.go('/servers/${serverId.value}/members');
+                context.push('/servers/${serverId.value}/members');
               }
             },
           ),
@@ -56,7 +56,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             onPressed: () {
               final serverId = ref.read(activeServerScopeIdProvider);
               if (serverId != null) {
-                context.go('/servers/${serverId.value}/search');
+                context.push('/servers/${serverId.value}/search');
               }
             },
           ),
@@ -66,9 +66,9 @@ class _HomePageState extends ConsumerState<HomePage> {
         HomeListStatus.noActiveServer => _HomeNoServerState(
             onSelectServer: () => showServerSwitcherSheet(context),
           ),
-        HomeListStatus.initial ||
-        HomeListStatus.loading =>
-          const Center(child: CircularProgressIndicator()),
+        HomeListStatus.initial || HomeListStatus.loading => const Center(
+            child: CircularProgressIndicator(),
+          ),
         HomeListStatus.failure => _HomeErrorState(
             message: state.failure?.message ?? 'Unable to load conversations.',
             onRetry: homeStore.retry,
@@ -83,7 +83,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   final serverId = ref.read(activeServerScopeIdProvider);
                   if (serverId != null) {
-                    context.go('/servers/${serverId.value}/saved-messages');
+                    context.push('/servers/${serverId.value}/saved-messages');
                   }
                 },
               ),
@@ -163,8 +163,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   unreadCount: unreadState.dmUnreadCount(directMessage.scopeId),
                   onTap: () {
                     unreadStore.markDmRead(directMessage.scopeId);
-                    context.go(homeStore
-                        .directMessageRoutePath(directMessage.scopeId));
+                    context.go(
+                      homeStore.directMessageRoutePath(directMessage.scopeId),
+                    );
                   },
                   onHide: () => homeStore.hideDm(directMessage.scopeId),
                 ),
@@ -241,9 +242,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (!mounted) {
                     return;
                   }
-                  _showSnackBar(
-                    failure.message ?? 'Failed to create channel.',
-                  );
+                  _showSnackBar(failure.message ?? 'Failed to create channel.');
                 }
               },
             );
@@ -299,9 +298,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (!mounted) {
                     return;
                   }
-                  _showSnackBar(
-                    failure.message ?? 'Failed to update channel.',
-                  );
+                  _showSnackBar(failure.message ?? 'Failed to update channel.');
                 }
               },
             );
@@ -343,9 +340,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (!mounted) {
                     return;
                   }
-                  _showSnackBar(
-                    failure.message ?? 'Failed to delete channel.',
-                  );
+                  _showSnackBar(failure.message ?? 'Failed to delete channel.');
                 }
               },
             );
@@ -387,9 +382,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (!mounted) {
                     return;
                   }
-                  _showSnackBar(
-                    failure.message ?? 'Failed to leave channel.',
-                  );
+                  _showSnackBar(failure.message ?? 'Failed to leave channel.');
                 }
               },
             );
@@ -529,10 +522,7 @@ class _HomeSectionHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
           ),
           if (onAdd != null)
             IconButton(
@@ -592,10 +582,7 @@ class _HomeErrorState extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),

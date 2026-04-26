@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_realtime_binding.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
@@ -22,9 +23,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => ref.read(agentsStoreProvider.notifier).load(),
-    );
+    Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
   }
 
   @override
@@ -51,9 +50,9 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Agents')),
       body: switch (state.status) {
-        AgentsStatus.initial ||
-        AgentsStatus.loading =>
-          const Center(child: CircularProgressIndicator()),
+        AgentsStatus.initial || AgentsStatus.loading => const Center(
+            child: CircularProgressIndicator(),
+          ),
         AgentsStatus.failure => _AgentsFailureView(
             message: state.failure?.message ?? 'Failed to load agents.',
             onRetry: ref.read(agentsStoreProvider.notifier).retry,
@@ -73,11 +72,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   }
 
   void _openAgentDetail(AgentItem agent) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => AgentsPage(agentId: agent.id),
-      ),
-    );
+    context.push('/agents/${agent.id}');
   }
 
   Future<void> _startAgent(AgentItem agent) async {
@@ -176,10 +171,7 @@ class _AgentSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      child: Text(title, style: Theme.of(context).textTheme.titleMedium),
     );
   }
 }
@@ -476,10 +468,7 @@ class _AgentDetailBodyState extends State<_AgentDetailBody> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      entry.entry,
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    child: Text(entry.entry, style: theme.textTheme.bodySmall),
                   ),
                 ],
               ),
@@ -525,10 +514,7 @@ class _DetailRow extends StatelessWidget {
 }
 
 class _AgentsFailureView extends StatelessWidget {
-  const _AgentsFailureView({
-    required this.message,
-    required this.onRetry,
-  });
+  const _AgentsFailureView({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -543,10 +529,7 @@ class _AgentsFailureView extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(
-              onPressed: onRetry,
-              child: const Text('Retry'),
-            ),
+            FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
       ),
