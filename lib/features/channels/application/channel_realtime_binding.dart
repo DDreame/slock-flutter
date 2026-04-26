@@ -11,9 +11,9 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 const _channelUpdatedEvent = 'channel:updated';
 const _channelMembersUpdatedEvent = 'channel:members-updated';
 
-final channelPageRealtimeBindingProvider = Provider.autoDispose<void>(
-  (ref) {
-    final target = ref.watch(currentConversationDetailTargetProvider);
+final channelPageRealtimeBindingProvider =
+    Provider.autoDispose.family<void, ConversationDetailTarget>(
+  (ref, target) {
     if (target.surface != ConversationSurface.channel) {
       return;
     }
@@ -39,7 +39,6 @@ final channelPageRealtimeBindingProvider = Provider.autoDispose<void>(
     });
   },
   dependencies: [
-    currentConversationDetailTargetProvider,
     conversationDetailStoreProvider,
   ],
 );

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
@@ -88,7 +89,7 @@ void main() {
         payload: const {'id': 'general', 'name': 'announcements'},
       ),
     );
-    await _drainAsyncWork();
+    await _waitForHomeReload(homeLoader, container);
 
     expect(homeLoader.calls, [serverId, serverId]);
     expect(
@@ -154,6 +155,21 @@ Future<void> _drainAsyncWork() async {
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
+}
+
+Future<void> _waitForHomeReload(
+  _FakeHomeWorkspaceLoader homeLoader,
+  ProviderContainer container,
+) async {
+  for (var i = 0; i < 10; i++) {
+    await _drainAsyncWork();
+    final state = container.read(homeListStoreProvider);
+    if (homeLoader.calls.length >= 2 &&
+        state.status == HomeListStatus.success &&
+        state.channels.single.name == 'announcements') {
+      return;
+    }
+  }
 }
 
 class _FakeHomeWorkspaceLoader {

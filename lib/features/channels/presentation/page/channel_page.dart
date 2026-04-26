@@ -18,13 +18,14 @@ class ChannelPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(channelPageRealtimeBindingProvider);
     final scopeId = ChannelScopeId.fromRouteParams(
       serverId: serverId,
       channelId: channelId,
     );
+    final target = ConversationDetailTarget.channel(scopeId);
+    ref.watch(channelPageRealtimeBindingProvider(target));
     return ConversationDetailPage(
-      target: ConversationDetailTarget.channel(scopeId),
+      target: target,
       appBarActionsBuilder: (context, ref, state) => [
         IconButton(
           icon: const Icon(Icons.group),

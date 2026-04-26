@@ -35,8 +35,8 @@ void main() {
 
     final stateSub =
         container.listen(conversationDetailStoreProvider, (_, __) {});
-    final bindingSub =
-        container.listen(channelPageRealtimeBindingProvider, (_, __) {});
+    final bindingSub = container.listen(
+        channelPageRealtimeBindingProvider(target), (_, __) {});
     addTearDown(() {
       bindingSub.close();
       stateSub.close();
