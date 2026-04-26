@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 final currentOpenConversationTargetProvider =
@@ -7,6 +8,7 @@ final currentOpenConversationTargetProvider =
 final currentOpenConversationRegistrationProvider =
     Provider.autoDispose.family<void, ConversationDetailTarget>((ref, target) {
   var disposed = false;
+  final realtimeSocketClient = ref.read(realtimeSocketClientProvider);
   final openTargetNotifier = ref.read(
     currentOpenConversationTargetProvider.notifier,
   );
@@ -20,6 +22,7 @@ final currentOpenConversationRegistrationProvider =
 
   ref.onDispose(() {
     disposed = true;
+    realtimeSocketClient.emit('leave:channel', target.conversationId);
     if (!openTargetNotifier.mounted) {
       return;
     }
