@@ -6,6 +6,7 @@ import 'package:slock_app/core/notifications/foreground_notification_policy.dart
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 
@@ -216,6 +217,128 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(fakeInitializer.displayedPayloads, isEmpty);
+    });
+  });
+
+  group('preference-based suppression', () {
+    test('mute suppresses all notifications', () async {
+      container.read(notificationStoreProvider.notifier).state =
+          container.read(notificationStoreProvider).copyWith(
+                notificationPreference: NotificationPreference.mute,
+              );
+      container.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInitializer.foregroundController.add({
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+        'title': 'New message',
+        'body': 'Hello',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeInitializer.displayedPayloads, isEmpty);
+    });
+
+    test('mute suppresses DM notifications too', () async {
+      container.read(notificationStoreProvider.notifier).state =
+          container.read(notificationStoreProvider).copyWith(
+                notificationPreference: NotificationPreference.mute,
+              );
+      container.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInitializer.foregroundController.add({
+        'type': 'dm',
+        'serverId': 's1',
+        'channelId': 'dm1',
+        'title': 'New DM',
+        'body': 'Hey',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeInitializer.displayedPayloads, isEmpty);
+    });
+
+    test('mentionsOnly passes DM notifications', () async {
+      container.read(notificationStoreProvider.notifier).state =
+          container.read(notificationStoreProvider).copyWith(
+                notificationPreference: NotificationPreference.mentionsOnly,
+              );
+      container.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInitializer.foregroundController.add({
+        'type': 'dm',
+        'serverId': 's1',
+        'channelId': 'dm1',
+        'title': 'New DM',
+        'body': 'Hey',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeInitializer.displayedPayloads, hasLength(1));
+    });
+
+    test('mentionsOnly suppresses channel notifications', () async {
+      container.read(notificationStoreProvider.notifier).state =
+          container.read(notificationStoreProvider).copyWith(
+                notificationPreference: NotificationPreference.mentionsOnly,
+              );
+      container.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInitializer.foregroundController.add({
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+        'title': 'New message',
+        'body': 'Hello',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeInitializer.displayedPayloads, isEmpty);
+    });
+
+    test('mentionsOnly suppresses thread notifications', () async {
+      container.read(notificationStoreProvider.notifier).state =
+          container.read(notificationStoreProvider).copyWith(
+                notificationPreference: NotificationPreference.mentionsOnly,
+              );
+      container.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInitializer.foregroundController.add({
+        'type': 'thread',
+        'serverId': 's1',
+        'channelId': 'c1',
+        'threadId': 't1',
+        'title': 'Thread reply',
+        'body': 'Reply',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeInitializer.displayedPayloads, isEmpty);
+    });
+
+    test('all preference displays all notifications', () async {
+      container.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInitializer.foregroundController.add({
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+        'title': 'New message',
+        'body': 'Hello',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      fakeInitializer.foregroundController.add({
+        'type': 'dm',
+        'serverId': 's1',
+        'channelId': 'dm1',
+        'title': 'New DM',
+        'body': 'Hey',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeInitializer.displayedPayloads, hasLength(2));
     });
   });
 }

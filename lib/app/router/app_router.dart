@@ -19,6 +19,7 @@ import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/release_notes/presentation/page/release_notes_page.dart';
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
+import 'package:slock_app/features/settings/presentation/page/notification_settings_page.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/features/splash/presentation/page/splash_page.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
@@ -226,6 +227,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/billing',
         builder: (context, state) => const BillingPage(),
+      ),
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (context, state) => const NotificationSettingsPage(),
       ),
       GoRoute(
         path: '/release-notes',

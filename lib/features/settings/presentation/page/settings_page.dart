@@ -1,8 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -15,7 +14,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  var _isUpdatingNotifications = false;
   var _isLoggingOut = false;
 
   @override
@@ -74,35 +72,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           Text('Notifications', style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Card(
-            child: Column(
-              children: [
-                ListTile(
-                  key: const ValueKey('settings-notification-status'),
-                  leading: const Icon(Icons.notifications_active_outlined),
-                  title: const Text('Push Notifications'),
-                  subtitle: Text(_notificationSubtitle(notificationState)),
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  key: const ValueKey('settings-notification-action'),
-                  leading: const Icon(Icons.tune),
-                  title: Text(_notificationActionLabel(notificationState)),
-                  subtitle: const Text(
-                    'Use existing mobile notification seams only.',
-                  ),
-                  trailing: _isUpdatingNotifications
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : null,
-                  enabled: !_isUpdatingNotifications,
-                  onTap: _isUpdatingNotifications
-                      ? null
-                      : () => _updateNotifications(context),
-                ),
-              ],
+            child: ListTile(
+              key: const ValueKey('settings-notification-link'),
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: const Text('Notification Settings'),
+              subtitle: Text(
+                _notificationSummary(notificationState),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/settings/notifications'),
             ),
           ),
           const SizedBox(height: 20),
@@ -140,48 +118,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     );
   }
 
-  Future<void> _updateNotifications(BuildContext context) async {
-    final messenger = ScaffoldMessenger.of(context);
-
-    setState(() {
-      _isUpdatingNotifications = true;
-    });
-
-    try {
-      final store = ref.read(notificationStoreProvider.notifier);
-      await store.requestPermission();
-      final permissionStatus =
-          ref.read(notificationStoreProvider).permissionStatus;
-      if (permissionStatus == NotificationPermissionStatus.granted ||
-          permissionStatus == NotificationPermissionStatus.provisional) {
-        await store.refreshToken(
-          platform: _platformName(defaultTargetPlatform),
-        );
-      }
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(content: Text(_notificationResultMessage(permissionStatus))),
-      );
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Could not update notification preferences.'),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUpdatingNotifications = false;
-        });
-      }
-    }
-  }
-
   Future<void> _logout() async {
     setState(() {
       _isLoggingOut = true;
@@ -203,48 +139,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   }
 }
 
-String _notificationSubtitle(NotificationState state) {
-  final status = switch (state.permissionStatus) {
-    NotificationPermissionStatus.granted => 'Permission granted',
-    NotificationPermissionStatus.denied => 'Permission denied',
-    NotificationPermissionStatus.provisional => 'Permission provisional',
-    NotificationPermissionStatus.unknown => 'Permission not requested yet',
+String _notificationSummary(NotificationState state) {
+  final permission = switch (state.permissionStatus) {
+    NotificationPermissionStatus.granted => 'Granted',
+    NotificationPermissionStatus.denied => 'Denied',
+    NotificationPermissionStatus.provisional => 'Provisional',
+    NotificationPermissionStatus.unknown => 'Not requested',
   };
-  final tokenState = state.pushToken == null
-      ? 'Device registration not available yet.'
-      : 'Device registered ${state.pushTokenUpdatedAt?.toIso8601String() ?? 'recently'}.';
-  return '$status\n$tokenState';
-}
-
-String _notificationActionLabel(NotificationState state) {
-  return switch (state.permissionStatus) {
-    NotificationPermissionStatus.granted ||
-    NotificationPermissionStatus.provisional =>
-      'Refresh Device Registration',
-    NotificationPermissionStatus.denied => 'Retry Notification Access',
-    NotificationPermissionStatus.unknown => 'Enable Push Notifications',
-  };
-}
-
-String _notificationResultMessage(NotificationPermissionStatus status) {
-  return switch (status) {
-    NotificationPermissionStatus.granted =>
-      'Notification access granted and device registration refreshed.',
-    NotificationPermissionStatus.provisional =>
-      'Notification access is provisional; device registration refreshed.',
-    NotificationPermissionStatus.denied => 'Notification access was denied.',
-    NotificationPermissionStatus.unknown =>
-      'Notification status is still unavailable on this device.',
-  };
-}
-
-String _platformName(TargetPlatform platform) {
-  return switch (platform) {
-    TargetPlatform.android => 'android',
-    TargetPlatform.iOS => 'ios',
-    TargetPlatform.macOS => 'macos',
-    TargetPlatform.windows => 'windows',
-    TargetPlatform.linux => 'linux',
-    TargetPlatform.fuchsia => 'fuchsia',
-  };
+  final filter = state.notificationPreference.title;
+  return '$permission \u00b7 $filter';
 }

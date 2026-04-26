@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
+import 'package:slock_app/features/settings/data/notification_preference.dart';
 
 @immutable
 class NotificationState {
@@ -11,6 +12,7 @@ class NotificationState {
   final String? pushTokenPlatform;
   final DateTime? pushTokenUpdatedAt;
   final NotificationPermissionStatus permissionStatus;
+  final NotificationPreference notificationPreference;
 
   const NotificationState({
     this.lifecycleStatus = AppLifecycleStatus.resumed,
@@ -19,6 +21,7 @@ class NotificationState {
     this.pushTokenPlatform,
     this.pushTokenUpdatedAt,
     this.permissionStatus = NotificationPermissionStatus.unknown,
+    this.notificationPreference = NotificationPreference.all,
   });
 
   NotificationState copyWith({
@@ -28,6 +31,7 @@ class NotificationState {
     String? pushTokenPlatform,
     DateTime? pushTokenUpdatedAt,
     NotificationPermissionStatus? permissionStatus,
+    NotificationPreference? notificationPreference,
     bool clearVisibleTarget = false,
     bool clearPushToken = false,
     bool clearPushTokenPlatform = false,
@@ -45,6 +49,8 @@ class NotificationState {
           ? null
           : (pushTokenUpdatedAt ?? this.pushTokenUpdatedAt),
       permissionStatus: permissionStatus ?? this.permissionStatus,
+      notificationPreference:
+          notificationPreference ?? this.notificationPreference,
     );
   }
 
@@ -58,7 +64,8 @@ class NotificationState {
           pushToken == other.pushToken &&
           pushTokenPlatform == other.pushTokenPlatform &&
           pushTokenUpdatedAt == other.pushTokenUpdatedAt &&
-          permissionStatus == other.permissionStatus;
+          permissionStatus == other.permissionStatus &&
+          notificationPreference == other.notificationPreference;
 
   @override
   int get hashCode => Object.hash(
@@ -68,5 +75,6 @@ class NotificationState {
         pushTokenPlatform,
         pushTokenUpdatedAt,
         permissionStatus,
+        notificationPreference,
       );
 }

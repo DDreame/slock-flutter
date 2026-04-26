@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
@@ -11,7 +11,8 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   testWidgets(
-    'settings page navigates to profile, billing, and release notes',
+    'settings page navigates to profile, billing, release notes, '
+    'and notification settings',
     (tester) async {
       final sessionStore = _FakeSessionStore();
       final notificationStore = _FakeNotificationStore();
@@ -50,13 +51,30 @@ void main() {
         find.byKey(const ValueKey('settings-release-notes')),
         200,
       );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('settings-release-notes')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('settings-release-notes')));
       await tester.pumpAndSettle();
       expect(find.text('release-notes-route'), findsOneWidget);
+
+      router.go('/settings');
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('settings-notification-link')),
+        200,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('settings-notification-link')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('notification-settings-route'), findsOneWidget);
     },
   );
 
-  testWidgets('settings page updates notifications and logs out', (
+  testWidgets('notification summary shows permission and filter', (
     tester,
   ) async {
     final sessionStore = _FakeSessionStore();
@@ -73,13 +91,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.byKey(const ValueKey('settings-notification-action')),
+    expect(find.textContaining('Not requested'), findsOneWidget);
+    expect(find.textContaining('All Messages'), findsOneWidget);
+  });
+
+  testWidgets('settings page logs out', (tester) async {
+    final sessionStore = _FakeSessionStore();
+    final notificationStore = _FakeNotificationStore();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() => sessionStore),
+          notificationStoreProvider.overrideWith(() => notificationStore),
+        ],
+        child: MaterialApp.router(routerConfig: _buildRouter()),
+      ),
     );
     await tester.pumpAndSettle();
-
-    expect(notificationStore.requestPermissionCount, 1);
-    expect(notificationStore.refreshTokenCount, 1);
 
     await tester.tap(find.byKey(const ValueKey('settings-logout')));
     await tester.pumpAndSettle();
@@ -96,6 +125,11 @@ GoRouter _buildRouter() {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (context, state) =>
+            const Scaffold(body: Text('notification-settings-route')),
       ),
       GoRoute(
         path: '/profile',
@@ -139,9 +173,6 @@ class _FakeSessionStore extends SessionStore {
 }
 
 class _FakeNotificationStore extends NotificationStore {
-  var requestPermissionCount = 0;
-  var refreshTokenCount = 0;
-
   @override
   NotificationState build() => const NotificationState(
         permissionStatus: NotificationPermissionStatus.unknown,
@@ -149,7 +180,6 @@ class _FakeNotificationStore extends NotificationStore {
 
   @override
   Future<void> requestPermission() async {
-    requestPermissionCount += 1;
     state = state.copyWith(
       permissionStatus: NotificationPermissionStatus.granted,
     );
@@ -157,7 +187,6 @@ class _FakeNotificationStore extends NotificationStore {
 
   @override
   Future<void> refreshToken({String? platform}) async {
-    refreshTokenCount += 1;
     state = state.copyWith(
       pushToken: 'push-token',
       pushTokenPlatform: platform,

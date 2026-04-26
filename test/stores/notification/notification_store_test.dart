@@ -8,6 +8,8 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/storage/notification_storage_keys.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 
@@ -71,14 +73,17 @@ void main() {
   late ProviderContainer container;
   late FakeSecureStorage fakeStorage;
   late FakeNotificationInitializer fakeInitializer;
+  late DiagnosticsCollector diagnostics;
 
   setUp(() {
     fakeStorage = FakeSecureStorage();
     fakeInitializer = FakeNotificationInitializer();
+    diagnostics = DiagnosticsCollector();
     container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(fakeStorage),
         notificationInitializerProvider.overrideWithValue(fakeInitializer),
+        diagnosticsCollectorProvider.overrideWithValue(diagnostics),
       ],
     );
   });
@@ -101,6 +106,7 @@ void main() {
       expect(s.pushTokenPlatform, isNull);
       expect(s.pushTokenUpdatedAt, isNull);
       expect(s.permissionStatus, NotificationPermissionStatus.unknown);
+      expect(s.notificationPreference, NotificationPreference.all);
     });
 
     test('init calls initializer and restores token', () async {
@@ -271,6 +277,22 @@ void main() {
       );
     });
 
+    test('clearPushToken preserves notification preference', () async {
+      await readStore().setNotificationPreference(
+        NotificationPreference.mute,
+      );
+      fakeInitializer.tokenResult = 'to-clear';
+      await readStore().refreshToken();
+
+      await readStore().clearPushToken();
+
+      expect(readState().notificationPreference, NotificationPreference.mute);
+      expect(
+        fakeStorage.snapshot[NotificationStorageKeys.notificationPreference],
+        'mute',
+      );
+    });
+
     test('init is idempotent — second call is a no-op', () async {
       await readStore().init();
       await readStore().init();
@@ -425,6 +447,91 @@ void main() {
 
       final pending = container.read(pendingDeepLinkProvider);
       expect(pending, '/servers/s2/channels/c2');
+    });
+
+    test('init restores notification preference from storage', () async {
+      fakeStorage._store[NotificationStorageKeys.notificationPreference] =
+          'mute';
+
+      await readStore().init();
+
+      expect(readState().notificationPreference, NotificationPreference.mute);
+    });
+
+    test('init defaults to all when preference storage is empty', () async {
+      await readStore().init();
+
+      expect(readState().notificationPreference, NotificationPreference.all);
+    });
+
+    test('restoreNotificationPreference reads persisted value', () async {
+      fakeStorage._store[NotificationStorageKeys.notificationPreference] =
+          'mentions_only';
+
+      await readStore().restoreNotificationPreference();
+
+      expect(
+        readState().notificationPreference,
+        NotificationPreference.mentionsOnly,
+      );
+    });
+
+    test('setNotificationPreference updates state and persists', () async {
+      await readStore().setNotificationPreference(
+        NotificationPreference.mute,
+      );
+
+      expect(readState().notificationPreference, NotificationPreference.mute);
+      expect(
+        fakeStorage.snapshot[NotificationStorageKeys.notificationPreference],
+        'mute',
+      );
+    });
+
+    test('setNotificationPreference logs diagnostics entry', () async {
+      await readStore().setNotificationPreference(
+        NotificationPreference.mentionsOnly,
+      );
+
+      final entries =
+          diagnostics.entries.where((e) => e.tag == 'notification').toList();
+      expect(entries, hasLength(1));
+      expect(entries.first.message, contains('mentions_only'));
+    });
+
+    test('requestPermission logs diagnostics entry', () async {
+      fakeInitializer.permissionResult = NotificationPermissionStatus.granted;
+
+      await readStore().requestPermission();
+
+      final entries =
+          diagnostics.entries.where((e) => e.tag == 'notification').toList();
+      expect(entries, hasLength(1));
+      expect(entries.first.message, contains('granted'));
+    });
+
+    test('refreshToken logs diagnostics entry on token change', () async {
+      fakeInitializer.tokenResult = 'new-token';
+
+      await readStore().refreshToken(platform: 'ios');
+
+      final entries =
+          diagnostics.entries.where((e) => e.tag == 'notification').toList();
+      expect(entries, hasLength(1));
+      expect(entries.first.message, contains('Push token updated'));
+    });
+
+    test('refreshToken logs diagnostics for platform change only', () async {
+      fakeInitializer.tokenResult = 'existing-token';
+      await readStore().refreshToken();
+      diagnostics.clear();
+
+      await readStore().refreshToken(platform: 'android');
+
+      final entries =
+          diagnostics.entries.where((e) => e.tag == 'notification').toList();
+      expect(entries, hasLength(1));
+      expect(entries.first.message, contains('Platform updated'));
     });
   });
 
