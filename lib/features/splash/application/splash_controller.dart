@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
@@ -21,12 +24,23 @@ class SplashController extends AutoDisposeAsyncNotifier<void> {
       }
       final updatedSession = ref.read(sessionStoreProvider);
       if (updatedSession.isAuthenticated) {
-        await ref
-            .read(serverSelectionStoreProvider.notifier)
-            .restoreSelection();
-        await ref.read(serverListStoreProvider.notifier).load();
+        await Future.wait([
+          ref.read(serverSelectionStoreProvider.notifier).restoreSelection(),
+          ref.read(serverListStoreProvider.notifier).load(),
+        ]);
       }
-      await ref.read(notificationStoreProvider.notifier).init();
+      final notificationStore = ref.read(notificationStoreProvider.notifier);
+      final diagnostics = ref.read(diagnosticsCollectorProvider);
+      unawaited(
+        notificationStore.init().catchError((Object e) {
+          diagnostics.add(DiagnosticsEntry(
+            timestamp: DateTime.now(),
+            level: DiagnosticsLevel.error,
+            tag: 'splash',
+            message: 'Deferred notification init failed: $e',
+          ));
+        }),
+      );
     } finally {
       ref.read(appReadyProvider.notifier).state = true;
     }
