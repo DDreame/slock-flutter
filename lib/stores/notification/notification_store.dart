@@ -8,6 +8,8 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/storage/notification_storage_keys.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 
 final notificationStoreProvider =
@@ -34,11 +36,15 @@ class NotificationStore extends Notifier<NotificationState> {
 
   SecureStorage get _storage => ref.read(secureStorageProvider);
 
+  DiagnosticsCollector get _diagnostics =>
+      ref.read(diagnosticsCollectorProvider);
+
   Future<void> init() async {
     if (_initialized) return;
     try {
       await _initializer.init();
       await restorePushToken();
+      await restoreNotificationPreference();
       final initial = await _initializer.getInitialNotification();
       if (initial != null) {
         handleNotificationTap(initial);
@@ -63,6 +69,12 @@ class NotificationStore extends Notifier<NotificationState> {
   Future<void> requestPermission() async {
     final status = await _initializer.requestPermission();
     state = state.copyWith(permissionStatus: status);
+    _diagnostics.add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.info,
+      tag: 'notification',
+      message: 'Permission request result: ${status.name}',
+    ));
   }
 
   Future<void> refreshToken({String? platform}) async {
@@ -79,6 +91,13 @@ class NotificationStore extends Notifier<NotificationState> {
         pushTokenUpdatedAt: now,
       );
       await _persistPushToken(token, now, platform: platform);
+      _diagnostics.add(DiagnosticsEntry(
+        timestamp: DateTime.now(),
+        level: DiagnosticsLevel.info,
+        tag: 'notification',
+        message: tokenChanged ? 'Push token updated' : 'Platform updated',
+        metadata: {'platform': platform},
+      ));
     }
   }
 
@@ -106,6 +125,26 @@ class NotificationStore extends Notifier<NotificationState> {
         clearPushTokenUpdatedAt: true,
       );
     }
+  }
+
+  Future<void> restoreNotificationPreference() async {
+    final repo = ref.read(notificationPreferenceRepositoryProvider);
+    final preference = await repo.getPreference();
+    state = state.copyWith(notificationPreference: preference);
+  }
+
+  Future<void> setNotificationPreference(
+    NotificationPreference preference,
+  ) async {
+    final repo = ref.read(notificationPreferenceRepositoryProvider);
+    await repo.setPreference(preference);
+    state = state.copyWith(notificationPreference: preference);
+    _diagnostics.add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.info,
+      tag: 'notification',
+      message: 'Preference changed to ${preference.storageValue}',
+    ));
   }
 
   void setLifecycleStatus(AppLifecycleStatus status) {
