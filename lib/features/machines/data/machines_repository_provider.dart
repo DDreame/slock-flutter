@@ -35,6 +35,12 @@ class _ApiMachinesRepository implements MachinesRepository {
 
   @override
   Future<MachinesSnapshot> loadMachines() async {
+    if (_serverId.value.isEmpty) {
+      throw const UnknownFailure(
+        message: 'Server ID is empty — cannot load machines.',
+        causeType: 'EmptyServerId',
+      );
+    }
     try {
       final response = await _appDioClient.get<Object?>(
         _machinesPath,

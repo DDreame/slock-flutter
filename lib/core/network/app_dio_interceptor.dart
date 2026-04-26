@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
+import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/core/network/app_failure_mapper.dart';
 import 'package:slock_app/core/network/auth_token_provider.dart';
 import 'package:slock_app/core/network/network_log_event.dart';
 import 'package:slock_app/core/network/token_refresh_coordinator.dart';
+
+const _headerBuildTimeout = Duration(seconds: 5);
 
 class AppDioInterceptor extends Interceptor {
   AppDioInterceptor({
@@ -24,7 +29,7 @@ class AppDioInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     try {
-      final headers = await _buildHeaders();
+      final headers = await _buildHeaders().timeout(_headerBuildTimeout);
       options.headers.addAll(headers);
       _logSink(
         NetworkLogEvent(
@@ -34,6 +39,26 @@ class AppDioInterceptor extends Interceptor {
         ),
       );
       handler.next(options);
+    } on TimeoutException {
+      _logSink(
+        NetworkLogEvent(
+          stage: NetworkLogStage.failure,
+          method: options.method,
+          path: options.path,
+          failureType: 'HeaderBuildTimeout',
+        ),
+      );
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          error: TimeoutFailure(
+            message:
+                'Auth header build timed out after ${_headerBuildTimeout.inSeconds}s',
+            causeType: 'HeaderBuildTimeout',
+          ),
+          type: DioExceptionType.unknown,
+        ),
+      );
     } catch (error) {
       handler.reject(
         DioException(

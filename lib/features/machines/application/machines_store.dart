@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/machines/application/machines_state.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
+
+const _storeLoadTimeout = Duration(seconds: 15);
 
 final machinesStoreProvider =
     AutoDisposeNotifierProvider<MachinesStore, MachinesState>(
@@ -30,8 +34,10 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
     state = state.copyWith(status: MachinesStatus.loading, clearFailure: true);
 
     try {
-      final snapshot =
-          await ref.read(machinesRepositoryProvider).loadMachines();
+      final snapshot = await ref
+          .read(machinesRepositoryProvider)
+          .loadMachines()
+          .timeout(_storeLoadTimeout);
       state = state.copyWith(
         status: MachinesStatus.success,
         items: _sortMachines(snapshot.items),
@@ -40,6 +46,14 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
       );
     } on AppFailure catch (failure) {
       state = state.copyWith(status: MachinesStatus.failure, failure: failure);
+    } on TimeoutException {
+      state = state.copyWith(
+        status: MachinesStatus.failure,
+        failure: const TimeoutFailure(
+          message: 'Machines loading timed out',
+          causeType: 'StoreLoadTimeout',
+        ),
+      );
     }
   }
 
