@@ -73,7 +73,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             message: state.failure?.message ?? 'Unable to load conversations.',
             onRetry: homeStore.retry,
           ),
-        HomeListStatus.success when state.isEmpty => const _HomeEmptyState(),
         HomeListStatus.success => ListView(
             padding: const EdgeInsets.symmetric(vertical: 12),
             children: [
@@ -544,17 +543,6 @@ class _HomeSectionHeader extends StatelessWidget {
             ),
         ],
       ),
-    );
-  }
-}
-
-class _HomeEmptyState extends StatelessWidget {
-  const _HomeEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('No channels or direct messages yet.'),
     );
   }
 }

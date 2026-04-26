@@ -429,6 +429,32 @@ void main() {
     expect(find.text('machines:server-1'), findsOneWidget);
   });
 
+  testWidgets('Machines entry is reachable in empty workspace', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+    const emptySnapshot = HomeWorkspaceSnapshot(
+      serverId: ServerScopeId('server-1'),
+      channels: [],
+      directMessages: [],
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(emptySnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('home-machines')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('home-machines')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('machines:server-1'), findsOneWidget);
+  });
+
   testWidgets('server switcher sheet scrolls with many servers', (
     tester,
   ) async {
