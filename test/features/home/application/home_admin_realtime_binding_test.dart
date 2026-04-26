@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -161,15 +163,33 @@ Future<void> _waitForHomeReload(
   _FakeHomeWorkspaceLoader homeLoader,
   ProviderContainer container,
 ) async {
-  for (var i = 0; i < 10; i++) {
-    await _drainAsyncWork();
-    final state = container.read(homeListStoreProvider);
-    if (homeLoader.calls.length >= 2 &&
-        state.status == HomeListStatus.success &&
-        state.channels.single.name == 'announcements') {
-      return;
-    }
+  final completer = Completer<void>();
+  late final ProviderSubscription<HomeListState> subscription;
+  subscription = container.listen<HomeListState>(
+    homeListStoreProvider,
+    (_, next) {
+      if (!completer.isCompleted && _homeReloadSettled(homeLoader, next)) {
+        completer.complete();
+      }
+    },
+    fireImmediately: true,
+  );
+
+  try {
+    await completer.future.timeout(const Duration(seconds: 1));
+  } finally {
+    subscription.close();
   }
+}
+
+bool _homeReloadSettled(
+  _FakeHomeWorkspaceLoader homeLoader,
+  HomeListState state,
+) {
+  return homeLoader.calls.length >= 2 &&
+      state.status == HomeListStatus.success &&
+      state.channels.length == 1 &&
+      state.channels.single.name == 'announcements';
 }
 
 class _FakeHomeWorkspaceLoader {
