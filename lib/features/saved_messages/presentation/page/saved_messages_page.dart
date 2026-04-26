@@ -48,15 +48,16 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Saved Messages')),
       body: switch (state.status) {
-        SavedMessagesStatus.initial || SavedMessagesStatus.loading =>
+        SavedMessagesStatus.initial ||
+        SavedMessagesStatus.loading =>
           const Center(child: CircularProgressIndicator()),
         SavedMessagesStatus.failure => _SavedMessagesFailureView(
-          message: state.failure?.message ?? 'Failed to load saved messages.',
-          onRetry: ref.read(savedMessagesStoreProvider.notifier).retry,
-        ),
+            message: state.failure?.message ?? 'Failed to load saved messages.',
+            onRetry: ref.read(savedMessagesStoreProvider.notifier).retry,
+          ),
         SavedMessagesStatus.success when state.items.isEmpty => const Center(
-          child: Text('No saved messages yet.'),
-        ),
+            child: Text('No saved messages yet.'),
+          ),
         SavedMessagesStatus.success => _SavedMessagesList(state: state),
       },
     );

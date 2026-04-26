@@ -71,127 +71,128 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
       ),
       body: switch (state.status) {
         ProfileDetailStatus.initial ||
-        ProfileDetailStatus.loading => const Center(
-          key: ValueKey('profile-loading'),
-          child: CircularProgressIndicator(),
-        ),
+        ProfileDetailStatus.loading =>
+          const Center(
+            key: ValueKey('profile-loading'),
+            child: CircularProgressIndicator(),
+          ),
         ProfileDetailStatus.failure => Center(
-          key: const ValueKey('profile-error'),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  state.failure?.message ?? 'Profile not available.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                FilledButton(
-                  onPressed: () =>
-                      ref.read(profileDetailStoreProvider.notifier).retry(),
-                  child: const Text('Retry'),
-                ),
-              ],
+            key: const ValueKey('profile-error'),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    state.failure?.message ?? 'Profile not available.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () =>
+                        ref.read(profileDetailStoreProvider.notifier).retry(),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ProfileDetailStatus.success when profile != null => Center(
-          key: const ValueKey('profile-success'),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ProfileAvatar(
-                  displayName: profile.displayName,
-                  avatarUrl: profile.avatarUrl,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  profile.displayName,
-                  key: const ValueKey('profile-display-name'),
-                  style: theme.textTheme.headlineSmall,
-                  textAlign: TextAlign.center,
-                ),
-                if (profile.presence != null) ...[
-                  const SizedBox(height: 12),
-                  DecoratedBox(
-                    key: const ValueKey('profile-presence'),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+            key: const ValueKey('profile-success'),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ProfileAvatar(
+                    displayName: profile.displayName,
+                    avatarUrl: profile.avatarUrl,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    profile.displayName,
+                    key: const ValueKey('profile-display-name'),
+                    style: theme.textTheme.headlineSmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  if (profile.presence != null) ...[
+                    const SizedBox(height: 12),
+                    DecoratedBox(
+                      key: const ValueKey('profile-presence'),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(999),
                       ),
-                      child: Text(
-                        profile.presence!,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSecondaryContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        child: Text(
+                          profile.presence!,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.onSecondaryContainer,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-                _ProfileInfoRow(
-                  infoKey: const ValueKey('profile-user-id'),
-                  label: 'User ID',
-                  value: profile.id,
-                ),
-                if (profile.username != null)
+                  ],
                   _ProfileInfoRow(
-                    infoKey: const ValueKey('profile-username'),
-                    label: 'Username',
-                    value: '@${profile.username!}',
+                    infoKey: const ValueKey('profile-user-id'),
+                    label: 'User ID',
+                    value: profile.id,
                   ),
-                if (profile.email != null)
-                  _ProfileInfoRow(
-                    infoKey: const ValueKey('profile-email'),
-                    label: 'Email',
-                    value: profile.email!,
-                  ),
-                if (profile.role != null)
-                  _ProfileInfoRow(
-                    infoKey: const ValueKey('profile-role'),
-                    label: 'Role',
-                    value: profile.role!,
-                  ),
-                if (profile.isSelf) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'This is you',
-                    key: const ValueKey('profile-self-badge'),
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
+                  if (profile.username != null)
+                    _ProfileInfoRow(
+                      infoKey: const ValueKey('profile-username'),
+                      label: 'Username',
+                      value: '@${profile.username!}',
                     ),
-                  ),
-                ] else if (target.canLoadRemote) ...[
-                  const SizedBox(height: 16),
-                  FilledButton.icon(
-                    key: const ValueKey('profile-message-button'),
-                    onPressed: state.isOpeningDirectMessage
-                        ? null
-                        : () => _openDirectMessage(target),
-                    icon: state.isOpeningDirectMessage
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.chat_bubble_outline),
-                    label: const Text('Message'),
-                  ),
+                  if (profile.email != null)
+                    _ProfileInfoRow(
+                      infoKey: const ValueKey('profile-email'),
+                      label: 'Email',
+                      value: profile.email!,
+                    ),
+                  if (profile.role != null)
+                    _ProfileInfoRow(
+                      infoKey: const ValueKey('profile-role'),
+                      label: 'Role',
+                      value: profile.role!,
+                    ),
+                  if (profile.isSelf) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'This is you',
+                      key: const ValueKey('profile-self-badge'),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ] else if (target.canLoadRemote) ...[
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      key: const ValueKey('profile-message-button'),
+                      onPressed: state.isOpeningDirectMessage
+                          ? null
+                          : () => _openDirectMessage(target),
+                      icon: state.isOpeningDirectMessage
+                          ? const SizedBox.square(
+                              dimension: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.chat_bubble_outline),
+                      label: const Text('Message'),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-        ),
         _ => const Center(
-          key: ValueKey('profile-empty'),
-          child: Text('Profile not available.'),
-        ),
+            key: ValueKey('profile-empty'),
+            child: Text('Profile not available.'),
+          ),
       },
     );
   }

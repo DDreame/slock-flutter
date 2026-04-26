@@ -858,5 +858,6 @@ class _FakeAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async => const [];
+  }) async =>
+      const [];
 }

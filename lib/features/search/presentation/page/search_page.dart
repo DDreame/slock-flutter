@@ -77,24 +77,24 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
       ),
       body: switch (state.status) {
         SearchStatus.idle => const Center(
-          key: ValueKey('search-idle'),
-          child: Text('Type to search messages.'),
-        ),
+            key: ValueKey('search-idle'),
+            child: Text('Type to search messages.'),
+          ),
         SearchStatus.searching when !state.hasResults => const Center(
-          key: ValueKey('search-searching'),
-          child: CircularProgressIndicator(),
-        ),
+            key: ValueKey('search-searching'),
+            child: CircularProgressIndicator(),
+          ),
         SearchStatus.failure when !state.hasResults => _SearchFailureView(
-          message: state.failure?.message ?? 'Search failed.',
-        ),
+            message: state.failure?.message ?? 'Search failed.',
+          ),
         _ when state.hasResults => _SearchResultsList(
-          state: state,
-          query: state.query,
-        ),
+            state: state,
+            query: state.query,
+          ),
         SearchStatus.success when !state.hasResults => const Center(
-          key: ValueKey('search-empty'),
-          child: Text('No results found.'),
-        ),
+            key: ValueKey('search-empty'),
+            child: Text('No results found.'),
+          ),
         _ => const SizedBox.shrink(),
       },
     );
