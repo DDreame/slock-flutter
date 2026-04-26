@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
+import 'package:sentry_flutter/sentry_flutter.dart' as sentry;
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 
 class SentryCrashReporter implements CrashReporter {
@@ -9,7 +9,7 @@ class SentryCrashReporter implements CrashReporter {
 
   @override
   Future<void> init() async {
-    await SentryFlutter.init((options) {
+    await sentry.SentryFlutter.init((options) {
       options.dsn = dsn;
       options.tracesSampleRate = 0;
       options.attachStacktrace = true;
@@ -22,14 +22,12 @@ class SentryCrashReporter implements CrashReporter {
     StackTrace? stackTrace,
     Map<String, dynamic>? extra,
   }) {
-    Sentry.captureException(
+    sentry.Sentry.captureException(
       error,
       stackTrace: stackTrace,
       withScope: extra != null
           ? (scope) {
-              for (final entry in extra.entries) {
-                scope.setExtra(entry.key, entry.value);
-              }
+              scope.setContexts('extra', extra);
             }
           : null,
     );
@@ -37,7 +35,7 @@ class SentryCrashReporter implements CrashReporter {
 
   @override
   void captureFlutterError(FlutterErrorDetails details) {
-    Sentry.captureException(
+    sentry.Sentry.captureException(
       details.exception,
       stackTrace: details.stack,
     );
@@ -45,7 +43,7 @@ class SentryCrashReporter implements CrashReporter {
 
   @override
   void addBreadcrumb(Breadcrumb breadcrumb) {
-    Sentry.addBreadcrumb(SentryBreadcrumb(
+    sentry.Sentry.addBreadcrumb(sentry.Breadcrumb(
       message: breadcrumb.message,
       category: breadcrumb.category,
       timestamp: breadcrumb.timestamp,
@@ -55,11 +53,11 @@ class SentryCrashReporter implements CrashReporter {
 
   @override
   void setUser(String? userId, {String? displayName}) {
-    Sentry.configureScope((scope) {
+    sentry.Sentry.configureScope((scope) {
       if (userId == null) {
         scope.setUser(null);
       } else {
-        scope.setUser(SentryUser(
+        scope.setUser(sentry.SentryUser(
           id: userId,
           username: displayName,
         ));
