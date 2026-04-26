@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
@@ -5,6 +7,7 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
@@ -36,9 +39,25 @@ class FakeServerListRepository implements ServerListRepository {
 
 class FakeNotificationInitializer implements NotificationInitializer {
   int initCount = 0;
+  Completer<void>? _initCompleter;
+  bool shouldFail = false;
+
+  void holdInit() {
+    _initCompleter = Completer<void>();
+  }
+
+  void releaseInit() {
+    _initCompleter?.complete();
+  }
 
   @override
   Future<void> init() async {
+    if (_initCompleter != null) {
+      await _initCompleter!.future;
+    }
+    if (shouldFail) {
+      throw Exception('notification init failed');
+    }
     initCount++;
   }
 
@@ -66,10 +85,12 @@ void main() {
   late ProviderContainer container;
   late FakeSecureStorage fakeStorage;
   late FakeNotificationInitializer fakeNotificationInitializer;
+  late DiagnosticsCollector diagnostics;
 
   setUp(() {
     fakeStorage = FakeSecureStorage();
     fakeNotificationInitializer = FakeNotificationInitializer();
+    diagnostics = DiagnosticsCollector();
     container = ProviderContainer(
       overrides: [
         secureStorageProvider.overrideWithValue(fakeStorage),
@@ -79,6 +100,7 @@ void main() {
         notificationInitializerProvider.overrideWithValue(
           fakeNotificationInitializer,
         ),
+        diagnosticsCollectorProvider.overrideWithValue(diagnostics),
       ],
     );
   });
@@ -150,20 +172,48 @@ void main() {
       expect(container.read(appReadyProvider), isTrue);
     });
 
-    test('calls notification store init during bootstrap', () async {
+    test(
+        'notification init is deferred — appReady is true before init completes',
+        () async {
+      fakeNotificationInitializer.holdInit();
+
       await container.read(splashControllerProvider.future);
+
+      expect(container.read(appReadyProvider), isTrue);
+      expect(fakeNotificationInitializer.initCount, 0);
+
+      fakeNotificationInitializer.releaseInit();
+      await Future<void>.delayed(Duration.zero);
+      expect(fakeNotificationInitializer.initCount, 1);
+    });
+
+    test('notification init completes after bootstrap', () async {
+      await container.read(splashControllerProvider.future);
+      await Future<void>.delayed(Duration.zero);
 
       expect(fakeNotificationInitializer.initCount, 1);
     });
 
-    test('calls notification store init during authenticated bootstrap',
-        () async {
+    test('notification init completes after authenticated bootstrap', () async {
       fakeStorage._store[SessionStorageKeys.token] = 'saved-token';
       fakeStorage._store[SessionStorageKeys.userId] = 'user-1';
 
       await container.read(splashControllerProvider.future);
+      await Future<void>.delayed(Duration.zero);
 
       expect(fakeNotificationInitializer.initCount, 1);
+    });
+
+    test('notification init failure is logged to diagnostics', () async {
+      fakeNotificationInitializer.shouldFail = true;
+
+      await container.read(splashControllerProvider.future);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(appReadyProvider), isTrue);
+      expect(diagnostics.entries, hasLength(1));
+      expect(diagnostics.entries.first.level, DiagnosticsLevel.error);
+      expect(diagnostics.entries.first.tag, 'splash');
     });
   });
 }
