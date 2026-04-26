@@ -140,6 +140,37 @@ void main() {
       expect(refreshCalls, 0);
     });
 
+    test('refresh succeeds but retry fails surfaces retry error', () async {
+      final adapter = _SequenceAdapter([
+        _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
+        _StubResponse(statusCode: 500, body: '{"error":"server"}'),
+      ]);
+
+      final coordinator = TokenRefreshCoordinator(
+        refreshToken: () async => 'new-token',
+      );
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {},
+          tokenRefreshCoordinator: coordinator,
+          logSink: noopNetworkLogSink,
+          dioForRetry: () => dio,
+        ),
+      );
+
+      try {
+        await dio.get<Object?>('/test');
+        fail('should have thrown');
+      } on DioException catch (e) {
+        expect(e.response?.statusCode, 500);
+      }
+
+      expect(adapter.callCount, 2);
+    });
+
     test('retry preserves original request method and body', () async {
       final adapter = _SequenceAdapter([
         _StubResponse(statusCode: 401, body: '{}'),

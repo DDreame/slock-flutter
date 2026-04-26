@@ -74,8 +74,9 @@ class AppDioInterceptor extends Interceptor {
   ) async {
     if (err.response?.statusCode == 401 &&
         err.requestOptions.extra[tokenRetriedKey] != true) {
+      String? newToken;
       try {
-        final newToken = await _tokenRefreshCoordinator.refreshToken();
+        newToken = await _tokenRefreshCoordinator.refreshToken();
         _logSink(
           NetworkLogEvent(
             stage: NetworkLogStage.refresh,
@@ -84,14 +85,18 @@ class AppDioInterceptor extends Interceptor {
             statusCode: err.response?.statusCode,
           ),
         );
-        if (newToken != null && newToken.isNotEmpty) {
+      } catch (_) {
+        // Refresh failed — fall through to original 401 error.
+      }
+      if (newToken != null && newToken.isNotEmpty) {
+        try {
           final opts = err.requestOptions;
           opts.extra[tokenRetriedKey] = true;
           final response = await _dioForRetry().fetch<dynamic>(opts);
           return handler.resolve(response);
+        } on DioException catch (retryErr) {
+          err = retryErr;
         }
-      } catch (_) {
-        // Refresh or retry failure — fall through to original error.
       }
     }
 
