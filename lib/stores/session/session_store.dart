@@ -103,6 +103,18 @@ class SessionStore extends Notifier<SessionState> {
     state = const SessionState(status: AuthStatus.unauthenticated);
   }
 
+  Future<void> updateTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    state = state.copyWith(token: accessToken);
+    await _storage.write(key: SessionStorageKeys.token, value: accessToken);
+    await _storage.write(
+      key: SessionStorageKeys.refreshToken,
+      value: refreshToken,
+    );
+  }
+
   Future<void> _persistSession() async {
     final s = state;
     if (s.token != null) {

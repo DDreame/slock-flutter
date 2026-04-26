@@ -236,6 +236,31 @@ void main() {
       );
     });
 
+    test('updateTokens persists both tokens and updates in-memory state',
+        () async {
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'test@example.com', password: 'password');
+
+      await container.read(sessionStoreProvider.notifier).updateTokens(
+            accessToken: 'new-access-token',
+            refreshToken: 'new-refresh-token',
+          );
+
+      final state = container.read(sessionStoreProvider);
+      expect(state.status, AuthStatus.authenticated);
+      expect(state.token, 'new-access-token');
+
+      expect(
+        fakeStorage.snapshot[SessionStorageKeys.token],
+        'new-access-token',
+      );
+      expect(
+        fakeStorage.snapshot[SessionStorageKeys.refreshToken],
+        'new-refresh-token',
+      );
+    });
+
     test('logout clears server selection state and storage', () async {
       await container
           .read(sessionStoreProvider.notifier)
