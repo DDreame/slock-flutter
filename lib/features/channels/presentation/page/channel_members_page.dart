@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/application/channel_realtime_binding.dart';
 import 'package:slock_app/features/channels/application/channel_member_state.dart';
 import 'package:slock_app/features/channels/application/channel_member_store.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
@@ -63,6 +64,7 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(channelMembersRealtimeBindingProvider);
     final state = ref.watch(channelMemberStoreProvider);
 
     return Scaffold(

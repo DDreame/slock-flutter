@@ -7,6 +7,7 @@ import 'package:slock_app/features/channels/application/channel_management_state
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
 import 'package:slock_app/features/channels/presentation/widgets/channel_management_dialogs.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -28,6 +29,7 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
+    ref.watch(homeAdminRealtimeBindingProvider);
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final unreadState = ref.watch(channelUnreadStoreProvider);
