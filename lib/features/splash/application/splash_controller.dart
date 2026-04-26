@@ -24,6 +24,8 @@ class SplashController extends AutoDisposeAsyncNotifier<void> {
       }
       final updatedSession = ref.read(sessionStoreProvider);
       if (updatedSession.isAuthenticated) {
+        // Yield so provider state changes below run outside synchronous init.
+        await Future<void>.value();
         await Future.wait([
           ref.read(serverSelectionStoreProvider.notifier).restoreSelection(),
           ref.read(serverListStoreProvider.notifier).load(),
