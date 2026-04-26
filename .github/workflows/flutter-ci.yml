@@ -99,6 +99,9 @@ jobs:
     needs: [detect-project, verify]
     if: needs.detect-project.outputs.has_flutter_project == 'true' && needs.detect-project.outputs.has_android_scaffold == 'true'
     timeout-minutes: 30
+    env:
+      SLOCK_API_BASE_URL: ${{ vars.SLOCK_API_BASE_URL || secrets.SLOCK_API_BASE_URL }}
+      SLOCK_REALTIME_URL: ${{ vars.SLOCK_REALTIME_URL || secrets.SLOCK_REALTIME_URL }}
     steps:
       - uses: actions/checkout@v4
 
@@ -160,6 +163,9 @@ jobs:
     needs: [detect-project, verify]
     if: needs.detect-project.outputs.has_flutter_project == 'true' && needs.detect-project.outputs.has_ios_scaffold == 'true'
     timeout-minutes: 30
+    env:
+      SLOCK_API_BASE_URL: ${{ vars.SLOCK_API_BASE_URL || secrets.SLOCK_API_BASE_URL }}
+      SLOCK_REALTIME_URL: ${{ vars.SLOCK_REALTIME_URL || secrets.SLOCK_REALTIME_URL }}
     steps:
       - uses: actions/checkout@v4
 
