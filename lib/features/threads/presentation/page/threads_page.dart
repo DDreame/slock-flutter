@@ -37,12 +37,21 @@ class _ThreadsScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('Threads')),
       body: switch (state.status) {
         ThreadsInboxStatus.initial ||
-        ThreadsInboxStatus.loading =>
+        ThreadsInboxStatus.loading when state.items.isEmpty =>
           const Center(
             key: ValueKey('threads-loading'),
             child: CircularProgressIndicator(),
           ),
-        ThreadsInboxStatus.failure => _ThreadsFailureView(
+        ThreadsInboxStatus.loading => _ThreadsListSurface(
+            items: state.items,
+            isRefreshing: true,
+            isCompleting: state.isCompleting,
+            onOpen: (item) => context.push(item.routeTarget.toLocation()),
+            onDone: store.markDone,
+          ),
+        ThreadsInboxStatus.initial ||
+        ThreadsInboxStatus.failure =>
+          _ThreadsFailureView(
             message: state.failure?.message ?? 'Unable to load threads.',
             onRetry: store.retry,
           ),
@@ -50,23 +59,60 @@ class _ThreadsScreen extends ConsumerWidget {
             key: ValueKey('threads-empty'),
             child: Text('No followed threads yet.'),
           ),
-        ThreadsInboxStatus.success => ListView.separated(
-            key: const ValueKey('threads-success'),
-            padding: const EdgeInsets.all(16),
-            itemCount: state.items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final item = state.items[index];
-              return _ThreadInboxCard(
-                item: item,
-                isCompleting:
-                    state.isCompleting(item.routeTarget.threadChannelId ?? ''),
-                onOpen: () => context.push(item.routeTarget.toLocation()),
-                onDone: () => store.markDone(item),
-              );
-            },
+        ThreadsInboxStatus.success => _ThreadsListSurface(
+            items: state.items,
+            isCompleting: state.isCompleting,
+            onOpen: (item) => context.push(item.routeTarget.toLocation()),
+            onDone: store.markDone,
           ),
       },
+    );
+  }
+}
+
+class _ThreadsListSurface extends StatelessWidget {
+  const _ThreadsListSurface({
+    required this.items,
+    required this.isCompleting,
+    required this.onOpen,
+    required this.onDone,
+    this.isRefreshing = false,
+  });
+
+  final List<ThreadInboxItem> items;
+  final bool Function(String threadChannelId) isCompleting;
+  final void Function(ThreadInboxItem item) onOpen;
+  final Future<void> Function(ThreadInboxItem item) onDone;
+  final bool isRefreshing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ListView.separated(
+          key: const ValueKey('threads-success'),
+          padding: const EdgeInsets.all(16),
+          itemCount: items.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return _ThreadInboxCard(
+              item: item,
+              isCompleting:
+                  isCompleting(item.routeTarget.threadChannelId ?? ''),
+              onOpen: () => onOpen(item),
+              onDone: () => onDone(item),
+            );
+          },
+        ),
+        if (isRefreshing)
+          const Align(
+            alignment: Alignment.topCenter,
+            child: LinearProgressIndicator(
+              key: ValueKey('threads-refresh-indicator'),
+            ),
+          ),
+      ],
     );
   }
 }

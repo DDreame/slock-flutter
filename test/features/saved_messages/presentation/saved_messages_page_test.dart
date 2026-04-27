@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/saved_messages/application/saved_messages_state.dart';
+import 'package:slock_app/features/saved_messages/application/saved_messages_store.dart';
 import 'package:slock_app/features/saved_messages/data/saved_message_item.dart'
     as saved_data;
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
@@ -11,6 +13,37 @@ import 'package:slock_app/features/saved_messages/data/saved_messages_repository
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
 
 void main() {
+  testWidgets('keeps saved messages list visible while reloading', (
+    tester,
+  ) async {
+    final store = _FakeSavedMessagesStore(
+      initialState: SavedMessagesState(
+        status: SavedMessagesStatus.loading,
+        items: [_savedMessageItem()],
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          savedMessagesStoreProvider.overrideWith(() => store),
+        ],
+        child: const MaterialApp(
+          home: SavedMessagesPage(serverId: 'server-1'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('saved-messages-list')), findsOneWidget);
+    expect(find.byKey(const ValueKey('saved-message-msg-1')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('saved-messages-refresh-indicator')),
+      findsOneWidget,
+    );
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
   testWidgets('saved message tap pushes conversation and keeps saved list', (
     tester,
   ) async {
@@ -74,6 +107,19 @@ void main() {
   });
 }
 
+saved_data.SavedMessageItem _savedMessageItem() {
+  return saved_data.SavedMessageItem(
+    message: ConversationMessageSummary(
+      id: 'msg-1',
+      content: 'Saved hello',
+      createdAt: DateTime(2026, 4, 21),
+      senderType: 'human',
+      messageType: 'message',
+    ),
+    channelId: 'general',
+  );
+}
+
 class _FakeSavedMessagesRepository implements SavedMessagesRepository {
   const _FakeSavedMessagesRepository(this.page);
 
@@ -101,4 +147,17 @@ class _FakeSavedMessagesRepository implements SavedMessagesRepository {
   ) async {
     return {};
   }
+}
+
+class _FakeSavedMessagesStore extends SavedMessagesStore {
+  _FakeSavedMessagesStore({required SavedMessagesState initialState})
+      : _initialState = initialState;
+
+  final SavedMessagesState _initialState;
+
+  @override
+  SavedMessagesState build() => _initialState;
+
+  @override
+  Future<void> load() async {}
 }
