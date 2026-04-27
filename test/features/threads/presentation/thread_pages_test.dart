@@ -444,9 +444,9 @@ Widget _buildAppWithContainer({
 
 class _FakeThreadRepository implements ThreadRepository {
   _FakeThreadRepository({
-    this.items = const [],
+    List<ThreadInboxItem> items = const [],
     this.resolvedThread,
-  });
+  }) : items = List<ThreadInboxItem>.of(items);
 
   final List<ThreadInboxItem> items;
   final ResolvedThreadChannel? resolvedThread;
