@@ -13,7 +13,7 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 const realtimeDmNewEventType = 'dm:new';
 
 final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
-  final pendingChannelIds = <String>[];
+  final pendingEvents = <_BufferedDmEvent>[];
 
   final ingress = ref.watch(realtimeReductionIngressProvider);
   final subscription = ingress.acceptedEvents.listen((event) async {
@@ -37,7 +37,7 @@ final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
     final homeState = ref.read(homeListStoreProvider);
     if (homeState.status != HomeListStatus.success ||
         homeState.serverScopeId == null) {
-      pendingChannelIds.add(channelId);
+      pendingEvents.add(_BufferedDmEvent(channelId: channelId, payload: map));
       return;
     }
 
@@ -51,15 +51,20 @@ final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
   ref.listen(homeListStoreProvider, (previous, next) {
     if (next.status != HomeListStatus.success ||
         next.serverScopeId == null ||
-        pendingChannelIds.isEmpty) {
+        pendingEvents.isEmpty) {
       return;
     }
-    final toReplay = List<String>.of(pendingChannelIds);
-    pendingChannelIds.clear();
-    for (final channelId in toReplay) {
+    final toReplay = List<_BufferedDmEvent>.of(pendingEvents);
+    pendingEvents.clear();
+    for (final buffered in toReplay) {
       unawaited(() async {
         try {
-          await _materializeDm(ref, next.serverScopeId!, channelId, null);
+          await _materializeDm(
+            ref,
+            next.serverScopeId!,
+            buffered.channelId,
+            buffered.payload,
+          );
         } catch (e, st) {
           ref.read(crashReporterProvider).captureException(e, stackTrace: st);
         }
@@ -93,4 +98,14 @@ Future<void> _materializeDm(
           );
 
   ref.read(homeListStoreProvider.notifier).addDirectMessage(summary);
+}
+
+class _BufferedDmEvent {
+  const _BufferedDmEvent({
+    required this.channelId,
+    required this.payload,
+  });
+
+  final String channelId;
+  final Map<String, dynamic> payload;
 }

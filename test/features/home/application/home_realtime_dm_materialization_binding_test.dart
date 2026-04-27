@@ -163,6 +163,13 @@ void main() {
       reason:
           'Buffered DM should be materialized after auto-load reaches success',
     );
+    expect(
+      state.directMessages
+          .firstWhere((dm) => dm.scopeId.value == 'dm-early')
+          .title,
+      'Early Bob',
+      reason: 'Buffered replay should preserve the original payload title',
+    );
   });
 
   test(
@@ -236,6 +243,13 @@ void main() {
       state.directMessages.any((dm) => dm.scopeId.value == 'dm-buffered'),
       isTrue,
       reason: 'Buffered dm:new should be materialized after load completes',
+    );
+    expect(
+      state.directMessages
+          .firstWhere((dm) => dm.scopeId.value == 'dm-buffered')
+          .title,
+      'Buffered Bob',
+      reason: 'Buffered replay should preserve the original participant title',
     );
   });
 
