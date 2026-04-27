@@ -121,8 +121,13 @@ class _ThreadRepliesScreen extends ConsumerWidget {
             : () async {
                 await store.markDone();
                 final nextState = ref.read(threadRepliesStoreProvider);
-                if (nextState.isDone && context.mounted && context.canPop()) {
-                  context.pop();
+                if (nextState.isDone && context.mounted) {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go(
+                        '/servers/${nextState.routeTarget.serverId}/threads');
+                  }
                 }
               },
         icon: state.isDoneInFlight

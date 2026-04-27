@@ -183,6 +183,28 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
   });
 
+  testWidgets('tasks entry preserves the home return stack', (tester) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('home-tasks')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('tasks:server-1'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomePage), findsOneWidget);
+  });
+
   testWidgets('create channel opens dialog and navigates when id is returned', (
     tester,
   ) async {
@@ -485,6 +507,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('machines:server-1'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomePage), findsOneWidget);
   });
 
   testWidgets('Machines entry is reachable in empty workspace', (tester) async {
@@ -762,6 +789,14 @@ GoRouter _buildRouter() {
         builder: (context, state) => Scaffold(
           body: Center(
             child: Text('members:${state.pathParameters['serverId']}'),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/tasks',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text('tasks:${state.pathParameters['serverId']}'),
           ),
         ),
       ),

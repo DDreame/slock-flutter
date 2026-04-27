@@ -33,8 +33,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('profile-route'), findsOneWidget);
 
-      router.go('/settings');
+      router.pop();
       await tester.pumpAndSettle();
+      expect(find.byType(SettingsPage), findsOneWidget);
 
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('settings-billing')),
@@ -44,8 +45,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('billing-route'), findsOneWidget);
 
-      router.go('/settings');
+      router.pop();
       await tester.pumpAndSettle();
+      expect(find.byType(SettingsPage), findsOneWidget);
 
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('settings-release-notes')),
@@ -59,8 +61,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('release-notes-route'), findsOneWidget);
 
-      router.go('/settings');
+      router.pop();
       await tester.pumpAndSettle();
+      expect(find.byType(SettingsPage), findsOneWidget);
 
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('settings-notification-link')),
@@ -71,6 +74,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('notification-settings-route'), findsOneWidget);
+
+      router.pop();
+      await tester.pumpAndSettle();
+      expect(find.byType(SettingsPage), findsOneWidget);
     },
   );
 
