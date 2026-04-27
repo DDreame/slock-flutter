@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
