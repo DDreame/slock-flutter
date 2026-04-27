@@ -354,6 +354,13 @@ class _FakeHomeRepository implements HomeRepository {
   final List<ServerScopeId> requestedServerIds = [];
 
   @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return null;
+  }
+
+  @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
     requestedServerIds.add(serverId);
     if (failure != null) {
