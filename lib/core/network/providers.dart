@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/network/app_dio_interceptor.dart';
 import 'package:slock_app/core/network/auth_token_provider.dart';
@@ -8,6 +9,15 @@ import 'package:slock_app/core/network/network_log_event.dart';
 import 'package:slock_app/core/network/token_refresh_coordinator.dart';
 
 final networkLogSinkProvider = Provider<NetworkLogSink>((ref) {
+  if (kDebugMode) {
+    return (event) {
+      debugPrint(
+        '[NET] ${event.stage.name} ${event.method} ${event.path}'
+        '${event.statusCode != null ? ' ${event.statusCode}' : ''}'
+        '${event.failureType != null ? ' [${event.failureType}]' : ''}',
+      );
+    };
+  }
   return noopNetworkLogSink;
 });
 
