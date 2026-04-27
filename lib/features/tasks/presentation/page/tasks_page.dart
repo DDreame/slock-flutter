@@ -47,25 +47,34 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Tasks')),
-      floatingActionButton: state.status == TasksStatus.success
-          ? FloatingActionButton(
-              key: const ValueKey('tasks-create-fab'),
-              onPressed: _showCreateTaskDialog,
-              child: const Icon(Icons.add),
-            )
-          : null,
+      floatingActionButton:
+          state.items.isNotEmpty || state.status == TasksStatus.success
+              ? FloatingActionButton(
+                  key: const ValueKey('tasks-create-fab'),
+                  onPressed: _showCreateTaskDialog,
+                  child: const Icon(Icons.add),
+                )
+              : null,
       body: switch (state.status) {
         TasksStatus.initial ||
-        TasksStatus.loading =>
+        TasksStatus.loading when state.items.isEmpty =>
           const Center(child: CircularProgressIndicator()),
-        TasksStatus.failure => _TasksFailureView(
+        TasksStatus.loading => _TasksListSurface(
+            items: state.items,
+            isRefreshing: true,
+            onStatusUpdate: _updateStatus,
+            onDelete: _deleteTask,
+            onClaim: _claimTask,
+            onUnclaim: _unclaimTask,
+          ),
+        TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
             message: state.failure?.message ?? 'Failed to load tasks.',
             onRetry: ref.read(tasksStoreProvider.notifier).retry,
           ),
         TasksStatus.success when state.items.isEmpty => const Center(
             child: Text('No tasks yet.'),
           ),
-        TasksStatus.success => _TasksListView(
+        TasksStatus.success => _TasksListSurface(
             items: state.items,
             onStatusUpdate: _updateStatus,
             onDelete: _deleteTask,
@@ -155,6 +164,46 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _TasksListSurface extends StatelessWidget {
+  const _TasksListSurface({
+    required this.items,
+    required this.onStatusUpdate,
+    required this.onDelete,
+    required this.onClaim,
+    required this.onUnclaim,
+    this.isRefreshing = false,
+  });
+
+  final List<TaskItem> items;
+  final Future<void> Function(TaskItem, String) onStatusUpdate;
+  final Future<void> Function(TaskItem) onDelete;
+  final Future<void> Function(TaskItem) onClaim;
+  final Future<void> Function(TaskItem) onUnclaim;
+  final bool isRefreshing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _TasksListView(
+          items: items,
+          onStatusUpdate: onStatusUpdate,
+          onDelete: onDelete,
+          onClaim: onClaim,
+          onUnclaim: onUnclaim,
+        ),
+        if (isRefreshing)
+          const Align(
+            alignment: Alignment.topCenter,
+            child: LinearProgressIndicator(
+              key: ValueKey('tasks-refresh-indicator'),
+            ),
+          ),
+      ],
+    );
   }
 }
 

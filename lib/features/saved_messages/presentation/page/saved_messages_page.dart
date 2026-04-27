@@ -49,17 +49,49 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
       appBar: AppBar(title: const Text('Saved Messages')),
       body: switch (state.status) {
         SavedMessagesStatus.initial ||
-        SavedMessagesStatus.loading =>
+        SavedMessagesStatus.loading when state.items.isEmpty =>
           const Center(child: CircularProgressIndicator()),
-        SavedMessagesStatus.failure => _SavedMessagesFailureView(
+        SavedMessagesStatus.loading => _SavedMessagesListSurface(
+            state: state,
+            isRefreshing: true,
+          ),
+        SavedMessagesStatus.initial ||
+        SavedMessagesStatus.failure =>
+          _SavedMessagesFailureView(
             message: state.failure?.message ?? 'Failed to load saved messages.',
             onRetry: ref.read(savedMessagesStoreProvider.notifier).retry,
           ),
         SavedMessagesStatus.success when state.items.isEmpty => const Center(
             child: Text('No saved messages yet.'),
           ),
-        SavedMessagesStatus.success => _SavedMessagesList(state: state),
+        SavedMessagesStatus.success => _SavedMessagesListSurface(state: state),
       },
+    );
+  }
+}
+
+class _SavedMessagesListSurface extends StatelessWidget {
+  const _SavedMessagesListSurface({
+    required this.state,
+    this.isRefreshing = false,
+  });
+
+  final SavedMessagesState state;
+  final bool isRefreshing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _SavedMessagesList(state: state),
+        if (isRefreshing)
+          const Align(
+            alignment: Alignment.topCenter,
+            child: LinearProgressIndicator(
+              key: ValueKey('saved-messages-refresh-indicator'),
+            ),
+          ),
+      ],
     );
   }
 }
