@@ -28,7 +28,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('tasks-list')), findsOneWidget);
-    expect(find.text('Investigate loading surface'), findsOneWidget);
+    expect(find.byKey(const ValueKey('task-task-1')), findsOneWidget);
     expect(
         find.byKey(const ValueKey('tasks-refresh-indicator')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
