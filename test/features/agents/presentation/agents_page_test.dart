@@ -160,7 +160,8 @@ class _FailingAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async => [];
+  }) async =>
+      [];
 }
 
 sealed class _RepoResult {
@@ -181,7 +182,7 @@ class _FailureResult extends _RepoResult {
 
 class _QueueAgentsRepository implements AgentsRepository {
   _QueueAgentsRepository({required List<_RepoResult> results})
-    : _results = List.of(results);
+      : _results = List.of(results);
 
   final List<_RepoResult> _results;
   int _index = 0;
@@ -192,9 +193,9 @@ class _QueueAgentsRepository implements AgentsRepository {
     return switch (result) {
       _SuccessResult(:final items) => items,
       _FailureResult(:final message) => throw UnknownFailure(
-        message: message,
-        causeType: 'test',
-      ),
+          message: message,
+          causeType: 'test',
+        ),
     };
   }
 
@@ -212,5 +213,6 @@ class _QueueAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async => [];
+  }) async =>
+      [];
 }

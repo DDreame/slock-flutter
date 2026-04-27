@@ -201,8 +201,7 @@ Widget _buildApp({
   SidebarOrder sidebarOrder = const SidebarOrder(),
   _FakeSidebarOrderRepository? sidebarOrderRepository,
 }) {
-  final sidebarRepo =
-      sidebarOrderRepository ??
+  final sidebarRepo = sidebarOrderRepository ??
       _FakeSidebarOrderRepository(sidebarOrder: sidebarOrder);
   final router = GoRouter(
     initialLocation: '/home',
@@ -369,5 +368,6 @@ class _FakeAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async => const [];
+  }) async =>
+      const [];
 }

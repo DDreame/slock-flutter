@@ -86,9 +86,9 @@ class ProfileDetailState {
 
 final profileDetailStoreProvider =
     NotifierProvider<ProfileDetailStore, ProfileDetailState>(
-      ProfileDetailStore.new,
-      dependencies: [currentProfileTargetProvider],
-    );
+  ProfileDetailStore.new,
+  dependencies: [currentProfileTargetProvider],
+);
 
 class ProfileDetailStore extends Notifier<ProfileDetailState> {
   @override

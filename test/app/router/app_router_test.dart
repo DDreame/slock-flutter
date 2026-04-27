@@ -1191,9 +1191,8 @@ class _FakeSecureStorage implements SecureStorage {
 
 class _FakeServerListRepository implements ServerListRepository {
   _FakeServerListRepository(List<String> serverIds)
-    : _servers = serverIds
-          .map((id) => ServerSummary(id: id, name: id))
-          .toList();
+      : _servers =
+            serverIds.map((id) => ServerSummary(id: id, name: id)).toList();
 
   final List<ServerSummary> _servers;
 

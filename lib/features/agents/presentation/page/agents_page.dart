@@ -33,13 +33,11 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     final state = ref.watch(agentsStoreProvider);
 
     if (widget.agentId != null) {
-      final agent = state.items
-          .where((a) => a.id == widget.agentId)
-          .firstOrNull;
+      final agent =
+          state.items.where((a) => a.id == widget.agentId).firstOrNull;
       return _AgentDetailScaffold(
         agent: agent,
-        isLoading:
-            state.status == AgentsStatus.loading ||
+        isLoading: state.status == AgentsStatus.loading ||
             state.status == AgentsStatus.initial,
         isFailure: state.status == AgentsStatus.failure,
         failureMessage: state.failure?.message,
@@ -54,22 +52,22 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       appBar: AppBar(title: const Text('Agents')),
       body: switch (state.status) {
         AgentsStatus.initial || AgentsStatus.loading => const Center(
-          child: CircularProgressIndicator(),
-        ),
+            child: CircularProgressIndicator(),
+          ),
         AgentsStatus.failure => _AgentsFailureView(
-          message: state.failure?.message ?? 'Failed to load agents.',
-          onRetry: ref.read(agentsStoreProvider.notifier).retry,
-        ),
+            message: state.failure?.message ?? 'Failed to load agents.',
+            onRetry: ref.read(agentsStoreProvider.notifier).retry,
+          ),
         AgentsStatus.success when state.items.isEmpty => const Center(
-          child: Text('No agents yet.'),
-        ),
+            child: Text('No agents yet.'),
+          ),
         AgentsStatus.success => _AgentsListView(
-          items: state.items,
-          onTap: _openAgentDetail,
-          onStart: _startAgent,
-          onStop: _stopAgent,
-          onReset: _resetAgent,
-        ),
+            items: state.items,
+            onTap: _openAgentDetail,
+            onStart: _startAgent,
+            onStop: _stopAgent,
+            onReset: _resetAgent,
+          ),
       },
     );
   }
@@ -333,11 +331,11 @@ class _AgentDetailScaffold extends StatelessWidget {
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
             : isFailure
-            ? _AgentsFailureView(
-                message: failureMessage ?? 'Failed to load agents.',
-                onRetry: onRetry,
-              )
-            : const Center(child: Text('Agent not found.')),
+                ? _AgentsFailureView(
+                    message: failureMessage ?? 'Failed to load agents.',
+                    onRetry: onRetry,
+                  )
+                : const Center(child: Text('Agent not found.')),
       );
     }
 

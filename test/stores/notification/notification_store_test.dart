@@ -199,8 +199,8 @@ void main() {
       final now = DateTime.now();
       fakeStorage._store[NotificationStorageKeys.pushToken] = 'stored-token';
       fakeStorage._store[NotificationStorageKeys.pushTokenPlatform] = 'android';
-      fakeStorage._store[NotificationStorageKeys.pushTokenUpdatedAt] = now
-          .toIso8601String();
+      fakeStorage._store[NotificationStorageKeys.pushTokenUpdatedAt] =
+          now.toIso8601String();
 
       await readStore().restorePushToken();
 
@@ -483,9 +483,8 @@ void main() {
         NotificationPreference.mentionsOnly,
       );
 
-      final entries = diagnostics.entries
-          .where((e) => e.tag == 'notification')
-          .toList();
+      final entries =
+          diagnostics.entries.where((e) => e.tag == 'notification').toList();
       expect(entries, hasLength(1));
       expect(entries.first.message, contains('mentions_only'));
     });
@@ -495,9 +494,8 @@ void main() {
 
       await readStore().requestPermission();
 
-      final entries = diagnostics.entries
-          .where((e) => e.tag == 'notification')
-          .toList();
+      final entries =
+          diagnostics.entries.where((e) => e.tag == 'notification').toList();
       expect(entries, hasLength(1));
       expect(entries.first.message, contains('granted'));
     });
@@ -507,9 +505,8 @@ void main() {
 
       await readStore().refreshToken(platform: 'ios');
 
-      final entries = diagnostics.entries
-          .where((e) => e.tag == 'notification')
-          .toList();
+      final entries =
+          diagnostics.entries.where((e) => e.tag == 'notification').toList();
       expect(entries, hasLength(1));
       expect(entries.first.message, contains('Push token updated'));
     });
@@ -521,9 +518,8 @@ void main() {
 
       await readStore().refreshToken(platform: 'android');
 
-      final entries = diagnostics.entries
-          .where((e) => e.tag == 'notification')
-          .toList();
+      final entries =
+          diagnostics.entries.where((e) => e.tag == 'notification').toList();
       expect(entries, hasLength(1));
       expect(entries.first.message, contains('Platform updated'));
     });

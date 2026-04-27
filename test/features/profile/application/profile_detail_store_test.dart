@@ -230,11 +230,11 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   SessionState build() => SessionState(
-    status: AuthStatus.authenticated,
-    userId: userId,
-    displayName: displayName,
-    token: 'test-token',
-  );
+        status: AuthStatus.authenticated,
+        userId: userId,
+        displayName: displayName,
+        token: 'test-token',
+      );
 }
 
 class _FakeProfileRepository implements ProfileRepository {
