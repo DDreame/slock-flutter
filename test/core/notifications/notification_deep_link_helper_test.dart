@@ -32,12 +32,13 @@ void main() {
       expect(route, '/servers/s1/threads/t1/replies?channelId=c1');
     });
 
-    test('returns agent route', () {
+    test('returns server-scoped agent route', () {
       final route = resolveNotificationRoute({
         'type': 'agent',
+        'serverId': 's1',
         'agentId': 'a1',
       });
-      expect(route, '/agents/a1');
+      expect(route, '/servers/s1/agents/a1');
     });
 
     test('returns profile route', () {
@@ -112,6 +113,14 @@ void main() {
 
     test('returns null for agent without agentId', () {
       final route = resolveNotificationRoute({'type': 'agent'});
+      expect(route, isNull);
+    });
+
+    test('returns null for agent without serverId', () {
+      final route = resolveNotificationRoute({
+        'type': 'agent',
+        'agentId': 'a1',
+      });
       expect(route, isNull);
     });
 

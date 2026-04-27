@@ -136,10 +136,7 @@ void main() {
 
       await readStore().requestPermission();
 
-      expect(
-        readState().permissionStatus,
-        NotificationPermissionStatus.denied,
-      );
+      expect(readState().permissionStatus, NotificationPermissionStatus.denied);
     });
 
     test('refreshToken updates token and persists', () async {
@@ -219,21 +216,23 @@ void main() {
       expect(readState().pushTokenPlatform, isNull);
     });
 
-    test('restorePushToken clears stale in-memory token when storage empty',
-        () async {
-      fakeInitializer.tokenResult = 'stale-token';
-      await readStore().refreshToken(platform: 'ios');
-      expect(readState().pushToken, 'stale-token');
-      expect(readState().pushTokenPlatform, 'ios');
+    test(
+      'restorePushToken clears stale in-memory token when storage empty',
+      () async {
+        fakeInitializer.tokenResult = 'stale-token';
+        await readStore().refreshToken(platform: 'ios');
+        expect(readState().pushToken, 'stale-token');
+        expect(readState().pushTokenPlatform, 'ios');
 
-      await NotificationStorageKeys.clear(fakeStorage);
+        await NotificationStorageKeys.clear(fakeStorage);
 
-      await readStore().restorePushToken();
+        await readStore().restorePushToken();
 
-      expect(readState().pushToken, isNull);
-      expect(readState().pushTokenPlatform, isNull);
-      expect(readState().pushTokenUpdatedAt, isNull);
-    });
+        expect(readState().pushToken, isNull);
+        expect(readState().pushTokenPlatform, isNull);
+        expect(readState().pushTokenUpdatedAt, isNull);
+      },
+    );
 
     test('setLifecycleStatus updates state', () {
       readStore().setLifecycleStatus(AppLifecycleStatus.paused);
@@ -267,10 +266,7 @@ void main() {
       expect(readState().pushToken, isNull);
       expect(readState().pushTokenPlatform, isNull);
       expect(readState().pushTokenUpdatedAt, isNull);
-      expect(
-        fakeStorage.snapshot[NotificationStorageKeys.pushToken],
-        isNull,
-      );
+      expect(fakeStorage.snapshot[NotificationStorageKeys.pushToken], isNull);
       expect(
         fakeStorage.snapshot[NotificationStorageKeys.pushTokenUpdatedAt],
         isNull,
@@ -278,9 +274,7 @@ void main() {
     });
 
     test('clearPushToken preserves notification preference', () async {
-      await readStore().setNotificationPreference(
-        NotificationPreference.mute,
-      );
+      await readStore().setNotificationPreference(NotificationPreference.mute);
       fakeInitializer.tokenResult = 'to-clear';
       await readStore().refreshToken();
 
@@ -394,39 +388,37 @@ void main() {
       expect(pending, '/servers/s1/threads/t1/replies?channelId=c1');
     });
 
-    test('handleNotificationTap writes pending link for agent', () {
-      readStore().handleNotificationTap({
-        'type': 'agent',
-        'agentId': 'a1',
-      });
+    test(
+      'handleNotificationTap writes server-scoped pending link for agent',
+      () {
+        readStore().handleNotificationTap({
+          'type': 'agent',
+          'serverId': 's1',
+          'agentId': 'a1',
+        });
 
-      final pending = container.read(pendingDeepLinkProvider);
-      expect(pending, '/agents/a1');
-    });
+        final pending = container.read(pendingDeepLinkProvider);
+        expect(pending, '/servers/s1/agents/a1');
+      },
+    );
 
     test('handleNotificationTap writes pending link for profile', () {
-      readStore().handleNotificationTap({
-        'type': 'profile',
-        'userId': 'u1',
-      });
+      readStore().handleNotificationTap({'type': 'profile', 'userId': 'u1'});
 
       final pending = container.read(pendingDeepLinkProvider);
       expect(pending, '/profile/u1');
     });
 
-    test(
-      'handleNotificationTap preserves server-scoped profile context',
-      () {
-        readStore().handleNotificationTap({
-          'type': 'profile',
-          'serverId': 's1',
-          'userId': 'u1',
-        });
+    test('handleNotificationTap preserves server-scoped profile context', () {
+      readStore().handleNotificationTap({
+        'type': 'profile',
+        'serverId': 's1',
+        'userId': 'u1',
+      });
 
-        final pending = container.read(pendingDeepLinkProvider);
-        expect(pending, '/servers/s1/profile/u1');
-      },
-    );
+      final pending = container.read(pendingDeepLinkProvider);
+      expect(pending, '/servers/s1/profile/u1');
+    });
 
     test('handleNotificationTap ignores invalid payload', () {
       readStore().handleNotificationTap({});
@@ -477,9 +469,7 @@ void main() {
     });
 
     test('setNotificationPreference updates state and persists', () async {
-      await readStore().setNotificationPreference(
-        NotificationPreference.mute,
-      );
+      await readStore().setNotificationPreference(NotificationPreference.mute);
 
       expect(readState().notificationPreference, NotificationPreference.mute);
       expect(

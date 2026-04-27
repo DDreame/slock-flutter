@@ -72,64 +72,68 @@ void main() {
       expect(find.text('Failed to load agents.'), findsNothing);
     });
 
-    testWidgets('list tap pushes detail route and preserves list back stack', (
-      tester,
-    ) async {
-      final fakeRepo = _QueueAgentsRepository(
-        results: [
-          const _RepoResult.success([
-            AgentItem(
-              id: 'agent-1',
-              name: 'Bot',
-              model: 'sonnet',
-              runtime: 'claude',
-              status: 'active',
-              activity: 'online',
+    testWidgets(
+      'list tap pushes server-scoped detail route and preserves list back stack',
+      (tester) async {
+        final fakeRepo = _QueueAgentsRepository(
+          results: [
+            const _RepoResult.success([
+              AgentItem(
+                id: 'agent-1',
+                name: 'Bot',
+                model: 'sonnet',
+                runtime: 'claude',
+                status: 'active',
+                activity: 'online',
+              ),
+            ]),
+          ],
+        );
+        final router = GoRouter(
+          initialLocation: '/servers/server-1/agents',
+          routes: [
+            GoRoute(
+              path: '/servers/:serverId/agents',
+              builder: (context, state) =>
+                  AgentsPage(serverId: state.pathParameters['serverId']),
             ),
-          ]),
-        ],
-      );
-      final router = GoRouter(
-        initialLocation: '/agents',
-        routes: [
-          GoRoute(
-            path: '/agents',
-            builder: (context, state) => const AgentsPage(),
-          ),
-          GoRoute(
-            path: '/agents/:agentId',
-            builder: (context, state) => Scaffold(
-              body: Text('agent:${state.pathParameters['agentId']}'),
-            ),
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            agentsRepositoryProvider.overrideWithValue(fakeRepo),
-            realtimeReductionIngressProvider.overrideWithValue(
-              RealtimeReductionIngress(),
+            GoRoute(
+              path: '/servers/:serverId/agents/:agentId',
+              builder: (context, state) => Scaffold(
+                body: Text(
+                  'agent:${state.pathParameters['serverId']}/${state.pathParameters['agentId']}',
+                ),
+              ),
             ),
           ],
-          child: MaterialApp.router(routerConfig: router),
-        ),
-      );
+        );
 
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              realtimeReductionIngressProvider.overrideWithValue(
+                RealtimeReductionIngress(),
+              ),
+            ],
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
 
-      await tester.tap(find.byKey(const ValueKey('agent-agent-1')));
-      await tester.pumpAndSettle();
+        await tester.pumpAndSettle();
 
-      expect(find.text('agent:agent-1'), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('agent-agent-1')));
+        await tester.pumpAndSettle();
 
-      router.pop();
-      await tester.pumpAndSettle();
+        expect(find.text('agent:server-1/agent-1'), findsOneWidget);
 
-      expect(find.byKey(const ValueKey('agents-list')), findsOneWidget);
-      expect(find.text('Bot'), findsOneWidget);
-    });
+        router.pop();
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('agents-list')), findsOneWidget);
+        expect(find.text('Bot'), findsOneWidget);
+      },
+    );
   });
 }
 

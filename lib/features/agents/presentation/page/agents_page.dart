@@ -8,6 +8,7 @@ import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 
 class AgentsPage extends ConsumerStatefulWidget {
   const AgentsPage({super.key, this.agentId, this.serverId});
@@ -72,6 +73,12 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   }
 
   void _openAgentDetail(AgentItem agent) {
+    final serverId =
+        widget.serverId ?? ref.read(activeServerScopeIdProvider)?.value;
+    if (serverId != null) {
+      context.push('/servers/$serverId/agents/${agent.id}');
+      return;
+    }
     context.push('/agents/${agent.id}');
   }
 

@@ -185,7 +185,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     key: ValueKey('pinned-agent-${agent.id}'),
                     agent: agent,
                     isPinned: true,
-                    onTap: () => context.go('/agents/${agent.id}'),
+                    onTap: () => _openAgentDetail(agent.id),
                     onTogglePin: () => homeStore.unpinAgent(agent.id),
                   ),
               ],
@@ -196,7 +196,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     key: ValueKey('agent-${agent.id}'),
                     agent: agent,
                     isPinned: false,
-                    onTap: () => context.go('/agents/${agent.id}'),
+                    onTap: () => _openAgentDetail(agent.id),
                     onTogglePin: () => homeStore.pinAgent(agent.id),
                   ),
               ],
@@ -204,6 +204,15 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
       },
     );
+  }
+
+  void _openAgentDetail(String agentId) {
+    final serverId = ref.read(activeServerScopeIdProvider)?.value;
+    if (serverId != null) {
+      context.go('/servers/$serverId/agents/$agentId');
+      return;
+    }
+    context.go('/agents/$agentId');
   }
 
   Future<void> _showCreateChannelDialog() async {

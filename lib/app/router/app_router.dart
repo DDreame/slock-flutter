@@ -179,6 +179,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             AgentsPage(serverId: state.pathParameters['serverId']),
       ),
       GoRoute(
+        path: '/servers/:serverId/agents/:agentId',
+        redirect: syncServerSelection,
+        builder: (context, state) => AgentsPage(
+          serverId: state.pathParameters['serverId'],
+          agentId: state.pathParameters['agentId'],
+        ),
+      ),
+      GoRoute(
         path: '/agents/:agentId',
         builder: (context, state) =>
             AgentsPage(agentId: state.pathParameters['agentId']),
