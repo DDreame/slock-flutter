@@ -145,6 +145,7 @@ void main() {
       () async {
     final repository = BaselineHomeRepository(
       loadWorkspace: (serverId) async => throw StateError('boom'),
+      loadCachedWorkspace: (serverId) async => null,
       persistDirectMessageSummary: (summary) async => summary,
       persistConversationActivity: ({
         required serverId,

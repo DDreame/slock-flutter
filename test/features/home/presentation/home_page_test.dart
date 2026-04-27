@@ -786,10 +786,9 @@ GoRouter _buildRouter() {
 }
 
 class _FakeHomeRepository implements HomeRepository {
-  const _FakeHomeRepository(this.snapshot, {this.cachedSnapshot});
+  const _FakeHomeRepository(this.snapshot);
 
   final HomeWorkspaceSnapshot snapshot;
-  final HomeWorkspaceSnapshot? cachedSnapshot;
 
   @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
@@ -800,7 +799,7 @@ class _FakeHomeRepository implements HomeRepository {
   Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
     ServerScopeId serverId,
   ) async {
-    return cachedSnapshot;
+    return null;
   }
 
   @override

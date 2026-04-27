@@ -400,6 +400,13 @@ class _DelayedHomeRepository implements HomeRepository {
   final Completer<HomeWorkspaceSnapshot> completer;
 
   @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return null;
+  }
+
+  @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) {
     return completer.future;
   }
