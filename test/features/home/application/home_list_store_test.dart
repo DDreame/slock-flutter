@@ -220,6 +220,9 @@ void main() {
     final state = container.read(homeListStoreProvider);
     expect(state.serverScopeId, const ServerScopeId('server-b'));
     expect(state.channels, isEmpty);
+
+    // Drain microtasks so the rebuild-triggered load settles before teardown.
+    await Future.delayed(Duration.zero);
   });
 
   group('addDirectMessage', () {
