@@ -21,6 +21,15 @@ final homeWorkspaceSnapshotLoaderProvider =
       );
 });
 
+final homeCachedWorkspaceLoaderProvider =
+    Provider<HomeCachedWorkspaceLoader>((ref) {
+  final localStore = ref.watch(conversationLocalStoreProvider);
+  return (serverId) => _loadCachedWorkspaceSnapshot(
+        localStore: localStore,
+        serverId: serverId,
+      );
+});
+
 final homeDirectMessageSummaryPersisterProvider =
     Provider<HomeDirectMessageSummaryPersister>((ref) {
   final localStore = ref.watch(conversationLocalStoreProvider);
@@ -85,6 +94,7 @@ final homeConversationPreviewUpdatePersisterProvider =
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {
   final loadWorkspace = ref.watch(homeWorkspaceSnapshotLoaderProvider);
+  final loadCachedWorkspace = ref.watch(homeCachedWorkspaceLoaderProvider);
   final persistDirectMessageSummary =
       ref.watch(homeDirectMessageSummaryPersisterProvider);
   final persistConversationActivity =
@@ -93,6 +103,7 @@ final homeRepositoryProvider = Provider<HomeRepository>((ref) {
       ref.watch(homeConversationPreviewUpdatePersisterProvider);
   return BaselineHomeRepository(
     loadWorkspace: loadWorkspace,
+    loadCachedWorkspace: loadCachedWorkspace,
     persistDirectMessageSummary: persistDirectMessageSummary,
     persistConversationActivity: persistConversationActivity,
     persistConversationPreviewUpdate: persistConversationPreviewUpdate,
@@ -159,6 +170,52 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
     serverId.value,
     surface: _directMessageSurface,
   );
+
+  return HomeWorkspaceSnapshot(
+    serverId: serverId,
+    channels: storedChannels
+        .map((row) => HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: serverId,
+                value: row.conversationId,
+              ),
+              name: row.title,
+              lastMessageId: row.lastMessageId,
+              lastMessagePreview: row.lastMessagePreview,
+              lastActivityAt: row.lastActivityAt,
+            ))
+        .toList(growable: false),
+    directMessages: storedDirectMessages
+        .map((row) => HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: serverId,
+                value: row.conversationId,
+              ),
+              title: row.title,
+              lastMessageId: row.lastMessageId,
+              lastMessagePreview: row.lastMessagePreview,
+              lastActivityAt: row.lastActivityAt,
+            ))
+        .toList(growable: false),
+  );
+}
+
+Future<HomeWorkspaceSnapshot?> _loadCachedWorkspaceSnapshot({
+  required ConversationLocalStore localStore,
+  required ServerScopeId serverId,
+}) async {
+  final storedChannels = await localStore.listConversationSummaries(
+    serverId.value,
+    surface: _channelSurface,
+  );
+  final storedDirectMessages = await localStore.listConversationSummaries(
+    serverId.value,
+    surface: _directMessageSurface,
+  );
+
+  if (storedChannels.isEmpty && storedDirectMessages.isEmpty) {
+    return null;
+  }
 
   return HomeWorkspaceSnapshot(
     serverId: serverId,
