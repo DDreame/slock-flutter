@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
+import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/features/auth/data/auth_repository.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
@@ -50,7 +51,9 @@ class SessionStore extends Notifier<SessionState> {
     AuthUser? user;
     try {
       user = await repo.getMe();
-    } catch (_) {}
+    } catch (e, st) {
+      ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+    }
 
     state = SessionState(
       status: AuthStatus.authenticated,
@@ -82,7 +85,9 @@ class SessionStore extends Notifier<SessionState> {
     AuthUser? user;
     try {
       user = await repo.getMe();
-    } catch (_) {}
+    } catch (e, st) {
+      ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+    }
 
     state = SessionState(
       status: AuthStatus.authenticated,

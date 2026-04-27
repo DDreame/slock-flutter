@@ -29,7 +29,21 @@ void main() {
     value: 'dm-alice',
   );
 
-  ProviderContainer createContainer() {
+  ProviderContainer createContainer({
+    SidebarOrder sidebarOrder = const SidebarOrder(),
+    List<HomeChannelSummary> channels = const [
+      HomeChannelSummary(
+        scopeId: channelScopeId,
+        name: 'general',
+      ),
+    ],
+    List<HomeDirectMessageSummary> directMessages = const [
+      HomeDirectMessageSummary(
+        scopeId: directMessageScopeId,
+        title: 'Alice',
+      ),
+    ],
+  }) {
     final ingress = RealtimeReductionIngress();
     final container = ProviderContainer(
       overrides: [
@@ -41,22 +55,12 @@ void main() {
           FakeConversationLocalStore(),
         ),
         sidebarOrderRepositoryProvider
-            .overrideWithValue(const _FakeSidebarOrderRepository()),
+            .overrideWithValue(_FakeSidebarOrderRepository(sidebarOrder)),
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
           (scopeId) async => HomeWorkspaceSnapshot(
             serverId: scopeId,
-            channels: [
-              const HomeChannelSummary(
-                scopeId: channelScopeId,
-                name: 'general',
-              ),
-            ],
-            directMessages: [
-              const HomeDirectMessageSummary(
-                scopeId: directMessageScopeId,
-                title: 'Alice',
-              ),
-            ],
+            channels: channels,
+            directMessages: directMessages,
           ),
         ),
       ],
@@ -266,6 +270,92 @@ void main() {
       2,
     );
   });
+
+  test('increments channel unread for pinned channel message', () async {
+    const pinnedChannelScopeId = ChannelScopeId(
+      serverId: serverId,
+      value: 'pinned-ch',
+    );
+    final container = createContainer(
+      sidebarOrder: const SidebarOrder(
+        pinnedChannelIds: ['pinned-ch'],
+        pinnedOrder: ['pinned-ch'],
+      ),
+      channels: const [
+        HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+        HomeChannelSummary(scopeId: pinnedChannelScopeId, name: 'pinned'),
+      ],
+    );
+
+    container.read(homeRealtimeUnreadBindingProvider);
+    await container.read(homeListStoreProvider.notifier).load();
+
+    container.read(realtimeReductionIngressProvider).accept(
+          RealtimeEventEnvelope(
+            eventType: realtimeMessageCreatedEventType,
+            scopeKey: RealtimeEventEnvelope.globalScopeKey,
+            receivedAt: DateTime(2026, 4, 20),
+            seq: 1,
+            payload: _messagePayload(channelId: 'pinned-ch'),
+          ),
+        );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      container
+          .read(channelUnreadStoreProvider)
+          .channelUnreadCount(pinnedChannelScopeId),
+      1,
+    );
+    final homeState = container.read(homeListStoreProvider);
+    expect(
+      homeState.directMessages.any((dm) => dm.scopeId.value == 'pinned-ch'),
+      isFalse,
+      reason: 'Pinned channel should not create a phantom DM',
+    );
+  });
+
+  test('increments DM unread for hidden DM message', () async {
+    const hiddenDmScopeId = DirectMessageScopeId(
+      serverId: serverId,
+      value: 'dm-hidden',
+    );
+    final container = createContainer(
+      sidebarOrder: const SidebarOrder(hiddenDmIds: ['dm-hidden']),
+      directMessages: const [
+        HomeDirectMessageSummary(scopeId: directMessageScopeId, title: 'Alice'),
+        HomeDirectMessageSummary(
+            scopeId: hiddenDmScopeId, title: 'Hidden User'),
+      ],
+    );
+
+    container.read(homeRealtimeUnreadBindingProvider);
+    await container.read(homeListStoreProvider.notifier).load();
+
+    container.read(realtimeReductionIngressProvider).accept(
+          RealtimeEventEnvelope(
+            eventType: realtimeMessageCreatedEventType,
+            scopeKey: RealtimeEventEnvelope.globalScopeKey,
+            receivedAt: DateTime(2026, 4, 20),
+            seq: 1,
+            payload: _messagePayload(channelId: 'dm-hidden'),
+          ),
+        );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      container.read(channelUnreadStoreProvider).dmUnreadCount(hiddenDmScopeId),
+      1,
+    );
+    final homeState = container.read(homeListStoreProvider);
+    final duplicates =
+        homeState.directMessages.where((dm) => dm.scopeId.value == 'dm-hidden');
+    expect(
+      duplicates,
+      isEmpty,
+      reason: 'Hidden DM should not create a duplicate visible entry',
+    );
+  });
 }
 
 Map<String, Object?> _messagePayload({
@@ -287,11 +377,13 @@ Map<String, Object?> _messagePayload({
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  const _FakeSidebarOrderRepository();
+  const _FakeSidebarOrderRepository(this._order);
+
+  final SidebarOrder _order;
 
   @override
   Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
-    return const SidebarOrder();
+    return _order;
   }
 
   @override

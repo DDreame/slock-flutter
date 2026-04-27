@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -127,13 +129,13 @@ void main() {
     expect(fakeSocket.emitted.first.$2, 'dm-new-conversation');
   });
 
-  test('dm:new before homeListStore success still emits join:channel',
+  test(
+      'dm:new before explicit load emits join:channel and materializes via buffer replay',
       () async {
     final fakeSocket = _FakeRealtimeSocketClient();
     final container = createContainer(fakeSocket: fakeSocket);
 
     container.read(homeRealtimeDmMaterializationBindingProvider);
-    // Do NOT call load() — homeListStore stays in initial status
 
     container.read(realtimeReductionIngressProvider).accept(
           RealtimeEventEnvelope(
@@ -148,6 +150,7 @@ void main() {
           ),
         );
     await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
 
     expect(fakeSocket.emitted, hasLength(1));
     expect(fakeSocket.emitted.first.$1, 'join:channel');
@@ -156,8 +159,83 @@ void main() {
     final state = container.read(homeListStoreProvider);
     expect(
       state.directMessages.any((dm) => dm.scopeId.value == 'dm-early'),
+      isTrue,
+      reason:
+          'Buffered DM should be materialized after auto-load reaches success',
+    );
+  });
+
+  test(
+      'dm:new buffered while load is in-flight materializes after load completes',
+      () async {
+    final fakeSocket = _FakeRealtimeSocketClient();
+    final loadCompleter = Completer<HomeWorkspaceSnapshot>();
+    final ingress = RealtimeReductionIngress();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+        realtimeReductionIngressProvider.overrideWithValue(ingress),
+        realtimeSocketClientProvider.overrideWithValue(fakeSocket),
+        activeServerScopeIdProvider.overrideWithValue(serverId),
+        conversationLocalStoreProvider.overrideWithValue(
+          FakeConversationLocalStore(),
+        ),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+        agentsRepositoryProvider
+            .overrideWithValue(const _FakeAgentsRepository()),
+        homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
+          (scopeId) => loadCompleter.future,
+        ),
+      ],
+    );
+    addTearDown(() async {
+      container.dispose();
+      await ingress.dispose();
+    });
+
+    container.read(homeRealtimeDmMaterializationBindingProvider);
+    await Future<void>.delayed(Duration.zero);
+
+    container.read(realtimeReductionIngressProvider).accept(
+          RealtimeEventEnvelope(
+            eventType: realtimeDmNewEventType,
+            scopeKey: RealtimeEventEnvelope.globalScopeKey,
+            receivedAt: DateTime(2026, 4, 20),
+            seq: 1,
+            payload: const {
+              'channelId': 'dm-buffered',
+              'participant': {'displayName': 'Buffered Bob'},
+            },
+          ),
+        );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(
+      container
+          .read(homeListStoreProvider)
+          .directMessages
+          .any((dm) => dm.scopeId.value == 'dm-buffered'),
       isFalse,
-      reason: 'DM should not be materialized when homeListStore is not ready',
+      reason: 'DM should not be materialized while load is still in-flight',
+    );
+
+    loadCompleter.complete(
+      const HomeWorkspaceSnapshot(
+        serverId: serverId,
+        channels: [],
+        directMessages: [],
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(homeListStoreProvider);
+    expect(
+      state.directMessages.any((dm) => dm.scopeId.value == 'dm-buffered'),
+      isTrue,
+      reason: 'Buffered dm:new should be materialized after load completes',
     );
   });
 
