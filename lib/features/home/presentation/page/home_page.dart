@@ -94,7 +94,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   final serverId = ref.read(activeServerScopeIdProvider);
                   if (serverId != null) {
-                    context.go('/servers/${serverId.value}/tasks');
+                    context.push('/servers/${serverId.value}/tasks');
                   }
                 },
               ),
@@ -105,7 +105,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 onTap: () {
                   final serverId = ref.read(activeServerScopeIdProvider);
                   if (serverId != null) {
-                    context.go('/servers/${serverId.value}/machines');
+                    context.push('/servers/${serverId.value}/machines');
                   }
                 },
               ),

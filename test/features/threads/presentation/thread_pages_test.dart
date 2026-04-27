@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -200,6 +201,78 @@ void main() {
     expect(find.text('Thread replies'), findsOneWidget);
     expect(find.text('First reply'), findsOneWidget);
     expect(find.byKey(const ValueKey('thread-follow-action')), findsOneWidget);
+  });
+
+  testWidgets(
+      'ThreadRepliesPage done action falls back to threads inbox when no back stack exists',
+      (
+    tester,
+  ) async {
+    final threadRepository = _FakeThreadRepository();
+    final conversationRepository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'thread-1',
+          ),
+        ),
+        title: 'Thread',
+        messages: [
+          ConversationMessageSummary(
+            id: 'reply-1',
+            content: 'First reply',
+            createdAt: DateTime.parse('2026-04-21T08:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+    final router = GoRouter(
+      initialLocation: const ThreadRouteTarget(
+        serverId: 'server-1',
+        parentChannelId: 'general',
+        parentMessageId: 'message-1',
+        threadChannelId: 'thread-1',
+        isFollowed: true,
+      ).toLocation(),
+      routes: [
+        GoRoute(
+          path: '/servers/:serverId/threads',
+          builder: (context, state) => Scaffold(
+            body: Text('threads:${state.pathParameters['serverId']}'),
+          ),
+        ),
+        GoRoute(
+          path: '/servers/:serverId/threads/:threadId/replies',
+          builder: (context, state) => ThreadRepliesPage(
+            routeTarget: tryParseThreadRouteTarget(state.uri),
+          ),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          threadRepositoryProvider.overrideWithValue(threadRepository),
+          conversationRepositoryProvider
+              .overrideWithValue(conversationRepository),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('thread-done-action')));
+    await tester.pumpAndSettle();
+
+    expect(threadRepository.doneThreadIds, ['thread-1']);
+    expect(find.text('threads:server-1'), findsOneWidget);
   });
 
   testWidgets(
