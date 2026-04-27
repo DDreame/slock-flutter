@@ -113,19 +113,25 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
     final title =
         resolveDirectMessageTitle(event.payload) ?? incoming.conversationId;
     unawaited(() async {
-      final summary =
-          await ref.read(homeRepositoryProvider).persistDirectMessageSummary(
-                HomeDirectMessageSummary(
-                  scopeId: newScopeId,
-                  title: title,
-                  lastMessageId: incoming.message.id,
-                  lastMessagePreview: incoming.message.content,
-                  lastActivityAt: incoming.message.createdAt,
-                ),
-              );
-      notifier.addDirectMessage(summary);
+      try {
+        final summary =
+            await ref.read(homeRepositoryProvider).persistDirectMessageSummary(
+                  HomeDirectMessageSummary(
+                    scopeId: newScopeId,
+                    title: title,
+                    lastMessageId: incoming.message.id,
+                    lastMessagePreview: incoming.message.content,
+                    lastActivityAt: incoming.message.createdAt,
+                  ),
+                );
+        notifier.addDirectMessage(summary);
+        ref
+            .read(channelUnreadStoreProvider.notifier)
+            .incrementDmUnread(newScopeId);
+      } catch (e, st) {
+        ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+      }
     }());
-    ref.read(channelUnreadStoreProvider.notifier).incrementDmUnread(newScopeId);
   }
 }
 
@@ -163,6 +169,11 @@ void _handleMessageUpdated(Ref ref, RealtimeEventEnvelope event) {
 
 ChannelScopeId? _matchChannelScopeId(
     HomeListState state, String conversationId) {
+  for (final channel in state.pinnedChannels) {
+    if (channel.scopeId.value == conversationId) {
+      return channel.scopeId;
+    }
+  }
   for (final channel in state.channels) {
     if (channel.scopeId.value == conversationId) {
       return channel.scopeId;
@@ -176,6 +187,11 @@ DirectMessageScopeId? _matchDirectMessageScopeId(
   String conversationId,
 ) {
   for (final directMessage in state.directMessages) {
+    if (directMessage.scopeId.value == conversationId) {
+      return directMessage.scopeId;
+    }
+  }
+  for (final directMessage in state.hiddenDirectMessages) {
     if (directMessage.scopeId.value == conversationId) {
       return directMessage.scopeId;
     }

@@ -56,7 +56,9 @@ void _reloadHomeList(Ref ref) {
       return;
     }
     unawaited(ref.read(homeListStoreProvider.notifier).load());
-  } catch (_) {}
+  } catch (e, st) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+  }
 }
 
 Future<void> _reloadServerState(Ref ref, ServerScopeId activeServerId) async {
@@ -64,7 +66,8 @@ Future<void> _reloadServerState(Ref ref, ServerScopeId activeServerId) async {
     if (ref.read(serverListStoreProvider).status != ServerListStatus.loading) {
       await ref.read(serverListStoreProvider.notifier).load();
     }
-  } catch (_) {
+  } catch (e, st) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: st);
     return;
   }
 
@@ -73,7 +76,9 @@ Future<void> _reloadServerState(Ref ref, ServerScopeId activeServerId) async {
     if (!servers.any((server) => server.id == activeServerId.value)) {
       await ref.read(serverSelectionStoreProvider.notifier).clearSelection();
     }
-  } catch (_) {}
+  } catch (e, st) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+  }
 }
 
 bool _shouldRefreshServerState(

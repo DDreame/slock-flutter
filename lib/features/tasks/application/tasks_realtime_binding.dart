@@ -37,7 +37,9 @@ void _handleTaskCreated(Ref ref, RealtimeEventEnvelope event) {
     for (final task in tasks) {
       store.upsertTask(task);
     }
-  } catch (_) {}
+  } catch (e, st) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+  }
 }
 
 void _handleTaskUpdated(Ref ref, RealtimeEventEnvelope event) {
@@ -47,7 +49,9 @@ void _handleTaskUpdated(Ref ref, RealtimeEventEnvelope event) {
   try {
     final store = ref.read(tasksStoreProvider.notifier);
     store.upsertTask(task);
-  } catch (_) {}
+  } catch (e, st) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+  }
 }
 
 void _handleTaskDeleted(Ref ref, RealtimeEventEnvelope event) {
@@ -57,7 +61,9 @@ void _handleTaskDeleted(Ref ref, RealtimeEventEnvelope event) {
   try {
     final store = ref.read(tasksStoreProvider.notifier);
     store.removeTask(taskId);
-  } catch (_) {}
+  } catch (e, st) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+  }
 }
 
 List<TaskItem> _parseTasksFromPayload(Object? payload) {
