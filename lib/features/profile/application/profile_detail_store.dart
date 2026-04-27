@@ -80,19 +80,15 @@ class ProfileDetailState {
           isOpeningDirectMessage == other.isOpeningDirectMessage;
 
   @override
-  int get hashCode => Object.hash(
-        status,
-        profile,
-        failure,
-        isOpeningDirectMessage,
-      );
+  int get hashCode =>
+      Object.hash(status, profile, failure, isOpeningDirectMessage);
 }
 
 final profileDetailStoreProvider =
     NotifierProvider<ProfileDetailStore, ProfileDetailState>(
-  ProfileDetailStore.new,
-  dependencies: [currentProfileTargetProvider],
-);
+      ProfileDetailStore.new,
+      dependencies: [currentProfileTargetProvider],
+    );
 
 class ProfileDetailStore extends Notifier<ProfileDetailState> {
   @override
@@ -112,11 +108,11 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
     }
 
     if (!target.canLoadRemote) {
-      return ProfileDetailState(
-        status: ProfileDetailStatus.success,
-        profile: MemberProfile(
-          id: target.userId!,
-          displayName: target.userId!,
+      return const ProfileDetailState(
+        status: ProfileDetailStatus.failure,
+        failure: UnknownFailure(
+          message: 'Profile requires a server-scoped route.',
+          causeType: 'invalid_profile_target',
         ),
       );
     }
@@ -140,10 +136,7 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
       );
     }
 
-    state = state.copyWith(
-      clearFailure: true,
-      isOpeningDirectMessage: true,
-    );
+    state = state.copyWith(clearFailure: true, isOpeningDirectMessage: true);
 
     try {
       final channelId = await ref
@@ -152,10 +145,7 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
       state = state.copyWith(isOpeningDirectMessage: false);
       return channelId;
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        failure: failure,
-        isOpeningDirectMessage: false,
-      );
+      state = state.copyWith(failure: failure, isOpeningDirectMessage: false);
       rethrow;
     }
   }

@@ -26,8 +26,8 @@ String? resolveNotificationRoute(Map<String, dynamic> payload) {
         queryParameters: {'channelId': channelId},
       ).toString();
     case 'agent':
-      if (agentId == null) return null;
-      return '/agents/$agentId';
+      if (serverId == null || agentId == null) return null;
+      return '/servers/$serverId/agents/$agentId';
     case 'profile':
       if (userId == null) return null;
       if (serverId != null) {

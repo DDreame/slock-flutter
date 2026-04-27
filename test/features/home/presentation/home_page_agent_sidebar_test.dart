@@ -18,9 +18,7 @@ import 'package:slock_app/features/servers/data/server_list_repository_provider.
 void main() {
   group('agent sidebar sections', () {
     testWidgets('renders Agents section when agents exist', (tester) async {
-      await tester.pumpWidget(
-        _buildApp(agents: [_agentA, _agentB]),
-      );
+      await tester.pumpWidget(_buildApp(agents: [_agentA, _agentB]));
       await tester.pumpAndSettle();
 
       await tester.scrollUntilVisible(
@@ -32,9 +30,7 @@ void main() {
       expect(find.byKey(const ValueKey('agent-agent-b')), findsOneWidget);
     });
 
-    testWidgets('does not render Agents header when no agents', (
-      tester,
-    ) async {
+    testWidgets('does not render Agents header when no agents', (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
 
@@ -72,10 +68,7 @@ void main() {
     testWidgets('pin agent via popup menu', (tester) async {
       final sidebarRepo = _FakeSidebarOrderRepository();
       await tester.pumpWidget(
-        _buildApp(
-          agents: [_agentA],
-          sidebarOrderRepository: sidebarRepo,
-        ),
+        _buildApp(agents: [_agentA], sidebarOrderRepository: sidebarRepo),
       );
       await tester.pumpAndSettle();
 
@@ -100,10 +93,7 @@ void main() {
         ),
       );
       await tester.pumpWidget(
-        _buildApp(
-          agents: [_agentA],
-          sidebarOrderRepository: sidebarRepo,
-        ),
+        _buildApp(agents: [_agentA], sidebarOrderRepository: sidebarRepo),
       );
       await tester.pumpAndSettle();
 
@@ -118,10 +108,7 @@ void main() {
       await tester.tap(find.text('Unpin'));
       await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('pinned-agent-agent-a')),
-        findsNothing,
-      );
+      expect(find.byKey(const ValueKey('pinned-agent-agent-a')), findsNothing);
       expect(find.byKey(const ValueKey('agent-agent-a')), findsOneWidget);
       expect(sidebarRepo.patchCalls, 1);
     });
@@ -130,9 +117,7 @@ void main() {
       await tester.pumpWidget(
         _buildApp(
           agents: [_agentA, _agentB],
-          sidebarOrder: const SidebarOrder(
-            agentOrder: ['agent-b', 'agent-a'],
-          ),
+          sidebarOrder: const SidebarOrder(agentOrder: ['agent-b', 'agent-a']),
         ),
       );
       await tester.pumpAndSettle();
@@ -155,6 +140,16 @@ void main() {
 
       expect(find.text('Agent Alpha'), findsOneWidget);
       expect(find.text('working'), findsOneWidget);
+    });
+
+    testWidgets('agent row keeps server-scoped detail route', (tester) async {
+      await tester.pumpWidget(_buildApp(agents: [_agentA]));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-agent-a')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('agent:server-1/agent-a'), findsOneWidget);
     });
   });
 }
@@ -206,7 +201,8 @@ Widget _buildApp({
   SidebarOrder sidebarOrder = const SidebarOrder(),
   _FakeSidebarOrderRepository? sidebarOrderRepository,
 }) {
-  final sidebarRepo = sidebarOrderRepository ??
+  final sidebarRepo =
+      sidebarOrderRepository ??
       _FakeSidebarOrderRepository(sidebarOrder: sidebarOrder);
   final router = GoRouter(
     initialLocation: '/home',
@@ -224,8 +220,16 @@ Widget _buildApp({
         path: '/agents/:agentId',
         builder: (context, state) => Scaffold(
           body: Center(
+            child: Text('agent:global/${state.pathParameters['agentId']}'),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/agents/:agentId',
+        builder: (context, state) => Scaffold(
+          body: Center(
             child: Text(
-              'agent:${state.pathParameters['agentId']}',
+              'agent:${state.pathParameters['serverId']}/${state.pathParameters['agentId']}',
             ),
           ),
         ),
@@ -325,9 +329,7 @@ class _FakeServerListRepository implements ServerListRepository {
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  _FakeSidebarOrderRepository({
-    this.sidebarOrder = const SidebarOrder(),
-  });
+  _FakeSidebarOrderRepository({this.sidebarOrder = const SidebarOrder()});
 
   final SidebarOrder sidebarOrder;
   int patchCalls = 0;
@@ -367,6 +369,5 @@ class _FakeAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async =>
-      const [];
+  }) async => const [];
 }

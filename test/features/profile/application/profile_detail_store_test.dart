@@ -66,7 +66,7 @@ void main() {
     expect(state.profile!.isSelf, isTrue);
   });
 
-  test('other-user without server scope falls back to local stub', () {
+  test('other-user without server scope fails explicitly', () {
     final container = ProviderContainer(
       overrides: [
         currentProfileTargetProvider.overrideWithValue(
@@ -79,10 +79,9 @@ void main() {
 
     final state = container.read(profileDetailStoreProvider);
 
-    expect(state.status, ProfileDetailStatus.success);
-    expect(state.profile!.id, 'other-456');
-    expect(state.profile!.displayName, 'other-456');
-    expect(state.profile!.isSelf, isFalse);
+    expect(state.status, ProfileDetailStatus.failure);
+    expect(state.profile, isNull);
+    expect(state.failure?.message, 'Profile requires a server-scoped route.');
   });
 
   test('target matching own userId resolves as self profile', () {
@@ -192,10 +191,7 @@ void main() {
         sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
         profileRepositoryProvider.overrideWithValue(
           _FakeProfileRepository(
-            profile: const MemberProfile(
-              id: 'other-456',
-              displayName: 'Bob',
-            ),
+            profile: const MemberProfile(id: 'other-456', displayName: 'Bob'),
           ),
         ),
         memberRepositoryProvider.overrideWithValue(memberRepository),
@@ -213,8 +209,10 @@ void main() {
     expect(memberRepository.requests, [
       (const ServerScopeId('server-1'), 'other-456'),
     ]);
-    expect(container.read(profileDetailStoreProvider).isOpeningDirectMessage,
-        isFalse);
+    expect(
+      container.read(profileDetailStoreProvider).isOpeningDirectMessage,
+      isFalse,
+    );
   });
 }
 
@@ -232,11 +230,11 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   SessionState build() => SessionState(
-        status: AuthStatus.authenticated,
-        userId: userId,
-        displayName: displayName,
-        token: 'test-token',
-      );
+    status: AuthStatus.authenticated,
+    userId: userId,
+    displayName: displayName,
+    token: 'test-token',
+  );
 }
 
 class _FakeProfileRepository implements ProfileRepository {
