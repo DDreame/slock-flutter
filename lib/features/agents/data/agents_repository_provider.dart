@@ -2,24 +2,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:dio/dio.dart';
 
 const _agentsPath = '/agents';
+const _serverHeaderName = 'X-Server-Id';
 
 final agentsRepositoryProvider = Provider<AgentsRepository>((ref) {
   final appDioClient = ref.watch(appDioClientProvider);
-  return _ApiAgentsRepository(appDioClient: appDioClient);
+  final activeServerId = ref.watch(activeServerScopeIdProvider);
+  return _ApiAgentsRepository(
+    appDioClient: appDioClient,
+    activeServerId: activeServerId,
+  );
 });
 
 class _ApiAgentsRepository implements AgentsRepository {
-  const _ApiAgentsRepository({required AppDioClient appDioClient})
-      : _appDioClient = appDioClient;
+  const _ApiAgentsRepository({
+    required AppDioClient appDioClient,
+    required ServerScopeId? activeServerId,
+  })  : _appDioClient = appDioClient,
+        _activeServerId = activeServerId;
 
   final AppDioClient _appDioClient;
+  final ServerScopeId? _activeServerId;
+
+  Options? get _serverOptions {
+    final activeServerId = _activeServerId;
+    if (activeServerId == null) return null;
+    return Options(headers: {_serverHeaderName: activeServerId.value});
+  }
 
   @override
   Future<List<AgentItem>> listAgents() async {
     try {
-      final response = await _appDioClient.get<Object?>(_agentsPath);
+      final response = await _appDioClient.get<Object?>(
+        _agentsPath,
+        options: _serverOptions,
+      );
       return _parseAgentList(response.data);
     } on AppFailure {
       rethrow;
@@ -36,6 +56,7 @@ class _ApiAgentsRepository implements AgentsRepository {
     try {
       await _appDioClient.post<Object?>(
         '$_agentsPath/$agentId/start',
+        options: _serverOptions,
       );
     } on AppFailure {
       rethrow;
@@ -52,6 +73,7 @@ class _ApiAgentsRepository implements AgentsRepository {
     try {
       await _appDioClient.post<Object?>(
         '$_agentsPath/$agentId/stop',
+        options: _serverOptions,
       );
     } on AppFailure {
       rethrow;
@@ -69,6 +91,7 @@ class _ApiAgentsRepository implements AgentsRepository {
       await _appDioClient.post<Object?>(
         '$_agentsPath/$agentId/reset',
         data: {'mode': mode},
+        options: _serverOptions,
       );
     } on AppFailure {
       rethrow;
@@ -89,6 +112,7 @@ class _ApiAgentsRepository implements AgentsRepository {
       final response = await _appDioClient.get<Object?>(
         '$_agentsPath/$agentId/activity-log',
         queryParameters: {'limit': limit},
+        options: _serverOptions,
       );
       return _parseActivityLog(response.data);
     } on AppFailure {

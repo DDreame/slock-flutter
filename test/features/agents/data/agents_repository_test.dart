@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 
 void main() {
   group('agentsRepositoryProvider', () {
-    test('listAgents sends GET /agents', () async {
+    test('listAgents sends GET /agents with active server header', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
           ('GET', '/agents'): [
@@ -23,7 +24,11 @@ void main() {
         },
       );
       final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        overrides: [
+          appDioClientProvider.overrideWithValue(appDioClient),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('s1')),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -36,16 +41,22 @@ void main() {
       expect(agents.first.activity, 'online');
       expect(appDioClient.requests.single.method, 'GET');
       expect(appDioClient.requests.single.path, '/agents');
+      expect(appDioClient.requests.single.serverIdHeader, 's1');
     });
 
-    test('startAgent sends POST /agents/:id/start', () async {
+    test('startAgent sends POST /agents/:id/start with active server header',
+        () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
           ('POST', '/agents/agent-1/start'): null,
         },
       );
       final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        overrides: [
+          appDioClientProvider.overrideWithValue(appDioClient),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('s1')),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -54,16 +65,22 @@ void main() {
 
       expect(appDioClient.requests.single.method, 'POST');
       expect(appDioClient.requests.single.path, '/agents/agent-1/start');
+      expect(appDioClient.requests.single.serverIdHeader, 's1');
     });
 
-    test('stopAgent sends POST /agents/:id/stop', () async {
+    test('stopAgent sends POST /agents/:id/stop with active server header',
+        () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
           ('POST', '/agents/agent-1/stop'): null,
         },
       );
       final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        overrides: [
+          appDioClientProvider.overrideWithValue(appDioClient),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('s1')),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -72,16 +89,23 @@ void main() {
 
       expect(appDioClient.requests.single.method, 'POST');
       expect(appDioClient.requests.single.path, '/agents/agent-1/stop');
+      expect(appDioClient.requests.single.serverIdHeader, 's1');
     });
 
-    test('resetAgent sends POST /agents/:id/reset with mode', () async {
+    test(
+        'resetAgent sends POST /agents/:id/reset with mode and active server header',
+        () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
           ('POST', '/agents/agent-1/reset'): null,
         },
       );
       final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        overrides: [
+          appDioClientProvider.overrideWithValue(appDioClient),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('s1')),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -90,10 +114,13 @@ void main() {
 
       expect(appDioClient.requests.single.method, 'POST');
       expect(appDioClient.requests.single.path, '/agents/agent-1/reset');
+      expect(appDioClient.requests.single.serverIdHeader, 's1');
       expect(appDioClient.requests.single.data, {'mode': 'session'});
     });
 
-    test('getActivityLog sends GET /agents/:id/activity-log', () async {
+    test(
+        'getActivityLog sends GET /agents/:id/activity-log with active server header',
+        () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
           ('GET', '/agents/agent-1/activity-log'): [
@@ -105,7 +132,11 @@ void main() {
         },
       );
       final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        overrides: [
+          appDioClientProvider.overrideWithValue(appDioClient),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('s1')),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -115,6 +146,7 @@ void main() {
       expect(log.length, 1);
       expect(log.first.entry, 'Agent started');
       expect(appDioClient.requests.single.path, '/agents/agent-1/activity-log');
+      expect(appDioClient.requests.single.serverIdHeader, 's1');
     });
   });
 }
@@ -175,4 +207,6 @@ class _CapturedRequest {
   final String path;
   final Object? data;
   final Map<String, Object?> headers;
+
+  String? get serverIdHeader => headers['X-Server-Id'] as String?;
 }
