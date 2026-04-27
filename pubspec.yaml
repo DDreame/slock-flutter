@@ -33,5 +33,10 @@ dev_dependencies:
 dependency_overrides:
   url_launcher_android: 6.3.14
 
+hooks:
+  user_defines:
+    sqlite3:
+      source: process
+
 flutter:
   uses-material-design: true
