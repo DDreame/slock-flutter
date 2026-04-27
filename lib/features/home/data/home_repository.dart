@@ -3,6 +3,8 @@ import 'package:slock_app/core/core.dart';
 abstract class HomeRepository {
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId);
 
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(ServerScopeId serverId);
+
   Future<HomeDirectMessageSummary> persistDirectMessageSummary(
     HomeDirectMessageSummary summary,
   );
@@ -25,6 +27,8 @@ abstract class HomeRepository {
 
 typedef HomeWorkspaceSnapshotLoader = Future<HomeWorkspaceSnapshot> Function(
     ServerScopeId serverId);
+typedef HomeCachedWorkspaceLoader = Future<HomeWorkspaceSnapshot?> Function(
+    ServerScopeId serverId);
 typedef HomeDirectMessageSummaryPersister = Future<HomeDirectMessageSummary>
     Function(HomeDirectMessageSummary summary);
 typedef HomeConversationActivityPersister = Future<void> Function({
@@ -44,16 +48,19 @@ typedef HomeConversationPreviewUpdatePersister = Future<void> Function({
 class BaselineHomeRepository implements HomeRepository {
   BaselineHomeRepository({
     required HomeWorkspaceSnapshotLoader loadWorkspace,
+    required HomeCachedWorkspaceLoader loadCachedWorkspace,
     required HomeDirectMessageSummaryPersister persistDirectMessageSummary,
     required HomeConversationActivityPersister persistConversationActivity,
     required HomeConversationPreviewUpdatePersister
         persistConversationPreviewUpdate,
   })  : _loadWorkspace = loadWorkspace,
+        _loadCachedWorkspace = loadCachedWorkspace,
         _persistDirectMessageSummary = persistDirectMessageSummary,
         _persistConversationActivity = persistConversationActivity,
         _persistConversationPreviewUpdate = persistConversationPreviewUpdate;
 
   final HomeWorkspaceSnapshotLoader _loadWorkspace;
+  final HomeCachedWorkspaceLoader _loadCachedWorkspace;
   final HomeDirectMessageSummaryPersister _persistDirectMessageSummary;
   final HomeConversationActivityPersister _persistConversationActivity;
   final HomeConversationPreviewUpdatePersister
@@ -70,6 +77,17 @@ class BaselineHomeRepository implements HomeRepository {
         message: 'Failed to load home workspace snapshot.',
         causeType: error.runtimeType.toString(),
       );
+    }
+  }
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    try {
+      return await _loadCachedWorkspace(serverId);
+    } catch (_) {
+      return null;
     }
   }
 

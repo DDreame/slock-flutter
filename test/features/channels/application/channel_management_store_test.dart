@@ -90,6 +90,13 @@ class _FakeHomeRepository implements HomeRepository {
   int loadCalls = 0;
 
   @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return null;
+  }
+
+  @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
     loadCalls += 1;
     return HomeWorkspaceSnapshot(

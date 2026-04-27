@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -547,6 +549,99 @@ void main() {
 
     expect(lastServerFinder, findsOneWidget);
   });
+
+  testWidgets('renders stale cached data before network completes', (
+    tester,
+  ) async {
+    final networkCompleter = Completer<HomeWorkspaceSnapshot>();
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: _DelayedFakeHomeRepository(
+          cachedSnapshot: _staleSnapshot,
+          networkCompleter: networkCompleter,
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Channels'), findsOneWidget);
+    expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
+    expect(find.byKey(const ValueKey('channel-random')), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    networkCompleter.complete(_sampleSnapshot);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
+    expect(find.byKey(const ValueKey('channel-random')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dm-dm-alice')), findsOneWidget);
+  });
+
+  testWidgets('shows spinner on cold cache then renders after network', (
+    tester,
+  ) async {
+    final networkCompleter = Completer<HomeWorkspaceSnapshot>();
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: _DelayedFakeHomeRepository(
+          cachedSnapshot: null,
+          networkCompleter: networkCompleter,
+        ),
+      ),
+    );
+
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Channels'), findsNothing);
+
+    networkCompleter.complete(_sampleSnapshot);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Channels'), findsOneWidget);
+    expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
+  });
+
+  testWidgets(
+    'stale-first suppresses failure state when network fails but cache exists',
+    (tester) async {
+      final networkCompleter = Completer<HomeWorkspaceSnapshot>();
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: _DelayedFakeHomeRepository(
+            cachedSnapshot: _staleSnapshot,
+            networkCompleter: networkCompleter,
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
+
+      networkCompleter.completeError(
+        const UnknownFailure(message: 'network down', causeType: 'test'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
+      expect(find.text('Something went wrong'), findsNothing);
+    },
+  );
 }
 
 const _sampleSnapshot = HomeWorkspaceSnapshot(
@@ -582,6 +677,20 @@ const _sampleServers = [
   ServerSummary(id: 'server-1', name: 'Workspace A'),
   ServerSummary(id: 'server-2', name: 'Workspace B'),
 ];
+
+const _staleSnapshot = HomeWorkspaceSnapshot(
+  serverId: ServerScopeId('server-1'),
+  channels: [
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+      name: 'general',
+    ),
+  ],
+  directMessages: [],
+);
 
 Widget _buildApp({
   required GoRouter router,
@@ -684,6 +793,13 @@ class _FakeHomeRepository implements HomeRepository {
   @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
     return snapshot;
+  }
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return null;
   }
 
   @override
@@ -860,4 +976,50 @@ class _FakeAgentsRepository implements AgentsRepository {
     int limit = 50,
   }) async =>
       const [];
+}
+
+class _DelayedFakeHomeRepository implements HomeRepository {
+  _DelayedFakeHomeRepository({
+    required this.cachedSnapshot,
+    required this.networkCompleter,
+  });
+
+  final HomeWorkspaceSnapshot? cachedSnapshot;
+  final Completer<HomeWorkspaceSnapshot> networkCompleter;
+
+  @override
+  Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) {
+    return networkCompleter.future;
+  }
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return cachedSnapshot;
+  }
+
+  @override
+  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
+    HomeDirectMessageSummary summary,
+  ) async {
+    return summary;
+  }
+
+  @override
+  Future<void> persistConversationActivity({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) async {}
+
+  @override
+  Future<void> persistConversationPreviewUpdate({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) async {}
 }

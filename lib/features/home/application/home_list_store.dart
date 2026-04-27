@@ -53,9 +53,23 @@ class HomeListStore extends Notifier<HomeListState> {
       clearFailure: true,
     );
 
+    final repo = ref.read(homeRepositoryProvider);
+
+    final cached = await repo.loadCachedWorkspace(serverScopeId);
+    if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+
+    if (cached != null) {
+      _allChannels = List.of(cached.channels);
+      _allDirectMessages = List.of(cached.directMessages);
+      _emitPersonalizedState(
+        serverScopeId: cached.serverId,
+        status: HomeListStatus.success,
+      );
+    }
+
     try {
       final results = await Future.wait([
-        ref.read(homeRepositoryProvider).loadWorkspace(serverScopeId),
+        repo.loadWorkspace(serverScopeId),
         _loadSidebarOrderSafe(serverScopeId),
         _loadAgentsSafe(),
       ]);
@@ -76,6 +90,7 @@ class HomeListStore extends Notifier<HomeListState> {
       );
     } on AppFailure catch (failure) {
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+      if (cached != null) return;
       state = state.copyWith(
         serverScopeId: serverScopeId,
         status: HomeListStatus.failure,

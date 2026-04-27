@@ -220,6 +220,9 @@ void main() {
     final state = container.read(homeListStoreProvider);
     expect(state.serverScopeId, const ServerScopeId('server-b'));
     expect(state.channels, isEmpty);
+
+    // Drain microtasks so the rebuild-triggered load settles before teardown.
+    await Future.delayed(Duration.zero);
   });
 
   group('addDirectMessage', () {
@@ -354,6 +357,13 @@ class _FakeHomeRepository implements HomeRepository {
   final List<ServerScopeId> requestedServerIds = [];
 
   @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return null;
+  }
+
+  @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
     requestedServerIds.add(serverId);
     if (failure != null) {
@@ -391,6 +401,13 @@ class _DelayedHomeRepository implements HomeRepository {
   _DelayedHomeRepository(this.completer);
 
   final Completer<HomeWorkspaceSnapshot> completer;
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return null;
+  }
 
   @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) {
