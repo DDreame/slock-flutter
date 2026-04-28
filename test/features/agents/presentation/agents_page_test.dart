@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +10,30 @@ import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 
 void main() {
+  AgentItem makeAgent({
+    String id = 'agent-1',
+    String name = 'Bot',
+    String? description,
+    String model = 'sonnet',
+    String runtime = 'claude',
+    String? reasoningEffort,
+    String? machineId,
+    String status = 'active',
+    String activity = 'online',
+  }) {
+    return AgentItem(
+      id: id,
+      name: name,
+      description: description,
+      model: model,
+      runtime: runtime,
+      reasoningEffort: reasoningEffort,
+      machineId: machineId,
+      status: status,
+      activity: activity,
+    );
+  }
+
   group('AgentsPage direct detail route', () {
     testWidgets('shows failure + retry on load failure', (tester) async {
       final fakeRepo = _FailingAgentsRepository();
@@ -134,10 +159,201 @@ void main() {
         expect(find.text('Bot'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'create flow submits machine/runtime/model config from dialog',
+      (tester) async {
+        final fakeRepo = _MutableAgentsRepository(initialItems: const []);
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('GET', '/servers/server-1/machines'): {
+              'machines': [
+                {
+                  'id': 'machine-1',
+                  'name': 'Build node',
+                  'status': 'online',
+                  'runtimes': ['codex', 'claude'],
+                },
+              ],
+            },
+            (
+              'GET',
+              '/servers/server-1/machines/machine-1/runtime-models/codex',
+            ): {
+              'default': 'gpt-5.4',
+              'models': [
+                {'id': 'gpt-5.4', 'label': 'GPT-5.4'},
+                {'id': 'gpt-5.2', 'label': 'GPT-5.2'},
+              ],
+            },
+          },
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              appDioClientProvider.overrideWithValue(appDioClient),
+              realtimeReductionIngressProvider.overrideWithValue(
+                RealtimeReductionIngress(),
+              ),
+            ],
+            child: const MaterialApp(home: AgentsPage(serverId: 'server-1')),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('No agents yet.'), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('agents-create-fab')));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.byKey(const ValueKey('agent-form-name')),
+          'Builder',
+        );
+        await tester.tap(find.byKey(const ValueKey('agent-form-submit')));
+        await tester.pumpAndSettle();
+
+        expect(fakeRepo.createRequests, hasLength(1));
+        expect(fakeRepo.createRequests.single.name, 'Builder');
+        expect(fakeRepo.createRequests.single.machineId, 'machine-1');
+        expect(fakeRepo.createRequests.single.runtime, 'codex');
+        expect(fakeRepo.createRequests.single.model, 'gpt-5.4');
+        expect(fakeRepo.createRequests.single.reasoningEffort, 'medium');
+        expect(find.text('Builder'), findsOneWidget);
+      },
+    );
+
+    testWidgets('detail edit flow updates the agent through the store', (
+      tester,
+    ) async {
+      final fakeRepo = _MutableAgentsRepository(
+        initialItems: [
+          makeAgent(
+            id: 'agent-1',
+            name: 'Bot',
+            description: 'Original',
+            model: 'sonnet',
+            runtime: 'claude',
+            machineId: 'machine-1',
+          ),
+        ],
+      );
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('GET', '/servers/server-1/machines'): {
+            'machines': [
+              {
+                'id': 'machine-1',
+                'name': 'Build node',
+                'status': 'online',
+                'runtimes': ['claude'],
+              },
+            ],
+          },
+          (
+            'GET',
+            '/servers/server-1/machines/machine-1/runtime-models/claude',
+          ): {
+            'default': 'sonnet',
+            'models': [
+              {'id': 'sonnet', 'label': 'Sonnet'},
+              {'id': 'opus', 'label': 'Opus'},
+            ],
+          },
+        },
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            appDioClientProvider.overrideWithValue(appDioClient),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-edit-btn')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('agent-form-name')),
+        'Bot Prime',
+      );
+      await tester.tap(find.byKey(const ValueKey('agent-form-submit')));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.updateRequests, hasLength(1));
+      expect(fakeRepo.updateRequests.single.$1, 'agent-1');
+      expect(fakeRepo.updateRequests.single.$2.name, 'Bot Prime');
+      expect(fakeRepo.updateRequests.single.$2.machineId, 'machine-1');
+      expect(find.text('Bot Prime'), findsWidgets);
+    });
+
+    testWidgets('detail delete flow removes the agent', (tester) async {
+      final fakeRepo = _MutableAgentsRepository(
+        initialItems: [
+          makeAgent(
+            id: 'agent-1',
+            name: 'Bot',
+            model: 'sonnet',
+            runtime: 'claude',
+            machineId: 'machine-1',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-delete-btn')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('agent-delete-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.deletedAgentIds, ['agent-1']);
+      expect(find.text('Agent not found.'), findsOneWidget);
+    });
   });
 }
 
 class _FailingAgentsRepository implements AgentsRepository {
+  @override
+  Future<AgentItem> createAgent(AgentMutationInput input) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<AgentItem> updateAgent(
+    String agentId,
+    AgentMutationInput input,
+  ) async => throw UnimplementedError();
+
+  @override
+  Future<void> deleteAgent(String agentId) async => throw UnimplementedError();
+
   @override
   Future<List<AgentItem>> listAgents() async {
     throw const UnknownFailure(
@@ -160,8 +376,7 @@ class _FailingAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async =>
-      [];
+  }) async => [];
 }
 
 sealed class _RepoResult {
@@ -182,7 +397,7 @@ class _FailureResult extends _RepoResult {
 
 class _QueueAgentsRepository implements AgentsRepository {
   _QueueAgentsRepository({required List<_RepoResult> results})
-      : _results = List.of(results);
+    : _results = List.of(results);
 
   final List<_RepoResult> _results;
   int _index = 0;
@@ -193,10 +408,100 @@ class _QueueAgentsRepository implements AgentsRepository {
     return switch (result) {
       _SuccessResult(:final items) => items,
       _FailureResult(:final message) => throw UnknownFailure(
-          message: message,
-          causeType: 'test',
-        ),
+        message: message,
+        causeType: 'test',
+      ),
     };
+  }
+
+  @override
+  Future<AgentItem> createAgent(AgentMutationInput input) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<AgentItem> updateAgent(
+    String agentId,
+    AgentMutationInput input,
+  ) async => throw UnimplementedError();
+
+  @override
+  Future<void> deleteAgent(String agentId) async => throw UnimplementedError();
+
+  @override
+  Future<void> startAgent(String agentId) async => throw UnimplementedError();
+
+  @override
+  Future<void> stopAgent(String agentId) async => throw UnimplementedError();
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async => [];
+}
+
+class _MutableAgentsRepository implements AgentsRepository {
+  _MutableAgentsRepository({required List<AgentItem> initialItems})
+    : _items = List.of(initialItems);
+
+  final List<AgentItem> _items;
+  final List<AgentMutationInput> createRequests = [];
+  final List<(String, AgentMutationInput)> updateRequests = [];
+  final List<String> deletedAgentIds = [];
+
+  @override
+  Future<List<AgentItem>> listAgents() async => List.of(_items);
+
+  @override
+  Future<AgentItem> createAgent(AgentMutationInput input) async {
+    createRequests.add(input);
+    final created = AgentItem(
+      id: 'agent-${_items.length + 1}',
+      name: input.name,
+      description: input.description,
+      model: input.model,
+      runtime: input.runtime,
+      reasoningEffort: input.reasoningEffort,
+      machineId: input.machineId,
+      status: 'stopped',
+      activity: 'offline',
+    );
+    _items.add(created);
+    return created;
+  }
+
+  @override
+  Future<AgentItem> updateAgent(
+    String agentId,
+    AgentMutationInput input,
+  ) async {
+    updateRequests.add((agentId, input));
+    final updated = AgentItem(
+      id: agentId,
+      name: input.name,
+      description: input.description,
+      model: input.model,
+      runtime: input.runtime,
+      reasoningEffort: input.reasoningEffort,
+      machineId: input.machineId,
+      status: 'active',
+      activity: 'online',
+    );
+    final index = _items.indexWhere((agent) => agent.id == agentId);
+    if (index >= 0) {
+      _items[index] = updated;
+    }
+    return updated;
+  }
+
+  @override
+  Future<void> deleteAgent(String agentId) async {
+    deletedAgentIds.add(agentId);
+    _items.removeWhere((agent) => agent.id == agentId);
   }
 
   @override
@@ -213,6 +518,33 @@ class _QueueAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async =>
-      [];
+  }) async => [];
+}
+
+class _FakeAppDioClient extends AppDioClient {
+  _FakeAppDioClient({Map<(String, String), Object?> responses = const {}})
+    : _responses = responses,
+      super(Dio());
+
+  final Map<(String, String), Object?> _responses;
+
+  @override
+  Future<Response<T>> request<T>(
+    String path, {
+    required String method,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    final key = (method, path);
+    if (!_responses.containsKey(key)) {
+      throw StateError('Missing fake response for $key');
+    }
+
+    return Response<T>(
+      requestOptions: RequestOptions(path: path, method: method),
+      data: _responses[key] as T,
+    );
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 
 final agentsStoreProvider =
@@ -14,10 +15,7 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
   }
 
   Future<void> load() async {
-    state = state.copyWith(
-      status: AgentsStatus.loading,
-      clearFailure: true,
-    );
+    state = state.copyWith(status: AgentsStatus.loading, clearFailure: true);
 
     try {
       final repo = ref.read(agentsRepositoryProvider);
@@ -28,10 +26,85 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      state = state.copyWith(status: AgentsStatus.failure, failure: failure);
+    }
+  }
+
+  Future<AgentItem> createAgent(AgentMutationInput input) async {
+    state = state.copyWith(isCreating: true, clearFailure: true);
+
+    try {
+      final repo = ref.read(agentsRepositoryProvider);
+      final agent = await repo.createAgent(input);
       state = state.copyWith(
-        status: AgentsStatus.failure,
+        status: AgentsStatus.success,
+        items: [...state.items, agent],
+        isCreating: false,
+        clearFailure: true,
+      );
+      return agent;
+    } on AppFailure catch (failure) {
+      state = state.copyWith(isCreating: false, failure: failure);
+      rethrow;
+    }
+  }
+
+  Future<AgentItem> updateAgent(
+    String agentId,
+    AgentMutationInput input,
+  ) async {
+    state = state.copyWith(
+      savingAgentIds: {...state.savingAgentIds, agentId},
+      clearFailure: true,
+    );
+
+    try {
+      final repo = ref.read(agentsRepositoryProvider);
+      final updated = await repo.updateAgent(agentId, input);
+      final items = [...state.items];
+      final index = items.indexWhere((agent) => agent.id == agentId);
+      if (index >= 0) {
+        items[index] = updated;
+      } else {
+        items.add(updated);
+      }
+      state = state.copyWith(
+        status: AgentsStatus.success,
+        items: items,
+        savingAgentIds: {...state.savingAgentIds}..remove(agentId),
+        clearFailure: true,
+      );
+      return updated;
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        savingAgentIds: {...state.savingAgentIds}..remove(agentId),
         failure: failure,
       );
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAgent(String agentId) async {
+    state = state.copyWith(
+      deletingAgentIds: {...state.deletingAgentIds, agentId},
+      clearFailure: true,
+    );
+
+    try {
+      final repo = ref.read(agentsRepositoryProvider);
+      await repo.deleteAgent(agentId);
+      state = state.copyWith(
+        status: AgentsStatus.success,
+        items: state.items.where((agent) => agent.id != agentId).toList(),
+        deletingAgentIds: {...state.deletingAgentIds}..remove(agentId),
+        clearFailure: true,
+      );
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        deletingAgentIds: {...state.deletingAgentIds}..remove(agentId),
+        failure: failure,
+      );
+      rethrow;
     }
   }
 
@@ -39,9 +112,11 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
     final previousItems = state.items;
     state = state.copyWith(
       items: state.items
-          .map((a) => a.id == agentId
-              ? a.copyWith(status: 'active', activity: 'working')
-              : a)
+          .map(
+            (a) => a.id == agentId
+                ? a.copyWith(status: 'active', activity: 'working')
+                : a,
+          )
           .toList(),
     );
 
@@ -58,9 +133,11 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
     final previousItems = state.items;
     state = state.copyWith(
       items: state.items
-          .map((a) => a.id == agentId
-              ? a.copyWith(status: 'stopped', activity: 'offline')
-              : a)
+          .map(
+            (a) => a.id == agentId
+                ? a.copyWith(status: 'stopped', activity: 'offline')
+                : a,
+          )
           .toList(),
     );
 
@@ -85,9 +162,11 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
   void updateActivity(String agentId, String activity, String? detail) {
     state = state.copyWith(
       items: state.items
-          .map((a) => a.id == agentId
-              ? a.copyWith(activity: activity, activityDetail: detail ?? '')
-              : a)
+          .map(
+            (a) => a.id == agentId
+                ? a.copyWith(activity: activity, activityDetail: detail ?? '')
+                : a,
+          )
           .toList(),
     );
   }

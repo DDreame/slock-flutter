@@ -21,8 +21,8 @@ class _ApiAgentsRepository implements AgentsRepository {
   const _ApiAgentsRepository({
     required AppDioClient appDioClient,
     required ServerScopeId? activeServerId,
-  })  : _appDioClient = appDioClient,
-        _activeServerId = activeServerId;
+  }) : _appDioClient = appDioClient,
+       _activeServerId = activeServerId;
 
   final AppDioClient _appDioClient;
   final ServerScopeId? _activeServerId;
@@ -46,6 +46,65 @@ class _ApiAgentsRepository implements AgentsRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to load agents.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<AgentItem> createAgent(AgentMutationInput input) async {
+    try {
+      final response = await _appDioClient.post<Object?>(
+        _agentsPath,
+        data: input.toCreateJson(),
+        options: _serverOptions,
+      );
+      return _parseAgentItem(_requireMap(response.data));
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to create agent.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<AgentItem> updateAgent(
+    String agentId,
+    AgentMutationInput input,
+  ) async {
+    try {
+      final response = await _appDioClient.request<Object?>(
+        '$_agentsPath/$agentId',
+        method: 'PATCH',
+        data: input.toUpdateJson(),
+        options: _serverOptions,
+      );
+      return _parseAgentItem(_requireMap(response.data));
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to update agent.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteAgent(String agentId) async {
+    try {
+      await _appDioClient.delete<Object?>(
+        '$_agentsPath/$agentId',
+        options: _serverOptions,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to delete agent.',
         causeType: error.runtimeType.toString(),
       );
     }
@@ -129,8 +188,11 @@ class _ApiAgentsRepository implements AgentsRepository {
     if (payload is List) {
       return payload
           .whereType<Map>()
-          .map((a) => _parseAgentItem(
-              a is Map<String, dynamic> ? a : Map<String, dynamic>.from(a)))
+          .map(
+            (a) => _parseAgentItem(
+              a is Map<String, dynamic> ? a : Map<String, dynamic>.from(a),
+            ),
+          )
           .toList();
     }
     return [];
@@ -177,12 +239,9 @@ class _ApiAgentsRepository implements AgentsRepository {
             : Map<String, dynamic>.from(entry);
         final timestamp =
             DateTime.tryParse(_optionalString(map['timestamp']) ?? '') ??
-                DateTime.now();
+            DateTime.now();
         final entryText = _optionalString(map['entry']) ?? '';
-        return AgentActivityLogEntry(
-          timestamp: timestamp,
-          entry: entryText,
-        );
+        return AgentActivityLogEntry(timestamp: timestamp, entry: entryText);
       }).toList();
     }
     final map = _requireMap(payload);
