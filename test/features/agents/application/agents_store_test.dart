@@ -264,7 +264,8 @@ void main() {
   });
 }
 
-class _FakeAgentsRepository implements AgentsRepository {
+class _FakeAgentsRepository
+    implements AgentsRepository, AgentsMutationRepository {
   List<AgentItem>? listResult;
   AgentItem? createResult;
   AgentItem? updateResult;

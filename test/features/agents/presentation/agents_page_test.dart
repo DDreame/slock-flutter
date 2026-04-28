@@ -340,7 +340,8 @@ void main() {
   });
 }
 
-class _FailingAgentsRepository implements AgentsRepository {
+class _FailingAgentsRepository
+    implements AgentsRepository, AgentsMutationRepository {
   @override
   Future<AgentItem> createAgent(AgentMutationInput input) async =>
       throw UnimplementedError();
@@ -397,7 +398,8 @@ class _FailureResult extends _RepoResult {
   final String message;
 }
 
-class _QueueAgentsRepository implements AgentsRepository {
+class _QueueAgentsRepository
+    implements AgentsRepository, AgentsMutationRepository {
   _QueueAgentsRepository({required List<_RepoResult> results})
       : _results = List.of(results);
 
@@ -448,7 +450,8 @@ class _QueueAgentsRepository implements AgentsRepository {
       [];
 }
 
-class _MutableAgentsRepository implements AgentsRepository {
+class _MutableAgentsRepository
+    implements AgentsRepository, AgentsMutationRepository {
   _MutableAgentsRepository({required List<AgentItem> initialItems})
       : _items = List.of(initialItems);
 

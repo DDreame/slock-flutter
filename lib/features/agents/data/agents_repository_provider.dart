@@ -17,7 +17,8 @@ final agentsRepositoryProvider = Provider<AgentsRepository>((ref) {
   );
 });
 
-class _ApiAgentsRepository implements AgentsRepository {
+class _ApiAgentsRepository
+    implements AgentsRepository, AgentsMutationRepository {
   const _ApiAgentsRepository({
     required AppDioClient appDioClient,
     required ServerScopeId? activeServerId,

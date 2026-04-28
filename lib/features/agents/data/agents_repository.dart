@@ -52,9 +52,6 @@ class AgentMutationInput {
 
 abstract class AgentsRepository {
   Future<List<AgentItem>> listAgents();
-  Future<AgentItem> createAgent(AgentMutationInput input);
-  Future<AgentItem> updateAgent(String agentId, AgentMutationInput input);
-  Future<void> deleteAgent(String agentId);
   Future<void> startAgent(String agentId);
   Future<void> stopAgent(String agentId);
   Future<void> resetAgent(String agentId, {required String mode});
@@ -62,6 +59,34 @@ abstract class AgentsRepository {
     String agentId, {
     int limit = 50,
   });
+}
+
+abstract class AgentsMutationRepository {
+  Future<AgentItem> createAgent(AgentMutationInput input);
+  Future<AgentItem> updateAgent(String agentId, AgentMutationInput input);
+  Future<void> deleteAgent(String agentId);
+}
+
+extension AgentsRepositoryMutationX on AgentsRepository {
+  AgentsMutationRepository get _mutationRepository {
+    final repository = this;
+    if (repository is AgentsMutationRepository) {
+      return repository as AgentsMutationRepository;
+    }
+    throw UnsupportedError('Agent mutation operations are not implemented');
+  }
+
+  Future<AgentItem> createAgent(AgentMutationInput input) {
+    return _mutationRepository.createAgent(input);
+  }
+
+  Future<AgentItem> updateAgent(String agentId, AgentMutationInput input) {
+    return _mutationRepository.updateAgent(agentId, input);
+  }
+
+  Future<void> deleteAgent(String agentId) {
+    return _mutationRepository.deleteAgent(agentId);
+  }
 }
 
 class AgentActivityLogEntry {
