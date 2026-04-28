@@ -26,6 +26,7 @@ import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/presentation/page/workspace_settings_page.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -202,6 +203,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: syncServerSelection,
         builder: (context, state) =>
             SearchPage(serverId: state.pathParameters['serverId']!),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/settings',
+        redirect: syncServerSelection,
+        builder: (context, state) => WorkspaceSettingsPage(
+          serverId: state.pathParameters['serverId']!,
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/members',

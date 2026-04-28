@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
@@ -62,6 +63,21 @@ class ServerSwitcherSheet extends ConsumerWidget {
                 ),
               ),
           },
+          if (activeServer != null &&
+              state.status == ServerListStatus.success) ...[
+            const Divider(height: 1),
+            ListTile(
+              key: const ValueKey('server-switcher-settings'),
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('Workspace Settings'),
+              onTap: () {
+                Navigator.of(context).pop();
+                context.push(
+                  '/servers/${activeServer.value}/settings',
+                );
+              },
+            ),
+          ],
         ],
       ),
     );

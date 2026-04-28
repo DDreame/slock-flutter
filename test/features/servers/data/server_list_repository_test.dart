@@ -57,4 +57,37 @@ void main() {
     expect(a.hashCode, b.hashCode);
     expect(a, isNot(c));
   });
+
+  test('ServerSummary equality includes slug and role', () {
+    const a = ServerSummary(id: 'x', name: 'X', slug: 'x-slug', role: 'owner');
+    const b = ServerSummary(id: 'x', name: 'X', slug: 'x-slug', role: 'owner');
+    const c = ServerSummary(id: 'x', name: 'X', slug: 'x-slug', role: 'member');
+
+    expect(a, b);
+    expect(a.hashCode, b.hashCode);
+    expect(a, isNot(c));
+  });
+
+  test('ServerSummary role helpers', () {
+    const owner = ServerSummary(id: 'x', name: 'X', role: 'owner');
+    const admin = ServerSummary(id: 'x', name: 'X', role: 'admin');
+    const member = ServerSummary(id: 'x', name: 'X', role: 'member');
+    const unknown = ServerSummary(id: 'x', name: 'X');
+
+    expect(owner.isOwner, isTrue);
+    expect(owner.isAdmin, isTrue);
+    expect(admin.isOwner, isFalse);
+    expect(admin.isAdmin, isTrue);
+    expect(member.isOwner, isFalse);
+    expect(member.isAdmin, isFalse);
+    expect(unknown.isOwner, isFalse);
+    expect(unknown.isAdmin, isFalse);
+  });
+
+  test('ServerSummary defaults for optional fields', () {
+    const server = ServerSummary(id: 'x', name: 'X');
+    expect(server.slug, '');
+    expect(server.role, '');
+    expect(server.createdAt, isNull);
+  });
 }

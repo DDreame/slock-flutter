@@ -41,6 +41,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: _HomeAppBarTitle(onTap: () => showServerSwitcherSheet(context)),
         actions: [
           IconButton(
+            key: const ValueKey('home-workspace-settings'),
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () {
+              final serverId = ref.read(activeServerScopeIdProvider);
+              if (serverId != null) {
+                context.push('/servers/${serverId.value}/settings');
+              }
+            },
+          ),
+          IconButton(
             key: const ValueKey('home-members'),
             icon: const Icon(Icons.people_outline),
             onPressed: () {
