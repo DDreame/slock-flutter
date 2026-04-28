@@ -43,7 +43,11 @@ class ConversationDetailStore
       }
 
       if (event.eventType == _realtimeMessageCreatedEventType) {
-        _handleMessageCreated(event.payload!, target);
+        _handleMessageCreated(
+          event.payload!,
+          target,
+          gapDetected: event.gapDetected,
+        );
       } else if (event.eventType == _realtimeMessageUpdatedEventType) {
         _handleMessageUpdated(event.payload!, target);
       }
@@ -449,7 +453,11 @@ class ConversationDetailStore
     return [...dedupedOlder, ...existing];
   }
 
-  void _handleMessageCreated(Object payload, ConversationDetailTarget target) {
+  void _handleMessageCreated(
+    Object payload,
+    ConversationDetailTarget target, {
+    bool gapDetected = false,
+  }) {
     final incoming = tryParseConversationIncomingMessage(
       payload,
       payloadName: 'message:new',
@@ -463,6 +471,7 @@ class ConversationDetailStore
     }
 
     unawaited(() async {
+      final prevMaxSeq = _maxSeq(state.messages);
       final persisted =
           await ref.read(conversationRepositoryProvider).persistMessage(
                 target,
@@ -477,7 +486,41 @@ class ConversationDetailStore
         messages: _appendDedupedMessage(state.messages, persisted),
       );
       _persistSession();
+
+      if (gapDetected) {
+        await _recoverGap(target, afterSeq: prevMaxSeq);
+      }
     }());
+  }
+
+  Future<void> _recoverGap(
+    ConversationDetailTarget target, {
+    required int? afterSeq,
+  }) async {
+    if (afterSeq == null) return;
+
+    try {
+      final page =
+          await ref.read(conversationRepositoryProvider).loadNewerMessages(
+                target,
+                afterSeq: afterSeq,
+              );
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      final merged = _appendDedupedMessages(state.messages, page.messages);
+      if (merged.length != state.messages.length) {
+        state = state.copyWith(
+          messages: merged,
+          hasNewer: page.hasNewer,
+        );
+        _persistSession();
+      }
+    } on AppFailure {
+      // Gap recovery is best-effort; the user can still scroll to
+      // trigger loadNewer manually.
+    }
   }
 
   void _handleMessageUpdated(Object payload, ConversationDetailTarget target) {
