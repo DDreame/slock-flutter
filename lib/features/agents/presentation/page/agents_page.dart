@@ -8,6 +8,7 @@ import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
+import 'package:slock_app/features/agents/presentation/widget/agent_form_dialog.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 
 class AgentsPage extends ConsumerStatefulWidget {
@@ -33,8 +34,13 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     final state = ref.watch(agentsStoreProvider);
 
     if (widget.agentId != null) {
-      final agent =
-          state.items.where((a) => a.id == widget.agentId).firstOrNull;
+      AgentItem? agent;
+      for (final item in state.items) {
+        if (item.id == widget.agentId) {
+          agent = item;
+          break;
+        }
+      }
       return _AgentDetailScaffold(
         agent: agent,
         isLoading: state.status == AgentsStatus.loading ||
@@ -42,6 +48,8 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         isFailure: state.status == AgentsStatus.failure,
         failureMessage: state.failure?.message,
         onRetry: ref.read(agentsStoreProvider.notifier).retry,
+        onEdit: agent == null || state.isBusy(agent.id) ? null : _editAgent,
+        onDelete: agent == null || state.isBusy(agent.id) ? null : _deleteAgent,
         onStart: _startAgent,
         onStop: _stopAgent,
         onReset: _resetAgent,
@@ -50,6 +58,20 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Agents')),
+      floatingActionButton: state.status == AgentsStatus.success
+          ? FloatingActionButton.extended(
+              key: const ValueKey('agents-create-fab'),
+              onPressed: state.isCreating ? null : _createAgent,
+              icon: state.isCreating
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.add),
+              label: const Text('Create Agent'),
+            )
+          : null,
       body: switch (state.status) {
         AgentsStatus.initial || AgentsStatus.loading => const Center(
             child: CircularProgressIndicator(),
@@ -80,6 +102,125 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       return;
     }
     context.push('/agents/${agent.id}');
+  }
+
+  String? _resolvedServerId() {
+    return widget.serverId ?? ref.read(activeServerScopeIdProvider)?.value;
+  }
+
+  Future<AgentMutationInput?> _showAgentFormDialog({AgentItem? agent}) async {
+    final serverId = _resolvedServerId();
+    if (serverId == null) {
+      _showSnackBar('Select a server first.');
+      return null;
+    }
+
+    return showDialog<AgentMutationInput>(
+      context: context,
+      builder: (dialogContext) {
+        return AgentFormDialog(serverId: serverId, initialAgent: agent);
+      },
+    );
+  }
+
+  Future<void> _createAgent() async {
+    final input = await _showAgentFormDialog();
+    if (input == null) {
+      return;
+    }
+
+    try {
+      await ref.read(agentsStoreProvider.notifier).createAgent(input);
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar('Agent created.');
+    } on AppFailure catch (failure) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar(failure.message ?? 'Failed to create agent.');
+    }
+  }
+
+  Future<void> _editAgent(AgentItem agent) async {
+    final input = await _showAgentFormDialog(agent: agent);
+    if (input == null) {
+      return;
+    }
+
+    try {
+      await ref.read(agentsStoreProvider.notifier).updateAgent(agent.id, input);
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar('Agent updated.');
+    } on AppFailure catch (failure) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar(failure.message ?? 'Failed to update agent.');
+    }
+  }
+
+  Future<void> _deleteAgent(AgentItem agent) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Delete Agent?'),
+              content: Text(
+                'Delete ${agent.label}? This removes the agent configuration from the workspace.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  key: const ValueKey('agent-delete-confirm'),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await ref.read(agentsStoreProvider.notifier).deleteAgent(agent.id);
+      if (!mounted) {
+        return;
+      }
+
+      _showSnackBar('Agent deleted.');
+
+      if (widget.agentId != null) {
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.pop();
+        } else {
+          final router = GoRouter.maybeOf(context);
+          if (router != null) {
+            final serverId = _resolvedServerId();
+            if (serverId != null) {
+              router.go('/servers/$serverId/agents');
+            } else {
+              router.go('/agents');
+            }
+          }
+        }
+      }
+    } on AppFailure catch (failure) {
+      if (!mounted) {
+        return;
+      }
+      _showSnackBar(failure.message ?? 'Failed to delete agent.');
+    }
   }
 
   Future<void> _startAgent(AgentItem agent) async {
@@ -309,6 +450,8 @@ class _AgentDetailScaffold extends StatelessWidget {
     required this.isFailure,
     required this.failureMessage,
     required this.onRetry,
+    required this.onEdit,
+    required this.onDelete,
     required this.onStart,
     required this.onStop,
     required this.onReset,
@@ -319,6 +462,8 @@ class _AgentDetailScaffold extends StatelessWidget {
   final bool isFailure;
   final String? failureMessage;
   final VoidCallback onRetry;
+  final Future<void> Function(AgentItem)? onEdit;
+  final Future<void> Function(AgentItem)? onDelete;
   final Future<void> Function(AgentItem) onStart;
   final Future<void> Function(AgentItem) onStop;
   final Future<void> Function(AgentItem) onReset;
@@ -341,7 +486,21 @@ class _AgentDetailScaffold extends StatelessWidget {
 
     final a = agent!;
     return Scaffold(
-      appBar: AppBar(title: Text(a.label)),
+      appBar: AppBar(
+        title: Text(a.label),
+        actions: [
+          IconButton(
+            key: const ValueKey('agent-edit-btn'),
+            onPressed: onEdit == null ? null : () => onEdit!(a),
+            icon: const Icon(Icons.edit_outlined),
+          ),
+          IconButton(
+            key: const ValueKey('agent-delete-btn'),
+            onPressed: onDelete == null ? null : () => onDelete!(a),
+            icon: const Icon(Icons.delete_outline),
+          ),
+        ],
+      ),
       body: _AgentDetailBody(
         agent: a,
         onStart: onStart,
