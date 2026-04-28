@@ -1,57 +1,182 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 
 void main() {
-  test('loadServers returns list from loader', () async {
-    const expected = [
-      ServerSummary(id: 'server-1', name: 'Workspace A'),
-      ServerSummary(id: 'server-2', name: 'Workspace B'),
-    ];
-    final repository = BaselineServerListRepository(
-      loadServers: () async => expected,
-    );
+  group('serverListRepositoryProvider', () {
+    test('loadServers parses workspaces with optional role and slug', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('GET', '/servers'): [
+            {
+              'id': 'server-1',
+              'name': 'Workspace A',
+              'slug': 'workspace-a',
+              'role': 'owner',
+            },
+            {'id': 'server-2', 'name': 'Workspace B', 'role': 'member'},
+          ],
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
 
-    final result = await repository.loadServers();
-    expect(result, expected);
-  });
+      final repo = container.read(serverListRepositoryProvider);
+      final servers = await repo.loadServers();
 
-  test('loadServers rethrows AppFailure from loader', () async {
-    const failure = ServerFailure(
-      message: 'Server list failed.',
-      statusCode: 500,
-    );
-    final repository = BaselineServerListRepository(
-      loadServers: () async => throw failure,
-    );
-
-    expect(
-      () => repository.loadServers(),
-      throwsA(isA<ServerFailure>()),
-    );
-  });
-
-  test('loadServers wraps non-AppFailure in UnknownFailure', () async {
-    final repository = BaselineServerListRepository(
-      loadServers: () async => throw Exception('boom'),
-    );
-
-    expect(
-      () => repository.loadServers(),
-      throwsA(
-        isA<UnknownFailure>().having(
-          (f) => f.message,
-          'message',
-          'Failed to load server list.',
+      expect(servers, const [
+        ServerSummary(
+          id: 'server-1',
+          name: 'Workspace A',
+          slug: 'workspace-a',
+          role: 'owner',
         ),
-      ),
+        ServerSummary(id: 'server-2', name: 'Workspace B', role: 'member'),
+      ]);
+      expect(appDioClient.requests.single.method, 'GET');
+      expect(appDioClient.requests.single.path, '/servers');
+    });
+
+    test(
+      'createServer posts name and slug and parses created workspace',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('POST', '/servers'): {
+              'id': 'server-3',
+              'name': 'Workspace C',
+              'slug': 'workspace-c',
+              'role': 'owner',
+            },
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        );
+        addTearDown(container.dispose);
+
+        final repo = container.read(serverListRepositoryProvider);
+        final server = await repo.createServer(
+          name: 'Workspace C',
+          slug: 'workspace-c',
+        );
+
+        expect(
+          server,
+          const ServerSummary(
+            id: 'server-3',
+            name: 'Workspace C',
+            slug: 'workspace-c',
+            role: 'owner',
+          ),
+        );
+        expect(appDioClient.requests.single.method, 'POST');
+        expect(appDioClient.requests.single.path, '/servers');
+        expect(appDioClient.requests.single.data, {
+          'name': 'Workspace C',
+          'slug': 'workspace-c',
+        });
+      },
+    );
+
+    test('renameServer patches server name', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('PATCH', '/servers/server-1'): {'name': 'Workspace Renamed'},
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+      final updatedName = await repo.renameServer(
+        'server-1',
+        name: 'Workspace Renamed',
+      );
+
+      expect(updatedName, 'Workspace Renamed');
+      expect(appDioClient.requests.single.method, 'PATCH');
+      expect(appDioClient.requests.single.path, '/servers/server-1');
+      expect(appDioClient.requests.single.data, {'name': 'Workspace Renamed'});
+    });
+
+    test('deleteServer sends DELETE /servers/:id', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {('DELETE', '/servers/server-1'): null},
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+      await repo.deleteServer('server-1');
+
+      expect(appDioClient.requests.single.method, 'DELETE');
+      expect(appDioClient.requests.single.path, '/servers/server-1');
+    });
+
+    test('leaveServer posts to /servers/:id/leave', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {('POST', '/servers/server-1/leave'): null},
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(serverListRepositoryProvider);
+      await repo.leaveServer('server-1');
+
+      expect(appDioClient.requests.single.method, 'POST');
+      expect(appDioClient.requests.single.path, '/servers/server-1/leave');
+    });
+
+    test(
+      'acceptInvite posts token to auth path and returns server id',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('POST', '/auth/accept-invite'): {'serverId': 'server-9'},
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        );
+        addTearDown(container.dispose);
+
+        final repo = container.read(serverListRepositoryProvider);
+        final serverId = await repo.acceptInvite('token-123');
+
+        expect(serverId, 'server-9');
+        expect(appDioClient.requests.single.method, 'POST');
+        expect(appDioClient.requests.single.path, '/auth/accept-invite');
+        expect(appDioClient.requests.single.data, {'token': 'token-123'});
+      },
     );
   });
 
-  test('ServerSummary equality', () {
-    const a = ServerSummary(id: 'x', name: 'X');
-    const b = ServerSummary(id: 'x', name: 'X');
-    const c = ServerSummary(id: 'y', name: 'Y');
+  test('ServerSummary equality includes optional fields', () {
+    const a = ServerSummary(
+      id: 'x',
+      name: 'X',
+      slug: 'workspace-x',
+      role: 'owner',
+    );
+    const b = ServerSummary(
+      id: 'x',
+      name: 'X',
+      slug: 'workspace-x',
+      role: 'owner',
+    );
+    const c = ServerSummary(id: 'x', name: 'X');
 
     expect(a, b);
     expect(a.hashCode, b.hashCode);
@@ -90,4 +215,47 @@ void main() {
     expect(server.role, '');
     expect(server.createdAt, isNull);
   });
+}
+
+class _FakeAppDioClient extends AppDioClient {
+  _FakeAppDioClient({Map<(String, String), Object?> responses = const {}})
+    : _responses = responses,
+      super(Dio());
+
+  final Map<(String, String), Object?> _responses;
+  final List<_CapturedRequest> requests = [];
+
+  @override
+  Future<Response<T>> request<T>(
+    String path, {
+    required String method,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) async {
+    requests.add(_CapturedRequest(method: method, path: path, data: data));
+
+    final key = (method, path);
+    if (!_responses.containsKey(key)) {
+      throw StateError('Missing fake response for $key');
+    }
+
+    return Response<T>(
+      requestOptions: RequestOptions(path: path, method: method),
+      data: _responses[key] as T,
+    );
+  }
+}
+
+class _CapturedRequest {
+  const _CapturedRequest({
+    required this.method,
+    required this.path,
+    required this.data,
+  });
+
+  final String method;
+  final String path;
+  final Object? data;
 }
