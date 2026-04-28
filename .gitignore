@@ -19,3 +19,8 @@ android/local.properties
 **/*.g.dart
 !lib/core/local_data/app_database.g.dart
 **/*.freezed.dart
+
+# Android release signing
+android/key.properties
+**/*.jks
+**/*.keystore

@@ -2,6 +2,7 @@ SHELL := /bin/bash
 
 SKIP_MESSAGE := Skipping: Flutter app skeleton has not landed yet (missing pubspec.yaml).
 RUNTIME_DART_DEFINE_FLAGS := --dart-define=SLOCK_API_BASE_URL=$(SLOCK_API_BASE_URL) --dart-define=SLOCK_REALTIME_URL=$(SLOCK_REALTIME_URL)
+RUNTIME_BUILD_NUMBER_FLAG := $(if $(BUILD_NUMBER),--build-number=$(BUILD_NUMBER),)
 MISSING_RUNTIME_DART_DEFINE_MESSAGE := Missing required runtime endpoint configuration: SLOCK_API_BASE_URL and SLOCK_REALTIME_URL must be set for produced app-binary builds.
 
 .PHONY: format analyze test ci-test-all ci-build-smoke ci-build-ios-smoke
@@ -44,7 +45,7 @@ ci-build-smoke:
 		echo "$(MISSING_RUNTIME_DART_DEFINE_MESSAGE)"; \
 		exit 1; \
 	else \
-		flutter build apk --debug $(RUNTIME_DART_DEFINE_FLAGS); \
+		flutter build apk --release $(RUNTIME_DART_DEFINE_FLAGS) $(RUNTIME_BUILD_NUMBER_FLAG); \
 	fi
 
 ci-build-ios-smoke:
