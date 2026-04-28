@@ -15,15 +15,19 @@ class RealtimeReductionIngress {
 
   bool accept(RealtimeEventEnvelope envelope) {
     final seq = envelope.seq;
+    var emitEnvelope = envelope;
     if (seq != null) {
       final lastSeq = _lastAcceptedSeqByScope[envelope.scopeKey];
       if (lastSeq != null && seq <= lastSeq) {
         return false;
       }
+      if (lastSeq != null && seq > lastSeq + 1) {
+        emitEnvelope = envelope.withGapDetected();
+      }
       _lastAcceptedSeqByScope[envelope.scopeKey] = seq;
     }
 
-    _acceptedEventsController.add(envelope);
+    _acceptedEventsController.add(emitEnvelope);
     return true;
   }
 
