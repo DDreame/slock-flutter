@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
@@ -53,9 +54,9 @@ void main() {
     await tester.pumpWidget(
       buildPage(
         serverId: 'server-1',
-        serverListState: ServerListState(
+        serverListState: const ServerListState(
           status: ServerListStatus.success,
-          servers: const [
+          servers: [
             ServerSummary(
               id: 'server-1',
               name: 'Team',
@@ -73,9 +74,9 @@ void main() {
     await tester.pumpWidget(
       buildPage(
         serverId: 'nonexistent',
-        serverListState: ServerListState(
+        serverListState: const ServerListState(
           status: ServerListStatus.success,
-          servers: const [
+          servers: [
             ServerSummary(id: 'server-1', name: 'Other'),
           ],
         ),
@@ -89,9 +90,9 @@ void main() {
     await tester.pumpWidget(
       buildPage(
         serverId: 'server-1',
-        serverListState: ServerListState(
+        serverListState: const ServerListState(
           status: ServerListStatus.success,
-          servers: const [
+          servers: [
             ServerSummary(
               id: 'server-1',
               name: 'Workspace',
@@ -114,9 +115,9 @@ void main() {
     await tester.pumpWidget(
       buildPage(
         serverId: 'server-1',
-        serverListState: ServerListState(
+        serverListState: const ServerListState(
           status: ServerListStatus.success,
-          servers: const [
+          servers: [
             ServerSummary(id: 'server-1', name: 'No Slug'),
           ],
         ),
@@ -125,6 +126,53 @@ void main() {
 
     expect(find.text('No Slug'), findsOneWidget);
     expect(find.text('Unknown'), findsOneWidget);
+  });
+
+  testWidgets('shows loading indicator for initial state', (tester) async {
+    await tester.pumpWidget(
+      buildPage(
+        serverId: 'server-1',
+        serverListState: const ServerListState(
+          status: ServerListStatus.initial,
+        ),
+      ),
+    );
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Workspace not found.'), findsNothing);
+  });
+
+  testWidgets('shows loading indicator for loading state', (tester) async {
+    await tester.pumpWidget(
+      buildPage(
+        serverId: 'server-1',
+        serverListState: const ServerListState(
+          status: ServerListStatus.loading,
+        ),
+      ),
+    );
+
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.text('Workspace not found.'), findsNothing);
+  });
+
+  testWidgets('shows error with retry for failure state', (tester) async {
+    await tester.pumpWidget(
+      buildPage(
+        serverId: 'server-1',
+        serverListState: const ServerListState(
+          status: ServerListStatus.failure,
+          failure: ServerFailure(
+            message: 'Network error',
+            statusCode: 500,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Network error'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Workspace not found.'), findsNothing);
   });
 }
 

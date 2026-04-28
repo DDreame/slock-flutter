@@ -13,20 +13,50 @@ class WorkspaceSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final serverListState = ref.watch(serverListStoreProvider);
-    final server = _findServer(serverListState, serverId);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Workspace Settings')),
-      body: server == null
-          ? const Center(child: Text('Workspace not found.'))
-          : ListView(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              children: [
-                _InfoSection(server: server),
-                const Divider(),
-                _NavigationSection(serverId: serverId),
-              ],
+      body: switch (serverListState.status) {
+        ServerListStatus.initial ||
+        ServerListStatus.loading =>
+          const Center(child: CircularProgressIndicator()),
+        ServerListStatus.failure => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    serverListState.failure?.message ??
+                        'Unable to load workspace.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: ref.read(serverListStoreProvider.notifier).retry,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
             ),
+          ),
+        ServerListStatus.success => _buildSuccess(serverListState),
+      },
+    );
+  }
+
+  Widget _buildSuccess(ServerListState state) {
+    final server = _findServer(state, serverId);
+    if (server == null) {
+      return const Center(child: Text('Workspace not found.'));
+    }
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      children: [
+        _InfoSection(server: server),
+        const Divider(),
+        _NavigationSection(serverId: serverId),
+      ],
     );
   }
 
