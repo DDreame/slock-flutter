@@ -990,7 +990,7 @@ void main() {
       final state = container.read(conversationDetailStoreProvider);
       expect(
         state.messages.map((m) => m.id),
-        ['message-1', 'message-3', 'message-2'],
+        ['message-1', 'message-2', 'message-3'],
       );
       expect(repository.newerRequests, [1]);
     });

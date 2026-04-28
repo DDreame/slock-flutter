@@ -511,6 +511,14 @@ class ConversationDetailStore
       }
       final merged = _appendDedupedMessages(state.messages, page.messages);
       if (merged.length != state.messages.length) {
+        merged.sort((a, b) {
+          final aSeq = a.seq;
+          final bSeq = b.seq;
+          if (aSeq == null && bSeq == null) return 0;
+          if (aSeq == null) return 1;
+          if (bSeq == null) return -1;
+          return aSeq.compareTo(bSeq);
+        });
         state = state.copyWith(
           messages: merged,
           hasNewer: page.hasNewer,
