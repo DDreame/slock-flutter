@@ -8,6 +8,7 @@ class RealtimeEventEnvelope {
     required this.receivedAt,
     this.seq,
     this.payload,
+    this.gapDetected = false,
   });
 
   static const String globalScopeKey = 'global';
@@ -17,6 +18,18 @@ class RealtimeEventEnvelope {
   final int? seq;
   final Object? payload;
   final DateTime receivedAt;
+  final bool gapDetected;
+
+  RealtimeEventEnvelope withGapDetected() {
+    return RealtimeEventEnvelope(
+      eventType: eventType,
+      scopeKey: scopeKey,
+      receivedAt: receivedAt,
+      seq: seq,
+      payload: payload,
+      gapDetected: true,
+    );
+  }
 }
 
 typedef RealtimeEventNormalizer = RealtimeEventEnvelope? Function(

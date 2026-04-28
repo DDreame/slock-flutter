@@ -907,6 +907,247 @@ void main() {
     });
   });
 
+  group('gap recovery', () {
+    test('triggers loadNewerMessages when realtime message has gapDetected',
+        () async {
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerPages: {
+          1: ConversationMessagePage(
+            messages: [
+              ConversationMessageSummary(
+                id: 'message-2',
+                content: 'Missed',
+                createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 2,
+              ),
+            ],
+            historyLimited: false,
+            hasOlder: false,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:new',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 3,
+          payload: {
+            'id': 'message-3',
+            'channelId': target.conversationId,
+            'content': 'After gap',
+            'createdAt': '2026-04-19T15:02:00Z',
+            'senderType': 'human',
+            'messageType': 'message',
+            'senderId': 'user-a',
+            'seq': 3,
+          },
+          gapDetected: true,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(
+        state.messages.map((m) => m.id),
+        ['message-1', 'message-2', 'message-3'],
+      );
+      expect(repository.newerRequests, [1]);
+    });
+
+    test('gap recovery is best-effort and does not surface failure', () async {
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerFailure: const ServerFailure(
+          message: 'Network error',
+          statusCode: 500,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:new',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 5,
+          payload: {
+            'id': 'message-5',
+            'channelId': target.conversationId,
+            'content': 'After gap',
+            'createdAt': '2026-04-19T15:05:00Z',
+            'senderType': 'human',
+            'messageType': 'message',
+            'senderId': 'user-a',
+            'seq': 5,
+          },
+          gapDetected: true,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.status, ConversationDetailStatus.success);
+      expect(state.failure, isNull);
+      expect(state.messages.map((m) => m.id), ['message-1', 'message-5']);
+    });
+
+    test('no recovery when gapDetected is false', () async {
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerPages: {
+          2: ConversationMessagePage(
+            messages: [
+              ConversationMessageSummary(
+                id: 'message-extra',
+                content: 'Should not appear',
+                createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 2,
+              ),
+            ],
+            historyLimited: false,
+            hasOlder: false,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:new',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 2,
+          payload: {
+            'id': 'message-2',
+            'channelId': target.conversationId,
+            'content': 'Normal',
+            'createdAt': '2026-04-19T15:01:00Z',
+            'senderType': 'human',
+            'messageType': 'message',
+            'senderId': 'user-a',
+            'seq': 2,
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(repository.newerRequests, isEmpty);
+    });
+  });
+
   test('message:updated via copyWith preserves attachments and threadId',
       () async {
     final ingress = RealtimeReductionIngress();
