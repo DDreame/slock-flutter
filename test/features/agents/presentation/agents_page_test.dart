@@ -349,7 +349,8 @@ class _FailingAgentsRepository implements AgentsRepository {
   Future<AgentItem> updateAgent(
     String agentId,
     AgentMutationInput input,
-  ) async => throw UnimplementedError();
+  ) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> deleteAgent(String agentId) async => throw UnimplementedError();
@@ -376,7 +377,8 @@ class _FailingAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async => [];
+  }) async =>
+      [];
 }
 
 sealed class _RepoResult {
@@ -397,7 +399,7 @@ class _FailureResult extends _RepoResult {
 
 class _QueueAgentsRepository implements AgentsRepository {
   _QueueAgentsRepository({required List<_RepoResult> results})
-    : _results = List.of(results);
+      : _results = List.of(results);
 
   final List<_RepoResult> _results;
   int _index = 0;
@@ -408,9 +410,9 @@ class _QueueAgentsRepository implements AgentsRepository {
     return switch (result) {
       _SuccessResult(:final items) => items,
       _FailureResult(:final message) => throw UnknownFailure(
-        message: message,
-        causeType: 'test',
-      ),
+          message: message,
+          causeType: 'test',
+        ),
     };
   }
 
@@ -422,7 +424,8 @@ class _QueueAgentsRepository implements AgentsRepository {
   Future<AgentItem> updateAgent(
     String agentId,
     AgentMutationInput input,
-  ) async => throw UnimplementedError();
+  ) async =>
+      throw UnimplementedError();
 
   @override
   Future<void> deleteAgent(String agentId) async => throw UnimplementedError();
@@ -441,12 +444,13 @@ class _QueueAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async => [];
+  }) async =>
+      [];
 }
 
 class _MutableAgentsRepository implements AgentsRepository {
   _MutableAgentsRepository({required List<AgentItem> initialItems})
-    : _items = List.of(initialItems);
+      : _items = List.of(initialItems);
 
   final List<AgentItem> _items;
   final List<AgentMutationInput> createRequests = [];
@@ -518,13 +522,14 @@ class _MutableAgentsRepository implements AgentsRepository {
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async => [];
+  }) async =>
+      [];
 }
 
 class _FakeAppDioClient extends AppDioClient {
   _FakeAppDioClient({Map<(String, String), Object?> responses = const {}})
-    : _responses = responses,
-      super(Dio());
+      : _responses = responses,
+        super(Dio());
 
   final Map<(String, String), Object?> _responses;
 

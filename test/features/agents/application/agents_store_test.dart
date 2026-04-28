@@ -79,18 +79,17 @@ void main() {
 
     test('createAgent appends created agent and clears busy state', () async {
       fakeRepo.listResult = [makeAgent(id: 'a1', name: 'Alpha')];
-      fakeRepo.createResult =
-          makeAgent(
-            id: 'a2',
-            name: 'Builder',
-            status: 'stopped',
-            activity: 'offline',
-          ).copyWith(
-            model: 'gpt-5.4',
-            runtime: 'codex',
-            machineId: 'machine-1',
-            reasoningEffort: 'high',
-          );
+      fakeRepo.createResult = makeAgent(
+        id: 'a2',
+        name: 'Builder',
+        status: 'stopped',
+        activity: 'offline',
+      ).copyWith(
+        model: 'gpt-5.4',
+        runtime: 'codex',
+        machineId: 'machine-1',
+        reasoningEffort: 'high',
+      );
       await store().load();
 
       final created = await store().createAgent(

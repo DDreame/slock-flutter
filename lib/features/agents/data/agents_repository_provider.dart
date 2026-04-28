@@ -21,8 +21,8 @@ class _ApiAgentsRepository implements AgentsRepository {
   const _ApiAgentsRepository({
     required AppDioClient appDioClient,
     required ServerScopeId? activeServerId,
-  }) : _appDioClient = appDioClient,
-       _activeServerId = activeServerId;
+  })  : _appDioClient = appDioClient,
+        _activeServerId = activeServerId;
 
   final AppDioClient _appDioClient;
   final ServerScopeId? _activeServerId;
@@ -239,7 +239,7 @@ class _ApiAgentsRepository implements AgentsRepository {
             : Map<String, dynamic>.from(entry);
         final timestamp =
             DateTime.tryParse(_optionalString(map['timestamp']) ?? '') ??
-            DateTime.now();
+                DateTime.now();
         final entryText = _optionalString(map['entry']) ?? '';
         return AgentActivityLogEntry(timestamp: timestamp, entry: entryText);
       }).toList();
