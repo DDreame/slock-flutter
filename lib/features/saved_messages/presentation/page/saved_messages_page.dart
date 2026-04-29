@@ -216,7 +216,7 @@ class _SavedMessageCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    _formatTimestamp(message.createdAt),
+                    formatRelativeTime(message.createdAt),
                     style: theme.textTheme.bodySmall,
                   ),
                 ],
@@ -261,25 +261,4 @@ class _SavedMessagesFailureView extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatTimestamp(DateTime value) {
-  final utcValue = value.toUtc();
-  final month = switch (utcValue.month) {
-    1 => 'Jan',
-    2 => 'Feb',
-    3 => 'Mar',
-    4 => 'Apr',
-    5 => 'May',
-    6 => 'Jun',
-    7 => 'Jul',
-    8 => 'Aug',
-    9 => 'Sep',
-    10 => 'Oct',
-    11 => 'Nov',
-    _ => 'Dec',
-  };
-  final hour = utcValue.hour.toString().padLeft(2, '0');
-  final minute = utcValue.minute.toString().padLeft(2, '0');
-  return '$month ${utcValue.day}, $hour:$minute UTC';
 }

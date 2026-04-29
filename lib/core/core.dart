@@ -10,3 +10,4 @@ export 'realtime/realtime.dart';
 export 'scope/scope.dart';
 export 'storage/storage.dart';
 export 'telemetry/telemetry.dart';
+export 'utils/time_format.dart';
