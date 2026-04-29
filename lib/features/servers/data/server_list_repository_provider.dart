@@ -27,6 +27,7 @@ List<ServerSummary> _parseServerSummaries(Object? payload) {
   final servers = _requireList(payload, payloadName: 'servers');
   return List<ServerSummary>.generate(servers.length, (index) {
     final item = _requireMap(servers[index], payloadName: 'servers[$index]');
+    final createdAtRaw = item['createdAt'];
     return ServerSummary(
       id: _requireStringField(
         item,
@@ -38,6 +39,10 @@ List<ServerSummary> _parseServerSummaries(Object? payload) {
         field: 'name',
         payloadName: 'servers[$index]',
       ),
+      slug: _optionalString(item['slug']) ?? '',
+      role: _optionalString(item['role']) ?? '',
+      createdAt:
+          createdAtRaw is String ? DateTime.tryParse(createdAtRaw) : null,
     );
   }, growable: false);
 }
@@ -84,3 +89,8 @@ String _requireStringField(
 }
 
 String _describeType(Object? value) => value?.runtimeType.toString() ?? 'Null';
+
+String? _optionalString(Object? value) {
+  if (value is String && value.isNotEmpty) return value;
+  return null;
+}

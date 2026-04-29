@@ -28,10 +28,22 @@ class BaselineServerListRepository implements ServerListRepository {
 }
 
 class ServerSummary {
-  const ServerSummary({required this.id, required this.name});
+  const ServerSummary({
+    required this.id,
+    required this.name,
+    this.slug = '',
+    this.role = '',
+    this.createdAt,
+  });
 
   final String id;
   final String name;
+  final String slug;
+  final String role;
+  final DateTime? createdAt;
+
+  bool get isOwner => role == 'owner';
+  bool get isAdmin => role == 'admin' || isOwner;
 
   @override
   bool operator ==(Object other) =>
@@ -39,8 +51,10 @@ class ServerSummary {
       other is ServerSummary &&
           runtimeType == other.runtimeType &&
           id == other.id &&
-          name == other.name;
+          name == other.name &&
+          slug == other.slug &&
+          role == other.role;
 
   @override
-  int get hashCode => Object.hash(id, name);
+  int get hashCode => Object.hash(id, name, slug, role);
 }
