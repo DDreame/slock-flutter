@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
@@ -230,7 +231,7 @@ class _DiagnosticsEventsList extends StatelessWidget {
               leading: Icon(
                 _levelIcon(entry.level),
                 size: 18,
-                color: _levelColor(entry.level),
+                color: _levelColor(context, entry.level),
               ),
               title: Text(entry.message, style: const TextStyle(fontSize: 13)),
               subtitle: Text(
@@ -252,12 +253,13 @@ class _DiagnosticsEventsList extends StatelessWidget {
     };
   }
 
-  static Color _levelColor(DiagnosticsLevel level) {
-    return switch (level) {
-      DiagnosticsLevel.info => Colors.blue,
-      DiagnosticsLevel.warning => Colors.orange,
-      DiagnosticsLevel.error => Colors.red,
+  static Color _levelColor(BuildContext context, DiagnosticsLevel level) {
+    final tone = switch (level) {
+      DiagnosticsLevel.info => AppStatusTone.info,
+      DiagnosticsLevel.warning => AppStatusTone.warning,
+      DiagnosticsLevel.error => AppStatusTone.error,
     };
+    return appStatusColors(Theme.of(context).colorScheme, tone).foreground;
   }
 
   static String _formatTime(DateTime timestamp) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
@@ -32,6 +33,75 @@ void main() {
     expect(
         find.byKey(const ValueKey('tasks-refresh-indicator')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('status icons use theme-safe colors in dark theme', (
+    tester,
+  ) async {
+    final theme = AppTheme.dark;
+    final store = _FakeTasksStore(
+      initialState: TasksState(
+        status: TasksStatus.success,
+        items: [
+          _taskItem(id: 'task-todo', status: 'todo'),
+          _taskItem(id: 'task-progress', status: 'in_progress'),
+          _taskItem(id: 'task-review', status: 'in_review'),
+          _taskItem(id: 'task-done', status: 'done'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(_buildApp(store, theme: theme));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.radio_button_unchecked)).color,
+      theme.colorScheme.outline,
+    );
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.timelapse)).color,
+      theme.colorScheme.primary,
+    );
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.rate_review)).color,
+      theme.colorScheme.tertiary,
+    );
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.check_circle)).color,
+      theme.colorScheme.secondary,
+    );
+  });
+
+  testWidgets('delete confirmation uses destructive theme tokens', (
+    tester,
+  ) async {
+    final theme = AppTheme.dark;
+    final store = _FakeTasksStore(
+      initialState: TasksState(
+        status: TasksStatus.success,
+        items: [_taskItem(status: 'todo')],
+      ),
+    );
+
+    await tester.pumpWidget(_buildApp(store, theme: theme));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    final button = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('task-delete-confirm')),
+    );
+    expect(
+      button.style?.backgroundColor?.resolve(<WidgetState>{}),
+      theme.colorScheme.errorContainer,
+    );
+    expect(
+      button.style?.foregroundColor?.resolve(<WidgetState>{}),
+      theme.colorScheme.onErrorContainer,
+    );
   });
 
   testWidgets('single tap on todo task advances to in_progress', (
@@ -236,9 +306,22 @@ void main() {
   });
 }
 
-TaskItem _taskItem({String status = 'todo'}) {
+Widget _buildApp(_FakeTasksStore store, {ThemeData? theme}) {
+  return ProviderScope(
+    overrides: [
+      tasksStoreProvider.overrideWith(() => store),
+      tasksRealtimeBindingProvider.overrideWith((ref) {}),
+    ],
+    child: MaterialApp(
+      theme: theme,
+      home: const TasksPage(serverId: 'server-1'),
+    ),
+  );
+}
+
+TaskItem _taskItem({String id = 'task-1', String status = 'todo'}) {
   return TaskItem(
-    id: 'task-1',
+    id: id,
     taskNumber: 1,
     title: 'Investigate loading surface',
     status: status,
