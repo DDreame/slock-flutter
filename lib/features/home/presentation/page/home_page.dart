@@ -34,7 +34,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     ref.watch(homeAdminRealtimeBindingProvider);
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
-    final activeServer = ref.watch(activeServerScopeIdProvider);
     final unreadState = ref.watch(channelUnreadStoreProvider);
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
     final managementState = ref.watch(channelManagementStoreProvider);
@@ -66,36 +65,26 @@ class _HomePageState extends ConsumerState<HomePage> {
             padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Text(
                   'Workspace Console',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text(
-                  'Move between workspace activity, operator surfaces, and live conversations from one landing page.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
               HomeConsoleSection(
                 key: const ValueKey('home-console-activity-section'),
                 title: 'Activity',
-                description:
-                    'Jump into saved context, open threads, tasks, and workspace search.',
+                description: 'Saved context, threads, tasks, and search.',
                 children: [
                   HomeConsoleTile(
-                    key: const ValueKey('home-saved-messages'),
+                    tileKey: const ValueKey('home-saved-messages'),
                     icon: Icons.bookmark_outline,
                     title: 'Saved Messages',
                     description: 'Return to bookmarked updates and references.',
                     onTap: () => _pushServerRoute('saved-messages'),
                   ),
                   HomeConsoleTile(
-                    key: const ValueKey('home-threads'),
+                    tileKey: const ValueKey('home-threads'),
                     icon: Icons.forum_outlined,
                     title: 'Threads',
                     description:
@@ -103,14 +92,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                     onTap: () => _pushServerRoute('threads'),
                   ),
                   HomeConsoleTile(
-                    key: const ValueKey('home-tasks'),
+                    tileKey: const ValueKey('home-tasks'),
                     icon: Icons.check_circle_outline,
                     title: 'Tasks',
                     description: 'See task queues and execution status.',
                     onTap: () => _pushServerRoute('tasks'),
                   ),
                   HomeConsoleTile(
-                    key: const ValueKey('home-search'),
+                    tileKey: const ValueKey('home-search'),
                     icon: Icons.search,
                     title: 'Search',
                     description:
@@ -122,39 +111,38 @@ class _HomePageState extends ConsumerState<HomePage> {
               HomeConsoleSection(
                 key: const ValueKey('home-console-operations-section'),
                 title: 'Operations',
-                description:
-                    'Manage people, infrastructure, billing, and workspace settings.',
+                description: 'People, infrastructure, billing, and settings.',
                 children: [
                   HomeConsoleTile(
-                    key: const ValueKey('home-members'),
+                    tileKey: const ValueKey('home-members'),
                     icon: Icons.people_outline,
                     title: 'Members',
                     description: 'Manage workspace roles and invitations.',
                     onTap: () => _pushServerRoute('members'),
                   ),
                   HomeConsoleTile(
-                    key: const ValueKey('home-agents'),
+                    tileKey: const ValueKey('home-agents'),
                     icon: Icons.smart_toy_outlined,
-                    title: 'Agents',
+                    title: 'Agent Control',
                     description: 'Inspect agent activity and assignments.',
                     onTap: () => _pushServerRoute('agents'),
                   ),
                   HomeConsoleTile(
-                    key: const ValueKey('home-machines'),
+                    tileKey: const ValueKey('home-machines'),
                     icon: Icons.memory_outlined,
                     title: 'Machines',
                     description: 'Check workspace runtime capacity and hosts.',
                     onTap: () => _pushServerRoute('machines'),
                   ),
                   HomeConsoleTile(
-                    key: const ValueKey('home-billing'),
+                    tileKey: const ValueKey('home-billing'),
                     icon: Icons.credit_card_outlined,
                     title: 'Billing',
                     description: 'Review plan controls and billing management.',
                     onTap: () => context.push('/billing'),
                   ),
                   HomeConsoleTile(
-                    key: const ValueKey('home-workspace-settings'),
+                    tileKey: const ValueKey('home-workspace-settings'),
                     icon: Icons.settings_outlined,
                     title: 'Workspace Settings',
                     description:
@@ -163,24 +151,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                 ],
               ),
-              if (activeServer != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                  child: Text(
-                    'Communication Layer',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-              if (activeServer != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Text(
-                    'Pinned conversations, channels, direct messages, and agents remain live below.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ),
               if (pinnedConversationRows.isNotEmpty) ...[
                 const _HomeSectionHeader(title: 'Pinned'),
                 ...pinnedConversationRows,

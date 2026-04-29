@@ -37,6 +37,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Channels'));
     expect(find.text('Workspace Console'), findsOneWidget);
     expect(find.byKey(const ValueKey('home-console-activity-section')),
         findsOneWidget);
@@ -72,6 +73,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('channel-general')));
     await tester.tap(find.byKey(const ValueKey('channel-general')));
     await tester.pumpAndSettle();
 
@@ -120,6 +122,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('dm-dm-alice')));
     await tester.tap(find.byKey(const ValueKey('dm-dm-alice')));
     await tester.pumpAndSettle();
 
@@ -139,6 +142,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('home-members')));
     await tester.tap(find.byKey(const ValueKey('home-members')));
     await tester.pumpAndSettle();
 
@@ -163,6 +167,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('home-search')));
     await tester.tap(find.byKey(const ValueKey('home-search')));
     await tester.pumpAndSettle();
 
@@ -187,6 +192,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('home-saved-messages')),
+    );
     await tester.tap(find.byKey(const ValueKey('home-saved-messages')));
     await tester.pumpAndSettle();
 
@@ -211,6 +219,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('home-tasks')));
     await tester.tap(find.byKey(const ValueKey('home-tasks')));
     await tester.pumpAndSettle();
 
@@ -235,6 +244,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('home-threads')));
     await tester.tap(find.byKey(const ValueKey('home-threads')));
     await tester.pumpAndSettle();
 
@@ -259,6 +269,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('home-billing')));
     await tester.tap(find.byKey(const ValueKey('home-billing')));
     await tester.pumpAndSettle();
 
@@ -284,6 +295,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('home-workspace-settings')),
+    );
     await tester.tap(find.byKey(const ValueKey('home-workspace-settings')));
     await tester.pumpAndSettle();
 
