@@ -251,51 +251,12 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
   }
 
   Future<String?> _promptInviteEmail() async {
-    final controller = TextEditingController();
-    try {
-      return await showDialog<String>(
-        context: context,
-        builder: (dialogContext) {
-          return StatefulBuilder(
-            builder: (context, setState) {
-              final email = controller.text.trim();
-              final isValid = email.isNotEmpty &&
-                  email.contains('@') &&
-                  !email.startsWith('@');
-              return AlertDialog(
-                title: const Text('Invite Human'),
-                content: TextField(
-                  key: const ValueKey('members-invite-email-field'),
-                  controller: controller,
-                  autofocus: true,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    hintText: 'user@example.com',
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton(
-                    key: const ValueKey('members-invite-email-submit'),
-                    onPressed: isValid
-                        ? () => Navigator.of(dialogContext).pop(email)
-                        : null,
-                    child: const Text('Send Invite'),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
-    } finally {
-      controller.dispose();
-    }
+    return showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return const _InviteHumanDialog();
+      },
+    );
   }
 
   bool _canManageMembers(List<MemberProfile> members) {
@@ -305,5 +266,60 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
       }
     }
     return false;
+  }
+}
+
+class _InviteHumanDialog extends StatefulWidget {
+  const _InviteHumanDialog();
+
+  @override
+  State<_InviteHumanDialog> createState() => _InviteHumanDialogState();
+}
+
+class _InviteHumanDialogState extends State<_InviteHumanDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final email = _controller.text.trim();
+    final isValid =
+        email.isNotEmpty && email.contains('@') && !email.startsWith('@');
+    return AlertDialog(
+      title: const Text('Invite Human'),
+      content: TextField(
+        key: const ValueKey('members-invite-email-field'),
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.emailAddress,
+        decoration: const InputDecoration(
+          labelText: 'Email',
+          hintText: 'user@example.com',
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('members-invite-email-submit'),
+          onPressed: isValid ? () => Navigator.of(context).pop(email) : null,
+          child: const Text('Send Invite'),
+        ),
+      ],
+    );
   }
 }
