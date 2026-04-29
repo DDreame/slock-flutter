@@ -12,6 +12,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
   BuildContext context,
@@ -565,6 +566,24 @@ class _ConversationComposer extends StatelessWidget {
   }
 }
 
+enum _ConversationMessageVisualKind { self, other, system, agent }
+
+_ConversationMessageVisualKind _resolveConversationMessageVisualKind(
+  ConversationMessageSummary message,
+  String? currentUserId,
+) {
+  if (message.isSystem) {
+    return _ConversationMessageVisualKind.system;
+  }
+  if (message.senderType == 'agent') {
+    return _ConversationMessageVisualKind.agent;
+  }
+  if (currentUserId != null && message.senderId == currentUserId) {
+    return _ConversationMessageVisualKind.self;
+  }
+  return _ConversationMessageVisualKind.other;
+}
+
 class _ConversationMessageCard extends ConsumerWidget {
   const _ConversationMessageCard({
     required this.target,
@@ -583,82 +602,161 @@ class _ConversationMessageCard extends ConsumerWidget {
     final savedIds = ref.watch(
       conversationDetailStoreProvider.select((s) => s.savedMessageIds),
     );
+    final currentUserId =
+        ref.watch(sessionStoreProvider.select((session) => session.userId));
     final isSaved = savedIds.contains(message.id);
-
-    return GestureDetector(
-      onLongPress: () => _showMessageActions(context, ref, isSaved),
-      child: Container(
-        key: ValueKey('message-${message.id}'),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (message.threadId != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: InkWell(
-                  key: const ValueKey('message-thread-entry'),
-                  onTap: () {
-                    context.push(
-                      ThreadRouteTarget(
-                        serverId: target.serverId.value,
-                        parentChannelId: target.conversationId,
-                        parentMessageId: message.id,
-                        threadChannelId: message.threadId,
-                      ).toLocation(),
-                    );
-                  },
-                  child: Text(
-                    'In thread',
-                    key: const ValueKey('message-thread-indicator'),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                    ),
+    final visualKind =
+        _resolveConversationMessageVisualKind(message, currentUserId);
+    final senderLabel = switch (visualKind) {
+      _ConversationMessageVisualKind.self => 'You',
+      _ => message.senderLabel,
+    };
+    final shellAlignment = switch (visualKind) {
+      _ConversationMessageVisualKind.self => Alignment.centerRight,
+      _ConversationMessageVisualKind.system => Alignment.center,
+      _ => Alignment.centerLeft,
+    };
+    final surfaceColor = switch (visualKind) {
+      _ConversationMessageVisualKind.self => theme.colorScheme.primaryContainer,
+      _ConversationMessageVisualKind.agent =>
+        theme.colorScheme.tertiaryContainer,
+      _ConversationMessageVisualKind.system =>
+        theme.colorScheme.surfaceContainerHigh,
+      _ConversationMessageVisualKind.other =>
+        theme.colorScheme.surfaceContainerHighest,
+    };
+    final borderColor = switch (visualKind) {
+      _ConversationMessageVisualKind.self => theme.colorScheme.primary,
+      _ConversationMessageVisualKind.agent => theme.colorScheme.tertiary,
+      _ConversationMessageVisualKind.system => theme.colorScheme.outline,
+      _ConversationMessageVisualKind.other => theme.colorScheme.outlineVariant,
+    };
+    final foregroundColor = switch (visualKind) {
+      _ConversationMessageVisualKind.self =>
+        theme.colorScheme.onPrimaryContainer,
+      _ConversationMessageVisualKind.agent =>
+        theme.colorScheme.onTertiaryContainer,
+      _ConversationMessageVisualKind.system =>
+        theme.colorScheme.onSurfaceVariant,
+      _ConversationMessageVisualKind.other => theme.colorScheme.onSurface,
+    };
+    final senderIcon = switch (visualKind) {
+      _ConversationMessageVisualKind.agent => Icons.smart_toy_outlined,
+      _ConversationMessageVisualKind.system => Icons.info_outline,
+      _ => null,
+    };
+    final senderStyle = theme.textTheme.labelMedium?.copyWith(
+      color: foregroundColor,
+      fontWeight: FontWeight.w600,
+    );
+    final timestampStyle = theme.textTheme.bodySmall?.copyWith(
+      color: foregroundColor.withValues(alpha: 0.78),
+    );
+    final bodyStyle = theme.textTheme.bodyMedium?.copyWith(
+      color: foregroundColor,
+      fontStyle: visualKind == _ConversationMessageVisualKind.system
+          ? FontStyle.italic
+          : null,
+    );
+    final bubble = Container(
+      key: ValueKey('message-${message.id}'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (message.threadId != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: InkWell(
+                key: const ValueKey('message-thread-entry'),
+                onTap: () {
+                  context.push(
+                    ThreadRouteTarget(
+                      serverId: target.serverId.value,
+                      parentChannelId: target.conversationId,
+                      parentMessageId: message.id,
+                      threadChannelId: message.threadId,
+                    ).toLocation(),
+                  );
+                },
+                child: Text(
+                  'In thread',
+                  key: const ValueKey('message-thread-indicator'),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.primary,
                   ),
                 ),
               ),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    message.senderLabel,
-                    style: theme.textTheme.labelMedium,
+            ),
+          Row(
+            children: [
+              if (senderIcon != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Icon(
+                    senderIcon,
+                    size: 14,
+                    color: foregroundColor,
                   ),
                 ),
-                if (message.isPinned)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Icon(
-                      Icons.push_pin,
-                      size: 14,
-                      color: theme.colorScheme.tertiary,
-                    ),
+              Expanded(
+                child: Text(
+                  senderLabel,
+                  style: senderStyle,
+                ),
+              ),
+              if (message.isPinned)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Icon(
+                    Icons.push_pin,
+                    size: 14,
+                    color: theme.colorScheme.tertiary,
                   ),
-                if (isSaved)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: Icon(
-                      Icons.bookmark,
-                      size: 14,
-                      color: theme.colorScheme.primary,
-                    ),
+                ),
+              if (isSaved)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Icon(
+                    Icons.bookmark,
+                    size: 14,
+                    color: theme.colorScheme.primary,
                   ),
-                Text(timestamp, style: theme.textTheme.bodySmall),
-              ],
+                ),
+              Text(timestamp, style: timestampStyle),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _MessageContentBody(
+            message: message,
+            highlightQuery: highlightQuery,
+            baseStyle: bodyStyle,
+            highlightColor: theme.colorScheme.secondaryContainer,
+          ),
+          if (message.attachments != null && message.attachments!.isNotEmpty)
+            _AttachmentSection(attachments: message.attachments!),
+        ],
+      ),
+    );
+
+    return GestureDetector(
+      onLongPress: () => _showMessageActions(context, ref, isSaved),
+      child: Align(
+        key: ValueKey('message-shell-${message.id}'),
+        alignment: shellAlignment,
+        child: switch (visualKind) {
+          _ConversationMessageVisualKind.system =>
+            SizedBox(width: double.infinity, child: bubble),
+          _ => ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: bubble,
             ),
-            const SizedBox(height: 8),
-            _MessageContentBody(
-              message: message,
-              highlightQuery: highlightQuery,
-            ),
-            if (message.attachments != null && message.attachments!.isNotEmpty)
-              _AttachmentSection(attachments: message.attachments!),
-          ],
-        ),
+        },
       ),
     );
   }
@@ -805,31 +903,40 @@ class _MessageContentBody extends StatelessWidget {
   const _MessageContentBody({
     required this.message,
     this.highlightQuery = '',
+    this.baseStyle,
+    this.highlightColor,
   });
 
   final ConversationMessageSummary message;
   final String highlightQuery;
+  final TextStyle? baseStyle;
+  final Color? highlightColor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final baseStyle = message.isSystem
-        ? theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)
-        : theme.textTheme.bodyMedium;
+    final effectiveBaseStyle = baseStyle ??
+        (message.isSystem
+            ? theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)
+            : theme.textTheme.bodyMedium);
 
     if (highlightQuery.isNotEmpty) {
       return Text.rich(
         _buildHighlightedSpan(
           message.content,
           highlightQuery,
-          baseStyle,
-          theme.colorScheme.primaryContainer,
+          effectiveBaseStyle,
+          highlightColor ?? theme.colorScheme.primaryContainer,
         ),
         key: const ValueKey('message-content'),
       );
     }
 
-    final spans = _buildLinkifiedSpans(message.content, baseStyle, theme);
+    final spans = _buildLinkifiedSpans(
+      message.content,
+      effectiveBaseStyle,
+      theme,
+    );
     if (spans.length == 1 && spans.first is! WidgetSpan) {
       return Text.rich(spans.first, key: const ValueKey('message-content'));
     }

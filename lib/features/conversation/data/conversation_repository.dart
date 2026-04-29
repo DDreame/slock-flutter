@@ -181,6 +181,7 @@ class ConversationMessageSummary {
     required this.createdAt,
     required this.senderType,
     required this.messageType,
+    this.senderId,
     this.senderName,
     this.seq,
     this.attachments,
@@ -193,6 +194,7 @@ class ConversationMessageSummary {
   final DateTime createdAt;
   final String senderType;
   final String messageType;
+  final String? senderId;
   final String? senderName;
   final int? seq;
   final List<MessageAttachment>? attachments;
@@ -221,6 +223,7 @@ class ConversationMessageSummary {
       createdAt: createdAt,
       senderType: senderType,
       messageType: messageType,
+      senderId: senderId,
       senderName: senderName,
       seq: seq,
       attachments: attachments ?? this.attachments,
@@ -239,6 +242,7 @@ class ConversationMessageSummary {
             createdAt == other.createdAt &&
             senderType == other.senderType &&
             messageType == other.messageType &&
+            senderId == other.senderId &&
             senderName == other.senderName &&
             seq == other.seq &&
             _listEquals(attachments, other.attachments) &&
@@ -253,6 +257,7 @@ class ConversationMessageSummary {
         createdAt,
         senderType,
         messageType,
+        senderId,
         senderName,
         seq,
         attachments == null ? null : Object.hashAll(attachments!),

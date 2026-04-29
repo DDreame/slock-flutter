@@ -7,12 +7,15 @@ import 'package:slock_app/features/conversation/data/conversation_repository_pro
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 
-ProviderContainer _createContainer(_FakeAppDioClient appDioClient) {
+ProviderContainer _createContainer(
+  _FakeAppDioClient appDioClient, {
+  FakeConversationLocalStore? localStore,
+}) {
   return ProviderContainer(
     overrides: [
       appDioClientProvider.overrideWithValue(appDioClient),
       conversationLocalStoreProvider.overrideWithValue(
-        FakeConversationLocalStore(),
+        localStore ?? FakeConversationLocalStore(),
       ),
     ],
   );
@@ -20,6 +23,7 @@ ProviderContainer _createContainer(_FakeAppDioClient appDioClient) {
 
 void main() {
   test('loads channel detail with message and metadata requests', () async {
+    final localStore = FakeConversationLocalStore();
     final appDioClient = _FakeAppDioClient(
       responses: {
         '/messages/channel/general': {
@@ -28,6 +32,7 @@ void main() {
               'id': 'message-1',
               'content': 'Hello world',
               'createdAt': '2026-04-19T15:00:00Z',
+              'senderId': 'user-1',
               'senderName': 'Alice',
               'senderType': 'human',
               'messageType': 'message',
@@ -41,7 +46,7 @@ void main() {
         ],
       },
     );
-    final container = _createContainer(appDioClient);
+    final container = _createContainer(appDioClient, localStore: localStore);
     addTearDown(container.dispose);
 
     final repository = container.read(conversationRepositoryProvider);
@@ -67,11 +72,13 @@ void main() {
     expect(snapshot.hasOlder, isFalse);
     expect(snapshot.messages.single.id, 'message-1');
     expect(snapshot.messages.single.content, 'Hello world');
+    expect(snapshot.messages.single.senderId, 'user-1');
     expect(snapshot.messages.single.senderName, 'Alice');
     expect(snapshot.messages.single.senderLabel, 'Alice');
     expect(snapshot.messages.single.senderType, 'human');
     expect(snapshot.messages.single.messageType, 'message');
     expect(snapshot.messages.single.seq, 1);
+    expect(localStore.messages.single.senderId, 'user-1');
   });
 
   test('loads direct message title from dm metadata endpoint', () async {
