@@ -6,6 +6,7 @@ import 'package:slock_app/features/channels/application/channel_member_state.dar
 import 'package:slock_app/features/channels/application/channel_member_store.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/presentation/widget/add_member_dialog.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
 
 class ChannelMembersPage extends ConsumerStatefulWidget {
   final String serverId;
@@ -66,22 +67,29 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
   Widget build(BuildContext context) {
     ref.watch(channelMembersRealtimeBindingProvider);
     final state = ref.watch(channelMemberStoreProvider);
+    final canManageMembers = _canManageMembers();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Channel Members'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add),
-            onPressed: () => _showAddMemberDialog(context),
-          ),
-        ],
+        actions: canManageMembers
+            ? [
+                IconButton(
+                  key: const ValueKey('channel-members-add-button'),
+                  icon: const Icon(Icons.person_add),
+                  onPressed: () => _showAddMemberDialog(context),
+                ),
+              ]
+            : null,
       ),
-      body: _buildBody(state),
+      body: _buildBody(state, canManageMembers: canManageMembers),
     );
   }
 
-  Widget _buildBody(ChannelMemberState state) {
+  Widget _buildBody(
+    ChannelMemberState state, {
+    required bool canManageMembers,
+  }) {
     switch (state.status) {
       case ChannelMemberStatus.initial:
       case ChannelMemberStatus.loading:
@@ -111,11 +119,22 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
             final member = state.items[index];
             return _MemberTile(
               member: member,
+              canManageMembers: canManageMembers,
               onRemove: () => _removeMember(member),
             );
           },
         );
     }
+  }
+
+  bool _canManageMembers() {
+    final serverListState = ref.watch(serverListStoreProvider);
+    for (final server in serverListState.servers) {
+      if (server.id == widget.serverId) {
+        return server.isAdmin;
+      }
+    }
+    return false;
   }
 
   Future<void> _showAddMemberDialog(BuildContext context) async {
@@ -158,9 +177,14 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
 
 class _MemberTile extends StatelessWidget {
   final ChannelMember member;
+  final bool canManageMembers;
   final VoidCallback onRemove;
 
-  const _MemberTile({required this.member, required this.onRemove});
+  const _MemberTile({
+    required this.member,
+    required this.canManageMembers,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -174,10 +198,13 @@ class _MemberTile extends StatelessWidget {
       ),
       title: Text(member.displayName),
       subtitle: Text(member.isAgent ? 'Agent' : 'Human'),
-      trailing: IconButton(
-        icon: const Icon(Icons.remove_circle_outline),
-        onPressed: onRemove,
-      ),
+      trailing: canManageMembers
+          ? IconButton(
+              key: ValueKey('channel-member-remove-${member.id}'),
+              icon: const Icon(Icons.remove_circle_outline),
+              onPressed: onRemove,
+            )
+          : null,
     );
   }
 }

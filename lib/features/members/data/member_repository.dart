@@ -19,3 +19,27 @@ abstract class MemberRepository {
     required String userId,
   });
 }
+
+abstract class MemberInviteMutationRepository {
+  Future<void> inviteByEmail(
+    ServerScopeId serverId, {
+    required String email,
+  });
+}
+
+extension MemberRepositoryInviteX on MemberRepository {
+  MemberInviteMutationRepository get _inviteRepository {
+    final repository = this;
+    if (repository is MemberInviteMutationRepository) {
+      return repository as MemberInviteMutationRepository;
+    }
+    throw UnsupportedError('Member invite-by-email is not implemented');
+  }
+
+  Future<void> inviteByEmail(
+    ServerScopeId serverId, {
+    required String email,
+  }) {
+    return _inviteRepository.inviteByEmail(serverId, email: email);
+  }
+}

@@ -79,7 +79,15 @@ void main() {
 
     expect(inviteCode, 'https://slock.ai/invite/token-123');
     expect(fakeRepository.inviteRequests, [serverId]);
-    expect(state().isCreatingInvite, isFalse);
+    expect(state().isInvitingByEmail, isFalse);
+  });
+
+  test('inviteByEmail trims email and clears invite busy state', () async {
+    await store().inviteByEmail('  user@example.com  ');
+
+    expect(
+        fakeRepository.inviteEmailRequests, [(serverId, 'user@example.com')]);
+    expect(state().isInvitingByEmail, isFalse);
   });
 
   test(
@@ -118,12 +126,14 @@ void main() {
   );
 }
 
-class _FakeMemberRepository implements MemberRepository {
+class _FakeMemberRepository
+    implements MemberRepository, MemberInviteMutationRepository {
   List<MemberProfile> members = const [];
   AppFailure? failure;
   String inviteCode = 'https://slock.ai/invite/token-123';
   final List<ServerScopeId> listRequests = [];
   final List<ServerScopeId> inviteRequests = [];
+  final List<(ServerScopeId, String)> inviteEmailRequests = [];
   final List<(ServerScopeId, String)> openRequests = [];
   final List<(ServerScopeId, String, String)> roleRequests = [];
   final List<(ServerScopeId, String)> removeRequests = [];
@@ -144,6 +154,17 @@ class _FakeMemberRepository implements MemberRepository {
       throw failure!;
     }
     return inviteCode;
+  }
+
+  @override
+  Future<void> inviteByEmail(
+    ServerScopeId serverId, {
+    required String email,
+  }) async {
+    inviteEmailRequests.add((serverId, email));
+    if (failure != null) {
+      throw failure!;
+    }
   }
 
   @override
