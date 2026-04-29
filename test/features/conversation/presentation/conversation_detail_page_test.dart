@@ -702,6 +702,103 @@ void main() {
     );
   });
 
+  testWidgets('attachment with url renders tappable InkWell', (tester) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'See attached',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            attachments: const [
+              MessageAttachment(
+                name: 'report.pdf',
+                type: 'application/pdf',
+                url: 'https://example.com/report.pdf',
+              ),
+            ],
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final inkWellFinder =
+        find.byKey(const ValueKey('attachment-tap-report.pdf'));
+    expect(inkWellFinder, findsOneWidget);
+    final inkWell = tester.widget<InkWell>(inkWellFinder);
+    expect(inkWell.onTap, isNotNull);
+  });
+
+  testWidgets('attachment without url renders non-tappable InkWell', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'See attached',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            attachments: const [
+              MessageAttachment(
+                name: 'report.pdf',
+                type: 'application/pdf',
+              ),
+            ],
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final inkWellFinder =
+        find.byKey(const ValueKey('attachment-tap-report.pdf'));
+    expect(inkWellFinder, findsOneWidget);
+    final inkWell = tester.widget<InkWell>(inkWellFinder);
+    expect(inkWell.onTap, isNull);
+  });
+
   testWidgets('renders thread indicator for messages with threadId', (
     tester,
   ) async {
