@@ -1,0 +1,41 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/features/splash/application/splash_controller.dart';
+import 'package:slock_app/features/splash/presentation/page/splash_page.dart';
+
+void main() {
+  testWidgets('renders branded lockup and progress indicator', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+        child: const MaterialApp(home: SplashPage()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('splash-lockup')), findsOneWidget);
+    expect(find.byKey(const ValueKey('splash-mark')), findsOneWidget);
+    expect(find.byKey(const ValueKey('splash-title')), findsOneWidget);
+    expect(find.text('Slock'), findsOneWidget);
+    expect(
+      find.text('Preparing your workspace console...'),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('splash-progress')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+}
+
+class _StallingSplashController extends SplashController {
+  @override
+  Future<void> build() async {
+    final completer = Completer<void>();
+    return completer.future;
+  }
+}
