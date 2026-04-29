@@ -88,11 +88,10 @@ class _ApiConversationRepository implements ConversationRepository {
         preserveExistingSortIndex: true,
       );
 
-      final storedMessages = await _storedMessages(target);
       return ConversationDetailSnapshot(
         target: target,
         title: metadata.displayTitle,
-        messages: storedMessages,
+        messages: messagesPayload.messages,
         historyLimited: messagesPayload.historyLimited,
         hasOlder: messagesPayload.hasOlder,
       );
@@ -416,35 +415,6 @@ class _ApiConversationRepository implements ConversationRepository {
       conversationId: target.conversationId,
       messageId: messageId,
     );
-  }
-
-  Future<List<ConversationMessageSummary>> _storedMessages(
-    ConversationDetailTarget target,
-  ) async {
-    final rows = await _localStore.listMessages(
-      target.serverId.value,
-      target.conversationId,
-    );
-    final messages = rows.map(_storedRowToMessage).toList(growable: false);
-    messages.sort((left, right) {
-      final leftSeq = left.seq;
-      final rightSeq = right.seq;
-      if (leftSeq != null && rightSeq != null && leftSeq != rightSeq) {
-        return leftSeq.compareTo(rightSeq);
-      }
-      if (leftSeq != null && rightSeq == null) {
-        return -1;
-      }
-      if (leftSeq == null && rightSeq != null) {
-        return 1;
-      }
-      final createdAtComparison = left.createdAt.compareTo(right.createdAt);
-      if (createdAtComparison != 0) {
-        return createdAtComparison;
-      }
-      return left.id.compareTo(right.id);
-    });
-    return messages;
   }
 }
 
