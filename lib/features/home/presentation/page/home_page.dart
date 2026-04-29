@@ -61,9 +61,11 @@ class _HomePageState extends ConsumerState<HomePage> {
             message: state.failure?.message ?? 'Unable to load conversations.',
             onRetry: homeStore.retry,
           ),
-        HomeListStatus.success => ListView(
+        HomeListStatus.success => SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
-            children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Text(
@@ -256,7 +258,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                     onTogglePin: () => homeStore.pinAgent(agent.id),
                   ),
               ],
-            ],
+              ],
+            ),
           ),
       },
     );
