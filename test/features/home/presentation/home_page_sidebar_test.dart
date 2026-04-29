@@ -86,6 +86,7 @@ void main() {
       expect(find.text('Pinned'), findsNothing);
 
       final menuFinder = find.byKey(const ValueKey('channel-menu-general'));
+      await tester.ensureVisible(menuFinder);
       await tester.tap(menuFinder, warnIfMissed: false);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Pin channel'));
@@ -116,6 +117,7 @@ void main() {
       expect(find.text('Pinned'), findsOneWidget);
 
       final menuFinder = find.byKey(const ValueKey('channel-menu-general'));
+      await tester.ensureVisible(menuFinder);
       await tester.tap(menuFinder, warnIfMissed: false);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Unpin channel'));
@@ -194,10 +196,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.byKey(const ValueKey('home-hidden-dms')));
       await tester.tap(find.byKey(const ValueKey('home-hidden-dms')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Hidden conversations'), findsOneWidget);
+      expect(find.byKey(const ValueKey('hidden-dm-dm-alice')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('hidden-dm-dm-alice')),
         findsOneWidget,
@@ -217,6 +220,7 @@ void main() {
       expect(find.byKey(const ValueKey('dm-dm-alice')), findsOneWidget);
 
       final menuFinder = find.byKey(const ValueKey('dm-menu-dm-alice'));
+      await tester.ensureVisible(menuFinder);
       await tester.tap(menuFinder, warnIfMissed: false);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close conversation'));
@@ -239,6 +243,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('dm-menu-dm-alice')));
       await tester.tap(find.byKey(const ValueKey('dm-menu-dm-alice')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Pin conversation'));
@@ -265,6 +271,8 @@ void main() {
 
       expect(find.byKey(const ValueKey('pinned-dm-dm-alice')), findsOneWidget);
 
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('dm-menu-dm-alice')));
       await tester.tap(find.byKey(const ValueKey('dm-menu-dm-alice')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close conversation'));
@@ -284,9 +292,11 @@ void main() {
 
       final bobFinder = find.byKey(const ValueKey('dm-dm-bob'));
       final aliceFinder = find.byKey(const ValueKey('dm-dm-alice'));
+      await tester.ensureVisible(bobFinder);
       expect(tester.getTopLeft(aliceFinder).dy,
           lessThan(tester.getTopLeft(bobFinder).dy));
 
+      await tester.ensureVisible(find.byKey(const ValueKey('dm-menu-dm-bob')));
       await tester.tap(find.byKey(const ValueKey('dm-menu-dm-bob')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Move up'));

@@ -141,7 +141,8 @@ void main() {
         5,
       );
 
-      await tester.tap(find.text('general'));
+      await tester.ensureVisible(find.byKey(const ValueKey('channel-general')));
+      await tester.tap(find.byKey(const ValueKey('channel-general')));
       await tester.pumpAndSettle();
 
       expect(
@@ -161,7 +162,8 @@ void main() {
         3,
       );
 
-      await tester.tap(find.text('Alice'));
+      await tester.ensureVisible(find.byKey(const ValueKey('dm-dm-alice')));
+      await tester.tap(find.byKey(const ValueKey('dm-dm-alice')));
       await tester.pumpAndSettle();
 
       expect(

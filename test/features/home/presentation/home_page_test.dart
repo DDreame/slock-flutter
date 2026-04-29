@@ -403,10 +403,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.byKey(const ValueKey('dm-create-button')));
     await tester.tap(find.byKey(const ValueKey('dm-create-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('New message'), findsOneWidget);
+    expect(find.byKey(const ValueKey('new-dm-dialog')), findsOneWidget);
     expect(find.text('Charlie'), findsOneWidget);
     expect(find.text('Dana'), findsOneWidget);
 
