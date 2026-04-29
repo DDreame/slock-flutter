@@ -42,7 +42,7 @@ class ThreadInboxItem {
   final DateTime? lastReplyAt;
   final List<String> participantIds;
 
-  String get resolvedTitle => title ?? routeTarget.parentChannelId;
+  String get resolvedTitle => title ?? 'Thread';
 
   ThreadInboxItem copyWith({
     int? unreadCount,

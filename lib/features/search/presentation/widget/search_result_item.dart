@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:slock_app/core/utils/time_format.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
 
 class SearchResultItem extends StatelessWidget {
@@ -50,7 +51,7 @@ class SearchResultItem extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  _formatTimestamp(message.createdAt),
+                  formatRelativeTime(message.createdAt),
                   style: theme.textTheme.bodySmall,
                 ),
               ],
@@ -136,25 +137,4 @@ TextSpan buildHighlightedSpan(
     return TextSpan(text: text, style: baseStyle);
   }
   return TextSpan(children: spans);
-}
-
-String _formatTimestamp(DateTime value) {
-  final utcValue = value.toUtc();
-  final month = switch (utcValue.month) {
-    1 => 'Jan',
-    2 => 'Feb',
-    3 => 'Mar',
-    4 => 'Apr',
-    5 => 'May',
-    6 => 'Jun',
-    7 => 'Jul',
-    8 => 'Aug',
-    9 => 'Sep',
-    10 => 'Oct',
-    11 => 'Nov',
-    _ => 'Dec',
-  };
-  final hour = utcValue.hour.toString().padLeft(2, '0');
-  final minute = utcValue.minute.toString().padLeft(2, '0');
-  return '$month ${utcValue.day}, $hour:$minute UTC';
 }

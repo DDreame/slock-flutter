@@ -597,7 +597,7 @@ class _ConversationMessageCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final timestamp = _formatTimestamp(message.createdAt);
+    final timestamp = formatRelativeTime(message.createdAt);
     final theme = Theme.of(context);
     final savedIds = ref.watch(
       conversationDetailStoreProvider.select((s) => s.savedMessageIds),
@@ -1188,25 +1188,4 @@ class _AttachmentSection extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatTimestamp(DateTime value) {
-  final utcValue = value.toUtc();
-  final month = switch (utcValue.month) {
-    1 => 'Jan',
-    2 => 'Feb',
-    3 => 'Mar',
-    4 => 'Apr',
-    5 => 'May',
-    6 => 'Jun',
-    7 => 'Jul',
-    8 => 'Aug',
-    9 => 'Sep',
-    10 => 'Oct',
-    11 => 'Nov',
-    _ => 'Dec',
-  };
-  final hour = utcValue.hour.toString().padLeft(2, '0');
-  final minute = utcValue.minute.toString().padLeft(2, '0');
-  return '$month ${utcValue.day}, $hour:$minute UTC';
 }
