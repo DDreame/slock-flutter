@@ -35,6 +35,7 @@ void main() {
       find.byKey(const ValueKey('create-server-name')),
       'Workspace B',
     );
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('create-server-submit')));
     await tester.pumpAndSettle();
 
@@ -74,6 +75,7 @@ void main() {
       find.byKey(const ValueKey('rename-server-name')),
       'Workspace Alpha',
     );
+    await tester.pump();
     await tester.tap(find.byKey(const ValueKey('rename-server-submit')));
     await tester.pumpAndSettle();
 
@@ -110,6 +112,7 @@ void main() {
         find.byKey(const ValueKey('join-server-token')),
         'https://slock.ai/invite/token-300',
       );
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('join-server-submit')));
       await tester.pumpAndSettle();
 
