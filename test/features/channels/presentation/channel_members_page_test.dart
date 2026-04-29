@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository.dart';
@@ -20,51 +21,79 @@ void main() {
     required String role,
     List<ChannelMember>? members,
     String currentUserId = 'current-user',
+    _FakeMemberRepository? memberRepository,
+    bool useRouter = false,
   }) {
-    return ProviderScope(
-      overrides: [
-        sessionStoreProvider.overrideWith(() {
-          return _FakeSessionStore(
-            SessionState(
-              status: AuthStatus.authenticated,
-              userId: currentUserId,
-            ),
-          );
-        }),
-        serverListStoreProvider.overrideWith(() {
-          return _FakeServerListStore(
-            ServerListState(
-              status: ServerListStatus.success,
-              servers: [
-                ServerSummary(
-                  id: 'server-1',
-                  name: 'Workspace',
-                  role: role,
+    final memberRepo = memberRepository ?? _FakeMemberRepository();
+    final overrides = [
+      sessionStoreProvider.overrideWith(() {
+        return _FakeSessionStore(
+          SessionState(
+            status: AuthStatus.authenticated,
+            userId: currentUserId,
+          ),
+        );
+      }),
+      serverListStoreProvider.overrideWith(() {
+        return _FakeServerListStore(
+          ServerListState(
+            status: ServerListStatus.success,
+            servers: [
+              ServerSummary(
+                id: 'server-1',
+                name: 'Workspace',
+                role: role,
+              ),
+            ],
+          ),
+        );
+      }),
+      channelMemberRepositoryProvider.overrideWithValue(
+        _FakeChannelMemberRepository(
+          members: members ??
+              const [
+                ChannelMember(
+                  id: 'member-1',
+                  channelId: 'channel-1',
+                  userId: 'user-1',
+                  userName: 'Alice',
                 ),
               ],
+        ),
+      ),
+      memberRepositoryProvider.overrideWithValue(memberRepo),
+      realtimeReductionIngressProvider.overrideWithValue(
+        RealtimeReductionIngress(),
+      ),
+    ];
+
+    if (useRouter) {
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const ChannelMembersPage(
+              serverId: 'server-1',
+              channelId: 'channel-1',
             ),
-          );
-        }),
-        channelMemberRepositoryProvider.overrideWithValue(
-          _FakeChannelMemberRepository(
-            members: members ??
-                const [
-                  ChannelMember(
-                    id: 'member-1',
-                    channelId: 'channel-1',
-                    userId: 'user-1',
-                    userName: 'Alice',
-                  ),
-                ],
           ),
-        ),
-        memberRepositoryProvider.overrideWithValue(
-          _FakeMemberRepository(),
-        ),
-        realtimeReductionIngressProvider.overrideWithValue(
-          RealtimeReductionIngress(),
-        ),
-      ],
+          GoRoute(
+            path: '/servers/:serverId/dms/:channelId',
+            builder: (context, state) => Scaffold(
+              body: Text('DM:${state.pathParameters['channelId']}'),
+            ),
+          ),
+        ],
+      );
+      return ProviderScope(
+        overrides: overrides,
+        child: MaterialApp.router(routerConfig: router),
+      );
+    }
+
+    return ProviderScope(
+      overrides: overrides,
       child: const MaterialApp(
         home: ChannelMembersPage(serverId: 'server-1', channelId: 'channel-1'),
       ),
@@ -148,6 +177,32 @@ void main() {
         find.byKey(const ValueKey('channel-member-message-member-1')),
         findsNothing,
       );
+    });
+
+    testWidgets('tapping message icon calls openDirectMessage and navigates',
+        (tester) async {
+      final memberRepo = _FakeMemberRepository();
+      await tester.pumpWidget(buildPage(
+        role: 'member',
+        members: const [
+          ChannelMember(
+            id: 'member-1',
+            channelId: 'channel-1',
+            userId: 'user-1',
+            userName: 'Alice',
+          ),
+        ],
+        memberRepository: memberRepo,
+        useRouter: true,
+      ));
+      await tester.pumpAndSettle();
+
+      await tester
+          .tap(find.byKey(const ValueKey('channel-member-message-member-1')));
+      await tester.pumpAndSettle();
+
+      expect(memberRepo.openedDmUserIds, ['user-1']);
+      expect(find.text('DM:dm-channel-user-1'), findsOneWidget);
     });
   });
 }
