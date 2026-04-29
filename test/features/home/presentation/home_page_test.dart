@@ -24,7 +24,7 @@ import 'package:slock_app/features/servers/data/server_list_repository_provider.
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
 void main() {
-  testWidgets('HomePage renders expected channel and direct message rows', (
+  testWidgets('HomePage renders console sections and conversation rows', (
     tester,
   ) async {
     final router = _buildRouter();
@@ -37,6 +37,21 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Workspace Console'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-console-activity-section')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('home-console-operations-section')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('home-saved-messages')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-threads')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-tasks')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-members')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-agents')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-machines')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-billing')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('home-workspace-settings')), findsOneWidget);
     expect(find.text('Channels'), findsOneWidget);
     expect(find.text('Direct Messages'), findsOneWidget);
     expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
@@ -121,7 +136,7 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
   });
 
-  testWidgets('members AppBar action navigates to the members route', (
+  testWidgets('members console tile navigates to the members route', (
     tester,
   ) async {
     final router = _buildRouter();
@@ -145,7 +160,7 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
   });
 
-  testWidgets('search AppBar action preserves the home return stack', (
+  testWidgets('search console tile preserves the home return stack', (
     tester,
   ) async {
     final router = _buildRouter();
@@ -169,7 +184,7 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
   });
 
-  testWidgets('saved messages entry preserves the home return stack', (
+  testWidgets('saved messages console tile preserves the home return stack', (
     tester,
   ) async {
     final router = _buildRouter();
@@ -193,7 +208,9 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
   });
 
-  testWidgets('tasks entry preserves the home return stack', (tester) async {
+  testWidgets('tasks console tile preserves the home return stack', (
+    tester,
+  ) async {
     final router = _buildRouter();
 
     await tester.pumpWidget(
@@ -208,6 +225,79 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('tasks:server-1'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomePage), findsOneWidget);
+  });
+
+  testWidgets('threads console tile preserves the home return stack', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('home-threads')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('threads:server-1'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomePage), findsOneWidget);
+  });
+
+  testWidgets('billing console tile preserves the home return stack', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('home-billing')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('billing'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomePage), findsOneWidget);
+  });
+
+  testWidgets('workspace settings console tile preserves the home return stack',
+      (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('home-workspace-settings')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('settings:server-1'), findsOneWidget);
 
     router.pop();
     await tester.pumpAndSettle();
@@ -502,7 +592,9 @@ void main() {
     },
   );
 
-  testWidgets('Machines entry navigates to the machines route', (tester) async {
+  testWidgets('machines console tile navigates to the machines route', (
+    tester,
+  ) async {
     final router = _buildRouter();
 
     await tester.pumpWidget(
@@ -524,7 +616,9 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
   });
 
-  testWidgets('Machines entry is reachable in empty workspace', (tester) async {
+  testWidgets('machines console tile is reachable in empty workspace', (
+    tester,
+  ) async {
     final router = _buildRouter();
     const emptySnapshot = HomeWorkspaceSnapshot(
       serverId: ServerScopeId('server-1'),
@@ -824,6 +918,36 @@ GoRouter _buildRouter() {
           body: Center(
             child: Text('saved:${state.pathParameters['serverId']}'),
           ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/threads',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text('threads:${state.pathParameters['serverId']}'),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/agents',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text('agents:${state.pathParameters['serverId']}'),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/settings',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text('settings:${state.pathParameters['serverId']}'),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/billing',
+        builder: (context, state) => const Scaffold(
+          body: Center(child: Text('billing')),
         ),
       ),
     ],

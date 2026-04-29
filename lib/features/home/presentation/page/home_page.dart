@@ -12,6 +12,8 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_console_section.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_console_tile.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
@@ -32,6 +34,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     ref.watch(homeAdminRealtimeBindingProvider);
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
+    final activeServer = ref.watch(activeServerScopeIdProvider);
     final unreadState = ref.watch(channelUnreadStoreProvider);
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
     final managementState = ref.watch(channelManagementStoreProvider);
@@ -47,38 +50,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: _HomeAppBarTitle(onTap: () => showServerSwitcherSheet(context)),
-        actions: [
-          IconButton(
-            key: const ValueKey('home-workspace-settings'),
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              final serverId = ref.read(activeServerScopeIdProvider);
-              if (serverId != null) {
-                context.push('/servers/${serverId.value}/settings');
-              }
-            },
-          ),
-          IconButton(
-            key: const ValueKey('home-members'),
-            icon: const Icon(Icons.people_outline),
-            onPressed: () {
-              final serverId = ref.read(activeServerScopeIdProvider);
-              if (serverId != null) {
-                context.push('/servers/${serverId.value}/members');
-              }
-            },
-          ),
-          IconButton(
-            key: const ValueKey('home-search'),
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              final serverId = ref.read(activeServerScopeIdProvider);
-              if (serverId != null) {
-                context.push('/servers/${serverId.value}/search');
-              }
-            },
-          ),
-        ],
       ),
       body: switch (state.status) {
         HomeListStatus.noActiveServer => _HomeNoServerState(
@@ -92,41 +63,124 @@ class _HomePageState extends ConsumerState<HomePage> {
             onRetry: homeStore.retry,
           ),
         HomeListStatus.success => ListView(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
             children: [
-              ListTile(
-                key: const ValueKey('home-saved-messages'),
-                leading: const Icon(Icons.bookmark_outline),
-                title: const Text('Saved Messages'),
-                onTap: () {
-                  final serverId = ref.read(activeServerScopeIdProvider);
-                  if (serverId != null) {
-                    context.push('/servers/${serverId.value}/saved-messages');
-                  }
-                },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                child: Text(
+                  'Workspace Console',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
               ),
-              ListTile(
-                key: const ValueKey('home-tasks'),
-                leading: const Icon(Icons.check_circle_outline),
-                title: const Text('Tasks'),
-                onTap: () {
-                  final serverId = ref.read(activeServerScopeIdProvider);
-                  if (serverId != null) {
-                    context.push('/servers/${serverId.value}/tasks');
-                  }
-                },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(
+                  'Move between workspace activity, operator surfaces, and live conversations from one landing page.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
               ),
-              ListTile(
-                key: const ValueKey('home-machines'),
-                leading: const Icon(Icons.memory_outlined),
-                title: const Text('Machines'),
-                onTap: () {
-                  final serverId = ref.read(activeServerScopeIdProvider);
-                  if (serverId != null) {
-                    context.push('/servers/${serverId.value}/machines');
-                  }
-                },
+              HomeConsoleSection(
+                key: const ValueKey('home-console-activity-section'),
+                title: 'Activity',
+                description:
+                    'Jump into saved context, open threads, tasks, and workspace search.',
+                children: [
+                  HomeConsoleTile(
+                    key: const ValueKey('home-saved-messages'),
+                    icon: Icons.bookmark_outline,
+                    title: 'Saved Messages',
+                    description: 'Return to bookmarked updates and references.',
+                    onTap: () => _pushServerRoute('saved-messages'),
+                  ),
+                  HomeConsoleTile(
+                    key: const ValueKey('home-threads'),
+                    icon: Icons.forum_outlined,
+                    title: 'Threads',
+                    description:
+                        'Review active thread work across the workspace.',
+                    onTap: () => _pushServerRoute('threads'),
+                  ),
+                  HomeConsoleTile(
+                    key: const ValueKey('home-tasks'),
+                    icon: Icons.check_circle_outline,
+                    title: 'Tasks',
+                    description: 'See task queues and execution status.',
+                    onTap: () => _pushServerRoute('tasks'),
+                  ),
+                  HomeConsoleTile(
+                    key: const ValueKey('home-search'),
+                    icon: Icons.search,
+                    title: 'Search',
+                    description:
+                        'Find channels, messages, and workspace history.',
+                    onTap: () => _pushServerRoute('search'),
+                  ),
+                ],
               ),
+              HomeConsoleSection(
+                key: const ValueKey('home-console-operations-section'),
+                title: 'Operations',
+                description:
+                    'Manage people, infrastructure, billing, and workspace settings.',
+                children: [
+                  HomeConsoleTile(
+                    key: const ValueKey('home-members'),
+                    icon: Icons.people_outline,
+                    title: 'Members',
+                    description: 'Manage workspace roles and invitations.',
+                    onTap: () => _pushServerRoute('members'),
+                  ),
+                  HomeConsoleTile(
+                    key: const ValueKey('home-agents'),
+                    icon: Icons.smart_toy_outlined,
+                    title: 'Agents',
+                    description: 'Inspect agent activity and assignments.',
+                    onTap: () => _pushServerRoute('agents'),
+                  ),
+                  HomeConsoleTile(
+                    key: const ValueKey('home-machines'),
+                    icon: Icons.memory_outlined,
+                    title: 'Machines',
+                    description: 'Check workspace runtime capacity and hosts.',
+                    onTap: () => _pushServerRoute('machines'),
+                  ),
+                  HomeConsoleTile(
+                    key: const ValueKey('home-billing'),
+                    icon: Icons.credit_card_outlined,
+                    title: 'Billing',
+                    description: 'Review plan controls and billing management.',
+                    onTap: () => context.push('/billing'),
+                  ),
+                  HomeConsoleTile(
+                    key: const ValueKey('home-workspace-settings'),
+                    icon: Icons.settings_outlined,
+                    title: 'Workspace Settings',
+                    description:
+                        'Configure workspace-level defaults and access.',
+                    onTap: () => _pushServerRoute('settings'),
+                  ),
+                ],
+              ),
+              if (activeServer != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: Text(
+                    'Communication Layer',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+              if (activeServer != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Text(
+                    'Pinned conversations, channels, direct messages, and agents remain live below.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ),
               if (pinnedConversationRows.isNotEmpty) ...[
                 const _HomeSectionHeader(title: 'Pinned'),
                 ...pinnedConversationRows,
@@ -438,6 +492,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _pushServerRoute(String routeSuffix) {
+    final serverId = ref.read(activeServerScopeIdProvider)?.value;
+    if (serverId == null) {
+      return;
+    }
+    context.push('/servers/$serverId/$routeSuffix');
   }
 
   List<Widget> _buildPinnedConversationRows({
