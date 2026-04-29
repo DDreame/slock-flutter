@@ -16,7 +16,7 @@ abstract class ServerListMutationRepository {
 
   Future<void> leaveServer(String serverId);
 
-  Future<String> acceptInvite(String token);
+  Future<AcceptInviteResult> acceptInvite(String token);
 }
 
 extension ServerListRepositoryMutationX on ServerListRepository {
@@ -47,7 +47,7 @@ extension ServerListRepositoryMutationX on ServerListRepository {
     return _mutationRepository.leaveServer(serverId);
   }
 
-  Future<String> acceptInvite(String token) {
+  Future<AcceptInviteResult> acceptInvite(String token) {
     return _mutationRepository.acceptInvite(token);
   }
 }
@@ -60,7 +60,8 @@ typedef ServerCreator = Future<ServerSummary> Function({
 typedef ServerRenamer = Future<String> Function(String serverId,
     {required String name});
 typedef ServerRemover = Future<void> Function(String serverId);
-typedef ServerInviteAcceptor = Future<String> Function(String token);
+typedef ServerInviteAcceptor = Future<AcceptInviteResult> Function(
+    String token);
 
 class BaselineServerListRepository
     implements ServerListRepository, ServerListMutationRepository {
@@ -175,7 +176,7 @@ class BaselineServerListRepository
   }
 
   @override
-  Future<String> acceptInvite(String token) async {
+  Future<AcceptInviteResult> acceptInvite(String token) async {
     final acceptInvite = _acceptInvite;
     if (acceptInvite == null) {
       throw UnsupportedError('Server invite operation is not implemented');
@@ -240,4 +241,14 @@ class ServerSummary {
 
   @override
   int get hashCode => Object.hash(id, name, slug, role);
+}
+
+class AcceptInviteResult {
+  const AcceptInviteResult({
+    required this.serverId,
+    this.workspaceName,
+  });
+
+  final String serverId;
+  final String? workspaceName;
 }

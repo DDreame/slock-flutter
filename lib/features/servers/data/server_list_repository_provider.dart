@@ -77,7 +77,7 @@ Future<void> _leaveServer({
   return appDioClient.post<Object?>('$_serversPath/$serverId/leave');
 }
 
-Future<String> _acceptInvite({
+Future<AcceptInviteResult> _acceptInvite({
   required AppDioClient appDioClient,
   required String token,
 }) async {
@@ -85,7 +85,7 @@ Future<String> _acceptInvite({
     _acceptInvitePath,
     data: {'token': token},
   );
-  return _parseAcceptedInviteServerId(response.data);
+  return _parseAcceptedInviteResult(response.data);
 }
 
 List<ServerSummary> _parseServerSummaries(Object? payload) {
@@ -119,19 +119,20 @@ String _parseServerName(Object? payload, {required String payloadName}) {
   return _requireStringField(server, field: 'name', payloadName: payloadName);
 }
 
-String _parseAcceptedInviteServerId(Object? payload) {
+AcceptInviteResult _parseAcceptedInviteResult(Object? payload) {
   final root = _requireMap(payload, payloadName: 'invite acceptance');
   final nested = _readOptionalMap(root['server']);
   final serverId = _readOptionalStringField(root, field: 'serverId') ??
       _readOptionalStringField(nested, field: 'id');
-  if (serverId != null) {
-    return serverId;
+  if (serverId == null) {
+    throw SerializationFailure(
+      message:
+          'Malformed invite acceptance payload: missing serverId or server.id.',
+      causeType: _describeType(payload),
+    );
   }
-  throw SerializationFailure(
-    message:
-        'Malformed invite acceptance payload: missing serverId or server.id.',
-    causeType: _describeType(payload),
-  );
+  final workspaceName = _readOptionalStringField(nested, field: 'name');
+  return AcceptInviteResult(serverId: serverId, workspaceName: workspaceName);
 }
 
 List<Object?> _requireServerList(

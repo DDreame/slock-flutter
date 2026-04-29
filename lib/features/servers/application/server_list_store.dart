@@ -160,14 +160,14 @@ class ServerListStore extends Notifier<ServerListState> {
     }
   }
 
-  Future<String> acceptInvite(String rawInput) async {
+  Future<AcceptInviteResult> acceptInvite(String rawInput) async {
     final token = _normalizeInviteToken(rawInput);
 
     state = state.copyWith(isJoiningInvite: true, clearFailure: true);
 
     try {
       final repo = ref.read(serverListRepositoryProvider);
-      final serverId = await repo.acceptInvite(token);
+      final result = await repo.acceptInvite(token);
       final servers = await repo.loadServers();
       state = state.copyWith(
         status: ServerListStatus.success,
@@ -175,8 +175,9 @@ class ServerListStore extends Notifier<ServerListState> {
         isJoiningInvite: false,
         clearFailure: true,
       );
-      await _cohereSelection(servers: servers, preferredServerId: serverId);
-      return serverId;
+      await _cohereSelection(
+          servers: servers, preferredServerId: result.serverId);
+      return result;
     } on AppFailure catch (failure) {
       state = state.copyWith(isJoiningInvite: false, failure: failure);
       rethrow;

@@ -163,12 +163,12 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(serverListStoreProvider.notifier).load();
-      final joinedServerId = await container
+      final result = await container
           .read(serverListStoreProvider.notifier)
           .acceptInvite('https://slock.ai/invite/token-300');
 
       final state = container.read(serverListStoreProvider);
-      expect(joinedServerId, 'server-3');
+      expect(result.serverId, 'server-3');
       expect(repository.inviteRequests, ['token-300']);
       expect(state.servers.map((server) => server.id), [
         'server-1',
@@ -286,10 +286,13 @@ class _FakeServerListRepository
   }
 
   @override
-  Future<String> acceptInvite(String token) async {
+  Future<AcceptInviteResult> acceptInvite(String token) async {
     inviteRequests.add(token);
     _hasReloadedAfterInvite = true;
-    return inviteServerId ?? 'joined-server';
+    return AcceptInviteResult(
+      serverId: inviteServerId ?? 'joined-server',
+      workspaceName: 'Workspace C',
+    );
   }
 }
 
