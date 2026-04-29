@@ -41,6 +41,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('billing-success')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('billing-subscription-section')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('billing-workspace-section')),
+      findsOneWidget,
+    );
     expect(find.text('Pro'), findsOneWidget);
     expect(find.text('active'), findsOneWidget);
     expect(find.text('USD 12.50'), findsOneWidget);
@@ -54,11 +62,11 @@ void main() {
     expect(find.text('Hobby'), findsOneWidget);
     expect(find.byKey(const ValueKey('billing-usage-agents')), findsOneWidget);
     expect(find.text('1 / 1'), findsOneWidget);
-    expect(find.text('30 days'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('billing-upgrade-prompt')),
       findsOneWidget,
     );
+    expect(find.text('30 days'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('billing-manage-action')));
     await tester.pumpAndSettle();
@@ -78,14 +86,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('billing-web-note')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('billing-management-unavailable')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('billing-manage-action')), findsNothing);
     expect(
       find.byKey(const ValueKey('billing-usage-select-server')),
       findsOneWidget,
     );
     expect(
-      find.text('This baseline shows your current subscription summary only.'),
+      find.text(
+          'Billing management is not available for this workspace yet. Subscription details will continue to appear here when provided by the server.'),
       findsOneWidget,
     );
   });

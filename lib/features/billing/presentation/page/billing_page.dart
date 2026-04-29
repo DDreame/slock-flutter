@@ -5,6 +5,8 @@ import 'package:slock_app/features/billing/application/billing_state.dart';
 import 'package:slock_app/features/billing/application/billing_store.dart';
 import 'package:slock_app/features/billing/data/billing_repository.dart';
 import 'package:slock_app/features/billing/presentation/billing_portal_launcher.dart';
+import 'package:slock_app/features/billing/presentation/widgets/billing_action_card.dart';
+import 'package:slock_app/features/billing/presentation/widgets/billing_management_section.dart';
 
 class BillingPage extends ConsumerStatefulWidget {
   const BillingPage({super.key});
@@ -93,171 +95,208 @@ class _BillingSuccess extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveSummary = summary ?? const BillingSummary();
     final effectiveUsage = usage;
+    final manageUrl = effectiveSummary.manageUrl;
 
     return ListView(
       key: const ValueKey('billing-success'),
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  effectiveSummary.planName ?? 'Subscription summary',
-                  key: const ValueKey('billing-plan-name'),
-                  style: Theme.of(context).textTheme.headlineSmall,
+        BillingManagementSection(
+          key: const ValueKey('billing-subscription-section'),
+          title: 'Subscription management',
+          description:
+              'Review your current subscription and open the billing portal when management is available.',
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      effectiveSummary.planName ?? 'Subscription summary',
+                      key: const ValueKey('billing-plan-name'),
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      effectiveSummary.status ?? 'Status unavailable',
+                      key: const ValueKey('billing-status'),
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 12),
+                    if (effectiveSummary.amountLabel != null)
+                      _BillingDetailRow(
+                        label: 'Current price',
+                        value: effectiveSummary.amountLabel!,
+                      ),
+                    if (effectiveSummary.renewalLabel != null)
+                      _BillingDetailRow(
+                        label: 'Renewal / period',
+                        value: effectiveSummary.renewalLabel!,
+                      ),
+                    if (effectiveSummary.isEmpty)
+                      const Text('Billing details are not available yet.'),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  effectiveSummary.status ?? 'Status unavailable',
-                  key: const ValueKey('billing-status'),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 12),
-                if (effectiveSummary.amountLabel != null)
-                  _BillingDetailRow(
-                    label: 'Current price',
-                    value: effectiveSummary.amountLabel!,
-                  ),
-                if (effectiveSummary.renewalLabel != null)
-                  _BillingDetailRow(
-                    label: 'Renewal / period',
-                    value: effectiveSummary.renewalLabel!,
-                  ),
-                if (effectiveSummary.isEmpty)
-                  const Text('Billing details are not available yet.'),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 12),
+            BillingActionCard(
+              cardKey: ValueKey(
+                manageUrl == null
+                    ? 'billing-management-unavailable'
+                    : 'billing-manage-card',
+              ),
+              icon: manageUrl == null ? Icons.info_outline : Icons.open_in_new,
+              title: manageUrl == null
+                  ? 'Billing management unavailable'
+                  : 'Open billing portal',
+              message: manageUrl == null
+                  ? 'Billing management is not available for this workspace yet. Subscription details will continue to appear here when provided by the server.'
+                  : 'Manage your subscription with the billing portal.',
+              actionKey: manageUrl == null
+                  ? null
+                  : const ValueKey('billing-manage-action'),
+              actionLabel: manageUrl == null ? null : 'Open billing portal',
+              onAction: manageUrl == null
+                  ? null
+                  : () => onOpenManagePortal(manageUrl),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
-        Card(
-          child: effectiveSummary.manageUrl == null
-              ? const ListTile(
-                  key: ValueKey('billing-web-note'),
-                  leading: Icon(Icons.language),
-                  title: Text('Manage billing on the web'),
-                  subtitle: Text(
-                    'This baseline shows your current subscription summary only.',
-                  ),
-                )
-              : ListTile(
-                  key: const ValueKey('billing-manage-action'),
-                  leading: const Icon(Icons.open_in_new),
-                  title: const Text('Open billing portal'),
-                  subtitle: const Text(
-                    'Manage your subscription with the web billing portal.',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => onOpenManagePortal(effectiveSummary.manageUrl!),
-                ),
-        ),
-        const SizedBox(height: 12),
-        _BillingUsageCard(
-          summary: effectiveSummary,
-          usage: effectiveUsage,
-          hasActiveServerScope: hasActiveServerScope,
+        BillingManagementSection(
+          key: const ValueKey('billing-workspace-section'),
+          title: 'Workspace plan management',
+          description: hasActiveServerScope
+              ? 'Review current workspace limits and any upgrade or downgrade guidance.'
+              : 'Select a workspace to review server-scoped billing limits and plan guidance.',
+          children: [
+            _BillingUsageSection(
+              summary: effectiveSummary,
+              usage: effectiveUsage,
+              hasActiveServerScope: hasActiveServerScope,
+              onOpenManagePortal: manageUrl == null
+                  ? null
+                  : () => onOpenManagePortal(manageUrl),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _BillingUsageCard extends StatelessWidget {
-  const _BillingUsageCard({
+class _BillingUsageSection extends StatelessWidget {
+  const _BillingUsageSection({
     required this.summary,
     required this.usage,
     required this.hasActiveServerScope,
+    required this.onOpenManagePortal,
   });
 
   final BillingSummary summary;
   final BillingUsageSummary? usage;
   final bool hasActiveServerScope;
+  final VoidCallback? onOpenManagePortal;
 
   @override
   Widget build(BuildContext context) {
     if (!hasActiveServerScope) {
-      return const Card(
-        child: ListTile(
-          key: ValueKey('billing-usage-select-server'),
-          leading: Icon(Icons.dns_outlined),
-          title: Text('Server usage and limits'),
-          subtitle: Text(
-            'Select a server to see current usage and plan limits.',
-          ),
-        ),
+      return const BillingActionCard(
+        cardKey: ValueKey('billing-usage-select-server'),
+        icon: Icons.dns_outlined,
+        title: 'Workspace plan requires a selected workspace',
+        message:
+            'Select a workspace to see current usage, plan limits, and upgrade guidance.',
       );
     }
 
     if (usage == null || usage!.isEmpty) {
-      return const Card(
-        child: ListTile(
-          key: ValueKey('billing-usage-unavailable'),
-          leading: Icon(Icons.bar_chart_outlined),
-          title: Text('Server usage and limits'),
-          subtitle: Text('Usage details are unavailable right now.'),
-        ),
+      return const BillingActionCard(
+        cardKey: ValueKey('billing-usage-unavailable'),
+        icon: Icons.bar_chart_outlined,
+        title: 'Workspace usage unavailable',
+        message: 'Usage details are unavailable right now.',
       );
     }
 
     final effectiveUsage = usage!;
-
-    return Card(
-      key: const ValueKey('billing-usage-card'),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Server usage and limits',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              effectiveUsage.planName ?? 'Plan details unavailable',
-              key: const ValueKey('billing-usage-plan-name'),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            if (effectiveUsage.planCode != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  effectiveUsage.planCode!.toUpperCase(),
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+    final usageChildren = <Widget>[
+      Card(
+        key: const ValueKey('billing-usage-card'),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Server usage and limits',
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-            const SizedBox(height: 16),
-            for (final resource in effectiveUsage.resources)
-              _BillingUsageRow(resource: resource),
-            if (effectiveUsage.messageHistoryDays != null)
-              _BillingDetailRow(
-                label: 'Message history',
-                value: _formatMessageHistoryDays(
-                  effectiveUsage.messageHistoryDays!,
-                ),
-              ),
-            if (effectiveUsage.planDowngradedAt != null) ...[
               const SizedBox(height: 8),
-              _BillingUsagePrompt(
-                key: const ValueKey('billing-plan-downgraded'),
-                message:
-                    'This server plan was downgraded on ${effectiveUsage.planDowngradedAt}. Upgrade to restore higher limits.',
+              Text(
+                effectiveUsage.planName ?? 'Plan details unavailable',
+                key: const ValueKey('billing-usage-plan-name'),
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-            ] else if (effectiveUsage.hasUpgradePrompt) ...[
-              const SizedBox(height: 8),
-              _BillingUsagePrompt(
-                key: const ValueKey('billing-upgrade-prompt'),
-                message: summary.manageUrl != null
-                    ? 'Need more capacity? Open the billing portal to upgrade this server plan.'
-                    : 'Need more capacity? Upgrade options will appear here when billing management is available.',
-              ),
+              if (effectiveUsage.planCode != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    effectiveUsage.planCode!.toUpperCase(),
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              for (final resource in effectiveUsage.resources)
+                _BillingUsageRow(resource: resource),
+              if (effectiveUsage.messageHistoryDays != null)
+                _BillingDetailRow(
+                  label: 'Message history',
+                  value: _formatMessageHistoryDays(
+                    effectiveUsage.messageHistoryDays!,
+                  ),
+                ),
             ],
-          ],
+          ),
         ),
       ),
+    ];
+
+    if (effectiveUsage.planDowngradedAt != null) {
+      usageChildren.addAll([
+        const SizedBox(height: 12),
+        BillingActionCard(
+          cardKey: const ValueKey('billing-plan-downgraded'),
+          icon: Icons.warning_amber_rounded,
+          title: 'Workspace plan downgraded',
+          message:
+              'This workspace plan was downgraded on ${effectiveUsage.planDowngradedAt}. Upgrade to restore higher limits.',
+          actionLabel: summary.manageUrl == null ? null : 'Open billing portal',
+          onAction: onOpenManagePortal,
+        ),
+      ]);
+    } else if (effectiveUsage.hasUpgradePrompt) {
+      usageChildren.addAll([
+        const SizedBox(height: 12),
+        BillingActionCard(
+          cardKey: const ValueKey('billing-upgrade-prompt'),
+          icon: Icons.upgrade,
+          title: 'Need more capacity?',
+          message: summary.manageUrl != null
+              ? 'Open the billing portal to review upgrade options for this workspace plan.'
+              : 'Upgrade options will appear here when billing management is available for this workspace.',
+          actionLabel: summary.manageUrl == null ? null : 'Open billing portal',
+          onAction: onOpenManagePortal,
+        ),
+      ]);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: usageChildren,
     );
   }
 }
@@ -316,36 +355,6 @@ class _BillingUsageRow extends StatelessWidget {
                 ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BillingUsagePrompt extends StatelessWidget {
-  const _BillingUsagePrompt({required this.message, super.key});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 2),
-              child: Icon(Icons.upgrade, size: 18),
-            ),
-            const SizedBox(width: 8),
-            Expanded(child: Text(message)),
-          ],
-        ),
       ),
     );
   }
