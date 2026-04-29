@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/machines/application/machines_realtime_binding.dart';
 import 'package:slock_app/features/machines/application/machines_state.dart';
@@ -561,20 +562,18 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (backgroundColor, foregroundColor) = switch (status) {
-      'online' => (Colors.green.withValues(alpha: 0.16), Colors.green.shade900),
-      'offline' => (Colors.grey.withValues(alpha: 0.2), Colors.grey.shade800),
-      'error' => (Colors.red.withValues(alpha: 0.16), Colors.red.shade900),
-      _ => (
-          Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
-          Theme.of(context).colorScheme.primary,
-        ),
+    final tone = switch (status) {
+      'online' => AppStatusTone.success,
+      'offline' => AppStatusTone.neutral,
+      'error' => AppStatusTone.error,
+      _ => AppStatusTone.info,
     };
+    final colors = appStatusColors(Theme.of(context).colorScheme, tone);
 
     return Chip(
       label: Text(_statusLabel(status)),
-      backgroundColor: backgroundColor,
-      labelStyle: TextStyle(color: foregroundColor),
+      backgroundColor: colors.container,
+      labelStyle: TextStyle(color: colors.onContainer),
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_realtime_binding.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
@@ -400,7 +401,10 @@ class _AgentCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            _ActivityDot(activity: agent.activity),
+            _ActivityDot(
+              key: ValueKey('agent-activity-${agent.id}'),
+              activity: agent.activity,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -471,21 +475,24 @@ class _AgentCard extends StatelessWidget {
 }
 
 class _ActivityDot extends StatelessWidget {
-  const _ActivityDot({required this.activity});
+  const _ActivityDot({super.key, required this.activity});
 
   final String activity;
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (activity) {
-      'online' => Colors.green,
-      'thinking' => Colors.amber,
-      'working' => Colors.blue,
-      'error' => Colors.red,
-      'offline' => Colors.grey,
-      _ => Colors.grey,
+    final tone = switch (activity) {
+      'online' => AppStatusTone.success,
+      'thinking' => AppStatusTone.warning,
+      'working' => AppStatusTone.info,
+      'error' => AppStatusTone.error,
+      'offline' => AppStatusTone.neutral,
+      _ => AppStatusTone.neutral,
     };
+    final color =
+        appStatusColors(Theme.of(context).colorScheme, tone).foreground;
     return Container(
+      key: key,
       width: 10,
       height: 10,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
@@ -615,7 +622,10 @@ class _AgentDetailBodyState extends State<_AgentDetailBody> {
       children: [
         Row(
           children: [
-            _ActivityDot(activity: agent.activity),
+            _ActivityDot(
+              key: ValueKey('agent-activity-${agent.id}'),
+              activity: agent.activity,
+            ),
             const SizedBox(width: 8),
             Text(
               _activityLabel(agent.activity, agent.activityDetail),

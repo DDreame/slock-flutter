@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
@@ -163,6 +164,64 @@ void main() {
     expect(
       find.text('Permission request result: granted'),
       findsOneWidget,
+    );
+  });
+
+  testWidgets('diagnostics icons use theme-safe colors in dark theme', (
+    tester,
+  ) async {
+    final theme = AppTheme.dark;
+    final store = _FakeNotificationStore();
+    final diagnostics = DiagnosticsCollector();
+    diagnostics.add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.info,
+      tag: 'notification',
+      message: 'Info event',
+    ));
+    diagnostics.add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.warning,
+      tag: 'notification',
+      message: 'Warning event',
+    ));
+    diagnostics.add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.error,
+      tag: 'notification',
+      message: 'Error event',
+    ));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          notificationStoreProvider.overrideWith(() => store),
+          diagnosticsCollectorProvider.overrideWithValue(diagnostics),
+        ],
+        child: MaterialApp(
+          theme: theme,
+          home: const NotificationSettingsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('notification-diagnostics-events')),
+      200,
+    );
+
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.info_outline)).color,
+      theme.colorScheme.primary,
+    );
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.warning_amber)).color,
+      theme.colorScheme.tertiary,
+    );
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.error_outline)).color,
+      theme.colorScheme.error,
     );
   });
 }

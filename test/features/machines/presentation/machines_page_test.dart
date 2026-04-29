@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
@@ -158,16 +159,64 @@ void main() {
     );
     expect(find.text('Builder'), findsOneWidget);
   });
+
+  testWidgets('status chips use theme-safe tokens in dark theme', (
+    tester,
+  ) async {
+    final theme = AppTheme.dark;
+    final repository = _FakeMachinesRepository(
+      snapshot: const MachinesSnapshot(
+        items: [
+          MachineItem(id: 'machine-online', name: 'Builder', status: 'online'),
+          MachineItem(
+            id: 'machine-offline',
+            name: 'Runner',
+            status: 'offline',
+          ),
+          MachineItem(id: 'machine-error', name: 'Edge', status: 'error'),
+        ],
+      ),
+    );
+
+    await tester.pumpWidget(_buildApp(repository, theme: theme));
+    await _pumpUntilFound(
+      tester,
+      find.byKey(const ValueKey('machines-list')),
+    );
+
+    Chip chipForLabel(String label) {
+      return tester.widget<Chip>(
+        find.ancestor(of: find.text(label), matching: find.byType(Chip)),
+      );
+    }
+
+    final onlineChip = chipForLabel('Online');
+    expect(onlineChip.backgroundColor, theme.colorScheme.secondaryContainer);
+    expect(
+        onlineChip.labelStyle?.color, theme.colorScheme.onSecondaryContainer);
+
+    final offlineChip = chipForLabel('Offline');
+    expect(
+        offlineChip.backgroundColor, theme.colorScheme.surfaceContainerHighest);
+    expect(offlineChip.labelStyle?.color, theme.colorScheme.onSurfaceVariant);
+
+    final errorChip = chipForLabel('Error');
+    expect(errorChip.backgroundColor, theme.colorScheme.errorContainer);
+    expect(errorChip.labelStyle?.color, theme.colorScheme.onErrorContainer);
+  });
 }
 
-Widget _buildApp(_FakeMachinesRepository repository) {
+Widget _buildApp(_FakeMachinesRepository repository, {ThemeData? theme}) {
   final ingress = RealtimeReductionIngress();
   return ProviderScope(
     overrides: [
       machinesRepositoryProvider.overrideWithValue(repository),
       realtimeReductionIngressProvider.overrideWithValue(ingress),
     ],
-    child: MaterialApp(home: MachinesPage(serverId: 'server-1')),
+    child: MaterialApp(
+      theme: theme,
+      home: MachinesPage(serverId: 'server-1'),
+    ),
   );
 }
 

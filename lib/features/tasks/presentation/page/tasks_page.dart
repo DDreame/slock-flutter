@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -135,6 +136,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) {
+            final colorScheme = Theme.of(dialogContext).colorScheme;
             return AlertDialog(
               title: const Text('Delete Task?'),
               content: Text(
@@ -148,6 +150,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
                 ),
                 FilledButton(
                   key: const ValueKey('task-delete-confirm'),
+                  style: appDestructiveFilledButtonStyle(colorScheme),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
                   child: const Text('Delete'),
                 ),
@@ -487,14 +490,16 @@ class _StatusIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, color) = switch (status) {
-      'todo' => (Icons.radio_button_unchecked, Colors.grey),
-      'in_progress' => (Icons.timelapse, Colors.blue),
-      'in_review' => (Icons.rate_review, Colors.orange),
-      'done' => (Icons.check_circle, Colors.green),
-      _ => (Icons.circle_outlined, Colors.grey),
+    final theme = Theme.of(context);
+    final (icon, tone) = switch (status) {
+      'todo' => (Icons.radio_button_unchecked, AppStatusTone.neutral),
+      'in_progress' => (Icons.timelapse, AppStatusTone.info),
+      'in_review' => (Icons.rate_review, AppStatusTone.warning),
+      'done' => (Icons.check_circle, AppStatusTone.success),
+      _ => (Icons.circle_outlined, AppStatusTone.neutral),
     };
-    return Icon(icon, size: 20, color: color);
+    final colors = appStatusColors(theme.colorScheme, tone);
+    return Icon(icon, size: 20, color: colors.foreground);
   }
 }
 

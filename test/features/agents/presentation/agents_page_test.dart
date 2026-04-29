@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
@@ -340,6 +341,55 @@ void main() {
   });
 
   group('Agent control action guards', () {
+    testWidgets('activity dots use theme-safe colors in dark theme', (
+      tester,
+    ) async {
+      final theme = AppTheme.dark;
+      final fakeRepo = _MutableAgentsRepository(
+        initialItems: [
+          makeAgent(id: 'agent-online', activity: 'online'),
+          makeAgent(id: 'agent-thinking', activity: 'thinking'),
+          makeAgent(id: 'agent-working', activity: 'working'),
+          makeAgent(id: 'agent-error', activity: 'error'),
+          makeAgent(
+            id: 'agent-offline',
+            status: 'stopped',
+            activity: 'offline',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: MaterialApp(
+            theme: theme,
+            home: const AgentsPage(serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Color dotColor(String agentId) {
+        final widget = tester.widget<Container>(
+          find.byKey(ValueKey('agent-activity-$agentId')),
+        );
+        final decoration = widget.decoration! as BoxDecoration;
+        return decoration.color!;
+      }
+
+      expect(dotColor('agent-online'), theme.colorScheme.secondary);
+      expect(dotColor('agent-thinking'), theme.colorScheme.tertiary);
+      expect(dotColor('agent-working'), theme.colorScheme.primary);
+      expect(dotColor('agent-error'), theme.colorScheme.error);
+      expect(dotColor('agent-offline'), theme.colorScheme.outline);
+    });
+
     testWidgets('stop button shows confirmation and calls stopAgent on confirm',
         (tester) async {
       final fakeRepo = _MutableAgentsRepository(
