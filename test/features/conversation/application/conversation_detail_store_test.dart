@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -163,6 +165,52 @@ void main() {
     expect(state.draft, 'Retry me');
     expect(state.sendFailure, failure);
     expect(state.messages, isEmpty);
+  });
+
+  test('concurrent send calls produce a single network request', () async {
+    final sendCompleter = Completer<ConversationMessageSummary>();
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+      sentMessage: ConversationMessageSummary(
+        id: 'message-1',
+        content: 'Only once',
+        createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      ),
+      sendCompleter: sendCompleter,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        currentConversationDetailTargetProvider.overrideWithValue(target),
+        conversationRepositoryProvider.overrideWithValue(repository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(conversationDetailStoreProvider.notifier).load();
+    final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+    notifier.updateDraft('Only once');
+
+    final first = notifier.send();
+    final second = notifier.send();
+
+    expect(container.read(conversationDetailStoreProvider).isSending, isTrue);
+
+    sendCompleter.complete(repository.sentMessage!);
+    await first;
+    await second;
+
+    expect(repository.sentContents, hasLength(1));
+    expect(repository.sentContents.single, 'Only once');
   });
 
   test('realtime append shares send dedupe truth by message id', () async {
@@ -1634,6 +1682,7 @@ class _FakeConversationRepository implements ConversationRepository {
     this.sendFailure,
     this.deleteFailure,
     this.pinFailure,
+    this.sendCompleter,
   });
 
   final ConversationDetailSnapshot? snapshot;
@@ -1645,6 +1694,7 @@ class _FakeConversationRepository implements ConversationRepository {
   final AppFailure? sendFailure;
   final AppFailure? deleteFailure;
   final AppFailure? pinFailure;
+  final Completer<ConversationMessageSummary>? sendCompleter;
   final List<ConversationDetailTarget> requestedTargets = [];
   final List<int> olderRequests = [];
   final List<int> newerRequests = [];
@@ -1702,6 +1752,9 @@ class _FakeConversationRepository implements ConversationRepository {
     sentContents.add(content);
     if (sendFailure != null) {
       throw sendFailure!;
+    }
+    if (sendCompleter != null) {
+      return sendCompleter!.future;
     }
     return sentMessage!;
   }
