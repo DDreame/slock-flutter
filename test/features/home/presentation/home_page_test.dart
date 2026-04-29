@@ -788,6 +788,89 @@ void main() {
       expect(find.text('Something went wrong'), findsNothing);
     },
   );
+
+  testWidgets('pull-to-refresh indicator is present in success state', (
+    tester,
+  ) async {
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('home-refresh-indicator')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows empty channels placeholder when no channels exist', (
+    tester,
+  ) async {
+    const emptySnapshot = HomeWorkspaceSnapshot(
+      serverId: ServerScopeId('server-1'),
+      channels: [],
+      directMessages: [
+        HomeDirectMessageSummary(
+          scopeId: DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'dm-alice',
+          ),
+          title: 'Alice',
+        ),
+      ],
+    );
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(emptySnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('home-channels-empty')), findsOneWidget);
+    expect(find.text('No channels yet.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-dms-empty')), findsNothing);
+  });
+
+  testWidgets('shows empty DMs placeholder when no direct messages exist', (
+    tester,
+  ) async {
+    const emptyDmsSnapshot = HomeWorkspaceSnapshot(
+      serverId: ServerScopeId('server-1'),
+      channels: [
+        HomeChannelSummary(
+          scopeId: ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+          name: 'general',
+        ),
+      ],
+      directMessages: [],
+    );
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      _buildApp(
+        router: router,
+        homeRepository: const _FakeHomeRepository(emptyDmsSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Direct Messages'));
+
+    expect(find.byKey(const ValueKey('home-dms-empty')), findsOneWidget);
+    expect(find.text('No direct messages yet.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-channels-empty')), findsNothing);
+  });
 }
 
 const _sampleSnapshot = HomeWorkspaceSnapshot(
