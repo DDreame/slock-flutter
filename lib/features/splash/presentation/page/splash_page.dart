@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class SplashPage extends ConsumerWidget {
   const SplashPage({super.key});
@@ -9,6 +10,7 @@ class SplashPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(splashControllerProvider);
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return Scaffold(
       body: Center(
         child: Padding(
@@ -36,7 +38,7 @@ class SplashPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Slock',
+                  l10n.splashTitle,
                   key: const ValueKey('splash-title'),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
@@ -44,7 +46,7 @@ class SplashPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Preparing your workspace console...',
+                  l10n.splashSubtitle,
                   key: const ValueKey('splash-subtitle'),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,

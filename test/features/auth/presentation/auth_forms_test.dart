@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -9,11 +10,16 @@ import 'package:slock_app/features/auth/presentation/page/login_page.dart';
 import 'package:slock_app/features/auth/presentation/page/register_page.dart';
 import 'package:slock_app/features/auth/presentation/page/reset_password_page.dart';
 import 'package:slock_app/features/auth/presentation/page/verify_email_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 import '../../../stores/session/session_store_persistence_test.dart'
     show FakeSecureStorage;
 
-Widget _buildPage(Widget page, {required _FakeAuthRepository repository}) {
+Widget _buildPage(
+  Widget page, {
+  required _FakeAuthRepository repository,
+  Locale? locale,
+}) {
   final container = ProviderContainer(
     overrides: [
       secureStorageProvider.overrideWithValue(FakeSecureStorage()),
@@ -22,7 +28,17 @@ Widget _buildPage(Widget page, {required _FakeAuthRepository repository}) {
   );
   return UncontrolledProviderScope(
     container: container,
-    child: MaterialApp(home: page),
+    child: MaterialApp(
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      home: page,
+    ),
   );
 }
 
@@ -147,6 +163,22 @@ void main() {
 
       expect(find.byKey(const ValueKey('login-error')), findsNothing);
       expect(repo.loginEmails, ['user@example.com']);
+    });
+
+    testWidgets('uses localized Spanish copy when locale changes',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildPage(
+          const LoginPage(),
+          repository: _FakeAuthRepository(),
+          locale: const Locale('es'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Iniciar sesion'), findsWidgets);
+      expect(find.text('Correo electronico'), findsOneWidget);
+      expect(find.text('Olvidaste tu contrasena?'), findsOneWidget);
     });
   });
 

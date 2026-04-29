@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
 import 'package:slock_app/features/splash/presentation/page/splash_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('renders branded lockup and progress indicator', (tester) async {
@@ -14,7 +16,16 @@ void main() {
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
         ],
-        child: const MaterialApp(home: SplashPage()),
+        child: const MaterialApp(
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          home: SplashPage(),
+        ),
       ),
     );
     await tester.pump();
@@ -29,6 +40,36 @@ void main() {
     );
     expect(find.byKey(const ValueKey('splash-progress')), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('renders localized splash subtitle for Spanish locale', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+        child: const MaterialApp(
+          locale: Locale('es'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+          ],
+          home: SplashPage(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('Preparando tu consola de espacio de trabajo...'),
+      findsOneWidget,
+    );
   });
 }
 

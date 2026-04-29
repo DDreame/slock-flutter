@@ -1,0 +1,28 @@
+{
+  "@@locale": "en",
+  "appTitle": "Slock",
+  "splashTitle": "Slock",
+  "splashSubtitle": "Preparing your workspace console...",
+  "loginTitle": "Login",
+  "loginEmailLabel": "Email",
+  "loginPasswordLabel": "Password",
+  "loginSubmitLabel": "Login",
+  "loginCreateAccountCta": "Create account",
+  "loginForgotPasswordCta": "Forgot password?",
+  "loginEmailRequiredError": "Email is required.",
+  "loginEmailInvalidError": "Enter a valid email address.",
+  "loginPasswordRequiredError": "Password is required.",
+  "loginFailedFallback": "Login failed. Please try again.",
+  "registerTitle": "Register",
+  "registerDisplayNameLabel": "Display name",
+  "registerEmailLabel": "Email",
+  "registerPasswordLabel": "Password",
+  "registerSubmitLabel": "Register",
+  "registerAlreadyHaveAccountCta": "Already have an account? Login",
+  "registerDisplayNameRequiredError": "Display name is required.",
+  "registerEmailRequiredError": "Email is required.",
+  "registerEmailInvalidError": "Enter a valid email address.",
+  "registerPasswordTooShortError": "Password must be at least 8 characters.",
+  "registerFailedFallback": "Registration failed. Please try again."
+}
+
