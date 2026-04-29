@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/application/register_controller.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
@@ -29,9 +30,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(registerControllerProvider);
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Register')),
+      appBar: AppBar(title: Text(l10n.registerTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -52,13 +54,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               TextField(
                 key: const ValueKey('register-display-name'),
                 controller: _displayNameController,
-                decoration: const InputDecoration(labelText: 'Display name'),
+                decoration: InputDecoration(
+                  labelText: l10n.registerDisplayNameLabel,
+                ),
               ),
               const SizedBox(height: 16),
               TextField(
                 key: const ValueKey('register-email'),
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: l10n.registerEmailLabel),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
@@ -66,7 +70,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 key: const ValueKey('register-password'),
                 controller: _passwordController,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: l10n.registerPasswordLabel,
                   suffixIcon: IconButton(
                     key: const ValueKey('register-password-toggle'),
                     icon: Icon(
@@ -90,12 +94,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Register'),
+                    : Text(l10n.registerSubmitLabel),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Already have an account? Login'),
+                child: Text(l10n.registerAlreadyHaveAccountCta),
               ),
             ],
           ),
@@ -108,21 +112,22 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     final displayName = _displayNameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    final l10n = context.l10n;
 
     if (displayName.isEmpty) {
-      setState(() => _errorText = 'Display name is required.');
+      setState(() => _errorText = l10n.registerDisplayNameRequiredError);
       return;
     }
     if (email.isEmpty) {
-      setState(() => _errorText = 'Email is required.');
+      setState(() => _errorText = l10n.registerEmailRequiredError);
       return;
     }
     if (!email.contains('@')) {
-      setState(() => _errorText = 'Enter a valid email address.');
+      setState(() => _errorText = l10n.registerEmailInvalidError);
       return;
     }
     if (password.length < 8) {
-      setState(() => _errorText = 'Password must be at least 8 characters.');
+      setState(() => _errorText = l10n.registerPasswordTooShortError);
       return;
     }
 
@@ -140,8 +145,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       final error = state.error;
       setState(() {
         _errorText = error is AppFailure
-            ? (error.message ?? 'Registration failed. Please try again.')
-            : 'Registration failed. Please try again.';
+            ? (error.message ?? l10n.registerFailedFallback)
+            : l10n.registerFailedFallback;
       });
     }
   }

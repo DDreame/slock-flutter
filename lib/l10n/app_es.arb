@@ -1,0 +1,28 @@
+{
+  "@@locale": "es",
+  "appTitle": "Slock",
+  "splashTitle": "Slock",
+  "splashSubtitle": "Preparando tu consola de espacio de trabajo...",
+  "loginTitle": "Iniciar sesion",
+  "loginEmailLabel": "Correo electronico",
+  "loginPasswordLabel": "Contrasena",
+  "loginSubmitLabel": "Iniciar sesion",
+  "loginCreateAccountCta": "Crear cuenta",
+  "loginForgotPasswordCta": "Olvidaste tu contrasena?",
+  "loginEmailRequiredError": "El correo electronico es obligatorio.",
+  "loginEmailInvalidError": "Ingresa una direccion de correo electronico valida.",
+  "loginPasswordRequiredError": "La contrasena es obligatoria.",
+  "loginFailedFallback": "No se pudo iniciar sesion. Intentalo de nuevo.",
+  "registerTitle": "Crear cuenta",
+  "registerDisplayNameLabel": "Nombre visible",
+  "registerEmailLabel": "Correo electronico",
+  "registerPasswordLabel": "Contrasena",
+  "registerSubmitLabel": "Crear cuenta",
+  "registerAlreadyHaveAccountCta": "Ya tienes una cuenta? Inicia sesion",
+  "registerDisplayNameRequiredError": "El nombre visible es obligatorio.",
+  "registerEmailRequiredError": "El correo electronico es obligatorio.",
+  "registerEmailInvalidError": "Ingresa una direccion de correo electronico valida.",
+  "registerPasswordTooShortError": "La contrasena debe tener al menos 8 caracteres.",
+  "registerFailedFallback": "No se pudo crear la cuenta. Intentalo de nuevo."
+}
+

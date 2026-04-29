@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/application/login_controller.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -27,9 +28,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(loginControllerProvider);
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
+      appBar: AppBar(title: Text(l10n.loginTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -50,7 +52,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               TextField(
                 key: const ValueKey('login-email'),
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration: InputDecoration(labelText: l10n.loginEmailLabel),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 16),
@@ -58,7 +60,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 key: const ValueKey('login-password'),
                 controller: _passwordController,
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: l10n.loginPasswordLabel,
                   suffixIcon: IconButton(
                     key: const ValueKey('login-password-toggle'),
                     icon: Icon(
@@ -82,16 +84,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Login'),
+                    : Text(l10n.loginSubmitLabel),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.go('/register'),
-                child: const Text('Create account'),
+                child: Text(l10n.loginCreateAccountCta),
               ),
               TextButton(
                 onPressed: () => context.go('/forgot-password'),
-                child: const Text('Forgot password?'),
+                child: Text(l10n.loginForgotPasswordCta),
               ),
             ],
           ),
@@ -103,17 +105,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _submit() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
+    final l10n = context.l10n;
 
     if (email.isEmpty) {
-      setState(() => _errorText = 'Email is required.');
+      setState(() => _errorText = l10n.loginEmailRequiredError);
       return;
     }
     if (!email.contains('@')) {
-      setState(() => _errorText = 'Enter a valid email address.');
+      setState(() => _errorText = l10n.loginEmailInvalidError);
       return;
     }
     if (password.isEmpty) {
-      setState(() => _errorText = 'Password is required.');
+      setState(() => _errorText = l10n.loginPasswordRequiredError);
       return;
     }
 
@@ -130,8 +133,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       final error = state.error;
       setState(() {
         _errorText = error is AppFailure
-            ? (error.message ?? 'Login failed. Please try again.')
-            : 'Login failed. Please try again.';
+            ? (error.message ?? l10n.loginFailedFallback)
+            : l10n.loginFailedFallback;
       });
     }
   }

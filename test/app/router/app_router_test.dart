@@ -11,6 +11,7 @@ import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/splash/application/splash_controller.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -20,6 +21,14 @@ import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 
 import '../../stores/session/session_store_persistence_test.dart'
     show FakeAuthRepository;
+
+Widget _buildRouterApp(GoRouter router) {
+  return MaterialApp.router(
+    routerConfig: router,
+    supportedLocales: AppLocalizations.supportedLocales,
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+  );
+}
 
 void main() {
   test(
@@ -180,7 +189,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp.router(routerConfig: router),
+        child: _buildRouterApp(router),
       ),
     );
     await tester.pumpAndSettle();
@@ -215,7 +224,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp.router(routerConfig: router),
+        child: _buildRouterApp(router),
       ),
     );
     await tester.pumpAndSettle();
@@ -250,7 +259,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp.router(routerConfig: router),
+        child: _buildRouterApp(router),
       ),
     );
     await tester.pumpAndSettle();
@@ -289,7 +298,7 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp.router(routerConfig: router),
+        child: _buildRouterApp(router),
       ),
     );
     await tester.pumpAndSettle();
@@ -410,7 +419,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -441,7 +450,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -498,7 +507,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -531,7 +540,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -569,7 +578,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -624,7 +633,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pump();
@@ -673,7 +682,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pump();
@@ -703,7 +712,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pump();
@@ -749,7 +758,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -791,7 +800,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -833,7 +842,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -886,7 +895,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -922,7 +931,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -977,7 +986,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -1029,7 +1038,7 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: MaterialApp.router(routerConfig: router),
+            child: _buildRouterApp(router),
           ),
         );
         await tester.pump();
@@ -1074,7 +1083,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -1118,7 +1127,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -1162,7 +1171,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -1197,7 +1206,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -1235,7 +1244,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -1273,7 +1282,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -1307,7 +1316,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
@@ -1347,7 +1356,7 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: router),
+          child: _buildRouterApp(router),
         ),
       );
       await tester.pumpAndSettle();
