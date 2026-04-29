@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -328,6 +330,69 @@ void main() {
           ?.text,
       'Keep me',
     );
+  });
+
+  testWidgets(
+      'send button is disabled and shows Sending... while send is in flight', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final sendCompleter = Completer<ConversationMessageSummary>();
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+      sentMessage: ConversationMessageSummary(
+        id: 'message-1',
+        content: 'Hello',
+        createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      ),
+      sendCompleter: sendCompleter,
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('composer-input')),
+      'Hello',
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('composer-send')));
+    await tester.pump();
+
+    final button = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('composer-send')),
+    );
+    expect(button.onPressed, isNull);
+    expect(find.text('Sending...'), findsOneWidget);
+
+    sendCompleter.complete(repository.sentMessage!);
+    await tester.pumpAndSettle();
+
+    final resolvedButton = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('composer-send')),
+    );
+    expect(resolvedButton.onPressed, isNull);
+    expect(find.text('Send'), findsOneWidget);
   });
 
   testWidgets('page registers and clears current open target on dispose', (
@@ -750,12 +815,14 @@ class _FakeConversationRepository implements ConversationRepository {
     this.olderPages = const {},
     this.sentMessage,
     this.sendFailure,
+    this.sendCompleter,
   });
 
   final ConversationDetailSnapshot snapshot;
   final Map<int, ConversationMessagePage> olderPages;
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
+  final Completer<ConversationMessageSummary>? sendCompleter;
   final List<ConversationDetailTarget> requestedTargets = [];
   final List<int> olderRequests = [];
   final List<String> sentContents = [];
@@ -794,6 +861,9 @@ class _FakeConversationRepository implements ConversationRepository {
     sentContents.add(content);
     if (sendFailure != null) {
       throw sendFailure!;
+    }
+    if (sendCompleter != null) {
+      return sendCompleter!.future;
     }
     return sentMessage!;
   }
