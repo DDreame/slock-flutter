@@ -12,6 +12,8 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_console_section.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_console_tile.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
@@ -47,38 +49,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: _HomeAppBarTitle(onTap: () => showServerSwitcherSheet(context)),
-        actions: [
-          IconButton(
-            key: const ValueKey('home-workspace-settings'),
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              final serverId = ref.read(activeServerScopeIdProvider);
-              if (serverId != null) {
-                context.push('/servers/${serverId.value}/settings');
-              }
-            },
-          ),
-          IconButton(
-            key: const ValueKey('home-members'),
-            icon: const Icon(Icons.people_outline),
-            onPressed: () {
-              final serverId = ref.read(activeServerScopeIdProvider);
-              if (serverId != null) {
-                context.push('/servers/${serverId.value}/members');
-              }
-            },
-          ),
-          IconButton(
-            key: const ValueKey('home-search'),
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              final serverId = ref.read(activeServerScopeIdProvider);
-              if (serverId != null) {
-                context.push('/servers/${serverId.value}/search');
-              }
-            },
-          ),
-        ],
       ),
       body: switch (state.status) {
         HomeListStatus.noActiveServer => _HomeNoServerState(
@@ -91,149 +61,212 @@ class _HomePageState extends ConsumerState<HomePage> {
             message: state.failure?.message ?? 'Unable to load conversations.',
             onRetry: homeStore.retry,
           ),
-        HomeListStatus.success => ListView(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            children: [
-              ListTile(
-                key: const ValueKey('home-saved-messages'),
-                leading: const Icon(Icons.bookmark_outline),
-                title: const Text('Saved Messages'),
-                onTap: () {
-                  final serverId = ref.read(activeServerScopeIdProvider);
-                  if (serverId != null) {
-                    context.push('/servers/${serverId.value}/saved-messages');
-                  }
-                },
-              ),
-              ListTile(
-                key: const ValueKey('home-tasks'),
-                leading: const Icon(Icons.check_circle_outline),
-                title: const Text('Tasks'),
-                onTap: () {
-                  final serverId = ref.read(activeServerScopeIdProvider);
-                  if (serverId != null) {
-                    context.push('/servers/${serverId.value}/tasks');
-                  }
-                },
-              ),
-              ListTile(
-                key: const ValueKey('home-machines'),
-                leading: const Icon(Icons.memory_outlined),
-                title: const Text('Machines'),
-                onTap: () {
-                  final serverId = ref.read(activeServerScopeIdProvider);
-                  if (serverId != null) {
-                    context.push('/servers/${serverId.value}/machines');
-                  }
-                },
-              ),
-              if (pinnedConversationRows.isNotEmpty) ...[
-                const _HomeSectionHeader(title: 'Pinned'),
-                ...pinnedConversationRows,
-              ],
-              _HomeSectionHeader(
-                title: 'Channels',
-                onAdd: _showCreateChannelDialog,
-                addButtonKey: const ValueKey('channel-create-button'),
-                addTooltip: 'Create channel',
-              ),
-              for (final entry in state.channels.asMap().entries)
-                HomeChannelRow(
-                  key: ValueKey(
-                    'channel-${entry.value.scopeId.routeParam}',
+        HomeListStatus.success => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Text(
+                    'Workspace Console',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  channel: entry.value,
-                  unreadCount:
-                      unreadState.channelUnreadCount(entry.value.scopeId),
-                  isMutating: managementState.isBusy,
-                  onTap: () {
-                    unreadStore.markChannelRead(entry.value.scopeId);
-                    context
-                        .push(homeStore.channelRoutePath(entry.value.scopeId));
-                  },
-                  onEdit: () => _showEditChannelDialog(entry.value),
-                  onDelete: () => _showDeleteChannelDialog(entry.value),
-                  onLeave: () => _showLeaveChannelDialog(entry.value),
-                  onTogglePin: () => homeStore.pinChannel(entry.value.scopeId),
-                  onMoveUp: entry.key > 0
-                      ? () => homeStore.moveChannel(
-                            entry.value.scopeId,
-                            moveUp: true,
-                          )
-                      : null,
-                  onMoveDown: entry.key < state.channels.length - 1
-                      ? () => homeStore.moveChannel(
-                            entry.value.scopeId,
-                            moveUp: false,
-                          )
-                      : null,
                 ),
-              _HomeSectionHeader(
-                title: 'Direct Messages',
-                onAdd: _showNewDmDialog,
-                addButtonKey: const ValueKey('dm-create-button'),
-                addTooltip: 'New message',
-              ),
-              for (final entry in state.directMessages.asMap().entries)
-                HomeDirectMessageRow(
-                  key: ValueKey('dm-${entry.value.scopeId.routeParam}'),
-                  directMessage: entry.value,
-                  unreadCount: unreadState.dmUnreadCount(entry.value.scopeId),
-                  onTap: () {
-                    unreadStore.markDmRead(entry.value.scopeId);
-                    context.push(
-                      homeStore.directMessageRoutePath(entry.value.scopeId),
-                    );
-                  },
-                  onTogglePin: () => homeStore.pinDirectMessage(
-                    entry.value.scopeId,
-                  ),
-                  onHide: () => homeStore.hideDm(entry.value.scopeId),
-                  onMoveUp: entry.key > 0
-                      ? () => homeStore.moveDirectMessage(
-                            entry.value.scopeId,
-                            moveUp: true,
-                          )
-                      : null,
-                  onMoveDown: entry.key < state.directMessages.length - 1
-                      ? () => homeStore.moveDirectMessage(
-                            entry.value.scopeId,
-                            moveUp: false,
-                          )
-                      : null,
+                HomeConsoleSection(
+                  key: const ValueKey('home-console-activity-section'),
+                  title: 'Activity',
+                  description: 'Saved context, threads, tasks, and search.',
+                  children: [
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-saved-messages'),
+                      icon: Icons.bookmark_outline,
+                      title: 'Saved Messages',
+                      description:
+                          'Return to bookmarked updates and references.',
+                      onTap: () => _pushServerRoute('saved-messages'),
+                    ),
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-threads'),
+                      icon: Icons.forum_outlined,
+                      title: 'Threads',
+                      description:
+                          'Review active thread work across the workspace.',
+                      onTap: () => _pushServerRoute('threads'),
+                    ),
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-tasks'),
+                      icon: Icons.check_circle_outline,
+                      title: 'Tasks',
+                      description: 'See task queues and execution status.',
+                      onTap: () => _pushServerRoute('tasks'),
+                    ),
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-search'),
+                      icon: Icons.search,
+                      title: 'Search',
+                      description:
+                          'Find channels, messages, and workspace history.',
+                      onTap: () => _pushServerRoute('search'),
+                    ),
+                  ],
                 ),
-              if (state.hiddenDirectMessages.isNotEmpty)
-                ListTile(
-                  key: const ValueKey('home-hidden-dms'),
-                  leading: const Icon(Icons.visibility_off_outlined),
-                  title: Text(
-                    'Hidden conversations (${state.hiddenDirectMessages.length})',
-                  ),
-                  onTap: () => _showHiddenDmsSheet(homeStore, unreadStore),
+                HomeConsoleSection(
+                  key: const ValueKey('home-console-operations-section'),
+                  title: 'Operations',
+                  description: 'People, infrastructure, billing, and settings.',
+                  children: [
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-members'),
+                      icon: Icons.people_outline,
+                      title: 'Members',
+                      description: 'Manage workspace roles and invitations.',
+                      onTap: () => _pushServerRoute('members'),
+                    ),
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-agents'),
+                      icon: Icons.smart_toy_outlined,
+                      title: 'Agent Control',
+                      description: 'Inspect agent activity and assignments.',
+                      onTap: () => _pushServerRoute('agents'),
+                    ),
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-machines'),
+                      icon: Icons.memory_outlined,
+                      title: 'Machines',
+                      description:
+                          'Check workspace runtime capacity and hosts.',
+                      onTap: () => _pushServerRoute('machines'),
+                    ),
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-billing'),
+                      icon: Icons.credit_card_outlined,
+                      title: 'Billing',
+                      description:
+                          'Review plan controls and billing management.',
+                      onTap: () => context.push('/billing'),
+                    ),
+                    HomeConsoleTile(
+                      tileKey: const ValueKey('home-workspace-settings'),
+                      icon: Icons.settings_outlined,
+                      title: 'Workspace Settings',
+                      description:
+                          'Configure workspace-level defaults and access.',
+                      onTap: () => _pushServerRoute('settings'),
+                    ),
+                  ],
                 ),
-              if (state.pinnedAgents.isNotEmpty) ...[
-                const _HomeSectionHeader(title: 'Pinned Agents'),
-                for (final agent in state.pinnedAgents)
-                  _HomeAgentRow(
-                    key: ValueKey('pinned-agent-${agent.id}'),
-                    agent: agent,
-                    isPinned: true,
-                    onTap: () => _openAgentDetail(agent.id),
-                    onTogglePin: () => homeStore.unpinAgent(agent.id),
+                if (pinnedConversationRows.isNotEmpty) ...[
+                  const _HomeSectionHeader(title: 'Pinned'),
+                  ...pinnedConversationRows,
+                ],
+                _HomeSectionHeader(
+                  title: 'Channels',
+                  onAdd: _showCreateChannelDialog,
+                  addButtonKey: const ValueKey('channel-create-button'),
+                  addTooltip: 'Create channel',
+                ),
+                for (final entry in state.channels.asMap().entries)
+                  HomeChannelRow(
+                    key: ValueKey(
+                      'channel-${entry.value.scopeId.routeParam}',
+                    ),
+                    channel: entry.value,
+                    unreadCount:
+                        unreadState.channelUnreadCount(entry.value.scopeId),
+                    isMutating: managementState.isBusy,
+                    onTap: () {
+                      unreadStore.markChannelRead(entry.value.scopeId);
+                      context.push(
+                        homeStore.channelRoutePath(entry.value.scopeId),
+                      );
+                    },
+                    onEdit: () => _showEditChannelDialog(entry.value),
+                    onDelete: () => _showDeleteChannelDialog(entry.value),
+                    onLeave: () => _showLeaveChannelDialog(entry.value),
+                    onTogglePin: () =>
+                        homeStore.pinChannel(entry.value.scopeId),
+                    onMoveUp: entry.key > 0
+                        ? () => homeStore.moveChannel(
+                              entry.value.scopeId,
+                              moveUp: true,
+                            )
+                        : null,
+                    onMoveDown: entry.key < state.channels.length - 1
+                        ? () => homeStore.moveChannel(
+                              entry.value.scopeId,
+                              moveUp: false,
+                            )
+                        : null,
                   ),
-              ],
-              if (state.agents.isNotEmpty || state.pinnedAgents.isNotEmpty) ...[
-                const _HomeSectionHeader(title: 'Agents'),
-                for (final agent in state.agents)
-                  _HomeAgentRow(
-                    key: ValueKey('agent-${agent.id}'),
-                    agent: agent,
-                    isPinned: false,
-                    onTap: () => _openAgentDetail(agent.id),
-                    onTogglePin: () => homeStore.pinAgent(agent.id),
+                _HomeSectionHeader(
+                  title: 'Direct Messages',
+                  onAdd: _showNewDmDialog,
+                  addButtonKey: const ValueKey('dm-create-button'),
+                  addTooltip: 'New message',
+                ),
+                for (final entry in state.directMessages.asMap().entries)
+                  HomeDirectMessageRow(
+                    key: ValueKey('dm-${entry.value.scopeId.routeParam}'),
+                    directMessage: entry.value,
+                    unreadCount: unreadState.dmUnreadCount(entry.value.scopeId),
+                    onTap: () {
+                      unreadStore.markDmRead(entry.value.scopeId);
+                      context.push(
+                        homeStore.directMessageRoutePath(entry.value.scopeId),
+                      );
+                    },
+                    onTogglePin: () => homeStore.pinDirectMessage(
+                      entry.value.scopeId,
+                    ),
+                    onHide: () => homeStore.hideDm(entry.value.scopeId),
+                    onMoveUp: entry.key > 0
+                        ? () => homeStore.moveDirectMessage(
+                              entry.value.scopeId,
+                              moveUp: true,
+                            )
+                        : null,
+                    onMoveDown: entry.key < state.directMessages.length - 1
+                        ? () => homeStore.moveDirectMessage(
+                              entry.value.scopeId,
+                              moveUp: false,
+                            )
+                        : null,
                   ),
+                if (state.hiddenDirectMessages.isNotEmpty)
+                  ListTile(
+                    key: const ValueKey('home-hidden-dms'),
+                    leading: const Icon(Icons.visibility_off_outlined),
+                    title: Text(
+                      'Hidden conversations (${state.hiddenDirectMessages.length})',
+                    ),
+                    onTap: () => _showHiddenDmsSheet(homeStore, unreadStore),
+                  ),
+                if (state.pinnedAgents.isNotEmpty) ...[
+                  const _HomeSectionHeader(title: 'Pinned Agents'),
+                  for (final agent in state.pinnedAgents)
+                    _HomeAgentRow(
+                      key: ValueKey('pinned-agent-${agent.id}'),
+                      agent: agent,
+                      isPinned: true,
+                      onTap: () => _openAgentDetail(agent.id),
+                      onTogglePin: () => homeStore.unpinAgent(agent.id),
+                    ),
+                ],
+                if (state.agents.isNotEmpty ||
+                    state.pinnedAgents.isNotEmpty) ...[
+                  const _HomeSectionHeader(title: 'Agents'),
+                  for (final agent in state.agents)
+                    _HomeAgentRow(
+                      key: ValueKey('agent-${agent.id}'),
+                      agent: agent,
+                      isPinned: false,
+                      onTap: () => _openAgentDetail(agent.id),
+                      onTogglePin: () => homeStore.pinAgent(agent.id),
+                    ),
+                ],
               ],
-            ],
+            ),
           ),
       },
     );
@@ -438,6 +471,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _pushServerRoute(String routeSuffix) {
+    final serverId = ref.read(activeServerScopeIdProvider)?.value;
+    if (serverId == null) {
+      return;
+    }
+    context.push('/servers/$serverId/$routeSuffix');
   }
 
   List<Widget> _buildPinnedConversationRows({

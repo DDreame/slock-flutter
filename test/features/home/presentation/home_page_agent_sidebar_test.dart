@@ -21,10 +21,7 @@ void main() {
       await tester.pumpWidget(_buildApp(agents: [_agentA, _agentB]));
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('agent-agent-b')),
-        200,
-      );
+      await tester.ensureVisible(find.byKey(const ValueKey('agent-agent-b')));
       expect(find.text('Agents'), findsOneWidget);
       expect(find.byKey(const ValueKey('agent-agent-a')), findsOneWidget);
       expect(find.byKey(const ValueKey('agent-agent-b')), findsOneWidget);
@@ -52,10 +49,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('agent-agent-b')),
-        200,
-      );
+      await tester.ensureVisible(find.byKey(const ValueKey('agent-agent-b')));
       expect(find.text('Pinned Agents'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('pinned-agent-agent-a')),
@@ -72,6 +66,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('agent-menu-agent-a')));
       await tester.tap(find.byKey(const ValueKey('agent-menu-agent-a')));
       await tester.pumpAndSettle();
 
@@ -102,6 +98,8 @@ void main() {
         findsOneWidget,
       );
 
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('agent-menu-agent-a')));
       await tester.tap(find.byKey(const ValueKey('agent-menu-agent-a')));
       await tester.pumpAndSettle();
 
@@ -122,10 +120,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('agent-agent-a')),
-        200,
-      );
+      await tester.ensureVisible(find.byKey(const ValueKey('agent-agent-a')));
       final agentBFinder = find.byKey(const ValueKey('agent-agent-b'));
       final agentAFinder = find.byKey(const ValueKey('agent-agent-a'));
 
@@ -146,6 +141,7 @@ void main() {
       await tester.pumpWidget(_buildApp(agents: [_agentA]));
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.byKey(const ValueKey('agent-agent-a')));
       await tester.tap(find.byKey(const ValueKey('agent-agent-a')));
       await tester.pumpAndSettle();
 
