@@ -12,6 +12,8 @@ import 'package:slock_app/features/conversation/data/conversation_repository_pro
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   testWidgets('ChannelPage wrapper rebuilds typed channel scope', (
@@ -172,6 +174,136 @@ void main() {
 
     expect(find.text('Robin'), findsOneWidget);
     expect(find.byKey(const ValueKey('message-message-1')), findsOneWidget);
+  });
+
+  testWidgets(
+      'ConversationDetailPage visually distinguishes self, other, system, and agent messages',
+      (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-self',
+            content: 'I wrote this',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderId: 'user-1',
+            senderType: 'human',
+            messageType: 'message',
+            senderName: 'Robin',
+            seq: 1,
+          ),
+          ConversationMessageSummary(
+            id: 'message-other',
+            content: 'Someone else wrote this',
+            createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
+            senderId: 'user-2',
+            senderType: 'human',
+            messageType: 'message',
+            senderName: 'Alex',
+            seq: 2,
+          ),
+          ConversationMessageSummary(
+            id: 'message-system',
+            content: 'System notice',
+            createdAt: DateTime.parse('2026-04-19T15:02:00Z'),
+            senderType: 'system',
+            messageType: 'system',
+            seq: 3,
+          ),
+          ConversationMessageSummary(
+            id: 'message-agent',
+            content: 'Agent output',
+            createdAt: DateTime.parse('2026-04-19T15:03:00Z'),
+            senderId: 'agent-1',
+            senderType: 'agent',
+            messageType: 'message',
+            senderName: 'Build Bot',
+            seq: 4,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        sessionState: const SessionState(
+          status: AuthStatus.authenticated,
+          userId: 'user-1',
+          displayName: 'Robin',
+        ),
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(ConversationDetailPage));
+    final colorScheme = Theme.of(context).colorScheme;
+
+    expect(find.text('You'), findsOneWidget);
+    expect(find.text('Alex'), findsOneWidget);
+    expect(find.text('System'), findsOneWidget);
+    expect(find.text('Build Bot'), findsOneWidget);
+
+    final selfShell = tester.widget<Align>(
+      find.byKey(const ValueKey('message-shell-message-self')),
+    );
+    final otherShell = tester.widget<Align>(
+      find.byKey(const ValueKey('message-shell-message-other')),
+    );
+    final systemShell = tester.widget<Align>(
+      find.byKey(const ValueKey('message-shell-message-system')),
+    );
+    final agentShell = tester.widget<Align>(
+      find.byKey(const ValueKey('message-shell-message-agent')),
+    );
+
+    expect(selfShell.alignment, Alignment.centerRight);
+    expect(otherShell.alignment, Alignment.centerLeft);
+    expect(systemShell.alignment, Alignment.center);
+    expect(agentShell.alignment, Alignment.centerLeft);
+
+    final selfBubble = tester.widget<Container>(
+      find.byKey(const ValueKey('message-message-self')),
+    );
+    final otherBubble = tester.widget<Container>(
+      find.byKey(const ValueKey('message-message-other')),
+    );
+    final systemBubble = tester.widget<Container>(
+      find.byKey(const ValueKey('message-message-system')),
+    );
+    final agentBubble = tester.widget<Container>(
+      find.byKey(const ValueKey('message-message-agent')),
+    );
+
+    expect(
+      (selfBubble.decoration as BoxDecoration).color,
+      colorScheme.primaryContainer,
+    );
+    expect(
+      (otherBubble.decoration as BoxDecoration).color,
+      colorScheme.surfaceContainerHighest,
+    );
+    expect(
+      (systemBubble.decoration as BoxDecoration).color,
+      colorScheme.surfaceContainerHigh,
+    );
+    expect(
+      (agentBubble.decoration as BoxDecoration).color,
+      colorScheme.tertiaryContainer,
+    );
   });
 
   testWidgets('ConversationDetailPage shows error state and retries', (
@@ -802,11 +934,26 @@ void main() {
 Widget _buildApp({
   required ConversationRepository repository,
   required Widget child,
+  SessionState sessionState = const SessionState(),
 }) {
   return ProviderScope(
-    overrides: [conversationRepositoryProvider.overrideWithValue(repository)],
+    overrides: [
+      conversationRepositoryProvider.overrideWithValue(repository),
+      sessionStoreProvider.overrideWith(
+        () => _FixedSessionStore(sessionState),
+      ),
+    ],
     child: MaterialApp(home: child),
   );
+}
+
+class _FixedSessionStore extends SessionStore {
+  _FixedSessionStore(this._state);
+
+  final SessionState _state;
+
+  @override
+  SessionState build() => _state;
 }
 
 class _FakeConversationRepository implements ConversationRepository {

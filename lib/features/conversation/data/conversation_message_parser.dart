@@ -66,6 +66,7 @@ ConversationMessageSummary parseConversationMessageSummary(
         readOptionalConversationPayloadString(item['senderType']) ?? 'system',
     messageType:
         readOptionalConversationPayloadString(item['messageType']) ?? 'message',
+    senderId: readOptionalConversationPayloadString(item['senderId']),
     senderName: resolveConversationSenderName(item),
     seq: readOptionalConversationPayloadInt(item['seq']),
     attachments: _parseAttachments(item['attachments']),

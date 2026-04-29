@@ -689,6 +689,7 @@ ConversationMessageSummary _storedRowToMessage(LocalStoredMessageRecord row) {
     createdAt: row.createdAt,
     senderType: row.senderType,
     messageType: row.messageType,
+    senderId: row.senderId,
     senderName: row.senderName,
     seq: row.seq,
     attachments: _decodeAttachments(row.attachmentsJson),
