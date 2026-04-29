@@ -13,6 +13,7 @@ class AgentsState {
     this.isCreating = false,
     this.savingAgentIds = const <String>{},
     this.deletingAgentIds = const <String>{},
+    this.controlActionAgentIds = const <String>{},
   });
 
   final AgentsStatus status;
@@ -21,10 +22,16 @@ class AgentsState {
   final bool isCreating;
   final Set<String> savingAgentIds;
   final Set<String> deletingAgentIds;
+  final Set<String> controlActionAgentIds;
 
   bool isSaving(String agentId) => savingAgentIds.contains(agentId);
   bool isDeleting(String agentId) => deletingAgentIds.contains(agentId);
-  bool isBusy(String agentId) => isSaving(agentId) || isDeleting(agentId);
+  bool isControlActionInFlight(String agentId) =>
+      controlActionAgentIds.contains(agentId);
+  bool isBusy(String agentId) =>
+      isSaving(agentId) ||
+      isDeleting(agentId) ||
+      isControlActionInFlight(agentId);
 
   AgentsState copyWith({
     AgentsStatus? status,
@@ -33,6 +40,7 @@ class AgentsState {
     bool? isCreating,
     Set<String>? savingAgentIds,
     Set<String>? deletingAgentIds,
+    Set<String>? controlActionAgentIds,
     bool clearFailure = false,
   }) {
     return AgentsState(
@@ -42,6 +50,8 @@ class AgentsState {
       isCreating: isCreating ?? this.isCreating,
       savingAgentIds: savingAgentIds ?? this.savingAgentIds,
       deletingAgentIds: deletingAgentIds ?? this.deletingAgentIds,
+      controlActionAgentIds:
+          controlActionAgentIds ?? this.controlActionAgentIds,
     );
   }
 }

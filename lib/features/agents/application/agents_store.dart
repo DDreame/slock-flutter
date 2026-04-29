@@ -111,6 +111,7 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
   Future<void> startAgent(String agentId) async {
     final previousItems = state.items;
     state = state.copyWith(
+      controlActionAgentIds: {...state.controlActionAgentIds, agentId},
       items: state.items
           .map(
             (a) => a.id == agentId
@@ -126,12 +127,18 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
     } on AppFailure {
       state = state.copyWith(items: previousItems);
       rethrow;
+    } finally {
+      state = state.copyWith(
+        controlActionAgentIds: {...state.controlActionAgentIds}
+          ..remove(agentId),
+      );
     }
   }
 
   Future<void> stopAgent(String agentId) async {
     final previousItems = state.items;
     state = state.copyWith(
+      controlActionAgentIds: {...state.controlActionAgentIds, agentId},
       items: state.items
           .map(
             (a) => a.id == agentId
@@ -147,15 +154,29 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
     } on AppFailure {
       state = state.copyWith(items: previousItems);
       rethrow;
+    } finally {
+      state = state.copyWith(
+        controlActionAgentIds: {...state.controlActionAgentIds}
+          ..remove(agentId),
+      );
     }
   }
 
   Future<void> resetAgent(String agentId) async {
+    state = state.copyWith(
+      controlActionAgentIds: {...state.controlActionAgentIds, agentId},
+    );
+
     try {
       final repo = ref.read(agentsRepositoryProvider);
       await repo.resetAgent(agentId, mode: 'session');
     } on AppFailure {
       rethrow;
+    } finally {
+      state = state.copyWith(
+        controlActionAgentIds: {...state.controlActionAgentIds}
+          ..remove(agentId),
+      );
     }
   }
 
