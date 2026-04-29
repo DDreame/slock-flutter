@@ -324,6 +324,7 @@ class _TaskCard extends StatelessWidget {
     final theme = Theme.of(context);
     return InkWell(
       key: ValueKey('task-${task.id}'),
+      onTap: () => _onPrimaryTap(context),
       onLongPress: () => _showTaskActions(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -355,6 +356,20 @@ class _TaskCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _onPrimaryTap(BuildContext context) {
+    final nextStatus = switch (task.status) {
+      'todo' => 'in_progress',
+      'in_progress' => 'in_review',
+      'in_review' => 'done',
+      _ => null,
+    };
+    if (nextStatus != null) {
+      onStatusUpdate(task, nextStatus);
+    } else {
+      _showTaskActions(context);
+    }
   }
 
   void _showTaskActions(BuildContext context) {
@@ -390,6 +405,36 @@ class _TaskCard extends StatelessWidget {
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     onStatusUpdate(task, 'in_review');
+                  },
+                ),
+              if (task.status == 'done')
+                ListTile(
+                  key: const ValueKey('task-action-reopen'),
+                  leading: const Icon(Icons.replay),
+                  title: const Text('Reopen'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    onStatusUpdate(task, 'todo');
+                  },
+                ),
+              if (task.status == 'in_review')
+                ListTile(
+                  key: const ValueKey('task-action-revert-in-progress'),
+                  leading: const Icon(Icons.undo),
+                  title: const Text('Revert to In Progress'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    onStatusUpdate(task, 'in_progress');
+                  },
+                ),
+              if (task.status == 'in_progress')
+                ListTile(
+                  key: const ValueKey('task-action-revert-todo'),
+                  leading: const Icon(Icons.undo),
+                  title: const Text('Revert to To Do'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    onStatusUpdate(task, 'todo');
                   },
                 ),
               if (task.claimedById == null)
