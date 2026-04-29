@@ -354,8 +354,8 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
 
     return AlertDialog(
       title: Text(widget.isEditing ? 'Edit Agent' : 'Create Agent'),
-      content: SizedBox(
-        width: 420,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
         child: _isLoadingMachines
             ? const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
