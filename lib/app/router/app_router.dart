@@ -28,6 +28,7 @@ import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/presentation/page/invite_landing_page.dart';
 import 'package:slock_app/features/servers/presentation/page/workspace_settings_page.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
@@ -105,6 +106,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ref.read(pendingDeepLinkProvider.notifier).state = state.uri.toString();
       }
 
+      if (session.status == AuthStatus.unknown && isInviteDeepLink(path)) {
+        ref.read(pendingDeepLinkProvider.notifier).state = state.uri.toString();
+      }
+
       if (path == '/splash' && session.isAuthenticated && !bootstrapComplete) {
         return null;
       }
@@ -119,7 +124,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         final pending = ref.read(pendingDeepLinkProvider);
         if (pending != null) {
           ref.read(pendingDeepLinkProvider.notifier).state = null;
-          if (isConversationDeepLink(pending)) {
+          if (isInviteDeepLink(pending)) {
+            return pending;
+          } else if (isConversationDeepLink(pending)) {
             final pendingServerId = extractDeepLinkServerId(pending);
             final servers = ref.read(serverListStoreProvider).servers;
             if (pendingServerId != null &&
@@ -292,6 +299,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/release-notes',
         builder: (context, state) => const ReleaseNotesPage(),
       ),
+      GoRoute(
+        path: '/invite/:token',
+        builder: (context, state) => InviteLandingPage(
+          token: state.pathParameters['token']!,
+        ),
+      ),
     ],
     errorBuilder: (context, state) =>
         Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
@@ -304,7 +317,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     if (!session.isAuthenticated || !bootstrapComplete) return;
 
     ref.read(pendingDeepLinkProvider.notifier).state = null;
-    if (isConversationDeepLink(next)) {
+    if (isInviteDeepLink(next)) {
+      router.go(next);
+    } else if (isConversationDeepLink(next)) {
       final serverId = extractDeepLinkServerId(next);
       final servers = ref.read(serverListStoreProvider).servers;
       if (serverId != null && servers.any((s) => s.id == serverId)) {
