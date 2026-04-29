@@ -122,7 +122,76 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('open-dialog')));
     await tester.pumpAndSettle();
 
-    expect(find.text('No members available.'), findsOneWidget);
+    expect(find.text('No members found.'), findsOneWidget);
+  });
+
+  testWidgets('search field filters members by display name', (tester) async {
+    final repo = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'u1', displayName: 'Alice'),
+        MemberProfile(id: 'u2', displayName: 'Bob'),
+        MemberProfile(id: 'u3', displayName: 'Charlie'),
+      ],
+    );
+
+    await tester.pumpWidget(buildApp(memberRepository: repo));
+    await tester.tap(find.byKey(const ValueKey('open-dialog')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('Bob'), findsOneWidget);
+    expect(find.text('Charlie'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const ValueKey('new-dm-search')), 'ali');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('Bob'), findsNothing);
+    expect(find.text('Charlie'), findsNothing);
+  });
+
+  testWidgets('search field shows no results when query has no match',
+      (tester) async {
+    final repo = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'u1', displayName: 'Alice'),
+      ],
+    );
+
+    await tester.pumpWidget(buildApp(memberRepository: repo));
+    await tester.tap(find.byKey(const ValueKey('open-dialog')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('new-dm-search')),
+      'zzz',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No members found.'), findsOneWidget);
+  });
+
+  testWidgets('clearing search shows all members again', (tester) async {
+    final repo = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'u1', displayName: 'Alice'),
+        MemberProfile(id: 'u2', displayName: 'Bob'),
+      ],
+    );
+
+    await tester.pumpWidget(buildApp(memberRepository: repo));
+    await tester.tap(find.byKey(const ValueKey('open-dialog')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const ValueKey('new-dm-search')), 'ali');
+    await tester.pumpAndSettle();
+    expect(find.text('Bob'), findsNothing);
+
+    await tester.enterText(find.byKey(const ValueKey('new-dm-search')), '');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('Bob'), findsOneWidget);
   });
 
   testWidgets('cancel closes dialog without result', (tester) async {

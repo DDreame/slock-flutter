@@ -34,6 +34,8 @@ class _NewDmDialogContent extends ConsumerStatefulWidget {
 
 class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
   String? _openingUserId;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -41,6 +43,12 @@ class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
     Future.microtask(
       () => ref.read(memberListStoreProvider.notifier).ensureLoaded(),
     );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -61,11 +69,7 @@ class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
               message: state.failure?.message ?? 'Failed to load members.',
               onRetry: ref.read(memberListStoreProvider.notifier).load,
             ),
-          MemberListStatus.success => _MemberList(
-              members: state.members.where((m) => !m.isSelf).toList(),
-              openingUserId: _openingUserId,
-              onSelect: _openDirectMessage,
-            ),
+          MemberListStatus.success => _buildSearchableMemberList(state),
         },
       ),
       actions: [
@@ -73,6 +77,42 @@ class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
           onPressed:
               _openingUserId != null ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchableMemberList(MemberListState state) {
+    final nonSelfMembers = state.members.where((m) => !m.isSelf).toList();
+    final filtered = _searchQuery.isEmpty
+        ? nonSelfMembers
+        : nonSelfMembers
+            .where(
+              (m) => m.displayName
+                  .toLowerCase()
+                  .contains(_searchQuery.toLowerCase()),
+            )
+            .toList();
+
+    return Column(
+      children: [
+        TextField(
+          key: const ValueKey('new-dm-search'),
+          controller: _searchController,
+          decoration: const InputDecoration(
+            hintText: 'Search members...',
+            prefixIcon: Icon(Icons.search),
+            isDense: true,
+          ),
+          onChanged: (value) => setState(() => _searchQuery = value.trim()),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: _MemberList(
+            members: filtered,
+            openingUserId: _openingUserId,
+            onSelect: _openDirectMessage,
+          ),
         ),
       ],
     );
@@ -116,7 +156,7 @@ class _MemberList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (members.isEmpty) {
-      return const Center(child: Text('No members available.'));
+      return const Center(child: Text('No members found.'));
     }
     return ListView.builder(
       shrinkWrap: true,

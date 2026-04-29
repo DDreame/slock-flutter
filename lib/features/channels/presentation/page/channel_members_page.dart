@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_realtime_binding.dart';
 import 'package:slock_app/features/channels/application/channel_member_state.dart';
 import 'package:slock_app/features/channels/application/channel_member_store.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/presentation/widget/add_member_dialog.dart';
+import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 class ChannelMembersPage extends ConsumerStatefulWidget {
   final String serverId;
@@ -113,14 +116,18 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
         if (state.items.isEmpty) {
           return const Center(child: Text('No members in this channel.'));
         }
+        final currentUserId = ref.watch(sessionStoreProvider).userId;
         return ListView.builder(
           itemCount: state.items.length,
           itemBuilder: (context, index) {
             final member = state.items[index];
+            final isSelf = member.isHuman && member.userId == currentUserId;
             return _MemberTile(
               member: member,
               canManageMembers: canManageMembers,
+              showMessageAction: member.isHuman && !isSelf,
               onRemove: () => _removeMember(member),
+              onMessage: () => _openDirectMessage(member),
             );
           },
         );
@@ -173,17 +180,43 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
         );
     }
   }
+
+  Future<void> _openDirectMessage(ChannelMember member) async {
+    if (member.userId == null) return;
+    try {
+      final channelId =
+          await ref.read(memberRepositoryProvider).openDirectMessage(
+                ServerScopeId(widget.serverId),
+                userId: member.userId!,
+              );
+      if (!mounted) return;
+      context.push('/servers/${widget.serverId}/dms/$channelId');
+    } on AppFailure catch (failure) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to open conversation.'),
+          ),
+        );
+    }
+  }
 }
 
 class _MemberTile extends StatelessWidget {
   final ChannelMember member;
   final bool canManageMembers;
+  final bool showMessageAction;
   final VoidCallback onRemove;
+  final VoidCallback onMessage;
 
   const _MemberTile({
     required this.member,
     required this.canManageMembers,
+    required this.showMessageAction,
     required this.onRemove,
+    required this.onMessage,
   });
 
   @override
@@ -198,13 +231,24 @@ class _MemberTile extends StatelessWidget {
       ),
       title: Text(member.displayName),
       subtitle: Text(member.isAgent ? 'Agent' : 'Human'),
-      trailing: canManageMembers
-          ? IconButton(
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showMessageAction)
+            IconButton(
+              key: ValueKey('channel-member-message-${member.id}'),
+              icon: const Icon(Icons.chat_bubble_outline),
+              tooltip: 'Message',
+              onPressed: onMessage,
+            ),
+          if (canManageMembers)
+            IconButton(
               key: ValueKey('channel-member-remove-${member.id}'),
               icon: const Icon(Icons.remove_circle_outline),
               onPressed: onRemove,
-            )
-          : null,
+            ),
+        ],
+      ),
     );
   }
 }
