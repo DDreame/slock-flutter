@@ -204,6 +204,112 @@ class HomeListStore extends Notifier<HomeListState> {
     _emitPersonalizedState();
   }
 
+  Future<void> moveChannel(
+    ChannelScopeId scopeId, {
+    required bool moveUp,
+  }) async {
+    if (state.status != HomeListStatus.success) return;
+
+    final orderedChannelIds = _orderedChannelIds();
+    final pinnedConversationIds = _sidebarOrder.pinnedChannelIds.toSet();
+    final visibleChannelIds = orderedChannelIds
+        .where((id) => !pinnedConversationIds.contains(id))
+        .toList(growable: false);
+    final reorderedIds = _moveIdByDelta(
+      visibleChannelIds,
+      targetId: scopeId.value,
+      moveUp: moveUp,
+    );
+    if (reorderedIds == null) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      channelOrder: _mergeReorderedIds(
+        baseOrder: orderedChannelIds,
+        movableIds: visibleChannelIds.toSet(),
+        reorderedIds: reorderedIds,
+      ),
+    );
+    _emitPersonalizedState();
+
+    await _persistSidebarOrder(
+      scopeId.serverId,
+      previous,
+      includeChannelOrder: true,
+    );
+  }
+
+  Future<void> moveDirectMessage(
+    DirectMessageScopeId scopeId, {
+    required bool moveUp,
+  }) async {
+    if (state.status != HomeListStatus.success) return;
+
+    final orderedDmIds = _orderedDirectMessageIds();
+    final blockedIds = {
+      ..._sidebarOrder.hiddenDmIds,
+      ..._sidebarOrder.pinnedChannelIds,
+    };
+    final visibleDmIds = orderedDmIds
+        .where((id) => !blockedIds.contains(id))
+        .toList(growable: false);
+    final reorderedIds = _moveIdByDelta(
+      visibleDmIds,
+      targetId: scopeId.value,
+      moveUp: moveUp,
+    );
+    if (reorderedIds == null) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      dmOrder: _mergeReorderedIds(
+        baseOrder: orderedDmIds,
+        movableIds: visibleDmIds.toSet(),
+        reorderedIds: reorderedIds,
+      ),
+    );
+    _emitPersonalizedState();
+
+    await _persistSidebarOrder(
+      scopeId.serverId,
+      previous,
+      includeDmOrder: true,
+    );
+  }
+
+  Future<void> movePinnedConversation(
+    ServerScopeId serverScopeId,
+    String conversationId, {
+    required bool moveUp,
+  }) async {
+    if (state.status != HomeListStatus.success) return;
+
+    final currentPinnedConversationIds = _currentPinnedConversationIds();
+    final reorderedIds = _moveIdByDelta(
+      currentPinnedConversationIds,
+      targetId: conversationId,
+      moveUp: moveUp,
+    );
+    if (reorderedIds == null) return;
+
+    final currentPinnedOrder = _currentPinnedOrder();
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      pinnedOrder: _mergeReorderedIds(
+        baseOrder: currentPinnedOrder,
+        movableIds: currentPinnedConversationIds.toSet(),
+        reorderedIds: reorderedIds,
+      ),
+    );
+    _emitPersonalizedState();
+
+    await _persistSidebarOrder(
+      serverScopeId,
+      previous,
+      includePinnedOrder: true,
+    );
+  }
+
   Future<void> pinChannel(ChannelScopeId scopeId) async {
     if (state.status != HomeListStatus.success) return;
     final channelId = scopeId.value;
@@ -216,18 +322,12 @@ class HomeListStore extends Notifier<HomeListState> {
     );
     _emitPersonalizedState();
 
-    try {
-      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
-            scopeId.serverId,
-            patch: _sidebarOrder.toPatchMap(
-              includePinnedChannelIds: true,
-              includePinnedOrder: true,
-            ),
-          );
-    } on AppFailure {
-      _sidebarOrder = previous;
-      _emitPersonalizedState();
-    }
+    await _persistSidebarOrder(
+      scopeId.serverId,
+      previous,
+      includePinnedChannelIds: true,
+      includePinnedOrder: true,
+    );
   }
 
   Future<void> unpinChannel(ChannelScopeId scopeId) async {
@@ -245,18 +345,55 @@ class HomeListStore extends Notifier<HomeListState> {
     );
     _emitPersonalizedState();
 
-    try {
-      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
-            scopeId.serverId,
-            patch: _sidebarOrder.toPatchMap(
-              includePinnedChannelIds: true,
-              includePinnedOrder: true,
-            ),
-          );
-    } on AppFailure {
-      _sidebarOrder = previous;
-      _emitPersonalizedState();
-    }
+    await _persistSidebarOrder(
+      scopeId.serverId,
+      previous,
+      includePinnedChannelIds: true,
+      includePinnedOrder: true,
+    );
+  }
+
+  Future<void> pinDirectMessage(DirectMessageScopeId scopeId) async {
+    if (state.status != HomeListStatus.success) return;
+    final dmId = scopeId.value;
+    if (_sidebarOrder.isChannelPinned(dmId)) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      pinnedChannelIds: [..._sidebarOrder.pinnedChannelIds, dmId],
+      pinnedOrder: [..._sidebarOrder.pinnedOrder, dmId],
+      hiddenDmIds: _sidebarOrder.hiddenDmIds.where((id) => id != dmId).toList(),
+    );
+    _emitPersonalizedState();
+
+    await _persistSidebarOrder(
+      scopeId.serverId,
+      previous,
+      includePinnedChannelIds: true,
+      includePinnedOrder: true,
+      includeHiddenDmIds: true,
+    );
+  }
+
+  Future<void> unpinDirectMessage(DirectMessageScopeId scopeId) async {
+    if (state.status != HomeListStatus.success) return;
+    final dmId = scopeId.value;
+    if (!_sidebarOrder.isChannelPinned(dmId)) return;
+
+    final previous = _sidebarOrder;
+    _sidebarOrder = _sidebarOrder.copyWith(
+      pinnedChannelIds:
+          _sidebarOrder.pinnedChannelIds.where((id) => id != dmId).toList(),
+      pinnedOrder: _sidebarOrder.pinnedOrder.where((id) => id != dmId).toList(),
+    );
+    _emitPersonalizedState();
+
+    await _persistSidebarOrder(
+      scopeId.serverId,
+      previous,
+      includePinnedChannelIds: true,
+      includePinnedOrder: true,
+    );
   }
 
   Future<void> hideDm(DirectMessageScopeId scopeId) async {
@@ -267,18 +404,19 @@ class HomeListStore extends Notifier<HomeListState> {
     final previous = _sidebarOrder;
     _sidebarOrder = _sidebarOrder.copyWith(
       hiddenDmIds: [..._sidebarOrder.hiddenDmIds, dmId],
+      pinnedChannelIds:
+          _sidebarOrder.pinnedChannelIds.where((id) => id != dmId).toList(),
+      pinnedOrder: _sidebarOrder.pinnedOrder.where((id) => id != dmId).toList(),
     );
     _emitPersonalizedState();
 
-    try {
-      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
-            scopeId.serverId,
-            patch: _sidebarOrder.toPatchMap(includeHiddenDmIds: true),
-          );
-    } on AppFailure {
-      _sidebarOrder = previous;
-      _emitPersonalizedState();
-    }
+    await _persistSidebarOrder(
+      scopeId.serverId,
+      previous,
+      includeHiddenDmIds: true,
+      includePinnedChannelIds: true,
+      includePinnedOrder: true,
+    );
   }
 
   Future<void> unhideDm(DirectMessageScopeId scopeId) async {
@@ -292,15 +430,11 @@ class HomeListStore extends Notifier<HomeListState> {
     );
     _emitPersonalizedState();
 
-    try {
-      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
-            scopeId.serverId,
-            patch: _sidebarOrder.toPatchMap(includeHiddenDmIds: true),
-          );
-    } on AppFailure {
-      _sidebarOrder = previous;
-      _emitPersonalizedState();
-    }
+    await _persistSidebarOrder(
+      scopeId.serverId,
+      previous,
+      includeHiddenDmIds: true,
+    );
   }
 
   Future<void> pinAgent(String agentId) async {
@@ -315,17 +449,11 @@ class HomeListStore extends Notifier<HomeListState> {
     );
     _emitPersonalizedState();
 
-    try {
-      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
-            serverScopeId,
-            patch: _sidebarOrder.toPatchMap(
-              includePinnedAgentIds: true,
-            ),
-          );
-    } on AppFailure {
-      _sidebarOrder = previous;
-      _emitPersonalizedState();
-    }
+    await _persistSidebarOrder(
+      serverScopeId,
+      previous,
+      includePinnedAgentIds: true,
+    );
   }
 
   Future<void> unpinAgent(String agentId) async {
@@ -341,17 +469,11 @@ class HomeListStore extends Notifier<HomeListState> {
     );
     _emitPersonalizedState();
 
-    try {
-      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
-            serverScopeId,
-            patch: _sidebarOrder.toPatchMap(
-              includePinnedAgentIds: true,
-            ),
-          );
-    } on AppFailure {
-      _sidebarOrder = previous;
-      _emitPersonalizedState();
-    }
+    await _persistSidebarOrder(
+      serverScopeId,
+      previous,
+      includePinnedAgentIds: true,
+    );
   }
 
   String channelRoutePath(ChannelScopeId scopeId) {
@@ -397,8 +519,20 @@ class HomeListStore extends Notifier<HomeListState> {
       order.dmOrder,
       (d) => d.scopeId.value,
     );
-    final visibleDms =
-        sortedDms.where((d) => !hiddenSet.contains(d.scopeId.value)).toList();
+    final pinnedDms = sortedDms
+        .where(
+          (d) =>
+              pinnedSet.contains(d.scopeId.value) &&
+              !hiddenSet.contains(d.scopeId.value),
+        )
+        .toList();
+    final visibleDms = sortedDms
+        .where(
+          (d) =>
+              !hiddenSet.contains(d.scopeId.value) &&
+              !pinnedSet.contains(d.scopeId.value),
+        )
+        .toList();
     final hiddenDms =
         sortedDms.where((d) => hiddenSet.contains(d.scopeId.value)).toList();
 
@@ -422,6 +556,8 @@ class HomeListStore extends Notifier<HomeListState> {
       serverScopeId: serverScopeId,
       status: status,
       pinnedChannels: pinnedSorted,
+      pinnedDirectMessages: pinnedDms,
+      pinnedConversationOrder: _currentPinnedConversationIds(),
       channels: unpinned,
       directMessages: visibleDms,
       hiddenDirectMessages: hiddenDms,
@@ -431,6 +567,143 @@ class HomeListStore extends Notifier<HomeListState> {
       clearFailure: status == HomeListStatus.success,
     );
   }
+
+  List<String> _orderedChannelIds() {
+    return _sortByOrder(
+      _allChannels,
+      _sidebarOrder.channelOrder,
+      (c) => c.scopeId.value,
+    ).map((channel) => channel.scopeId.value).toList(growable: false);
+  }
+
+  List<String> _orderedDirectMessageIds() {
+    return _sortByOrder(
+      _allDirectMessages,
+      _sidebarOrder.dmOrder,
+      (d) => d.scopeId.value,
+    ).map((dm) => dm.scopeId.value).toList(growable: false);
+  }
+
+  List<String> _orderedAgentIds() {
+    return _sortByOrder(
+      _allAgents,
+      _sidebarOrder.agentOrder,
+      (agent) => agent.id,
+    ).map((agent) => agent.id).toList(growable: false);
+  }
+
+  List<String> _currentPinnedOrder() {
+    final hiddenDmIds = _sidebarOrder.hiddenDmIds.toSet();
+    final pinnedConversationIds = {
+      for (final channelId in _orderedChannelIds())
+        if (_sidebarOrder.isChannelPinned(channelId)) channelId,
+      for (final dmId in _orderedDirectMessageIds())
+        if (_sidebarOrder.isChannelPinned(dmId) && !hiddenDmIds.contains(dmId))
+          dmId,
+    };
+    final pinnedAgentIds = _sidebarOrder.pinnedAgentIds.toSet();
+    final activePinnedIds = {...pinnedConversationIds, ...pinnedAgentIds};
+    final currentPinnedOrder = [
+      for (final id in _sidebarOrder.pinnedOrder)
+        if (activePinnedIds.contains(id)) id,
+    ];
+
+    for (final id in _orderedChannelIds()) {
+      if (pinnedConversationIds.contains(id) &&
+          !currentPinnedOrder.contains(id)) {
+        currentPinnedOrder.add(id);
+      }
+    }
+    for (final id in _orderedDirectMessageIds()) {
+      if (pinnedConversationIds.contains(id) &&
+          !currentPinnedOrder.contains(id)) {
+        currentPinnedOrder.add(id);
+      }
+    }
+    for (final id in _orderedAgentIds()) {
+      if (pinnedAgentIds.contains(id) && !currentPinnedOrder.contains(id)) {
+        currentPinnedOrder.add(id);
+      }
+    }
+
+    return currentPinnedOrder;
+  }
+
+  List<String> _currentPinnedConversationIds() {
+    final hiddenDmIds = _sidebarOrder.hiddenDmIds.toSet();
+    final pinnedConversationIds = {
+      for (final channelId in _orderedChannelIds())
+        if (_sidebarOrder.isChannelPinned(channelId)) channelId,
+      for (final dmId in _orderedDirectMessageIds())
+        if (_sidebarOrder.isChannelPinned(dmId) && !hiddenDmIds.contains(dmId))
+          dmId,
+    };
+    return _currentPinnedOrder()
+        .where((id) => pinnedConversationIds.contains(id))
+        .toList(growable: false);
+  }
+
+  Future<void> _persistSidebarOrder(
+    ServerScopeId serverScopeId,
+    SidebarOrder previous, {
+    bool includeChannelOrder = false,
+    bool includeDmOrder = false,
+    bool includePinnedChannelIds = false,
+    bool includePinnedOrder = false,
+    bool includeHiddenDmIds = false,
+    bool includePinnedAgentIds = false,
+  }) async {
+    try {
+      await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
+            serverScopeId,
+            patch: _sidebarOrder.toPatchMap(
+              includeChannelOrder: includeChannelOrder,
+              includeDmOrder: includeDmOrder,
+              includePinnedChannelIds: includePinnedChannelIds,
+              includePinnedOrder: includePinnedOrder,
+              includeHiddenDmIds: includeHiddenDmIds,
+              includePinnedAgentIds: includePinnedAgentIds,
+            ),
+          );
+    } on AppFailure {
+      _sidebarOrder = previous;
+      _emitPersonalizedState();
+    }
+  }
+}
+
+List<String>? _moveIdByDelta(
+  List<String> ids, {
+  required String targetId,
+  required bool moveUp,
+}) {
+  final index = ids.indexOf(targetId);
+  if (index == -1) return null;
+  final nextIndex = moveUp ? index - 1 : index + 1;
+  if (nextIndex < 0 || nextIndex >= ids.length) return null;
+
+  final reordered = List<String>.of(ids);
+  final item = reordered.removeAt(index);
+  reordered.insert(nextIndex, item);
+  return reordered;
+}
+
+List<String> _mergeReorderedIds({
+  required List<String> baseOrder,
+  required Set<String> movableIds,
+  required List<String> reorderedIds,
+}) {
+  final merged = <String>[];
+  var movableIndex = 0;
+  for (final id in baseOrder) {
+    if (movableIds.contains(id)) {
+      merged.add(reorderedIds[movableIndex]);
+      movableIndex += 1;
+      continue;
+    }
+    merged.add(id);
+  }
+  return merged;
 }
 
 List<T> _sortByOrder<T>(

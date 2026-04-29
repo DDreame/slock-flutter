@@ -35,6 +35,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     final unreadState = ref.watch(channelUnreadStoreProvider);
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
     final managementState = ref.watch(channelManagementStoreProvider);
+    final pinnedConversationRows = _buildPinnedConversationRows(
+      state: state,
+      homeStore: homeStore,
+      channelUnreadCount: unreadState.channelUnreadCount,
+      dmUnreadCount: unreadState.dmUnreadCount,
+      unreadStore: unreadStore,
+      isMutating: managementState.isBusy,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -119,25 +127,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   }
                 },
               ),
-              if (state.pinnedChannels.isNotEmpty) ...[
+              if (pinnedConversationRows.isNotEmpty) ...[
                 const _HomeSectionHeader(title: 'Pinned'),
-                for (final channel in state.pinnedChannels)
-                  HomeChannelRow(
-                    key: ValueKey('pinned-${channel.scopeId.routeParam}'),
-                    channel: channel,
-                    unreadCount:
-                        unreadState.channelUnreadCount(channel.scopeId),
-                    isMutating: managementState.isBusy,
-                    isPinned: true,
-                    onTap: () {
-                      unreadStore.markChannelRead(channel.scopeId);
-                      context.go(homeStore.channelRoutePath(channel.scopeId));
-                    },
-                    onEdit: () => _showEditChannelDialog(channel),
-                    onDelete: () => _showDeleteChannelDialog(channel),
-                    onLeave: () => _showLeaveChannelDialog(channel),
-                    onTogglePin: () => homeStore.unpinChannel(channel.scopeId),
-                  ),
+                ...pinnedConversationRows,
               ],
               _HomeSectionHeader(
                 title: 'Channels',
@@ -145,20 +137,35 @@ class _HomePageState extends ConsumerState<HomePage> {
                 addButtonKey: const ValueKey('channel-create-button'),
                 addTooltip: 'Create channel',
               ),
-              for (final channel in state.channels)
+              for (final entry in state.channels.asMap().entries)
                 HomeChannelRow(
-                  key: ValueKey('channel-${channel.scopeId.routeParam}'),
-                  channel: channel,
-                  unreadCount: unreadState.channelUnreadCount(channel.scopeId),
+                  key: ValueKey(
+                    'channel-${entry.value.scopeId.routeParam}',
+                  ),
+                  channel: entry.value,
+                  unreadCount:
+                      unreadState.channelUnreadCount(entry.value.scopeId),
                   isMutating: managementState.isBusy,
                   onTap: () {
-                    unreadStore.markChannelRead(channel.scopeId);
-                    context.go(homeStore.channelRoutePath(channel.scopeId));
+                    unreadStore.markChannelRead(entry.value.scopeId);
+                    context.go(homeStore.channelRoutePath(entry.value.scopeId));
                   },
-                  onEdit: () => _showEditChannelDialog(channel),
-                  onDelete: () => _showDeleteChannelDialog(channel),
-                  onLeave: () => _showLeaveChannelDialog(channel),
-                  onTogglePin: () => homeStore.pinChannel(channel.scopeId),
+                  onEdit: () => _showEditChannelDialog(entry.value),
+                  onDelete: () => _showDeleteChannelDialog(entry.value),
+                  onLeave: () => _showLeaveChannelDialog(entry.value),
+                  onTogglePin: () => homeStore.pinChannel(entry.value.scopeId),
+                  onMoveUp: entry.key > 0
+                      ? () => homeStore.moveChannel(
+                            entry.value.scopeId,
+                            moveUp: true,
+                          )
+                      : null,
+                  onMoveDown: entry.key < state.channels.length - 1
+                      ? () => homeStore.moveChannel(
+                            entry.value.scopeId,
+                            moveUp: false,
+                          )
+                      : null,
                 ),
               _HomeSectionHeader(
                 title: 'Direct Messages',
@@ -166,18 +173,33 @@ class _HomePageState extends ConsumerState<HomePage> {
                 addButtonKey: const ValueKey('dm-create-button'),
                 addTooltip: 'New message',
               ),
-              for (final directMessage in state.directMessages)
+              for (final entry in state.directMessages.asMap().entries)
                 HomeDirectMessageRow(
-                  key: ValueKey('dm-${directMessage.scopeId.routeParam}'),
-                  directMessage: directMessage,
-                  unreadCount: unreadState.dmUnreadCount(directMessage.scopeId),
+                  key: ValueKey('dm-${entry.value.scopeId.routeParam}'),
+                  directMessage: entry.value,
+                  unreadCount: unreadState.dmUnreadCount(entry.value.scopeId),
                   onTap: () {
-                    unreadStore.markDmRead(directMessage.scopeId);
+                    unreadStore.markDmRead(entry.value.scopeId);
                     context.go(
-                      homeStore.directMessageRoutePath(directMessage.scopeId),
+                      homeStore.directMessageRoutePath(entry.value.scopeId),
                     );
                   },
-                  onHide: () => homeStore.hideDm(directMessage.scopeId),
+                  onTogglePin: () => homeStore.pinDirectMessage(
+                    entry.value.scopeId,
+                  ),
+                  onHide: () => homeStore.hideDm(entry.value.scopeId),
+                  onMoveUp: entry.key > 0
+                      ? () => homeStore.moveDirectMessage(
+                            entry.value.scopeId,
+                            moveUp: true,
+                          )
+                      : null,
+                  onMoveDown: entry.key < state.directMessages.length - 1
+                      ? () => homeStore.moveDirectMessage(
+                            entry.value.scopeId,
+                            moveUp: false,
+                          )
+                      : null,
                 ),
               if (state.hiddenDirectMessages.isNotEmpty)
                 ListTile(
@@ -415,6 +437,105 @@ class _HomePageState extends ConsumerState<HomePage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  List<Widget> _buildPinnedConversationRows({
+    required HomeListState state,
+    required HomeListStore homeStore,
+    required int Function(ChannelScopeId) channelUnreadCount,
+    required int Function(DirectMessageScopeId) dmUnreadCount,
+    required ChannelUnreadStore unreadStore,
+    required bool isMutating,
+  }) {
+    final pinnedChannels = {
+      for (final channel in state.pinnedChannels)
+        channel.scopeId.value: channel,
+    };
+    final pinnedDms = {
+      for (final dm in state.pinnedDirectMessages) dm.scopeId.value: dm,
+    };
+    final rows = <Widget>[];
+    final pinnedIds = state.pinnedConversationOrder;
+
+    for (final entry in pinnedIds.asMap().entries) {
+      final pinnedId = entry.value;
+      final canMoveUp = entry.key > 0;
+      final canMoveDown = entry.key < pinnedIds.length - 1;
+
+      final channel = pinnedChannels[pinnedId];
+      if (channel != null) {
+        rows.add(
+          HomeChannelRow(
+            key: ValueKey('pinned-${channel.scopeId.routeParam}'),
+            channel: channel,
+            unreadCount: channelUnreadCount(channel.scopeId),
+            isMutating: isMutating,
+            isPinned: true,
+            onTap: () {
+              unreadStore.markChannelRead(channel.scopeId);
+              context.go(homeStore.channelRoutePath(channel.scopeId));
+            },
+            onEdit: () => _showEditChannelDialog(channel),
+            onDelete: () => _showDeleteChannelDialog(channel),
+            onLeave: () => _showLeaveChannelDialog(channel),
+            onTogglePin: () => homeStore.unpinChannel(channel.scopeId),
+            onMoveUp: canMoveUp
+                ? () => homeStore.movePinnedConversation(
+                      channel.scopeId.serverId,
+                      channel.scopeId.value,
+                      moveUp: true,
+                    )
+                : null,
+            onMoveDown: canMoveDown
+                ? () => homeStore.movePinnedConversation(
+                      channel.scopeId.serverId,
+                      channel.scopeId.value,
+                      moveUp: false,
+                    )
+                : null,
+          ),
+        );
+        continue;
+      }
+
+      final directMessage = pinnedDms[pinnedId];
+      if (directMessage != null) {
+        rows.add(
+          HomeDirectMessageRow(
+            key: ValueKey('pinned-dm-${directMessage.scopeId.routeParam}'),
+            directMessage: directMessage,
+            unreadCount: dmUnreadCount(directMessage.scopeId),
+            isPinned: true,
+            onTap: () {
+              unreadStore.markDmRead(directMessage.scopeId);
+              context.go(
+                homeStore.directMessageRoutePath(directMessage.scopeId),
+              );
+            },
+            onTogglePin: () => homeStore.unpinDirectMessage(
+              directMessage.scopeId,
+            ),
+            onHide: () => homeStore.hideDm(directMessage.scopeId),
+            onMoveUp: canMoveUp
+                ? () => homeStore.movePinnedConversation(
+                      directMessage.scopeId.serverId,
+                      directMessage.scopeId.value,
+                      moveUp: true,
+                    )
+                : null,
+            onMoveDown: canMoveDown
+                ? () => homeStore.movePinnedConversation(
+                      directMessage.scopeId.serverId,
+                      directMessage.scopeId.value,
+                      moveUp: false,
+                    )
+                : null,
+          ),
+        );
+      }
+    }
+
+    return rows;
   }
 
   void _showHiddenDmsSheet(

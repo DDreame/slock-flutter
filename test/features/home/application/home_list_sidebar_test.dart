@@ -218,6 +218,110 @@ void main() {
     });
   });
 
+  group('pinDirectMessage', () {
+    test('optimistically pins a DM and patches API', () async {
+      final sidebarRepo = _FakeSidebarOrderRepository();
+      final container = _buildContainer(sidebarOrderRepository: sidebarRepo);
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+      expect(
+          container.read(homeListStoreProvider).pinnedDirectMessages, isEmpty);
+
+      await container.read(homeListStoreProvider.notifier).pinDirectMessage(
+            const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-alice',
+            ),
+          );
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.pinnedDirectMessages.length, 1);
+      expect(state.pinnedDirectMessages.first.title, 'Alice');
+      expect(state.directMessages.length, 1);
+      expect(state.directMessages.first.title, 'Bob');
+      expect(state.pinnedConversationOrder, ['dm-alice']);
+      expect(sidebarRepo.patchCalls, 1);
+    });
+  });
+
+  group('moveChannel', () {
+    test('updates channel order and patches API', () async {
+      final sidebarRepo = _FakeSidebarOrderRepository();
+      final container = _buildContainer(sidebarOrderRepository: sidebarRepo);
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      await container.read(homeListStoreProvider.notifier).moveChannel(
+            const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'random',
+            ),
+            moveUp: true,
+          );
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.channels.map((channel) => channel.name).toList(), [
+        'random',
+        'general',
+      ]);
+      expect(sidebarRepo.patchCalls, 1);
+    });
+  });
+
+  group('moveDirectMessage', () {
+    test('updates direct message order and patches API', () async {
+      final sidebarRepo = _FakeSidebarOrderRepository();
+      final container = _buildContainer(sidebarOrderRepository: sidebarRepo);
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      await container.read(homeListStoreProvider.notifier).moveDirectMessage(
+            const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-bob',
+            ),
+            moveUp: true,
+          );
+
+      final state = container.read(homeListStoreProvider);
+      expect(
+        state.directMessages.map((dm) => dm.title).toList(),
+        ['Bob', 'Alice'],
+      );
+      expect(sidebarRepo.patchCalls, 1);
+    });
+  });
+
+  group('movePinnedConversation', () {
+    test('reorders pinned conversations without disturbing pins', () async {
+      final sidebarRepo = _FakeSidebarOrderRepository(
+        sidebarOrder: const SidebarOrder(
+          pinnedChannelIds: ['general', 'dm-alice'],
+          pinnedOrder: ['general', 'dm-alice'],
+        ),
+      );
+      final container = _buildContainer(sidebarOrderRepository: sidebarRepo);
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      await container
+          .read(homeListStoreProvider.notifier)
+          .movePinnedConversation(
+            const ServerScopeId('server-1'),
+            'dm-alice',
+            moveUp: true,
+          );
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.pinnedConversationOrder, ['dm-alice', 'general']);
+      expect(sidebarRepo.patchCalls, 1);
+    });
+  });
+
   group('hideDm', () {
     test('optimistically hides a DM and patches API', () async {
       final sidebarRepo = _FakeSidebarOrderRepository();
@@ -263,6 +367,34 @@ void main() {
       final state = container.read(homeListStoreProvider);
       expect(state.directMessages.length, 2);
       expect(state.hiddenDirectMessages, isEmpty);
+    });
+
+    test('closing a pinned DM removes it from pinned conversations', () async {
+      final sidebarRepo = _FakeSidebarOrderRepository(
+        sidebarOrder: const SidebarOrder(
+          pinnedChannelIds: ['dm-alice'],
+          pinnedOrder: ['dm-alice'],
+        ),
+      );
+      final container = _buildContainer(sidebarOrderRepository: sidebarRepo);
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      await container.read(homeListStoreProvider.notifier).hideDm(
+            const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-alice',
+            ),
+          );
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.pinnedDirectMessages, isEmpty);
+      expect(state.hiddenDirectMessages.map((dm) => dm.title).toList(), [
+        'Alice',
+      ]);
+      expect(state.pinnedConversationOrder, isEmpty);
+      expect(sidebarRepo.patchCalls, 1);
     });
   });
 
