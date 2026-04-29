@@ -86,27 +86,38 @@ void main() {
     expect(find.byKey(const ValueKey('members-list')), findsOneWidget);
   });
 
-  testWidgets('create invite opens dialog with copyable invite code', (
+  testWidgets('invite human submits email invite flow', (
     tester,
   ) async {
+    final repository = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'user-123', displayName: 'Alice', role: 'owner'),
+        MemberProfile(id: 'user-2', displayName: 'Bob'),
+      ],
+    );
+
     await tester.pumpWidget(
       _buildApp(
-        repository: _FakeMemberRepository(
-          members: const [
-            MemberProfile(id: 'user-123', displayName: 'Alice', role: 'admin'),
-            MemberProfile(id: 'user-2', displayName: 'Bob'),
-          ],
-          inviteCode: 'https://slock.ai/invite/token-200',
-        ),
+        repository: repository,
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('members-create-invite')));
+    expect(find.text('Owner'), findsAtLeastNWidgets(1));
+
+    await tester.tap(find.byKey(const ValueKey('members-invite-human')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('members-invite-code')), findsOneWidget);
-    expect(find.text('https://slock.ai/invite/token-200'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('members-invite-email-field')),
+      'user@example.com',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('members-invite-email-submit')));
+    await tester.pumpAndSettle();
+
+    expect(repository.inviteEmails, ['user@example.com']);
+    expect(find.text('Invite email sent to user@example.com.'), findsOneWidget);
   });
 
   testWidgets('member admin actions update role and remove member', (
@@ -114,7 +125,7 @@ void main() {
   ) async {
     final repository = _FakeMemberRepository(
       members: const [
-        MemberProfile(id: 'user-123', displayName: 'Alice', role: 'admin'),
+        MemberProfile(id: 'user-123', displayName: 'Alice', role: 'owner'),
         MemberProfile(id: 'user-2', displayName: 'Bob', role: 'member'),
       ],
     );
@@ -156,7 +167,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('members-create-invite')), findsNothing);
+    expect(find.byKey(const ValueKey('members-invite-human')), findsNothing);
     expect(find.byKey(const ValueKey('member-actions-user-2')), findsNothing);
     expect(find.byKey(const ValueKey('member-message-user-2')), findsOneWidget);
   });
@@ -205,18 +216,18 @@ GoRouter _buildRouter() {
   );
 }
 
-class _FakeMemberRepository implements MemberRepository {
+class _FakeMemberRepository
+    implements MemberRepository, MemberInviteMutationRepository {
   _FakeMemberRepository({
     required this.members,
     this.channelId = 'dm-100',
-    this.inviteCode = 'https://slock.ai/invite/token-100',
   });
 
   final List<(String, String, String)> roleRequests = [];
   final List<(String, String)> removeRequests = [];
+  final List<String> inviteEmails = [];
   List<MemberProfile> members;
   final String channelId;
-  final String inviteCode;
 
   @override
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
@@ -225,7 +236,15 @@ class _FakeMemberRepository implements MemberRepository {
 
   @override
   Future<String> createInvite(ServerScopeId serverId) async {
-    return inviteCode;
+    return 'https://slock.ai/invite/token-100';
+  }
+
+  @override
+  Future<void> inviteByEmail(
+    ServerScopeId serverId, {
+    required String email,
+  }) async {
+    inviteEmails.add(email);
   }
 
   @override

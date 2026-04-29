@@ -14,7 +14,8 @@ final memberRepositoryProvider = Provider<MemberRepository>((ref) {
   return _ApiMemberRepository(appDioClient: appDioClient);
 });
 
-class _ApiMemberRepository implements MemberRepository {
+class _ApiMemberRepository
+    implements MemberRepository, MemberInviteMutationRepository {
   const _ApiMemberRepository({required AppDioClient appDioClient})
       : _appDioClient = appDioClient;
 
@@ -66,6 +67,27 @@ class _ApiMemberRepository implements MemberRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to create invite.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> inviteByEmail(
+    ServerScopeId serverId, {
+    required String email,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        _serverInvitesPath(serverId),
+        data: {'email': email},
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to send invite email.',
         causeType: error.runtimeType.toString(),
       );
     }

@@ -28,6 +28,8 @@ class MemberListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canManageTarget =
+        canManageMember && !member.isSelf && member.role != 'owner';
     final subtitle = [
       if (member.role != null) formatMemberRoleLabel(member.role!),
       if (member.presence != null) member.presence,
@@ -64,7 +66,7 @@ class MemberListItem extends StatelessWidget {
             onPressed: isOpeningDirectMessage ? null : onMessage,
             tooltip: 'Message',
           ),
-          if (canManageMember && !member.isSelf)
+          if (canManageTarget)
             isUpdatingRole || isRemoving
                 ? const SizedBox.square(
                     dimension: 18,
@@ -124,14 +126,17 @@ class _MemberRoleBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isOwner = role == 'owner';
     final isAdmin = role == 'admin';
     return Container(
       key: ValueKey('member-role-$userId'),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isAdmin
-            ? colorScheme.primaryContainer
-            : colorScheme.surfaceContainerHighest,
+        color: isOwner
+            ? colorScheme.tertiaryContainer
+            : (isAdmin
+                ? colorScheme.primaryContainer
+                : colorScheme.surfaceContainerHighest),
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -144,6 +149,8 @@ class _MemberRoleBadge extends StatelessWidget {
 
 String formatMemberRoleLabel(String role) {
   switch (role) {
+    case 'owner':
+      return 'Owner';
     case 'admin':
       return 'Admin';
     case 'member':

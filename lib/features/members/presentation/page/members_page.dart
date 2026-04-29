@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
@@ -54,7 +53,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             ? [
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: state.isCreatingInvite
+                  child: state.isInvitingByEmail
                       ? const Center(
                           child: SizedBox.square(
                             dimension: 18,
@@ -62,10 +61,10 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                           ),
                         )
                       : IconButton(
-                          key: const ValueKey('members-create-invite'),
-                          onPressed: _createInvite,
+                          key: const ValueKey('members-invite-human'),
+                          onPressed: _inviteHuman,
                           icon: const Icon(Icons.person_add_alt_1),
-                          tooltip: 'Create invite',
+                          tooltip: 'Invite human',
                         ),
                 ),
               ]
@@ -125,22 +124,29 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     );
   }
 
-  Future<void> _createInvite() async {
+  Future<void> _inviteHuman() async {
     final messenger = ScaffoldMessenger.of(context);
+    final email = await _promptInviteEmail();
+    if (email == null) {
+      return;
+    }
 
     try {
-      final inviteCode =
-          await ref.read(memberListStoreProvider.notifier).createInvite();
+      await ref.read(memberListStoreProvider.notifier).inviteByEmail(email);
       if (!mounted) {
         return;
       }
-      await _showInviteDialog(inviteCode);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Invite email sent to $email.')),
+      );
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
       }
       messenger.showSnackBar(
-        SnackBar(content: Text(failure.message ?? 'Failed to create invite.')),
+        SnackBar(
+          content: Text(failure.message ?? 'Failed to send invite email.'),
+        ),
       );
     }
   }
@@ -244,45 +250,11 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     }
   }
 
-  Future<void> _showInviteDialog(String inviteCode) async {
-    final messenger = ScaffoldMessenger.of(context);
-    await showDialog<void>(
+  Future<String?> _promptInviteEmail() async {
+    return showDialog<String>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Invite Created'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Copy this invite code or link and share it.'),
-              const SizedBox(height: 16),
-              SelectableText(
-                inviteCode,
-                key: const ValueKey('members-invite-code'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              key: const ValueKey('members-copy-invite'),
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: inviteCode));
-                if (!context.mounted) {
-                  return;
-                }
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Invite copied.')),
-                );
-              },
-              child: const Text('Copy'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Done'),
-            ),
-          ],
-        );
+        return const _InviteHumanDialog();
       },
     );
   }
@@ -290,9 +262,64 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
   bool _canManageMembers(List<MemberProfile> members) {
     for (final member in members) {
       if (member.isSelf) {
-        return member.role == 'admin';
+        return member.role == 'owner' || member.role == 'admin';
       }
     }
     return false;
+  }
+}
+
+class _InviteHumanDialog extends StatefulWidget {
+  const _InviteHumanDialog();
+
+  @override
+  State<_InviteHumanDialog> createState() => _InviteHumanDialogState();
+}
+
+class _InviteHumanDialogState extends State<_InviteHumanDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final email = _controller.text.trim();
+    final isValid =
+        email.isNotEmpty && email.contains('@') && !email.startsWith('@');
+    return AlertDialog(
+      title: const Text('Invite Human'),
+      content: TextField(
+        key: const ValueKey('members-invite-email-field'),
+        controller: _controller,
+        autofocus: true,
+        keyboardType: TextInputType.emailAddress,
+        decoration: const InputDecoration(
+          labelText: 'Email',
+          hintText: 'user@example.com',
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey('members-invite-email-submit'),
+          onPressed: isValid ? () => Navigator.of(context).pop(email) : null,
+          child: const Text('Send Invite'),
+        ),
+      ],
+    );
   }
 }

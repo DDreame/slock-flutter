@@ -10,7 +10,7 @@ class MemberListState {
     this.status = MemberListStatus.initial,
     this.members = const [],
     this.failure,
-    this.isCreatingInvite = false,
+    this.isInvitingByEmail = false,
     this.openingDirectMessageMemberId,
     this.updatingRoleMemberIds = const {},
     this.removingMemberIds = const {},
@@ -19,7 +19,7 @@ class MemberListState {
   final MemberListStatus status;
   final List<MemberProfile> members;
   final AppFailure? failure;
-  final bool isCreatingInvite;
+  final bool isInvitingByEmail;
   final String? openingDirectMessageMemberId;
   final Set<String> updatingRoleMemberIds;
   final Set<String> removingMemberIds;
@@ -41,7 +41,7 @@ class MemberListState {
     List<MemberProfile>? members,
     AppFailure? failure,
     bool clearFailure = false,
-    bool? isCreatingInvite,
+    bool? isInvitingByEmail,
     String? openingDirectMessageMemberId,
     bool clearOpeningDirectMessage = false,
     Set<String>? updatingRoleMemberIds,
@@ -51,7 +51,7 @@ class MemberListState {
       status: status ?? this.status,
       members: members ?? this.members,
       failure: clearFailure ? null : (failure ?? this.failure),
-      isCreatingInvite: isCreatingInvite ?? this.isCreatingInvite,
+      isInvitingByEmail: isInvitingByEmail ?? this.isInvitingByEmail,
       openingDirectMessageMemberId: clearOpeningDirectMessage
           ? null
           : (openingDirectMessageMemberId ?? this.openingDirectMessageMemberId),
@@ -69,7 +69,7 @@ class MemberListState {
           status == other.status &&
           listEquals(members, other.members) &&
           failure == other.failure &&
-          isCreatingInvite == other.isCreatingInvite &&
+          isInvitingByEmail == other.isInvitingByEmail &&
           openingDirectMessageMemberId == other.openingDirectMessageMemberId &&
           setEquals(updatingRoleMemberIds, other.updatingRoleMemberIds) &&
           setEquals(removingMemberIds, other.removingMemberIds);
@@ -79,7 +79,7 @@ class MemberListState {
         status,
         Object.hashAll(members),
         failure,
-        isCreatingInvite,
+        isInvitingByEmail,
         openingDirectMessageMemberId,
         Object.hashAll([...updatingRoleMemberIds]..sort()),
         Object.hashAll([...removingMemberIds]..sort()),

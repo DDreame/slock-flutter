@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
+import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -36,7 +37,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     state = state.copyWith(
       status: MemberListStatus.loading,
       clearFailure: true,
-      isCreatingInvite: false,
+      isInvitingByEmail: false,
       clearOpeningDirectMessage: true,
       updatingRoleMemberIds: const {},
       removingMemberIds: const {},
@@ -56,7 +57,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
             )
             .toList(growable: false),
         clearFailure: true,
-        isCreatingInvite: false,
+        isInvitingByEmail: false,
         clearOpeningDirectMessage: true,
         updatingRoleMemberIds: const {},
         removingMemberIds: const {},
@@ -65,7 +66,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       state = state.copyWith(
         status: MemberListStatus.failure,
         failure: failure,
-        isCreatingInvite: false,
+        isInvitingByEmail: false,
         clearOpeningDirectMessage: true,
         updatingRoleMemberIds: const {},
         removingMemberIds: const {},
@@ -73,17 +74,33 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     }
   }
 
+  Future<void> inviteByEmail(String email) async {
+    final serverId = ref.read(currentMembersServerIdProvider);
+    final normalizedEmail = email.trim();
+    state = state.copyWith(isInvitingByEmail: true, clearFailure: true);
+
+    try {
+      await ref
+          .read(memberRepositoryProvider)
+          .inviteByEmail(serverId, email: normalizedEmail);
+      state = state.copyWith(isInvitingByEmail: false);
+    } on AppFailure catch (failure) {
+      state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      rethrow;
+    }
+  }
+
   Future<String> createInvite() async {
     final serverId = ref.read(currentMembersServerIdProvider);
-    state = state.copyWith(isCreatingInvite: true, clearFailure: true);
+    state = state.copyWith(isInvitingByEmail: true, clearFailure: true);
 
     try {
       final inviteCode =
           await ref.read(memberRepositoryProvider).createInvite(serverId);
-      state = state.copyWith(isCreatingInvite: false);
+      state = state.copyWith(isInvitingByEmail: false);
       return inviteCode;
     } on AppFailure catch (failure) {
-      state = state.copyWith(failure: failure, isCreatingInvite: false);
+      state = state.copyWith(failure: failure, isInvitingByEmail: false);
       rethrow;
     }
   }

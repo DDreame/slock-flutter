@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 
@@ -98,6 +99,27 @@ void main() {
         expect(appDioClient.requests.single.serverIdHeader, 's1');
       },
     );
+
+    test('inviteByEmail posts email payload to server invite path', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {('POST', '/servers/s1/invites'): null},
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(memberRepositoryProvider);
+      await repository.inviteByEmail(
+        const ServerScopeId('s1'),
+        email: 'user@example.com',
+      );
+
+      expect(appDioClient.requests.single.method, 'POST');
+      expect(appDioClient.requests.single.path, '/servers/s1/invites');
+      expect(appDioClient.requests.single.serverIdHeader, 's1');
+      expect(appDioClient.requests.single.data, {'email': 'user@example.com'});
+    });
 
     test('updateMemberRole patches server member role', () async {
       final appDioClient = _FakeAppDioClient(
