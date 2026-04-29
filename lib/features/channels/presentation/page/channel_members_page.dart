@@ -159,6 +159,31 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
   }
 
   Future<void> _removeMember(ChannelMember member) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Remove Member?'),
+              content: Text(
+                'Remove ${member.displayName} from this channel?',
+              ),
+              actions: [
+                TextButton(
+                  key: const ValueKey('channel-member-remove-cancel'),
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  key: const ValueKey('channel-member-remove-confirm'),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Remove'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
     try {
       if (member.isHuman) {
         await ref
