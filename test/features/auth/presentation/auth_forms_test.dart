@@ -125,6 +125,29 @@ void main() {
       expect(find.byType(SingleChildScrollView), findsOneWidget);
       expect(find.byType(SafeArea), findsWidgets);
     });
+
+    testWidgets('valid input passes validation and reaches submit',
+        (tester) async {
+      final repo = _FakeAuthRepository();
+      await tester.pumpWidget(
+        _buildPage(const LoginPage(), repository: repo),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('login-email')),
+        'user@example.com',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('login-password')),
+        'validpassword',
+      );
+      await tester.tap(find.byKey(const ValueKey('login-submit')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('login-error')), findsNothing);
+      expect(repo.loginEmails, ['user@example.com']);
+    });
   });
 
   group('RegisterPage', () {
@@ -237,6 +260,33 @@ void main() {
 
       expect(find.byType(SingleChildScrollView), findsOneWidget);
       expect(find.byType(SafeArea), findsWidgets);
+    });
+
+    testWidgets('valid input passes validation and reaches submit',
+        (tester) async {
+      final repo = _FakeAuthRepository();
+      await tester.pumpWidget(
+        _buildPage(const RegisterPage(), repository: repo),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('register-display-name')),
+        'Alice',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('register-email')),
+        'alice@example.com',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('register-password')),
+        'securepassword',
+      );
+      await tester.tap(find.byKey(const ValueKey('register-submit')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('register-error')), findsNothing);
+      expect(repo.registerEmails, ['alice@example.com']);
     });
   });
 
@@ -403,6 +453,8 @@ class _FakeAuthRepository implements AuthRepository {
   final AppFailure? loginFailure;
   final AppFailure? registerFailure;
   final AppFailure? forgotPasswordFailure;
+  final List<String> loginEmails = [];
+  final List<String> registerEmails = [];
 
   @override
   Future<AuthResult> login({
@@ -410,6 +462,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String password,
   }) async {
     if (loginFailure != null) throw loginFailure!;
+    loginEmails.add(email);
     return const AuthResult(accessToken: 'token', refreshToken: 'refresh');
   }
 
@@ -420,6 +473,7 @@ class _FakeAuthRepository implements AuthRepository {
     required String name,
   }) async {
     if (registerFailure != null) throw registerFailure!;
+    registerEmails.add(email);
     return const AuthResult(accessToken: 'token', refreshToken: 'refresh');
   }
 
