@@ -17,12 +17,6 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
   bool _isJoining = false;
   String? _errorMessage;
 
-  @override
-  void initState() {
-    super.initState();
-    _acceptInvite();
-  }
-
   Future<void> _acceptInvite() async {
     setState(() {
       _isJoining = true;
@@ -66,27 +60,50 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
                     Text('Joining workspace...'),
                   ],
                 )
-              : Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline, size: 48),
-                    const SizedBox(height: 16),
-                    Text(
-                      _errorMessage ?? 'Something went wrong.',
-                      textAlign: TextAlign.center,
+              : _errorMessage != null
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.error_outline, size: 48),
+                        const SizedBox(height: 16),
+                        Text(
+                          _errorMessage!,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: _acceptInvite,
+                          child: const Text('Retry'),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => context.go('/home'),
+                          child: const Text('Go home'),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.mail_outline, size: 48),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'You have been invited to join a workspace.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          key: const ValueKey('invite-accept'),
+                          onPressed: _acceptInvite,
+                          child: const Text('Join workspace'),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () => context.go('/home'),
+                          child: const Text('Cancel'),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      onPressed: _acceptInvite,
-                      child: const Text('Retry'),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () => context.go('/home'),
-                      child: const Text('Go home'),
-                    ),
-                  ],
-                ),
         ),
       ),
     );

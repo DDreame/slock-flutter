@@ -106,7 +106,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ref.read(pendingDeepLinkProvider.notifier).state = state.uri.toString();
       }
 
-      if (session.status == AuthStatus.unknown && isInviteDeepLink(path)) {
+      if (!session.isAuthenticated && isInviteDeepLink(path)) {
         ref.read(pendingDeepLinkProvider.notifier).state = state.uri.toString();
       }
 
