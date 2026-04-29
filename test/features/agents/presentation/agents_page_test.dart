@@ -338,6 +338,173 @@ void main() {
       expect(find.text('Agent not found.'), findsOneWidget);
     });
   });
+
+  group('Agent control action guards', () {
+    testWidgets('stop button shows confirmation and calls stopAgent on confirm',
+        (tester) async {
+      final fakeRepo = _MutableAgentsRepository(
+        initialItems: [
+          makeAgent(id: 'agent-1', name: 'Bot', status: 'active'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-stop-btn')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Stop Agent?'), findsOneWidget);
+      expect(fakeRepo.stoppedAgentIds, isEmpty);
+
+      await tester.tap(find.byKey(const ValueKey('agent-stop-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.stoppedAgentIds, ['agent-1']);
+    });
+
+    testWidgets('stop confirmation cancel does not call stopAgent',
+        (tester) async {
+      final fakeRepo = _MutableAgentsRepository(
+        initialItems: [
+          makeAgent(id: 'agent-1', name: 'Bot', status: 'active'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-stop-btn')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.stoppedAgentIds, isEmpty);
+    });
+
+    testWidgets(
+        'reset button shows confirmation and calls resetAgent on confirm',
+        (tester) async {
+      final fakeRepo = _MutableAgentsRepository(
+        initialItems: [
+          makeAgent(id: 'agent-1', name: 'Bot', status: 'active'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-reset-btn')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reset Session?'), findsOneWidget);
+      expect(fakeRepo.resetAgentIds, isEmpty);
+
+      await tester.tap(find.byKey(const ValueKey('agent-reset-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.resetAgentIds, ['agent-1']);
+    });
+
+    testWidgets('reset confirmation cancel does not call resetAgent',
+        (tester) async {
+      final fakeRepo = _MutableAgentsRepository(
+        initialItems: [
+          makeAgent(id: 'agent-1', name: 'Bot', status: 'active'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-reset-btn')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.resetAgentIds, isEmpty);
+    });
+
+    testWidgets('start has no confirmation dialog', (tester) async {
+      final fakeRepo = _MutableAgentsRepository(
+        initialItems: [
+          makeAgent(id: 'agent-1', name: 'Bot', status: 'stopped'),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            realtimeReductionIngressProvider.overrideWithValue(
+              RealtimeReductionIngress(),
+            ),
+          ],
+          child: const MaterialApp(
+            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('agent-start-btn')));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.startedAgentIds, ['agent-1']);
+      expect(find.text('Stop Agent?'), findsNothing);
+      expect(find.text('Reset Session?'), findsNothing);
+    });
+  });
 }
 
 class _FailingAgentsRepository
@@ -512,14 +679,23 @@ class _MutableAgentsRepository
   }
 
   @override
-  Future<void> startAgent(String agentId) async => throw UnimplementedError();
+  Future<void> startAgent(String agentId) async {
+    startedAgentIds.add(agentId);
+  }
 
   @override
-  Future<void> stopAgent(String agentId) async => throw UnimplementedError();
+  Future<void> stopAgent(String agentId) async {
+    stoppedAgentIds.add(agentId);
+  }
 
   @override
-  Future<void> resetAgent(String agentId, {required String mode}) async =>
-      throw UnimplementedError();
+  Future<void> resetAgent(String agentId, {required String mode}) async {
+    resetAgentIds.add(agentId);
+  }
+
+  final List<String> startedAgentIds = [];
+  final List<String> stoppedAgentIds = [];
+  final List<String> resetAgentIds = [];
 
   @override
   Future<List<AgentActivityLogEntry>> getActivityLog(

@@ -50,9 +50,9 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         onRetry: ref.read(agentsStoreProvider.notifier).retry,
         onEdit: agent == null || state.isBusy(agent.id) ? null : _editAgent,
         onDelete: agent == null || state.isBusy(agent.id) ? null : _deleteAgent,
-        onStart: _startAgent,
-        onStop: _stopAgent,
-        onReset: _resetAgent,
+        onStart: agent == null || state.isBusy(agent.id) ? null : _startAgent,
+        onStop: agent == null || state.isBusy(agent.id) ? null : _stopAgent,
+        onReset: agent == null || state.isBusy(agent.id) ? null : _resetAgent,
       );
     }
 
@@ -233,6 +233,31 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   }
 
   Future<void> _stopAgent(AgentItem agent) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Stop Agent?'),
+              content: Text(
+                'Stop ${agent.label}? The agent will finish its current action before stopping.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  key: const ValueKey('agent-stop-confirm'),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Stop'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+
     try {
       await ref.read(agentsStoreProvider.notifier).stopAgent(agent.id);
     } on AppFailure catch (failure) {
@@ -242,6 +267,31 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   }
 
   Future<void> _resetAgent(AgentItem agent) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Reset Session?'),
+              content: Text(
+                'Reset ${agent.label}? This clears the agent\'s conversation history.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  key: const ValueKey('agent-reset-confirm'),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Reset'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
+
     try {
       await ref.read(agentsStoreProvider.notifier).resetAgent(agent.id);
       if (!mounted) return;
@@ -464,9 +514,9 @@ class _AgentDetailScaffold extends StatelessWidget {
   final VoidCallback onRetry;
   final Future<void> Function(AgentItem)? onEdit;
   final Future<void> Function(AgentItem)? onDelete;
-  final Future<void> Function(AgentItem) onStart;
-  final Future<void> Function(AgentItem) onStop;
-  final Future<void> Function(AgentItem) onReset;
+  final Future<void> Function(AgentItem)? onStart;
+  final Future<void> Function(AgentItem)? onStop;
+  final Future<void> Function(AgentItem)? onReset;
 
   @override
   Widget build(BuildContext context) {
@@ -520,9 +570,9 @@ class _AgentDetailBody extends StatefulWidget {
   });
 
   final AgentItem agent;
-  final Future<void> Function(AgentItem) onStart;
-  final Future<void> Function(AgentItem) onStop;
-  final Future<void> Function(AgentItem) onReset;
+  final Future<void> Function(AgentItem)? onStart;
+  final Future<void> Function(AgentItem)? onStop;
+  final Future<void> Function(AgentItem)? onReset;
 
   @override
   State<_AgentDetailBody> createState() => _AgentDetailBodyState();
@@ -592,21 +642,26 @@ class _AgentDetailBodyState extends State<_AgentDetailBody> {
             if (agent.isStopped)
               FilledButton.icon(
                 key: const ValueKey('agent-start-btn'),
-                onPressed: () => widget.onStart(agent),
+                onPressed: widget.onStart == null
+                    ? null
+                    : () => widget.onStart!(agent),
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Start'),
               ),
             if (agent.isActive)
               FilledButton.icon(
                 key: const ValueKey('agent-stop-btn'),
-                onPressed: () => widget.onStop(agent),
+                onPressed:
+                    widget.onStop == null ? null : () => widget.onStop!(agent),
                 icon: const Icon(Icons.stop),
                 label: const Text('Stop'),
               ),
             if (agent.isActive)
               OutlinedButton.icon(
                 key: const ValueKey('agent-reset-btn'),
-                onPressed: () => widget.onReset(agent),
+                onPressed: widget.onReset == null
+                    ? null
+                    : () => widget.onReset!(agent),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Reset'),
               ),
