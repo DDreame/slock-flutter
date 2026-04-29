@@ -333,4 +333,36 @@ class _FakeConversationRepository implements ConversationRepository {
   }) async {
     return null;
   }
+
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
 }

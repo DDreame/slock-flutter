@@ -184,6 +184,12 @@ abstract class ConversationLocalStore {
     required String content,
   });
 
+  Future<void> removeMessage({
+    required String serverId,
+    required String conversationId,
+    required String messageId,
+  });
+
   Future<void> upsertIdentities(Iterable<LocalIdentityUpsert> entries);
 
   Future<List<LocalStoredMessageRecord>> searchMessages(

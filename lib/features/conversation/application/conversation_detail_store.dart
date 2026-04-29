@@ -25,6 +25,9 @@ final conversationDetailStoreProvider = NotifierProvider.autoDispose<
 
 const _realtimeMessageCreatedEventType = 'message:new';
 const _realtimeMessageUpdatedEventType = 'message:updated';
+const _realtimeMessageDeletedEventType = 'message:deleted';
+const _realtimeMessagePinnedEventType = 'message:pinned';
+const _realtimeMessageUnpinnedEventType = 'message:unpinned';
 
 class ConversationDetailStore
     extends AutoDisposeNotifier<ConversationDetailState> {
@@ -50,6 +53,12 @@ class ConversationDetailStore
         );
       } else if (event.eventType == _realtimeMessageUpdatedEventType) {
         _handleMessageUpdated(event.payload!, target);
+      } else if (event.eventType == _realtimeMessageDeletedEventType) {
+        _handleMessageDeleted(event.payload!, target);
+      } else if (event.eventType == _realtimeMessagePinnedEventType) {
+        _handleMessagePinToggled(event.payload!, target, isPinned: true);
+      } else if (event.eventType == _realtimeMessageUnpinnedEventType) {
+        _handleMessagePinToggled(event.payload!, target, isPinned: false);
       }
     });
     ref.onDispose(() {
@@ -421,6 +430,67 @@ class ConversationDetailStore
     }
   }
 
+  Future<void> deleteMessage(String messageId) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final previousMessages = state.messages;
+    state = state.copyWith(
+      messages: previousMessages
+          .where((m) => m.id != messageId)
+          .toList(growable: false),
+    );
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      await repo.deleteMessage(target, messageId: messageId);
+      _persistSession();
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(messages: previousMessages);
+    }
+  }
+
+  Future<void> pinMessage(String messageId) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    _togglePinLocally(messageId, isPinned: true);
+
+    try {
+      await ref
+          .read(conversationRepositoryProvider)
+          .pinMessage(target, messageId: messageId);
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      _togglePinLocally(messageId, isPinned: false);
+    }
+  }
+
+  Future<void> unpinMessage(String messageId) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    _togglePinLocally(messageId, isPinned: false);
+
+    try {
+      await ref
+          .read(conversationRepositoryProvider)
+          .unpinMessage(target, messageId: messageId);
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      _togglePinLocally(messageId, isPinned: true);
+    }
+  }
+
+  void _togglePinLocally(String messageId, {required bool isPinned}) {
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = messages[index].copyWith(isPinned: isPinned);
+    state = state.copyWith(messages: messages);
+  }
+
   bool _isCurrentRequest(
     int requestEpoch,
     ConversationDetailTarget target,
@@ -564,6 +634,50 @@ class ConversationDetailStore
       state = state.copyWith(messages: messages);
       _persistSession();
     }());
+  }
+
+  void _handleMessageDeleted(
+    Object payload,
+    ConversationDetailTarget target,
+  ) {
+    final deleted = tryParseMessageDeletedPayload(payload);
+    if (deleted == null || deleted.channelId != target.conversationId) {
+      return;
+    }
+
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    final filtered =
+        state.messages.where((m) => m.id != deleted.id).toList(growable: false);
+    if (filtered.length != state.messages.length) {
+      state = state.copyWith(messages: filtered);
+      _persistSession();
+      unawaited(
+        ref.read(conversationRepositoryProvider).removeStoredMessage(
+              target,
+              messageId: deleted.id,
+            ),
+      );
+    }
+  }
+
+  void _handleMessagePinToggled(
+    Object payload,
+    ConversationDetailTarget target, {
+    required bool isPinned,
+  }) {
+    final pinned = tryParseMessagePinnedPayload(payload, isPinned: isPinned);
+    if (pinned == null || pinned.channelId != target.conversationId) {
+      return;
+    }
+
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    _togglePinLocally(pinned.id, isPinned: pinned.isPinned);
   }
 
   Future<void> _refreshFromCache(ConversationDetailTarget target) async {

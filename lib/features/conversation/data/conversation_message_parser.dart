@@ -70,6 +70,7 @@ ConversationMessageSummary parseConversationMessageSummary(
     seq: readOptionalConversationPayloadInt(item['seq']),
     attachments: _parseAttachments(item['attachments']),
     threadId: readOptionalConversationPayloadString(item['threadId']),
+    isPinned: item['isPinned'] == true,
   );
 }
 
@@ -177,6 +178,67 @@ MessageUpdatedPayload? tryParseMessageUpdatedPayload(Object? payload) {
     return null;
   }
   return MessageUpdatedPayload(id: id, channelId: channelId, content: content);
+}
+
+class MessageDeletedPayload {
+  const MessageDeletedPayload({
+    required this.id,
+    required this.channelId,
+  });
+
+  final String id;
+  final String channelId;
+}
+
+MessageDeletedPayload? tryParseMessageDeletedPayload(Object? payload) {
+  if (payload is! Map) {
+    return null;
+  }
+  final map = payload is Map<String, dynamic>
+      ? payload
+      : Map<String, dynamic>.from(payload);
+  final id = readOptionalConversationPayloadString(map['id']) ??
+      readOptionalConversationPayloadString(map['messageId']);
+  final channelId = readOptionalConversationPayloadString(map['channelId']);
+  if (id == null || channelId == null) {
+    return null;
+  }
+  return MessageDeletedPayload(id: id, channelId: channelId);
+}
+
+class MessagePinnedPayload {
+  const MessagePinnedPayload({
+    required this.id,
+    required this.channelId,
+    required this.isPinned,
+  });
+
+  final String id;
+  final String channelId;
+  final bool isPinned;
+}
+
+MessagePinnedPayload? tryParseMessagePinnedPayload(
+  Object? payload, {
+  required bool isPinned,
+}) {
+  if (payload is! Map) {
+    return null;
+  }
+  final map = payload is Map<String, dynamic>
+      ? payload
+      : Map<String, dynamic>.from(payload);
+  final id = readOptionalConversationPayloadString(map['id']) ??
+      readOptionalConversationPayloadString(map['messageId']);
+  final channelId = readOptionalConversationPayloadString(map['channelId']);
+  if (id == null || channelId == null) {
+    return null;
+  }
+  return MessagePinnedPayload(
+    id: id,
+    channelId: channelId,
+    isPinned: isPinned,
+  );
 }
 
 String describeConversationPayloadType(Object? value) {

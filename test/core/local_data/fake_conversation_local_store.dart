@@ -196,6 +196,15 @@ class FakeConversationLocalStore implements ConversationLocalStore {
   }
 
   @override
+  Future<void> removeMessage({
+    required String serverId,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    _messages.remove(_messageKey(serverId, conversationId, messageId));
+  }
+
+  @override
   Future<void> upsertIdentities(Iterable<LocalIdentityUpsert> entries) async {
     for (final entry in entries) {
       _identities[_identityKey(entry.serverId, entry.identityId)] = entry;

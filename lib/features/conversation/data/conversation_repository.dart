@@ -90,6 +90,26 @@ abstract class ConversationRepository {
     required String messageId,
     required String content,
   });
+
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  });
+
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  });
+
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  });
+
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  });
 }
 
 @immutable
@@ -165,6 +185,7 @@ class ConversationMessageSummary {
     this.seq,
     this.attachments,
     this.threadId,
+    this.isPinned = false,
   });
 
   final String id;
@@ -176,6 +197,7 @@ class ConversationMessageSummary {
   final int? seq;
   final List<MessageAttachment>? attachments;
   final String? threadId;
+  final bool isPinned;
 
   bool get isSystem => messageType == 'system';
 
@@ -191,6 +213,7 @@ class ConversationMessageSummary {
     String? content,
     List<MessageAttachment>? attachments,
     String? threadId,
+    bool? isPinned,
   }) {
     return ConversationMessageSummary(
       id: id,
@@ -202,6 +225,7 @@ class ConversationMessageSummary {
       seq: seq,
       attachments: attachments ?? this.attachments,
       threadId: threadId ?? this.threadId,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 
@@ -218,7 +242,8 @@ class ConversationMessageSummary {
             senderName == other.senderName &&
             seq == other.seq &&
             _listEquals(attachments, other.attachments) &&
-            threadId == other.threadId;
+            threadId == other.threadId &&
+            isPinned == other.isPinned;
   }
 
   @override
@@ -232,6 +257,7 @@ class ConversationMessageSummary {
         seq,
         attachments == null ? null : Object.hashAll(attachments!),
         threadId,
+        isPinned,
       );
 
   static bool _listEquals<T>(List<T>? a, List<T>? b) {

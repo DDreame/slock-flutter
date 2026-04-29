@@ -88,11 +88,10 @@ class _ApiConversationRepository implements ConversationRepository {
         preserveExistingSortIndex: true,
       );
 
-      final storedMessages = await _storedMessages(target);
       return ConversationDetailSnapshot(
         target: target,
         title: metadata.displayTitle,
-        messages: storedMessages,
+        messages: messagesPayload.messages,
         historyLimited: messagesPayload.historyLimited,
         hasOlder: messagesPayload.hasOlder,
       );
@@ -341,33 +340,81 @@ class _ApiConversationRepository implements ConversationRepository {
     return _storedRowToMessage(stored);
   }
 
-  Future<List<ConversationMessageSummary>> _storedMessages(
-    ConversationDetailTarget target,
-  ) async {
-    final rows = await _localStore.listMessages(
-      target.serverId.value,
-      target.conversationId,
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    try {
+      await _appDioClient.delete<Object?>(
+        '$_sendMessagePath/$messageId',
+        options: _serverScopedOptions(target.serverId),
+      );
+      await _localStore.removeMessage(
+        serverId: target.serverId.value,
+        conversationId: target.conversationId,
+        messageId: messageId,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to delete message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_sendMessagePath/$messageId/pin',
+        options: _serverScopedOptions(target.serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to pin message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    try {
+      await _appDioClient.delete<Object?>(
+        '$_sendMessagePath/$messageId/pin',
+        options: _serverScopedOptions(target.serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to unpin message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    await _localStore.removeMessage(
+      serverId: target.serverId.value,
+      conversationId: target.conversationId,
+      messageId: messageId,
     );
-    final messages = rows.map(_storedRowToMessage).toList(growable: false);
-    messages.sort((left, right) {
-      final leftSeq = left.seq;
-      final rightSeq = right.seq;
-      if (leftSeq != null && rightSeq != null && leftSeq != rightSeq) {
-        return leftSeq.compareTo(rightSeq);
-      }
-      if (leftSeq != null && rightSeq == null) {
-        return -1;
-      }
-      if (leftSeq == null && rightSeq != null) {
-        return 1;
-      }
-      final createdAtComparison = left.createdAt.compareTo(right.createdAt);
-      if (createdAtComparison != 0) {
-        return createdAtComparison;
-      }
-      return left.id.compareTo(right.id);
-    });
-    return messages;
   }
 }
 

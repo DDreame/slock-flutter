@@ -628,6 +628,15 @@ class _ConversationMessageCard extends ConsumerWidget {
                     style: theme.textTheme.labelMedium,
                   ),
                 ),
+                if (message.isPinned)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Icon(
+                      Icons.push_pin,
+                      size: 14,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                  ),
                 if (isSaved)
                   Padding(
                     padding: const EdgeInsets.only(right: 4),
@@ -676,6 +685,22 @@ class _ConversationMessageCard extends ConsumerWidget {
                     .toggleSaveMessage(message.id);
               },
             ),
+            ListTile(
+              key: const ValueKey('message-action-pin'),
+              leading: Icon(
+                  message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
+              title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
+              onTap: () {
+                Navigator.of(context).pop();
+                final notifier =
+                    ref.read(conversationDetailStoreProvider.notifier);
+                if (message.isPinned) {
+                  notifier.unpinMessage(message.id);
+                } else {
+                  notifier.pinMessage(message.id);
+                }
+              },
+            ),
             if (target.surface == ConversationSurface.channel)
               ListTile(
                 key: const ValueKey('message-action-create-task'),
@@ -686,10 +711,64 @@ class _ConversationMessageCard extends ConsumerWidget {
                   _convertMessageToTask(context, ref);
                 },
               ),
+            ListTile(
+              key: const ValueKey('message-action-delete'),
+              leading: const Icon(Icons.delete_outline),
+              title: const Text('Delete message'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _confirmAndDeleteMessage(context, ref);
+              },
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmAndDeleteMessage(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Delete message?'),
+            content: const Text('This message will be permanently deleted.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                key: const ValueKey('delete-message-confirm'),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+
+    try {
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .deleteMessage(message.id);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Message deleted.')));
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to delete message.'),
+          ),
+        );
+    }
   }
 
   Future<void> _convertMessageToTask(
