@@ -1216,6 +1216,411 @@ void main() {
     expect(state.messages[0].attachments![0].name, 'file.pdf');
     expect(state.messages[0].threadId, 'thread-abc');
   });
+
+  group('delete message', () {
+    test('deleteMessage removes message from state and calls repo', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+            ConversationMessageSummary(
+              id: 'message-2',
+              content: 'Second',
+              createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 2,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .deleteMessage('message-1');
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages.map((m) => m.id), ['message-2']);
+      expect(repository.deletedMessageIds, ['message-1']);
+    });
+
+    test('deleteMessage reverts on failure', () async {
+      const failure = ServerFailure(
+        message: 'Forbidden.',
+        statusCode: 403,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Only',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        deleteFailure: failure,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .deleteMessage('message-1');
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages.map((m) => m.id), ['message-1']);
+    });
+
+    test('message:deleted realtime event removes message from state', () async {
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Will be deleted',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+            ConversationMessageSummary(
+              id: 'message-2',
+              content: 'Stays',
+              createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 2,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:deleted',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 3,
+          payload: {
+            'id': 'message-1',
+            'channelId': target.conversationId,
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages.map((m) => m.id), ['message-2']);
+      expect(repository.removedStoredMessageIds, ['message-1']);
+    });
+  });
+
+  group('pin message', () {
+    test('pinMessage toggles isPinned and calls repo', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Pinnable',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      expect(
+        container.read(conversationDetailStoreProvider).messages[0].isPinned,
+        isFalse,
+      );
+
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .pinMessage('message-1');
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[0].isPinned, isTrue);
+      expect(repository.pinnedMessageIds, ['message-1']);
+    });
+
+    test('pinMessage reverts on failure', () async {
+      const failure = ServerFailure(
+        message: 'Not allowed.',
+        statusCode: 403,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Pinnable',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        pinFailure: failure,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .pinMessage('message-1');
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[0].isPinned, isFalse);
+    });
+
+    test('unpinMessage toggles isPinned off and calls repo', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Pinned',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+              isPinned: true,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      expect(
+        container.read(conversationDetailStoreProvider).messages[0].isPinned,
+        isTrue,
+      );
+
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .unpinMessage('message-1');
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[0].isPinned, isFalse);
+      expect(repository.unpinnedMessageIds, ['message-1']);
+    });
+
+    test('message:pinned realtime event sets isPinned on matching message',
+        () async {
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Will be pinned',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:pinned',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 2,
+          payload: {
+            'id': 'message-1',
+            'channelId': target.conversationId,
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[0].isPinned, isTrue);
+    });
+
+    test('message:unpinned realtime event clears isPinned', () async {
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Was pinned',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+              isPinned: true,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      expect(
+        container.read(conversationDetailStoreProvider).messages[0].isPinned,
+        isTrue,
+      );
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:unpinned',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 2,
+          payload: {
+            'id': 'message-1',
+            'channelId': target.conversationId,
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[0].isPinned, isFalse);
+    });
+  });
 }
 
 class _FakeConversationRepository implements ConversationRepository {
@@ -1227,6 +1632,8 @@ class _FakeConversationRepository implements ConversationRepository {
     this.newerFailure,
     this.sentMessage,
     this.sendFailure,
+    this.deleteFailure,
+    this.pinFailure,
   });
 
   final ConversationDetailSnapshot? snapshot;
@@ -1236,12 +1643,18 @@ class _FakeConversationRepository implements ConversationRepository {
   AppFailure? newerFailure;
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
+  final AppFailure? deleteFailure;
+  final AppFailure? pinFailure;
   final List<ConversationDetailTarget> requestedTargets = [];
   final List<int> olderRequests = [];
   final List<int> newerRequests = [];
   final List<String> sentContents = [];
   final List<ConversationMessageSummary> persistedMessages = [];
   final Map<String, String> updatedContents = {};
+  final List<String> deletedMessageIds = [];
+  final List<String> pinnedMessageIds = [];
+  final List<String> unpinnedMessageIds = [];
+  final List<String> removedStoredMessageIds = [];
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -1340,5 +1753,46 @@ class _FakeConversationRepository implements ConversationRepository {
       yield sentMessage!;
     }
     yield* persistedMessages;
+  }
+
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    deletedMessageIds.add(messageId);
+    if (deleteFailure != null) {
+      throw deleteFailure!;
+    }
+  }
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    pinnedMessageIds.add(messageId);
+    if (pinFailure != null) {
+      throw pinFailure!;
+    }
+  }
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    unpinnedMessageIds.add(messageId);
+    if (pinFailure != null) {
+      throw pinFailure!;
+    }
+  }
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    removedStoredMessageIds.add(messageId);
   }
 }

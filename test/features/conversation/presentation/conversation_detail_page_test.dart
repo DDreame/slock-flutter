@@ -827,6 +827,38 @@ class _FakeConversationRepository implements ConversationRepository {
       hasOlder: false,
     );
   }
+
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
 }
 
 class _FakeRealtimeSocketClient implements RealtimeSocketClient {
@@ -922,5 +954,37 @@ class _QueueConversationRepository implements ConversationRepository {
     required String content,
   }) async {
     return null;
+  }
+
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    throw UnimplementedError();
   }
 }

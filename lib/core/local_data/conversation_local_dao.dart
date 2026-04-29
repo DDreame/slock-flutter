@@ -190,6 +190,20 @@ class ConversationLocalDao extends DatabaseAccessor<AppDatabase>
   }
 
   @override
+  Future<void> removeMessage({
+    required String serverId,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    await (delete(messages)
+          ..where((table) =>
+              table.serverId.equals(serverId) &
+              table.conversationId.equals(conversationId) &
+              table.messageId.equals(messageId)))
+        .go();
+  }
+
+  @override
   Future<void> upsertIdentities(Iterable<LocalIdentityUpsert> entries) async {
     final items = entries.toList(growable: false);
     if (items.isEmpty) {

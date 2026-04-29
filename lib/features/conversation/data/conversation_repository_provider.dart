@@ -341,6 +341,83 @@ class _ApiConversationRepository implements ConversationRepository {
     return _storedRowToMessage(stored);
   }
 
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    try {
+      await _appDioClient.delete<Object?>(
+        '$_sendMessagePath/$messageId',
+        options: _serverScopedOptions(target.serverId),
+      );
+      await _localStore.removeMessage(
+        serverId: target.serverId.value,
+        conversationId: target.conversationId,
+        messageId: messageId,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to delete message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_sendMessagePath/$messageId/pin',
+        options: _serverScopedOptions(target.serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to pin message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    try {
+      await _appDioClient.delete<Object?>(
+        '$_sendMessagePath/$messageId/pin',
+        options: _serverScopedOptions(target.serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to unpin message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {
+    await _localStore.removeMessage(
+      serverId: target.serverId.value,
+      conversationId: target.conversationId,
+      messageId: messageId,
+    );
+  }
+
   Future<List<ConversationMessageSummary>> _storedMessages(
     ConversationDetailTarget target,
   ) async {
