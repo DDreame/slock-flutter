@@ -153,9 +153,9 @@ void main() {
         addTearDown(container.dispose);
 
         final repo = container.read(serverListRepositoryProvider);
-        final serverId = await repo.acceptInvite('token-123');
+        final result = await repo.acceptInvite('token-123');
 
-        expect(serverId, 'server-9');
+        expect(result.serverId, 'server-9');
         expect(appDioClient.requests.single.method, 'POST');
         expect(appDioClient.requests.single.path, '/auth/accept-invite');
         expect(appDioClient.requests.single.data, {'token': 'token-123'});

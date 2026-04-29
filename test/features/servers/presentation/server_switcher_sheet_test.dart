@@ -264,10 +264,12 @@ class _FakeServerListRepository
   }
 
   @override
-  Future<String> acceptInvite(String token) async {
+  Future<AcceptInviteResult> acceptInvite(String token) async {
     inviteRequests.add(token);
     _refreshAfterInvite = true;
-    return inviteServerId ?? 'joined-server';
+    return AcceptInviteResult(
+      serverId: inviteServerId ?? 'joined-server',
+    );
   }
 }
 
