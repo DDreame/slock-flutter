@@ -148,7 +148,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   isMutating: managementState.isBusy,
                   onTap: () {
                     unreadStore.markChannelRead(entry.value.scopeId);
-                    context.go(homeStore.channelRoutePath(entry.value.scopeId));
+                    context
+                        .push(homeStore.channelRoutePath(entry.value.scopeId));
                   },
                   onEdit: () => _showEditChannelDialog(entry.value),
                   onDelete: () => _showDeleteChannelDialog(entry.value),
@@ -180,7 +181,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   unreadCount: unreadState.dmUnreadCount(entry.value.scopeId),
                   onTap: () {
                     unreadStore.markDmRead(entry.value.scopeId);
-                    context.go(
+                    context.push(
                       homeStore.directMessageRoutePath(entry.value.scopeId),
                     );
                   },
@@ -473,7 +474,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             isPinned: true,
             onTap: () {
               unreadStore.markChannelRead(channel.scopeId);
-              context.go(homeStore.channelRoutePath(channel.scopeId));
+              context.push(homeStore.channelRoutePath(channel.scopeId));
             },
             onEdit: () => _showEditChannelDialog(channel),
             onDelete: () => _showDeleteChannelDialog(channel),
@@ -508,7 +509,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             isPinned: true,
             onTap: () {
               unreadStore.markDmRead(directMessage.scopeId);
-              context.go(
+              context.push(
                 homeStore.directMessageRoutePath(directMessage.scopeId),
               );
             },

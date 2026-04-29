@@ -61,6 +61,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('channel:server-1/general'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomePage), findsOneWidget);
   });
 
   testWidgets('shows no-server placeholder when no server is selected', (
@@ -109,6 +114,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('dm:server-1/dm-alice'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HomePage), findsOneWidget);
   });
 
   testWidgets('members AppBar action navigates to the members route', (
