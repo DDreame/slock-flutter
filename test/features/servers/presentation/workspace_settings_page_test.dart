@@ -174,6 +174,144 @@ void main() {
     expect(find.text('Retry'), findsOneWidget);
     expect(find.text('Workspace not found.'), findsNothing);
   });
+
+  group('admin actions', () {
+    testWidgets('shows rename and delete for owner', (tester) async {
+      await tester.pumpWidget(
+        buildPage(
+          serverId: 'server-1',
+          serverListState: const ServerListState(
+            status: ServerListStatus.success,
+            servers: [
+              ServerSummary(
+                id: 'server-1',
+                name: 'My Server',
+                role: 'owner',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text('Rename workspace'), findsOneWidget);
+      expect(find.text('Delete workspace'), findsOneWidget);
+      expect(find.text('Leave workspace'), findsNothing);
+    });
+
+    testWidgets('shows rename and leave for admin', (tester) async {
+      await tester.pumpWidget(
+        buildPage(
+          serverId: 'server-1',
+          serverListState: const ServerListState(
+            status: ServerListStatus.success,
+            servers: [
+              ServerSummary(
+                id: 'server-1',
+                name: 'My Server',
+                role: 'admin',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text('Rename workspace'), findsOneWidget);
+      expect(find.text('Leave workspace'), findsOneWidget);
+      expect(find.text('Delete workspace'), findsNothing);
+    });
+
+    testWidgets('shows only leave for member', (tester) async {
+      await tester.pumpWidget(
+        buildPage(
+          serverId: 'server-1',
+          serverListState: const ServerListState(
+            status: ServerListStatus.success,
+            servers: [
+              ServerSummary(
+                id: 'server-1',
+                name: 'My Server',
+                role: 'member',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.text('Rename workspace'), findsNothing);
+      expect(find.text('Delete workspace'), findsNothing);
+      expect(find.text('Leave workspace'), findsOneWidget);
+    });
+
+    testWidgets('shows rename dialog on tap', (tester) async {
+      await tester.pumpWidget(
+        buildPage(
+          serverId: 'server-1',
+          serverListState: const ServerListState(
+            status: ServerListStatus.success,
+            servers: [
+              ServerSummary(
+                id: 'server-1',
+                name: 'My Server',
+                role: 'owner',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Rename workspace'));
+      await tester.pumpAndSettle();
+
+      expect(
+          find.byKey(const ValueKey('rename-server-dialog')), findsOneWidget);
+    });
+
+    testWidgets('shows delete confirmation on tap', (tester) async {
+      await tester.pumpWidget(
+        buildPage(
+          serverId: 'server-1',
+          serverListState: const ServerListState(
+            status: ServerListStatus.success,
+            servers: [
+              ServerSummary(
+                id: 'server-1',
+                name: 'My Server',
+                role: 'owner',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Delete workspace'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete workspace?'), findsOneWidget);
+    });
+
+    testWidgets('shows leave confirmation on tap', (tester) async {
+      await tester.pumpWidget(
+        buildPage(
+          serverId: 'server-1',
+          serverListState: const ServerListState(
+            status: ServerListStatus.success,
+            servers: [
+              ServerSummary(
+                id: 'server-1',
+                name: 'My Server',
+                role: 'member',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Leave workspace'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Leave workspace?'), findsOneWidget);
+    });
+  });
 }
 
 class _FakeServerListStore extends ServerListStore {

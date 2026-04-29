@@ -62,6 +62,7 @@ void main() {
       '/agents',
       '/settings',
       '/servers/:serverId/channels/:channelId',
+      '/servers/:serverId/channels/:channelId/members',
       '/servers/:serverId/dms/:channelId',
       '/servers/:serverId/threads',
       '/servers/:serverId/threads/:threadId/replies',
@@ -71,6 +72,7 @@ void main() {
       '/agents/:agentId',
       '/servers/:serverId/machines',
       '/servers/:serverId/search',
+      '/servers/:serverId/settings',
       '/servers/:serverId/members',
       '/servers/:serverId/saved-messages',
       '/profile',
@@ -78,6 +80,7 @@ void main() {
       '/servers/:serverId/profile/:userId',
       '/billing',
       '/release-notes',
+      '/invite/:token',
     ];
     expect(paths, containsAll(expectedRoutes));
   });
@@ -727,6 +730,83 @@ void main() {
     });
 
     testWidgets(
+      'restores pending invite deep link after login and bootstrap',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
+        await tester.pump();
+
+        container.read(pendingDeepLinkProvider.notifier).state =
+            '/invite/token-abc';
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(appReadyProvider.notifier).state = true;
+        await tester.pumpAndSettle();
+
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          '/invite/token-abc',
+        );
+        expect(container.read(pendingDeepLinkProvider), isNull);
+      },
+    );
+
+    testWidgets(
+      'captures invite deep link during unknown auth status',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
+        await tester.pump();
+
+        router.go('/invite/token-xyz');
+        await tester.pump();
+
+        expect(
+          container.read(pendingDeepLinkProvider),
+          '/invite/token-xyz',
+        );
+      },
+    );
+
+    testWidgets(
       'cleared deep link does not redirect again on subsequent navigation',
       (tester) async {
         final storage = _FakeSecureStorage();
@@ -1202,6 +1282,44 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(router.routeInformationProvider.value.uri.path, '/profile/u1');
+      expect(container.read(pendingDeepLinkProvider), isNull);
+    });
+
+    testWidgets('invite deep link navigates from /home', (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          splashControllerProvider.overrideWith(
+            () => _StallingSplashController(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      container.read(pendingDeepLinkProvider.notifier).state =
+          '/invite/token-mid';
+      await tester.pumpAndSettle();
+
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/invite/token-mid',
+      );
       expect(container.read(pendingDeepLinkProvider), isNull);
     });
 
