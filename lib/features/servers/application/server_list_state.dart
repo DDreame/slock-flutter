@@ -72,13 +72,13 @@ class ServerListState {
 
   @override
   int get hashCode => Object.hash(
-    status,
-    Object.hashAll(servers),
-    failure,
-    isCreating,
-    isJoiningInvite,
-    Object.hashAll([...savingServerIds]..sort()),
-    Object.hashAll([...deletingServerIds]..sort()),
-    Object.hashAll([...leavingServerIds]..sort()),
-  );
+        status,
+        Object.hashAll(servers),
+        failure,
+        isCreating,
+        isJoiningInvite,
+        Object.hashAll([...savingServerIds]..sort()),
+        Object.hashAll([...deletingServerIds]..sort()),
+        Object.hashAll([...leavingServerIds]..sort()),
+      );
 }

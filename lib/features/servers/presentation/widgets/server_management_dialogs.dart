@@ -42,9 +42,8 @@ class _CreateServerDialogState extends State<CreateServerDialog> {
         ),
         FilledButton(
           key: const ValueKey('create-server-submit'),
-          onPressed: name.isEmpty
-              ? null
-              : () => Navigator.of(context).pop(name),
+          onPressed:
+              name.isEmpty ? null : () => Navigator.of(context).pop(name),
           child: const Text('Create'),
         ),
       ],
@@ -152,9 +151,8 @@ class _JoinServerDialogState extends State<JoinServerDialog> {
         ),
         FilledButton(
           key: const ValueKey('join-server-submit'),
-          onPressed: token.isEmpty
-              ? null
-              : () => Navigator.of(context).pop(token),
+          onPressed:
+              token.isEmpty ? null : () => Navigator.of(context).pop(token),
           child: const Text('Join'),
         ),
       ],

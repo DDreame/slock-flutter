@@ -123,8 +123,7 @@ String _parseServerName(Object? payload, {required String payloadName}) {
 String _parseAcceptedInviteServerId(Object? payload) {
   final root = _requireMap(payload, payloadName: 'invite acceptance');
   final nested = _readOptionalMap(root['server']);
-  final serverId =
-      _readOptionalStringField(root, field: 'serverId') ??
+  final serverId = _readOptionalStringField(root, field: 'serverId') ??
       _readOptionalStringField(nested, field: 'id');
   if (serverId != null) {
     return serverId;
