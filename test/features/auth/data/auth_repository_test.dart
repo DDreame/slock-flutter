@@ -138,6 +138,7 @@ void main() {
         'id': 'user-1',
         'email': 'alice@example.com',
         'name': 'Alice',
+        'emailVerified': true,
         'avatar': 'https://example.com/avatar.png',
       };
 
@@ -145,6 +146,7 @@ void main() {
 
       expect(user.id, 'user-1');
       expect(user.name, 'Alice');
+      expect(user.emailVerified, isTrue);
       expect(fakeDio.lastMethod, 'GET');
       expect(fakeDio.lastPath, '/auth/me');
     });
@@ -209,6 +211,45 @@ void main() {
         () => repo().requestPasswordReset(email: 'a@b.com'),
         throwsA(isA<UnknownFailure>()),
       );
+    });
+  });
+
+  group('resetPassword', () {
+    test('posts token and password to reset endpoint', () async {
+      fakeDio.nextResponse = null;
+
+      await repo().resetPassword(token: 'reset-token', password: 'new-secret');
+
+      expect(fakeDio.lastMethod, 'POST');
+      expect(fakeDio.lastPath, '/auth/reset-password');
+      expect(fakeDio.lastData, {
+        'token': 'reset-token',
+        'password': 'new-secret',
+      });
+    });
+  });
+
+  group('verifyEmail', () {
+    test('posts token to verification endpoint', () async {
+      fakeDio.nextResponse = null;
+
+      await repo().verifyEmail(token: 'verify-token');
+
+      expect(fakeDio.lastMethod, 'POST');
+      expect(fakeDio.lastPath, '/auth/verify-email');
+      expect(fakeDio.lastData, {'token': 'verify-token'});
+    });
+  });
+
+  group('resendVerification', () {
+    test('posts to resend verification endpoint', () async {
+      fakeDio.nextResponse = null;
+
+      await repo().resendVerification();
+
+      expect(fakeDio.lastMethod, 'POST');
+      expect(fakeDio.lastPath, '/auth/resend-verification');
+      expect(fakeDio.lastData, isNull);
     });
   });
 }

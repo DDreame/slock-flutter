@@ -31,6 +31,7 @@ void main() {
       expect(state.userId, isNull);
       expect(state.displayName, isNull);
       expect(state.token, isNull);
+      expect(state.emailVerified, isNull);
     });
 
     test('restoreSession transitions to unauthenticated', () async {
@@ -50,6 +51,7 @@ void main() {
       expect(state.userId, isNotNull);
       expect(state.displayName, 'Fake User');
       expect(state.token, isNotNull);
+      expect(state.emailVerified, isTrue);
     });
 
     test('register transitions to authenticated', () async {
@@ -62,6 +64,7 @@ void main() {
       expect(state.status, AuthStatus.authenticated);
       expect(state.displayName, 'Fake User');
       expect(state.token, isNotNull);
+      expect(state.emailVerified, isTrue);
     });
 
     test('logout transitions to unauthenticated and clears fields', () async {
@@ -79,6 +82,7 @@ void main() {
       expect(state.userId, isNull);
       expect(state.displayName, isNull);
       expect(state.token, isNull);
+      expect(state.emailVerified, isNull);
     });
 
     test('full lifecycle: unknown -> restore -> login -> logout', () async {
@@ -113,12 +117,17 @@ void main() {
         userId: 'u1',
         displayName: 'User',
         token: 'tok',
+        emailVerified: true,
       );
-      final updated = state.copyWith(displayName: 'New Name');
+      final updated = state.copyWith(
+        displayName: 'New Name',
+        emailVerified: false,
+      );
       expect(updated.status, AuthStatus.authenticated);
       expect(updated.userId, 'u1');
       expect(updated.displayName, 'New Name');
       expect(updated.token, 'tok');
+      expect(updated.emailVerified, isFalse);
     });
 
     test('copyWith clear flags set fields to null', () {
@@ -126,17 +135,35 @@ void main() {
         status: AuthStatus.authenticated,
         userId: 'u1',
         token: 'tok',
+        emailVerified: true,
       );
-      final cleared = state.copyWith(clearUserId: true, clearToken: true);
+      final cleared = state.copyWith(
+        clearUserId: true,
+        clearToken: true,
+        clearEmailVerified: true,
+      );
       expect(cleared.userId, isNull);
       expect(cleared.token, isNull);
+      expect(cleared.emailVerified, isNull);
       expect(cleared.status, AuthStatus.authenticated);
     });
 
     test('equality works correctly', () {
-      const a = SessionState(status: AuthStatus.authenticated, userId: 'u1');
-      const b = SessionState(status: AuthStatus.authenticated, userId: 'u1');
-      const c = SessionState(status: AuthStatus.unauthenticated, userId: 'u1');
+      const a = SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'u1',
+        emailVerified: true,
+      );
+      const b = SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'u1',
+        emailVerified: true,
+      );
+      const c = SessionState(
+        status: AuthStatus.unauthenticated,
+        userId: 'u1',
+        emailVerified: true,
+      );
       expect(a, equals(b));
       expect(a, isNot(equals(c)));
       expect(a.hashCode, b.hashCode);

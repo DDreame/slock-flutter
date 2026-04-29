@@ -8,6 +8,8 @@ import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/auth/presentation/page/forgot_password_page.dart';
 import 'package:slock_app/features/auth/presentation/page/login_page.dart';
 import 'package:slock_app/features/auth/presentation/page/register_page.dart';
+import 'package:slock_app/features/auth/presentation/page/reset_password_page.dart';
+import 'package:slock_app/features/auth/presentation/page/verify_email_page.dart';
 import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_members_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
@@ -32,18 +34,31 @@ import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
-const _authRoutes = {'/login', '/register', '/forgot-password'};
+const _authRoutes = {
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+};
 
 @visibleForTesting
 String? authRedirect(SessionState session, String path) {
   final isSplash = path == '/splash';
   final isAuthRoute = _authRoutes.contains(path);
+  final isTokenRecoveryRoute =
+      path == '/reset-password' || path == '/verify-email';
+  final needsEmailVerification =
+      session.isAuthenticated && session.emailVerified == false;
 
   if (session.status == AuthStatus.unknown) {
-    return isSplash ? null : '/splash';
+    return isSplash || isTokenRecoveryRoute ? null : '/splash';
   }
   if (session.isUnauthenticated && !isAuthRoute && !isSplash) {
     return '/login';
+  }
+  if (needsEmailVerification) {
+    return path == '/verify-email' ? null : '/verify-email';
   }
   if (session.isAuthenticated && (isAuthRoute || isSplash)) {
     return '/home';
@@ -69,6 +84,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final session = ref.read(sessionStoreProvider);
       final path = state.uri.path;
       final bootstrapComplete = ref.read(appReadyProvider);
+      final resetToken = state.uri.queryParameters['reset'];
+      final verifyToken = state.uri.queryParameters['verify'];
+
+      if (resetToken != null && path != '/reset-password') {
+        return Uri(
+          path: '/reset-password',
+          queryParameters: {'reset': resetToken},
+        ).toString();
+      }
+      if (verifyToken != null && path != '/verify-email') {
+        return Uri(
+          path: '/verify-email',
+          queryParameters: {'verify': verifyToken},
+        ).toString();
+      }
 
       if (session.status == AuthStatus.unknown &&
           isNotificationDeepLink(path)) {
@@ -114,6 +144,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/forgot-password',
         builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) =>
+            ResetPasswordPage(token: state.uri.queryParameters['reset']),
+      ),
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) =>
+            VerifyEmailPage(initialToken: state.uri.queryParameters['verify']),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),

@@ -5,6 +5,9 @@ import 'package:slock_app/features/auth/data/auth_repository.dart';
 const _loginPath = '/auth/login';
 const _registerPath = '/auth/register';
 const _forgotPasswordPath = '/auth/forgot-password';
+const _resetPasswordPath = '/auth/reset-password';
+const _verifyEmailPath = '/auth/verify-email';
+const _resendVerificationPath = '/auth/resend-verification';
 const _mePath = '/auth/me';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -93,6 +96,57 @@ class _ApiAuthRepository implements AuthRepository {
     }
   }
 
+  @override
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        _resetPasswordPath,
+        data: {'token': token, 'password': password},
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Password reset failed.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> verifyEmail({required String token}) async {
+    try {
+      await _appDioClient.post<Object?>(
+        _verifyEmailPath,
+        data: {'token': token},
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Email verification failed.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> resendVerification() async {
+    try {
+      await _appDioClient.post<Object?>(_resendVerificationPath);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to resend verification email.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
   AuthResult _parseAuthResult(Object? payload) {
     if (payload is! Map) {
       throw const SerializationFailure(
@@ -138,9 +192,11 @@ class _ApiAuthRepository implements AuthRepository {
       );
     }
     final name = map['name'];
+    final emailVerified = map['emailVerified'];
     return AuthUser(
       id: id,
       name: name is String && name.isNotEmpty ? name : null,
+      emailVerified: emailVerified is bool ? emailVerified : null,
     );
   }
 }

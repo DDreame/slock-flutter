@@ -9,10 +9,15 @@ class AuthResult {
 }
 
 class AuthUser {
-  const AuthUser({required this.id, this.name});
+  const AuthUser({
+    required this.id,
+    this.name,
+    this.emailVerified,
+  });
 
   final String id;
   final String? name;
+  final bool? emailVerified;
 }
 
 abstract class AuthRepository {
@@ -30,4 +35,13 @@ abstract class AuthRepository {
   Future<AuthUser> getMe();
 
   Future<void> requestPasswordReset({required String email});
+
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  });
+
+  Future<void> verifyEmail({required String token});
+
+  Future<void> resendVerification();
 }
