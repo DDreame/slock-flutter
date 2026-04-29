@@ -108,8 +108,7 @@ ServerSummary _parseServerSummary(
     name: _requireStringField(server, field: 'name', payloadName: payloadName),
     slug: _readOptionalStringField(server, field: 'slug') ?? '',
     role: _readOptionalStringField(server, field: 'role') ?? '',
-    createdAt:
-        createdAtRaw is String ? DateTime.tryParse(createdAtRaw) : null,
+    createdAt: createdAtRaw is String ? DateTime.tryParse(createdAtRaw) : null,
   );
 }
 
