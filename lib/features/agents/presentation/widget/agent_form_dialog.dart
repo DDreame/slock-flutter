@@ -354,8 +354,8 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
 
     return AlertDialog(
       title: Text(widget.isEditing ? 'Edit Agent' : 'Create Agent'),
-      content: SizedBox(
-        width: 420,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
         child: _isLoadingMachines
             ? const Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
@@ -394,6 +394,7 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                           DropdownButtonFormField<String>(
                             key: const ValueKey('agent-form-machine'),
                             initialValue: _selectedMachineId,
+                            isExpanded: true,
                             decoration:
                                 const InputDecoration(labelText: 'Machine'),
                             items: _machines
@@ -404,6 +405,7 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                                       machine.hostname == null
                                           ? machine.name
                                           : '${machine.name} (${machine.hostname})',
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                 )
@@ -432,6 +434,7 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                           DropdownButtonFormField<String>(
                             key: const ValueKey('agent-form-runtime'),
                             initialValue: _selectedRuntime,
+                            isExpanded: true,
                             decoration:
                                 const InputDecoration(labelText: 'Runtime'),
                             items: runtimeOptions
@@ -439,7 +442,9 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                                   (runtime) => DropdownMenuItem<String>(
                                     value: runtime,
                                     child: Text(
-                                        _runtimeLabels[runtime] ?? runtime),
+                                      _runtimeLabels[runtime] ?? runtime,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
                                 )
                                 .toList(growable: false),
