@@ -18,6 +18,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   final _confirmPasswordController = TextEditingController();
   String? _errorText;
   bool _completed = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -33,22 +35,23 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     if (_completed) {
       return Scaffold(
         appBar: AppBar(title: const Text('Reset Password')),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Password reset complete. You can now sign in with your new password.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: () => context.go('/login'),
-                child: const Text('Back to login'),
-              ),
-            ],
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Password reset complete. You can now sign in with your new password.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: () => context.go('/login'),
+                  child: const Text('Back to login'),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -56,52 +59,76 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Reset Password')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_errorText != null) ...[
-              Text(
-                _errorText!,
-                key: const ValueKey('reset-password-error'),
-                textAlign: TextAlign.center,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_errorText != null) ...[
+                Text(
+                  _errorText!,
+                  key: const ValueKey('reset-password-error'),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+              ],
+              TextField(
+                key: const ValueKey('reset-password-input'),
+                controller: _passwordController,
+                decoration: InputDecoration(
+                  labelText: 'New password',
+                  suffixIcon: IconButton(
+                    key: const ValueKey('reset-password-toggle'),
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+                obscureText: _obscurePassword,
               ),
               const SizedBox(height: 16),
+              TextField(
+                key: const ValueKey('reset-password-confirm-input'),
+                controller: _confirmPasswordController,
+                decoration: InputDecoration(
+                  labelText: 'Confirm new password',
+                  suffixIcon: IconButton(
+                    key: const ValueKey('reset-password-confirm-toggle'),
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                    ),
+                    onPressed: () => setState(() =>
+                        _obscureConfirmPassword = !_obscureConfirmPassword),
+                  ),
+                ),
+                obscureText: _obscureConfirmPassword,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                key: const ValueKey('reset-password-submit'),
+                onPressed: state.isLoading ? null : _submit,
+                child: state.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Set new password'),
+              ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => context.go('/login'),
+                child: const Text('Back to login'),
+              ),
             ],
-            TextField(
-              key: const ValueKey('reset-password-input'),
-              controller: _passwordController,
-              decoration: const InputDecoration(labelText: 'New password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              key: const ValueKey('reset-password-confirm-input'),
-              controller: _confirmPasswordController,
-              decoration:
-                  const InputDecoration(labelText: 'Confirm new password'),
-              obscureText: true,
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              key: const ValueKey('reset-password-submit'),
-              onPressed: state.isLoading ? null : _submit,
-              child: state.isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Set new password'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => context.go('/login'),
-              child: const Text('Back to login'),
-            ),
-          ],
+          ),
         ),
       ),
     );
