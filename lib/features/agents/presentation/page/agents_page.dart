@@ -402,7 +402,7 @@ class _AgentCard extends StatelessWidget {
         child: Row(
           children: [
             _ActivityDot(
-              key: ValueKey('agent-activity-${agent.id}'),
+              dotKey: ValueKey('agent-activity-${agent.id}'),
               activity: agent.activity,
             ),
             const SizedBox(width: 12),
@@ -475,9 +475,10 @@ class _AgentCard extends StatelessWidget {
 }
 
 class _ActivityDot extends StatelessWidget {
-  const _ActivityDot({super.key, required this.activity});
+  const _ActivityDot({required this.activity, this.dotKey});
 
   final String activity;
+  final Key? dotKey;
 
   @override
   Widget build(BuildContext context) {
@@ -492,7 +493,7 @@ class _ActivityDot extends StatelessWidget {
     final color =
         appStatusColors(Theme.of(context).colorScheme, tone).foreground;
     return Container(
-      key: key,
+      key: dotKey,
       width: 10,
       height: 10,
       decoration: BoxDecoration(shape: BoxShape.circle, color: color),
@@ -623,7 +624,7 @@ class _AgentDetailBodyState extends State<_AgentDetailBody> {
         Row(
           children: [
             _ActivityDot(
-              key: ValueKey('agent-activity-${agent.id}'),
+              dotKey: ValueKey('agent-activity-${agent.id}'),
               activity: agent.activity,
             ),
             const SizedBox(width: 8),
