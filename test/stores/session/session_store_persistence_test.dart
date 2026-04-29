@@ -29,7 +29,9 @@ class FakeSecureStorage implements SecureStorage {
 }
 
 class FakeAuthRepository implements AuthRepository {
-  const FakeAuthRepository();
+  const FakeAuthRepository({this.emailVerified = true});
+
+  final bool emailVerified;
 
   @override
   Future<AuthResult> login({
@@ -53,11 +55,26 @@ class FakeAuthRepository implements AuthRepository {
       );
 
   @override
-  Future<AuthUser> getMe() async =>
-      const AuthUser(id: 'fake-uid', name: 'Fake User');
+  Future<AuthUser> getMe() async => AuthUser(
+        id: 'fake-uid',
+        name: 'Fake User',
+        emailVerified: emailVerified,
+      );
 
   @override
   Future<void> requestPasswordReset({required String email}) async {}
+
+  @override
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  }) async {}
+
+  @override
+  Future<void> verifyEmail({required String token}) async {}
+
+  @override
+  Future<void> resendVerification() async {}
 }
 
 void main() {
@@ -92,6 +109,7 @@ void main() {
       expect(state.token, 'saved-token');
       expect(state.userId, 'saved-uid');
       expect(state.displayName, 'Alice');
+      expect(state.emailVerified, isTrue);
     });
 
     test('restoreSession with empty storage transitions to unauthenticated',
@@ -118,6 +136,10 @@ void main() {
       );
       expect(fakeStorage.snapshot[SessionStorageKeys.userId], 'fake-uid');
       expect(fakeStorage.snapshot[SessionStorageKeys.displayName], 'Fake User');
+      expect(
+        container.read(sessionStoreProvider).emailVerified,
+        isTrue,
+      );
     });
 
     test('register persists session to storage', () async {
@@ -139,6 +161,10 @@ void main() {
       expect(
         fakeStorage.snapshot[SessionStorageKeys.displayName],
         'Fake User',
+      );
+      expect(
+        container.read(sessionStoreProvider).emailVerified,
+        isTrue,
       );
     });
 
@@ -205,6 +231,7 @@ void main() {
       container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         ],
       );
 
@@ -226,6 +253,7 @@ void main() {
       container = ProviderContainer(
         overrides: [
           secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         ],
       );
 

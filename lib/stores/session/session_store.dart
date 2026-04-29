@@ -30,6 +30,11 @@ class SessionStore extends Notifier<SessionState> {
           userId: userId,
           displayName: displayName,
         );
+        await _hydrateAuthenticatedSession(
+          accessToken: token,
+          fallbackUserId: userId,
+          fallbackDisplayName: displayName,
+        );
         return;
       }
     } catch (_) {
@@ -46,22 +51,7 @@ class SessionStore extends Notifier<SessionState> {
       key: SessionStorageKeys.refreshToken,
       value: result.refreshToken,
     );
-    state = state.copyWith(token: result.accessToken);
-
-    AuthUser? user;
-    try {
-      user = await repo.getMe();
-    } catch (e, st) {
-      ref.read(crashReporterProvider).captureException(e, stackTrace: st);
-    }
-
-    state = SessionState(
-      status: AuthStatus.authenticated,
-      token: result.accessToken,
-      userId: user?.id,
-      displayName: user?.name,
-    );
-    await _persistSession();
+    await _hydrateAuthenticatedSession(accessToken: result.accessToken);
   }
 
   Future<void> register({
@@ -80,26 +70,44 @@ class SessionStore extends Notifier<SessionState> {
       key: SessionStorageKeys.refreshToken,
       value: result.refreshToken,
     );
-    state = state.copyWith(token: result.accessToken);
-
-    AuthUser? user;
-    try {
-      user = await repo.getMe();
-    } catch (e, st) {
-      ref.read(crashReporterProvider).captureException(e, stackTrace: st);
-    }
-
-    state = SessionState(
-      status: AuthStatus.authenticated,
-      token: result.accessToken,
-      userId: user?.id,
-      displayName: user?.name ?? displayName,
+    await _hydrateAuthenticatedSession(
+      accessToken: result.accessToken,
+      fallbackDisplayName: displayName,
     );
-    await _persistSession();
   }
 
   Future<void> requestPasswordReset({required String email}) async {
     await ref.read(authRepositoryProvider).requestPasswordReset(email: email);
+  }
+
+  Future<void> resetPassword({
+    required String token,
+    required String password,
+  }) async {
+    await ref.read(authRepositoryProvider).resetPassword(
+          token: token,
+          password: password,
+        );
+  }
+
+  Future<void> verifyEmail({required String token}) async {
+    await ref.read(authRepositoryProvider).verifyEmail(token: token);
+
+    if (!state.isAuthenticated) {
+      return;
+    }
+
+    final user = await _loadCurrentUser();
+    state = state.copyWith(
+      userId: user?.id,
+      displayName: user?.name,
+      emailVerified: user?.emailVerified ?? true,
+    );
+    await _persistSession();
+  }
+
+  Future<void> resendVerification() async {
+    await ref.read(authRepositoryProvider).resendVerification();
   }
 
   Future<void> logout() async {
@@ -133,6 +141,38 @@ class SessionStore extends Notifier<SessionState> {
         key: SessionStorageKeys.displayName,
         value: s.displayName!,
       );
+    }
+  }
+
+  Future<void> _hydrateAuthenticatedSession({
+    required String accessToken,
+    String? fallbackUserId,
+    String? fallbackDisplayName,
+  }) async {
+    state = state.copyWith(
+      status: AuthStatus.authenticated,
+      token: accessToken,
+      userId: fallbackUserId,
+      displayName: fallbackDisplayName,
+    );
+
+    final user = await _loadCurrentUser();
+    state = SessionState(
+      status: AuthStatus.authenticated,
+      token: accessToken,
+      userId: user?.id ?? fallbackUserId,
+      displayName: user?.name ?? fallbackDisplayName,
+      emailVerified: user?.emailVerified,
+    );
+    await _persistSession();
+  }
+
+  Future<AuthUser?> _loadCurrentUser() async {
+    try {
+      return await ref.read(authRepositoryProvider).getMe();
+    } catch (e, st) {
+      ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+      return null;
     }
   }
 }

@@ -56,6 +56,8 @@ void main() {
       '/login',
       '/register',
       '/forgot-password',
+      '/reset-password',
+      '/verify-email',
       '/home',
       '/agents',
       '/settings',
@@ -99,6 +101,12 @@ void main() {
       expect(authRedirect(session, '/login'), '/splash');
     });
 
+    test('unknown status + token recovery routes stay', () {
+      const session = SessionState();
+      expect(authRedirect(session, '/reset-password'), isNull);
+      expect(authRedirect(session, '/verify-email'), isNull);
+    });
+
     test('unauthenticated + protected route redirects to /login', () {
       const session = SessionState(status: AuthStatus.unauthenticated);
       expect(authRedirect(session, '/home'), '/login');
@@ -110,6 +118,8 @@ void main() {
       expect(authRedirect(session, '/login'), isNull);
       expect(authRedirect(session, '/register'), isNull);
       expect(authRedirect(session, '/forgot-password'), isNull);
+      expect(authRedirect(session, '/reset-password'), isNull);
+      expect(authRedirect(session, '/verify-email'), isNull);
     });
 
     test('unauthenticated + /splash stays', () {
@@ -122,6 +132,17 @@ void main() {
       expect(authRedirect(session, '/login'), '/home');
       expect(authRedirect(session, '/register'), '/home');
       expect(authRedirect(session, '/forgot-password'), '/home');
+      expect(authRedirect(session, '/reset-password'), '/home');
+    });
+
+    test('authenticated + unverified stays on verify-email only', () {
+      const session = SessionState(
+        status: AuthStatus.authenticated,
+        emailVerified: false,
+      );
+      expect(authRedirect(session, '/home'), '/verify-email');
+      expect(authRedirect(session, '/settings'), '/verify-email');
+      expect(authRedirect(session, '/verify-email'), isNull);
     });
 
     test('authenticated + /splash redirects to /home', () {
@@ -168,6 +189,109 @@ void main() {
       container.read(serverSelectionStoreProvider).selectedServerId,
       'my-server',
     );
+  });
+
+  testWidgets('normalizes reset token query onto reset-password route', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(sessionStoreProvider.notifier).restoreSession();
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/login?reset=token-1');
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/reset-password?reset=token-1',
+    );
+  });
+
+  testWidgets('normalizes verify token query onto verify-email route', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(sessionStoreProvider.notifier).restoreSession();
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/login?verify=token-2');
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.toString(),
+      '/verify-email?verify=token-2',
+    );
+  });
+
+  testWidgets('authenticated unverified session lands on verify-email', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(
+          const FakeAuthRepository(emailVerified: false),
+        ),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(sessionStoreProvider.notifier)
+        .login(email: 'test@test.com', password: 'password');
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/verify-email');
   });
 
   group('isConversationDeepLink', () {

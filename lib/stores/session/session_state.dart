@@ -8,12 +8,14 @@ class SessionState {
   final String? userId;
   final String? displayName;
   final String? token;
+  final bool? emailVerified;
 
   const SessionState({
     this.status = AuthStatus.unknown,
     this.userId,
     this.displayName,
     this.token,
+    this.emailVerified,
   });
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
@@ -24,15 +26,19 @@ class SessionState {
     String? userId,
     String? displayName,
     String? token,
+    bool? emailVerified,
     bool clearUserId = false,
     bool clearDisplayName = false,
     bool clearToken = false,
+    bool clearEmailVerified = false,
   }) {
     return SessionState(
       status: status ?? this.status,
       userId: clearUserId ? null : (userId ?? this.userId),
       displayName: clearDisplayName ? null : (displayName ?? this.displayName),
       token: clearToken ? null : (token ?? this.token),
+      emailVerified:
+          clearEmailVerified ? null : (emailVerified ?? this.emailVerified),
     );
   }
 
@@ -44,8 +50,10 @@ class SessionState {
           status == other.status &&
           userId == other.userId &&
           displayName == other.displayName &&
-          token == other.token;
+          token == other.token &&
+          emailVerified == other.emailVerified;
 
   @override
-  int get hashCode => Object.hash(status, userId, displayName, token);
+  int get hashCode =>
+      Object.hash(status, userId, displayName, token, emailVerified);
 }
