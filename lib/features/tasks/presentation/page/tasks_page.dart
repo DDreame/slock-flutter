@@ -132,6 +132,31 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   }
 
   Future<void> _deleteTask(TaskItem task) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Delete Task?'),
+              content: Text(
+                'Delete "${task.title}"? This cannot be undone.',
+              ),
+              actions: [
+                TextButton(
+                  key: const ValueKey('task-delete-cancel'),
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  key: const ValueKey('task-delete-confirm'),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+    if (!confirmed || !mounted) return;
     try {
       await ref.read(tasksStoreProvider.notifier).deleteTask(task.id);
       if (!mounted) return;
