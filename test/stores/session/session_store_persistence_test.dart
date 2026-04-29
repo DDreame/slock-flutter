@@ -107,8 +107,8 @@ void main() {
 
       expect(state.status, AuthStatus.authenticated);
       expect(state.token, 'saved-token');
-      expect(state.userId, 'saved-uid');
-      expect(state.displayName, 'Alice');
+      expect(state.userId, 'fake-uid');
+      expect(state.displayName, 'Fake User');
       expect(state.emailVerified, isTrue);
     });
 
