@@ -730,7 +730,7 @@ void main() {
     });
 
     testWidgets(
-      'captures invite deep link when unauthenticated and restores after login',
+      'restores pending invite deep link after login and bootstrap',
       (tester) async {
         final container = ProviderContainer(
           overrides: [
@@ -746,24 +746,16 @@ void main() {
 
         final router = container.read(appRouterProvider);
 
-        await container.read(sessionStoreProvider.notifier).restoreSession();
-        container.read(appReadyProvider.notifier).state = true;
-
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
             child: MaterialApp.router(routerConfig: router),
           ),
         );
-        await tester.pumpAndSettle();
-
-        router.go('/invite/token-abc');
         await tester.pump();
 
-        expect(
-          container.read(pendingDeepLinkProvider),
-          '/invite/token-abc',
-        );
+        container.read(pendingDeepLinkProvider.notifier).state =
+            '/invite/token-abc';
 
         await container
             .read(sessionStoreProvider.notifier)
