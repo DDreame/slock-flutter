@@ -151,18 +151,29 @@ class _SearchResultsList extends StatelessWidget {
   }
 }
 
-class _SearchFailureView extends StatelessWidget {
+class _SearchFailureView extends ConsumerWidget {
   const _SearchFailureView({required this.message});
 
   final String message;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Center(
       key: const ValueKey('search-failure'),
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(message, textAlign: TextAlign.center),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton(
+              key: const ValueKey('search-retry'),
+              onPressed: ref.read(searchStoreProvider.notifier).retry,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }

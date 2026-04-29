@@ -118,6 +118,37 @@ void main() {
 
       expect(state().status, SearchStatus.failure);
     });
+
+    test('retry re-executes search and recovers from failure', () async {
+      fakeSearchRepo.shouldFail = true;
+
+      store().updateQuery('retry-me');
+      await store().search();
+
+      expect(state().status, SearchStatus.failure);
+
+      fakeSearchRepo.shouldFail = false;
+      fakeSearchRepo.result = SearchResultsPage(
+        messages: [
+          SearchResultMessage(
+            message: ConversationMessageSummary(
+              id: 'recovered-1',
+              content: 'Recovered',
+              createdAt: DateTime.parse('2026-04-21T10:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: false,
+      );
+
+      await store().retry();
+
+      expect(state().status, SearchStatus.success);
+      expect(state().mergedResults, isNotEmpty);
+    });
   });
 }
 

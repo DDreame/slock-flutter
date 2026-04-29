@@ -45,6 +45,8 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     state = const SearchState();
   }
 
+  Future<void> retry() => search();
+
   Future<void> search() async {
     final query = state.query.trim();
     if (query.isEmpty) return;
