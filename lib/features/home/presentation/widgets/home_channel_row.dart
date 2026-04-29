@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 
-enum _HomeChannelAction { edit, delete, leave, togglePin }
+enum _HomeChannelAction { edit, delete, leave, togglePin, moveUp, moveDown }
 
 class HomeChannelRow extends StatelessWidget {
   const HomeChannelRow({
@@ -14,6 +14,8 @@ class HomeChannelRow extends StatelessWidget {
     this.onDelete,
     this.onLeave,
     this.onTogglePin,
+    this.onMoveUp,
+    this.onMoveDown,
     this.isMutating = false,
   });
 
@@ -25,6 +27,8 @@ class HomeChannelRow extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onLeave;
   final VoidCallback? onTogglePin;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
   final bool isMutating;
 
   @override
@@ -53,7 +57,9 @@ class HomeChannelRow extends StatelessWidget {
     final showMenu = onEdit != null ||
         onDelete != null ||
         onLeave != null ||
-        onTogglePin != null;
+        onTogglePin != null ||
+        onMoveUp != null ||
+        onMoveDown != null;
     if (!showMenu && unreadCount == 0) {
       return null;
     }
@@ -77,9 +83,23 @@ class HomeChannelRow extends StatelessWidget {
                   onLeave?.call();
                 case _HomeChannelAction.togglePin:
                   onTogglePin?.call();
+                case _HomeChannelAction.moveUp:
+                  onMoveUp?.call();
+                case _HomeChannelAction.moveDown:
+                  onMoveDown?.call();
               }
             },
             itemBuilder: (context) => [
+              if (onMoveUp != null)
+                const PopupMenuItem<_HomeChannelAction>(
+                  value: _HomeChannelAction.moveUp,
+                  child: Text('Move up'),
+                ),
+              if (onMoveDown != null)
+                const PopupMenuItem<_HomeChannelAction>(
+                  value: _HomeChannelAction.moveDown,
+                  child: Text('Move down'),
+                ),
               if (onTogglePin != null)
                 PopupMenuItem<_HomeChannelAction>(
                   value: _HomeChannelAction.togglePin,

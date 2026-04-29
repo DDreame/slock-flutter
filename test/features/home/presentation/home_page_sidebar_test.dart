@@ -128,6 +128,22 @@ void main() {
       );
       expect(sidebarRepo.patchCalls, 1);
     });
+
+    testWidgets('renders pinned DM rows in the pinned section', (tester) async {
+      await tester.pumpWidget(
+        _buildApp(
+          sidebarOrder: const SidebarOrder(
+            pinnedChannelIds: ['dm-alice'],
+            pinnedOrder: ['dm-alice'],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pinned'), findsOneWidget);
+      expect(find.byKey(const ValueKey('pinned-dm-dm-alice')), findsOneWidget);
+      expect(find.byKey(const ValueKey('dm-dm-alice')), findsNothing);
+    });
   });
 
   group('hidden DMs', () {
@@ -203,7 +219,7 @@ void main() {
       final menuFinder = find.byKey(const ValueKey('dm-menu-dm-alice'));
       await tester.tap(menuFinder, warnIfMissed: false);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Hide conversation'));
+      await tester.tap(find.text('Close conversation'));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('dm-dm-alice')), findsNothing);
@@ -211,6 +227,73 @@ void main() {
         find.byKey(const ValueKey('home-hidden-dms')),
         findsOneWidget,
       );
+      expect(sidebarRepo.patchCalls, 1);
+    });
+
+    testWidgets('pinning a DM moves it into the pinned section', (
+      tester,
+    ) async {
+      final sidebarRepo = _FakeSidebarOrderRepository();
+      await tester.pumpWidget(
+        _buildApp(sidebarOrderRepository: sidebarRepo),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dm-menu-dm-alice')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pin conversation'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('pinned-dm-dm-alice')), findsOneWidget);
+      expect(find.byKey(const ValueKey('dm-dm-alice')), findsNothing);
+      expect(sidebarRepo.patchCalls, 1);
+    });
+
+    testWidgets('closing a pinned DM removes it from the pinned section', (
+      tester,
+    ) async {
+      final sidebarRepo = _FakeSidebarOrderRepository(
+        sidebarOrder: const SidebarOrder(
+          pinnedChannelIds: ['dm-alice'],
+          pinnedOrder: ['dm-alice'],
+        ),
+      );
+      await tester.pumpWidget(
+        _buildApp(sidebarOrderRepository: sidebarRepo),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('pinned-dm-dm-alice')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('dm-menu-dm-alice')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Close conversation'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('pinned-dm-dm-alice')), findsNothing);
+      expect(find.byKey(const ValueKey('home-hidden-dms')), findsOneWidget);
+      expect(sidebarRepo.patchCalls, 1);
+    });
+
+    testWidgets('move DM up reorders visible direct messages', (tester) async {
+      final sidebarRepo = _FakeSidebarOrderRepository();
+      await tester.pumpWidget(
+        _buildApp(sidebarOrderRepository: sidebarRepo),
+      );
+      await tester.pumpAndSettle();
+
+      final bobFinder = find.byKey(const ValueKey('dm-dm-bob'));
+      final aliceFinder = find.byKey(const ValueKey('dm-dm-alice'));
+      expect(tester.getTopLeft(aliceFinder).dy,
+          lessThan(tester.getTopLeft(bobFinder).dy));
+
+      await tester.tap(find.byKey(const ValueKey('dm-menu-dm-bob')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Move up'));
+      await tester.pumpAndSettle();
+
+      expect(tester.getTopLeft(bobFinder).dy,
+          lessThan(tester.getTopLeft(aliceFinder).dy));
       expect(sidebarRepo.patchCalls, 1);
     });
   });

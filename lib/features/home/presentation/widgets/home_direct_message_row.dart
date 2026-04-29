@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 
-enum _HomeDmAction { hide }
+enum _HomeDmAction { togglePin, hide, moveUp, moveDown }
 
 class HomeDirectMessageRow extends StatelessWidget {
   const HomeDirectMessageRow({
@@ -9,18 +9,26 @@ class HomeDirectMessageRow extends StatelessWidget {
     required this.directMessage,
     required this.onTap,
     this.unreadCount = 0,
+    this.isPinned = false,
+    this.onTogglePin,
     this.onHide,
+    this.onMoveUp,
+    this.onMoveDown,
   });
 
   final HomeDirectMessageSummary directMessage;
   final VoidCallback onTap;
   final int unreadCount;
+  final bool isPinned;
+  final VoidCallback? onTogglePin;
   final VoidCallback? onHide;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.person_outline),
+      leading: Icon(isPinned ? Icons.push_pin : Icons.person_outline),
       title: Text(
         directMessage.title,
         style: unreadCount > 0
@@ -40,7 +48,10 @@ class HomeDirectMessageRow extends StatelessWidget {
   }
 
   Widget? _buildTrailing(BuildContext context) {
-    final showMenu = onHide != null;
+    final showMenu = onTogglePin != null ||
+        onHide != null ||
+        onMoveUp != null ||
+        onMoveDown != null;
     if (!showMenu && unreadCount == 0) {
       return null;
     }
@@ -55,15 +66,37 @@ class HomeDirectMessageRow extends StatelessWidget {
             tooltip: 'Message actions',
             onSelected: (action) {
               switch (action) {
+                case _HomeDmAction.togglePin:
+                  onTogglePin?.call();
                 case _HomeDmAction.hide:
                   onHide?.call();
+                case _HomeDmAction.moveUp:
+                  onMoveUp?.call();
+                case _HomeDmAction.moveDown:
+                  onMoveDown?.call();
               }
             },
             itemBuilder: (context) => [
+              if (onMoveUp != null)
+                const PopupMenuItem<_HomeDmAction>(
+                  value: _HomeDmAction.moveUp,
+                  child: Text('Move up'),
+                ),
+              if (onMoveDown != null)
+                const PopupMenuItem<_HomeDmAction>(
+                  value: _HomeDmAction.moveDown,
+                  child: Text('Move down'),
+                ),
+              if (onTogglePin != null)
+                PopupMenuItem<_HomeDmAction>(
+                  value: _HomeDmAction.togglePin,
+                  child: Text(
+                      isPinned ? 'Unpin conversation' : 'Pin conversation'),
+                ),
               if (onHide != null)
                 const PopupMenuItem<_HomeDmAction>(
                   value: _HomeDmAction.hide,
-                  child: Text('Hide conversation'),
+                  child: Text('Close conversation'),
                 ),
             ],
           ),
