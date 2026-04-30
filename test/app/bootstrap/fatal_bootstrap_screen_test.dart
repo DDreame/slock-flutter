@@ -21,7 +21,6 @@ void main() {
         find.textContaining('--dart-define'),
         findsOneWidget,
       );
-      // Raw error NOT shown on screen
       expect(
         find.text(error.toString()),
         findsNothing,
@@ -38,7 +37,6 @@ void main() {
         find.textContaining('Something went wrong during startup'),
         findsOneWidget,
       );
-      // Raw error NOT shown on screen
       expect(
         find.text(error.toString()),
         findsNothing,
@@ -64,41 +62,70 @@ void main() {
 
     testWidgets('copy diagnostics copies error details to clipboard',
         (tester) async {
+      String? copiedText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            final args = call.arguments as Map<dynamic, dynamic>;
+            copiedText = args['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
       final error =
           StateError('Missing required dart-define: SLOCK_API_BASE_URL');
 
       await tester.pumpWidget(FatalBootstrapScreen(error: error));
-
-      // Tap the copy button
       await tester.tap(find.byKey(const ValueKey('copy-diagnostics')));
       await tester.pumpAndSettle();
 
-      // Verify snackbar appears
       expect(
         find.text('Diagnostics copied to clipboard'),
         findsOneWidget,
       );
 
-      // Verify clipboard content includes the error detail
-      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-      expect(clipboardData?.text, contains('Missing required dart-define'));
-      expect(clipboardData?.text, contains('StateError'));
-      expect(clipboardData?.text, contains('Slock Diagnostics'));
+      expect(copiedText, contains('Missing required dart-define'));
+      expect(copiedText, contains('StateError'));
+      expect(copiedText, contains('Slock Diagnostics'));
     });
 
     testWidgets(
         'diagnostics payload includes error type and detail for generic error',
         (tester) async {
+      String? copiedText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            final args = call.arguments as Map<dynamic, dynamic>;
+            copiedText = args['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
       final error = Exception('bootstrap failed: disk full');
 
       await tester.pumpWidget(FatalBootstrapScreen(error: error));
-
       await tester.tap(find.byKey(const ValueKey('copy-diagnostics')));
       await tester.pumpAndSettle();
 
-      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
-      expect(clipboardData?.text, contains('_Exception'));
-      expect(clipboardData?.text, contains('bootstrap failed: disk full'));
+      expect(copiedText, contains('_Exception'));
+      expect(copiedText, contains('bootstrap failed: disk full'));
     });
   });
 }
