@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
@@ -743,6 +744,13 @@ class _ConversationMessageCard extends ConsumerWidget {
                   ),
                 ),
               Text(timestamp, style: timestampStyle),
+              if (message.linkedTask != null &&
+                  target.surface == ConversationSurface.channel) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: _MessageLinkedTaskBadge(task: message.linkedTask!),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -927,6 +935,57 @@ class _ConversationMessageCard extends ConsumerWidget {
           ),
         );
     }
+  }
+}
+
+class _MessageLinkedTaskBadge extends StatelessWidget {
+  const _MessageLinkedTaskBadge({required this.task});
+
+  final ConversationLinkedTaskSummary task;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final (icon, tone) = switch (task.status) {
+      'todo' => (Icons.radio_button_unchecked, AppStatusTone.neutral),
+      'in_progress' => (Icons.timelapse, AppStatusTone.info),
+      'in_review' => (Icons.rate_review, AppStatusTone.warning),
+      'done' => (Icons.check_circle, AppStatusTone.success),
+      _ => (Icons.circle_outlined, AppStatusTone.neutral),
+    };
+    final colors = appStatusColors(theme.colorScheme, tone);
+    final label = StringBuffer('#${task.taskNumber}');
+    if (task.claimedByName != null && task.claimedByName!.isNotEmpty) {
+      label.write(' @${task.claimedByName}');
+    }
+
+    return Container(
+      key: ValueKey('message-linked-task-${task.id}'),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: colors.container,
+        border: Border.all(color: colors.foreground),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: colors.onContainer),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label.toString(),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.onContainer,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

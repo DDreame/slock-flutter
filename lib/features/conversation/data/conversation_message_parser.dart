@@ -46,6 +46,7 @@ ConversationMessageSummary parseConversationMessageSummary(
   required String payloadName,
 }) {
   final item = requireConversationPayloadMap(payload, payloadName: payloadName);
+  final linkedTask = _parseLinkedTask(item['linkedTask']);
   return ConversationMessageSummary(
     id: requireConversationPayloadStringField(
       item,
@@ -72,6 +73,9 @@ ConversationMessageSummary parseConversationMessageSummary(
     attachments: _parseAttachments(item['attachments']),
     threadId: readOptionalConversationPayloadString(item['threadId']),
     replyCount: readOptionalConversationPayloadInt(item['replyCount']),
+    linkedTaskId: readOptionalConversationPayloadString(item['linkedTaskId']) ??
+        linkedTask?.id,
+    linkedTask: linkedTask,
     isPinned: item['isPinned'] == true,
   );
 }
@@ -267,4 +271,24 @@ List<MessageAttachment>? _parseAttachments(Object? value) {
     ));
   }
   return results.isEmpty ? null : results;
+}
+
+ConversationLinkedTaskSummary? _parseLinkedTask(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+  final map =
+      value is Map<String, dynamic> ? value : Map<String, dynamic>.from(value);
+  final id = readOptionalConversationPayloadString(map['id']);
+  final taskNumber = readOptionalConversationPayloadInt(map['taskNumber']);
+  final status = readOptionalConversationPayloadString(map['status']);
+  if (id == null || taskNumber == null || status == null) {
+    return null;
+  }
+  return ConversationLinkedTaskSummary(
+    id: id,
+    taskNumber: taskNumber,
+    status: status,
+    claimedByName: readOptionalConversationPayloadString(map['claimedByName']),
+  );
 }

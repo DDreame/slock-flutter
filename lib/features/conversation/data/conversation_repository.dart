@@ -174,6 +174,35 @@ class MessageAttachment {
 }
 
 @immutable
+class ConversationLinkedTaskSummary {
+  const ConversationLinkedTaskSummary({
+    required this.id,
+    required this.taskNumber,
+    required this.status,
+    this.claimedByName,
+  });
+
+  final String id;
+  final int taskNumber;
+  final String status;
+  final String? claimedByName;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ConversationLinkedTaskSummary &&
+            runtimeType == other.runtimeType &&
+            id == other.id &&
+            taskNumber == other.taskNumber &&
+            status == other.status &&
+            claimedByName == other.claimedByName;
+  }
+
+  @override
+  int get hashCode => Object.hash(id, taskNumber, status, claimedByName);
+}
+
+@immutable
 class ConversationMessageSummary {
   const ConversationMessageSummary({
     required this.id,
@@ -187,6 +216,8 @@ class ConversationMessageSummary {
     this.attachments,
     this.threadId,
     this.replyCount,
+    this.linkedTaskId,
+    this.linkedTask,
     this.isPinned = false,
   });
 
@@ -201,6 +232,8 @@ class ConversationMessageSummary {
   final List<MessageAttachment>? attachments;
   final String? threadId;
   final int? replyCount;
+  final String? linkedTaskId;
+  final ConversationLinkedTaskSummary? linkedTask;
   final bool isPinned;
 
   bool get isSystem => messageType == 'system';
@@ -218,6 +251,8 @@ class ConversationMessageSummary {
     List<MessageAttachment>? attachments,
     String? threadId,
     int? replyCount,
+    String? linkedTaskId,
+    ConversationLinkedTaskSummary? linkedTask,
     bool? isPinned,
   }) {
     return ConversationMessageSummary(
@@ -232,6 +267,8 @@ class ConversationMessageSummary {
       attachments: attachments ?? this.attachments,
       threadId: threadId ?? this.threadId,
       replyCount: replyCount ?? this.replyCount,
+      linkedTaskId: linkedTaskId ?? this.linkedTaskId,
+      linkedTask: linkedTask ?? this.linkedTask,
       isPinned: isPinned ?? this.isPinned,
     );
   }
@@ -252,6 +289,8 @@ class ConversationMessageSummary {
             _listEquals(attachments, other.attachments) &&
             threadId == other.threadId &&
             replyCount == other.replyCount &&
+            linkedTaskId == other.linkedTaskId &&
+            linkedTask == other.linkedTask &&
             isPinned == other.isPinned;
   }
 
@@ -268,6 +307,8 @@ class ConversationMessageSummary {
         attachments == null ? null : Object.hashAll(attachments!),
         threadId,
         replyCount,
+        linkedTaskId,
+        linkedTask,
         isPinned,
       );
 
