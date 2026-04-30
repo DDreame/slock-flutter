@@ -11,7 +11,7 @@ void main() {
     test('listMembers gets server-scoped members payload', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
-          ('GET', '/members'): {
+          ('GET', '/servers/s1/members'): {
             'members': [
               {
                 'id': 'user-1',
@@ -40,7 +40,7 @@ void main() {
         ),
       ]);
       expect(appDioClient.requests.single.method, 'GET');
-      expect(appDioClient.requests.single.path, '/members');
+      expect(appDioClient.requests.single.path, '/servers/s1/members');
       expect(appDioClient.requests.single.serverIdHeader, 's1');
     });
 
