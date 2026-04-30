@@ -284,6 +284,7 @@ void main() {
         );
 
         await tester.pump();
+        await tester.pump();
 
         expect(find.text('16:55:42'), findsOneWidget);
         expect(find.text('Working: Running flutter test'), findsOneWidget);
