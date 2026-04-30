@@ -300,6 +300,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showCreateChannelDialog() async {
+    final l10n = context.l10n;
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) {
       return;
@@ -364,6 +365,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showEditChannelDialog(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -404,6 +406,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showDeleteChannelDialog(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -447,6 +450,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showLeaveChannelDialog(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
