@@ -120,6 +120,30 @@ void main() {
     expect(find.text('Invite email sent to user@example.com.'), findsOneWidget);
   });
 
+  testWidgets('shows friendly retry state on load failure', (tester) async {
+    await tester.pumpWidget(
+      _buildApp(
+        repository: _FakeMemberRepository(
+          members: const [],
+          failure: const UnknownFailure(
+            message: 'Server exploded',
+            causeType: 'test',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('members-error')), findsOneWidget);
+    expect(find.text('Members unavailable'), findsOneWidget);
+    expect(
+      find.text('We could not load workspace members right now.'),
+      findsOneWidget,
+    );
+    expect(find.text('Server exploded'), findsNothing);
+    expect(find.text('Retry'), findsOneWidget);
+  });
+
   testWidgets('member admin actions update role and remove member', (
     tester,
   ) async {
@@ -221,6 +245,7 @@ class _FakeMemberRepository
   _FakeMemberRepository({
     required this.members,
     this.channelId = 'dm-100',
+    this.failure,
   });
 
   final List<(String, String, String)> roleRequests = [];
@@ -228,9 +253,13 @@ class _FakeMemberRepository
   final List<String> inviteEmails = [];
   List<MemberProfile> members;
   final String channelId;
+  final AppFailure? failure;
 
   @override
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
+    if (failure != null) {
+      throw failure!;
+    }
     return members;
   }
 

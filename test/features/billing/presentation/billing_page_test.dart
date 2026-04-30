@@ -169,7 +169,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('billing-error')), findsOneWidget);
-    expect(find.text('Billing failed'), findsOneWidget);
+    expect(find.text('Billing unavailable'), findsOneWidget);
+    expect(find.text('We could not load billing details right now.'),
+        findsOneWidget);
+    expect(find.text('Billing failed'), findsNothing);
     expect(find.text('Retry'), findsOneWidget);
   });
 }

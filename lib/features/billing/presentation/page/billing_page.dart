@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/features/billing/application/billing_realtime_binding.dart';
 import 'package:slock_app/features/billing/application/billing_state.dart';
 import 'package:slock_app/features/billing/application/billing_store.dart';
@@ -33,26 +34,11 @@ class _BillingPageState extends ConsumerState<BillingPage> {
             key: ValueKey('billing-loading'),
             child: CircularProgressIndicator(),
           ),
-        BillingStatus.failure => Center(
+        BillingStatus.failure => FriendlyErrorState(
             key: const ValueKey('billing-error'),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    state.failure?.message ?? 'Could not load billing summary.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () =>
-                        ref.read(billingStoreProvider.notifier).load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
+            title: 'Billing unavailable',
+            message: 'We could not load billing details right now.',
+            onRetry: ref.read(billingStoreProvider.notifier).load,
           ),
         BillingStatus.success => _BillingSuccess(
             summary: state.summary,
