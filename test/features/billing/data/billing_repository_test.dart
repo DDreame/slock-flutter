@@ -4,10 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/billing/data/billing_repository.dart';
 import 'package:slock_app/features/billing/data/billing_repository_provider.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 
 void main() {
   test(
-    'billingRepositoryProvider gets /billing/subscription summary',
+    'billingRepositoryProvider gets /billing/subscription summary with active server header',
     () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
@@ -24,7 +25,12 @@ void main() {
         },
       );
       final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        overrides: [
+          appDioClientProvider.overrideWithValue(appDioClient),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -44,11 +50,12 @@ void main() {
       expect(appDioClient.requests, hasLength(1));
       expect(appDioClient.requests.single.method, 'GET');
       expect(appDioClient.requests.single.path, '/billing/subscription');
+      expect(appDioClient.requests.single.serverIdHeader, 'server-1');
     },
   );
 
   test(
-    'billingRepositoryProvider gets /servers/:serverId/usage summary',
+    'billingRepositoryProvider gets /servers/:serverId/usage summary with server header',
     () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
@@ -68,7 +75,12 @@ void main() {
         },
       );
       final container = ProviderContainer(
-        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        overrides: [
+          appDioClientProvider.overrideWithValue(appDioClient),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -94,6 +106,7 @@ void main() {
       expect(appDioClient.requests, hasLength(1));
       expect(appDioClient.requests.single.method, 'GET');
       expect(appDioClient.requests.single.path, '/servers/server-1/usage');
+      expect(appDioClient.requests.single.serverIdHeader, 'server-1');
     },
   );
 }
@@ -115,7 +128,13 @@ class _FakeAppDioClient extends AppDioClient {
     Options? options,
     CancelToken? cancelToken,
   }) async {
-    requests.add(_CapturedRequest(method: method, path: path));
+    requests.add(
+      _CapturedRequest(
+        method: method,
+        path: path,
+        serverIdHeader: options?.headers?['X-Server-Id'] as String?,
+      ),
+    );
 
     final key = (method, path);
     if (!_responses.containsKey(key)) {
@@ -130,8 +149,13 @@ class _FakeAppDioClient extends AppDioClient {
 }
 
 class _CapturedRequest {
-  const _CapturedRequest({required this.method, required this.path});
+  const _CapturedRequest({
+    required this.method,
+    required this.path,
+    required this.serverIdHeader,
+  });
 
   final String method;
   final String path;
+  final String? serverIdHeader;
 }
