@@ -2,7 +2,7 @@
   "@@locale": "es",
   "appTitle": "Slock",
   "splashTitle": "Slock",
-  "splashSubtitle": "Preparando tu consola de espacio de trabajo...",
+  "splashSubtitle": "Preparando tu espacio de trabajo...",
   "loginTitle": "Iniciar sesion",
   "loginEmailLabel": "Correo electronico",
   "loginPasswordLabel": "Contrasena",
@@ -25,4 +25,3 @@
   "registerPasswordTooShortError": "La contrasena debe tener al menos 8 caracteres.",
   "registerFailedFallback": "No se pudo crear la cuenta. Intentalo de nuevo."
 }
-

@@ -25,6 +25,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(forgotPasswordControllerProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Forgot Password')),
@@ -35,12 +36,43 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_submitted) ...[
-                Text(
-                  'If that email is registered, a reset link has been sent. Check your inbox.',
+                Container(
                   key: const ValueKey('forgot-password-success'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.mark_email_read_outlined,
+                        color: theme.colorScheme.onPrimaryContainer,
+                        size: 32,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Check your email',
+                        key: const ValueKey('forgot-password-success-title'),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'If that email is registered, a reset link has been sent. Check your inbox.',
+                        key: const ValueKey(
+                          'forgot-password-success-message',
+                        ),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 16),

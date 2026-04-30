@@ -398,6 +398,15 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.byKey(const ValueKey('forgot-password-success-title')),
+        findsOneWidget,
+      );
+      expect(find.text('Check your email'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('forgot-password-success-message')),
+        findsOneWidget,
+      );
+      expect(
         find.text(
           'If that email is registered, a reset link has been sent. Check your inbox.',
         ),

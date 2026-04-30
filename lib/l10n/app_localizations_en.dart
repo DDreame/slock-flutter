@@ -15,7 +15,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get splashTitle => 'Slock';
 
   @override
-  String get splashSubtitle => 'Preparing your workspace console...';
+  String get splashSubtitle => 'Preparing your workspace...';
 
   @override
   String get loginTitle => 'Login';

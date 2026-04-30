@@ -35,7 +35,7 @@ void main() {
     expect(find.byKey(const ValueKey('splash-title')), findsOneWidget);
     expect(find.text('Slock'), findsOneWidget);
     expect(
-      find.text('Preparing your workspace console...'),
+      find.text('Preparing your workspace...'),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('splash-progress')), findsOneWidget);
@@ -67,7 +67,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('Preparando tu consola de espacio de trabajo...'),
+      find.text('Preparando tu espacio de trabajo...'),
       findsOneWidget,
     );
   });
