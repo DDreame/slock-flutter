@@ -140,7 +140,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
     await _logout();
   }
 
