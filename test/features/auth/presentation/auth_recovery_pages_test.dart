@@ -25,10 +25,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
+        child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const ResetPasswordPage(token: 'reset-token'),
+          home: ResetPasswordPage(token: 'reset-token'),
         ),
       ),
     );
@@ -67,10 +67,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(
+        child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const VerifyEmailPage(initialToken: 'verify-token'),
+          home: VerifyEmailPage(initialToken: 'verify-token'),
         ),
       ),
     );
