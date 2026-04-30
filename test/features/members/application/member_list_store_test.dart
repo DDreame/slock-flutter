@@ -201,6 +201,13 @@ class _FakeMemberRepository
     }
     return 'dm-456';
   }
+
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async =>
+      'dm-agent-$agentId';
 }
 
 class _FakeSessionStore extends SessionStore {

@@ -300,4 +300,11 @@ class _FakeMemberRepository implements MemberRepository {
     openedDmUserIds.add(userId);
     return 'dm-channel-$userId';
   }
+
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async =>
+      'dm-agent-$agentId';
 }

@@ -143,6 +143,35 @@ void main() {
       expect(appDioClient.requests.single.data, {'role': 'admin'});
     });
 
+    test(
+      'openAgentDirectMessage posts agentId payload and returns channel id',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('POST', '/channels/dm'): {
+              'channel': {'id': 'dm-agent-456'},
+            },
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+        );
+        addTearDown(container.dispose);
+
+        final repository = container.read(memberRepositoryProvider);
+        final channelId = await repository.openAgentDirectMessage(
+          const ServerScopeId('s1'),
+          agentId: 'agent-1',
+        );
+
+        expect(channelId, 'dm-agent-456');
+        expect(appDioClient.requests.single.method, 'POST');
+        expect(appDioClient.requests.single.path, '/channels/dm');
+        expect(appDioClient.requests.single.serverIdHeader, 's1');
+        expect(appDioClient.requests.single.data, {'agentId': 'agent-1'});
+      },
+    );
+
     test('removeMember deletes server member path', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {('DELETE', '/servers/s1/members/user-2'): null},

@@ -164,6 +164,35 @@ class _ApiMemberRepository
     }
   }
 
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async {
+    try {
+      final response = await _appDioClient.post<Object?>(
+        _directMessagePath,
+        data: {'agentId': agentId},
+        options: _serverScopedOptions(serverId),
+      );
+      final channelId = _readOptionalChannelId(response.data);
+      if (channelId == null) {
+        throw const SerializationFailure(
+          message:
+              'Malformed direct-message payload: missing string field "id".',
+        );
+      }
+      return channelId;
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to open agent direct message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
   Options _serverScopedOptions(ServerScopeId serverId) {
     return Options(headers: {_serverHeaderName: serverId.value});
   }

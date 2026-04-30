@@ -11,6 +11,7 @@ import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/agents/presentation/widget/agent_form_dialog.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/members/data/member_repository_provider.dart';
 
 class AgentsPage extends ConsumerStatefulWidget {
   const AgentsPage({super.key, this.agentId, this.serverId});
@@ -54,6 +55,8 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         onStart: agent == null || state.isBusy(agent.id) ? null : _startAgent,
         onStop: agent == null || state.isBusy(agent.id) ? null : _stopAgent,
         onReset: agent == null || state.isBusy(agent.id) ? null : _resetAgent,
+        onMessage:
+            agent == null || state.isBusy(agent.id) ? null : _messageAgent,
       );
     }
 
@@ -303,6 +306,26 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     }
   }
 
+  Future<void> _messageAgent(AgentItem agent) async {
+    final serverId = _resolvedServerId();
+    if (serverId == null) {
+      _showSnackBar('Select a server first.');
+      return;
+    }
+    try {
+      final channelId =
+          await ref.read(memberRepositoryProvider).openAgentDirectMessage(
+                ServerScopeId(serverId),
+                agentId: agent.id,
+              );
+      if (!mounted) return;
+      context.push('/servers/$serverId/dms/$channelId');
+    } on AppFailure catch (failure) {
+      if (!mounted) return;
+      _showSnackBar(failure.message ?? 'Failed to open conversation.');
+    }
+  }
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -513,6 +536,7 @@ class _AgentDetailScaffold extends StatelessWidget {
     required this.onStart,
     required this.onStop,
     required this.onReset,
+    required this.onMessage,
   });
 
   final AgentItem? agent;
@@ -525,6 +549,7 @@ class _AgentDetailScaffold extends StatelessWidget {
   final Future<void> Function(AgentItem)? onStart;
   final Future<void> Function(AgentItem)? onStop;
   final Future<void> Function(AgentItem)? onReset;
+  final Future<void> Function(AgentItem)? onMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -564,6 +589,7 @@ class _AgentDetailScaffold extends StatelessWidget {
         onStart: onStart,
         onStop: onStop,
         onReset: onReset,
+        onMessage: onMessage,
       ),
     );
   }
@@ -575,12 +601,14 @@ class _AgentDetailBody extends StatefulWidget {
     required this.onStart,
     required this.onStop,
     required this.onReset,
+    required this.onMessage,
   });
 
   final AgentItem agent;
   final Future<void> Function(AgentItem)? onStart;
   final Future<void> Function(AgentItem)? onStop;
   final Future<void> Function(AgentItem)? onReset;
+  final Future<void> Function(AgentItem)? onMessage;
 
   @override
   State<_AgentDetailBody> createState() => _AgentDetailBodyState();
@@ -650,6 +678,14 @@ class _AgentDetailBodyState extends State<_AgentDetailBody> {
         Wrap(
           spacing: 8,
           children: [
+            FilledButton.icon(
+              key: const ValueKey('agent-message-btn'),
+              onPressed: widget.onMessage == null
+                  ? null
+                  : () => widget.onMessage!(agent),
+              icon: const Icon(Icons.message_outlined),
+              label: const Text('Message'),
+            ),
             if (agent.isStopped)
               FilledButton.icon(
                 key: const ValueKey('agent-start-btn'),

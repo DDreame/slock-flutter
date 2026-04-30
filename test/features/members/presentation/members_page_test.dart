@@ -301,6 +301,13 @@ class _FakeMemberRepository
   }) async {
     return channelId;
   }
+
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async =>
+      'dm-agent-$agentId';
 }
 
 class _FakeSessionStore extends SessionStore {
