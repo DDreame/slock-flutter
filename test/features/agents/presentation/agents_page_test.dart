@@ -241,6 +241,59 @@ void main() {
     );
 
     testWidgets(
+      'detail route renders realtime activity log entries and does not call trajectory REST log',
+      (tester) async {
+        final fakeRepo = _MutableAgentsRepository(
+          initialItems: [
+            makeAgent(
+              id: 'agent-1',
+              name: 'Bot',
+              model: 'sonnet',
+              runtime: 'claude',
+            ),
+          ],
+        );
+        final ingress = RealtimeReductionIngress();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              realtimeReductionIngressProvider.overrideWithValue(ingress),
+            ],
+            child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('No activity log entries.'), findsOneWidget);
+        expect(fakeRepo.getActivityLogCallCount, 0);
+
+        ingress.accept(
+          RealtimeEventEnvelope(
+            eventType: 'agent:activity',
+            scopeKey: RealtimeEventEnvelope.globalScopeKey,
+            receivedAt: DateTime(2026, 4, 30, 16, 55, 42),
+            payload: const {
+              'agentId': 'agent-1',
+              'activity': 'working',
+              'detail': 'Running flutter test',
+            },
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump();
+
+        expect(find.text('16:55:42'), findsOneWidget);
+        expect(find.text('Working: Running flutter test'), findsOneWidget);
+        expect(find.text('No activity log entries.'), findsNothing);
+        expect(fakeRepo.getActivityLogCallCount, 0);
+      },
+    );
+
+    testWidgets(
       'create flow submits machine/runtime/model config from dialog',
       (tester) async {
         final fakeRepo = _MutableAgentsRepository(initialItems: const []);
@@ -752,6 +805,7 @@ class _MutableAgentsRepository
       : _items = List.of(initialItems);
 
   final List<AgentItem> _items;
+  int getActivityLogCallCount = 0;
   final List<AgentMutationInput> createRequests = [];
   final List<(String, AgentMutationInput)> updateRequests = [];
   final List<String> deletedAgentIds = [];
@@ -830,8 +884,10 @@ class _MutableAgentsRepository
   Future<List<AgentActivityLogEntry>> getActivityLog(
     String agentId, {
     int limit = 50,
-  }) async =>
-      [];
+  }) async {
+    getActivityLogCallCount += 1;
+    return [];
+  }
 }
 
 class _FakeAppDioClient extends AppDioClient {

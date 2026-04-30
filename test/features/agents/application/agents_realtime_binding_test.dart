@@ -78,6 +78,11 @@ void main() {
 
       expect(state().items.first.activity, 'thinking');
       expect(state().items.first.activityDetail, 'Processing query');
+      expect(state().activityLogFor('a1'), hasLength(1));
+      expect(
+        state().activityLogFor('a1').single.entry,
+        'Thinking: Processing query',
+      );
     });
 
     test('agent:created event triggers reload', () async {

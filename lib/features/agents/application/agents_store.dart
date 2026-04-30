@@ -9,6 +9,8 @@ final agentsStoreProvider =
     NotifierProvider.autoDispose<AgentsStore, AgentsState>(AgentsStore.new);
 
 class AgentsStore extends AutoDisposeNotifier<AgentsState> {
+  static const _maxActivityLogEntries = 200;
+
   @override
   AgentsState build() {
     return const AgentsState();
@@ -20,9 +22,11 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
     try {
       final repo = ref.read(agentsRepositoryProvider);
       final agents = await repo.listAgents();
+      final agentIds = agents.map((agent) => agent.id).toSet();
       state = state.copyWith(
         status: AgentsStatus.success,
         items: agents,
+        activityLogs: _pruneActivityLogs(agentIds),
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
@@ -93,9 +97,14 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
     try {
       final repo = ref.read(agentsRepositoryProvider);
       await repo.deleteAgent(agentId);
+      final remainingItems =
+          state.items.where((agent) => agent.id != agentId).toList();
       state = state.copyWith(
         status: AgentsStatus.success,
-        items: state.items.where((agent) => agent.id != agentId).toList(),
+        items: remainingItems,
+        activityLogs: _pruneActivityLogs(
+          remainingItems.map((agent) => agent.id).toSet(),
+        ),
         deletingAgentIds: {...state.deletingAgentIds}..remove(agentId),
         clearFailure: true,
       );
@@ -180,7 +189,31 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
     }
   }
 
-  void updateActivity(String agentId, String activity, String? detail) {
+  void updateActivity(
+    String agentId,
+    String activity,
+    String? detail, {
+    DateTime? timestamp,
+  }) {
+    final receivedAt = timestamp ?? DateTime.now();
+    final entryText = _formatActivityLogEntry(activity, detail);
+    final existingLog = state.activityLogFor(agentId);
+    final lastEntry = existingLog.isEmpty ? null : existingLog.last;
+    final nextLog = lastEntry != null &&
+            lastEntry.entry == entryText &&
+            receivedAt.difference(lastEntry.timestamp).inMilliseconds < 1000
+        ? existingLog
+        : [
+            ...existingLog,
+            AgentActivityLogEntry(timestamp: receivedAt, entry: entryText),
+          ]
+            .skip(
+              existingLog.length + 1 > _maxActivityLogEntries
+                  ? existingLog.length + 1 - _maxActivityLogEntries
+                  : 0,
+            )
+            .toList();
+
     state = state.copyWith(
       items: state.items
           .map(
@@ -189,6 +222,10 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
                 : a,
           )
           .toList(),
+      activityLogs: {
+        ...state.activityLogs,
+        agentId: nextLog,
+      },
     );
   }
 
@@ -204,10 +241,44 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
   }
 
   void removeAgent(String agentId) {
+    final remainingItems = state.items.where((a) => a.id != agentId).toList();
     state = state.copyWith(
-      items: state.items.where((a) => a.id != agentId).toList(),
+      items: remainingItems,
+      activityLogs: _pruneActivityLogs(
+        remainingItems.map((agent) => agent.id).toSet(),
+      ),
     );
   }
 
   void retry() => load();
+
+  Map<String, List<AgentActivityLogEntry>> _pruneActivityLogs(
+    Set<String> allowedAgentIds,
+  ) {
+    if (state.activityLogs.isEmpty) {
+      return state.activityLogs;
+    }
+    return Map<String, List<AgentActivityLogEntry>>.fromEntries(
+      state.activityLogs.entries.where(
+        (entry) => allowedAgentIds.contains(entry.key),
+      ),
+    );
+  }
+}
+
+String _formatActivityLogEntry(String activity, String? detail) {
+  final normalizedDetail = detail?.trim();
+  final hasDetail = normalizedDetail != null && normalizedDetail.isNotEmpty;
+  final activityLabel = switch (activity) {
+    'online' => 'Online',
+    'thinking' => 'Thinking',
+    'working' => 'Working',
+    'error' => 'Error',
+    'offline' => 'Offline',
+    _ => activity,
+  };
+  if (!hasDetail) {
+    return activityLabel;
+  }
+  return '$activityLabel: $normalizedDetail';
 }

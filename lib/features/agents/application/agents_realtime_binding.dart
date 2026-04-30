@@ -39,6 +39,7 @@ void _handleAgentActivity(Ref ref, RealtimeEventEnvelope event) {
           agentId,
           activity,
           detail,
+          timestamp: event.receivedAt,
         );
   } catch (_) {}
 }
