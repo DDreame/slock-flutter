@@ -9,6 +9,8 @@ final agentsStoreProvider =
     NotifierProvider.autoDispose<AgentsStore, AgentsState>(AgentsStore.new);
 
 class AgentsStore extends AutoDisposeNotifier<AgentsState> {
+  static const _maxActivityLogEntries = 200;
+
   @override
   AgentsState build() {
     return const AgentsState();
@@ -180,7 +182,31 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
     }
   }
 
-  void updateActivity(String agentId, String activity, String? detail) {
+  void updateActivity(
+    String agentId,
+    String activity,
+    String? detail, {
+    DateTime? timestamp,
+  }) {
+    final receivedAt = timestamp ?? DateTime.now();
+    final entryText = _formatActivityLogEntry(activity, detail);
+    final existingLog = state.activityLogFor(agentId);
+    final lastEntry = existingLog.isEmpty ? null : existingLog.last;
+    final nextLog = lastEntry != null &&
+            lastEntry.entry == entryText &&
+            receivedAt.difference(lastEntry.timestamp).inMilliseconds < 1000
+        ? existingLog
+        : [
+            ...existingLog,
+            AgentActivityLogEntry(timestamp: receivedAt, entry: entryText),
+          ]
+            .skip(
+              existingLog.length + 1 > _maxActivityLogEntries
+                  ? existingLog.length + 1 - _maxActivityLogEntries
+                  : 0,
+            )
+            .toList();
+
     state = state.copyWith(
       items: state.items
           .map(
@@ -189,6 +215,10 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
                 : a,
           )
           .toList(),
+      activityLogs: {
+        ...state.activityLogs,
+        agentId: nextLog,
+      },
     );
   }
 
@@ -210,4 +240,21 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
   }
 
   void retry() => load();
+}
+
+String _formatActivityLogEntry(String activity, String? detail) {
+  final normalizedDetail = detail?.trim();
+  final hasDetail = normalizedDetail != null && normalizedDetail.isNotEmpty;
+  final activityLabel = switch (activity) {
+    'online' => 'Online',
+    'thinking' => 'Thinking',
+    'working' => 'Working',
+    'error' => 'Error',
+    'offline' => 'Offline',
+    _ => activity,
+  };
+  if (!hasDetail) {
+    return activityLabel;
+  }
+  return '$activityLabel: $normalizedDetail';
 }

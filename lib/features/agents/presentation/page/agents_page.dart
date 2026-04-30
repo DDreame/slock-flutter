@@ -8,7 +8,6 @@ import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
-import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/agents/presentation/widget/agent_form_dialog.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
@@ -595,7 +594,7 @@ class _AgentDetailScaffold extends StatelessWidget {
   }
 }
 
-class _AgentDetailBody extends StatefulWidget {
+class _AgentDetailBody extends ConsumerWidget {
   const _AgentDetailBody({
     required this.agent,
     required this.onStart,
@@ -611,40 +610,12 @@ class _AgentDetailBody extends StatefulWidget {
   final Future<void> Function(AgentItem)? onMessage;
 
   @override
-  State<_AgentDetailBody> createState() => _AgentDetailBodyState();
-}
-
-class _AgentDetailBodyState extends State<_AgentDetailBody> {
-  List<AgentActivityLogEntry>? _activityLog;
-  bool _logLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadActivityLog();
-  }
-
-  Future<void> _loadActivityLog() async {
-    setState(() => _logLoading = true);
-    try {
-      final container = ProviderScope.containerOf(context);
-      final repo = container.read(agentsRepositoryProvider);
-      final log = await repo.getActivityLog(widget.agent.id);
-      if (mounted) {
-        setState(() {
-          _activityLog = log;
-          _logLoading = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _logLoading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final agent = widget.agent;
+    final agent = this.agent;
+    final activityLog = ref.watch(
+      agentsStoreProvider.select((state) => state.activityLogFor(agent.id)),
+    );
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -680,35 +651,28 @@ class _AgentDetailBodyState extends State<_AgentDetailBody> {
           children: [
             FilledButton.icon(
               key: const ValueKey('agent-message-btn'),
-              onPressed: widget.onMessage == null
-                  ? null
-                  : () => widget.onMessage!(agent),
+              onPressed: onMessage == null ? null : () => onMessage!(agent),
               icon: const Icon(Icons.message_outlined),
               label: const Text('Message'),
             ),
             if (agent.isStopped)
               FilledButton.icon(
                 key: const ValueKey('agent-start-btn'),
-                onPressed: widget.onStart == null
-                    ? null
-                    : () => widget.onStart!(agent),
+                onPressed: onStart == null ? null : () => onStart!(agent),
                 icon: const Icon(Icons.play_arrow),
                 label: const Text('Start'),
               ),
             if (agent.isActive)
               FilledButton.icon(
                 key: const ValueKey('agent-stop-btn'),
-                onPressed:
-                    widget.onStop == null ? null : () => widget.onStop!(agent),
+                onPressed: onStop == null ? null : () => onStop!(agent),
                 icon: const Icon(Icons.stop),
                 label: const Text('Stop'),
               ),
             if (agent.isActive)
               OutlinedButton.icon(
                 key: const ValueKey('agent-reset-btn'),
-                onPressed: widget.onReset == null
-                    ? null
-                    : () => widget.onReset!(agent),
+                onPressed: onReset == null ? null : () => onReset!(agent),
                 icon: const Icon(Icons.refresh),
                 label: const Text('Reset'),
               ),
@@ -717,12 +681,10 @@ class _AgentDetailBodyState extends State<_AgentDetailBody> {
         const SizedBox(height: 24),
         Text('Activity Log', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        if (_logLoading)
-          const Center(child: CircularProgressIndicator())
-        else if (_activityLog == null || _activityLog!.isEmpty)
+        if (activityLog.isEmpty)
           const Text('No activity log entries.')
         else
-          for (final entry in _activityLog!)
+          for (final entry in activityLog)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(

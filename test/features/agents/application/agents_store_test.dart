@@ -224,10 +224,22 @@ void main() {
       fakeRepo.listResult = [makeAgent(id: 'a1', activity: 'online')];
       await store().load();
 
-      store().updateActivity('a1', 'thinking', 'Processing...');
+      store().updateActivity(
+        'a1',
+        'thinking',
+        'Processing...',
+        timestamp: DateTime(2026, 4, 30, 16, 50, 0),
+      );
 
       expect(state().items.first.activity, 'thinking');
       expect(state().items.first.activityDetail, 'Processing...');
+      expect(state().activityLogFor('a1'), hasLength(1));
+      expect(
+          state().activityLogFor('a1').single.entry, 'Thinking: Processing...');
+      expect(
+        state().activityLogFor('a1').single.timestamp,
+        DateTime(2026, 4, 30, 16, 50, 0),
+      );
     });
 
     test('upsertAgent adds new agent', () async {

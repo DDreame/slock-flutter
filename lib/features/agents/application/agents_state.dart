@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
 
 enum AgentsStatus { initial, loading, success, failure }
 
@@ -9,6 +10,7 @@ class AgentsState {
   const AgentsState({
     this.status = AgentsStatus.initial,
     this.items = const [],
+    this.activityLogs = const <String, List<AgentActivityLogEntry>>{},
     this.failure,
     this.isCreating = false,
     this.savingAgentIds = const <String>{},
@@ -18,6 +20,7 @@ class AgentsState {
 
   final AgentsStatus status;
   final List<AgentItem> items;
+  final Map<String, List<AgentActivityLogEntry>> activityLogs;
   final AppFailure? failure;
   final bool isCreating;
   final Set<String> savingAgentIds;
@@ -32,10 +35,13 @@ class AgentsState {
       isSaving(agentId) ||
       isDeleting(agentId) ||
       isControlActionInFlight(agentId);
+  List<AgentActivityLogEntry> activityLogFor(String agentId) =>
+      activityLogs[agentId] ?? const <AgentActivityLogEntry>[];
 
   AgentsState copyWith({
     AgentsStatus? status,
     List<AgentItem>? items,
+    Map<String, List<AgentActivityLogEntry>>? activityLogs,
     AppFailure? failure,
     bool? isCreating,
     Set<String>? savingAgentIds,
@@ -46,6 +52,7 @@ class AgentsState {
     return AgentsState(
       status: status ?? this.status,
       items: items ?? this.items,
+      activityLogs: activityLogs ?? this.activityLogs,
       failure: clearFailure ? null : (failure ?? this.failure),
       isCreating: isCreating ?? this.isCreating,
       savingAgentIds: savingAgentIds ?? this.savingAgentIds,
