@@ -170,7 +170,14 @@ void main() {
       ),
     );
 
-    expect(find.text('Network error'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('workspace-settings-error')), findsOneWidget);
+    expect(find.text('Workspace settings unavailable'), findsOneWidget);
+    expect(
+      find.text('We could not load workspace settings right now.'),
+      findsOneWidget,
+    );
+    expect(find.text('Network error'), findsNothing);
     expect(find.text('Retry'), findsOneWidget);
     expect(find.text('Workspace not found.'), findsNothing);
   });

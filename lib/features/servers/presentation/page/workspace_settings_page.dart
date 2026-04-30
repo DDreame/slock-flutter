@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
@@ -22,25 +23,11 @@ class WorkspaceSettingsPage extends ConsumerWidget {
         ServerListStatus.initial ||
         ServerListStatus.loading =>
           const Center(child: CircularProgressIndicator()),
-        ServerListStatus.failure => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    serverListState.failure?.message ??
-                        'Unable to load workspace.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: ref.read(serverListStoreProvider.notifier).retry,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
+        ServerListStatus.failure => FriendlyErrorState(
+            key: const ValueKey('workspace-settings-error'),
+            title: 'Workspace settings unavailable',
+            message: 'We could not load workspace settings right now.',
+            onRetry: ref.read(serverListStoreProvider.notifier).retry,
           ),
         ServerListStatus.success =>
           _buildSuccess(context, ref, serverListState),

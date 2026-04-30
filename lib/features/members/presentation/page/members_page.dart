@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
@@ -75,26 +76,11 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             key: ValueKey('members-loading'),
             child: CircularProgressIndicator(),
           ),
-        MemberListStatus.failure => Center(
+        MemberListStatus.failure => FriendlyErrorState(
             key: const ValueKey('members-error'),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    state.failure?.message ?? 'Could not load members.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: () =>
-                        ref.read(memberListStoreProvider.notifier).load(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            ),
+            title: 'Members unavailable',
+            message: 'We could not load workspace members right now.',
+            onRetry: ref.read(memberListStoreProvider.notifier).load,
           ),
         MemberListStatus.success when state.members.isEmpty => const Center(
             key: ValueKey('members-empty'),
