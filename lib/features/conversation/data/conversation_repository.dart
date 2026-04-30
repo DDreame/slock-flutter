@@ -186,6 +186,7 @@ class ConversationMessageSummary {
     this.seq,
     this.attachments,
     this.threadId,
+    this.replyCount,
     this.isPinned = false,
   });
 
@@ -199,6 +200,7 @@ class ConversationMessageSummary {
   final int? seq;
   final List<MessageAttachment>? attachments;
   final String? threadId;
+  final int? replyCount;
   final bool isPinned;
 
   bool get isSystem => messageType == 'system';
@@ -215,6 +217,7 @@ class ConversationMessageSummary {
     String? content,
     List<MessageAttachment>? attachments,
     String? threadId,
+    int? replyCount,
     bool? isPinned,
   }) {
     return ConversationMessageSummary(
@@ -228,6 +231,7 @@ class ConversationMessageSummary {
       seq: seq,
       attachments: attachments ?? this.attachments,
       threadId: threadId ?? this.threadId,
+      replyCount: replyCount ?? this.replyCount,
       isPinned: isPinned ?? this.isPinned,
     );
   }
@@ -247,6 +251,7 @@ class ConversationMessageSummary {
             seq == other.seq &&
             _listEquals(attachments, other.attachments) &&
             threadId == other.threadId &&
+            replyCount == other.replyCount &&
             isPinned == other.isPinned;
   }
 
@@ -262,6 +267,7 @@ class ConversationMessageSummary {
         seq,
         attachments == null ? null : Object.hashAll(attachments!),
         threadId,
+        replyCount,
         isPinned,
       );
 

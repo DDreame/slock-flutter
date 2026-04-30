@@ -684,12 +684,25 @@ class _ConversationMessageCard extends ConsumerWidget {
                     ).toLocation(),
                   );
                 },
-                child: Text(
-                  'In thread',
-                  key: const ValueKey('message-thread-indicator'),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.primary,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.forum_outlined,
+                      size: 14,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      message.replyCount != null && message.replyCount! > 0
+                          ? '${message.replyCount} ${message.replyCount == 1 ? 'reply' : 'replies'}'
+                          : 'In thread',
+                      key: const ValueKey('message-thread-indicator'),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -800,6 +813,23 @@ class _ConversationMessageCard extends ConsumerWidget {
                 }
               },
             ),
+            if (target.surface == ConversationSurface.channel)
+              ListTile(
+                key: const ValueKey('message-action-reply-thread'),
+                leading: const Icon(Icons.forum_outlined),
+                title: const Text('Reply in thread'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.push(
+                    ThreadRouteTarget(
+                      serverId: target.serverId.value,
+                      parentChannelId: target.conversationId,
+                      parentMessageId: message.id,
+                      threadChannelId: message.threadId,
+                    ).toLocation(),
+                  );
+                },
+              ),
             if (target.surface == ConversationSurface.channel)
               ListTile(
                 key: const ValueKey('message-action-create-task'),

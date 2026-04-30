@@ -71,6 +71,7 @@ ConversationMessageSummary parseConversationMessageSummary(
     seq: readOptionalConversationPayloadInt(item['seq']),
     attachments: _parseAttachments(item['attachments']),
     threadId: readOptionalConversationPayloadString(item['threadId']),
+    replyCount: readOptionalConversationPayloadInt(item['replyCount']),
     isPinned: item['isPinned'] == true,
   );
 }
