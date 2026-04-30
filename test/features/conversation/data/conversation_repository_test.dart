@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 
@@ -316,6 +319,96 @@ void main() {
     expect(message.id, 'message-2');
     expect(message.content, 'Hello again');
     expect(message.seq, 2);
+  });
+
+  test('uploadAttachment uses live attachment endpoint contract', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'conversation_repository_test_',
+    );
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final file = File('${tempDir.path}/report.pdf')
+      ..writeAsStringSync('test file');
+
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/attachments/upload': {
+          'attachments': [
+            {'id': 'att-1', 'name': 'report.pdf'},
+          ],
+        },
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final attachmentId = await repository.uploadAttachment(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      PendingAttachment(
+        path: file.path,
+        name: 'report.pdf',
+        mimeType: 'application/pdf',
+      ),
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/attachments/upload');
+    expect(request.serverIdHeader, 'server-1');
+    expect(request.data, isA<FormData>());
+    final formData = request.data! as FormData;
+    expect(formData.fields, contains(const MapEntry('channelId', 'general')));
+    expect(formData.files, hasLength(1));
+    expect(formData.files.single.key, 'files');
+    expect(formData.files.single.value.filename, 'report.pdf');
+    expect(attachmentId, 'att-1');
+  });
+
+  test('uploadAttachment accepts legacy top-level id response', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'conversation_repository_test_',
+    );
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final file = File('${tempDir.path}/report.pdf')
+      ..writeAsStringSync('test file');
+
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/attachments/upload': {'id': 'att-legacy'},
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final attachmentId = await repository.uploadAttachment(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      PendingAttachment(
+        path: file.path,
+        name: 'report.pdf',
+        mimeType: 'application/pdf',
+      ),
+    );
+
+    expect(attachmentId, 'att-legacy');
   });
 
   test('sendMessage throws SerializationFailure for malformed response',
