@@ -42,6 +42,7 @@ class _ApiConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
   ) async {
     try {
+      final storedChannelTitle = await _readStoredChannelTitle(target);
       final responses = await Future.wait([
         _appDioClient.get<Object?>(
           '$_messagesPathPrefix${target.conversationId}',
@@ -62,6 +63,7 @@ class _ApiConversationRepository implements ConversationRepository {
       final metadata = _resolveMetadata(
         responses[1].data,
         target: target,
+        fallbackChannelTitle: storedChannelTitle,
       );
 
       await _localStore.upsertMessages(messagesPayload.storedMessages);
@@ -103,6 +105,25 @@ class _ApiConversationRepository implements ConversationRepository {
         causeType: error.runtimeType.toString(),
       );
     }
+  }
+
+  Future<String?> _readStoredChannelTitle(
+      ConversationDetailTarget target) async {
+    if (target.surface != ConversationSurface.channel) {
+      return null;
+    }
+
+    final summaries = await _localStore.listConversationSummaries(
+      target.serverId.value,
+      surface: _surfaceKey(target.surface),
+    );
+    for (final summary in summaries) {
+      if (summary.conversationId == target.conversationId &&
+          summary.title.isNotEmpty) {
+        return summary.title;
+      }
+    }
+    return null;
   }
 
   @override
@@ -516,6 +537,7 @@ ConversationMessageSummary _parseSingleMessage(
 _ConversationMetadata _resolveMetadata(
   Object? payload, {
   required ConversationDetailTarget target,
+  String? fallbackChannelTitle,
 }) {
   final items = _requireList(payload, payloadName: 'conversationMetadata');
   for (var index = 0; index < items.length; index++) {
@@ -545,6 +567,15 @@ _ConversationMetadata _resolveMetadata(
           );
         }
     }
+  }
+
+  if (target.surface == ConversationSurface.channel &&
+      fallbackChannelTitle != null &&
+      fallbackChannelTitle.isNotEmpty) {
+    return _ConversationMetadata(
+      displayTitle: '#$fallbackChannelTitle',
+      summaryTitle: fallbackChannelTitle,
+    );
   }
 
   return _ConversationMetadata(
