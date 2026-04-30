@@ -565,6 +565,7 @@ void main() {
               'messageType': 'message',
               'seq': 1,
               'threadId': 'thread-abc',
+              'replyCount': 5,
               'attachments': [
                 {
                   'name': 'report.pdf',
@@ -597,6 +598,7 @@ void main() {
 
     final message = snapshot.messages.single;
     expect(message.threadId, 'thread-abc');
+    expect(message.replyCount, 5);
     expect(message.attachments, hasLength(1));
     expect(message.attachments![0].name, 'report.pdf');
     expect(message.attachments![0].type, 'application/pdf');
@@ -640,6 +642,7 @@ void main() {
 
     final message = snapshot.messages.single;
     expect(message.threadId, isNull);
+    expect(message.replyCount, isNull);
     expect(message.attachments, isNull);
   });
 
