@@ -113,7 +113,7 @@ abstract class AppLocalizations {
   /// No description provided for @splashSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Preparing your workspace console...'**
+  /// **'Preparing your workspace...'**
   String get splashSubtitle;
 
   /// No description provided for @loginTitle.

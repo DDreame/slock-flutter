@@ -2,7 +2,7 @@
   "@@locale": "en",
   "appTitle": "Slock",
   "splashTitle": "Slock",
-  "splashSubtitle": "Preparing your workspace console...",
+  "splashSubtitle": "Preparing your workspace...",
   "loginTitle": "Login",
   "loginEmailLabel": "Email",
   "loginPasswordLabel": "Password",
@@ -25,4 +25,3 @@
   "registerPasswordTooShortError": "Password must be at least 8 characters.",
   "registerFailedFallback": "Registration failed. Please try again."
 }
-
