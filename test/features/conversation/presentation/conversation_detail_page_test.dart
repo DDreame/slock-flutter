@@ -1021,6 +1021,110 @@ void main() {
     expect(find.text('#7 @J2'), findsOneWidget);
   });
 
+  testWidgets('linked task badge hidden on DM surface', (tester) async {
+    final target = ConversationDetailTarget.directMessage(
+      const DirectMessageScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'dm-1',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: 'Alice',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'DM with task',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            linkedTaskId: 'task-9',
+            linkedTask: const ConversationLinkedTaskSummary(
+              id: 'task-9',
+              taskNumber: 9,
+              status: 'todo',
+              claimedByName: 'J1',
+            ),
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('message-linked-task-task-9')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'linked task badge does not overflow on narrow screen with long name',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Narrow overflow test',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            linkedTaskId: 'task-10',
+            linkedTask: const ConversationLinkedTaskSummary(
+              id: 'task-10',
+              taskNumber: 10,
+              status: 'in_progress',
+              claimedByName: 'AVeryLongAgentNameThatShouldOverflowTheRow',
+            ),
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The badge should render without triggering a layout overflow error.
+    expect(
+      find.byKey(const ValueKey('message-linked-task-task-10')),
+      findsOneWidget,
+    );
+    // No RenderFlex overflow exception means the Flexible+ellipsis works.
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('URL linkification styles URLs distinctly in message content', (
     tester,
   ) async {

@@ -743,9 +743,12 @@ class _ConversationMessageCard extends ConsumerWidget {
                   ),
                 ),
               Text(timestamp, style: timestampStyle),
-              if (message.linkedTask != null) ...[
+              if (message.linkedTask != null &&
+                  target.surface == ConversationSurface.channel) ...[
                 const SizedBox(width: 8),
-                _MessageLinkedTaskBadge(task: message.linkedTask!),
+                Flexible(
+                  child: _MessageLinkedTaskBadge(task: message.linkedTask!),
+                ),
               ],
             ],
           ),
@@ -968,11 +971,15 @@ class _MessageLinkedTaskBadge extends StatelessWidget {
         children: [
           Icon(icon, size: 12, color: colors.onContainer),
           const SizedBox(width: 4),
-          Text(
-            label.toString(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: colors.onContainer,
-              fontWeight: FontWeight.w700,
+          Flexible(
+            child: Text(
+              label.toString(),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: colors.onContainer,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
