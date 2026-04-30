@@ -10,7 +10,7 @@ import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
 const _messagePageSize = 50;
 const _sendMessagePath = '/messages';
-const _uploadPath = '/upload';
+const _uploadPath = '/attachments/upload';
 const _messagesPathPrefix = '/messages/channel/';
 const _channelsPath = '/channels';
 const _directMessageChannelsPath = '/channels/dm';
@@ -215,13 +215,18 @@ class _ApiConversationRepository implements ConversationRepository {
     PendingAttachment attachment,
   ) async {
     try {
-      final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          attachment.path,
-          filename: attachment.name,
-          contentType: DioMediaType.parse(attachment.mimeType),
-        ),
-      });
+      final formData = FormData()
+        ..fields.add(MapEntry('channelId', target.conversationId))
+        ..files.add(
+          MapEntry(
+            'files',
+            await MultipartFile.fromFile(
+              attachment.path,
+              filename: attachment.name,
+              contentType: DioMediaType.parse(attachment.mimeType),
+            ),
+          ),
+        );
       final response = await _appDioClient.post<Object?>(
         _uploadPath,
         data: formData,
@@ -233,7 +238,7 @@ class _ApiConversationRepository implements ConversationRepository {
         response.data,
         payloadName: 'uploadResponse',
       );
-      final id = readOptionalConversationPayloadString(map['id']);
+      final id = _readUploadAttachmentId(map);
       if (id == null || id.isEmpty) {
         throw const SerializationFailure(
           message: 'Upload response missing attachment id.',
@@ -532,6 +537,22 @@ ConversationMessageSummary _parseSingleMessage(
   required String payloadName,
 }) {
   return parseConversationMessageSummary(payload, payloadName: payloadName);
+}
+
+String? _readUploadAttachmentId(Map<String, dynamic> payload) {
+  final attachments = payload['attachments'];
+  if (attachments is List && attachments.isNotEmpty) {
+    final first = attachments.first;
+    if (first is Map<String, dynamic>) {
+      return readOptionalConversationPayloadString(first['id']);
+    }
+    if (first is Map) {
+      return readOptionalConversationPayloadString(
+        Map<String, dynamic>.from(first)['id'],
+      );
+    }
+  }
+  return readOptionalConversationPayloadString(payload['id']);
 }
 
 _ConversationMetadata _resolveMetadata(
