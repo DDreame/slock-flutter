@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agents_state.dart';
+import 'package:slock_app/features/agents/application/agents_store.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
@@ -33,16 +36,17 @@ class _NewDmDialogContent extends ConsumerStatefulWidget {
 }
 
 class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
-  String? _openingUserId;
+  String? _openingId;
   final _searchController = TextEditingController();
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(
-      () => ref.read(memberListStoreProvider.notifier).ensureLoaded(),
-    );
+    Future.microtask(() {
+      ref.read(memberListStoreProvider.notifier).ensureLoaded();
+      ref.read(agentsStoreProvider.notifier).load();
+    });
   }
 
   @override
@@ -53,73 +57,74 @@ class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(memberListStoreProvider);
-
-    return AlertDialog(
-      key: const ValueKey('new-dm-dialog'),
-      title: const Text('New message'),
-      content: SizedBox(
-        width: double.maxFinite,
-        height: 400,
-        child: switch (state.status) {
-          MemberListStatus.initial ||
-          MemberListStatus.loading =>
-            const Center(child: CircularProgressIndicator()),
-          MemberListStatus.failure => _ErrorContent(
-              message: state.failure?.message ?? 'Failed to load members.',
-              onRetry: ref.read(memberListStoreProvider.notifier).load,
-            ),
-          MemberListStatus.success => _buildSearchableMemberList(state),
-        },
+    return DefaultTabController(
+      length: 2,
+      child: AlertDialog(
+        key: const ValueKey('new-dm-dialog'),
+        title: const Text('New message'),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 440,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const TabBar(
+                tabs: [
+                  Tab(
+                    key: ValueKey('new-dm-tab-people'),
+                    text: 'People',
+                  ),
+                  Tab(
+                    key: ValueKey('new-dm-tab-agents'),
+                    text: 'Agents',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                key: const ValueKey('new-dm-search'),
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: 'Search...',
+                  prefixIcon: Icon(Icons.search),
+                  isDense: true,
+                ),
+                onChanged: (value) =>
+                    setState(() => _searchQuery = value.trim()),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _PeopleTab(
+                      searchQuery: _searchQuery,
+                      openingId: _openingId,
+                      onSelect: _openDirectMessage,
+                    ),
+                    _AgentsTab(
+                      searchQuery: _searchQuery,
+                      openingId: _openingId,
+                      onSelect: _openAgentDirectMessage,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed:
+                _openingId != null ? null : () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed:
-              _openingUserId != null ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchableMemberList(MemberListState state) {
-    final nonSelfMembers = state.members.where((m) => !m.isSelf).toList();
-    final filtered = _searchQuery.isEmpty
-        ? nonSelfMembers
-        : nonSelfMembers
-            .where(
-              (m) => m.displayName
-                  .toLowerCase()
-                  .contains(_searchQuery.toLowerCase()),
-            )
-            .toList();
-
-    return Column(
-      children: [
-        TextField(
-          key: const ValueKey('new-dm-search'),
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Search members...',
-            prefixIcon: Icon(Icons.search),
-            isDense: true,
-          ),
-          onChanged: (value) => setState(() => _searchQuery = value.trim()),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: _MemberList(
-            members: filtered,
-            openingUserId: _openingUserId,
-            onSelect: _openDirectMessage,
-          ),
-        ),
-      ],
     );
   }
 
   Future<void> _openDirectMessage(MemberProfile member) async {
-    setState(() => _openingUserId = member.id);
+    setState(() => _openingId = member.id);
     try {
       final channelId =
           await ref.read(memberRepositoryProvider).openDirectMessage(
@@ -130,7 +135,30 @@ class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
       Navigator.of(context).pop(channelId);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      setState(() => _openingUserId = null);
+      setState(() => _openingId = null);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to open conversation.'),
+          ),
+        );
+    }
+  }
+
+  Future<void> _openAgentDirectMessage(AgentItem agent) async {
+    setState(() => _openingId = agent.id);
+    try {
+      final channelId =
+          await ref.read(memberRepositoryProvider).openAgentDirectMessage(
+                widget.serverId,
+                agentId: agent.id,
+              );
+      if (!mounted) return;
+      Navigator.of(context).pop(channelId);
+    } on AppFailure catch (failure) {
+      if (!mounted) return;
+      setState(() => _openingId = null);
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -142,15 +170,136 @@ class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
   }
 }
 
+class _PeopleTab extends ConsumerWidget {
+  const _PeopleTab({
+    required this.searchQuery,
+    required this.openingId,
+    required this.onSelect,
+  });
+
+  final String searchQuery;
+  final String? openingId;
+  final void Function(MemberProfile) onSelect;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(memberListStoreProvider);
+
+    return switch (state.status) {
+      MemberListStatus.initial ||
+      MemberListStatus.loading =>
+        const Center(child: CircularProgressIndicator()),
+      MemberListStatus.failure => _ErrorContent(
+          message: state.failure?.message ?? 'Failed to load members.',
+          onRetry: ref.read(memberListStoreProvider.notifier).load,
+        ),
+      MemberListStatus.success => _buildFilteredList(state),
+    };
+  }
+
+  Widget _buildFilteredList(MemberListState state) {
+    final nonSelfMembers = state.members.where((m) => !m.isSelf).toList();
+    final filtered = searchQuery.isEmpty
+        ? nonSelfMembers
+        : nonSelfMembers
+            .where(
+              (m) => m.displayName
+                  .toLowerCase()
+                  .contains(searchQuery.toLowerCase()),
+            )
+            .toList();
+
+    return _MemberList(
+      members: filtered,
+      openingId: openingId,
+      onSelect: onSelect,
+    );
+  }
+}
+
+class _AgentsTab extends ConsumerWidget {
+  const _AgentsTab({
+    required this.searchQuery,
+    required this.openingId,
+    required this.onSelect,
+  });
+
+  final String searchQuery;
+  final String? openingId;
+  final void Function(AgentItem) onSelect;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(agentsStoreProvider);
+
+    return switch (state.status) {
+      AgentsStatus.initial ||
+      AgentsStatus.loading =>
+        const Center(child: CircularProgressIndicator()),
+      AgentsStatus.failure => _ErrorContent(
+          message: state.failure?.message ?? 'Failed to load agents.',
+          onRetry: ref.read(agentsStoreProvider.notifier).retry,
+        ),
+      AgentsStatus.success => _buildFilteredList(state),
+    };
+  }
+
+  Widget _buildFilteredList(AgentsState state) {
+    final filtered = searchQuery.isEmpty
+        ? state.items
+        : state.items
+            .where(
+              (a) =>
+                  a.label.toLowerCase().contains(searchQuery.toLowerCase()) ||
+                  a.name.toLowerCase().contains(searchQuery.toLowerCase()),
+            )
+            .toList();
+
+    if (filtered.isEmpty) {
+      return const Center(child: Text('No agents found.'));
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        final agent = filtered[index];
+        final isOpening = openingId == agent.id;
+        return ListTile(
+          key: ValueKey('dm-agent-${agent.id}'),
+          leading: CircleAvatar(
+            backgroundImage:
+                agent.avatarUrl != null ? NetworkImage(agent.avatarUrl!) : null,
+            child: agent.avatarUrl == null
+                ? const Icon(Icons.smart_toy_outlined)
+                : null,
+          ),
+          title: Text(agent.label),
+          subtitle: Text(agent.model),
+          trailing: isOpening
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : null,
+          enabled: openingId == null,
+          onTap: () => onSelect(agent),
+        );
+      },
+    );
+  }
+}
+
 class _MemberList extends StatelessWidget {
   const _MemberList({
     required this.members,
-    required this.openingUserId,
+    required this.openingId,
     required this.onSelect,
   });
 
   final List<MemberProfile> members;
-  final String? openingUserId;
+  final String? openingId;
   final void Function(MemberProfile) onSelect;
 
   @override
@@ -163,7 +312,7 @@ class _MemberList extends StatelessWidget {
       itemCount: members.length,
       itemBuilder: (context, index) {
         final member = members[index];
-        final isOpening = openingUserId == member.id;
+        final isOpening = openingId == member.id;
         return ListTile(
           key: ValueKey('dm-member-${member.id}'),
           leading: CircleAvatar(
@@ -182,7 +331,7 @@ class _MemberList extends StatelessWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : null,
-          enabled: openingUserId == null,
+          enabled: openingId == null,
           onTap: () => onSelect(member),
         );
       },

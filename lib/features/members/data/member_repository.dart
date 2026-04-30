@@ -18,6 +18,11 @@ abstract class MemberRepository {
     ServerScopeId serverId, {
     required String userId,
   });
+
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  });
 }
 
 abstract class MemberInviteMutationRepository {

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
@@ -12,10 +15,14 @@ void main() {
 
   Widget buildApp({
     required MemberRepository memberRepository,
+    AgentsRepository? agentsRepository,
   }) {
     return ProviderScope(
       overrides: [
         memberRepositoryProvider.overrideWithValue(memberRepository),
+        agentsRepositoryProvider.overrideWithValue(
+          agentsRepository ?? const _FakeAgentsRepository(),
+        ),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -41,7 +48,7 @@ void main() {
     );
   }
 
-  testWidgets('shows loading then member list', (tester) async {
+  testWidgets('shows loading then member list in People tab', (tester) async {
     final repo = _FakeMemberRepository(
       members: const [
         MemberProfile(id: 'u1', displayName: 'Alice'),
@@ -64,6 +71,21 @@ void main() {
     expect(find.text('Self'), findsNothing);
   });
 
+  testWidgets('People and Agents tabs are visible', (tester) async {
+    final repo = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'u1', displayName: 'Alice'),
+      ],
+    );
+
+    await tester.pumpWidget(buildApp(memberRepository: repo));
+    await tester.tap(find.byKey(const ValueKey('open-dialog')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('People'), findsOneWidget);
+    expect(find.text('Agents'), findsOneWidget);
+  });
+
   testWidgets(
       'selecting a member calls openDirectMessage and returns channelId',
       (tester) async {
@@ -83,6 +105,48 @@ void main() {
 
     expect(repo.openedDmUserIds, ['u1']);
     expect(find.text('opened:dm-alice-123'), findsOneWidget);
+  });
+
+  testWidgets('Agents tab shows agents and selecting opens agent DM',
+      (tester) async {
+    final memberRepo = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'u1', displayName: 'Alice'),
+      ],
+      agentDmChannelId: 'dm-agent-789',
+    );
+    final agentsRepo = _FakeAgentsRepository(
+      agents: const [
+        AgentItem(
+          id: 'agent-1',
+          name: 'bot-alpha',
+          displayName: 'Bot Alpha',
+          model: 'claude-sonnet-4-6',
+          runtime: 'docker',
+          status: 'active',
+          activity: 'online',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      buildApp(memberRepository: memberRepo, agentsRepository: agentsRepo),
+    );
+    await tester.tap(find.byKey(const ValueKey('open-dialog')));
+    await tester.pumpAndSettle();
+
+    // Switch to Agents tab
+    await tester.tap(find.text('Agents'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bot Alpha'), findsOneWidget);
+    expect(find.byKey(const ValueKey('dm-agent-agent-1')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('dm-agent-agent-1')));
+    await tester.pumpAndSettle();
+
+    expect(memberRepo.openedAgentDmIds, ['agent-1']);
+    expect(find.text('opened:dm-agent-789'), findsOneWidget);
   });
 
   testWidgets('shows error state and retry', (tester) async {
@@ -217,13 +281,16 @@ class _FakeMemberRepository implements MemberRepository {
   _FakeMemberRepository({
     this.members = const [],
     this.dmChannelId = 'dm-channel-1',
+    this.agentDmChannelId = 'dm-agent-channel-1',
     this.failure,
   });
 
   List<MemberProfile> members;
   final String dmChannelId;
+  final String agentDmChannelId;
   AppFailure? failure;
   final List<String> openedDmUserIds = [];
+  final List<String> openedAgentDmIds = [];
 
   @override
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
@@ -263,4 +330,39 @@ class _FakeMemberRepository implements MemberRepository {
     openedDmUserIds.add(userId);
     return dmChannelId;
   }
+
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async {
+    if (failure != null) throw failure!;
+    openedAgentDmIds.add(agentId);
+    return agentDmChannelId;
+  }
+}
+
+class _FakeAgentsRepository implements AgentsRepository {
+  const _FakeAgentsRepository({this.agents = const []});
+
+  final List<AgentItem> agents;
+
+  @override
+  Future<List<AgentItem>> listAgents() async => agents;
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
 }
