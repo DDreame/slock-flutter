@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/application/verify_email_controller.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 class VerifyEmailPage extends ConsumerStatefulWidget {
@@ -40,24 +41,25 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     final controllerState = ref.watch(verifyEmailControllerProvider);
     final session = ref.watch(sessionStoreProvider);
     final canResend = session.isAuthenticated && session.emailVerified == false;
+    final l10n = context.l10n;
 
     if (_verified) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Verify Email')),
+        appBar: AppBar(title: Text(l10n.verifyEmailTitle)),
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Email verified. You can continue to the app.',
+                Text(
+                  l10n.verifyEmailSuccessMessage,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: () => context.go('/home'),
-                  child: const Text('Continue to Slock'),
+                  child: Text(l10n.verifyEmailContinueButton),
                 ),
               ],
             ),
@@ -67,22 +69,22 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify Email')),
+      appBar: AppBar(title: Text(l10n.verifyEmailTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Verify your email to continue.',
+              Text(
+                l10n.verifyEmailInstructions,
                 textAlign: TextAlign.center,
               ),
               if (_resent) ...[
                 const SizedBox(height: 16),
-                const Text(
-                  'Verification email resent. Check your inbox.',
-                  key: ValueKey('verify-email-resent'),
+                Text(
+                  l10n.verifyEmailResentMessage,
+                  key: const ValueKey('verify-email-resent'),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -106,15 +108,15 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Resend verification email'),
+                      : Text(l10n.verifyEmailResendButton),
                 ),
                 const SizedBox(height: 16),
               ],
               TextField(
                 key: const ValueKey('verify-email-token'),
                 controller: _manualTokenController,
-                decoration: const InputDecoration(
-                  labelText: 'Verification token',
+                decoration: InputDecoration(
+                  labelText: l10n.verifyEmailTokenLabel,
                 ),
               ),
               const SizedBox(height: 16),
@@ -122,20 +124,20 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
                 key: const ValueKey('verify-email-submit'),
                 onPressed:
                     controllerState.isLoading ? null : _submitManualToken,
-                child: const Text('Verify'),
+                child: Text(l10n.verifyEmailSubmitLabel),
               ),
               if (session.isAuthenticated) ...[
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () =>
                       ref.read(sessionStoreProvider.notifier).logout(),
-                  child: const Text('Sign out'),
+                  child: Text(l10n.verifyEmailSignOut),
                 ),
               ] else ...[
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => context.go('/login'),
-                  child: const Text('Back to login'),
+                  child: Text(l10n.verifyEmailBackToLogin),
                 ),
               ],
             ],
@@ -157,7 +159,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     final token = _manualTokenController.text.trim();
     if (token.isEmpty) {
       setState(() {
-        _errorText = 'Enter a verification token.';
+        _errorText = context.l10n.verifyEmailTokenRequiredError;
       });
       return;
     }
@@ -178,8 +180,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       setState(() {
-        _errorText =
-            failure.message ?? 'Verification failed. The link may be expired.';
+        _errorText = failure.message ?? context.l10n.verifyEmailFailedFallback;
       });
     }
   }
@@ -200,7 +201,8 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       setState(() {
-        _errorText = failure.message ?? 'Failed to resend verification email.';
+        _errorText =
+            failure.message ?? context.l10n.verifyEmailResendFailedFallback;
       });
     }
   }

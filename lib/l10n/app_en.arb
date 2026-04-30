@@ -13,6 +13,7 @@
   "loginEmailInvalidError": "Enter a valid email address.",
   "loginPasswordRequiredError": "Password is required.",
   "loginFailedFallback": "Login failed. Please try again.",
+
   "registerTitle": "Register",
   "registerDisplayNameLabel": "Display name",
   "registerEmailLabel": "Email",
@@ -23,5 +24,124 @@
   "registerEmailRequiredError": "Email is required.",
   "registerEmailInvalidError": "Enter a valid email address.",
   "registerPasswordTooShortError": "Password must be at least 8 characters.",
-  "registerFailedFallback": "Registration failed. Please try again."
+  "registerFailedFallback": "Registration failed. Please try again.",
+
+  "forgotPasswordTitle": "Forgot Password",
+  "forgotPasswordSuccessTitle": "Check your email",
+  "forgotPasswordSuccessMessage": "If that email is registered, a reset link has been sent. Check your inbox.",
+  "forgotPasswordEmailLabel": "Email",
+  "forgotPasswordSubmitLabel": "Reset Password",
+  "forgotPasswordBackToLogin": "Back to login",
+  "forgotPasswordEmailRequiredError": "Email is required.",
+  "forgotPasswordEmailInvalidError": "Enter a valid email address.",
+  "forgotPasswordFailedFallback": "Failed to send reset email. Please try again.",
+
+  "resetPasswordTitle": "Reset Password",
+  "resetPasswordCompletedMessage": "Password reset complete. You can now sign in with your new password.",
+  "resetPasswordNewPasswordLabel": "New password",
+  "resetPasswordConfirmPasswordLabel": "Confirm new password",
+  "resetPasswordSubmitLabel": "Set new password",
+  "resetPasswordBackToLogin": "Back to login",
+  "resetPasswordLinkInvalidError": "Reset link is missing or invalid.",
+  "resetPasswordTooShortError": "Password must be at least 8 characters.",
+  "resetPasswordMismatchError": "Passwords do not match.",
+  "resetPasswordFailedFallback": "Password reset failed. The link may be expired.",
+
+  "verifyEmailTitle": "Verify Email",
+  "verifyEmailInstructions": "Verify your email to continue.",
+  "verifyEmailResentMessage": "Verification email resent. Check your inbox.",
+  "verifyEmailResendButton": "Resend verification email",
+  "verifyEmailTokenLabel": "Verification token",
+  "verifyEmailSubmitLabel": "Verify",
+  "verifyEmailSuccessMessage": "Email verified. You can continue to the app.",
+  "verifyEmailContinueButton": "Continue to Slock",
+  "verifyEmailSignOut": "Sign out",
+  "verifyEmailBackToLogin": "Back to login",
+  "verifyEmailTokenRequiredError": "Enter a verification token.",
+  "verifyEmailFailedFallback": "Verification failed. The link may be expired.",
+  "verifyEmailResendFailedFallback": "Failed to resend verification email.",
+
+  "navWorkspace": "Workspace",
+  "navAgents": "Agents",
+  "navSettings": "Settings",
+
+  "homeWorkspaceConsole": "Workspace Console",
+  "homeConsoleActivityTitle": "Activity",
+  "homeConsoleActivityDescription": "Saved context, threads, tasks, and search.",
+  "homeConsoleSavedMessages": "Saved Messages",
+  "homeConsoleSavedMessagesDescription": "Return to bookmarked updates and references.",
+  "homeConsoleThreads": "Threads",
+  "homeConsoleThreadsDescription": "Review active thread work across the workspace.",
+  "homeConsoleTasks": "Tasks",
+  "homeConsoleTasksDescription": "See task queues and execution status.",
+  "homeConsoleSearch": "Search",
+  "homeConsoleSearchDescription": "Find channels, messages, and workspace history.",
+  "homeConsoleOperationsTitle": "Operations",
+  "homeConsoleOperationsDescription": "People, infrastructure, billing, and settings.",
+  "homeConsoleMembers": "Members",
+  "homeConsoleMembersDescription": "Manage workspace roles and invitations.",
+  "homeConsoleAgentControl": "Agent Control",
+  "homeConsoleAgentControlDescription": "Inspect agent activity and assignments.",
+  "homeConsoleMachines": "Machines",
+  "homeConsoleMachinesDescription": "Check workspace runtime capacity and hosts.",
+  "homeConsoleBilling": "Billing",
+  "homeConsoleBillingDescription": "Review plan controls and billing management.",
+  "homeConsoleWorkspaceSettings": "Workspace Settings",
+  "homeConsoleWorkspaceSettingsDescription": "Configure workspace-level defaults and access.",
+
+  "homeSectionPinned": "Pinned",
+  "homeSectionChannels": "Channels",
+  "homeSectionDirectMessages": "Direct Messages",
+  "homeSectionPinnedAgents": "Pinned Agents",
+  "homeSectionAgents": "Agents",
+  "homeChannelsEmpty": "No channels yet.",
+  "homeDirectMessagesEmpty": "No direct messages yet.",
+  "homeCreateChannelTooltip": "Create channel",
+  "homeNewMessageTooltip": "New message",
+  "homeHiddenConversationsCount": "Hidden conversations ({count})",
+  "@homeHiddenConversationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeHiddenConversationsTitle": "Hidden conversations",
+  "homeUnhide": "Unhide",
+  "homePin": "Pin",
+  "homeUnpin": "Unpin",
+
+  "homeNoServerMessage": "Select a server to get started.",
+  "homeSelectWorkspace": "Select workspace",
+  "homeLoadFailedFallback": "Unable to load conversations.",
+  "homeRetry": "Retry",
+
+  "homeChannelCreated": "Channel created.",
+  "homeChannelCreateFailed": "Failed to create channel.",
+  "homeChannelUpdated": "Channel updated.",
+  "homeChannelUpdateFailed": "Failed to update channel.",
+  "homeDeleteChannelTitle": "Delete channel",
+  "homeDeleteChannelMessage": "Delete {name}? This cannot be undone.",
+  "@homeDeleteChannelMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeDeleteChannelConfirm": "Delete",
+  "homeChannelDeleted": "Channel deleted.",
+  "homeChannelDeleteFailed": "Failed to delete channel.",
+  "homeLeaveChannelTitle": "Leave channel",
+  "homeLeaveChannelMessage": "Leave {name}?",
+  "@homeLeaveChannelMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "homeLeaveChannelConfirm": "Leave",
+  "homeChannelLeft": "Left channel.",
+  "homeChannelLeaveFailed": "Failed to leave channel."
 }

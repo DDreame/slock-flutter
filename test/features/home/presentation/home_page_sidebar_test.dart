@@ -14,6 +14,7 @@ import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   group('pinned channels section', () {
@@ -396,7 +397,11 @@ Widget _buildApp({
       sidebarOrderRepositoryProvider.overrideWithValue(sidebarRepo),
       agentsRepositoryProvider.overrideWithValue(const _FakeAgentsRepository()),
     ],
-    child: MaterialApp.router(routerConfig: router),
+    child: MaterialApp.router(
+      routerConfig: router,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+    ),
   );
 }
 

@@ -12,6 +12,7 @@ import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   const server = ServerScopeId('server-1');
@@ -95,7 +96,11 @@ void main() {
 
     return UncontrolledProviderScope(
       container: container,
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
     );
   }
 
