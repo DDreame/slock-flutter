@@ -122,6 +122,50 @@ void main() {
     expect(snapshot.hasOlder, isFalse);
   });
 
+  test('loads channel title from stored summary when metadata is missing',
+      () async {
+    final localStore = FakeConversationLocalStore();
+    await localStore.upsertConversationSummaries([
+      const LocalConversationSummaryUpsert(
+        serverId: 'server-1',
+        conversationId: 'channel-uuid-1',
+        surface: 'channel',
+        title: 'announcements',
+        sortIndex: 0,
+      ),
+    ]);
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/channel-uuid-1': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'content': 'Hello world',
+              'createdAt': '2026-04-19T15:00:00Z',
+            },
+          ],
+        },
+        '/channels': [
+          {'id': 'different-channel', 'name': 'general'},
+        ],
+      },
+    );
+    final container = _createContainer(appDioClient, localStore: localStore);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'channel-uuid-1',
+        ),
+      ),
+    );
+
+    expect(snapshot.title, '#announcements');
+  });
+
   test('loads older history with before query and hasOlder truth', () async {
     final appDioClient = _FakeAppDioClient(
       responses: {
