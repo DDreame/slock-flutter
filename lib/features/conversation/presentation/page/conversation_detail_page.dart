@@ -216,6 +216,7 @@ class _ConversationDetailScreenState
     if (state.sendFailure == null &&
         state.draft.isEmpty &&
         state.pendingAttachments.isEmpty) {
+      _composerController.clear();
       _composerFocusNode.unfocus();
     }
   }
