@@ -242,6 +242,24 @@ void main() {
       );
     });
 
+    test('load prunes activity logs for agents no longer present', () async {
+      fakeRepo.listResult = [
+        makeAgent(id: 'a1', name: 'Alpha'),
+        makeAgent(id: 'a2', name: 'Beta'),
+      ];
+      await store().load();
+
+      store().updateActivity('a1', 'working', 'Task 1');
+      store().updateActivity('a2', 'thinking', 'Task 2');
+
+      fakeRepo.listResult = [makeAgent(id: 'a2', name: 'Beta')];
+      await store().load();
+
+      expect(state().activityLogs.keys, {'a2'});
+      expect(state().activityLogFor('a1'), isEmpty);
+      expect(state().activityLogFor('a2'), hasLength(1));
+    });
+
     test('upsertAgent adds new agent', () async {
       fakeRepo.listResult = [makeAgent(id: 'a1')];
       await store().load();
@@ -267,11 +285,31 @@ void main() {
         makeAgent(id: 'a2', name: 'Beta'),
       ];
       await store().load();
+      store().updateActivity('a1', 'working', 'Task 1');
+      store().updateActivity('a2', 'thinking', 'Task 2');
 
       store().removeAgent('a1');
 
       expect(state().items.length, 1);
       expect(state().items.first.id, 'a2');
+      expect(state().activityLogs.keys, {'a2'});
+      expect(state().activityLogFor('a1'), isEmpty);
+    });
+
+    test('deleteAgent removes activity logs for deleted agent', () async {
+      fakeRepo.listResult = [
+        makeAgent(id: 'a1', name: 'Alpha'),
+        makeAgent(id: 'a2', name: 'Beta'),
+      ];
+      await store().load();
+      store().updateActivity('a1', 'working', 'Task 1');
+      store().updateActivity('a2', 'thinking', 'Task 2');
+
+      await store().deleteAgent('a1');
+
+      expect(state().items.map((agent) => agent.id), ['a2']);
+      expect(state().activityLogs.keys, {'a2'});
+      expect(state().activityLogFor('a1'), isEmpty);
     });
   });
 }
