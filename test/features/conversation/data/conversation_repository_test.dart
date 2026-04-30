@@ -552,7 +552,8 @@ void main() {
     );
   });
 
-  test('parses attachments and threadId from message payload', () async {
+  test('parses attachments, threadId, and linked task from message payload',
+      () async {
     final appDioClient = _FakeAppDioClient(
       responses: {
         '/messages/channel/general': {
@@ -566,6 +567,13 @@ void main() {
               'seq': 1,
               'threadId': 'thread-abc',
               'replyCount': 5,
+              'linkedTaskId': 'task-7',
+              'linkedTask': {
+                'id': 'task-7',
+                'taskNumber': 7,
+                'status': 'in_progress',
+                'claimedByName': 'J2',
+              },
               'attachments': [
                 {
                   'name': 'report.pdf',
@@ -599,6 +607,12 @@ void main() {
     final message = snapshot.messages.single;
     expect(message.threadId, 'thread-abc');
     expect(message.replyCount, 5);
+    expect(message.linkedTaskId, 'task-7');
+    expect(message.linkedTask, isNotNull);
+    expect(message.linkedTask!.id, 'task-7');
+    expect(message.linkedTask!.taskNumber, 7);
+    expect(message.linkedTask!.status, 'in_progress');
+    expect(message.linkedTask!.claimedByName, 'J2');
     expect(message.attachments, hasLength(1));
     expect(message.attachments![0].name, 'report.pdf');
     expect(message.attachments![0].type, 'application/pdf');
@@ -606,7 +620,9 @@ void main() {
     expect(message.attachments![0].id, 'att-1');
   });
 
-  test('attachments and threadId are null when absent from payload', () async {
+  test(
+      'attachments, threadId, and linked task are null when absent from payload',
+      () async {
     final appDioClient = _FakeAppDioClient(
       responses: {
         '/messages/channel/general': {
@@ -643,6 +659,8 @@ void main() {
     final message = snapshot.messages.single;
     expect(message.threadId, isNull);
     expect(message.replyCount, isNull);
+    expect(message.linkedTaskId, isNull);
+    expect(message.linkedTask, isNull);
     expect(message.attachments, isNull);
   });
 

@@ -973,6 +973,54 @@ void main() {
     expect(find.text('In thread'), findsOneWidget);
   });
 
+  testWidgets('renders linked task badge for messages with linkedTask', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Task-linked message',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            linkedTaskId: 'task-7',
+            linkedTask: const ConversationLinkedTaskSummary(
+              id: 'task-7',
+              taskNumber: 7,
+              status: 'in_progress',
+              claimedByName: 'J2',
+            ),
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('message-linked-task-task-7')),
+        findsOneWidget);
+    expect(find.text('#7 @J2'), findsOneWidget);
+  });
+
   testWidgets('URL linkification styles URLs distinctly in message content', (
     tester,
   ) async {
