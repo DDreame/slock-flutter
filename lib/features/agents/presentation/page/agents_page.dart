@@ -319,7 +319,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                 agentId: agent.id,
               );
       if (!mounted) return;
-      context.go('/servers/$serverId/dms/$channelId');
+      context.push('/servers/$serverId/dms/$channelId');
     } on AppFailure catch (failure) {
       if (!mounted) return;
       _showSnackBar(failure.message ?? 'Failed to open conversation.');

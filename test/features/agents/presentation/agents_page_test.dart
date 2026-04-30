@@ -9,6 +9,9 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
+import 'package:slock_app/features/members/data/member_repository.dart';
+import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/profile/data/profile_repository.dart';
 
 void main() {
   AgentItem makeAgent({
@@ -157,6 +160,82 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byKey(const ValueKey('agents-list')), findsOneWidget);
+        expect(find.text('Bot'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'message button pushes DM route and preserves agent detail back stack',
+      (tester) async {
+        final fakeRepo = _MutableAgentsRepository(
+          initialItems: [
+            makeAgent(
+              id: 'agent-1',
+              name: 'Bot',
+              model: 'sonnet',
+              runtime: 'claude',
+            ),
+          ],
+        );
+        final fakeMemberRepo = _FakeMemberRepository(
+          agentDmChannelId: 'dm-agent-999',
+        );
+        final router = GoRouter(
+          initialLocation: '/servers/server-1/agents/agent-1',
+          routes: [
+            GoRoute(
+              path: '/servers/:serverId/agents',
+              builder: (context, state) =>
+                  AgentsPage(serverId: state.pathParameters['serverId']),
+            ),
+            GoRoute(
+              path: '/servers/:serverId/agents/:agentId',
+              builder: (context, state) => AgentsPage(
+                serverId: state.pathParameters['serverId'],
+                agentId: state.pathParameters['agentId'],
+              ),
+            ),
+            GoRoute(
+              path: '/servers/:serverId/dms/:channelId',
+              builder: (context, state) => Scaffold(
+                body: Text(
+                  'dm:${state.pathParameters['serverId']}/${state.pathParameters['channelId']}',
+                ),
+              ),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              memberRepositoryProvider.overrideWithValue(fakeMemberRepo),
+              realtimeReductionIngressProvider.overrideWithValue(
+                RealtimeReductionIngress(),
+              ),
+            ],
+            child: MaterialApp.router(routerConfig: router),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('agent-message-btn')));
+        await tester.pumpAndSettle();
+
+        // Verify navigation reached the DM route.
+        expect(
+          find.text('dm:server-1/dm-agent-999'),
+          findsOneWidget,
+        );
+        expect(fakeMemberRepo.openedAgentDmIds, ['agent-1']);
+
+        // Pop back — agent detail should still be on the stack
+        // (context.push, not context.go).
+        router.pop();
+        await tester.pumpAndSettle();
+
         expect(find.text('Bot'), findsOneWidget);
       },
     );
@@ -780,5 +859,48 @@ class _FakeAppDioClient extends AppDioClient {
       requestOptions: RequestOptions(path: path, method: method),
       data: _responses[key] as T,
     );
+  }
+}
+
+class _FakeMemberRepository implements MemberRepository {
+  _FakeMemberRepository({this.agentDmChannelId = 'dm-agent-channel-1'});
+
+  final String agentDmChannelId;
+  final List<String> openedAgentDmIds = [];
+
+  @override
+  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async =>
+      const [];
+
+  @override
+  Future<String> createInvite(ServerScopeId serverId) async => 'invite-code';
+
+  @override
+  Future<void> updateMemberRole(
+    ServerScopeId serverId, {
+    required String userId,
+    required String role,
+  }) async {}
+
+  @override
+  Future<void> removeMember(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {}
+
+  @override
+  Future<String> openDirectMessage(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async =>
+      'dm-channel-1';
+
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async {
+    openedAgentDmIds.add(agentId);
+    return agentDmChannelId;
   }
 }
