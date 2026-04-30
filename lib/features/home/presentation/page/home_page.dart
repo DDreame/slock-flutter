@@ -16,6 +16,7 @@ import 'package:slock_app/features/home/presentation/widgets/home_console_sectio
 import 'package:slock_app/features/home/presentation/widgets/home_console_tile.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
@@ -37,6 +38,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final unreadState = ref.watch(channelUnreadStoreProvider);
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
     final managementState = ref.watch(channelManagementStoreProvider);
+    final l10n = context.l10n;
     final pinnedConversationRows = _buildPinnedConversationRows(
       state: state,
       homeStore: homeStore,
@@ -58,7 +60,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             child: CircularProgressIndicator(),
           ),
         HomeListStatus.failure => _HomeErrorState(
-            message: state.failure?.message ?? 'Unable to load conversations.',
+            message: state.failure?.message ?? l10n.homeLoadFailedFallback,
             onRetry: homeStore.retry,
           ),
         HomeListStatus.success => RefreshIndicator(
@@ -73,110 +75,104 @@ class _HomePageState extends ConsumerState<HomePage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                     child: Text(
-                      'Workspace Console',
+                      l10n.homeWorkspaceConsole,
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                   ),
                   HomeConsoleSection(
                     key: const ValueKey('home-console-activity-section'),
-                    title: 'Activity',
-                    description: 'Saved context, threads, tasks, and search.',
+                    title: l10n.homeConsoleActivityTitle,
+                    description: l10n.homeConsoleActivityDescription,
                     children: [
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-saved-messages'),
                         icon: Icons.bookmark_outline,
-                        title: 'Saved Messages',
-                        description:
-                            'Return to bookmarked updates and references.',
+                        title: l10n.homeConsoleSavedMessages,
+                        description: l10n.homeConsoleSavedMessagesDescription,
                         onTap: () => _pushServerRoute('saved-messages'),
                       ),
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-threads'),
                         icon: Icons.forum_outlined,
-                        title: 'Threads',
-                        description:
-                            'Review active thread work across the workspace.',
+                        title: l10n.homeConsoleThreads,
+                        description: l10n.homeConsoleThreadsDescription,
                         onTap: () => _pushServerRoute('threads'),
                       ),
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-tasks'),
                         icon: Icons.check_circle_outline,
-                        title: 'Tasks',
-                        description: 'See task queues and execution status.',
+                        title: l10n.homeConsoleTasks,
+                        description: l10n.homeConsoleTasksDescription,
                         onTap: () => _pushServerRoute('tasks'),
                       ),
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-search'),
                         icon: Icons.search,
-                        title: 'Search',
-                        description:
-                            'Find channels, messages, and workspace history.',
+                        title: l10n.homeConsoleSearch,
+                        description: l10n.homeConsoleSearchDescription,
                         onTap: () => _pushServerRoute('search'),
                       ),
                     ],
                   ),
                   HomeConsoleSection(
                     key: const ValueKey('home-console-operations-section'),
-                    title: 'Operations',
-                    description:
-                        'People, infrastructure, billing, and settings.',
+                    title: l10n.homeConsoleOperationsTitle,
+                    description: l10n.homeConsoleOperationsDescription,
                     children: [
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-members'),
                         icon: Icons.people_outline,
-                        title: 'Members',
-                        description: 'Manage workspace roles and invitations.',
+                        title: l10n.homeConsoleMembers,
+                        description: l10n.homeConsoleMembersDescription,
                         onTap: () => _pushServerRoute('members'),
                       ),
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-agents'),
                         icon: Icons.smart_toy_outlined,
-                        title: 'Agent Control',
-                        description: 'Inspect agent activity and assignments.',
+                        title: l10n.homeConsoleAgentControl,
+                        description: l10n.homeConsoleAgentControlDescription,
                         onTap: () => _pushServerRoute('agents'),
                       ),
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-machines'),
                         icon: Icons.memory_outlined,
-                        title: 'Machines',
-                        description:
-                            'Check workspace runtime capacity and hosts.',
+                        title: l10n.homeConsoleMachines,
+                        description: l10n.homeConsoleMachinesDescription,
                         onTap: () => _pushServerRoute('machines'),
                       ),
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-billing'),
                         icon: Icons.credit_card_outlined,
-                        title: 'Billing',
-                        description:
-                            'Review plan controls and billing management.',
+                        title: l10n.homeConsoleBilling,
+                        description: l10n.homeConsoleBillingDescription,
                         onTap: () => context.push('/billing'),
                       ),
                       HomeConsoleTile(
                         tileKey: const ValueKey('home-workspace-settings'),
                         icon: Icons.settings_outlined,
-                        title: 'Workspace Settings',
+                        title: l10n.homeConsoleWorkspaceSettings,
                         description:
-                            'Configure workspace-level defaults and access.',
+                            l10n.homeConsoleWorkspaceSettingsDescription,
                         onTap: () => _pushServerRoute('settings'),
                       ),
                     ],
                   ),
                   if (pinnedConversationRows.isNotEmpty) ...[
-                    const _HomeSectionHeader(title: 'Pinned'),
+                    _HomeSectionHeader(title: l10n.homeSectionPinned),
                     ...pinnedConversationRows,
                   ],
                   _HomeSectionHeader(
-                    title: 'Channels',
+                    title: l10n.homeSectionChannels,
                     onAdd: _showCreateChannelDialog,
                     addButtonKey: const ValueKey('channel-create-button'),
-                    addTooltip: 'Create channel',
+                    addTooltip: l10n.homeCreateChannelTooltip,
                   ),
                   if (state.channels.isEmpty)
-                    const Padding(
-                      key: ValueKey('home-channels-empty'),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Text('No channels yet.'),
+                    Padding(
+                      key: const ValueKey('home-channels-empty'),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Text(l10n.homeChannelsEmpty),
                     ),
                   for (final entry in state.channels.asMap().entries)
                     HomeChannelRow(
@@ -212,17 +208,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                           : null,
                     ),
                   _HomeSectionHeader(
-                    title: 'Direct Messages',
+                    title: l10n.homeSectionDirectMessages,
                     onAdd: _showNewDmDialog,
                     addButtonKey: const ValueKey('dm-create-button'),
-                    addTooltip: 'New message',
+                    addTooltip: l10n.homeNewMessageTooltip,
                   ),
                   if (state.directMessages.isEmpty)
-                    const Padding(
-                      key: ValueKey('home-dms-empty'),
-                      padding:
-                          EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      child: Text('No direct messages yet.'),
+                    Padding(
+                      key: const ValueKey('home-dms-empty'),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      child: Text(l10n.homeDirectMessagesEmpty),
                     ),
                   for (final entry in state.directMessages.asMap().entries)
                     HomeDirectMessageRow(
@@ -258,12 +254,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                       key: const ValueKey('home-hidden-dms'),
                       leading: const Icon(Icons.visibility_off_outlined),
                       title: Text(
-                        'Hidden conversations (${state.hiddenDirectMessages.length})',
+                        l10n.homeHiddenConversationsCount(
+                            state.hiddenDirectMessages.length),
                       ),
                       onTap: () => _showHiddenDmsSheet(homeStore, unreadStore),
                     ),
                   if (state.pinnedAgents.isNotEmpty) ...[
-                    const _HomeSectionHeader(title: 'Pinned Agents'),
+                    _HomeSectionHeader(title: l10n.homeSectionPinnedAgents),
                     for (final agent in state.pinnedAgents)
                       _HomeAgentRow(
                         key: ValueKey('pinned-agent-${agent.id}'),
@@ -275,7 +272,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ],
                   if (state.agents.isNotEmpty ||
                       state.pinnedAgents.isNotEmpty) ...[
-                    const _HomeSectionHeader(title: 'Agents'),
+                    _HomeSectionHeader(title: l10n.homeSectionAgents),
                     for (final agent in state.agents)
                       _HomeAgentRow(
                         key: ValueKey('agent-${agent.id}'),
@@ -303,6 +300,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showCreateChannelDialog() async {
+    final l10n = context.l10n;
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) {
       return;
@@ -328,7 +326,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
-                  _showSnackBar('Channel created.');
+                  _showSnackBar(l10n.homeChannelCreated);
                   if (channelId != null) {
                     pageContext.go(
                       '/servers/${serverId.routeParam}/channels/$channelId',
@@ -338,7 +336,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (!mounted) {
                     return;
                   }
-                  _showSnackBar(failure.message ?? 'Failed to create channel.');
+                  _showSnackBar(
+                      failure.message ?? l10n.homeChannelCreateFailed);
                 }
               },
             );
@@ -366,6 +365,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showEditChannelDialog(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -389,12 +389,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
-                  _showSnackBar('Channel updated.');
+                  _showSnackBar(l10n.homeChannelUpdated);
                 } on AppFailure catch (failure) {
                   if (!mounted) {
                     return;
                   }
-                  _showSnackBar(failure.message ?? 'Failed to update channel.');
+                  _showSnackBar(
+                      failure.message ?? l10n.homeChannelUpdateFailed);
                 }
               },
             );
@@ -405,6 +406,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showDeleteChannelDialog(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -414,9 +416,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             final store = ref.read(channelManagementStoreProvider.notifier);
             return ConfirmChannelActionDialog(
               dialogKey: const ValueKey('delete-channel-dialog'),
-              title: 'Delete channel',
-              message: 'Delete ${channel.name}? This cannot be undone.',
-              confirmLabel: 'Delete',
+              title: l10n.homeDeleteChannelTitle,
+              message: l10n.homeDeleteChannelMessage(channel.name),
+              confirmLabel: l10n.homeDeleteChannelConfirm,
               isSubmitting: state.isRunning(
                 ChannelManagementAction.delete,
                 channelId: channel.scopeId.value,
@@ -431,12 +433,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
-                  _showSnackBar('Channel deleted.');
+                  _showSnackBar(l10n.homeChannelDeleted);
                 } on AppFailure catch (failure) {
                   if (!mounted) {
                     return;
                   }
-                  _showSnackBar(failure.message ?? 'Failed to delete channel.');
+                  _showSnackBar(
+                      failure.message ?? l10n.homeChannelDeleteFailed);
                 }
               },
             );
@@ -447,6 +450,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _showLeaveChannelDialog(HomeChannelSummary channel) async {
+    final l10n = context.l10n;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
@@ -456,9 +460,9 @@ class _HomePageState extends ConsumerState<HomePage> {
             final store = ref.read(channelManagementStoreProvider.notifier);
             return ConfirmChannelActionDialog(
               dialogKey: const ValueKey('leave-channel-dialog'),
-              title: 'Leave channel',
-              message: 'Leave ${channel.name}?',
-              confirmLabel: 'Leave',
+              title: l10n.homeLeaveChannelTitle,
+              message: l10n.homeLeaveChannelMessage(channel.name),
+              confirmLabel: l10n.homeLeaveChannelConfirm,
               isSubmitting: state.isRunning(
                 ChannelManagementAction.leave,
                 channelId: channel.scopeId.value,
@@ -473,12 +477,12 @@ class _HomePageState extends ConsumerState<HomePage> {
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
-                  _showSnackBar('Left channel.');
+                  _showSnackBar(l10n.homeChannelLeft);
                 } on AppFailure catch (failure) {
                   if (!mounted) {
                     return;
                   }
-                  _showSnackBar(failure.message ?? 'Failed to leave channel.');
+                  _showSnackBar(failure.message ?? l10n.homeChannelLeaveFailed);
                 }
               },
             );
@@ -625,11 +629,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Text(
-                        'Hidden conversations',
-                        style: TextStyle(
+                        context.l10n.homeHiddenConversationsTitle,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -651,7 +655,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                                   'unhide-dm-${dm.scopeId.routeParam}',
                                 ),
                                 onPressed: () => homeStore.unhideDm(dm.scopeId),
-                                child: const Text('Unhide'),
+                                child: Text(context.l10n.homeUnhide),
                               ),
                             ),
                         ],
@@ -696,7 +700,8 @@ class _HomeAgentRow extends StatelessWidget {
         itemBuilder: (context) => [
           PopupMenuItem(
             value: 'toggle_pin',
-            child: Text(isPinned ? 'Unpin' : 'Pin'),
+            child:
+                Text(isPinned ? context.l10n.homeUnpin : context.l10n.homePin),
           ),
         ],
       ),
@@ -753,14 +758,14 @@ class _HomeNoServerState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Select a server to get started.',
+            Text(
+              context.l10n.homeNoServerMessage,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             FilledButton(
               onPressed: onSelectServer,
-              child: const Text('Select workspace'),
+              child: Text(context.l10n.homeSelectWorkspace),
             ),
           ],
         ),
@@ -785,7 +790,8 @@ class _HomeErrorState extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+                onPressed: onRetry, child: Text(context.l10n.homeRetry)),
           ],
         ),
       ),

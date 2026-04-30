@@ -7,6 +7,7 @@ import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
+import 'app_localizations_zh.dart';
 
 // ignore_for_file: type=lint
 
@@ -95,7 +96,8 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('es')
+    Locale('es'),
+    Locale('zh')
   ];
 
   /// No description provided for @appTitle.
@@ -241,6 +243,546 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Registration failed. Please try again.'**
   String get registerFailedFallback;
+
+  /// No description provided for @forgotPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot Password'**
+  String get forgotPasswordTitle;
+
+  /// No description provided for @forgotPasswordSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your email'**
+  String get forgotPasswordSuccessTitle;
+
+  /// No description provided for @forgotPasswordSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'If that email is registered, a reset link has been sent. Check your inbox.'**
+  String get forgotPasswordSuccessMessage;
+
+  /// No description provided for @forgotPasswordEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get forgotPasswordEmailLabel;
+
+  /// No description provided for @forgotPasswordSubmitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get forgotPasswordSubmitLabel;
+
+  /// No description provided for @forgotPasswordBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to login'**
+  String get forgotPasswordBackToLogin;
+
+  /// No description provided for @forgotPasswordEmailRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Email is required.'**
+  String get forgotPasswordEmailRequiredError;
+
+  /// No description provided for @forgotPasswordEmailInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address.'**
+  String get forgotPasswordEmailInvalidError;
+
+  /// No description provided for @forgotPasswordFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send reset email. Please try again.'**
+  String get forgotPasswordFailedFallback;
+
+  /// No description provided for @resetPasswordTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Password'**
+  String get resetPasswordTitle;
+
+  /// No description provided for @resetPasswordCompletedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset complete. You can now sign in with your new password.'**
+  String get resetPasswordCompletedMessage;
+
+  /// No description provided for @resetPasswordNewPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New password'**
+  String get resetPasswordNewPasswordLabel;
+
+  /// No description provided for @resetPasswordConfirmPasswordLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm new password'**
+  String get resetPasswordConfirmPasswordLabel;
+
+  /// No description provided for @resetPasswordSubmitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Set new password'**
+  String get resetPasswordSubmitLabel;
+
+  /// No description provided for @resetPasswordBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to login'**
+  String get resetPasswordBackToLogin;
+
+  /// No description provided for @resetPasswordLinkInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset link is missing or invalid.'**
+  String get resetPasswordLinkInvalidError;
+
+  /// No description provided for @resetPasswordTooShortError.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 8 characters.'**
+  String get resetPasswordTooShortError;
+
+  /// No description provided for @resetPasswordMismatchError.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match.'**
+  String get resetPasswordMismatchError;
+
+  /// No description provided for @resetPasswordFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Password reset failed. The link may be expired.'**
+  String get resetPasswordFailedFallback;
+
+  /// No description provided for @verifyEmailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Email'**
+  String get verifyEmailTitle;
+
+  /// No description provided for @verifyEmailInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your email to continue.'**
+  String get verifyEmailInstructions;
+
+  /// No description provided for @verifyEmailResentMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification email resent. Check your inbox.'**
+  String get verifyEmailResentMessage;
+
+  /// No description provided for @verifyEmailResendButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend verification email'**
+  String get verifyEmailResendButton;
+
+  /// No description provided for @verifyEmailTokenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification token'**
+  String get verifyEmailTokenLabel;
+
+  /// No description provided for @verifyEmailSubmitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify'**
+  String get verifyEmailSubmitLabel;
+
+  /// No description provided for @verifyEmailSuccessMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Email verified. You can continue to the app.'**
+  String get verifyEmailSuccessMessage;
+
+  /// No description provided for @verifyEmailContinueButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue to Slock'**
+  String get verifyEmailContinueButton;
+
+  /// No description provided for @verifyEmailSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get verifyEmailSignOut;
+
+  /// No description provided for @verifyEmailBackToLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to login'**
+  String get verifyEmailBackToLogin;
+
+  /// No description provided for @verifyEmailTokenRequiredError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a verification token.'**
+  String get verifyEmailTokenRequiredError;
+
+  /// No description provided for @verifyEmailFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification failed. The link may be expired.'**
+  String get verifyEmailFailedFallback;
+
+  /// No description provided for @verifyEmailResendFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to resend verification email.'**
+  String get verifyEmailResendFailedFallback;
+
+  /// No description provided for @navWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace'**
+  String get navWorkspace;
+
+  /// No description provided for @navAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents'**
+  String get navAgents;
+
+  /// No description provided for @navSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get navSettings;
+
+  /// No description provided for @homeWorkspaceConsole.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace Console'**
+  String get homeWorkspaceConsole;
+
+  /// No description provided for @homeConsoleActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity'**
+  String get homeConsoleActivityTitle;
+
+  /// No description provided for @homeConsoleActivityDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved context, threads, tasks, and search.'**
+  String get homeConsoleActivityDescription;
+
+  /// No description provided for @homeConsoleSavedMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Messages'**
+  String get homeConsoleSavedMessages;
+
+  /// No description provided for @homeConsoleSavedMessagesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to bookmarked updates and references.'**
+  String get homeConsoleSavedMessagesDescription;
+
+  /// No description provided for @homeConsoleThreads.
+  ///
+  /// In en, this message translates to:
+  /// **'Threads'**
+  String get homeConsoleThreads;
+
+  /// No description provided for @homeConsoleThreadsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review active thread work across the workspace.'**
+  String get homeConsoleThreadsDescription;
+
+  /// No description provided for @homeConsoleTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks'**
+  String get homeConsoleTasks;
+
+  /// No description provided for @homeConsoleTasksDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'See task queues and execution status.'**
+  String get homeConsoleTasksDescription;
+
+  /// No description provided for @homeConsoleSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get homeConsoleSearch;
+
+  /// No description provided for @homeConsoleSearchDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Find channels, messages, and workspace history.'**
+  String get homeConsoleSearchDescription;
+
+  /// No description provided for @homeConsoleOperationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Operations'**
+  String get homeConsoleOperationsTitle;
+
+  /// No description provided for @homeConsoleOperationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'People, infrastructure, billing, and settings.'**
+  String get homeConsoleOperationsDescription;
+
+  /// No description provided for @homeConsoleMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get homeConsoleMembers;
+
+  /// No description provided for @homeConsoleMembersDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage workspace roles and invitations.'**
+  String get homeConsoleMembersDescription;
+
+  /// No description provided for @homeConsoleAgentControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent Control'**
+  String get homeConsoleAgentControl;
+
+  /// No description provided for @homeConsoleAgentControlDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Inspect agent activity and assignments.'**
+  String get homeConsoleAgentControlDescription;
+
+  /// No description provided for @homeConsoleMachines.
+  ///
+  /// In en, this message translates to:
+  /// **'Machines'**
+  String get homeConsoleMachines;
+
+  /// No description provided for @homeConsoleMachinesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Check workspace runtime capacity and hosts.'**
+  String get homeConsoleMachinesDescription;
+
+  /// No description provided for @homeConsoleBilling.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing'**
+  String get homeConsoleBilling;
+
+  /// No description provided for @homeConsoleBillingDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review plan controls and billing management.'**
+  String get homeConsoleBillingDescription;
+
+  /// No description provided for @homeConsoleWorkspaceSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace Settings'**
+  String get homeConsoleWorkspaceSettings;
+
+  /// No description provided for @homeConsoleWorkspaceSettingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure workspace-level defaults and access.'**
+  String get homeConsoleWorkspaceSettingsDescription;
+
+  /// No description provided for @homeSectionPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get homeSectionPinned;
+
+  /// No description provided for @homeSectionChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get homeSectionChannels;
+
+  /// No description provided for @homeSectionDirectMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct Messages'**
+  String get homeSectionDirectMessages;
+
+  /// No description provided for @homeSectionPinnedAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned Agents'**
+  String get homeSectionPinnedAgents;
+
+  /// No description provided for @homeSectionAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents'**
+  String get homeSectionAgents;
+
+  /// No description provided for @homeChannelsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No channels yet.'**
+  String get homeChannelsEmpty;
+
+  /// No description provided for @homeDirectMessagesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No direct messages yet.'**
+  String get homeDirectMessagesEmpty;
+
+  /// No description provided for @homeCreateChannelTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Create channel'**
+  String get homeCreateChannelTooltip;
+
+  /// No description provided for @homeNewMessageTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'New message'**
+  String get homeNewMessageTooltip;
+
+  /// No description provided for @homeHiddenConversationsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden conversations ({count})'**
+  String homeHiddenConversationsCount(int count);
+
+  /// No description provided for @homeHiddenConversationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden conversations'**
+  String get homeHiddenConversationsTitle;
+
+  /// No description provided for @homeUnhide.
+  ///
+  /// In en, this message translates to:
+  /// **'Unhide'**
+  String get homeUnhide;
+
+  /// No description provided for @homePin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get homePin;
+
+  /// No description provided for @homeUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get homeUnpin;
+
+  /// No description provided for @homeNoServerMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a server to get started.'**
+  String get homeNoServerMessage;
+
+  /// No description provided for @homeSelectWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Select workspace'**
+  String get homeSelectWorkspace;
+
+  /// No description provided for @homeLoadFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load conversations.'**
+  String get homeLoadFailedFallback;
+
+  /// No description provided for @homeRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get homeRetry;
+
+  /// No description provided for @homeChannelCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel created.'**
+  String get homeChannelCreated;
+
+  /// No description provided for @homeChannelCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create channel.'**
+  String get homeChannelCreateFailed;
+
+  /// No description provided for @homeChannelUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel updated.'**
+  String get homeChannelUpdated;
+
+  /// No description provided for @homeChannelUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update channel.'**
+  String get homeChannelUpdateFailed;
+
+  /// No description provided for @homeDeleteChannelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete channel'**
+  String get homeDeleteChannelTitle;
+
+  /// No description provided for @homeDeleteChannelMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}? This cannot be undone.'**
+  String homeDeleteChannelMessage(String name);
+
+  /// No description provided for @homeDeleteChannelConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get homeDeleteChannelConfirm;
+
+  /// No description provided for @homeChannelDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel deleted.'**
+  String get homeChannelDeleted;
+
+  /// No description provided for @homeChannelDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete channel.'**
+  String get homeChannelDeleteFailed;
+
+  /// No description provided for @homeLeaveChannelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave channel'**
+  String get homeLeaveChannelTitle;
+
+  /// No description provided for @homeLeaveChannelMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave {name}?'**
+  String homeLeaveChannelMessage(String name);
+
+  /// No description provided for @homeLeaveChannelConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get homeLeaveChannelConfirm;
+
+  /// No description provided for @homeChannelLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Left channel.'**
+  String get homeChannelLeft;
+
+  /// No description provided for @homeChannelLeaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to leave channel.'**
+  String get homeChannelLeaveFailed;
 }
 
 class _AppLocalizationsDelegate
@@ -254,7 +796,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'es'].contains(locale.languageCode);
+      <String>['en', 'es', 'zh'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -267,6 +809,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEn();
     case 'es':
       return AppLocalizationsEs();
+    case 'zh':
+      return AppLocalizationsZh();
   }
 
   throw FlutterError(

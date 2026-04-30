@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/application/reset_password_controller.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
   const ResetPasswordPage({super.key, required this.token});
@@ -31,24 +32,25 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(resetPasswordControllerProvider);
+    final l10n = context.l10n;
 
     if (_completed) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Reset Password')),
+        appBar: AppBar(title: Text(l10n.resetPasswordTitle)),
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Password reset complete. You can now sign in with your new password.',
+                Text(
+                  l10n.resetPasswordCompletedMessage,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
                 FilledButton(
                   onPressed: () => context.go('/login'),
-                  child: const Text('Back to login'),
+                  child: Text(l10n.resetPasswordBackToLogin),
                 ),
               ],
             ),
@@ -58,7 +60,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reset Password')),
+      appBar: AppBar(title: Text(l10n.resetPasswordTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -77,7 +79,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                 key: const ValueKey('reset-password-input'),
                 controller: _passwordController,
                 decoration: InputDecoration(
-                  labelText: 'New password',
+                  labelText: l10n.resetPasswordNewPasswordLabel,
                   suffixIcon: IconButton(
                     key: const ValueKey('reset-password-toggle'),
                     icon: Icon(
@@ -96,7 +98,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                 key: const ValueKey('reset-password-confirm-input'),
                 controller: _confirmPasswordController,
                 decoration: InputDecoration(
-                  labelText: 'Confirm new password',
+                  labelText: l10n.resetPasswordConfirmPasswordLabel,
                   suffixIcon: IconButton(
                     key: const ValueKey('reset-password-confirm-toggle'),
                     icon: Icon(
@@ -120,12 +122,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Set new password'),
+                    : Text(l10n.resetPasswordSubmitLabel),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Back to login'),
+                child: Text(l10n.resetPasswordBackToLogin),
               ),
             ],
           ),
@@ -135,25 +137,26 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   }
 
   Future<void> _submit() async {
+    final l10n = context.l10n;
     final token = widget.token?.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
     if (token == null || token.isEmpty) {
       setState(() {
-        _errorText = 'Reset link is missing or invalid.';
+        _errorText = l10n.resetPasswordLinkInvalidError;
       });
       return;
     }
     if (password.length < 8) {
       setState(() {
-        _errorText = 'Password must be at least 8 characters.';
+        _errorText = l10n.resetPasswordTooShortError;
       });
       return;
     }
     if (password != confirmPassword) {
       setState(() {
-        _errorText = 'Passwords do not match.';
+        _errorText = l10n.resetPasswordMismatchError;
       });
       return;
     }
@@ -174,8 +177,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       setState(() {
-        _errorText = failure.message ??
-            'Password reset failed. The link may be expired.';
+        _errorText =
+            failure.message ?? context.l10n.resetPasswordFailedFallback;
       });
     }
   }

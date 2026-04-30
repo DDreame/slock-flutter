@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 const _hiddenBottomNavPaths = {
   '/login',
@@ -30,6 +31,7 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final index = _currentIndex(context);
     final showBottomNavigation = _showBottomNavigation(context);
+    final l10n = context.l10n;
     return Scaffold(
       body: child,
       bottomNavigationBar: showBottomNavigation
@@ -45,21 +47,21 @@ class AppShell extends StatelessWidget {
                     context.go('/settings');
                 }
               },
-              destinations: const [
+              destinations: [
                 NavigationDestination(
-                  icon: Icon(Icons.space_dashboard_outlined),
-                  selectedIcon: Icon(Icons.space_dashboard),
-                  label: 'Workspace',
+                  icon: const Icon(Icons.space_dashboard_outlined),
+                  selectedIcon: const Icon(Icons.space_dashboard),
+                  label: l10n.navWorkspace,
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.smart_toy_outlined),
-                  selectedIcon: Icon(Icons.smart_toy),
-                  label: 'Agents',
+                  icon: const Icon(Icons.smart_toy_outlined),
+                  selectedIcon: const Icon(Icons.smart_toy),
+                  label: l10n.navAgents,
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings),
-                  label: 'Settings',
+                  icon: const Icon(Icons.settings_outlined),
+                  selectedIcon: const Icon(Icons.settings),
+                  label: l10n.navSettings,
                 ),
               ],
             )

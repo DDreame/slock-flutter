@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/application/forgot_password_controller.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -26,9 +27,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(forgotPasswordControllerProvider);
     final theme = Theme.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Forgot Password')),
+      appBar: AppBar(title: Text(l10n.forgotPasswordTitle)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -53,7 +55,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Check your email',
+                        l10n.forgotPasswordSuccessTitle,
                         key: const ValueKey('forgot-password-success-title'),
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -63,7 +65,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'If that email is registered, a reset link has been sent. Check your inbox.',
+                        l10n.forgotPasswordSuccessMessage,
                         key: const ValueKey(
                           'forgot-password-success-message',
                         ),
@@ -91,7 +93,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               TextField(
                 key: const ValueKey('forgot-password-email'),
                 controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                decoration:
+                    InputDecoration(labelText: l10n.forgotPasswordEmailLabel),
                 keyboardType: TextInputType.emailAddress,
               ),
               const SizedBox(height: 24),
@@ -104,12 +107,12 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                         width: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Reset Password'),
+                    : Text(l10n.forgotPasswordSubmitLabel),
               ),
               const SizedBox(height: 12),
               TextButton(
                 onPressed: () => context.go('/login'),
-                child: const Text('Back to login'),
+                child: Text(l10n.forgotPasswordBackToLogin),
               ),
             ],
           ),
@@ -119,18 +122,19 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   }
 
   Future<void> _submit() async {
+    final l10n = context.l10n;
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
       setState(() {
-        _errorText = 'Email is required.';
+        _errorText = l10n.forgotPasswordEmailRequiredError;
         _submitted = false;
       });
       return;
     }
     if (!email.contains('@')) {
       setState(() {
-        _errorText = 'Enter a valid email address.';
+        _errorText = l10n.forgotPasswordEmailInvalidError;
         _submitted = false;
       });
       return;
@@ -151,8 +155,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       final error = state.error;
       setState(() {
         _errorText = error is AppFailure
-            ? (error.message ?? 'Failed to send reset email. Please try again.')
-            : 'Failed to send reset email. Please try again.';
+            ? (error.message ?? context.l10n.forgotPasswordFailedFallback)
+            : context.l10n.forgotPasswordFailedFallback;
       });
     } else {
       setState(() => _submitted = true);

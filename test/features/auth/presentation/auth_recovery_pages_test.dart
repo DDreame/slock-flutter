@@ -6,6 +6,7 @@ import 'package:slock_app/features/auth/data/auth_repository.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/auth/presentation/page/reset_password_page.dart';
 import 'package:slock_app/features/auth/presentation/page/verify_email_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 import '../../../stores/session/session_store_persistence_test.dart'
     show FakeSecureStorage;
@@ -25,6 +26,8 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: ResetPasswordPage(token: 'reset-token'),
         ),
       ),
@@ -65,6 +68,8 @@ void main() {
       UncontrolledProviderScope(
         container: container,
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: VerifyEmailPage(initialToken: 'verify-token'),
         ),
       ),
