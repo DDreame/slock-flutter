@@ -4,7 +4,6 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 
-const _membersPath = '/members';
 const _serversPath = '/servers';
 const _directMessagePath = '/channels/dm';
 const _serverHeaderName = 'X-Server-Id';
@@ -25,7 +24,7 @@ class _ApiMemberRepository
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
     try {
       final response = await _appDioClient.get<Object?>(
-        _membersPath,
+        _serverMembersPath(serverId),
         options: _serverScopedOptions(serverId),
       );
       final entries = _readMemberEntries(response.data);
@@ -168,6 +167,10 @@ class _ApiMemberRepository
   Options _serverScopedOptions(ServerScopeId serverId) {
     return Options(headers: {_serverHeaderName: serverId.value});
   }
+}
+
+String _serverMembersPath(ServerScopeId serverId) {
+  return '$_serversPath/${serverId.routeParam}/members';
 }
 
 String _serverInvitesPath(ServerScopeId serverId) {
