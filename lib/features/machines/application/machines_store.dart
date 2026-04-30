@@ -12,7 +12,7 @@ const _storeLoadTimeout = Duration(seconds: 15);
 final machinesStoreProvider =
     AutoDisposeNotifierProvider<MachinesStore, MachinesState>(
   MachinesStore.new,
-  dependencies: [currentMachinesServerIdProvider],
+  dependencies: [currentMachinesServerIdProvider, machinesRepositoryProvider],
 );
 
 class MachinesStore extends AutoDisposeNotifier<MachinesState> {
