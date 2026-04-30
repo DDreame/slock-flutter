@@ -101,6 +101,76 @@ void main() {
     expect(router.routerDelegate, isNotNull);
   });
 
+  testWidgets('login route does not render bottom navigation bar', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(sessionStoreProvider.notifier).restoreSession();
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _buildRouterApp(router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/login');
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets(
+      'bottom navigation bar is hidden after navigating from home to login', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(sessionStoreProvider.notifier)
+        .login(email: 'a@b.com', password: 'p');
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _buildRouterApp(router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/home');
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    await container.read(sessionStoreProvider.notifier).logout();
+    router.go('/login');
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/login');
+    expect(find.byType(NavigationBar), findsNothing);
+  });
+
   group('authRedirect', () {
     test('unknown status + /splash stays on splash', () {
       const session = SessionState();

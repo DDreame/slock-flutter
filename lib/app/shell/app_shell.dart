@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+const _hiddenBottomNavPaths = {
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+};
+
 class AppShell extends StatelessWidget {
   final Widget child;
 
@@ -13,41 +21,49 @@ class AppShell extends StatelessWidget {
     return 0;
   }
 
+  bool _showBottomNavigation(BuildContext context) {
+    final path = GoRouterState.of(context).uri.path;
+    return !_hiddenBottomNavPaths.contains(path);
+  }
+
   @override
   Widget build(BuildContext context) {
     final index = _currentIndex(context);
+    final showBottomNavigation = _showBottomNavigation(context);
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) {
-          switch (i) {
-            case 0:
-              context.go('/home');
-            case 1:
-              context.go('/agents');
-            case 2:
-              context.go('/settings');
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.space_dashboard_outlined),
-            selectedIcon: Icon(Icons.space_dashboard),
-            label: 'Workspace',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.smart_toy_outlined),
-            selectedIcon: Icon(Icons.smart_toy),
-            label: 'Agents',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-      ),
+      bottomNavigationBar: showBottomNavigation
+          ? NavigationBar(
+              selectedIndex: index,
+              onDestinationSelected: (i) {
+                switch (i) {
+                  case 0:
+                    context.go('/home');
+                  case 1:
+                    context.go('/agents');
+                  case 2:
+                    context.go('/settings');
+                }
+              },
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.space_dashboard_outlined),
+                  selectedIcon: Icon(Icons.space_dashboard),
+                  label: 'Workspace',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.smart_toy_outlined),
+                  selectedIcon: Icon(Icons.smart_toy),
+                  label: 'Agents',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.settings_outlined),
+                  selectedIcon: Icon(Icons.settings),
+                  label: 'Settings',
+                ),
+              ],
+            )
+          : null,
     );
   }
 }
