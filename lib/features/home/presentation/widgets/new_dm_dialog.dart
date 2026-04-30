@@ -57,6 +57,10 @@ class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep agents store alive while the dialog is open so the autoDispose
+    // notifier isn't discarded before the Agents tab becomes visible.
+    ref.watch(agentsStoreProvider);
+
     return DefaultTabController(
       length: 2,
       child: AlertDialog(
