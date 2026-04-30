@@ -102,7 +102,7 @@ void main() {
     expect(find.textContaining('All Messages'), findsOneWidget);
   });
 
-  testWidgets('settings page logs out', (tester) async {
+  testWidgets('settings page logs out after confirmation', (tester) async {
     final sessionStore = _FakeSessionStore();
     final notificationStore = _FakeNotificationStore();
 
@@ -120,8 +120,53 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('settings-logout')));
     await tester.pumpAndSettle();
 
+    expect(
+      find.byKey(const ValueKey('logout-confirmation-dialog')),
+      findsOneWidget,
+    );
+    expect(find.text('Log out?'), findsOneWidget);
+    expect(
+      find.text('You will be signed out of this device.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('logout-confirm')));
+    await tester.pumpAndSettle();
+
     expect(sessionStore.loggedOut, isTrue);
     expect(find.text('login-route'), findsOneWidget);
+  });
+
+  testWidgets('settings page cancel logout keeps user signed in', (
+    tester,
+  ) async {
+    final sessionStore = _FakeSessionStore();
+    final notificationStore = _FakeNotificationStore();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() => sessionStore),
+          notificationStoreProvider.overrideWith(() => notificationStore),
+        ],
+        child: MaterialApp.router(routerConfig: _buildRouter()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('settings-logout')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('logout-confirmation-dialog')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('logout-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(sessionStore.loggedOut, isFalse);
+    expect(find.byType(SettingsPage), findsOneWidget);
   });
 }
 
