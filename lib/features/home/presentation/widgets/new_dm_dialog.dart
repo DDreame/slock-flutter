@@ -238,7 +238,7 @@ class _AgentsTab extends ConsumerWidget {
         const Center(child: CircularProgressIndicator()),
       AgentsStatus.failure => _ErrorContent(
           message: state.failure?.message ?? 'Failed to load agents.',
-          onRetry: ref.read(agentsStoreProvider.notifier).retry,
+          onRetry: () async => ref.read(agentsStoreProvider.notifier).retry(),
         ),
       AgentsStatus.success => _buildFilteredList(state),
     };

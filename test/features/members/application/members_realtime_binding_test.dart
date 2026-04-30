@@ -114,6 +114,13 @@ class _FakeMemberRepository implements MemberRepository {
     required String userId,
   }) async =>
       'dm-1';
+
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async =>
+      'dm-agent-$agentId';
 }
 
 class _FakeServerListLoader {

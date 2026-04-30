@@ -115,7 +115,7 @@ void main() {
       ],
       agentDmChannelId: 'dm-agent-789',
     );
-    final agentsRepo = _FakeAgentsRepository(
+    final agentsRepo = const _FakeAgentsRepository(
       agents: const [
         AgentItem(
           id: 'agent-1',
