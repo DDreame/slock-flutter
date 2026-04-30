@@ -236,6 +236,26 @@ void main() {
           find.text('Password must be at least 8 characters.'), findsOneWidget);
     });
 
+    testWidgets('shows error when password is empty', (tester) async {
+      await tester.pumpWidget(
+        _buildPage(const RegisterPage(), repository: _FakeAuthRepository()),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('register-display-name')),
+        'Alice',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('register-email')),
+        'alice@example.com',
+      );
+      await tester.tap(find.byKey(const ValueKey('register-submit')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Password is required.'), findsOneWidget);
+    });
+
     testWidgets('shows API error on registration failure', (tester) async {
       final repo = _FakeAuthRepository(
         registerFailure:

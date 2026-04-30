@@ -126,6 +126,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       setState(() => _errorText = l10n.registerEmailInvalidError);
       return;
     }
+    if (password.isEmpty) {
+      setState(() => _errorText = l10n.loginPasswordRequiredError);
+      return;
+    }
     if (password.length < 8) {
       setState(() => _errorText = l10n.registerPasswordTooShortError);
       return;
