@@ -63,7 +63,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         )
                       : null,
                   enabled: !_isLoggingOut,
-                  onTap: _isLoggingOut ? null : _logout,
+                  onTap: _isLoggingOut ? null : _confirmLogout,
                 ),
               ],
             ),
@@ -116,6 +116,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('logout-confirmation-dialog'),
+        title: const Text('Log out?'),
+        content: const Text('You will be signed out of this device.'),
+        actions: [
+          TextButton(
+            key: const ValueKey('logout-cancel'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            key: const ValueKey('logout-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+    await _logout();
   }
 
   Future<void> _logout() async {
