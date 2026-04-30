@@ -366,7 +366,12 @@ void main() {
     expect(request.serverIdHeader, 'server-1');
     expect(request.data, isA<FormData>());
     final formData = request.data! as FormData;
-    expect(formData.fields, contains(const MapEntry('channelId', 'general')));
+    expect(
+      formData.fields.any(
+        (field) => field.key == 'channelId' && field.value == 'general',
+      ),
+      isTrue,
+    );
     expect(formData.files, hasLength(1));
     expect(formData.files.single.key, 'files');
     expect(formData.files.single.value.filename, 'report.pdf');
