@@ -6,7 +6,8 @@ import 'package:slock_app/features/machines/data/machines_repository.dart';
 const _serversPath = '/servers';
 const _serverHeaderName = 'X-Server-Id';
 
-final machinesRepositoryProvider = Provider<MachinesRepository>((ref) {
+final machinesRepositoryProvider = Provider<MachinesRepository>(
+    dependencies: [currentMachinesServerIdProvider], (ref) {
   final appDioClient = ref.watch(appDioClientProvider);
   final serverId = ref.watch(currentMachinesServerIdProvider);
   return _ApiMachinesRepository(appDioClient: appDioClient, serverId: serverId);
