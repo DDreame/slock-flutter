@@ -252,6 +252,40 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
 
   void retry() => load();
 
+  /// Loads historical activity log entries from REST for [agentId]
+  /// and merges them with any live entries already captured.
+  Future<void> loadActivityLog(String agentId) async {
+    try {
+      final repo = ref.read(agentsRepositoryProvider);
+      final historical = await repo.getActivityLog(agentId);
+      final existing = state.activityLogFor(agentId);
+      final merged = _mergeActivityLogs(historical, existing);
+      state = state.copyWith(
+        activityLogs: {...state.activityLogs, agentId: merged},
+      );
+    } on AppFailure catch (_) {
+      // Silently fail — live events still work.
+    }
+  }
+
+  List<AgentActivityLogEntry> _mergeActivityLogs(
+    List<AgentActivityLogEntry> historical,
+    List<AgentActivityLogEntry> live,
+  ) {
+    final all = [...historical, ...live];
+    all.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+    final seen = <String>{};
+    final deduped = <AgentActivityLogEntry>[];
+    for (final entry in all) {
+      final key = '${entry.timestamp.millisecondsSinceEpoch}:${entry.entry}';
+      if (seen.add(key)) deduped.add(entry);
+    }
+    if (deduped.length > _maxActivityLogEntries) {
+      return deduped.sublist(deduped.length - _maxActivityLogEntries);
+    }
+    return deduped;
+  }
+
   Map<String, List<AgentActivityLogEntry>> _pruneActivityLogs(
     Set<String> allowedAgentIds,
   ) {

@@ -296,6 +296,114 @@ void main() {
       expect(state().activityLogFor('a1'), isEmpty);
     });
 
+    group('loadActivityLog', () {
+      test('populates state from REST', () async {
+        fakeRepo.listResult = [makeAgent(id: 'a1')];
+        await store().load();
+
+        fakeRepo.activityLogResult = [
+          AgentActivityLogEntry(
+            timestamp: DateTime(2026, 5, 1, 10, 0, 0),
+            entry: 'Working: building feature',
+          ),
+          AgentActivityLogEntry(
+            timestamp: DateTime(2026, 5, 1, 10, 1, 0),
+            entry: 'Thinking: reviewing code',
+          ),
+        ];
+
+        await store().loadActivityLog('a1');
+
+        final log = state().activityLogFor('a1');
+        expect(log, hasLength(2));
+        expect(log[0].entry, 'Working: building feature');
+        expect(log[1].entry, 'Thinking: reviewing code');
+      });
+
+      test('merges historical with live entries and deduplicates', () async {
+        fakeRepo.listResult = [makeAgent(id: 'a1')];
+        await store().load();
+
+        // Add a live event first.
+        store().updateActivity(
+          'a1',
+          'working',
+          'live task',
+          timestamp: DateTime(2026, 5, 1, 10, 2, 0),
+        );
+
+        // REST returns entries including one that overlaps the
+        // live entry (same timestamp + text).
+        fakeRepo.activityLogResult = [
+          AgentActivityLogEntry(
+            timestamp: DateTime(2026, 5, 1, 10, 0, 0),
+            entry: 'Online',
+          ),
+          AgentActivityLogEntry(
+            timestamp: DateTime(2026, 5, 1, 10, 2, 0),
+            entry: 'Working: live task',
+          ),
+        ];
+
+        await store().loadActivityLog('a1');
+
+        final log = state().activityLogFor('a1');
+        // 'Online' from REST + 'Working: live task' (deduplicated)
+        expect(log, hasLength(2));
+        expect(log[0].entry, 'Online');
+        expect(log[1].entry, 'Working: live task');
+      });
+
+      test('silently fails without clearing existing entries', () async {
+        fakeRepo.listResult = [makeAgent(id: 'a1')];
+        await store().load();
+
+        store().updateActivity(
+          'a1',
+          'working',
+          'existing task',
+          timestamp: DateTime(2026, 5, 1, 10, 0, 0),
+        );
+
+        fakeRepo.activityLogShouldFail = true;
+
+        await store().loadActivityLog('a1');
+
+        // Existing live entries should remain.
+        final log = state().activityLogFor('a1');
+        expect(log, hasLength(1));
+        expect(log[0].entry, 'Working: existing task');
+      });
+
+      test('sorts merged entries by timestamp', () async {
+        fakeRepo.listResult = [makeAgent(id: 'a1')];
+        await store().load();
+
+        // Add a live event with a later timestamp.
+        store().updateActivity(
+          'a1',
+          'thinking',
+          'step 2',
+          timestamp: DateTime(2026, 5, 1, 10, 5, 0),
+        );
+
+        // REST returns an entry with an earlier timestamp.
+        fakeRepo.activityLogResult = [
+          AgentActivityLogEntry(
+            timestamp: DateTime(2026, 5, 1, 10, 0, 0),
+            entry: 'Working: step 1',
+          ),
+        ];
+
+        await store().loadActivityLog('a1');
+
+        final log = state().activityLogFor('a1');
+        expect(log, hasLength(2));
+        expect(log[0].entry, 'Working: step 1');
+        expect(log[1].entry, 'Thinking: step 2');
+      });
+    });
+
     test('deleteAgent removes activity logs for deleted agent', () async {
       fakeRepo.listResult = [
         makeAgent(id: 'a1', name: 'Alpha'),
@@ -319,7 +427,9 @@ class _FakeAgentsRepository
   List<AgentItem>? listResult;
   AgentItem? createResult;
   AgentItem? updateResult;
+  List<AgentActivityLogEntry>? activityLogResult;
   bool shouldFail = false;
+  bool activityLogShouldFail = false;
   final List<AgentMutationInput> createRequests = [];
   final List<(String, AgentMutationInput)> updateRequests = [];
   final List<String> deletedAgentIds = [];
@@ -409,6 +519,12 @@ class _FakeAgentsRepository
     String agentId, {
     int limit = 50,
   }) async {
-    return [];
+    if (activityLogShouldFail) {
+      throw const UnknownFailure(
+        message: 'Activity log failed',
+        causeType: 'test',
+      );
+    }
+    return activityLogResult ?? [];
   }
 }
