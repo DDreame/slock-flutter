@@ -594,6 +594,13 @@ class _AgentDetailScaffold extends StatelessWidget {
   }
 }
 
+/// Triggers the initial REST load of the activity log for [agentId].
+/// Auto-disposed when the detail view is removed from the tree.
+final _activityLogLoaderProvider =
+    FutureProvider.autoDispose.family<void, String>((ref, agentId) async {
+  await ref.read(agentsStoreProvider.notifier).loadActivityLog(agentId);
+});
+
 class _AgentDetailBody extends ConsumerWidget {
   const _AgentDetailBody({
     required this.agent,
@@ -613,6 +620,10 @@ class _AgentDetailBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final agent = this.agent;
+
+    // Trigger REST load of historical activity log entries.
+    ref.watch(_activityLogLoaderProvider(agent.id));
+
     final activityLog = ref.watch(
       agentsStoreProvider.select((state) => state.activityLogFor(agent.id)),
     );
