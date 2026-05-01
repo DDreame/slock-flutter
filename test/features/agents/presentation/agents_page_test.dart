@@ -241,7 +241,7 @@ void main() {
     );
 
     testWidgets(
-      'detail route renders realtime activity log entries and does not call trajectory REST log',
+      'detail route loads REST activity log on mount and renders realtime events',
       (tester) async {
         final fakeRepo = _MutableAgentsRepository(
           initialItems: [
@@ -267,8 +267,10 @@ void main() {
 
         await tester.pumpAndSettle();
 
+        // REST load triggered exactly once on mount.
+        expect(fakeRepo.getActivityLogCallCount, 1);
+        // No entries returned by default, so still shows empty.
         expect(find.text('No activity log entries.'), findsOneWidget);
-        expect(fakeRepo.getActivityLogCallCount, 0);
 
         ingress.accept(
           RealtimeEventEnvelope(
@@ -289,7 +291,58 @@ void main() {
         expect(find.text('16:55:42'), findsOneWidget);
         expect(find.text('Working: Running flutter test'), findsOneWidget);
         expect(find.text('No activity log entries.'), findsNothing);
-        expect(fakeRepo.getActivityLogCallCount, 0);
+        // No additional REST call from the realtime event.
+        expect(fakeRepo.getActivityLogCallCount, 1);
+      },
+    );
+
+    testWidgets(
+      'mount-trigger fetches REST history and renders entries in UI',
+      (tester) async {
+        final fakeRepo = _MutableAgentsRepository(
+          initialItems: [
+            makeAgent(
+              id: 'agent-1',
+              name: 'Bot',
+              model: 'sonnet',
+              runtime: 'claude',
+            ),
+          ],
+        );
+        fakeRepo.activityLogResult = [
+          AgentActivityLogEntry(
+            timestamp: DateTime(2026, 5, 1, 9, 30, 15),
+            entry: 'Working: deploying service',
+          ),
+          AgentActivityLogEntry(
+            timestamp: DateTime(2026, 5, 1, 9, 31, 0),
+            entry: 'Online',
+          ),
+        ];
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              realtimeReductionIngressProvider.overrideWithValue(
+                RealtimeReductionIngress(),
+              ),
+            ],
+            child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // getActivityLog called exactly once on mount.
+        expect(fakeRepo.getActivityLogCallCount, 1);
+        // Historical entries rendered.
+        expect(find.text('09:30:15'), findsOneWidget);
+        expect(find.text('Working: deploying service'), findsOneWidget);
+        expect(find.text('09:31:00'), findsOneWidget);
+        expect(find.text('Online'), findsOneWidget);
+        // Empty placeholder gone.
+        expect(find.text('No activity log entries.'), findsNothing);
       },
     );
 
@@ -879,6 +932,7 @@ class _MutableAgentsRepository
   final List<String> startedAgentIds = [];
   final List<String> stoppedAgentIds = [];
   final List<String> resetAgentIds = [];
+  List<AgentActivityLogEntry> activityLogResult = const [];
 
   @override
   Future<List<AgentActivityLogEntry>> getActivityLog(
@@ -886,7 +940,7 @@ class _MutableAgentsRepository
     int limit = 50,
   }) async {
     getActivityLogCallCount += 1;
-    return [];
+    return activityLogResult;
   }
 }
 
