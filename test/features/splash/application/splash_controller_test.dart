@@ -7,6 +7,8 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
+import 'package:slock_app/core/telemetry/crash_detected_provider.dart';
+import 'package:slock_app/core/telemetry/crash_marker_service.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
@@ -214,6 +216,40 @@ void main() {
       expect(diagnostics.entries, hasLength(1));
       expect(diagnostics.entries.first.level, DiagnosticsLevel.error);
       expect(diagnostics.entries.first.tag, 'splash');
+    });
+
+    test('sets crashDetectedProvider to true when crash marker exists',
+        () async {
+      // Seed a crash marker.
+      fakeStorage._store['crash_marker'] = 'true';
+      fakeStorage._store['crash_marker_timestamp'] =
+          DateTime.now().toIso8601String();
+
+      expect(container.read(crashDetectedProvider), isFalse);
+
+      await container.read(splashControllerProvider.future);
+
+      expect(container.read(crashDetectedProvider), isTrue);
+      expect(container.read(appReadyProvider), isTrue);
+    });
+
+    test('crashDetectedProvider stays false when no crash marker', () async {
+      expect(container.read(crashDetectedProvider), isFalse);
+
+      await container.read(splashControllerProvider.future);
+
+      expect(container.read(crashDetectedProvider), isFalse);
+      expect(container.read(appReadyProvider), isTrue);
+    });
+
+    test('crash detection does not block appReady', () async {
+      fakeStorage._store['crash_marker'] = 'true';
+
+      await container.read(splashControllerProvider.future);
+
+      // Both should be true — crash detection must not prevent readiness.
+      expect(container.read(crashDetectedProvider), isTrue);
+      expect(container.read(appReadyProvider), isTrue);
     });
   });
 }

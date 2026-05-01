@@ -5,6 +5,7 @@ import 'package:slock_app/core/notifications/android_notification_initializer.da
 import 'package:slock_app/core/notifications/ios_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/realtime/providers.dart';
+import 'package:slock_app/core/telemetry/crash_marker_service.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/core/telemetry/noop_crash_reporter.dart';
@@ -128,16 +129,19 @@ NotificationInitializer createNotificationInitializer({
 void installErrorHandlers(
   CrashReporter reporter, {
   DiagnosticsCollector? diagnostics,
+  CrashMarkerService? crashMarker,
 }) {
   FlutterError.onError = (details) {
     reporter.captureFlutterError(details);
     diagnostics?.error('crash', details.exceptionAsString());
+    crashMarker?.markCrash();
     FlutterError.presentError(details);
   };
 
   PlatformDispatcher.instance.onError = (error, stack) {
     reporter.captureException(error, stackTrace: stack);
     diagnostics?.error('error', error.toString());
+    crashMarker?.markCrash();
     return true;
   };
 }

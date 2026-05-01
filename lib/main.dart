@@ -8,6 +8,9 @@ import 'package:slock_app/app/bootstrap/fatal_bootstrap_screen.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/realtime/realtime.dart';
+import 'package:slock_app/core/storage/flutter_secure_storage_impl.dart';
+import 'package:slock_app/core/telemetry/crash_marker_service.dart';
+import 'package:slock_app/core/telemetry/crash_recovery_wrapper.dart';
 import 'package:slock_app/features/home/application/home_realtime_dm_materialization_binding.dart';
 import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
 import 'package:slock_app/features/push_token/application/push_token_lifecycle_binding.dart';
@@ -27,16 +30,28 @@ void main() async {
     return;
   }
 
-  installErrorHandlers(bootstrap.reporter, diagnostics: bootstrap.diagnostics);
+  final crashMarker = CrashMarkerService(
+    storage: FlutterSecureStorageImpl(),
+  );
+
+  installErrorHandlers(
+    bootstrap.reporter,
+    diagnostics: bootstrap.diagnostics,
+    crashMarker: crashMarker,
+  );
 
   runZonedGuarded(
     () => runApp(ProviderScope(
-      overrides: bootstrap.overrides,
+      overrides: [
+        ...bootstrap.overrides,
+        crashMarkerServiceProvider.overrideWithValue(crashMarker),
+      ],
       child: const SlockApp(),
     )),
     (error, stack) {
       bootstrap.reporter.captureException(error, stackTrace: stack);
       bootstrap.diagnostics.error('crash', error.toString());
+      crashMarker.markCrash();
     },
   );
 }
@@ -59,6 +74,8 @@ class SlockApp extends ConsumerWidget {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       routerConfig: router,
+      builder: (context, child) =>
+          CrashRecoveryWrapper(child: child ?? const SizedBox.shrink()),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
         AppLocalizations.delegate,

@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
+import 'package:slock_app/core/telemetry/crash_detected_provider.dart';
+import 'package:slock_app/core/telemetry/crash_marker_service.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
@@ -43,6 +45,13 @@ class SplashController extends AutoDisposeAsyncNotifier<void> {
           ));
         }),
       );
+
+      // Check for a crash marker left by a previous session.
+      final crashMarker = ref.read(crashMarkerServiceProvider);
+      final crashed = await crashMarker.hasCrashMarker();
+      if (crashed) {
+        ref.read(crashDetectedProvider.notifier).state = true;
+      }
     } finally {
       ref.read(appReadyProvider.notifier).state = true;
     }
