@@ -77,7 +77,20 @@ abstract final class AppTypography {
     return TextTheme(
       displayLarge: displayLarge.copyWith(color: textColor),
       displayMedium: displayMedium.copyWith(color: textColor),
+      displaySmall: displayMedium.copyWith(
+        color: textColor,
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+      ),
+      headlineLarge: headline.copyWith(
+        color: textColor,
+        fontSize: 22,
+      ),
       headlineMedium: headline.copyWith(color: textColor),
+      headlineSmall: headline.copyWith(
+        color: textColor,
+        fontSize: 18,
+      ),
       titleLarge: headline.copyWith(color: textColor),
       titleMedium: title.copyWith(color: textColor),
       titleSmall: title.copyWith(

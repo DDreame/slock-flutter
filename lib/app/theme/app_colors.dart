@@ -22,6 +22,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.success,
     required this.warning,
     required this.error,
+    required this.errorContainer,
+    required this.onErrorContainer,
     required this.agentAccent,
     required this.agentLight,
   });
@@ -41,6 +43,8 @@ class AppColors extends ThemeExtension<AppColors> {
     success: Color(0xFF22C55E),
     warning: Color(0xFFF59E0B),
     error: Color(0xFFEF4444),
+    errorContainer: Color(0xFFFEE2E2),
+    onErrorContainer: Color(0xFFB91C1C),
     agentAccent: Color(0xFF8B5CF6),
     agentLight: Color(0xFFF5F3FF),
   );
@@ -60,6 +64,8 @@ class AppColors extends ThemeExtension<AppColors> {
     success: Color(0xFF4ADE80),
     warning: Color(0xFFFBBF24),
     error: Color(0xFFF87171),
+    errorContainer: Color(0xFF7F1D1D),
+    onErrorContainer: Color(0xFFFCA5A5),
     agentAccent: Color(0xFFA78BFA),
     agentLight: Color(0xFF1E1533),
   );
@@ -103,6 +109,12 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Error state color (error indicators, destructive actions).
   final Color error;
 
+  /// Error container background (error banners, destructive dialogs).
+  final Color errorContainer;
+
+  /// Text color on error container backgrounds.
+  final Color onErrorContainer;
+
   /// Agent accent color (agent badges, working indicators).
   final Color agentAccent;
 
@@ -124,6 +136,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? success,
     Color? warning,
     Color? error,
+    Color? errorContainer,
+    Color? onErrorContainer,
     Color? agentAccent,
     Color? agentLight,
   }) {
@@ -141,6 +155,8 @@ class AppColors extends ThemeExtension<AppColors> {
       success: success ?? this.success,
       warning: warning ?? this.warning,
       error: error ?? this.error,
+      errorContainer: errorContainer ?? this.errorContainer,
+      onErrorContainer: onErrorContainer ?? this.onErrorContainer,
       agentAccent: agentAccent ?? this.agentAccent,
       agentLight: agentLight ?? this.agentLight,
     );
@@ -164,6 +180,9 @@ class AppColors extends ThemeExtension<AppColors> {
       success: Color.lerp(success, other.success, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
       error: Color.lerp(error, other.error, t)!,
+      errorContainer: Color.lerp(errorContainer, other.errorContainer, t)!,
+      onErrorContainer:
+          Color.lerp(onErrorContainer, other.onErrorContainer, t)!,
       agentAccent: Color.lerp(agentAccent, other.agentAccent, t)!,
       agentLight: Color.lerp(agentLight, other.agentLight, t)!,
     );

@@ -52,10 +52,13 @@ void main() {
       textTheme = AppTypography.textTheme(const Color(0xFF000000));
     });
 
-    test('all M3 slots are non-null', () {
+    test('all 15 M3 slots are non-null', () {
       expect(textTheme.displayLarge, isNotNull);
       expect(textTheme.displayMedium, isNotNull);
+      expect(textTheme.displaySmall, isNotNull);
+      expect(textTheme.headlineLarge, isNotNull);
       expect(textTheme.headlineMedium, isNotNull);
+      expect(textTheme.headlineSmall, isNotNull);
       expect(textTheme.titleLarge, isNotNull);
       expect(textTheme.titleMedium, isNotNull);
       expect(textTheme.titleSmall, isNotNull);

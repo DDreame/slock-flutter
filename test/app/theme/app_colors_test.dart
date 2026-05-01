@@ -65,6 +65,20 @@ void main() {
       expect(AppColors.light.error, const Color(0xFFEF4444));
     });
 
+    test('errorContainer is #FEE2E2', () {
+      expect(
+        AppColors.light.errorContainer,
+        const Color(0xFFFEE2E2),
+      );
+    });
+
+    test('onErrorContainer is #B91C1C', () {
+      expect(
+        AppColors.light.onErrorContainer,
+        const Color(0xFFB91C1C),
+      );
+    });
+
     test('agentAccent is #8B5CF6', () {
       expect(
         AppColors.light.agentAccent,
@@ -137,6 +151,20 @@ void main() {
 
     test('error is #F87171', () {
       expect(AppColors.dark.error, const Color(0xFFF87171));
+    });
+
+    test('errorContainer is #7F1D1D', () {
+      expect(
+        AppColors.dark.errorContainer,
+        const Color(0xFF7F1D1D),
+      );
+    });
+
+    test('onErrorContainer is #FCA5A5', () {
+      expect(
+        AppColors.dark.onErrorContainer,
+        const Color(0xFFFCA5A5),
+      );
     });
 
     test('agentAccent is #A78BFA', () {
@@ -237,6 +265,14 @@ void main() {
       expect(result.success, AppColors.light.success);
       expect(result.warning, AppColors.light.warning);
       expect(result.error, AppColors.light.error);
+      expect(
+        result.errorContainer,
+        AppColors.light.errorContainer,
+      );
+      expect(
+        result.onErrorContainer,
+        AppColors.light.onErrorContainer,
+      );
       expect(
         result.agentAccent,
         AppColors.light.agentAccent,

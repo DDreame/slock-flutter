@@ -39,6 +39,20 @@ void main() {
       );
     });
 
+    test('colorScheme.errorContainer matches token', () {
+      expect(
+        theme.colorScheme.errorContainer,
+        AppColors.light.errorContainer,
+      );
+    });
+
+    test('colorScheme.onErrorContainer matches token', () {
+      expect(
+        theme.colorScheme.onErrorContainer,
+        AppColors.light.onErrorContainer,
+      );
+    });
+
     test('colorScheme.primaryContainer matches primaryLight', () {
       expect(
         theme.colorScheme.primaryContainer,
@@ -123,6 +137,20 @@ void main() {
       expect(
         theme.colorScheme.error,
         AppColors.dark.error,
+      );
+    });
+
+    test('colorScheme.errorContainer matches token', () {
+      expect(
+        theme.colorScheme.errorContainer,
+        AppColors.dark.errorContainer,
+      );
+    });
+
+    test('colorScheme.onErrorContainer matches token', () {
+      expect(
+        theme.colorScheme.onErrorContainer,
+        AppColors.dark.onErrorContainer,
       );
     });
 

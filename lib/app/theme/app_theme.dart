@@ -46,12 +46,8 @@ abstract final class AppTheme {
       onTertiaryContainer: colors.text,
       error: colors.error,
       onError: colors.primaryForeground,
-      errorContainer: brightness == Brightness.light
-          ? const Color(0xFFFEE2E2)
-          : const Color(0xFF7F1D1D),
-      onErrorContainer: brightness == Brightness.light
-          ? const Color(0xFFB91C1C)
-          : const Color(0xFFFCA5A5),
+      errorContainer: colors.errorContainer,
+      onErrorContainer: colors.onErrorContainer,
       surface: colors.surface,
       onSurface: colors.text,
       surfaceContainerHighest: colors.surfaceAlt,
