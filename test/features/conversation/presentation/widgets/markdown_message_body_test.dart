@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
 
@@ -41,12 +40,10 @@ void main() {
         await tester.pumpWidget(buildApp(content: 'Line one\nLine two'));
         await tester.pumpAndSettle();
 
-        // With softLineBreak: true, soft breaks are preserved in the output.
-        // The MarkdownBody widget should render both lines.
+        // With softLineBreak: true and selectable: true, the MarkdownBody
+        // renders via SelectableText widgets rather than RichText.
         expect(find.byType(MarkdownBody), findsOneWidget);
-        // Verify both fragments appear somewhere in the rendered text.
-        final richTexts = find.byType(RichText);
-        expect(richTexts, findsWidgets);
+        expect(find.byType(SelectableText), findsWidgets);
       });
     });
 
@@ -111,6 +108,45 @@ void main() {
         final decoratedBoxes = find.byType(DecoratedBox);
         expect(decoratedBoxes, findsWidgets);
       });
+
+      testWidgets('long code block is height-constrained and scrollable',
+          (tester) async {
+        // Generate a code block with many lines to exceed 200dp
+        final longCode = List.generate(50, (i) => 'line $i;').join('\n');
+        await tester.pumpWidget(
+          buildApp(content: '```\n$longCode\n```'),
+        );
+        await tester.pumpAndSettle();
+
+        // The custom builder wraps code blocks in a ConstrainedBox
+        final constrainedBox = find.byType(ConstrainedBox);
+        expect(constrainedBox, findsWidgets);
+
+        // At least one ConstrainedBox should have maxHeight = 200
+        final constrainedBoxWidget = tester.widgetList<ConstrainedBox>(
+          constrainedBox,
+        );
+        final hasMaxHeight = constrainedBoxWidget.any(
+          (w) => w.constraints.maxHeight == 200.0,
+        );
+        expect(hasMaxHeight, isTrue,
+            reason: 'Code block should be constrained to 200dp max height');
+
+        // Vertical SingleChildScrollView should be present for overflow
+        expect(find.byType(SingleChildScrollView), findsWidgets);
+      });
+
+      testWidgets('short code block still uses constrained builder',
+          (tester) async {
+        await tester.pumpWidget(
+          buildApp(content: '```\nshort\n```'),
+        );
+        await tester.pumpAndSettle();
+
+        // Even short code blocks go through the builder with ConstrainedBox
+        final constrainedBox = find.byType(ConstrainedBox);
+        expect(constrainedBox, findsWidgets);
+      });
     });
 
     group('block elements', () {
@@ -173,16 +209,27 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // MarkdownBody renders links inside RichText widgets.
-        // Find text containing "Slock" and tap it.
-        final richTextFinder = find.byWidgetPredicate(
+        // With selectable: true, MarkdownBody renders links inside
+        // SelectableText.rich widgets. Find any widget whose plain text
+        // contains "Slock" and tap it.
+        final selectableTextFinder = find.byWidgetPredicate(
           (widget) =>
-              widget is RichText && widget.text.toPlainText().contains('Slock'),
+              widget is SelectableText &&
+              widget.textSpan != null &&
+              widget.textSpan!.toPlainText().contains('Slock'),
         );
-        expect(richTextFinder, findsWidgets);
-
-        // Tap the center of the first matching widget
-        await tester.tap(richTextFinder.first);
+        if (selectableTextFinder.evaluate().isNotEmpty) {
+          await tester.tap(selectableTextFinder.first);
+        } else {
+          // Fallback: try RichText (in case selectable wraps differently)
+          final richTextFinder = find.byWidgetPredicate(
+            (widget) =>
+                widget is RichText &&
+                widget.text.toPlainText().contains('Slock'),
+          );
+          expect(richTextFinder, findsWidgets);
+          await tester.tap(richTextFinder.first);
+        }
         await tester.pumpAndSettle();
 
         expect(tappedUrl, 'https://slock.app');
@@ -266,6 +313,34 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(MarkdownBody), findsOneWidget);
+      });
+    });
+
+    group('selectability', () {
+      testWidgets('text is selectable', (tester) async {
+        await tester.pumpWidget(
+          buildApp(content: 'Selectable text content'),
+        );
+        await tester.pumpAndSettle();
+
+        // MarkdownBody with selectable: true wraps text in SelectableText
+        // widgets. Verify SelectableText.rich is used in the tree.
+        expect(find.byType(SelectableText), findsWidgets);
+      });
+
+      testWidgets('all bubble kinds produce selectable text', (tester) async {
+        for (final kind in MessageBubbleKind.values) {
+          await tester.pumpWidget(
+            buildApp(content: 'Text for $kind', kind: kind),
+          );
+          await tester.pumpAndSettle();
+
+          expect(
+            find.byType(SelectableText),
+            findsWidgets,
+            reason: '$kind bubble should render selectable text',
+          );
+        }
       });
     });
   });

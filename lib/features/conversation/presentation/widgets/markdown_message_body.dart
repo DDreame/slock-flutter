@@ -5,6 +5,73 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 
+// -- Layout constants --
+const double _kH3FontSize = 14.0;
+const double _kCodeFontSizeScale = 0.9;
+const double _kCodeFontSizeFallback = 12.6;
+const double _kBlockquoteBorderWidth = 3.0;
+const double _kHorizontalRuleWidth = 1.0;
+const double _kCodeBlockMaxHeight = 200.0;
+const double _kSelfOverlayAlpha = 0.15;
+const double _kSelfSecondaryAlpha = 0.78;
+const double _kSelfBlockquoteAlpha = 0.5;
+
+/// Custom code-block builder that constrains height and enables vertical
+/// scrolling for long fenced code blocks (Z2 spec: max 200 dp).
+///
+/// The outer `Container(decoration: codeblockDecoration)` is applied by
+/// flutter_markdown unconditionally for `<pre>` tags, so this builder only
+/// needs to produce the inner scrollable content.
+class _ScrollableCodeBlockBuilder extends MarkdownElementBuilder {
+  _ScrollableCodeBlockBuilder({
+    required this.maxHeight,
+    required this.codeStyle,
+    required this.padding,
+  });
+
+  final double maxHeight;
+  final TextStyle codeStyle;
+  final EdgeInsets padding;
+
+  // Accumulate code text across visitText calls.
+  String _buffer = '';
+
+  @override
+  void visitElementBefore(md.Element element) {
+    _buffer = '';
+  }
+
+  @override
+  Widget? visitText(md.Text text, TextStyle? preferredStyle) {
+    // Accumulate text; the full widget is built in visitElementAfterWithContext.
+    _buffer += text.text;
+    // Return a placeholder so the inline stack stays balanced.
+    return const SizedBox.shrink();
+  }
+
+  @override
+  Widget? visitElementAfterWithContext(
+    BuildContext context,
+    md.Element element,
+    TextStyle? preferredStyle,
+    TextStyle? parentStyle,
+  ) {
+    final code = _buffer.isNotEmpty ? _buffer : element.textContent;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Scrollbar(
+        child: SingleChildScrollView(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: padding,
+            child: Text(code, style: preferredStyle ?? codeStyle),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Bubble kind for Markdown style token selection.
 ///
 /// Mirrors the visual kind enum from the conversation detail page
@@ -19,7 +86,7 @@ enum MessageBubbleKind { self, other, agent }
 /// Not supported: images (stripped), tables, inline HTML.
 ///
 /// Style tokens follow the Z2 design spec with bubble-variant-aware colors:
-/// - **Self bubble**: code uses `rgba(255,255,255,0.15)` bg, links use white + underline
+/// - **Self bubble**: code uses white overlay bg, links use white + underline
 /// - **Other/Agent bubble**: standard AppColors tokens
 class MarkdownMessageBody extends StatelessWidget {
   const MarkdownMessageBody({
@@ -48,9 +115,18 @@ class MarkdownMessageBody extends StatelessWidget {
     final styleSheet = _buildStyleSheet(context, colors);
 
     return MarkdownBody(
+      key: const ValueKey('markdown-body'),
       data: content,
       styleSheet: styleSheet,
       onTapLink: onLinkTap,
+      selectable: true,
+      builders: {
+        'pre': _ScrollableCodeBlockBuilder(
+          maxHeight: _kCodeBlockMaxHeight,
+          codeStyle: styleSheet.code!,
+          padding: styleSheet.codeblockPadding!,
+        ),
+      },
       // Only allow supported inline syntax + block elements.
       // Use ExtensionSet.gitHubFlavored for strikethrough support.
       extensionSet: md.ExtensionSet(
@@ -78,17 +154,19 @@ class MarkdownMessageBody extends StatelessWidget {
     // Text colors depend on bubble variant
     final textColor = isSelf ? colors.primaryForeground : colors.text;
     final secondaryColor = isSelf
-        ? colors.primaryForeground.withValues(alpha: 0.78)
+        ? colors.primaryForeground.withValues(alpha: _kSelfSecondaryAlpha)
         : colors.textSecondary;
 
     // Inline code colors
-    final codeBackground =
-        isSelf ? Colors.white.withValues(alpha: 0.15) : colors.surfaceAlt;
+    final codeBackground = isSelf
+        ? Colors.white.withValues(alpha: _kSelfOverlayAlpha)
+        : colors.surfaceAlt;
     final codeTextColor = isSelf ? colors.primaryForeground : colors.primary;
 
     // Code block colors
-    final codeBlockBackground =
-        isSelf ? Colors.white.withValues(alpha: 0.15) : colors.surfaceAlt;
+    final codeBlockBackground = isSelf
+        ? Colors.white.withValues(alpha: _kSelfOverlayAlpha)
+        : colors.surfaceAlt;
 
     // Link colors
     final linkColor = isSelf ? colors.primaryForeground : colors.primary;
@@ -97,7 +175,7 @@ class MarkdownMessageBody extends StatelessWidget {
 
     // Blockquote
     final blockquoteBorderColor = isSelf
-        ? colors.primaryForeground.withValues(alpha: 0.5)
+        ? colors.primaryForeground.withValues(alpha: _kSelfBlockquoteAlpha)
         : colors.primary;
     final blockquoteColor = secondaryColor;
 
@@ -113,7 +191,7 @@ class MarkdownMessageBody extends StatelessWidget {
       h2Padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       h3: AppTypography.title.copyWith(
         color: textColor,
-        fontSize: 14,
+        fontSize: _kH3FontSize,
         fontWeight: FontWeight.w600,
       ),
       h3Padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -122,8 +200,8 @@ class MarkdownMessageBody extends StatelessWidget {
       code: TextStyle(
         fontFamily: 'monospace',
         fontSize: effectiveBase.fontSize != null
-            ? effectiveBase.fontSize! * 0.9
-            : 12.6,
+            ? effectiveBase.fontSize! * _kCodeFontSizeScale
+            : _kCodeFontSizeFallback,
         color: codeTextColor,
         backgroundColor: codeBackground,
       ),
@@ -145,7 +223,7 @@ class MarkdownMessageBody extends StatelessWidget {
         border: Border(
           left: BorderSide(
             color: blockquoteBorderColor,
-            width: 3,
+            width: _kBlockquoteBorderWidth,
           ),
         ),
       ),
@@ -165,7 +243,10 @@ class MarkdownMessageBody extends StatelessWidget {
       // --- Horizontal rule ---
       horizontalRuleDecoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: colors.border, width: 1),
+          top: BorderSide(
+            color: colors.border,
+            width: _kHorizontalRuleWidth,
+          ),
         ),
       ),
 
