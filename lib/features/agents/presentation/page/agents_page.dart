@@ -875,6 +875,13 @@ class _AgentDetailBody extends ConsumerWidget {
         ),
         const SizedBox(height: AppSpacing.sectionGap),
 
+        // --- Environment Variables ---
+        _EnvVarsSection(
+          key: const ValueKey('agent-env-vars-section'),
+          colors: colors,
+        ),
+        const SizedBox(height: AppSpacing.sectionGap),
+
         // --- Activity Log ---
         Text(
           'Activity Log',
@@ -1086,6 +1093,59 @@ class _ConfigCell extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Environment Variables section
+// ---------------------------------------------------------------------------
+
+class _EnvVarsSection extends StatelessWidget {
+  const _EnvVarsSection({super.key, required this.colors});
+
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Environment Variables',
+                style: AppTypography.title.copyWith(color: colors.text),
+              ),
+            ),
+            IconButton(
+              key: const ValueKey('agent-env-vars-edit'),
+              onPressed: () {
+                // TODO: wire to env vars editor when API is available.
+              },
+              icon: Icon(
+                Icons.edit_outlined,
+                size: 18,
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SectionCard(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Text(
+              'No environment variables',
+              key: const ValueKey('agent-env-vars-empty'),
+              style: AppTypography.bodySmall.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

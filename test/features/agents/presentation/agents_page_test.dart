@@ -53,7 +53,8 @@ void main() {
           ],
           child: MaterialApp(
               theme: AppTheme.light,
-              home: const AgentsPage(agentId: 'agent-1')),
+              home: const TickerMode(
+                  enabled: false, child: AgentsPage(agentId: 'agent-1'))),
         ),
       );
 
@@ -91,7 +92,8 @@ void main() {
           ],
           child: MaterialApp(
               theme: AppTheme.light,
-              home: const AgentsPage(agentId: 'agent-1')),
+              home: const TickerMode(
+                  enabled: false, child: AgentsPage(agentId: 'agent-1'))),
         ),
       );
 
@@ -128,8 +130,10 @@ void main() {
           routes: [
             GoRoute(
               path: '/servers/:serverId/agents',
-              builder: (context, state) =>
-                  AgentsPage(serverId: state.pathParameters['serverId']),
+              builder: (context, state) => TickerMode(
+                enabled: false,
+                child: AgentsPage(serverId: state.pathParameters['serverId']),
+              ),
             ),
             GoRoute(
               path: '/servers/:serverId/agents/:agentId',
@@ -191,14 +195,19 @@ void main() {
           routes: [
             GoRoute(
               path: '/servers/:serverId/agents',
-              builder: (context, state) =>
-                  AgentsPage(serverId: state.pathParameters['serverId']),
+              builder: (context, state) => TickerMode(
+                enabled: false,
+                child: AgentsPage(serverId: state.pathParameters['serverId']),
+              ),
             ),
             GoRoute(
               path: '/servers/:serverId/agents/:agentId',
-              builder: (context, state) => AgentsPage(
-                serverId: state.pathParameters['serverId'],
-                agentId: state.pathParameters['agentId'],
+              builder: (context, state) => TickerMode(
+                enabled: false,
+                child: AgentsPage(
+                  serverId: state.pathParameters['serverId'],
+                  agentId: state.pathParameters['agentId'],
+                ),
               ),
             ),
             GoRoute(
@@ -270,7 +279,8 @@ void main() {
             ],
             child: MaterialApp(
                 theme: AppTheme.light,
-                home: const AgentsPage(agentId: 'agent-1')),
+                home: const TickerMode(
+                    enabled: false, child: AgentsPage(agentId: 'agent-1'))),
           ),
         );
 
@@ -339,7 +349,8 @@ void main() {
             ],
             child: MaterialApp(
                 theme: AppTheme.light,
-                home: const AgentsPage(agentId: 'agent-1')),
+                home: const TickerMode(
+                    enabled: false, child: AgentsPage(agentId: 'agent-1'))),
           ),
         );
 
@@ -397,7 +408,8 @@ void main() {
             ],
             child: MaterialApp(
                 theme: AppTheme.light,
-                home: const AgentsPage(serverId: 'server-1')),
+                home: const TickerMode(
+                    enabled: false, child: AgentsPage(serverId: 'server-1'))),
           ),
         );
 
@@ -476,7 +488,10 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
-            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -523,7 +538,10 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
-            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -569,7 +587,10 @@ void main() {
           ],
           child: MaterialApp(
             theme: theme,
-            home: const AgentsPage(serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -608,7 +629,10 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
-            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -644,7 +668,10 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
-            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -678,7 +705,10 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
-            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -714,7 +744,10 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
-            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -746,7 +779,10 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
-            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );

@@ -63,9 +63,12 @@ void main() {
       ],
       child: MaterialApp(
         theme: theme ?? AppTheme.light,
-        home: AgentsPage(
-          agentId: agentId,
-          serverId: serverId,
+        home: TickerMode(
+          enabled: false,
+          child: AgentsPage(
+            agentId: agentId,
+            serverId: serverId,
+          ),
         ),
       ),
     );
@@ -259,8 +262,9 @@ void main() {
         routes: [
           GoRoute(
             path: '/servers/:serverId/agents',
-            builder: (context, state) =>
-                AgentsPage(serverId: state.pathParameters['serverId']),
+            builder: (context, state) => TickerMode(
+                enabled: false,
+                child: AgentsPage(serverId: state.pathParameters['serverId'])),
           ),
           GoRoute(
             path: '/servers/:serverId/agents/:agentId',
@@ -554,6 +558,32 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(SectionCard), findsWidgets);
+    });
+
+    testWidgets(
+        'detail shows env vars section with empty placeholder and edit button',
+        (tester) async {
+      final repo = _MutableAgentsRepository(initialItems: [
+        makeAgent(id: 'agent-1'),
+      ]);
+      await tester.pumpWidget(buildApp(fakeRepo: repo, agentId: 'agent-1'));
+      await tester.pumpAndSettle();
+
+      // Section header
+      expect(find.text('Environment Variables'), findsOneWidget);
+
+      // Empty placeholder
+      expect(
+        find.byKey(const ValueKey('agent-env-vars-empty')),
+        findsOneWidget,
+      );
+      expect(find.text('No environment variables'), findsOneWidget);
+
+      // Edit affordance
+      expect(
+        find.byKey(const ValueKey('agent-env-vars-edit')),
+        findsOneWidget,
+      );
     });
   });
 }
