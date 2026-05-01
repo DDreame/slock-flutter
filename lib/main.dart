@@ -27,7 +27,7 @@ void main() async {
     return;
   }
 
-  installErrorHandlers(bootstrap.reporter);
+  installErrorHandlers(bootstrap.reporter, diagnostics: bootstrap.diagnostics);
 
   runZonedGuarded(
     () => runApp(ProviderScope(

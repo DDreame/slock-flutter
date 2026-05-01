@@ -24,7 +24,8 @@ class DiagnosticsCollector {
   final Duration maxRetentionAge;
   final List<DiagnosticsEntry> _buffer = [];
 
-  static const _sensitiveKeys = {
+  /// Keys whose values are replaced with `[REDACTED]` in metadata.
+  static const sensitiveKeys = {
     'token',
     'password',
     'secret',
@@ -34,8 +35,8 @@ class DiagnosticsCollector {
   };
 
   DiagnosticsCollector({
-    this.maxEntries = 200,
-    this.maxRetentionAge = const Duration(minutes: 30),
+    this.maxEntries = 500,
+    this.maxRetentionAge = const Duration(hours: 24),
   });
 
   void add(DiagnosticsEntry entry) {
@@ -53,9 +54,51 @@ class DiagnosticsCollector {
     _prune();
   }
 
+  /// Convenience method to add an info-level entry.
+  void info(String tag, String message, {Map<String, dynamic>? metadata}) {
+    add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.info,
+      tag: tag,
+      message: message,
+      metadata: metadata,
+    ));
+  }
+
+  /// Convenience method to add a warning-level entry.
+  void warning(String tag, String message, {Map<String, dynamic>? metadata}) {
+    add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.warning,
+      tag: tag,
+      message: message,
+      metadata: metadata,
+    ));
+  }
+
+  /// Convenience method to add an error-level entry.
+  void error(String tag, String message, {Map<String, dynamic>? metadata}) {
+    add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.error,
+      tag: tag,
+      message: message,
+      metadata: metadata,
+    ));
+  }
+
   List<DiagnosticsEntry> get entries {
     _prune();
     return UnmodifiableListView(_buffer);
+  }
+
+  /// Returns an immutable snapshot of the current entries.
+  ///
+  /// The returned list is independent of the collector's internal buffer —
+  /// subsequent mutations to the collector do not affect it.
+  List<DiagnosticsEntry> toSnapshot() {
+    _prune();
+    return UnmodifiableListView(List.of(_buffer));
   }
 
   void clear() {
@@ -74,7 +117,7 @@ class DiagnosticsCollector {
 
   static Map<String, dynamic> _redact(Map<String, dynamic> metadata) {
     return metadata.map((key, value) {
-      if (_sensitiveKeys.contains(key.toLowerCase())) {
+      if (sensitiveKeys.contains(key.toLowerCase())) {
         return MapEntry(key, '[REDACTED]');
       }
       return MapEntry(key, value);
