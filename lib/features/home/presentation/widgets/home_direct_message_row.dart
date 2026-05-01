@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/unread_badge.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 
 enum _HomeDmAction { togglePin, hide, moveUp, moveDown }
@@ -27,105 +32,124 @@ class HomeDirectMessageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(isPinned ? Icons.push_pin : Icons.person_outline),
-      title: Text(
-        directMessage.title,
-        style: unreadCount > 0
-            ? const TextStyle(fontWeight: FontWeight.bold)
-            : null,
-      ),
-      subtitle: directMessage.lastMessagePreview != null
-          ? Text(
-              directMessage.lastMessagePreview!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            )
-          : null,
-      trailing: _buildTrailing(context),
-      onTap: onTap,
-    );
-  }
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final hasUnread = unreadCount > 0;
 
-  Widget? _buildTrailing(BuildContext context) {
-    final showMenu = onTogglePin != null ||
-        onHide != null ||
-        onMoveUp != null ||
-        onMoveDown != null;
-    if (!showMenu && unreadCount == 0) {
-      return null;
-    }
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (unreadCount > 0) _UnreadBadge(count: unreadCount),
-        if (showMenu)
-          PopupMenuButton<_HomeDmAction>(
-            key: ValueKey('dm-menu-${directMessage.scopeId.routeParam}'),
-            tooltip: 'Message actions',
-            onSelected: (action) {
-              switch (action) {
-                case _HomeDmAction.togglePin:
-                  onTogglePin?.call();
-                case _HomeDmAction.hide:
-                  onHide?.call();
-                case _HomeDmAction.moveUp:
-                  onMoveUp?.call();
-                case _HomeDmAction.moveDown:
-                  onMoveDown?.call();
-              }
-            },
-            itemBuilder: (context) => [
-              if (onMoveUp != null)
-                const PopupMenuItem<_HomeDmAction>(
-                  value: _HomeDmAction.moveUp,
-                  child: Text('Move up'),
+    return Material(
+      color: hasUnread ? colors.primaryLight : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pageHorizontal,
+            vertical: AppSpacing.listItemVertical,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isPinned ? Icons.push_pin : Icons.person_outline,
+                size: 20,
+                color: hasUnread ? colors.primary : colors.textTertiary,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      directMessage.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body.copyWith(
+                        color: colors.text,
+                        fontWeight:
+                            hasUnread ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                    if (directMessage.lastMessagePreview != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        directMessage.lastMessagePreview!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              if (onMoveDown != null)
-                const PopupMenuItem<_HomeDmAction>(
-                  value: _HomeDmAction.moveDown,
-                  child: Text('Move down'),
-                ),
-              if (onTogglePin != null)
-                PopupMenuItem<_HomeDmAction>(
-                  value: _HomeDmAction.togglePin,
-                  child: Text(
-                      isPinned ? 'Unpin conversation' : 'Pin conversation'),
-                ),
-              if (onHide != null)
-                const PopupMenuItem<_HomeDmAction>(
-                  value: _HomeDmAction.hide,
-                  child: Text('Close conversation'),
-                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (directMessage.lastActivityAt != null)
+                    Text(
+                      formatRelativeTime(directMessage.lastActivityAt!),
+                      style: AppTypography.caption.copyWith(
+                        color: hasUnread ? colors.primary : colors.textTertiary,
+                      ),
+                    ),
+                  if (hasUnread) ...[
+                    const SizedBox(height: 4),
+                    UnreadBadge(count: unreadCount),
+                  ],
+                ],
+              ),
+              if (_showMenu) _buildMenu(context),
             ],
           ),
-      ],
-    );
-  }
-}
-
-class _UnreadBadge extends StatelessWidget {
-  const _UnreadBadge({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        count > 99 ? '99+' : '$count',
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimary,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+
+  bool get _showMenu =>
+      onTogglePin != null ||
+      onHide != null ||
+      onMoveUp != null ||
+      onMoveDown != null;
+
+  Widget _buildMenu(BuildContext context) {
+    return PopupMenuButton<_HomeDmAction>(
+      key: ValueKey('dm-menu-${directMessage.scopeId.routeParam}'),
+      tooltip: 'Message actions',
+      onSelected: (action) {
+        switch (action) {
+          case _HomeDmAction.togglePin:
+            onTogglePin?.call();
+          case _HomeDmAction.hide:
+            onHide?.call();
+          case _HomeDmAction.moveUp:
+            onMoveUp?.call();
+          case _HomeDmAction.moveDown:
+            onMoveDown?.call();
+        }
+      },
+      itemBuilder: (context) => [
+        if (onMoveUp != null)
+          const PopupMenuItem<_HomeDmAction>(
+            value: _HomeDmAction.moveUp,
+            child: Text('Move up'),
+          ),
+        if (onMoveDown != null)
+          const PopupMenuItem<_HomeDmAction>(
+            value: _HomeDmAction.moveDown,
+            child: Text('Move down'),
+          ),
+        if (onTogglePin != null)
+          PopupMenuItem<_HomeDmAction>(
+            value: _HomeDmAction.togglePin,
+            child: Text(isPinned ? 'Unpin conversation' : 'Pin conversation'),
+          ),
+        if (onHide != null)
+          const PopupMenuItem<_HomeDmAction>(
+            value: _HomeDmAction.hide,
+            child: Text('Close conversation'),
+          ),
+      ],
     );
   }
 }

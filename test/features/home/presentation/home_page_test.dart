@@ -39,21 +39,11 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('Channels'));
-    expect(find.text('Workspace Console'), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-console-activity-section')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('home-console-operations-section')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('home-saved-messages')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-threads')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-tasks')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-members')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-console-grid')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-agents')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-tasks')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-machines')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-billing')), findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('home-workspace-settings')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-threads')), findsOneWidget);
     expect(find.text('Channels'), findsOneWidget);
     expect(find.text('Direct Messages'), findsOneWidget);
     expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
@@ -144,83 +134,6 @@ void main() {
     expect(find.byType(HomePage), findsOneWidget);
   });
 
-  testWidgets('members console tile navigates to the members route', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('home-members')));
-    await tester.tap(find.byKey(const ValueKey('home-members')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('members:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('search console tile preserves the home return stack', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('home-search')));
-    await tester.tap(find.byKey(const ValueKey('home-search')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('search:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('saved messages console tile preserves the home return stack', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('home-saved-messages')),
-    );
-    await tester.tap(find.byKey(const ValueKey('home-saved-messages')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('saved:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
   testWidgets('tasks console tile preserves the home return stack', (
     tester,
   ) async {
@@ -264,59 +177,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('threads:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('billing console tile preserves the home return stack', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('home-billing')));
-    await tester.tap(find.byKey(const ValueKey('home-billing')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('billing'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('workspace settings console tile preserves the home return stack',
-      (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('home-workspace-settings')),
-    );
-    await tester.tap(find.byKey(const ValueKey('home-workspace-settings')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('settings:server-1'), findsOneWidget);
 
     router.pop();
     await tester.pumpAndSettle();
