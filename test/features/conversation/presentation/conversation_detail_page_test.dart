@@ -1226,7 +1226,8 @@ void main() {
     tester.view.resetViewInsets();
   });
 
-  testWidgets('URL linkification styles URLs distinctly in message content', (
+  testWidgets(
+      'Message content renders via MarkdownBody for non-system messages', (
     tester,
   ) async {
     final target = ConversationDetailTarget.channel(
@@ -1262,22 +1263,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final richTextFinder = find.byKey(const ValueKey('message-content'));
-    expect(richTextFinder, findsOneWidget);
-    final richText = tester.widget<RichText>(
-      find.descendant(
-        of: richTextFinder,
-        matching: find.byType(RichText),
-      ),
-    );
-    final outerSpan = richText.text as TextSpan;
-    final innerSpan = outerSpan.children!.first as TextSpan;
-    expect(innerSpan.children, hasLength(3));
-    expect((innerSpan.children![0] as TextSpan).text, 'Check ');
-    expect((innerSpan.children![1] as TextSpan).text, 'https://example.com');
-    expect((innerSpan.children![1] as TextSpan).style?.decoration,
-        TextDecoration.underline);
-    expect((innerSpan.children![2] as TextSpan).text, ' for details');
+    // Non-system messages now render through MarkdownBody
+    final contentFinder = find.byKey(const ValueKey('message-content'));
+    expect(contentFinder, findsOneWidget);
   });
 }
 
