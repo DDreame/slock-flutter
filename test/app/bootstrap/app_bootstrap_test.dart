@@ -7,12 +7,31 @@ import 'package:slock_app/core/notifications/android_notification_initializer.da
 import 'package:slock_app/core/notifications/ios_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/realtime/providers.dart';
+import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/core/telemetry/crash_marker_service.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/core/telemetry/noop_crash_reporter.dart';
 import 'package:slock_app/core/telemetry/sentry_crash_reporter.dart';
 
 import '../../core/telemetry/crash_reporter_test.dart' show FakeCrashReporter;
+
+class _FakeSecureStorage implements SecureStorage {
+  final Map<String, String> store = {};
+
+  @override
+  Future<String?> read({required String key}) async => store[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    store[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    store.remove(key);
+  }
+}
 
 const _apiBaseUrl = 'https://api.example.com';
 const _realtimeUrl = 'https://realtime.example.com';
@@ -174,6 +193,65 @@ void main() {
 
       expect(fake.capturedErrors, hasLength(1));
       expect(fake.capturedErrors.first, error);
+    });
+
+    test('FlutterError.onError calls crashMarker.markCrash', () async {
+      final fake = FakeCrashReporter();
+      final storage = _FakeSecureStorage();
+      final crashMarker = CrashMarkerService(storage: storage);
+      final previousHandler = FlutterError.onError;
+      addTearDown(() => FlutterError.onError = previousHandler);
+
+      installErrorHandlers(fake, crashMarker: crashMarker);
+
+      final details = FlutterErrorDetails(exception: Exception('crash-test'));
+      FlutterError.onError!(details);
+
+      // Allow async markCrash to complete.
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await crashMarker.hasCrashMarker(), isTrue);
+    });
+
+    test('PlatformDispatcher.instance.onError calls crashMarker.markCrash',
+        () async {
+      final fake = FakeCrashReporter();
+      final storage = _FakeSecureStorage();
+      final crashMarker = CrashMarkerService(storage: storage);
+      final previousFlutterHandler = FlutterError.onError;
+      final previousPlatformHandler = PlatformDispatcher.instance.onError;
+      addTearDown(() {
+        FlutterError.onError = previousFlutterHandler;
+        PlatformDispatcher.instance.onError = previousPlatformHandler;
+      });
+
+      installErrorHandlers(fake, crashMarker: crashMarker);
+
+      // Invoke the PlatformDispatcher error handler directly.
+      final handler = PlatformDispatcher.instance.onError;
+      expect(handler, isNotNull);
+      handler!(StateError('platform-crash'), StackTrace.current);
+
+      // Allow async markCrash to complete.
+      await Future<void>.delayed(Duration.zero);
+
+      expect(await crashMarker.hasCrashMarker(), isTrue);
+      expect(fake.capturedErrors, hasLength(1));
+    });
+
+    test('crash marker is not written when crashMarker param is null',
+        () async {
+      final fake = FakeCrashReporter();
+      final previousHandler = FlutterError.onError;
+      addTearDown(() => FlutterError.onError = previousHandler);
+
+      installErrorHandlers(fake);
+
+      final details = FlutterErrorDetails(exception: Exception('no-marker'));
+      // Should not throw even without crash marker.
+      FlutterError.onError!(details);
+
+      expect(fake.capturedFlutterErrors, hasLength(1));
     });
   });
 

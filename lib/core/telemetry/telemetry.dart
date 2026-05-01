@@ -1,3 +1,7 @@
+export 'crash_detected_provider.dart';
+export 'crash_marker_service.dart';
+export 'crash_recovery_dialog.dart';
+export 'crash_recovery_wrapper.dart';
 export 'crash_reporter.dart';
 export 'diagnostic_log_service.dart';
 export 'diagnostic_share_service.dart';
