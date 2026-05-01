@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -45,42 +48,45 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   Widget build(BuildContext context) {
     ref.watch(tasksRealtimeBindingProvider);
     final state = ref.watch(tasksStoreProvider);
+    final colors = Theme.of(context).extension<AppColors>()!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tasks')),
-      floatingActionButton:
-          state.items.isNotEmpty || state.status == TasksStatus.success
-              ? FloatingActionButton(
-                  key: const ValueKey('tasks-create-fab'),
-                  onPressed: _showCreateTaskDialog,
-                  child: const Icon(Icons.add),
-                )
-              : null,
       body: switch (state.status) {
         TasksStatus.initial ||
         TasksStatus.loading when state.items.isEmpty =>
           const Center(child: CircularProgressIndicator()),
         TasksStatus.loading => _TasksListSurface(
             items: state.items,
+            colors: colors,
             isRefreshing: true,
             onStatusUpdate: _updateStatus,
             onDelete: _deleteTask,
             onClaim: _claimTask,
             onUnclaim: _unclaimTask,
+            onNew: _showCreateTaskDialog,
           ),
         TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
             message: state.failure?.message ?? 'Failed to load tasks.',
             onRetry: ref.read(tasksStoreProvider.notifier).retry,
           ),
-        TasksStatus.success when state.items.isEmpty => const Center(
-            child: Text('No tasks yet.'),
+        TasksStatus.success when state.items.isEmpty => SafeArea(
+            child: Column(
+              children: [
+                _TasksHeader(colors: colors, onNew: _showCreateTaskDialog),
+                const Expanded(
+                  child: Center(child: Text('No tasks yet.')),
+                ),
+              ],
+            ),
           ),
         TasksStatus.success => _TasksListSurface(
             items: state.items,
+            colors: colors,
             onStatusUpdate: _updateStatus,
             onDelete: _deleteTask,
             onClaim: _claimTask,
             onUnclaim: _unclaimTask,
+            onNew: _showCreateTaskDialog,
           ),
       },
     );
@@ -195,49 +201,206 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   }
 }
 
-class _TasksListSurface extends StatelessWidget {
-  const _TasksListSurface({
-    required this.items,
-    required this.onStatusUpdate,
-    required this.onDelete,
-    required this.onClaim,
-    required this.onUnclaim,
-    this.isRefreshing = false,
-  });
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
 
-  final List<TaskItem> items;
-  final Future<void> Function(TaskItem, String) onStatusUpdate;
-  final Future<void> Function(TaskItem) onDelete;
-  final Future<void> Function(TaskItem) onClaim;
-  final Future<void> Function(TaskItem) onUnclaim;
-  final bool isRefreshing;
+class _TasksHeader extends StatelessWidget {
+  const _TasksHeader({required this.colors, required this.onNew});
+
+  final AppColors colors;
+  final VoidCallback onNew;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        _TasksListView(
-          items: items,
-          onStatusUpdate: onStatusUpdate,
-          onDelete: onDelete,
-          onClaim: onClaim,
-          onUnclaim: onUnclaim,
-        ),
-        if (isRefreshing)
-          const Align(
-            alignment: Alignment.topCenter,
-            child: LinearProgressIndicator(
-              key: ValueKey('tasks-refresh-indicator'),
-            ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.md,
+        AppSpacing.pageHorizontal,
+        AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Text(
+            'Tasks',
+            style: AppTypography.displayMedium.copyWith(color: colors.text),
           ),
+          const Spacer(),
+          FilledButton(
+            key: const ValueKey('tasks-new-btn'),
+            onPressed: onNew,
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: colors.primaryForeground,
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
+            ),
+            child: const Text('New'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Summary header
+// ---------------------------------------------------------------------------
+
+class _TasksSummaryHeader extends StatelessWidget {
+  const _TasksSummaryHeader({required this.items, required this.colors});
+
+  final List<TaskItem> items;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    int count(String status) => items.where((t) => t.status == status).length;
+
+    final todoCount = count('todo');
+    final progressCount = count('in_progress');
+    final reviewCount = count('in_review');
+    final doneCount = count('done');
+
+    return Padding(
+      key: const ValueKey('tasks-summary-header'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.pageHorizontal,
+      ),
+      child: Row(
+        children: [
+          _SummaryChip(
+            symbol: '○',
+            count: todoCount,
+            label: 'To Do',
+            color: colors.textTertiary,
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          _SummaryChip(
+            symbol: '◐',
+            count: progressCount,
+            label: 'In Progress',
+            color: colors.primary,
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          _SummaryChip(
+            symbol: '◑',
+            count: reviewCount,
+            label: 'Review',
+            color: colors.warning,
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          _SummaryChip(
+            symbol: '●',
+            count: doneCount,
+            label: 'Done',
+            color: colors.success,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryChip extends StatelessWidget {
+  const _SummaryChip({
+    required this.symbol,
+    required this.count,
+    required this.label,
+    required this.color,
+  });
+
+  final String symbol;
+  final int count;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          '$count',
+          style: AppTypography.title.copyWith(color: color),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: AppTypography.caption.copyWith(
+            color: color,
+          ),
+        ),
       ],
     );
   }
 }
 
+// ---------------------------------------------------------------------------
+// List surface
+// ---------------------------------------------------------------------------
+
+class _TasksListSurface extends StatelessWidget {
+  const _TasksListSurface({
+    required this.items,
+    required this.colors,
+    required this.onStatusUpdate,
+    required this.onDelete,
+    required this.onClaim,
+    required this.onUnclaim,
+    required this.onNew,
+    this.isRefreshing = false,
+  });
+
+  final List<TaskItem> items;
+  final AppColors colors;
+  final Future<void> Function(TaskItem, String) onStatusUpdate;
+  final Future<void> Function(TaskItem) onDelete;
+  final Future<void> Function(TaskItem) onClaim;
+  final Future<void> Function(TaskItem) onUnclaim;
+  final VoidCallback onNew;
+  final bool isRefreshing;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _TasksHeader(colors: colors, onNew: onNew),
+          _TasksSummaryHeader(items: items, colors: colors),
+          const SizedBox(height: AppSpacing.md),
+          if (isRefreshing)
+            const LinearProgressIndicator(
+              key: ValueKey('tasks-refresh-indicator'),
+            ),
+          Expanded(
+            child: _TasksListView(
+              items: items,
+              colors: colors,
+              onStatusUpdate: onStatusUpdate,
+              onDelete: onDelete,
+              onClaim: onClaim,
+              onUnclaim: onUnclaim,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// List view
+// ---------------------------------------------------------------------------
+
 class _TasksListView extends StatelessWidget {
   const _TasksListView({
     required this.items,
+    required this.colors,
     required this.onStatusUpdate,
     required this.onDelete,
     required this.onClaim,
@@ -245,6 +408,7 @@ class _TasksListView extends StatelessWidget {
   });
 
   final List<TaskItem> items;
+  final AppColors colors;
   final Future<void> Function(TaskItem, String) onStatusUpdate;
   final Future<void> Function(TaskItem) onDelete;
   final Future<void> Function(TaskItem) onClaim;
@@ -261,14 +425,15 @@ class _TasksListView extends StatelessWidget {
 
     return ListView(
       key: const ValueKey('tasks-list'),
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       children: [
         for (final status in statusOrder)
           if (grouped[status] != null && grouped[status]!.isNotEmpty) ...[
-            _TaskStatusHeader(status: status),
+            _TaskSectionLabel(status: status, colors: colors),
             for (final task in grouped[status]!)
-              _TaskCard(
+              _TaskRow(
                 task: task,
+                colors: colors,
                 onStatusUpdate: onStatusUpdate,
                 onDelete: onDelete,
                 onClaim: onClaim,
@@ -280,18 +445,31 @@ class _TasksListView extends StatelessWidget {
   }
 }
 
-class _TaskStatusHeader extends StatelessWidget {
-  const _TaskStatusHeader({required this.status});
+// ---------------------------------------------------------------------------
+// Section label
+// ---------------------------------------------------------------------------
+
+class _TaskSectionLabel extends StatelessWidget {
+  const _TaskSectionLabel({required this.status, required this.colors});
 
   final String status;
+  final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.md,
+        AppSpacing.pageHorizontal,
+        AppSpacing.xs,
+      ),
       child: Text(
         _statusLabel(status),
-        style: Theme.of(context).textTheme.titleMedium,
+        style: AppTypography.label.copyWith(
+          color: colors.textTertiary,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -307,9 +485,40 @@ class _TaskStatusHeader extends StatelessWidget {
   }
 }
 
-class _TaskCard extends StatelessWidget {
-  const _TaskCard({
+// ---------------------------------------------------------------------------
+// Status symbol helpers
+// ---------------------------------------------------------------------------
+
+/// Returns the Z3 status symbol for a given task status.
+String _statusSymbol(String status) {
+  return switch (status) {
+    'todo' => '○',
+    'in_progress' => '◐',
+    'in_review' => '◑',
+    'done' => '●',
+    _ => '○',
+  };
+}
+
+/// Returns the color for a status symbol using [AppColors] tokens.
+Color _statusColor(String status, AppColors colors) {
+  return switch (status) {
+    'todo' => colors.textTertiary,
+    'in_progress' => colors.primary,
+    'in_review' => colors.warning,
+    'done' => colors.success,
+    _ => colors.textTertiary,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Task row
+// ---------------------------------------------------------------------------
+
+class _TaskRow extends StatelessWidget {
+  const _TaskRow({
     required this.task,
+    required this.colors,
     required this.onStatusUpdate,
     required this.onDelete,
     required this.onClaim,
@@ -317,6 +526,7 @@ class _TaskCard extends StatelessWidget {
   });
 
   final TaskItem task;
+  final AppColors colors;
   final Future<void> Function(TaskItem, String) onStatusUpdate;
   final Future<void> Function(TaskItem) onDelete;
   final Future<void> Function(TaskItem) onClaim;
@@ -324,41 +534,73 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
+    final isDone = task.status == 'done';
+
+    Widget row = InkWell(
       key: ValueKey('task-${task.id}'),
       onTap: () => _onPrimaryTap(context),
       onLongPress: () => _showTaskActions(context),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.pageHorizontal,
+          vertical: AppSpacing.sm,
+        ),
         child: Row(
           children: [
-            _StatusIcon(status: task.status),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '#${task.taskNumber} ${task.title}',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      decoration: task.status == 'done'
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                  ),
-                  if (task.claimedByName != null)
-                    Text(
-                      task.claimedByName!,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                ],
+            // Status symbol
+            Text(
+              _statusSymbol(task.status),
+              style: AppTypography.title.copyWith(
+                color: _statusColor(task.status, colors),
               ),
             ),
+            const SizedBox(width: AppSpacing.md),
+
+            // Task number + title
+            Expanded(
+              child: Text(
+                '#${task.taskNumber} ${task.title}',
+                style: AppTypography.body.copyWith(
+                  color: colors.text,
+                  decoration: isDone ? TextDecoration.lineThrough : null,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+
+            // Assignee avatar
+            if (task.claimedByName != null) ...[
+              const SizedBox(width: AppSpacing.sm),
+              CircleAvatar(
+                key: ValueKey('task-assignee-${task.id}'),
+                radius: 14,
+                backgroundColor: colors.surfaceAlt,
+                child: Text(
+                  task.claimedByName!.isNotEmpty
+                      ? task.claimedByName![0].toUpperCase()
+                      : '?',
+                  style: AppTypography.caption.copyWith(
+                    color: colors.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
+
+    if (isDone) {
+      row = Opacity(
+        key: ValueKey('task-row-opacity-${task.id}'),
+        opacity: 0.5,
+        child: row,
+      );
+    }
+
+    return row;
   }
 
   void _onPrimaryTap(BuildContext context) {
@@ -376,6 +618,7 @@ class _TaskCard extends StatelessWidget {
   }
 
   void _showTaskActions(BuildContext context) {
+    final theme = Theme.of(context);
     showModalBottomSheet<void>(
       context: context,
       builder: (sheetContext) {
@@ -479,29 +722,11 @@ class _TaskCard extends StatelessWidget {
       },
     );
   }
-
-  ThemeData get theme => ThemeData();
 }
 
-class _StatusIcon extends StatelessWidget {
-  const _StatusIcon({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final (icon, tone) = switch (status) {
-      'todo' => (Icons.radio_button_unchecked, AppStatusTone.neutral),
-      'in_progress' => (Icons.timelapse, AppStatusTone.info),
-      'in_review' => (Icons.rate_review, AppStatusTone.warning),
-      'done' => (Icons.check_circle, AppStatusTone.success),
-      _ => (Icons.circle_outlined, AppStatusTone.neutral),
-    };
-    final colors = appStatusColors(theme.colorScheme, tone);
-    return Icon(icon, size: 20, color: colors.foreground);
-  }
-}
+// ---------------------------------------------------------------------------
+// Failure view
+// ---------------------------------------------------------------------------
 
 class _TasksFailureView extends StatelessWidget {
   const _TasksFailureView({
@@ -516,12 +741,12 @@ class _TasksFailureView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             FilledButton(
               onPressed: onRetry,
               child: const Text('Retry'),
@@ -532,6 +757,10 @@ class _TasksFailureView extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Create task dialog
+// ---------------------------------------------------------------------------
 
 class _CreateTaskDialog extends StatefulWidget {
   const _CreateTaskDialog({
@@ -586,7 +815,7 @@ class _CreateTaskDialogState extends State<_CreateTaskDialog> {
               if (value != null) setState(() => _selectedChannelId = value);
             },
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           TextField(
             key: const ValueKey('task-title-field'),
             controller: _titleController,
