@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
@@ -24,6 +25,7 @@ import '../../stores/session/session_store_persistence_test.dart'
 
 Widget _buildRouterApp(GoRouter router) {
   return MaterialApp.router(
+    theme: AppTheme.light,
     routerConfig: router,
     supportedLocales: AppLocalizations.supportedLocales,
     localizationsDelegates: AppLocalizations.localizationsDelegates,

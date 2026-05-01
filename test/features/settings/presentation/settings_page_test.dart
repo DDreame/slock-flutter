@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
@@ -11,75 +12,71 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   testWidgets(
-    'settings page navigates to profile, billing, release notes, '
-    'and notification settings',
-    (tester) async {
-      final sessionStore = _FakeSessionStore();
-      final notificationStore = _FakeNotificationStore();
-      final router = _buildRouter();
+      'settings page navigates to profile, billing, release notes, '
+      'and notification settings', (tester) async {
+    final sessionStore = _FakeSessionStore();
+    final notificationStore = _FakeNotificationStore();
+    final router = _buildRouter();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            sessionStoreProvider.overrideWith(() => sessionStore),
-            notificationStoreProvider.overrideWith(() => notificationStore),
-          ],
-          child: MaterialApp.router(routerConfig: router),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() => sessionStore),
+          notificationStoreProvider.overrideWith(() => notificationStore),
+        ],
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('settings-my-profile')));
-      await tester.pumpAndSettle();
-      expect(find.text('profile-route'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('settings-my-profile')));
+    await tester.pumpAndSettle();
+    expect(find.text('profile-route'), findsOneWidget);
 
-      router.pop();
-      await tester.pumpAndSettle();
-      expect(find.byType(SettingsPage), findsOneWidget);
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('settings-billing')),
-        200,
-      );
-      await tester.tap(find.byKey(const ValueKey('settings-billing')));
-      await tester.pumpAndSettle();
-      expect(find.text('billing-route'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-billing')),
+      200,
+    );
+    await tester.tap(find.byKey(const ValueKey('settings-billing')));
+    await tester.pumpAndSettle();
+    expect(find.text('billing-route'), findsOneWidget);
 
-      router.pop();
-      await tester.pumpAndSettle();
-      expect(find.byType(SettingsPage), findsOneWidget);
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('settings-release-notes')),
-        200,
-      );
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('settings-release-notes')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('settings-release-notes')));
-      await tester.pumpAndSettle();
-      expect(find.text('release-notes-route'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-release-notes')),
+      200,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-release-notes')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-release-notes')));
+    await tester.pumpAndSettle();
+    expect(find.text('release-notes-route'), findsOneWidget);
 
-      router.pop();
-      await tester.pumpAndSettle();
-      expect(find.byType(SettingsPage), findsOneWidget);
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('settings-notification-link')),
-        200,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('settings-notification-link')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('notification-settings-route'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-notification-link')),
+      200,
+    );
+    await tester.tap(find.byKey(const ValueKey('settings-notification-link')));
+    await tester.pumpAndSettle();
+    expect(find.text('notification-settings-route'), findsOneWidget);
 
-      router.pop();
-      await tester.pumpAndSettle();
-      expect(find.byType(SettingsPage), findsOneWidget);
-    },
-  );
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
+  });
 
   testWidgets('notification summary shows permission and filter', (
     tester,
@@ -93,7 +90,10 @@ void main() {
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
         ],
-        child: MaterialApp.router(routerConfig: _buildRouter()),
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: _buildRouter(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -112,11 +112,18 @@ void main() {
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
         ],
-        child: MaterialApp.router(routerConfig: _buildRouter()),
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: _buildRouter(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-logout')),
+      200,
+    );
     await tester.tap(find.byKey(const ValueKey('settings-logout')));
     await tester.pumpAndSettle();
 
@@ -125,10 +132,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Log out?'), findsOneWidget);
-    expect(
-      find.text('You will be signed out of this device.'),
-      findsOneWidget,
-    );
+    expect(find.text('You will be signed out of this device.'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('logout-confirm')));
     await tester.pumpAndSettle();
@@ -149,11 +153,18 @@ void main() {
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
         ],
-        child: MaterialApp.router(routerConfig: _buildRouter()),
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: _buildRouter(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-logout')),
+      200,
+    );
     await tester.tap(find.byKey(const ValueKey('settings-logout')));
     await tester.pumpAndSettle();
 
@@ -197,6 +208,15 @@ GoRouter _buildRouter() {
         path: '/release-notes',
         builder: (context, state) =>
             const Scaffold(body: Text('release-notes-route')),
+      ),
+      GoRoute(
+        path: '/members',
+        builder: (context, state) =>
+            const Scaffold(body: Text('members-route')),
+      ),
+      GoRoute(
+        path: '/roles',
+        builder: (context, state) => const Scaffold(body: Text('roles-route')),
       ),
       GoRoute(
         path: '/login',

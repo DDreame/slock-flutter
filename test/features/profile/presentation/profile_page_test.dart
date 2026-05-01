@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
@@ -35,6 +36,11 @@ void main() {
       expect(find.text('user-123'), findsOneWidget);
       expect(find.byKey(const ValueKey('profile-self-badge')), findsOneWidget);
       expect(find.text('This is you'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('profile-edit-button')),
+        findsOneWidget,
+      );
+      expect(find.text('Edit Profile'), findsOneWidget);
       expect(find.text('My Profile'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('profile-message-button')),
@@ -72,7 +78,7 @@ void main() {
     expect(find.byKey(const ValueKey('profile-email')), findsOneWidget);
     expect(find.text('bob@example.com'), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-role')), findsOneWidget);
-    expect(find.text('member'), findsOneWidget);
+    expect(find.text('Member'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('profile-message-button')),
       findsOneWidget,
@@ -115,7 +121,10 @@ void main() {
             const _FakeMemberRepository(channelId: 'dm-789'),
           ),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -183,7 +192,7 @@ Widget _buildApp({
       if (memberRepository != null)
         memberRepositoryProvider.overrideWithValue(memberRepository),
     ],
-    child: MaterialApp(home: child),
+    child: MaterialApp(theme: AppTheme.light, home: child),
   );
 }
 
