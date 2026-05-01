@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
@@ -19,8 +20,10 @@ class SlockForegroundService : Service() {
         private const val channelName = "Real-time connection"
         private const val notificationId = 9001
         private const val tag = "SlockForegroundService"
-        private const val prefsName = "FlutterSecureStorage"
+        private const val sessionPrefsName = "FlutterSecureStorage"
         private const val sessionTokenKey = "session_token"
+        private const val servicePrefsName = "slock_foreground_service"
+        private const val lastStartKey = "last_start_ms"
 
         /** Minimum interval between OS-triggered restarts. */
         private const val restartBackoffMs = 5_000L
@@ -28,9 +31,6 @@ class SlockForegroundService : Service() {
         @Volatile
         var isRunning: Boolean = false
             private set
-
-        @Volatile
-        private var lastStartTimestamp: Long = 0
     }
 
     override fun onCreate() {
@@ -48,7 +48,8 @@ class SlockForegroundService : Service() {
         val isOsRestart = intent == null
         if (isOsRestart) {
             val now = System.currentTimeMillis()
-            if (now - lastStartTimestamp < restartBackoffMs) {
+            val lastStart = readLastStartTimestamp()
+            if (now - lastStart < restartBackoffMs) {
                 Log.w(tag, "Restart too fast — backing off")
                 stopSelf()
                 return START_NOT_STICKY
@@ -60,7 +61,7 @@ class SlockForegroundService : Service() {
             }
         }
 
-        lastStartTimestamp = System.currentTimeMillis()
+        writeLastStartTimestamp(System.currentTimeMillis())
 
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(applicationInfo.icon)
@@ -97,6 +98,20 @@ class SlockForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    // -- Backoff persistence -------------------------------------------
+
+    private fun servicePrefs() =
+        getSharedPreferences(servicePrefsName, Context.MODE_PRIVATE)
+
+    private fun readLastStartTimestamp(): Long =
+        servicePrefs().getLong(lastStartKey, 0L)
+
+    private fun writeLastStartTimestamp(millis: Long) {
+        servicePrefs().edit().putLong(lastStartKey, millis).apply()
+    }
+
+    // -- Session check -------------------------------------------------
+
     private fun hasStoredSession(): Boolean {
         return try {
             val masterKey = MasterKey.Builder(this)
@@ -105,7 +120,7 @@ class SlockForegroundService : Service() {
 
             val prefs = EncryptedSharedPreferences.create(
                 this,
-                prefsName,
+                sessionPrefsName,
                 masterKey,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
@@ -118,6 +133,8 @@ class SlockForegroundService : Service() {
             false
         }
     }
+
+    // -- Notification ---------------------------------------------------
 
     private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
