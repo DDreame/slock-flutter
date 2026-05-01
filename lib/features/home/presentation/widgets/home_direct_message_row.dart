@@ -46,11 +46,25 @@ class HomeDirectMessageRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(
-                isPinned ? Icons.push_pin : Icons.person_outline,
-                size: 20,
-                color: hasUnread ? colors.primary : colors.textTertiary,
-              ),
+              if (isPinned)
+                Icon(
+                  Icons.push_pin,
+                  size: 20,
+                  color: hasUnread ? colors.primary : colors.textTertiary,
+                )
+              else
+                CircleAvatar(
+                  key: const ValueKey('dm-avatar'),
+                  radius: 16,
+                  backgroundColor: colors.primaryLight,
+                  child: Text(
+                    _initials(directMessage.title),
+                    style: AppTypography.label.copyWith(
+                      color: colors.primary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -151,5 +165,12 @@ class HomeDirectMessageRow extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  static String _initials(String title) {
+    final words = title.trim().split(RegExp(r'\s+'));
+    if (words.isEmpty || words[0].isEmpty) return '?';
+    if (words.length == 1) return words[0][0].toUpperCase();
+    return '${words[0][0]}${words[1][0]}'.toUpperCase();
   }
 }
