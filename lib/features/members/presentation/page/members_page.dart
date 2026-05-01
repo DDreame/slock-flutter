@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
 import 'package:slock_app/features/members/application/members_realtime_binding.dart';
