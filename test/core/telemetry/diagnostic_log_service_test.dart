@@ -172,6 +172,56 @@ void main() {
 
       expect(text, contains('simple text value'));
     });
+
+    test('compound sensitive keys are redacted in formatted output', () {
+      final collector = DiagnosticsCollector();
+      collector.info('net', 'request', metadata: {
+        'accessToken': 'bearer-xyz',
+        'refresh_token': 'rt-123',
+        'apiSecret': 'secret-456',
+        'safe_key': 'visible-value',
+      });
+
+      final service = DiagnosticLogService(collector: collector);
+      final bundle = service.buildBundle();
+      final text = service.formatText(bundle);
+
+      expect(text, isNot(contains('bearer-xyz')));
+      expect(text, isNot(contains('rt-123')));
+      expect(text, isNot(contains('secret-456')));
+      expect(text, contains('visible-value'));
+    });
+
+    test('body-like metadata keys do not appear in formatted text', () {
+      // Body keys are stripped at collector level via _redact.
+      // Verify end-to-end: adding entries with body keys results in no body
+      // content in formatted output.
+      final collector = DiagnosticsCollector();
+      collector.info('net', 'POST /api/messages', metadata: {
+        'body': '{"content":"secret message body"}',
+        'messageBody': 'raw user message content',
+        'requestBody': '{"data":"payload"}',
+        'responseBody': '{"result":"ok"}',
+        'statusCode': 201,
+      });
+
+      final service = DiagnosticLogService(collector: collector);
+      final bundle = service.buildBundle();
+      final text = service.formatText(bundle);
+
+      // Body content must not appear
+      expect(text, isNot(contains('secret message body')));
+      expect(text, isNot(contains('raw user message content')));
+      expect(text, isNot(contains('payload')));
+      // Body keys themselves must not appear
+      expect(text, isNot(contains('  body:')));
+      expect(text, isNot(contains('  messageBody:')));
+      expect(text, isNot(contains('  requestBody:')));
+      expect(text, isNot(contains('  responseBody:')));
+      // Non-body keys should appear
+      expect(text, contains('statusCode'));
+      expect(text, contains('201'));
+    });
   });
 
   group('copyToClipboard', () {

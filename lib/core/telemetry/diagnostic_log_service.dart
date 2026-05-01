@@ -102,6 +102,10 @@ class DiagnosticLogService {
 
       if (entry.metadata != null && entry.metadata!.isNotEmpty) {
         for (final kv in entry.metadata!.entries) {
+          // Skip body-like keys (defense-in-depth; also stripped at collector)
+          if (DiagnosticsCollector.bodyKeys.contains(kv.key.toLowerCase())) {
+            continue;
+          }
           final value = _redactOutputValue(kv.key, kv.value);
           buffer.writeln('  ${kv.key}: $value');
         }
@@ -153,13 +157,10 @@ class DiagnosticLogService {
     }
   }
 
-  /// Redact query parameter values that look sensitive.
+  /// Redact all query parameter values in output.
   static String _redactQueryParams(Uri uri) {
     if (uri.queryParameters.isEmpty) return '';
     final redacted = uri.queryParameters.entries.map((e) {
-      if (DiagnosticsCollector.sensitiveKeys.contains(e.key.toLowerCase())) {
-        return '${e.key}=[REDACTED]';
-      }
       return '${e.key}=[REDACTED]';
     });
     return redacted.join('&');

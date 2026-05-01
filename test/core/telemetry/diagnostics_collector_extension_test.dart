@@ -70,6 +70,50 @@ void main() {
       expect(meta['url'], '/api/users');
       expect(meta['token'], '[REDACTED]');
     });
+
+    test('compound sensitive keys are redacted via substring matching', () {
+      final collector = DiagnosticsCollector();
+      collector.info('net', 'request', metadata: {
+        'accessToken': 'bearer-xyz',
+        'refresh_token': 'rt-123',
+        'apiSecret': 'secret-456',
+        'sessionCookie': 'sess=abc',
+        'authorizationHeader': 'Bearer abc',
+        'userCredentials': 'cred-789',
+        'oldPassword': 'hunter2',
+        'safe_key': 'visible',
+      });
+      final meta = collector.entries.first.metadata!;
+      expect(meta['accessToken'], '[REDACTED]');
+      expect(meta['refresh_token'], '[REDACTED]');
+      expect(meta['apiSecret'], '[REDACTED]');
+      expect(meta['sessionCookie'], '[REDACTED]');
+      expect(meta['authorizationHeader'], '[REDACTED]');
+      expect(meta['userCredentials'], '[REDACTED]');
+      expect(meta['oldPassword'], '[REDACTED]');
+      expect(meta['safe_key'], 'visible');
+    });
+
+    test('body-like metadata keys are stripped entirely', () {
+      final collector = DiagnosticsCollector();
+      collector.info('net', 'POST /api/messages', metadata: {
+        'body': '{"content":"hello world"}',
+        'messageBody': 'raw message content',
+        'requestBody': '{"data":"value"}',
+        'responseBody': '{"result":"ok"}',
+        'url': '/api/messages',
+        'statusCode': 201,
+      });
+      final meta = collector.entries.first.metadata!;
+      // Body keys should be stripped
+      expect(meta.containsKey('body'), isFalse);
+      expect(meta.containsKey('messageBody'), isFalse);
+      expect(meta.containsKey('requestBody'), isFalse);
+      expect(meta.containsKey('responseBody'), isFalse);
+      // Non-body keys should remain
+      expect(meta['url'], '/api/messages');
+      expect(meta['statusCode'], 201);
+    });
   });
 
   group('DiagnosticsCollector — toSnapshot()', () {

@@ -36,6 +36,7 @@ void main() async {
     )),
     (error, stack) {
       bootstrap.reporter.captureException(error, stackTrace: stack);
+      bootstrap.diagnostics.error('crash', error.toString());
     },
   );
 }
