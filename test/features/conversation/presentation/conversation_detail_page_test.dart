@@ -1172,22 +1172,26 @@ void main() {
     expect(scaffoldState.widget.bottomNavigationBar, isNull);
 
     // Simulate keyboard appearing by injecting bottom view insets.
-    tester.view.viewInsets =
-        const FakeViewPadding(bottom: 300);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
     await tester.pumpAndSettle();
 
     // Composer should still be visible after keyboard appears.
     expect(composerFinder, findsOneWidget);
-    final composerBox =
-        tester.renderObject<RenderBox>(composerFinder);
+    final composerBox = tester.renderObject<RenderBox>(composerFinder);
     expect(composerBox.hasSize, isTrue);
 
-    // The composer's bottom edge should still be within the viewport.
+    // The composer's bottom edge must be above the keyboard top.
+    // Keyboard top = viewHeight - (keyboardInset / devicePixelRatio).
     final composerOffset = composerBox.localToGlobal(Offset.zero);
-    final viewHeight = tester.view.physicalSize.height /
-        tester.view.devicePixelRatio;
-    expect(composerOffset.dy + composerBox.size.height,
-        lessThanOrEqualTo(viewHeight));
+    final viewHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final keyboardLogicalHeight =
+        tester.view.viewInsets.bottom / tester.view.devicePixelRatio;
+    final keyboardTop = viewHeight - keyboardLogicalHeight;
+    expect(
+      composerOffset.dy + composerBox.size.height,
+      lessThanOrEqualTo(keyboardTop),
+    );
 
     // Teardown
     tester.view.resetViewInsets();
