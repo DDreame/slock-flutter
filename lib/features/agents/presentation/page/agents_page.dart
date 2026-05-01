@@ -885,6 +885,7 @@ class _AgentDetailBody extends ConsumerWidget {
         // --- Activity Log ---
         Text(
           'Activity Log',
+          key: const ValueKey('agent-activity-log-section'),
           style: AppTypography.title.copyWith(color: colors.text),
         ),
         const SizedBox(height: AppSpacing.sm),

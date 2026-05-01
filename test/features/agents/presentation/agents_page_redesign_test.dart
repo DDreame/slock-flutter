@@ -446,6 +446,12 @@ void main() {
       await tester.pumpWidget(buildApp(fakeRepo: repo, agentId: 'agent-1'));
       await tester.pumpAndSettle();
 
+      // Scroll to activity log section (pushed below viewport by env vars).
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('agent-activity-log-section')),
+        200,
+      );
+
       expect(find.text('Activity Log'), findsOneWidget);
       expect(find.text('14:30:15'), findsOneWidget);
       expect(find.text('Working: deploying service'), findsOneWidget);

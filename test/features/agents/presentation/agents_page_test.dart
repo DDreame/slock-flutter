@@ -288,6 +288,13 @@ void main() {
 
         // REST load triggered exactly once on mount.
         expect(fakeRepo.getActivityLogCallCount, 1);
+
+        // Scroll to activity log section (pushed below viewport by env vars).
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('agent-activity-log-section')),
+          200,
+        );
+
         // No entries returned by default, so still shows empty.
         expect(find.text('No activity log entries.'), findsOneWidget);
 
@@ -358,6 +365,13 @@ void main() {
 
         // getActivityLog called exactly once on mount.
         expect(fakeRepo.getActivityLogCallCount, 1);
+
+        // Scroll to activity log section (pushed below viewport by env vars).
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('agent-activity-log-section')),
+          200,
+        );
+
         // Historical entries rendered.
         expect(find.text('09:30:15'), findsOneWidget);
         expect(find.text('Working: deploying service'), findsOneWidget);
