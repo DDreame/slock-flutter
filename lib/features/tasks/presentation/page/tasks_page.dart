@@ -5,12 +5,21 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
+
+// -- Filter chip Z2 spec tokens --
+const double _kFilterChipHeight = 32.0;
+const double _kFilterChipRadius = 16.0;
+const double _kFilterChipHorizontalPadding = 14.0;
+const double _kFilterChipFontSize = 13.0;
+const FontWeight _kFilterChipFontWeight = FontWeight.w500;
+const double _kFilterChipGap = 8.0;
 
 class TasksPage extends StatelessWidget {
   const TasksPage({super.key, required this.serverId});
@@ -49,6 +58,10 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     ref.watch(tasksRealtimeBindingProvider);
     final state = ref.watch(tasksStoreProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
+    final homeState = ref.watch(homeListStoreProvider);
+    final channels = homeState.status == HomeListStatus.success
+        ? homeState.channels
+        : const <HomeChannelSummary>[];
 
     return Scaffold(
       body: switch (state.status) {
@@ -64,6 +77,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             onClaim: _claimTask,
             onUnclaim: _unclaimTask,
             onNew: _showCreateTaskDialog,
+            channels: channels,
           ),
         TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
             message: state.failure?.message ?? 'Failed to load tasks.',
@@ -87,6 +101,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             onClaim: _claimTask,
             onUnclaim: _unclaimTask,
             onNew: _showCreateTaskDialog,
+            channels: channels,
           ),
       },
     );
@@ -343,7 +358,7 @@ class _SummaryChip extends StatelessWidget {
 // List surface
 // ---------------------------------------------------------------------------
 
-class _TasksListSurface extends StatelessWidget {
+class _TasksListSurface extends StatefulWidget {
   const _TasksListSurface({
     required this.items,
     required this.colors,
@@ -353,6 +368,7 @@ class _TasksListSurface extends StatelessWidget {
     required this.onUnclaim,
     required this.onNew,
     this.isRefreshing = false,
+    this.channels = const [],
   });
 
   final List<TaskItem> items;
@@ -363,31 +379,198 @@ class _TasksListSurface extends StatelessWidget {
   final Future<void> Function(TaskItem) onUnclaim;
   final VoidCallback onNew;
   final bool isRefreshing;
+  final List<HomeChannelSummary> channels;
+
+  @override
+  State<_TasksListSurface> createState() => _TasksListSurfaceState();
+}
+
+class _TasksListSurfaceState extends State<_TasksListSurface> {
+  String? _selectedChannelId; // null = All
+
+  /// Build the ordered list of channel IDs for filter chips.
+  ///
+  /// Includes all channels from the home list (the server's channel set)
+  /// that either have tasks or are available for filtering.
+  List<String> _filterChannelIds() {
+    // Start with channels that have tasks (preserving discovery order)
+    final seen = <String>{};
+    final ids = <String>[];
+    for (final item in widget.items) {
+      if (seen.add(item.channelId)) {
+        ids.add(item.channelId);
+      }
+    }
+    // Append any server channels not yet in the list
+    for (final ch in widget.channels) {
+      if (seen.add(ch.scopeId.value)) {
+        ids.add(ch.scopeId.value);
+      }
+    }
+    return ids;
+  }
+
+  /// Resolve a channel ID to its display name.
+  String _channelName(String channelId) {
+    for (final ch in widget.channels) {
+      if (ch.scopeId.value == channelId) return ch.name;
+    }
+    return channelId;
+  }
+
+  List<TaskItem> get _filteredItems {
+    if (_selectedChannelId == null) return widget.items;
+    return widget.items
+        .where((t) => t.channelId == _selectedChannelId)
+        .toList();
+  }
+
+  bool get _showFilterBar {
+    // Show filter bar when multiple channels exist in the server,
+    // even if tasks only span one channel — user may want to verify
+    // other channels have no tasks.
+    return _filterChannelIds().length > 1;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final filteredItems = _filteredItems;
+
     return SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _TasksHeader(colors: colors, onNew: onNew),
-          _TasksSummaryHeader(items: items, colors: colors),
+          _TasksHeader(colors: widget.colors, onNew: widget.onNew),
+          _TasksSummaryHeader(items: filteredItems, colors: widget.colors),
           const SizedBox(height: AppSpacing.md),
-          if (isRefreshing)
+          if (_showFilterBar)
+            _TasksChannelFilterBar(
+              channelIds: _filterChannelIds(),
+              channelName: _channelName,
+              selectedChannelId: _selectedChannelId,
+              colors: widget.colors,
+              onSelected: (id) => setState(() => _selectedChannelId = id),
+            ),
+          if (widget.isRefreshing)
             const LinearProgressIndicator(
               key: ValueKey('tasks-refresh-indicator'),
             ),
-          Expanded(
-            child: _TasksListView(
-              items: items,
-              colors: colors,
-              onStatusUpdate: onStatusUpdate,
-              onDelete: onDelete,
-              onClaim: onClaim,
-              onUnclaim: onUnclaim,
+          if (filteredItems.isEmpty && _selectedChannelId != null)
+            const Expanded(
+              child: Center(
+                child: Text('No tasks in this channel.'),
+              ),
+            )
+          else
+            Expanded(
+              child: _TasksListView(
+                items: filteredItems,
+                colors: widget.colors,
+                onStatusUpdate: widget.onStatusUpdate,
+                onDelete: widget.onDelete,
+                onClaim: widget.onClaim,
+                onUnclaim: widget.onUnclaim,
+              ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Channel filter bar
+// ---------------------------------------------------------------------------
+
+class _TasksChannelFilterBar extends StatelessWidget {
+  const _TasksChannelFilterBar({
+    required this.channelIds,
+    required this.channelName,
+    required this.selectedChannelId,
+    required this.colors,
+    required this.onSelected,
+  });
+
+  final List<String> channelIds;
+  final String Function(String) channelName;
+  final String? selectedChannelId;
+  final AppColors colors;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      key: const ValueKey('task-filter-bar'),
+      padding: const EdgeInsets.only(
+        left: AppSpacing.pageHorizontal,
+        right: AppSpacing.pageHorizontal,
+        bottom: AppSpacing.sm,
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _FilterChip(
+              key: const ValueKey('task-filter-all'),
+              label: '全部',
+              isSelected: selectedChannelId == null,
+              colors: colors,
+              onTap: () => onSelected(null),
+            ),
+            for (final id in channelIds) ...[
+              const SizedBox(width: _kFilterChipGap),
+              _FilterChip(
+                key: ValueKey('task-filter-$id'),
+                label: channelName(id),
+                isSelected: selectedChannelId == id,
+                colors: colors,
+                onTap: () => onSelected(id),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    super.key,
+    required this.label,
+    required this.isSelected,
+    required this.colors,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool isSelected;
+  final AppColors colors;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: _kFilterChipHeight,
+        padding: const EdgeInsets.symmetric(
+          horizontal: _kFilterChipHorizontalPadding,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? colors.primary : colors.surfaceAlt,
+          borderRadius: BorderRadius.circular(_kFilterChipRadius),
+          border: isSelected ? null : Border.all(color: colors.border),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: _kFilterChipFontSize,
+            fontWeight: _kFilterChipFontWeight,
+            color: isSelected ? colors.primaryForeground : colors.textSecondary,
+          ),
+        ),
       ),
     );
   }
