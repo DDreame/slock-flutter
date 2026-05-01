@@ -876,7 +876,7 @@ void main() {
       // Assert that the unread channel row has primaryLight tint.
       final channelRow = find.byKey(const ValueKey('channel-general'));
       final materialWidget = find
-          .ancestor(
+          .descendant(
             of: channelRow,
             matching: find.byType(Material),
           )
