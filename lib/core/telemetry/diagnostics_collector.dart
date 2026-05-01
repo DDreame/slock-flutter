@@ -24,18 +24,32 @@ class DiagnosticsCollector {
   final Duration maxRetentionAge;
   final List<DiagnosticsEntry> _buffer = [];
 
-  static const _sensitiveKeys = {
+  /// Substrings whose presence in a lowercased key triggers `[REDACTED]`.
+  ///
+  /// Catches exact matches (e.g. `token`) and compound variants
+  /// (e.g. `accessToken`, `refresh_token`, `apiSecret`, `sessionCookie`).
+  static const sensitiveKeys = {
     'token',
     'password',
     'secret',
-    'authorization',
+    'auth', // covers authorization, authorizationHeader
     'cookie',
-    'credentials',
+    'credential',
+  };
+
+  /// Keys whose values are dropped entirely from formatted output.
+  ///
+  /// Prevents request/response bodies from leaking into diagnostic logs.
+  static const bodyKeys = {
+    'body',
+    'messagebody',
+    'requestbody',
+    'responsebody',
   };
 
   DiagnosticsCollector({
-    this.maxEntries = 200,
-    this.maxRetentionAge = const Duration(minutes: 30),
+    this.maxEntries = 500,
+    this.maxRetentionAge = const Duration(hours: 24),
   });
 
   void add(DiagnosticsEntry entry) {
@@ -53,9 +67,51 @@ class DiagnosticsCollector {
     _prune();
   }
 
+  /// Convenience method to add an info-level entry.
+  void info(String tag, String message, {Map<String, dynamic>? metadata}) {
+    add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.info,
+      tag: tag,
+      message: message,
+      metadata: metadata,
+    ));
+  }
+
+  /// Convenience method to add a warning-level entry.
+  void warning(String tag, String message, {Map<String, dynamic>? metadata}) {
+    add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.warning,
+      tag: tag,
+      message: message,
+      metadata: metadata,
+    ));
+  }
+
+  /// Convenience method to add an error-level entry.
+  void error(String tag, String message, {Map<String, dynamic>? metadata}) {
+    add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.error,
+      tag: tag,
+      message: message,
+      metadata: metadata,
+    ));
+  }
+
   List<DiagnosticsEntry> get entries {
     _prune();
     return UnmodifiableListView(_buffer);
+  }
+
+  /// Returns an immutable snapshot of the current entries.
+  ///
+  /// The returned list is independent of the collector's internal buffer —
+  /// subsequent mutations to the collector do not affect it.
+  List<DiagnosticsEntry> toSnapshot() {
+    _prune();
+    return UnmodifiableListView(List.of(_buffer));
   }
 
   void clear() {
@@ -73,12 +129,25 @@ class DiagnosticsCollector {
   }
 
   static Map<String, dynamic> _redact(Map<String, dynamic> metadata) {
-    return metadata.map((key, value) {
-      if (_sensitiveKeys.contains(key.toLowerCase())) {
-        return MapEntry(key, '[REDACTED]');
-      }
-      return MapEntry(key, value);
-    });
+    return Map.fromEntries(
+      metadata.entries.where((e) => !_isBodyKey(e.key)).map((e) {
+        if (_isSensitiveKey(e.key)) {
+          return MapEntry(e.key, '[REDACTED]');
+        }
+        return e;
+      }),
+    );
+  }
+
+  /// Returns true if [key] contains any sensitive substring.
+  static bool _isSensitiveKey(String key) {
+    final lower = key.toLowerCase();
+    return sensitiveKeys.any((s) => lower.contains(s));
+  }
+
+  /// Returns true if [key] matches a body-like field name.
+  static bool _isBodyKey(String key) {
+    return bodyKeys.contains(key.toLowerCase());
   }
 }
 

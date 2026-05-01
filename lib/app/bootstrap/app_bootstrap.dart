@@ -125,14 +125,19 @@ NotificationInitializer createNotificationInitializer({
   return NoOpNotificationInitializer();
 }
 
-void installErrorHandlers(CrashReporter reporter) {
+void installErrorHandlers(
+  CrashReporter reporter, {
+  DiagnosticsCollector? diagnostics,
+}) {
   FlutterError.onError = (details) {
     reporter.captureFlutterError(details);
+    diagnostics?.error('crash', details.exceptionAsString());
     FlutterError.presentError(details);
   };
 
   PlatformDispatcher.instance.onError = (error, stack) {
     reporter.captureException(error, stackTrace: stack);
+    diagnostics?.error('error', error.toString());
     return true;
   };
 }
