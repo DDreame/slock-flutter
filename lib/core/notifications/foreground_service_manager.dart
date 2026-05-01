@@ -15,6 +15,11 @@ abstract class ForegroundServiceManager {
 
   /// Whether the service is currently running.
   Future<bool> get isRunning;
+
+  /// Persist a native-readable auth flag so the boot receiver and
+  /// START_STICKY restart path can determine whether to restore the
+  /// service without reading flutter_secure_storage keys directly.
+  Future<void> setAuthFlag(bool authenticated);
 }
 
 class NoOpForegroundServiceManager implements ForegroundServiceManager {
@@ -28,6 +33,9 @@ class NoOpForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<bool> get isRunning async => false;
+
+  @override
+  Future<void> setAuthFlag(bool authenticated) async {}
 }
 
 final foregroundServiceManagerProvider =

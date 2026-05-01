@@ -126,6 +126,15 @@ class MainActivity : FlutterActivity() {
                 "isForegroundServiceRunning" -> {
                     result.success(SlockForegroundService.isRunning)
                 }
+                "setAuthFlag" -> {
+                    val authenticated = call.arguments as? Boolean ?: false
+                    val prefs = getSharedPreferences(
+                        "slock_foreground_service",
+                        MODE_PRIVATE,
+                    )
+                    prefs.edit().putBoolean("is_authenticated", authenticated).apply()
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }

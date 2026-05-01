@@ -9,6 +9,7 @@ abstract class AndroidForegroundServicePlatformBridge {
   Future<void> startService();
   Future<void> stopService();
   Future<bool> isRunning();
+  Future<void> setAuthFlag(bool authenticated);
 }
 
 class MethodChannelForegroundServiceBridge
@@ -36,6 +37,14 @@ class MethodChannelForegroundServiceBridge
     );
     return result ?? false;
   }
+
+  @override
+  Future<void> setAuthFlag(bool authenticated) async {
+    await _channel.invokeMethod<void>(
+      'setAuthFlag',
+      authenticated,
+    );
+  }
 }
 
 class AndroidForegroundServiceManager implements ForegroundServiceManager {
@@ -54,4 +63,8 @@ class AndroidForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<bool> get isRunning => _bridge.isRunning();
+
+  @override
+  Future<void> setAuthFlag(bool authenticated) =>
+      _bridge.setAuthFlag(authenticated);
 }

@@ -14,6 +14,7 @@ class FakeForegroundServiceManager implements ForegroundServiceManager {
   int startCalls = 0;
   int stopCalls = 0;
   bool _running = false;
+  bool? lastAuthFlag;
 
   /// Simulate an already-running service (e.g. OS restored it
   /// after a process restart).
@@ -33,6 +34,11 @@ class FakeForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<bool> get isRunning async => _running;
+
+  @override
+  Future<void> setAuthFlag(bool authenticated) async {
+    lastAuthFlag = authenticated;
+  }
 }
 
 void main() {
@@ -242,6 +248,41 @@ void main() {
           reason: 'should not re-start already-running '
               'service');
       expect(await fakeManager.isRunning, isTrue);
+    });
+
+    test('sets auth flag true before starting service', () async {
+      container.read(
+        foregroundServiceLifecycleBindingProvider,
+      );
+
+      container.read(appReadyProvider.notifier).state = true;
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pw');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeManager.lastAuthFlag, isTrue,
+          reason: 'auth flag should be set before start');
+      expect(fakeManager.startCalls, 1);
+    });
+
+    test('sets auth flag false before stopping service', () async {
+      container.read(
+        foregroundServiceLifecycleBindingProvider,
+      );
+
+      container.read(appReadyProvider.notifier).state = true;
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pw');
+      await Future<void>.delayed(Duration.zero);
+
+      await container.read(sessionStoreProvider.notifier).logout();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeManager.lastAuthFlag, isFalse,
+          reason: 'auth flag should be cleared on logout');
+      expect(fakeManager.stopCalls, 1);
     });
   });
 }
