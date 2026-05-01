@@ -19,6 +19,9 @@ class HomeListState {
     this.hiddenDirectMessages = const [],
     this.pinnedAgents = const [],
     this.agents = const [],
+    this.taskCount = 0,
+    this.machineCount = 0,
+    this.threadCount = 0,
     this.sidebarOrder = const SidebarOrder(),
     this.failure,
   });
@@ -33,6 +36,9 @@ class HomeListState {
   final List<HomeDirectMessageSummary> hiddenDirectMessages;
   final List<AgentItem> pinnedAgents;
   final List<AgentItem> agents;
+  final int taskCount;
+  final int machineCount;
+  final int threadCount;
   final SidebarOrder sidebarOrder;
   final AppFailure? failure;
 
@@ -58,6 +64,9 @@ class HomeListState {
     List<HomeDirectMessageSummary>? hiddenDirectMessages,
     List<AgentItem>? pinnedAgents,
     List<AgentItem>? agents,
+    int? taskCount,
+    int? machineCount,
+    int? threadCount,
     SidebarOrder? sidebarOrder,
     AppFailure? failure,
     bool clearFailure = false,
@@ -74,6 +83,9 @@ class HomeListState {
       hiddenDirectMessages: hiddenDirectMessages ?? this.hiddenDirectMessages,
       pinnedAgents: pinnedAgents ?? this.pinnedAgents,
       agents: agents ?? this.agents,
+      taskCount: taskCount ?? this.taskCount,
+      machineCount: machineCount ?? this.machineCount,
+      threadCount: threadCount ?? this.threadCount,
       sidebarOrder: sidebarOrder ?? this.sidebarOrder,
       failure: clearFailure ? null : (failure ?? this.failure),
     );
@@ -97,6 +109,9 @@ class HomeListState {
             listEquals(hiddenDirectMessages, other.hiddenDirectMessages) &&
             listEquals(pinnedAgents, other.pinnedAgents) &&
             listEquals(agents, other.agents) &&
+            taskCount == other.taskCount &&
+            machineCount == other.machineCount &&
+            threadCount == other.threadCount &&
             sidebarOrder == other.sidebarOrder &&
             failure == other.failure;
   }
@@ -113,6 +128,9 @@ class HomeListState {
         Object.hashAll(hiddenDirectMessages),
         Object.hashAll(pinnedAgents),
         Object.hashAll(agents),
+        taskCount,
+        machineCount,
+        threadCount,
         sidebarOrder,
         failure,
       );

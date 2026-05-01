@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
@@ -10,15 +11,40 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/machines/data/machines_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 
 final homeListStoreProvider = NotifierProvider<HomeListStore, HomeListState>(
   HomeListStore.new,
 );
 
+/// Loads the machine count for the home console tile.
+///
+/// Uses [appDioClientProvider] directly because [machinesRepositoryProvider]
+/// requires a scoped override not available in the home provider tree.
+/// Extracted as a top-level provider so tests can override it.
+final homeMachineCountLoaderProvider =
+    Provider<Future<int> Function(ServerScopeId)>((ref) {
+  return (ServerScopeId serverScopeId) async {
+    final client = ref.read(appDioClientProvider);
+    final response = await client.get<Object?>(
+      '/servers/${serverScopeId.routeParam}/machines',
+      options: Options(
+        headers: {'X-Server-Id': serverScopeId.value},
+      ),
+    );
+    return parseMachinesSnapshot(response.data).items.length;
+  };
+});
+
 class HomeListStore extends Notifier<HomeListState> {
   List<HomeChannelSummary> _allChannels = const [];
   List<HomeDirectMessageSummary> _allDirectMessages = const [];
   List<AgentItem> _allAgents = const [];
+  int _taskCount = 0;
+  int _machineCount = 0;
+  int _threadCount = 0;
   SidebarOrder _sidebarOrder = const SidebarOrder();
 
   @override
@@ -26,6 +52,9 @@ class HomeListStore extends Notifier<HomeListState> {
     _allChannels = const [];
     _allDirectMessages = const [];
     _allAgents = const [];
+    _taskCount = 0;
+    _machineCount = 0;
+    _threadCount = 0;
     _sidebarOrder = const SidebarOrder();
 
     final serverScopeId = ref.watch(activeServerScopeIdProvider);
@@ -72,16 +101,25 @@ class HomeListStore extends Notifier<HomeListState> {
         repo.loadWorkspace(serverScopeId),
         _loadSidebarOrderSafe(serverScopeId),
         _loadAgentsSafe(),
+        _loadTaskCountSafe(serverScopeId),
+        _loadMachineCountSafe(serverScopeId),
+        _loadThreadCountSafe(serverScopeId),
       ]);
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
 
       final snapshot = results[0] as HomeWorkspaceSnapshot;
       final sidebarOrder = results[1] as SidebarOrder;
       final agents = results[2] as List<AgentItem>;
+      final taskCount = results[3] as int;
+      final machineCount = results[4] as int;
+      final threadCount = results[5] as int;
 
       _allChannels = List.of(snapshot.channels);
       _allDirectMessages = List.of(snapshot.directMessages);
       _allAgents = List.of(agents);
+      _taskCount = taskCount;
+      _machineCount = machineCount;
+      _threadCount = threadCount;
       _sidebarOrder = sidebarOrder;
 
       _emitPersonalizedState(
@@ -118,6 +156,41 @@ class HomeListStore extends Notifier<HomeListState> {
       return await ref.read(agentsRepositoryProvider).listAgents();
     } catch (_) {
       return const [];
+    }
+  }
+
+  Future<int> _loadTaskCountSafe(ServerScopeId serverScopeId) async {
+    try {
+      final tasks = await ref
+          .read(tasksRepositoryProvider)
+          .listServerTasks(serverScopeId);
+      return tasks.length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> _loadMachineCountSafe(
+    ServerScopeId serverScopeId,
+  ) async {
+    try {
+      final loader = ref.read(homeMachineCountLoaderProvider);
+      return await loader(serverScopeId);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  Future<int> _loadThreadCountSafe(
+    ServerScopeId serverScopeId,
+  ) async {
+    try {
+      final threads = await ref
+          .read(threadRepositoryProvider)
+          .loadFollowedThreads(serverScopeId);
+      return threads.length;
+    } catch (_) {
+      return 0;
     }
   }
 
@@ -563,6 +636,9 @@ class HomeListStore extends Notifier<HomeListState> {
       hiddenDirectMessages: hiddenDms,
       pinnedAgents: pinnedAgentList,
       agents: unpinnedAgentList,
+      taskCount: _taskCount,
+      machineCount: _machineCount,
+      threadCount: _threadCount,
       sidebarOrder: order,
       clearFailure: status == HomeListStatus.success,
     );

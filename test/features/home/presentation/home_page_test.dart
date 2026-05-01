@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
@@ -11,6 +14,7 @@ import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
@@ -21,7 +25,14 @@ import 'package:slock_app/features/members/data/member_repository_provider.dart'
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
 void main() {
@@ -39,21 +50,11 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.ensureVisible(find.text('Channels'));
-    expect(find.text('Workspace Console'), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-console-activity-section')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('home-console-operations-section')),
-        findsOneWidget);
-    expect(find.byKey(const ValueKey('home-saved-messages')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-threads')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-tasks')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-members')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-console-grid')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-agents')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-tasks')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-machines')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-billing')), findsOneWidget);
-    expect(
-        find.byKey(const ValueKey('home-workspace-settings')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-threads')), findsOneWidget);
     expect(find.text('Channels'), findsOneWidget);
     expect(find.text('Direct Messages'), findsOneWidget);
     expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
@@ -104,9 +105,19 @@ void main() {
           sidebarOrderRepositoryProvider.overrideWithValue(
             const _FakeSidebarOrderRepository(),
           ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue(
+            (_) async => 0,
+          ),
         ],
         child: MaterialApp.router(
           routerConfig: router,
+          theme: AppTheme.light,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
         ),
@@ -137,83 +148,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('dm:server-1/dm-alice'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('members console tile navigates to the members route', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('home-members')));
-    await tester.tap(find.byKey(const ValueKey('home-members')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('members:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('search console tile preserves the home return stack', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('home-search')));
-    await tester.tap(find.byKey(const ValueKey('home-search')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('search:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('saved messages console tile preserves the home return stack', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('home-saved-messages')),
-    );
-    await tester.tap(find.byKey(const ValueKey('home-saved-messages')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('saved:server-1'), findsOneWidget);
 
     router.pop();
     await tester.pumpAndSettle();
@@ -264,59 +198,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('threads:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('billing console tile preserves the home return stack', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('home-billing')));
-    await tester.tap(find.byKey(const ValueKey('home-billing')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('billing'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('workspace settings console tile preserves the home return stack',
-      (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('home-workspace-settings')),
-    );
-    await tester.tap(find.byKey(const ValueKey('home-workspace-settings')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('settings:server-1'), findsOneWidget);
 
     router.pop();
     await tester.pumpAndSettle();
@@ -584,6 +465,15 @@ void main() {
           sidebarOrderRepositoryProvider.overrideWithValue(
             const _FakeSidebarOrderRepository(),
           ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue(
+            (_) async => 0,
+          ),
         ],
       );
 
@@ -592,6 +482,7 @@ void main() {
           container: container,
           child: MaterialApp.router(
             routerConfig: router,
+            theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
           ),
@@ -884,6 +775,319 @@ void main() {
     expect(find.text('No direct messages yet.'), findsOneWidget);
     expect(find.byKey(const ValueKey('home-channels-empty')), findsNothing);
   });
+
+  testWidgets(
+    'channel row renders preview text and relative timestamp',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: _FakeHomeRepository(_snapshotWithPreviews),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hello from general'), findsOneWidget);
+      expect(find.text('5m ago'), findsAtLeastNWidgets(1));
+    },
+  );
+
+  testWidgets(
+    'DM row renders preview text and relative timestamp',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: _FakeHomeRepository(_snapshotWithPreviews),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('dm-dm-alice')),
+      );
+      expect(find.text('Hey, how are you?'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'channel row shows UnreadBadge and tint when unread',
+    (tester) async {
+      final router = _buildRouter();
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(
+            const _FakeHomeRepository(_sampleSnapshot),
+          ),
+          serverListRepositoryProvider.overrideWithValue(
+            const _FakeServerListRepository([]),
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue(
+            (_) async => 0,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: router,
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      container
+          .read(channelUnreadStoreProvider.notifier)
+          .hydrateChannelUnreads({
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ): 3,
+      });
+      await tester.pumpAndSettle();
+
+      expect(find.byType(UnreadBadge), findsAtLeastNWidgets(1));
+      expect(find.text('3'), findsOneWidget);
+
+      // Assert that the unread channel row has primaryLight tint.
+      final channelRow = find.byKey(const ValueKey('channel-general'));
+      final materialWidget = find
+          .descendant(
+            of: channelRow,
+            matching: find.byType(Material),
+          )
+          .evaluate()
+          .first
+          .widget as Material;
+      expect(
+        materialWidget.color,
+        equals(AppColors.light.primaryLight),
+      );
+
+      container.dispose();
+    },
+  );
+
+  testWidgets(
+    'DM row renders initials avatar instead of person icon',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('dm-dm-alice')),
+      );
+      expect(find.byKey(const ValueKey('dm-avatar')), findsOneWidget);
+      expect(find.text('A'), findsOneWidget);
+      expect(find.byKey(const ValueKey('dm-status-dot')), findsOneWidget);
+      expect(
+        find.byIcon(Icons.person_outline),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'DM status dot shows green when peer is an active agent',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          agentsRepository: const _FakeAgentsRepository(
+            agents: [
+              AgentItem(
+                id: 'agent-alice',
+                name: 'alice',
+                displayName: 'Alice',
+                model: 'claude',
+                runtime: 'slock',
+                status: 'active',
+                activity: 'idle',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('dm-dm-alice')),
+      );
+
+      // Find the status dot container and verify it's green.
+      final dotFinder = find.byKey(const ValueKey('dm-status-dot'));
+      expect(dotFinder, findsOneWidget);
+      final dotContainer = tester.widget<Container>(dotFinder);
+      final decoration = dotContainer.decoration! as BoxDecoration;
+      expect(decoration.color, equals(AppColors.light.success));
+    },
+  );
+
+  testWidgets(
+    'DM status dot shows green when peer is a pinned active agent',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          agentsRepository: const _FakeAgentsRepository(
+            agents: [
+              AgentItem(
+                id: 'agent-alice',
+                name: 'alice',
+                displayName: 'Alice',
+                model: 'claude',
+                runtime: 'slock',
+                status: 'active',
+                activity: 'idle',
+              ),
+            ],
+          ),
+          sidebarOrderRepository: const _FakeSidebarOrderRepository(
+            sidebarOrder: SidebarOrder(
+              pinnedAgentIds: ['agent-alice'],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('dm-dm-alice')),
+      );
+
+      // Pinned agent should still show green status dot.
+      final dotFinder = find.byKey(const ValueKey('dm-status-dot'));
+      expect(dotFinder, findsOneWidget);
+      final dotContainer = tester.widget<Container>(dotFinder);
+      final decoration = dotContainer.decoration! as BoxDecoration;
+      expect(decoration.color, equals(AppColors.light.success));
+    },
+  );
+
+  testWidgets(
+    'console tiles display real counts from data providers',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          tasksRepository: _FakeTasksRepository(
+            tasks: [
+              TaskItem(
+                id: 't1',
+                taskNumber: 1,
+                title: 'Fix bug',
+                status: 'todo',
+                channelId: 'general',
+                channelType: 'channel',
+                createdById: 'u1',
+                createdByName: 'Alice',
+                createdByType: 'user',
+                createdAt: DateTime(2026),
+              ),
+              TaskItem(
+                id: 't2',
+                taskNumber: 2,
+                title: 'Add feature',
+                status: 'in_progress',
+                channelId: 'general',
+                channelType: 'channel',
+                createdById: 'u1',
+                createdByName: 'Alice',
+                createdByType: 'user',
+                createdAt: DateTime(2026),
+              ),
+            ],
+          ),
+          threadRepository: const _FakeThreadRepository(
+            threads: [
+              ThreadInboxItem(
+                routeTarget: ThreadRouteTarget(
+                  serverId: 'server-1',
+                  parentChannelId: 'general',
+                  parentMessageId: 'msg-1',
+                ),
+                replyCount: 3,
+                unreadCount: 1,
+                participantIds: ['u1'],
+              ),
+            ],
+          ),
+          machineCountLoader: (_) async => 5,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tasksTile = find.byKey(const ValueKey('home-tasks'));
+      expect(tasksTile, findsOneWidget);
+      expect(
+        find.descendant(
+          of: tasksTile,
+          matching: find.text('2'),
+        ),
+        findsOneWidget,
+      );
+
+      final threadsTile = find.byKey(const ValueKey('home-threads'));
+      expect(threadsTile, findsOneWidget);
+      expect(
+        find.descendant(
+          of: threadsTile,
+          matching: find.text('1'),
+        ),
+        findsOneWidget,
+      );
+
+      final machinesTile = find.byKey(const ValueKey('home-machines'));
+      expect(machinesTile, findsOneWidget);
+      expect(
+        find.descendant(
+          of: machinesTile,
+          matching: find.text('5'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 const _sampleSnapshot = HomeWorkspaceSnapshot(
@@ -934,6 +1138,35 @@ const _staleSnapshot = HomeWorkspaceSnapshot(
   directMessages: [],
 );
 
+/// Snapshot with preview and timestamp data for deeper row tests.
+final _snapshotWithPreviews = HomeWorkspaceSnapshot(
+  serverId: const ServerScopeId('server-1'),
+  channels: [
+    HomeChannelSummary(
+      scopeId: const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+      name: 'general',
+      lastMessageId: 'msg-1',
+      lastMessagePreview: 'Hello from general',
+      lastActivityAt: DateTime.now().subtract(const Duration(minutes: 5)),
+    ),
+  ],
+  directMessages: [
+    HomeDirectMessageSummary(
+      scopeId: const DirectMessageScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'dm-alice',
+      ),
+      title: 'Alice',
+      lastMessageId: 'msg-2',
+      lastMessagePreview: 'Hey, how are you?',
+      lastActivityAt: DateTime.now().subtract(const Duration(minutes: 5)),
+    ),
+  ],
+);
+
 Widget _buildApp({
   required GoRouter router,
   required HomeRepository homeRepository,
@@ -945,6 +1178,9 @@ Widget _buildApp({
   SidebarOrderRepository sidebarOrderRepository =
       const _FakeSidebarOrderRepository(),
   AgentsRepository agentsRepository = const _FakeAgentsRepository(),
+  TasksRepository tasksRepository = const _FakeTasksRepository(),
+  ThreadRepository threadRepository = const _FakeThreadRepository(),
+  Future<int> Function(ServerScopeId)? machineCountLoader,
 }) {
   return ProviderScope(
     overrides: [
@@ -955,6 +1191,11 @@ Widget _buildApp({
       serverListRepositoryProvider.overrideWithValue(serverListRepository),
       sidebarOrderRepositoryProvider.overrideWithValue(sidebarOrderRepository),
       agentsRepositoryProvider.overrideWithValue(agentsRepository),
+      tasksRepositoryProvider.overrideWithValue(tasksRepository),
+      threadRepositoryProvider.overrideWithValue(threadRepository),
+      homeMachineCountLoaderProvider.overrideWithValue(
+        machineCountLoader ?? (_) async => 0,
+      ),
       if (channelManagementRepository != null)
         channelManagementRepositoryProvider.overrideWithValue(
           channelManagementRepository,
@@ -964,6 +1205,7 @@ Widget _buildApp({
     ],
     child: MaterialApp.router(
       routerConfig: router,
+      theme: AppTheme.light,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
     ),
@@ -1232,11 +1474,15 @@ class _FakeMemberRepository implements MemberRepository {
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  const _FakeSidebarOrderRepository();
+  const _FakeSidebarOrderRepository({
+    this.sidebarOrder = const SidebarOrder(),
+  });
+
+  final SidebarOrder sidebarOrder;
 
   @override
   Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
-    return const SidebarOrder();
+    return sidebarOrder;
   }
 
   @override
@@ -1247,10 +1493,12 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
 }
 
 class _FakeAgentsRepository implements AgentsRepository {
-  const _FakeAgentsRepository();
+  const _FakeAgentsRepository({this.agents = const []});
+
+  final List<AgentItem> agents;
 
   @override
-  Future<List<AgentItem>> listAgents() async => const [];
+  Future<List<AgentItem>> listAgents() async => agents;
 
   @override
   Future<void> startAgent(String agentId) async {}
@@ -1312,5 +1560,93 @@ class _DelayedFakeHomeRepository implements HomeRepository {
     required String conversationId,
     required String messageId,
     required String preview,
+  }) async {}
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository({this.tasks = const []});
+
+  final List<TaskItem> tasks;
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async {
+    return tasks;
+  }
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async =>
+      throw UnimplementedError();
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository({this.threads = const []});
+
+  final List<ThreadInboxItem> threads;
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+    ServerScopeId serverId,
+  ) async {
+    return threads;
+  }
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(
+    ThreadRouteTarget target,
+  ) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
   }) async {}
 }

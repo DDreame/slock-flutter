@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
@@ -12,8 +15,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
-import 'package:slock_app/features/home/presentation/widgets/home_console_section.dart';
-import 'package:slock_app/features/home/presentation/widgets/home_console_tile.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_console_grid.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -39,6 +41,17 @@ class _HomePageState extends ConsumerState<HomePage> {
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
     final managementState = ref.watch(channelManagementStoreProvider);
     final l10n = context.l10n;
+
+    // Build a lookup of online agent display names for DM status dots.
+    // Human presence is not yet available in the home model.
+    // TODO: wire human presence when available.
+    final onlineAgentNames = <String>{
+      for (final agent in state.agents)
+        if (agent.isActive) agent.label,
+      for (final agent in state.pinnedAgents)
+        if (agent.isActive) agent.label,
+    };
+
     final pinnedConversationRows = _buildPinnedConversationRows(
       state: state,
       homeStore: homeStore,
@@ -46,6 +59,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       dmUnreadCount: unreadState.dmUnreadCount,
       unreadStore: unreadStore,
       isMutating: managementState.isBusy,
+      onlineAgentNames: onlineAgentNames,
     );
 
     return Scaffold(
@@ -72,91 +86,41 @@ class _HomePageState extends ConsumerState<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    child: Text(
-                      l10n.homeWorkspaceConsole,
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                  ),
-                  HomeConsoleSection(
-                    key: const ValueKey('home-console-activity-section'),
-                    title: l10n.homeConsoleActivityTitle,
-                    description: l10n.homeConsoleActivityDescription,
-                    children: [
-                      HomeConsoleTile(
-                        tileKey: const ValueKey('home-saved-messages'),
-                        icon: Icons.bookmark_outline,
-                        title: l10n.homeConsoleSavedMessages,
-                        description: l10n.homeConsoleSavedMessagesDescription,
-                        onTap: () => _pushServerRoute('saved-messages'),
-                      ),
-                      HomeConsoleTile(
-                        tileKey: const ValueKey('home-threads'),
-                        icon: Icons.forum_outlined,
-                        title: l10n.homeConsoleThreads,
-                        description: l10n.homeConsoleThreadsDescription,
-                        onTap: () => _pushServerRoute('threads'),
-                      ),
-                      HomeConsoleTile(
-                        tileKey: const ValueKey('home-tasks'),
-                        icon: Icons.check_circle_outline,
-                        title: l10n.homeConsoleTasks,
-                        description: l10n.homeConsoleTasksDescription,
-                        onTap: () => _pushServerRoute('tasks'),
-                      ),
-                      HomeConsoleTile(
-                        tileKey: const ValueKey('home-search'),
-                        icon: Icons.search,
-                        title: l10n.homeConsoleSearch,
-                        description: l10n.homeConsoleSearchDescription,
-                        onTap: () => _pushServerRoute('search'),
-                      ),
-                    ],
-                  ),
-                  HomeConsoleSection(
-                    key: const ValueKey('home-console-operations-section'),
-                    title: l10n.homeConsoleOperationsTitle,
-                    description: l10n.homeConsoleOperationsDescription,
-                    children: [
-                      HomeConsoleTile(
-                        tileKey: const ValueKey('home-members'),
-                        icon: Icons.people_outline,
-                        title: l10n.homeConsoleMembers,
-                        description: l10n.homeConsoleMembersDescription,
-                        onTap: () => _pushServerRoute('members'),
-                      ),
-                      HomeConsoleTile(
+                  HomeConsoleGrid(
+                    key: const ValueKey('home-console-grid'),
+                    items: [
+                      HomeConsoleGridItem(
                         tileKey: const ValueKey('home-agents'),
                         icon: Icons.smart_toy_outlined,
-                        title: l10n.homeConsoleAgentControl,
-                        description: l10n.homeConsoleAgentControlDescription,
+                        label: l10n.homeConsoleAgentControl,
+                        value:
+                            '${state.agents.length + state.pinnedAgents.length}',
                         onTap: () => _pushServerRoute('agents'),
                       ),
-                      HomeConsoleTile(
+                      HomeConsoleGridItem(
+                        tileKey: const ValueKey('home-tasks'),
+                        icon: Icons.check_circle_outline,
+                        label: l10n.homeConsoleTasks,
+                        value: '${state.taskCount}',
+                        onTap: () => _pushServerRoute('tasks'),
+                      ),
+                      HomeConsoleGridItem(
                         tileKey: const ValueKey('home-machines'),
                         icon: Icons.memory_outlined,
-                        title: l10n.homeConsoleMachines,
-                        description: l10n.homeConsoleMachinesDescription,
+                        label: l10n.homeConsoleMachines,
+                        value: '${state.machineCount}',
                         onTap: () => _pushServerRoute('machines'),
                       ),
-                      HomeConsoleTile(
-                        tileKey: const ValueKey('home-billing'),
-                        icon: Icons.credit_card_outlined,
-                        title: l10n.homeConsoleBilling,
-                        description: l10n.homeConsoleBillingDescription,
-                        onTap: () => context.push('/billing'),
-                      ),
-                      HomeConsoleTile(
-                        tileKey: const ValueKey('home-workspace-settings'),
-                        icon: Icons.settings_outlined,
-                        title: l10n.homeConsoleWorkspaceSettings,
-                        description:
-                            l10n.homeConsoleWorkspaceSettingsDescription,
-                        onTap: () => _pushServerRoute('settings'),
+                      HomeConsoleGridItem(
+                        tileKey: const ValueKey('home-threads'),
+                        icon: Icons.forum_outlined,
+                        label: l10n.homeConsoleThreads,
+                        value: '${state.threadCount}',
+                        onTap: () => _pushServerRoute('threads'),
                       ),
                     ],
                   ),
+                  const SizedBox(height: AppSpacing.md),
                   if (pinnedConversationRows.isNotEmpty) ...[
                     _HomeSectionHeader(title: l10n.homeSectionPinned),
                     ...pinnedConversationRows,
@@ -226,6 +190,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       directMessage: entry.value,
                       unreadCount:
                           unreadState.dmUnreadCount(entry.value.scopeId),
+                      isOnline: onlineAgentNames.contains(entry.value.title),
                       onTap: () {
                         unreadStore.markDmRead(entry.value.scopeId);
                         context.push(
@@ -513,6 +478,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     required int Function(DirectMessageScopeId) dmUnreadCount,
     required ChannelUnreadStore unreadStore,
     required bool isMutating,
+    required Set<String> onlineAgentNames,
   }) {
     final pinnedChannels = {
       for (final channel in state.pinnedChannels)
@@ -573,6 +539,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             directMessage: directMessage,
             unreadCount: dmUnreadCount(directMessage.scopeId),
             isPinned: true,
+            isOnline: onlineAgentNames.contains(directMessage.title),
             onTap: () {
               unreadStore.markDmRead(directMessage.scopeId);
               context.push(
@@ -725,22 +692,46 @@ class _HomeSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Column(
+      children: [
+        Divider(
+          height: 1,
+          thickness: 1,
+          color: colors.border,
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pageHorizontal,
+            AppSpacing.md,
+            AppSpacing.pageHorizontal,
+            AppSpacing.sm,
           ),
-          if (onAdd != null)
-            IconButton(
-              key: addButtonKey,
-              onPressed: onAdd,
-              icon: const Icon(Icons.add),
-              tooltip: addTooltip,
-            ),
-        ],
-      ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTypography.title.copyWith(
+                    color: colors.text,
+                  ),
+                ),
+              ),
+              if (onAdd != null)
+                IconButton(
+                  key: addButtonKey,
+                  onPressed: onAdd,
+                  icon: Icon(
+                    Icons.add,
+                    color: colors.textSecondary,
+                  ),
+                  tooltip: addTooltip,
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

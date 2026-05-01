@@ -13,6 +13,12 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 import '../../../stores/session/session_store_persistence_test.dart'
@@ -70,6 +76,10 @@ void main() {
             directMessages: existingDms,
           ),
         ),
+        tasksRepositoryProvider.overrideWithValue(const _FakeTasksRepository()),
+        threadRepositoryProvider
+            .overrideWithValue(const _FakeThreadRepository()),
+        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
       ],
     );
     addTearDown(() async {
@@ -194,6 +204,10 @@ void main() {
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
           (scopeId) => loadCompleter.future,
         ),
+        tasksRepositoryProvider.overrideWithValue(const _FakeTasksRepository()),
+        threadRepositoryProvider
+            .overrideWithValue(const _FakeThreadRepository()),
+        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
       ],
     );
     addTearDown(() async {
@@ -328,4 +342,65 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
     ServerScopeId serverId, {
     required Map<String, Object> patch,
   }) async {}
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository();
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async =>
+      const [];
+
+  @override
+  Future<List<TaskItem>> createTasks(ServerScopeId serverId,
+          {required String channelId, required List<String> titles}) async =>
+      const [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(ServerScopeId serverId,
+          {required String taskId, required String status}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(ServerScopeId serverId,
+      {required String taskId}) async {}
+
+  @override
+  Future<TaskItem> claimTask(ServerScopeId serverId,
+          {required String taskId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(ServerScopeId serverId,
+          {required String taskId}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(ServerScopeId serverId,
+          {required String messageId}) =>
+      throw UnimplementedError();
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository();
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+          ServerScopeId serverId) async =>
+      const [];
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> markThreadDone(ServerScopeId serverId,
+      {required String threadChannelId}) async {}
+
+  @override
+  Future<void> markThreadRead(ServerScopeId serverId,
+      {required String threadChannelId}) async {}
 }
