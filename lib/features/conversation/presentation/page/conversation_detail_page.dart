@@ -950,7 +950,12 @@ class _ConversationMessageCard extends ConsumerWidget {
       );
     }
 
+    // Message tap → thread navigation for channel surface only.
+    final enableTapToThread = target.surface == ConversationSurface.channel &&
+        visualKind != _ConversationMessageVisualKind.system;
+
     return GestureDetector(
+      onTap: enableTapToThread ? () => _navigateToThread(context) : null,
       onLongPress: () => _showMessageActions(context, ref, isSaved),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -1069,6 +1074,17 @@ class _ConversationMessageCard extends ConsumerWidget {
     );
   }
 
+  void _navigateToThread(BuildContext context) {
+    context.push(
+      ThreadRouteTarget(
+        serverId: target.serverId.value,
+        parentChannelId: target.conversationId,
+        parentMessageId: message.id,
+        threadChannelId: message.threadId,
+      ).toLocation(),
+    );
+  }
+
   Future<void> _confirmAndDeleteMessage(
     BuildContext context,
     WidgetRef ref,
@@ -1164,31 +1180,37 @@ class _MessageLinkedTaskBadge extends StatelessWidget {
       label.write(' @${task.claimedByName}');
     }
 
-    return Container(
-      key: ValueKey('message-linked-task-${task.id}'),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: colors.container,
-        border: Border.all(color: colors.foreground),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: colors.onContainer),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              label.toString(),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.onContainer,
-                fontWeight: FontWeight.w700,
+    // Absorb taps so they don't bubble up to the message card's
+    // thread-navigation GestureDetector.
+    return GestureDetector(
+      onTap: () {},
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        key: ValueKey('message-linked-task-${task.id}'),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: colors.container,
+          border: Border.all(color: colors.foreground),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: colors.onContainer),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label.toString(),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onContainer,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
