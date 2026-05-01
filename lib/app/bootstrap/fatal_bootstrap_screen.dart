@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:slock_app/core/telemetry/diagnostic_log_service.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
 class FatalBootstrapScreen extends StatelessWidget {
   const FatalBootstrapScreen({super.key, required this.error});
@@ -22,14 +24,29 @@ class FatalBootstrapScreen extends StatelessWidget {
           'are provided at build time.'
       : 'If the problem persists, reinstall the app or contact support.';
 
+  /// Builds a diagnostics payload using [DiagnosticLogService] format.
+  ///
+  /// Creates a temporary [DiagnosticsCollector] with the bootstrap error
+  /// as a single entry, then formats it through the standard service
+  /// pipeline so the output matches the canonical log format.
   String get _diagnosticsPayload {
-    final buffer = StringBuffer()
-      ..writeln('--- Slock Diagnostics ---')
-      ..writeln('Error: ${error.runtimeType}')
-      ..writeln('Detail: $error')
-      ..writeln('Time: ${DateTime.now().toUtc().toIso8601String()}')
-      ..writeln('------------------------');
-    return buffer.toString();
+    final collector = DiagnosticsCollector();
+    collector.error(
+      'bootstrap',
+      error.toString(),
+      metadata: {
+        'errorType': error.runtimeType.toString(),
+      },
+    );
+    final service = DiagnosticLogService(collector: collector);
+    final bundle = service.buildBundle(
+      context: const DiagnosticContext(
+        appVersion: null,
+        platform: null,
+        locale: null,
+      ),
+    );
+    return service.formatText(bundle);
   }
 
   @override

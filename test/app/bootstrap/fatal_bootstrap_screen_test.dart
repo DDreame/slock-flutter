@@ -127,5 +127,69 @@ void main() {
       expect(copiedText, contains('_Exception'));
       expect(copiedText, contains('bootstrap failed: disk full'));
     });
+
+    testWidgets(
+        'diagnostics payload uses DiagnosticLogService format with header',
+        (tester) async {
+      String? copiedText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            final args = call.arguments as Map<dynamic, dynamic>;
+            copiedText = args['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
+      final error =
+          StateError('Missing required dart-define: SLOCK_API_BASE_URL');
+
+      await tester.pumpWidget(FatalBootstrapScreen(error: error));
+      await tester.tap(find.byKey(const ValueKey('copy-diagnostics')));
+      await tester.pumpAndSettle();
+
+      // Uses DiagnosticLogService format: header + structured entry
+      expect(copiedText, contains('=== Slock Diagnostics ==='));
+      expect(copiedText, contains('[ERROR]'));
+      expect(copiedText, contains('bootstrap'));
+    });
+
+    testWidgets('diagnostics payload includes errorType metadata',
+        (tester) async {
+      String? copiedText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            final args = call.arguments as Map<dynamic, dynamic>;
+            copiedText = args['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(() {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        );
+      });
+
+      final error = StateError('test bootstrap failure');
+
+      await tester.pumpWidget(FatalBootstrapScreen(error: error));
+      await tester.tap(find.byKey(const ValueKey('copy-diagnostics')));
+      await tester.pumpAndSettle();
+
+      // Metadata should include error type
+      expect(copiedText, contains('errorType: StateError'));
+    });
   });
 }

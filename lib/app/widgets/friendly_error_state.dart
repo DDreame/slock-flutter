@@ -5,12 +5,20 @@ class FriendlyErrorState extends StatelessWidget {
     required this.title,
     required this.message,
     required this.onRetry,
+    this.onShareDiagnostics,
     super.key,
   });
 
   final String title;
   final String message;
   final Future<void> Function() onRetry;
+
+  /// Optional callback to open the diagnostic share sheet.
+  ///
+  /// When non-null, a "Share diagnostics" button is shown below the retry
+  /// button. Callers are responsible for opening the appropriate share
+  /// surface (e.g. [DiagnosticShareSheet]).
+  final VoidCallback? onShareDiagnostics;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +66,18 @@ class FriendlyErrorState extends StatelessWidget {
                 onPressed: () => onRetry(),
                 child: const Text('Retry'),
               ),
+              if (onShareDiagnostics != null) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  key: const ValueKey('error-share-diagnostics'),
+                  onPressed: onShareDiagnostics,
+                  icon: const Icon(
+                    Icons.bug_report_outlined,
+                    size: 18,
+                  ),
+                  label: const Text('Share diagnostics'),
+                ),
+              ],
             ],
           ),
         ),
