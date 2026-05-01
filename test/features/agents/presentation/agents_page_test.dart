@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
@@ -392,7 +393,7 @@ void main() {
 
         expect(find.text('No agents yet.'), findsOneWidget);
 
-        await tester.tap(find.byKey(const ValueKey('agents-create-fab')));
+        await tester.tap(find.byKey(const ValueKey('agents-new-btn')));
         await tester.pumpAndSettle();
 
         await tester.enterText(
@@ -526,7 +527,7 @@ void main() {
   });
 
   group('Agent control action guards', () {
-    testWidgets('activity dots use theme-safe colors in dark theme', (
+    testWidgets('agent list renders StatusGlowRing for each activity state', (
       tester,
     ) async {
       final theme = AppTheme.dark;
@@ -560,19 +561,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      Color dotColor(String agentId) {
-        final widget = tester.widget<Container>(
-          find.byKey(ValueKey('agent-activity-$agentId')),
-        );
-        final decoration = widget.decoration! as BoxDecoration;
-        return decoration.color!;
-      }
+      // StatusGlowRing widgets should be present for each agent
+      final rings =
+          tester.widgetList<StatusGlowRing>(find.byType(StatusGlowRing));
+      expect(rings.length, 5);
 
-      expect(dotColor('agent-online'), theme.colorScheme.secondary);
-      expect(dotColor('agent-thinking'), theme.colorScheme.tertiary);
-      expect(dotColor('agent-working'), theme.colorScheme.primary);
-      expect(dotColor('agent-error'), theme.colorScheme.error);
-      expect(dotColor('agent-offline'), theme.colorScheme.outline);
+      final statuses = rings.map((r) => r.status).toList();
+      expect(statuses, [
+        GlowRingStatus.online,
+        GlowRingStatus.thinking,
+        GlowRingStatus.working,
+        GlowRingStatus.error,
+        GlowRingStatus.offline,
+      ]);
     });
 
     testWidgets('stop button shows confirmation and calls stopAgent on confirm',

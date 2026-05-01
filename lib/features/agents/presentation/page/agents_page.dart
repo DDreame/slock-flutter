@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:slock_app/app/theme/app_status_tokens.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/role_badge.dart';
+import 'package:slock_app/app/widgets/section_card.dart';
+import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_realtime_binding.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
@@ -59,22 +64,9 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       );
     }
 
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Agents')),
-      floatingActionButton: state.status == AgentsStatus.success
-          ? FloatingActionButton.extended(
-              key: const ValueKey('agents-create-fab'),
-              onPressed: state.isCreating ? null : _createAgent,
-              icon: state.isCreating
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.add),
-              label: const Text('Create Agent'),
-            )
-          : null,
       body: switch (state.status) {
         AgentsStatus.initial || AgentsStatus.loading => const Center(
             child: CircularProgressIndicator(),
@@ -83,12 +75,26 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
             message: state.failure?.message ?? 'Failed to load agents.',
             onRetry: ref.read(agentsStoreProvider.notifier).retry,
           ),
-        AgentsStatus.success when state.items.isEmpty => const Center(
-            child: Text('No agents yet.'),
+        AgentsStatus.success when state.items.isEmpty => SafeArea(
+            child: Column(
+              children: [
+                _AgentsHeader(
+                  colors: colors,
+                  onNew: _createAgent,
+                  isCreating: state.isCreating,
+                ),
+                const Expanded(
+                  child: Center(child: Text('No agents yet.')),
+                ),
+              ],
+            ),
           ),
         AgentsStatus.success => _AgentsListView(
             items: state.items,
+            colors: colors,
             onTap: _openAgentDetail,
+            onNew: state.isCreating ? null : _createAgent,
+            isCreating: state.isCreating,
             onStart: _startAgent,
             onStop: _stopAgent,
             onReset: _resetAgent,
@@ -332,17 +338,117 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Header
+// ---------------------------------------------------------------------------
+
+class _AgentsHeader extends StatelessWidget {
+  const _AgentsHeader({
+    required this.colors,
+    required this.onNew,
+    required this.isCreating,
+  });
+
+  final AppColors colors;
+  final VoidCallback? onNew;
+  final bool isCreating;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.md,
+        AppSpacing.pageHorizontal,
+        AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Text('Agents',
+              style: AppTypography.displayMedium.copyWith(
+                color: colors.text,
+              )),
+          const Spacer(),
+          FilledButton(
+            key: const ValueKey('agents-new-btn'),
+            onPressed: isCreating ? null : onNew,
+            style: FilledButton.styleFrom(
+              backgroundColor: colors.primary,
+              foregroundColor: colors.primaryForeground,
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
+            ),
+            child: isCreating
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('New'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stats summary
+// ---------------------------------------------------------------------------
+
+class _AgentsStatsSummary extends StatelessWidget {
+  const _AgentsStatsSummary({
+    required this.activeCount,
+    required this.stoppedCount,
+    required this.colors,
+  });
+
+  final int activeCount;
+  final int stoppedCount;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      key: const ValueKey('agents-stats-summary'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.pageHorizontal,
+      ),
+      child: Text(
+        '$activeCount active / $stoppedCount stopped',
+        key: const ValueKey('agents-stats-text'),
+        style: AppTypography.bodySmall.copyWith(
+          color: colors.textSecondary,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// List view
+// ---------------------------------------------------------------------------
+
 class _AgentsListView extends StatelessWidget {
   const _AgentsListView({
     required this.items,
+    required this.colors,
     required this.onTap,
+    required this.onNew,
+    required this.isCreating,
     required this.onStart,
     required this.onStop,
     required this.onReset,
   });
 
   final List<AgentItem> items;
+  final AppColors colors;
   final void Function(AgentItem) onTap;
+  final VoidCallback? onNew;
+  final bool isCreating;
   final Future<void> Function(AgentItem) onStart;
   final Future<void> Function(AgentItem) onStop;
   final Future<void> Function(AgentItem) onReset;
@@ -352,54 +458,109 @@ class _AgentsListView extends StatelessWidget {
     final active = items.where((a) => a.isActive).toList();
     final stopped = items.where((a) => !a.isActive).toList();
 
-    return ListView(
-      key: const ValueKey('agents-list'),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      children: [
-        if (active.isNotEmpty) ...[
-          _AgentSectionHeader(title: 'Active (${active.length})'),
-          for (final agent in active)
-            _AgentCard(
-              agent: agent,
-              onTap: onTap,
-              onStart: onStart,
-              onStop: onStop,
-              onReset: onReset,
+    return SafeArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _AgentsHeader(
+            colors: colors,
+            onNew: onNew,
+            isCreating: isCreating,
+          ),
+          _AgentsStatsSummary(
+            activeCount: active.length,
+            stoppedCount: stopped.length,
+            colors: colors,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Expanded(
+            child: ListView(
+              key: const ValueKey('agents-list'),
+              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              children: [
+                if (active.isNotEmpty) ...[
+                  _SectionLabel(title: 'Active', colors: colors),
+                  for (final agent in active)
+                    _AgentRow(
+                      agent: agent,
+                      colors: colors,
+                      onTap: onTap,
+                      onStart: onStart,
+                      onStop: onStop,
+                      onReset: onReset,
+                    ),
+                ],
+                if (stopped.isNotEmpty) ...[
+                  _SectionLabel(title: 'Stopped', colors: colors),
+                  for (final agent in stopped)
+                    _AgentRow(
+                      agent: agent,
+                      colors: colors,
+                      onTap: onTap,
+                      onStart: onStart,
+                      onStop: onStop,
+                      onReset: onReset,
+                    ),
+                ],
+              ],
             ),
+          ),
         ],
-        if (stopped.isNotEmpty) ...[
-          _AgentSectionHeader(title: 'Stopped (${stopped.length})'),
-          for (final agent in stopped)
-            _AgentCard(
-              agent: agent,
-              onTap: onTap,
-              onStart: onStart,
-              onStop: onStop,
-              onReset: onReset,
-            ),
-        ],
-      ],
+      ),
     );
   }
 }
 
-class _AgentSectionHeader extends StatelessWidget {
-  const _AgentSectionHeader({required this.title});
+// ---------------------------------------------------------------------------
+// Section label
+// ---------------------------------------------------------------------------
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.title, required this.colors});
 
   final String title;
+  final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.md,
+        AppSpacing.pageHorizontal,
+        AppSpacing.xs,
+      ),
+      child: Text(
+        title,
+        style: AppTypography.label.copyWith(
+          color: colors.textTertiary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
 
-class _AgentCard extends StatelessWidget {
-  const _AgentCard({
+// ---------------------------------------------------------------------------
+// Agent row
+// ---------------------------------------------------------------------------
+
+/// Maps [AgentItem.activity] string to [GlowRingStatus].
+GlowRingStatus _mapActivityToGlowStatus(String activity) {
+  return switch (activity) {
+    'online' => GlowRingStatus.online,
+    'thinking' => GlowRingStatus.thinking,
+    'working' => GlowRingStatus.working,
+    'error' => GlowRingStatus.error,
+    'offline' => GlowRingStatus.offline,
+    _ => GlowRingStatus.offline,
+  };
+}
+
+class _AgentRow extends StatelessWidget {
+  const _AgentRow({
     required this.agent,
+    required this.colors,
     required this.onTap,
     required this.onStart,
     required this.onStop,
@@ -407,6 +568,7 @@ class _AgentCard extends StatelessWidget {
   });
 
   final AgentItem agent;
+  final AppColors colors;
   final void Function(AgentItem) onTap;
   final Future<void> Function(AgentItem) onStart;
   final Future<void> Function(AgentItem) onStop;
@@ -414,43 +576,81 @@ class _AgentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
+    final isStopped = agent.isStopped;
+
+    Widget row = InkWell(
       key: ValueKey('agent-${agent.id}'),
       onTap: () => onTap(agent),
       onLongPress: () => _showAgentActions(context),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.pageHorizontal,
+          vertical: AppSpacing.listItemVertical,
+        ),
         child: Row(
           children: [
-            _ActivityDot(
-              dotKey: ValueKey('agent-activity-${agent.id}'),
-              activity: agent.activity,
+            StatusGlowRing(
+              status: _mapActivityToGlowStatus(agent.activity),
+              size: 44,
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: colors.surfaceAlt,
+                child: Text(
+                  agent.label.isNotEmpty ? agent.label[0].toUpperCase() : '?',
+                  style: AppTypography.title.copyWith(color: colors.text),
+                ),
+              ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(agent.label, style: theme.textTheme.bodyMedium),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          agent.label,
+                          style: AppTypography.title.copyWith(
+                            color: colors.text,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      RoleBadge(
+                        label: agent.runtime,
+                        color: colors.agentAccent,
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     _activityLabel(agent.activity, agent.activityDetail),
-                    style: theme.textTheme.bodySmall,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-            ),
-            Text(
-              agent.runtime,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
               ),
             ),
           ],
         ),
       ),
     );
+
+    if (isStopped) {
+      row = Opacity(
+        key: ValueKey('agent-row-opacity-${agent.id}'),
+        opacity: 0.5,
+        child: row,
+      );
+    }
+
+    return row;
   }
 
   void _showAgentActions(BuildContext context) {
@@ -496,32 +696,9 @@ class _AgentCard extends StatelessWidget {
   }
 }
 
-class _ActivityDot extends StatelessWidget {
-  const _ActivityDot({required this.activity, this.dotKey});
-
-  final String activity;
-  final Key? dotKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final tone = switch (activity) {
-      'online' => AppStatusTone.success,
-      'thinking' => AppStatusTone.warning,
-      'working' => AppStatusTone.info,
-      'error' => AppStatusTone.error,
-      'offline' => AppStatusTone.neutral,
-      _ => AppStatusTone.neutral,
-    };
-    final color =
-        appStatusColors(Theme.of(context).colorScheme, tone).foreground;
-    return Container(
-      key: dotKey,
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-    );
-  }
-}
+// ---------------------------------------------------------------------------
+// Agent detail scaffold
+// ---------------------------------------------------------------------------
 
 class _AgentDetailScaffold extends StatelessWidget {
   const _AgentDetailScaffold({
@@ -594,12 +771,20 @@ class _AgentDetailScaffold extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Activity log loader
+// ---------------------------------------------------------------------------
+
 /// Triggers the initial REST load of the activity log for [agentId].
 /// Auto-disposed when the detail view is removed from the tree.
 final _activityLogLoaderProvider =
     FutureProvider.autoDispose.family<void, String>((ref, agentId) async {
   await ref.read(agentsStoreProvider.notifier).loadActivityLog(agentId);
 });
+
+// ---------------------------------------------------------------------------
+// Agent detail body
+// ---------------------------------------------------------------------------
 
 class _AgentDetailBody extends ConsumerWidget {
   const _AgentDetailBody({
@@ -618,8 +803,7 @@ class _AgentDetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final agent = this.agent;
+    final colors = Theme.of(context).extension<AppColors>()!;
 
     // Trigger REST load of historical activity log entries.
     ref.watch(_activityLogLoaderProvider(agent.id));
@@ -629,87 +813,103 @@ class _AgentDetailBody extends ConsumerWidget {
     );
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
       children: [
-        Row(
-          children: [
-            _ActivityDot(
-              dotKey: ValueKey('agent-activity-${agent.id}'),
-              activity: agent.activity,
+        // --- Avatar + glow ring ---
+        Center(
+          child: StatusGlowRing(
+            key: const ValueKey('agent-detail-glow-ring'),
+            status: _mapActivityToGlowStatus(agent.activity),
+            size: 80,
+            child: CircleAvatar(
+              radius: 34,
+              backgroundColor: colors.surfaceAlt,
+              child: Text(
+                agent.label.isNotEmpty ? agent.label[0].toUpperCase() : '?',
+                style: AppTypography.displayMedium.copyWith(
+                  color: colors.text,
+                ),
+              ),
             ),
-            const SizedBox(width: 8),
-            Text(
-              _activityLabel(agent.activity, agent.activityDetail),
-              style: theme.textTheme.titleSmall,
-            ),
-          ],
+          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.sm),
+
+        // --- Status text ---
+        Center(
+          child: Text(
+            _activityLabel(agent.activity, agent.activityDetail),
+            style: AppTypography.bodySmall.copyWith(
+              color: colors.textSecondary,
+            ),
+          ),
+        ),
         if (agent.description != null && agent.description!.isNotEmpty) ...[
-          Text(agent.description!, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: 16),
-        ],
-        _DetailRow(label: 'Model', value: agent.model),
-        _DetailRow(label: 'Runtime', value: agent.runtime),
-        if (agent.reasoningEffort != null)
-          _DetailRow(label: 'Reasoning', value: agent.reasoningEffort!),
-        if (agent.machineId != null)
-          _DetailRow(label: 'Machine', value: agent.machineId!),
-        _DetailRow(label: 'Status', value: agent.status),
-        const SizedBox(height: 24),
-        Wrap(
-          spacing: 8,
-          children: [
-            FilledButton.icon(
-              key: const ValueKey('agent-message-btn'),
-              onPressed: onMessage == null ? null : () => onMessage!(agent),
-              icon: const Icon(Icons.message_outlined),
-              label: const Text('Message'),
+          const SizedBox(height: AppSpacing.sm),
+          Center(
+            child: Text(
+              agent.description!,
+              style: AppTypography.body.copyWith(color: colors.textSecondary),
+              textAlign: TextAlign.center,
             ),
-            if (agent.isStopped)
-              FilledButton.icon(
-                key: const ValueKey('agent-start-btn'),
-                onPressed: onStart == null ? null : () => onStart!(agent),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('Start'),
-              ),
-            if (agent.isActive)
-              FilledButton.icon(
-                key: const ValueKey('agent-stop-btn'),
-                onPressed: onStop == null ? null : () => onStop!(agent),
-                icon: const Icon(Icons.stop),
-                label: const Text('Stop'),
-              ),
-            if (agent.isActive)
-              OutlinedButton.icon(
-                key: const ValueKey('agent-reset-btn'),
-                onPressed: onReset == null ? null : () => onReset!(agent),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Reset'),
-              ),
-          ],
+          ),
+        ],
+        const SizedBox(height: AppSpacing.xl),
+
+        // --- Action buttons ---
+        _ActionButtonRow(
+          agent: agent,
+          colors: colors,
+          onMessage: onMessage,
+          onStart: onStart,
+          onStop: onStop,
+          onReset: onReset,
         ),
-        const SizedBox(height: 24),
-        Text('Activity Log', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.sectionGap),
+
+        // --- 2x2 Config grid ---
+        _ConfigGrid(
+          key: const ValueKey('agent-config-grid'),
+          agent: agent,
+          colors: colors,
+        ),
+        const SizedBox(height: AppSpacing.sectionGap),
+
+        // --- Activity Log ---
+        Text(
+          'Activity Log',
+          style: AppTypography.title.copyWith(color: colors.text),
+        ),
+        const SizedBox(height: AppSpacing.sm),
         if (activityLog.isEmpty)
-          const Text('No activity log entries.')
+          Text(
+            'No activity log entries.',
+            style: AppTypography.bodySmall.copyWith(
+              color: colors.textSecondary,
+            ),
+          )
         else
           for (final entry in activityLog)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     _formatTime(entry.timestamp),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.outline,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: colors.textTertiary,
+                      fontFamily: 'monospace',
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: Text(entry.entry, style: theme.textTheme.bodySmall),
+                    child: Text(
+                      entry.entry,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: colors.text,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -725,34 +925,174 @@ class _AgentDetailBody extends ConsumerWidget {
   }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+// ---------------------------------------------------------------------------
+// Action buttons
+// ---------------------------------------------------------------------------
 
-  final String label;
-  final String value;
+class _ActionButtonRow extends StatelessWidget {
+  const _ActionButtonRow({
+    required this.agent,
+    required this.colors,
+    required this.onMessage,
+    required this.onStart,
+    required this.onStop,
+    required this.onReset,
+  });
+
+  final AgentItem agent;
+  final AppColors colors;
+  final Future<void> Function(AgentItem)? onMessage;
+  final Future<void> Function(AgentItem)? onStart;
+  final Future<void> Function(AgentItem)? onStop;
+  final Future<void> Function(AgentItem)? onReset;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.outline,
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      alignment: WrapAlignment.center,
+      children: [
+        // Message — primary filled
+        FilledButton.icon(
+          key: const ValueKey('agent-message-btn'),
+          onPressed: onMessage == null ? null : () => onMessage!(agent),
+          icon: const Icon(Icons.message_outlined),
+          label: const Text('Message'),
+        ),
+        if (agent.isStopped)
+          FilledButton.icon(
+            key: const ValueKey('agent-start-btn'),
+            onPressed: onStart == null ? null : () => onStart!(agent),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Start'),
+          ),
+        if (agent.isActive)
+          OutlinedButton.icon(
+            key: const ValueKey('agent-stop-btn'),
+            onPressed: onStop == null ? null : () => onStop!(agent),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: colors.error,
+              side: BorderSide(color: colors.error),
+            ),
+            icon: const Icon(Icons.stop),
+            label: const Text('Stop'),
+          ),
+        if (agent.isActive)
+          OutlinedButton.icon(
+            key: const ValueKey('agent-reset-btn'),
+            onPressed: onReset == null ? null : () => onReset!(agent),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reset'),
+          ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 2x2 Config grid
+// ---------------------------------------------------------------------------
+
+class _ConfigGrid extends StatelessWidget {
+  const _ConfigGrid({
+    super.key,
+    required this.agent,
+    required this.colors,
+  });
+
+  final AgentItem agent;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _ConfigCell(
+                label: 'Machine',
+                value: agent.machineId ?? '-',
+                colors: colors,
               ),
             ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _ConfigCell(
+                label: 'Runtime',
+                value: agent.runtime,
+                colors: colors,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: _ConfigCell(
+                label: 'Model',
+                value: agent.model,
+                colors: colors,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _ConfigCell(
+                label: 'Reasoning',
+                value: agent.reasoningEffort ?? '-',
+                colors: colors,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ConfigCell extends StatelessWidget {
+  const _ConfigCell({
+    required this.label,
+    required this.value,
+    required this.colors,
+  });
+
+  final String label;
+  final String value;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTypography.caption.copyWith(
+              color: colors.textTertiary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            value,
+            style: AppTypography.body.copyWith(color: colors.text),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Failure view
+// ---------------------------------------------------------------------------
 
 class _AgentsFailureView extends StatelessWidget {
   const _AgentsFailureView({required this.message, required this.onRetry});
@@ -764,12 +1104,12 @@ class _AgentsFailureView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             FilledButton(onPressed: onRetry, child: const Text('Retry')),
           ],
         ),
@@ -777,6 +1117,10 @@ class _AgentsFailureView extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 String _activityLabel(String activity, String? detail) {
   return switch (activity) {
