@@ -251,12 +251,35 @@ class _ProfileSuccessBody extends StatelessWidget {
                         ),
                       ),
                     ],
+                    if (profile.joinedAt != null) ...[
+                      Divider(
+                          height: AppSpacing.xl.toDouble(),
+                          color: colors.border),
+                      _ProfileInfoRow(
+                        infoKey: const ValueKey('profile-member-since'),
+                        label: 'Member since',
+                        value: _formatDate(profile.joinedAt!),
+                        colors: colors,
+                      ),
+                    ],
                   ],
                 ),
               ),
 
-              // --- Self badge ---
+              // --- Edit profile button (self only) ---
               if (profile.isSelf) ...[
+                const SizedBox(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    key: const ValueKey('profile-edit-button'),
+                    onPressed: () {
+                      // TODO: navigate to edit profile screen
+                    },
+                    icon: const Icon(Icons.edit_outlined),
+                    label: const Text('Edit Profile'),
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   'This is you',
@@ -294,6 +317,24 @@ class _ProfileSuccessBody extends StatelessWidget {
   static String _capitalizeRole(String role) {
     if (role.isEmpty) return role;
     return role[0].toUpperCase() + role.substring(1);
+  }
+
+  static String _formatDate(DateTime date) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }
 

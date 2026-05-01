@@ -43,6 +43,16 @@ void main() {
               const Scaffold(body: Text('release-notes-route')),
         ),
         GoRoute(
+          path: '/members',
+          builder: (context, state) =>
+              const Scaffold(body: Text('members-route')),
+        ),
+        GoRoute(
+          path: '/roles',
+          builder: (context, state) =>
+              const Scaffold(body: Text('roles-route')),
+        ),
+        GoRoute(
           path: '/login',
           builder: (context, state) =>
               const Scaffold(body: Text('login-route')),
@@ -123,6 +133,10 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('settings-logout')),
+        200,
+      );
       await tester.tap(find.byKey(const ValueKey('settings-logout')));
       await tester.pumpAndSettle();
 
@@ -170,6 +184,16 @@ void main() {
                 const Scaffold(body: Text('release-notes-route')),
           ),
           GoRoute(
+            path: '/members',
+            builder: (context, state) =>
+                const Scaffold(body: Text('members-route')),
+          ),
+          GoRoute(
+            path: '/roles',
+            builder: (context, state) =>
+                const Scaffold(body: Text('roles-route')),
+          ),
+          GoRoute(
             path: '/login',
             builder: (context, state) =>
                 const Scaffold(body: Text('login-route')),
@@ -207,6 +231,51 @@ void main() {
         find.byKey(const ValueKey('settings-my-profile-chevron')),
       );
       expect(chevronIcon.color, AppColors.light.textTertiary);
+    });
+
+    testWidgets('Workspace section renders Members and Roles tiles', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('settings-section-workspace')),
+        200,
+      );
+      expect(
+        find.byKey(const ValueKey('settings-section-workspace')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('settings-members')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('settings-roles')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Danger Zone section has error-colored header and Log Out tile',
+        (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('settings-section-danger')),
+        200,
+      );
+      final dangerHeader = tester.widget<Text>(
+        find.byKey(const ValueKey('settings-section-danger')),
+      );
+      expect(dangerHeader.style?.color, AppColors.light.error);
+
+      // Log Out tile is in its own SectionCard under Danger Zone
+      expect(
+        find.byKey(const ValueKey('settings-logout')),
+        findsOneWidget,
+      );
     });
   });
 }

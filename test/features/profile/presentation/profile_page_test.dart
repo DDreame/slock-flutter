@@ -36,6 +36,11 @@ void main() {
       expect(find.text('user-123'), findsOneWidget);
       expect(find.byKey(const ValueKey('profile-self-badge')), findsOneWidget);
       expect(find.text('This is you'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('profile-edit-button')),
+        findsOneWidget,
+      );
+      expect(find.text('Edit Profile'), findsOneWidget);
       expect(find.text('My Profile'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('profile-message-button')),
@@ -73,7 +78,7 @@ void main() {
     expect(find.byKey(const ValueKey('profile-email')), findsOneWidget);
     expect(find.text('bob@example.com'), findsOneWidget);
     expect(find.byKey(const ValueKey('profile-role')), findsOneWidget);
-    expect(find.text('member'), findsOneWidget);
+    expect(find.text('Member'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('profile-message-button')),
       findsOneWidget,

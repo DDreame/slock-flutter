@@ -75,36 +75,49 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           const SizedBox(height: AppSpacing.sm),
           SectionCard(
             padding: EdgeInsets.zero,
+            child: _SettingsTile(
+              key: const ValueKey('settings-my-profile'),
+              icon: Icons.person,
+              iconColor: colors.primary,
+              title: 'My Profile',
+              subtitle: 'Review your current account details.',
+              subtitleKey: const ValueKey('settings-my-profile-subtitle'),
+              chevronKey: const ValueKey('settings-my-profile-chevron'),
+              colors: colors,
+              onTap: () => context.push('/profile'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sectionGap),
+
+          // --- Workspace section ---
+          Text(
+            'Workspace',
+            key: const ValueKey('settings-section-workspace'),
+            style: AppTypography.title.copyWith(color: colors.text),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SectionCard(
+            padding: EdgeInsets.zero,
             child: Column(
               children: [
                 _SettingsTile(
-                  key: const ValueKey('settings-my-profile'),
-                  icon: Icons.person,
+                  key: const ValueKey('settings-members'),
+                  icon: Icons.group_outlined,
                   iconColor: colors.primary,
-                  title: 'My Profile',
-                  subtitle: 'Review your current account details.',
-                  subtitleKey: const ValueKey('settings-my-profile-subtitle'),
-                  chevronKey: const ValueKey('settings-my-profile-chevron'),
+                  title: 'Members',
+                  subtitle: 'View and manage workspace members.',
                   colors: colors,
-                  onTap: () => context.push('/profile'),
+                  onTap: () => context.push('/members'),
                 ),
                 Divider(height: 1, color: colors.border),
                 _SettingsTile(
-                  key: const ValueKey('settings-logout'),
-                  icon: Icons.logout,
-                  iconColor: colors.error,
-                  title: 'Log Out',
-                  subtitle: 'Sign out of this device.',
+                  key: const ValueKey('settings-roles'),
+                  icon: Icons.shield_outlined,
+                  iconColor: colors.primary,
+                  title: 'Roles',
+                  subtitle: 'Configure workspace roles and permissions.',
                   colors: colors,
-                  trailing: _isLoggingOut
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : null,
-                  enabled: !_isLoggingOut,
-                  onTap: _isLoggingOut ? null : _confirmLogout,
+                  onTap: () => context.push('/roles'),
                 ),
               ],
             ),
@@ -163,6 +176,35 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   onTap: () => context.push('/release-notes'),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sectionGap),
+
+          // --- Danger zone ---
+          Text(
+            'Danger Zone',
+            key: const ValueKey('settings-section-danger'),
+            style: AppTypography.title.copyWith(color: colors.error),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SectionCard(
+            padding: EdgeInsets.zero,
+            child: _SettingsTile(
+              key: const ValueKey('settings-logout'),
+              icon: Icons.logout,
+              iconColor: colors.error,
+              title: 'Log Out',
+              subtitle: 'Sign out of this device.',
+              colors: colors,
+              trailing: _isLoggingOut
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : null,
+              enabled: !_isLoggingOut,
+              onTap: _isLoggingOut ? null : _confirmLogout,
             ),
           ),
         ],

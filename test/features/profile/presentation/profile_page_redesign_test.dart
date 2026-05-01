@@ -197,6 +197,85 @@ void main() {
     });
   });
 
+  group('Member since row', () {
+    testWidgets('shows Member since row when joinedAt is present', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildApp(
+          child: const ProfilePage(serverId: 'server-1', userId: 'other-456'),
+          profileRepository: _FakeProfileRepository(
+            MemberProfile(
+              id: 'other-456',
+              displayName: 'Bob',
+              joinedAt: DateTime(2024, 3, 15),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('profile-member-since')),
+        findsOneWidget,
+      );
+      expect(find.text('Member since'), findsOneWidget);
+      expect(find.text('Mar 15, 2024'), findsOneWidget);
+    });
+
+    testWidgets('hides Member since row when joinedAt is null', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildApp(
+          child: const ProfilePage(serverId: 'server-1', userId: 'other-456'),
+          profileRepository: const _FakeProfileRepository(
+            MemberProfile(id: 'other-456', displayName: 'Bob'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('profile-member-since')),
+        findsNothing,
+      );
+    });
+  });
+
+  group('Edit profile affordance', () {
+    testWidgets('self profile shows Edit Profile button', (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('profile-edit-button')),
+        findsOneWidget,
+      );
+      expect(find.text('Edit Profile'), findsOneWidget);
+      expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
+    });
+
+    testWidgets('other-user profile does not show Edit Profile button', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildApp(
+          child: const ProfilePage(serverId: 'server-1', userId: 'other-456'),
+          profileRepository: const _FakeProfileRepository(
+            MemberProfile(id: 'other-456', displayName: 'Bob'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('profile-edit-button')),
+        findsNothing,
+      );
+    });
+  });
+
   group('dark theme', () {
     testWidgets('dark theme uses AppColors.dark tokens', (tester) async {
       await tester.pumpWidget(

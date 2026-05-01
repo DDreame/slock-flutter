@@ -97,7 +97,7 @@ void main() {
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
         ],
-        child: MaterialApp.router(routerConfig: _buildRouter()),
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: _buildRouter()),
       ),
     );
     await tester.pumpAndSettle();
@@ -116,11 +116,15 @@ void main() {
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
         ],
-        child: MaterialApp.router(routerConfig: _buildRouter()),
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: _buildRouter()),
       ),
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-logout')),
+      200,
+    );
     await tester.tap(find.byKey(const ValueKey('settings-logout')));
     await tester.pumpAndSettle();
 
@@ -153,11 +157,15 @@ void main() {
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
         ],
-        child: MaterialApp.router(routerConfig: _buildRouter()),
+        child: MaterialApp.router(theme: AppTheme.light, routerConfig: _buildRouter()),
       ),
     );
     await tester.pumpAndSettle();
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-logout')),
+      200,
+    );
     await tester.tap(find.byKey(const ValueKey('settings-logout')));
     await tester.pumpAndSettle();
 
@@ -201,6 +209,16 @@ GoRouter _buildRouter() {
         path: '/release-notes',
         builder: (context, state) =>
             const Scaffold(body: Text('release-notes-route')),
+      ),
+      GoRoute(
+        path: '/members',
+        builder: (context, state) =>
+            const Scaffold(body: Text('members-route')),
+      ),
+      GoRoute(
+        path: '/roles',
+        builder: (context, state) =>
+            const Scaffold(body: Text('roles-route')),
       ),
       GoRoute(
         path: '/login',

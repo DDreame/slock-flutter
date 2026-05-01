@@ -11,6 +11,7 @@ class MemberProfile {
     this.email,
     this.role,
     this.presence,
+    this.joinedAt,
     this.isSelf = false,
   });
 
@@ -21,6 +22,7 @@ class MemberProfile {
   final String? email;
   final String? role;
   final String? presence;
+  final DateTime? joinedAt;
   final bool isSelf;
 
   MemberProfile copyWith({
@@ -31,6 +33,7 @@ class MemberProfile {
     String? email,
     String? role,
     String? presence,
+    DateTime? joinedAt,
     bool? isSelf,
   }) {
     return MemberProfile(
@@ -41,6 +44,7 @@ class MemberProfile {
       email: email ?? this.email,
       role: role ?? this.role,
       presence: presence ?? this.presence,
+      joinedAt: joinedAt ?? this.joinedAt,
       isSelf: isSelf ?? this.isSelf,
     );
   }
@@ -57,6 +61,7 @@ class MemberProfile {
           email == other.email &&
           role == other.role &&
           presence == other.presence &&
+          joinedAt == other.joinedAt &&
           isSelf == other.isSelf;
 
   @override
@@ -68,6 +73,7 @@ class MemberProfile {
         email,
         role,
         presence,
+        joinedAt,
         isSelf,
       );
 }
@@ -124,6 +130,7 @@ MemberProfile parseMemberProfilePayload(
           fields: const ['presence', 'status', 'state'],
         ) ??
         _readPresenceLabel(map['presence']),
+    joinedAt: _readOptionalDateTime(map),
     isSelf: isSelf || map['isSelf'] == true,
   );
 }
@@ -174,6 +181,18 @@ Map<String, dynamic>? _readOptionalMap(Object? payload) {
 String? _readOptionalString(Object? value) {
   if (value is String && value.isNotEmpty) {
     return value;
+  }
+  return null;
+}
+
+DateTime? _readOptionalDateTime(Map<String, dynamic> map) {
+  const fields = ['joinedAt', 'createdAt', 'memberSince'];
+  for (final field in fields) {
+    final value = map[field];
+    if (value is String && value.isNotEmpty) {
+      final parsed = DateTime.tryParse(value);
+      if (parsed != null) return parsed;
+    }
   }
   return null;
 }
