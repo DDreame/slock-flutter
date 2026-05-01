@@ -10,6 +10,8 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 
 class SlockForegroundService : Service() {
     companion object {
@@ -17,10 +19,18 @@ class SlockForegroundService : Service() {
         private const val channelName = "Real-time connection"
         private const val notificationId = 9001
         private const val tag = "SlockForegroundService"
+        private const val prefsName = "FlutterSecureStorage"
+        private const val sessionTokenKey = "session_token"
+
+        /** Minimum interval between OS-triggered restarts. */
+        private const val restartBackoffMs = 5_000L
 
         @Volatile
         var isRunning: Boolean = false
             private set
+
+        @Volatile
+        private var lastStartTimestamp: Long = 0
     }
 
     override fun onCreate() {
@@ -33,6 +43,25 @@ class SlockForegroundService : Service() {
         flags: Int,
         startId: Int,
     ): Int {
+        // When intent is null the OS restarted us (START_STICKY).
+        // Verify the user still has a stored session; if not, stop.
+        val isOsRestart = intent == null
+        if (isOsRestart) {
+            val now = System.currentTimeMillis()
+            if (now - lastStartTimestamp < restartBackoffMs) {
+                Log.w(tag, "Restart too fast — backing off")
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            if (!hasStoredSession()) {
+                Log.d(tag, "No stored session — stopping after OS restart")
+                stopSelf()
+                return START_NOT_STICKY
+            }
+        }
+
+        lastStartTimestamp = System.currentTimeMillis()
+
         val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(applicationInfo.icon)
             .setContentTitle("Slock")
@@ -67,6 +96,28 @@ class SlockForegroundService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun hasStoredSession(): Boolean {
+        return try {
+            val masterKey = MasterKey.Builder(this)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+
+            val prefs = EncryptedSharedPreferences.create(
+                this,
+                prefsName,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+
+            val token = prefs.getString(sessionTokenKey, null)
+            !token.isNullOrEmpty()
+        } catch (e: Exception) {
+            Log.w(tag, "Could not read session storage", e)
+            false
+        }
+    }
 
     private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

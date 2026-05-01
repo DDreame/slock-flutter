@@ -8,27 +8,39 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 /// Binds the foreground service lifecycle to the session state.
 ///
-/// Starts the Android foreground service when the user is authenticated
-/// **and** the app bootstrap is complete.  Stops the service when the
-/// user logs out or the session becomes unauthenticated.
+/// **Start condition**: user is authenticated AND app bootstrap is
+/// complete AND the service is not already running.
+///
+/// **Stop condition**: user is explicitly unauthenticated (not just
+/// unknown/bootstrapping) AND the service is currently running.  The
+/// bootstrap flag and the `unknown` session state are intentionally
+/// ignored for stop — a surviving service (e.g. after a process
+/// restart where the OS kept the Android service alive) must not be
+/// killed just because the Dart side hasn't finished bootstrapping
+/// or hasn't determined auth status yet.
+///
+/// On each sync cycle the binding checks
+/// [ForegroundServiceManager.isRunning] rather than relying on a
+/// local boolean, so it correctly handles process restarts where
+/// the OS-level service may still be alive while Dart state has
+/// been reset.
 final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
-  bool serviceRunning = false;
-
   Future<void> sync() async {
     final session = ref.read(sessionStoreProvider);
     final appReady = ref.read(appReadyProvider);
-    final shouldRun = session.isAuthenticated && appReady;
     final manager = ref.read(foregroundServiceManagerProvider);
+    final running = await manager.isRunning;
 
-    if (shouldRun && !serviceRunning) {
+    final shouldStart = session.isAuthenticated && appReady && !running;
+    final shouldStop = session.isUnauthenticated && running;
+
+    if (shouldStart) {
       await manager.startService();
-      serviceRunning = true;
       return;
     }
 
-    if (!shouldRun && serviceRunning) {
+    if (shouldStop) {
       await manager.stopService();
-      serviceRunning = false;
     }
   }
 
