@@ -246,7 +246,8 @@ void main() {
         '/messages/channel/general': {
           'messages': [
             {
-              'id': 'message-1',
+              // Missing 'id' field — truly malformed
+              'content': 'hello',
               'createdAt': '2026-04-19T15:00:00Z',
             },
           ],
@@ -274,10 +275,43 @@ void main() {
         isA<SerializationFailure>().having(
           (failure) => failure.message,
           'message',
-          'Malformed messagesResponse.messages[0] payload: missing string field "content".',
+          'Malformed messagesResponse.messages[0] payload: missing string field "id".',
         ),
       ),
     );
+  });
+
+  test('message with missing content field parses as empty string', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'createdAt': '2026-04-19T15:00:00Z',
+              // No 'content' field — attachment-only message
+            },
+          ],
+        },
+        '/channels': [
+          {'id': 'general', 'name': 'general'},
+        ],
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+    expect(snapshot.messages.first.content, '');
   });
 
   test('sendMessage posts trimmed content with explicit server header',

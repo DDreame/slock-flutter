@@ -53,11 +53,7 @@ ConversationMessageSummary parseConversationMessageSummary(
       field: 'id',
       payloadName: payloadName,
     ),
-    content: requireConversationPayloadStringField(
-      item,
-      field: 'content',
-      payloadName: payloadName,
-    ),
+    content: readOptionalConversationPayloadString(item['content']) ?? '',
     createdAt: requireConversationPayloadDateTimeField(
       item,
       field: 'createdAt',

@@ -14,6 +14,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 const realtimeMessageCreatedEventType = 'message:new';
 const realtimeMessageUpdatedEventType = 'message:updated';
+const _attachmentFallbackPreview = '[Attachment]';
 
 final homeRealtimeUnreadBindingProvider = Provider<void>((ref) {
   final ingress = ref.watch(realtimeReductionIngressProvider);
@@ -59,6 +60,10 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
   final matchedDirectMessage =
       _matchDirectMessageScopeId(homeState, incoming.conversationId);
 
+  final preview = incoming.message.content.isNotEmpty
+      ? incoming.message.content
+      : _attachmentFallbackPreview;
+
   final notifier = ref.read(homeListStoreProvider.notifier);
 
   if (matchedChannel != null && matchedDirectMessage == null) {
@@ -66,13 +71,13 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
           serverId: homeState.serverScopeId!,
           conversationId: incoming.conversationId,
           messageId: incoming.message.id,
-          preview: incoming.message.content,
+          preview: preview,
           activityAt: incoming.message.createdAt,
         ));
     notifier.updateChannelLastMessage(
       conversationId: incoming.conversationId,
       messageId: incoming.message.id,
-      preview: incoming.message.content,
+      preview: preview,
       activityAt: incoming.message.createdAt,
     );
     if (!isSelfMessage && !isOpen) {
@@ -87,13 +92,13 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
           serverId: homeState.serverScopeId!,
           conversationId: incoming.conversationId,
           messageId: incoming.message.id,
-          preview: incoming.message.content,
+          preview: preview,
           activityAt: incoming.message.createdAt,
         ));
     notifier.updateDmLastMessage(
       conversationId: incoming.conversationId,
       messageId: incoming.message.id,
-      preview: incoming.message.content,
+      preview: preview,
       activityAt: incoming.message.createdAt,
     );
     if (!isSelfMessage && !isOpen) {
@@ -120,7 +125,7 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
                     scopeId: newScopeId,
                     title: title,
                     lastMessageId: incoming.message.id,
-                    lastMessagePreview: incoming.message.content,
+                    lastMessagePreview: preview,
                     lastActivityAt: incoming.message.createdAt,
                   ),
                 );
@@ -186,6 +191,11 @@ DirectMessageScopeId? _matchDirectMessageScopeId(
   HomeListState state,
   String conversationId,
 ) {
+  for (final directMessage in state.pinnedDirectMessages) {
+    if (directMessage.scopeId.value == conversationId) {
+      return directMessage.scopeId;
+    }
+  }
   for (final directMessage in state.directMessages) {
     if (directMessage.scopeId.value == conversationId) {
       return directMessage.scopeId;
