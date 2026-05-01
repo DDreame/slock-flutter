@@ -297,21 +297,20 @@ class _ApiConversationRepository implements ConversationRepository {
         response.data,
         payloadName: 'sendMessageResponse',
       );
+      final stored = _storedMessageUpsert(
+        response.data,
+        serverId: target.serverId.value,
+        conversationId: target.conversationId,
+        payloadName: 'sendMessageResponse',
+      );
+      final identities = _extractIdentityUpserts(
+        response.data,
+        serverId: target.serverId.value,
+        senderIdFallback: null,
+      );
       try {
-        final stored = _storedMessageUpsert(
-          response.data,
-          serverId: target.serverId.value,
-          conversationId: target.conversationId,
-          payloadName: 'sendMessageResponse',
-        );
         await _localStore.upsertMessages([stored]);
-        await _localStore.upsertIdentities(
-          _extractIdentityUpserts(
-            response.data,
-            serverId: target.serverId.value,
-            senderIdFallback: null,
-          ),
-        );
+        await _localStore.upsertIdentities(identities);
         await _localStore.touchConversationSummary(
           serverId: target.serverId.value,
           conversationId: target.conversationId,
