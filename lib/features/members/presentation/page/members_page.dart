@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
 import 'package:slock_app/features/members/application/members_realtime_binding.dart';
@@ -81,6 +82,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             title: 'Members unavailable',
             message: 'We could not load workspace members right now.',
             onRetry: ref.read(memberListStoreProvider.notifier).load,
+            onShareDiagnostics: () => DiagnosticShareSheet.show(context),
           ),
         MemberListStatus.success when state.members.isEmpty => const Center(
             key: ValueKey('members-empty'),

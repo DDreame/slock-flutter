@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
+import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
@@ -28,6 +29,7 @@ class WorkspaceSettingsPage extends ConsumerWidget {
             title: 'Workspace settings unavailable',
             message: 'We could not load workspace settings right now.',
             onRetry: ref.read(serverListStoreProvider.notifier).retry,
+            onShareDiagnostics: () => DiagnosticShareSheet.show(context),
           ),
         ServerListStatus.success =>
           _buildSuccess(context, ref, serverListState),
