@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/scope/channel_scope_id.dart';
 import 'package:slock_app/core/scope/direct_message_scope_id.dart';
 import 'package:slock_app/core/scope/server_scope_id.dart';
@@ -144,7 +145,13 @@ void main() {
 
       expect(find.text('general'), findsOneWidget);
       expect(find.text('Alice'), findsOneWidget);
-      expect(find.text('0'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byType(UnreadBadge),
+          matching: find.text('0'),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('tapping channel row clears its unread count', (tester) async {

@@ -25,7 +25,6 @@ class HomeConsoleGrid extends StatelessWidget {
         vertical: AppSpacing.sm,
       ),
       child: GridView.count(
-        key: const ValueKey('home-console-grid'),
         crossAxisCount: 2,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),

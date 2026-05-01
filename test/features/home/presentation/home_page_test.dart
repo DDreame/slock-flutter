@@ -482,6 +482,7 @@ void main() {
           container: container,
           child: MaterialApp.router(
             routerConfig: router,
+            theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
           ),
@@ -851,6 +852,7 @@ void main() {
           container: container,
           child: MaterialApp.router(
             routerConfig: router,
+            theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
           ),
