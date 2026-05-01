@@ -62,7 +62,9 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
 
   final preview = incoming.message.content.isNotEmpty
       ? incoming.message.content
-      : _attachmentFallbackPreview;
+      : (incoming.message.attachments?.isNotEmpty == true)
+          ? _attachmentFallbackPreview
+          : incoming.message.content;
 
   final notifier = ref.read(homeListStoreProvider.notifier);
 

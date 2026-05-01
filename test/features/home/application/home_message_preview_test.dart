@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
-import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
@@ -10,7 +9,6 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
-import 'package:slock_app/stores/session/session_store.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 import '../../../stores/session/session_store_persistence_test.dart'
@@ -174,7 +172,7 @@ void main() {
       );
     });
 
-    test('attachment-only message:new still updates preview', () async {
+    test('attachment-only message:new shows [Attachment] preview', () async {
       final container = createContainer();
 
       container.read(homeRealtimeUnreadBindingProvider);
@@ -198,10 +196,36 @@ void main() {
       final homeState = container.read(homeListStoreProvider);
       final channel = homeState.channels
           .firstWhere((c) => c.scopeId.value == channelScopeId.value);
+      expect(channel.lastMessagePreview, '[Attachment]');
+    });
+
+    test('empty non-attachment message does not show [Attachment]', () async {
+      final container = createContainer();
+
+      container.read(homeRealtimeUnreadBindingProvider);
+      await container.read(homeListStoreProvider.notifier).load();
+
+      container.read(realtimeReductionIngressProvider).accept(
+            RealtimeEventEnvelope(
+              eventType: realtimeMessageCreatedEventType,
+              scopeKey: RealtimeEventEnvelope.globalScopeKey,
+              receivedAt: DateTime(2026, 5, 1),
+              seq: 1,
+              payload: _messagePayload(
+                channelId: channelScopeId.value,
+                content: '', // empty system/edge-case message, no attachments
+              ),
+            ),
+          );
+      await Future<void>.delayed(Duration.zero);
+
+      final homeState = container.read(homeListStoreProvider);
+      final channel = homeState.channels
+          .firstWhere((c) => c.scopeId.value == channelScopeId.value);
       expect(
         channel.lastMessagePreview,
-        isNotNull,
-        reason: 'Attachment-only messages should show a preview',
+        isNot('[Attachment]'),
+        reason: 'Empty non-attachment messages should not be labeled as attachment',
       );
     });
 
@@ -355,7 +379,7 @@ Map<String, Object?> _messagePayload({
     'seq': 1,
     if (hasAttachments)
       'attachments': [
-        {'id': 'att-1', 'name': 'photo.png', 'size': 1024}
+        {'id': 'att-1', 'name': 'photo.png', 'type': 'image/png', 'size': 1024}
       ],
   };
 }
