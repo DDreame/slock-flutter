@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
@@ -50,7 +51,10 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+          child: MaterialApp(
+              theme: AppTheme.light,
+              home: const TickerMode(
+                  enabled: false, child: AgentsPage(agentId: 'agent-1'))),
         ),
       );
 
@@ -86,7 +90,10 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+          child: MaterialApp(
+              theme: AppTheme.light,
+              home: const TickerMode(
+                  enabled: false, child: AgentsPage(agentId: 'agent-1'))),
         ),
       );
 
@@ -123,8 +130,10 @@ void main() {
           routes: [
             GoRoute(
               path: '/servers/:serverId/agents',
-              builder: (context, state) =>
-                  AgentsPage(serverId: state.pathParameters['serverId']),
+              builder: (context, state) => TickerMode(
+                enabled: false,
+                child: AgentsPage(serverId: state.pathParameters['serverId']),
+              ),
             ),
             GoRoute(
               path: '/servers/:serverId/agents/:agentId',
@@ -145,7 +154,8 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child: MaterialApp.router(routerConfig: router),
+            child:
+                MaterialApp.router(theme: AppTheme.light, routerConfig: router),
           ),
         );
 
@@ -185,14 +195,19 @@ void main() {
           routes: [
             GoRoute(
               path: '/servers/:serverId/agents',
-              builder: (context, state) =>
-                  AgentsPage(serverId: state.pathParameters['serverId']),
+              builder: (context, state) => TickerMode(
+                enabled: false,
+                child: AgentsPage(serverId: state.pathParameters['serverId']),
+              ),
             ),
             GoRoute(
               path: '/servers/:serverId/agents/:agentId',
-              builder: (context, state) => AgentsPage(
-                serverId: state.pathParameters['serverId'],
-                agentId: state.pathParameters['agentId'],
+              builder: (context, state) => TickerMode(
+                enabled: false,
+                child: AgentsPage(
+                  serverId: state.pathParameters['serverId'],
+                  agentId: state.pathParameters['agentId'],
+                ),
               ),
             ),
             GoRoute(
@@ -215,7 +230,8 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child: MaterialApp.router(routerConfig: router),
+            child:
+                MaterialApp.router(theme: AppTheme.light, routerConfig: router),
           ),
         );
 
@@ -261,7 +277,10 @@ void main() {
               agentsRepositoryProvider.overrideWithValue(fakeRepo),
               realtimeReductionIngressProvider.overrideWithValue(ingress),
             ],
-            child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+            child: MaterialApp(
+                theme: AppTheme.light,
+                home: const TickerMode(
+                    enabled: false, child: AgentsPage(agentId: 'agent-1'))),
           ),
         );
 
@@ -269,6 +288,13 @@ void main() {
 
         // REST load triggered exactly once on mount.
         expect(fakeRepo.getActivityLogCallCount, 1);
+
+        // Scroll to activity log section (pushed below viewport by env vars).
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('agent-activity-log-section')),
+          200,
+        );
+
         // No entries returned by default, so still shows empty.
         expect(find.text('No activity log entries.'), findsOneWidget);
 
@@ -328,7 +354,10 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+            child: MaterialApp(
+                theme: AppTheme.light,
+                home: const TickerMode(
+                    enabled: false, child: AgentsPage(agentId: 'agent-1'))),
           ),
         );
 
@@ -336,6 +365,13 @@ void main() {
 
         // getActivityLog called exactly once on mount.
         expect(fakeRepo.getActivityLogCallCount, 1);
+
+        // Scroll to activity log section (pushed below viewport by env vars).
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('agent-activity-log-section')),
+          200,
+        );
+
         // Historical entries rendered.
         expect(find.text('09:30:15'), findsOneWidget);
         expect(find.text('Working: deploying service'), findsOneWidget);
@@ -384,7 +420,10 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child: const MaterialApp(home: AgentsPage(serverId: 'server-1')),
+            child: MaterialApp(
+                theme: AppTheme.light,
+                home: const TickerMode(
+                    enabled: false, child: AgentsPage(serverId: 'server-1'))),
           ),
         );
 
@@ -392,7 +431,7 @@ void main() {
 
         expect(find.text('No agents yet.'), findsOneWidget);
 
-        await tester.tap(find.byKey(const ValueKey('agents-create-fab')));
+        await tester.tap(find.byKey(const ValueKey('agents-new-btn')));
         await tester.pumpAndSettle();
 
         await tester.enterText(
@@ -461,8 +500,12 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -507,8 +550,12 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -526,7 +573,7 @@ void main() {
   });
 
   group('Agent control action guards', () {
-    testWidgets('activity dots use theme-safe colors in dark theme', (
+    testWidgets('agent list renders StatusGlowRing for each activity state', (
       tester,
     ) async {
       final theme = AppTheme.dark;
@@ -554,25 +601,28 @@ void main() {
           ],
           child: MaterialApp(
             theme: theme,
-            home: const AgentsPage(serverId: 'server-1'),
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(serverId: 'server-1'),
+            ),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      Color dotColor(String agentId) {
-        final widget = tester.widget<Container>(
-          find.byKey(ValueKey('agent-activity-$agentId')),
-        );
-        final decoration = widget.decoration! as BoxDecoration;
-        return decoration.color!;
-      }
+      // StatusGlowRing widgets should be present for each agent
+      final rings =
+          tester.widgetList<StatusGlowRing>(find.byType(StatusGlowRing));
+      expect(rings.length, 5);
 
-      expect(dotColor('agent-online'), theme.colorScheme.secondary);
-      expect(dotColor('agent-thinking'), theme.colorScheme.tertiary);
-      expect(dotColor('agent-working'), theme.colorScheme.primary);
-      expect(dotColor('agent-error'), theme.colorScheme.error);
-      expect(dotColor('agent-offline'), theme.colorScheme.outline);
+      final statuses = rings.map((r) => r.status).toList();
+      expect(statuses, [
+        GlowRingStatus.online,
+        GlowRingStatus.thinking,
+        GlowRingStatus.working,
+        GlowRingStatus.error,
+        GlowRingStatus.offline,
+      ]);
     });
 
     testWidgets('stop button shows confirmation and calls stopAgent on confirm',
@@ -591,8 +641,12 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -626,8 +680,12 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -659,8 +717,12 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -694,8 +756,12 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
@@ -725,8 +791,12 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+            ),
           ),
         ),
       );
