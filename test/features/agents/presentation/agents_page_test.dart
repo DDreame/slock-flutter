@@ -316,7 +316,7 @@ void main() {
           ),
           AgentActivityLogEntry(
             timestamp: DateTime(2026, 5, 1, 9, 31, 0),
-            entry: 'Online',
+            entry: 'Thinking: analyzing logs',
           ),
         ];
 
@@ -340,7 +340,7 @@ void main() {
         expect(find.text('09:30:15'), findsOneWidget);
         expect(find.text('Working: deploying service'), findsOneWidget);
         expect(find.text('09:31:00'), findsOneWidget);
-        expect(find.text('Online'), findsOneWidget);
+        expect(find.text('Thinking: analyzing logs'), findsOneWidget);
         // Empty placeholder gone.
         expect(find.text('No activity log entries.'), findsNothing);
       },
