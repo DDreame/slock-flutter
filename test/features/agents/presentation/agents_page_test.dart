@@ -51,7 +51,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+          child: MaterialApp(
+              theme: AppTheme.light,
+              home: const AgentsPage(agentId: 'agent-1')),
         ),
       );
 
@@ -87,7 +89,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+          child: MaterialApp(
+              theme: AppTheme.light,
+              home: const AgentsPage(agentId: 'agent-1')),
         ),
       );
 
@@ -146,7 +150,8 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child: MaterialApp.router(routerConfig: router),
+            child:
+                MaterialApp.router(theme: AppTheme.light, routerConfig: router),
           ),
         );
 
@@ -216,7 +221,8 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child: MaterialApp.router(routerConfig: router),
+            child:
+                MaterialApp.router(theme: AppTheme.light, routerConfig: router),
           ),
         );
 
@@ -262,7 +268,9 @@ void main() {
               agentsRepositoryProvider.overrideWithValue(fakeRepo),
               realtimeReductionIngressProvider.overrideWithValue(ingress),
             ],
-            child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+            child: MaterialApp(
+                theme: AppTheme.light,
+                home: const AgentsPage(agentId: 'agent-1')),
           ),
         );
 
@@ -329,7 +337,9 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child: const MaterialApp(home: AgentsPage(agentId: 'agent-1')),
+            child: MaterialApp(
+                theme: AppTheme.light,
+                home: const AgentsPage(agentId: 'agent-1')),
           ),
         );
 
@@ -385,7 +395,9 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child: const MaterialApp(home: AgentsPage(serverId: 'server-1')),
+            child: MaterialApp(
+                theme: AppTheme.light,
+                home: const AgentsPage(serverId: 'server-1')),
           ),
         );
 
@@ -462,8 +474,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
           ),
         ),
       );
@@ -508,8 +521,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
           ),
         ),
       );
@@ -592,8 +606,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
           ),
         ),
       );
@@ -627,8 +642,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
           ),
         ),
       );
@@ -660,8 +676,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
           ),
         ),
       );
@@ -695,8 +712,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
           ),
         ),
       );
@@ -726,8 +744,9 @@ void main() {
               RealtimeReductionIngress(),
             ),
           ],
-          child: const MaterialApp(
-            home: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
           ),
         ),
       );
