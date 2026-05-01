@@ -708,6 +708,105 @@ void main() {
     expect(message.attachments![0].name, 'good.pdf');
   });
 
+  test(
+      'loadConversation succeeds with API data when local store '
+      'writes throw a non-AppFailure', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'content': 'Hello world',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 1,
+            },
+          ],
+          'historyLimited': false,
+        },
+        '/channels': [
+          {'id': 'general', 'name': 'general'},
+        ],
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [
+        appDioClientProvider.overrideWithValue(appDioClient),
+        conversationLocalStoreProvider.overrideWithValue(
+          _ThrowingConversationLocalStore(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+
+    expect(snapshot.title, '#general');
+    expect(snapshot.messages.single.id, 'message-1');
+    expect(snapshot.messages.single.content, 'Hello world');
+  });
+
+  test(
+      'loadConversation succeeds for direct messages when local store '
+      'writes throw a non-AppFailure', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/dm-1': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'content': 'Ping',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 1,
+            },
+          ],
+          'historyLimited': false,
+        },
+        '/channels/dm': [
+          {
+            'id': 'dm-1',
+            'participant': {'displayName': 'Alice'},
+          },
+        ],
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [
+        appDioClientProvider.overrideWithValue(appDioClient),
+        conversationLocalStoreProvider.overrideWithValue(
+          _ThrowingConversationLocalStore(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.directMessage(
+        const DirectMessageScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'dm-1',
+        ),
+      ),
+    );
+
+    expect(snapshot.title, 'Alice');
+    expect(snapshot.messages.single.id, 'message-1');
+    expect(snapshot.messages.single.content, 'Ping');
+  });
+
   test('empty attachments array results in null', () async {
     final appDioClient = _FakeAppDioClient(
       responses: {
@@ -850,4 +949,34 @@ class _CapturedRequest {
   final Object? data;
 
   String? get serverIdHeader => headers['X-Server-Id'] as String?;
+}
+
+class _ThrowingConversationLocalStore extends FakeConversationLocalStore {
+  @override
+  Future<void> upsertConversationSummaries(
+    Iterable<LocalConversationSummaryUpsert> summaries, {
+    bool preserveExistingSortIndex = false,
+  }) async {
+    throw StateError('SQLite disk I/O error');
+  }
+
+  @override
+  Future<List<LocalConversationSummaryRecord>> listConversationSummaries(
+    String serverId, {
+    required String surface,
+  }) async {
+    throw StateError('SQLite disk I/O error');
+  }
+
+  @override
+  Future<void> upsertMessages(Iterable<LocalMessageUpsert> entries) async {
+    throw StateError('SQLite disk I/O error');
+  }
+
+  @override
+  Future<void> upsertIdentities(
+    Iterable<LocalIdentityUpsert> entries,
+  ) async {
+    throw StateError('SQLite disk I/O error');
+  }
 }

@@ -141,6 +141,44 @@ void main() {
     });
   });
 
+  test(
+      'loadWorkspace succeeds with API data when local store '
+      'upsert throws a non-AppFailure', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/channels': [
+          {'id': 'channel-1', 'name': 'Engineering'},
+        ],
+        '/channels/dm': [
+          {
+            'id': 'dm-1',
+            'participant': {'displayName': 'Alice'},
+          },
+        ],
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [
+        appDioClientProvider.overrideWithValue(appDioClient),
+        conversationLocalStoreProvider.overrideWithValue(
+          _ThrowingConversationLocalStore(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(homeRepositoryProvider);
+    final snapshot = await repository.loadWorkspace(
+      const ServerScopeId('server-1'),
+    );
+
+    expect(snapshot.serverId, const ServerScopeId('server-1'));
+    expect(snapshot.channels.length, 1);
+    expect(snapshot.channels.first.name, 'Engineering');
+    expect(snapshot.directMessages.length, 1);
+    expect(snapshot.directMessages.first.title, 'Alice');
+  });
+
   test('baseline repository wraps unexpected seam errors in UnknownFailure',
       () async {
     final repository = BaselineHomeRepository(
@@ -226,4 +264,22 @@ class _CapturedRequest {
   final Map<String, Object?> headers;
 
   String? get serverIdHeader => headers['X-Server-Id'] as String?;
+}
+
+class _ThrowingConversationLocalStore extends FakeConversationLocalStore {
+  @override
+  Future<void> upsertConversationSummaries(
+    Iterable<LocalConversationSummaryUpsert> summaries, {
+    bool preserveExistingSortIndex = false,
+  }) async {
+    throw StateError('SQLite disk I/O error');
+  }
+
+  @override
+  Future<List<LocalConversationSummaryRecord>> listConversationSummaries(
+    String serverId, {
+    required String surface,
+  }) async {
+    throw StateError('SQLite disk I/O error');
+  }
 }
