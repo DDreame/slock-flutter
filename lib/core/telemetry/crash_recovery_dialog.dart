@@ -4,12 +4,13 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/telemetry/crash_marker_service.dart';
+import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 
 /// A dialog shown on startup when a previous crash was detected.
 ///
 /// Offers the user two choices:
-/// - **Export Diagnostics** — pops the dialog with `true` so the caller
-///   can open a diagnostic share flow (e.g. [DiagnosticShareSheet]).
+/// - **Export Diagnostics** — opens [DiagnosticShareSheet] so the user
+///   can copy/share/save the diagnostic log from the crashed session.
 /// - **Continue** — dismisses the dialog and clears the crash marker.
 class CrashRecoveryDialog extends ConsumerWidget {
   const CrashRecoveryDialog({super.key});
@@ -78,6 +79,7 @@ class CrashRecoveryDialog extends ConsumerWidget {
             await ref.read(crashMarkerServiceProvider).clearCrashMarker();
             if (context.mounted) {
               Navigator.of(context).pop(true);
+              await DiagnosticShareSheet.show(context);
             }
           },
           icon: const Icon(Icons.upload_outlined),
