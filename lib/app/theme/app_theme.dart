@@ -34,20 +34,24 @@ abstract final class AppTheme {
       brightness: brightness,
       primary: colors.primary,
       onPrimary: colors.primaryForeground,
-      primaryContainer: colors.primary.withAlpha(30),
+      primaryContainer: colors.primaryLight,
       onPrimaryContainer: colors.primary,
-      secondary: colors.primary,
+      secondary: colors.agentAccent,
       onSecondary: colors.primaryForeground,
-      secondaryContainer: colors.surfaceAlt,
+      secondaryContainer: colors.agentLight,
       onSecondaryContainer: colors.text,
-      tertiary: colors.primary,
+      tertiary: colors.warning,
       onTertiary: colors.primaryForeground,
       tertiaryContainer: colors.surfaceAlt,
       onTertiaryContainer: colors.text,
-      error: const Color(0xFFEF4444),
-      onError: Colors.white,
-      errorContainer: const Color(0xFFFEE2E2),
-      onErrorContainer: const Color(0xFFB91C1C),
+      error: colors.error,
+      onError: colors.primaryForeground,
+      errorContainer: brightness == Brightness.light
+          ? const Color(0xFFFEE2E2)
+          : const Color(0xFF7F1D1D),
+      onErrorContainer: brightness == Brightness.light
+          ? const Color(0xFFB91C1C)
+          : const Color(0xFFFCA5A5),
       surface: colors.surface,
       onSurface: colors.text,
       surfaceContainerHighest: colors.surfaceAlt,
@@ -121,7 +125,7 @@ abstract final class AppTheme {
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.md,
         ),
-        hintStyle: AppTypography.body.copyWith(color: colors.textSecondary),
+        hintStyle: AppTypography.body.copyWith(color: colors.textTertiary),
       ),
 
       // ── Elevated button (primary) ─────────────────────────
@@ -247,7 +251,7 @@ abstract final class AppTheme {
         backgroundColor: colors.surface,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: colors.primary.withAlpha(25),
+        indicatorColor: colors.primaryLight,
         shadowColor: Colors.transparent,
       ),
 
