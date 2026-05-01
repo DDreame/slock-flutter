@@ -27,7 +27,7 @@ void main() {
   );
 
   group('message tap → thread navigation', () {
-    testWidgets('tapping a channel message row navigates to the thread route',
+    testWidgets('tapping a threaded channel message navigates to thread route',
         (tester) async {
       final repository = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -43,6 +43,8 @@ void main() {
               messageType: 'message',
               senderName: 'Alex',
               seq: 1,
+              threadId: 'thread-abc',
+              replyCount: 2,
             ),
           ],
           historyLimited: false,
@@ -66,6 +68,51 @@ void main() {
 
       // Should have navigated to the thread route stub page.
       expect(find.text('thread-page-msg-1'), findsOneWidget);
+    });
+
+    testWidgets('tapping a threadless channel message does NOT navigate',
+        (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: channelTarget,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-no-thread',
+              content: 'No thread here',
+              createdAt: DateTime.parse('2026-05-01T10:00:00Z'),
+              senderId: 'user-2',
+              senderType: 'human',
+              messageType: 'message',
+              senderName: 'Alex',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          target: channelTarget,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap the message shell.
+      await tester.tap(
+        find.byKey(const ValueKey('message-shell-msg-no-thread')),
+      );
+      await tester.pumpAndSettle();
+
+      // Should NOT have navigated — message has no thread.
+      expect(
+        find.text('thread-page-msg-no-thread'),
+        findsNothing,
+      );
+      expect(find.text('No thread here'), findsOneWidget);
     });
 
     testWidgets('tapping a system message does NOT navigate to thread',
@@ -194,7 +241,7 @@ void main() {
       );
     });
 
-    testWidgets('tapping task badge does NOT trigger thread navigation',
+    testWidgets('tapping task badge navigates to tasks page, not thread',
         (tester) async {
       final repository = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -210,6 +257,8 @@ void main() {
               messageType: 'message',
               senderName: 'Alex',
               seq: 1,
+              threadId: 'thread-xyz',
+              replyCount: 1,
               linkedTask: const ConversationLinkedTaskSummary(
                 id: 'task-1',
                 taskNumber: 42,
@@ -237,9 +286,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Should NOT have navigated to thread — badge absorbs tap.
+      // Should have navigated to the tasks page stub, NOT thread.
       expect(find.text('thread-page-msg-task'), findsNothing);
-      expect(find.text('#general'), findsOneWidget);
+      expect(find.text('tasks-page-server-1'), findsOneWidget);
     });
 
     testWidgets('tapping attachment does NOT trigger thread navigation',
@@ -289,7 +338,7 @@ void main() {
       // Should NOT have navigated to thread — attachment InkWell
       // absorbs the tap.
       expect(find.text('thread-page-msg-attach'), findsNothing);
-      expect(find.text('#general'), findsOneWidget);
+      expect(find.text('See attachment'), findsOneWidget);
     });
 
     testWidgets('thread indicator tap still navigates independently',
@@ -337,6 +386,120 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+        'threaded message bubble shows press opacity feedback on '
+        'tap down', (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: channelTarget,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-press',
+              content: 'Press feedback',
+              createdAt: DateTime.parse('2026-05-01T10:00:00Z'),
+              senderId: 'user-2',
+              senderType: 'human',
+              messageType: 'message',
+              senderName: 'Alex',
+              seq: 1,
+              threadId: 'thread-press',
+              replyCount: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          target: channelTarget,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Before interaction, opacity should be 1.0.
+      final feedbackFinder = find.byKey(const ValueKey('message-tap-feedback'));
+      expect(feedbackFinder, findsOneWidget);
+      var opacity = tester.widget<AnimatedOpacity>(feedbackFinder);
+      expect(opacity.opacity, 1.0);
+
+      // Start a tap-down gesture on the bubble (not the thread
+      // indicator area below it).
+      final gesture = await tester.startGesture(
+        tester.getCenter(feedbackFinder),
+      );
+      // Pump with duration so the TapGestureRecognizer fires onTapDown
+      // (it is delayed when onLongPress competes on the same detector).
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Opacity should drop to 0.7.
+      opacity = tester.widget<AnimatedOpacity>(feedbackFinder);
+      expect(opacity.opacity, 0.7);
+
+      // Cancel the gesture (finger lifts without completing tap).
+      await gesture.cancel();
+      await tester.pump();
+
+      // Opacity should revert to 1.0.
+      opacity = tester.widget<AnimatedOpacity>(feedbackFinder);
+      expect(opacity.opacity, 1.0);
+    });
+
+    testWidgets('threadless message does NOT show press opacity feedback',
+        (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: channelTarget,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-nofeed',
+              content: 'No feedback',
+              createdAt: DateTime.parse('2026-05-01T10:00:00Z'),
+              senderId: 'user-2',
+              senderType: 'human',
+              messageType: 'message',
+              senderName: 'Alex',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          target: channelTarget,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // AnimatedOpacity widget should be present but stays at 1.0.
+      final feedbackFinder = find.byKey(const ValueKey('message-tap-feedback'));
+      expect(feedbackFinder, findsOneWidget);
+
+      // Start a tap-down gesture.
+      final gesture = await tester.startGesture(
+        tester.getCenter(
+          find.byKey(const ValueKey('message-shell-msg-nofeed')),
+        ),
+      );
+      await tester.pump();
+
+      // Opacity should remain 1.0 — no feedback for threadless
+      // messages.
+      final opacity = tester.widget<AnimatedOpacity>(feedbackFinder);
+      expect(opacity.opacity, 1.0);
+
+      await gesture.cancel();
+      await tester.pumpAndSettle();
+    });
   });
 }
 
@@ -366,6 +529,16 @@ Widget _buildApp({
           body: Center(
             child: Text(
               'thread-page-${state.pathParameters['threadId']}',
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/tasks',
+        builder: (_, state) => Scaffold(
+          body: Center(
+            child: Text(
+              'tasks-page-${state.pathParameters['serverId']}',
             ),
           ),
         ),
