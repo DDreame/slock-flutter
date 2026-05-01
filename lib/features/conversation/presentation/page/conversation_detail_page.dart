@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
@@ -134,7 +138,23 @@ class _ConversationDetailScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.titleOverride ?? state.resolvedTitle),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.titleOverride ?? state.resolvedTitle),
+            if (state.memberCount != null)
+              Text(
+                '${state.memberCount} '
+                '${state.memberCount == 1 ? 'member' : 'members'}',
+                key: const ValueKey('conversation-member-count'),
+                style: AppTypography.caption.copyWith(
+                  color:
+                      Theme.of(context).extension<AppColors>()!.textSecondary,
+                ),
+              ),
+          ],
+        ),
         actions: [
           if (state.status == ConversationDetailStatus.success)
             IconButton(
@@ -145,6 +165,12 @@ class _ConversationDetailScreenState
               onPressed: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .toggleSearch,
+            ),
+          if (state.status == ConversationDetailStatus.success)
+            IconButton(
+              key: const ValueKey('conversation-members-toggle'),
+              icon: const Icon(Icons.people_outline),
+              onPressed: () {},
             ),
           ...?widget.appBarActionsBuilder?.call(context, ref, state),
         ],
@@ -457,10 +483,16 @@ class _ConversationComposer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.lg,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,16 +502,16 @@ class _ConversationComposer extends StatelessWidget {
                 state.sendFailure?.message ?? 'Failed to send message.',
                 key: const ValueKey('composer-send-error'),
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
+                  color: colors.error,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
             ],
             if (state.pendingAttachments.isNotEmpty) ...[
               Wrap(
                 key: const ValueKey('composer-pending-attachments'),
-                spacing: 8,
-                runSpacing: 4,
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
                 children: [
                   for (var i = 0; i < state.pendingAttachments.length; i++)
                     Chip(
@@ -493,15 +525,26 @@ class _ConversationComposer extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
             ],
             Row(
               children: [
-                IconButton(
+                Container(
                   key: const ValueKey('composer-attach'),
-                  icon: const Icon(Icons.attach_file),
-                  onPressed: state.isSending ? null : () => _pickFile(context),
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceAlt,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.attach_file, size: 20),
+                    padding: EdgeInsets.zero,
+                    onPressed:
+                        state.isSending ? null : () => _pickFile(context),
+                  ),
                 ),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: TextField(
                     key: const ValueKey('composer-input'),
@@ -511,17 +554,50 @@ class _ConversationComposer extends StatelessWidget {
                     onSubmitted: (_) => state.canSend ? onSend() : null,
                     minLines: 1,
                     maxLines: 4,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Write a message',
-                      border: OutlineInputBorder(),
+                      border: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusFull),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusFull),
+                        borderSide: BorderSide(color: colors.border),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusFull),
+                        borderSide:
+                            BorderSide(color: colors.primary, width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.md,
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                FilledButton(
+                const SizedBox(width: AppSpacing.sm),
+                Container(
                   key: const ValueKey('composer-send'),
-                  onPressed: state.canSend ? onSend : null,
-                  child: Text(state.isSending ? 'Sending...' : 'Send'),
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: state.canSend ? colors.primary : colors.surfaceAlt,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      state.isSending ? Icons.hourglass_top : Icons.send,
+                      size: 20,
+                      color: state.canSend
+                          ? colors.primaryForeground
+                          : colors.textTertiary,
+                    ),
+                    padding: EdgeInsets.zero,
+                    onPressed: state.canSend ? onSend : null,
+                  ),
                 ),
               ],
             ),
@@ -585,6 +661,9 @@ _ConversationMessageVisualKind _resolveConversationMessageVisualKind(
   return _ConversationMessageVisualKind.other;
 }
 
+/// Maximum bubble width as a fraction of available space.
+const _bubbleMaxWidthFraction = 0.78;
+
 class _ConversationMessageCard extends ConsumerWidget {
   const _ConversationMessageCard({
     required this.target,
@@ -600,6 +679,7 @@ class _ConversationMessageCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final timestamp = formatRelativeTime(message.createdAt);
     final theme = Theme.of(context);
+    final colors = theme.extension<AppColors>()!;
     final savedIds = ref.watch(
       conversationDetailStoreProvider.select((s) => s.savedMessageIds),
     );
@@ -617,147 +697,166 @@ class _ConversationMessageCard extends ConsumerWidget {
       _ConversationMessageVisualKind.system => Alignment.center,
       _ => Alignment.centerLeft,
     };
-    final surfaceColor = switch (visualKind) {
-      _ConversationMessageVisualKind.self => theme.colorScheme.primaryContainer,
-      _ConversationMessageVisualKind.agent =>
-        theme.colorScheme.tertiaryContainer,
-      _ConversationMessageVisualKind.system =>
-        theme.colorScheme.surfaceContainerHigh,
-      _ConversationMessageVisualKind.other =>
-        theme.colorScheme.surfaceContainerHighest,
-    };
-    final borderColor = switch (visualKind) {
-      _ConversationMessageVisualKind.self => theme.colorScheme.primary,
-      _ConversationMessageVisualKind.agent => theme.colorScheme.tertiary,
-      _ConversationMessageVisualKind.system => theme.colorScheme.outline,
-      _ConversationMessageVisualKind.other => theme.colorScheme.outlineVariant,
+
+    // Z3 color tokens
+    final bubbleColor = switch (visualKind) {
+      _ConversationMessageVisualKind.self => colors.primary,
+      _ConversationMessageVisualKind.agent => colors.agentLight,
+      _ConversationMessageVisualKind.other => colors.surfaceAlt,
+      _ConversationMessageVisualKind.system => null,
     };
     final foregroundColor = switch (visualKind) {
-      _ConversationMessageVisualKind.self =>
-        theme.colorScheme.onPrimaryContainer,
-      _ConversationMessageVisualKind.agent =>
-        theme.colorScheme.onTertiaryContainer,
+      _ConversationMessageVisualKind.self => colors.primaryForeground,
+      _ConversationMessageVisualKind.system => colors.textSecondary,
+      _ => colors.text,
+    };
+
+    // Z3 asymmetric border radii
+    final borderRadius = switch (visualKind) {
+      _ConversationMessageVisualKind.self => const BorderRadius.only(
+          topLeft: Radius.circular(BubbleTokens.radiusLarge),
+          topRight: Radius.circular(BubbleTokens.radiusSmall),
+          bottomLeft: Radius.circular(BubbleTokens.radiusLarge),
+          bottomRight: Radius.circular(BubbleTokens.radiusLarge),
+        ),
       _ConversationMessageVisualKind.system =>
-        theme.colorScheme.onSurfaceVariant,
-      _ConversationMessageVisualKind.other => theme.colorScheme.onSurface,
+        BorderRadius.circular(BubbleTokens.radiusLarge),
+      _ => const BorderRadius.only(
+          topLeft: Radius.circular(BubbleTokens.radiusSmall),
+          topRight: Radius.circular(BubbleTokens.radiusLarge),
+          bottomLeft: Radius.circular(BubbleTokens.radiusLarge),
+          bottomRight: Radius.circular(BubbleTokens.radiusLarge),
+        ),
     };
-    final senderIcon = switch (visualKind) {
-      _ConversationMessageVisualKind.agent => Icons.smart_toy_outlined,
-      _ConversationMessageVisualKind.system => Icons.info_outline,
-      _ => null,
-    };
-    final senderStyle = theme.textTheme.labelMedium?.copyWith(
-      color: foregroundColor,
+
+    // Sender name label style
+    final showSenderLabel =
+        visualKind == _ConversationMessageVisualKind.other ||
+            visualKind == _ConversationMessageVisualKind.agent;
+
+    final senderStyle = AppTypography.label.copyWith(
+      color: visualKind == _ConversationMessageVisualKind.agent
+          ? colors.agentAccent
+          : colors.textSecondary,
       fontWeight: FontWeight.w600,
     );
-    final timestampStyle = theme.textTheme.bodySmall?.copyWith(
+    final timestampStyle = AppTypography.caption.copyWith(
       color: foregroundColor.withValues(alpha: 0.78),
     );
-    final bodyStyle = theme.textTheme.bodyMedium?.copyWith(
+    final bodyStyle = AppTypography.body.copyWith(
       color: foregroundColor,
       fontStyle: visualKind == _ConversationMessageVisualKind.system
           ? FontStyle.italic
           : null,
     );
+
     final bubble = Container(
       key: ValueKey('message-${message.id}'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      padding: visualKind == _ConversationMessageVisualKind.system
+          ? const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            )
+          : const EdgeInsets.all(AppSpacing.md),
+      decoration: bubbleColor != null
+          ? BoxDecoration(
+              color: bubbleColor,
+              borderRadius: borderRadius,
+            )
+          : const BoxDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (message.threadId != null)
+          if (visualKind == _ConversationMessageVisualKind.self)
             Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: InkWell(
-                key: const ValueKey('message-thread-entry'),
-                onTap: () {
-                  context.push(
-                    ThreadRouteTarget(
-                      serverId: target.serverId.value,
-                      parentChannelId: target.conversationId,
-                      parentMessageId: message.id,
-                      threadChannelId: message.threadId,
-                    ).toLocation(),
-                  );
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.forum_outlined,
-                      size: 14,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      message.replyCount != null && message.replyCount! > 0
-                          ? '${message.replyCount} ${message.replyCount == 1 ? 'reply' : 'replies'}'
-                          : 'In thread',
-                      key: const ValueKey('message-thread-indicator'),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.primary,
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text('You',
+                        style: senderStyle.copyWith(
+                          color: foregroundColor,
+                        )),
+                  ),
+                  if (message.isPinned)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.push_pin,
+                        size: 14,
+                        color: colors.primaryForeground.withValues(
+                          alpha: 0.78,
+                        ),
                       ),
                     ),
+                  if (isSaved)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.bookmark,
+                        size: 14,
+                        color: colors.primaryForeground.withValues(
+                          alpha: 0.78,
+                        ),
+                      ),
+                    ),
+                  Text(timestamp, style: timestampStyle),
+                  if (message.linkedTask != null &&
+                      target.surface == ConversationSurface.channel) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: _MessageLinkedTaskBadge(task: message.linkedTask!),
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
-          Row(
-            children: [
-              if (senderIcon != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: Icon(
-                    senderIcon,
-                    size: 14,
-                    color: foregroundColor,
-                  ),
-                ),
-              Expanded(
-                child: Text(
-                  senderLabel,
-                  style: senderStyle,
-                ),
+          if (visualKind != _ConversationMessageVisualKind.self)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Row(
+                children: [
+                  if (!showSenderLabel)
+                    Expanded(
+                      child: Text(senderLabel,
+                          style: senderStyle.copyWith(
+                            color: foregroundColor,
+                          )),
+                    ),
+                  if (message.isPinned)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.push_pin,
+                        size: 14,
+                        color: theme.colorScheme.tertiary,
+                      ),
+                    ),
+                  if (isSaved)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        Icons.bookmark,
+                        size: 14,
+                        color: colors.primary,
+                      ),
+                    ),
+                  Text(timestamp, style: timestampStyle),
+                  if (message.linkedTask != null &&
+                      target.surface == ConversationSurface.channel) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: _MessageLinkedTaskBadge(task: message.linkedTask!),
+                    ),
+                  ],
+                ],
               ),
-              if (message.isPinned)
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: Icon(
-                    Icons.push_pin,
-                    size: 14,
-                    color: theme.colorScheme.tertiary,
-                  ),
-                ),
-              if (isSaved)
-                Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: Icon(
-                    Icons.bookmark,
-                    size: 14,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              Text(timestamp, style: timestampStyle),
-              if (message.linkedTask != null &&
-                  target.surface == ConversationSurface.channel) ...[
-                const SizedBox(width: 8),
-                Flexible(
-                  child: _MessageLinkedTaskBadge(task: message.linkedTask!),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 8),
+            ),
           _MessageContentBody(
             message: message,
             highlightQuery: highlightQuery,
             baseStyle: bodyStyle,
-            highlightColor: theme.colorScheme.secondaryContainer,
+            highlightColor: colors.primaryLight,
           ),
           if (message.attachments != null && message.attachments!.isNotEmpty)
             _AttachmentSection(attachments: message.attachments!),
@@ -765,18 +864,115 @@ class _ConversationMessageCard extends ConsumerWidget {
       ),
     );
 
+    // Sender label is placed ABOVE the bubble for other/agent messages.
+    Widget senderLabelWidget = const SizedBox.shrink();
+    if (showSenderLabel) {
+      senderLabelWidget = Padding(
+        key: const ValueKey('sender-label-row'),
+        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (visualKind == _ConversationMessageVisualKind.agent) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xs,
+                  vertical: 1,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.agentAccent,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: Text(
+                  'AI',
+                  style: AppTypography.caption.copyWith(
+                    color: colors.primaryForeground,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+            ],
+            Text(senderLabel, style: senderStyle),
+          ],
+        ),
+      );
+    }
+
+    // Thread indicator is placed BELOW the bubble, not inside it.
+    Widget threadIndicator = const SizedBox.shrink();
+    if (message.threadId != null) {
+      threadIndicator = Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.xs),
+        child: InkWell(
+          key: const ValueKey('message-thread-entry'),
+          onTap: () {
+            context.push(
+              ThreadRouteTarget(
+                serverId: target.serverId.value,
+                parentChannelId: target.conversationId,
+                parentMessageId: message.id,
+                threadChannelId: message.threadId,
+              ).toLocation(),
+            );
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.forum_outlined,
+                size: 14,
+                color: colors.primary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                message.replyCount != null && message.replyCount! > 0
+                    ? '${message.replyCount} ${message.replyCount == 1 ? 'reply' : 'replies'}'
+                    : 'In thread',
+                key: const ValueKey('message-thread-indicator'),
+                style: AppTypography.label.copyWith(
+                  color: colors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
       onLongPress: () => _showMessageActions(context, ref, isSaved),
-      child: Align(
-        key: ValueKey('message-shell-${message.id}'),
-        alignment: shellAlignment,
-        child: switch (visualKind) {
-          _ConversationMessageVisualKind.system =>
-            SizedBox(width: double.infinity, child: bubble),
-          _ => ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: bubble,
-            ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxBubbleWidth = constraints.maxWidth * _bubbleMaxWidthFraction;
+          return Align(
+            key: ValueKey('message-shell-${message.id}'),
+            alignment: shellAlignment,
+            child: switch (visualKind) {
+              _ConversationMessageVisualKind.system => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(width: double.infinity, child: bubble),
+                    threadIndicator,
+                  ],
+                ),
+              _ => ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment:
+                        visualKind == _ConversationMessageVisualKind.self
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                    children: [
+                      senderLabelWidget,
+                      bubble,
+                      threadIndicator,
+                    ],
+                  ),
+                ),
+            },
+          );
         },
       ),
     );

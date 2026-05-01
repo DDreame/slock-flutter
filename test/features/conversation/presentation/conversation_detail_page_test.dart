@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
@@ -250,11 +252,10 @@ void main() {
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(ConversationDetailPage));
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = Theme.of(context).extension<AppColors>()!;
 
     expect(find.text('You'), findsOneWidget);
     expect(find.text('Alex'), findsOneWidget);
-    expect(find.text('System'), findsOneWidget);
     expect(find.text('Build Bot'), findsOneWidget);
 
     final selfShell = tester.widget<Align>(
@@ -281,28 +282,21 @@ void main() {
     final otherBubble = tester.widget<Container>(
       find.byKey(const ValueKey('message-message-other')),
     );
-    final systemBubble = tester.widget<Container>(
-      find.byKey(const ValueKey('message-message-system')),
-    );
     final agentBubble = tester.widget<Container>(
       find.byKey(const ValueKey('message-message-agent')),
     );
 
     expect(
       (selfBubble.decoration as BoxDecoration).color,
-      colorScheme.primaryContainer,
+      colors.primary,
     );
     expect(
       (otherBubble.decoration as BoxDecoration).color,
-      colorScheme.surfaceContainerHighest,
-    );
-    expect(
-      (systemBubble.decoration as BoxDecoration).color,
-      colorScheme.surfaceContainerHigh,
+      colors.surfaceAlt,
     );
     expect(
       (agentBubble.decoration as BoxDecoration).color,
-      colorScheme.tertiaryContainer,
+      colors.agentLight,
     );
   });
 
@@ -388,8 +382,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final initialButton = tester.widget<FilledButton>(
-      find.byKey(const ValueKey('composer-send')),
+    final initialButton = tester.widget<IconButton>(
+      find.descendant(
+        of: find.byKey(const ValueKey('composer-send')),
+        matching: find.byType(IconButton),
+      ),
     );
     expect(initialButton.onPressed, isNull);
 
@@ -511,20 +508,40 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('composer-send')));
     await tester.pump();
 
-    final button = tester.widget<FilledButton>(
-      find.byKey(const ValueKey('composer-send')),
+    final button = tester.widget<IconButton>(
+      find.descendant(
+        of: find.byKey(const ValueKey('composer-send')),
+        matching: find.byType(IconButton),
+      ),
     );
     expect(button.onPressed, isNull);
-    expect(find.text('Sending...'), findsOneWidget);
+    // In-flight state shows hourglass icon instead of send icon
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('composer-send')),
+        matching: find.byIcon(Icons.hourglass_top),
+      ),
+      findsOneWidget,
+    );
 
     sendCompleter.complete(repository.sentMessage!);
     await tester.pumpAndSettle();
 
-    final resolvedButton = tester.widget<FilledButton>(
-      find.byKey(const ValueKey('composer-send')),
+    final resolvedButton = tester.widget<IconButton>(
+      find.descendant(
+        of: find.byKey(const ValueKey('composer-send')),
+        matching: find.byType(IconButton),
+      ),
     );
     expect(resolvedButton.onPressed, isNull);
-    expect(find.text('Send'), findsOneWidget);
+    // After completion, reverts to send icon
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('composer-send')),
+        matching: find.byIcon(Icons.send),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('page registers and clears current open target on dispose', (
@@ -557,7 +574,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(home: ConversationDetailPage(target: target)),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: ConversationDetailPage(target: target),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -632,7 +652,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: MaterialApp(home: ConversationDetailPage(target: target)),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: ConversationDetailPage(target: target),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -729,7 +752,10 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp(home: ConversationDetailPage(target: target)),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -756,7 +782,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: SizedBox.shrink()),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SizedBox.shrink(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -1264,7 +1293,10 @@ Widget _buildApp({
         () => _FixedSessionStore(sessionState),
       ),
     ],
-    child: MaterialApp(home: child),
+    child: MaterialApp(
+      theme: AppTheme.light,
+      home: child,
+    ),
   );
 }
 

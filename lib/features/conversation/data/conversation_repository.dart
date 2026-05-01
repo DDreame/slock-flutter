@@ -120,6 +120,7 @@ class ConversationDetailSnapshot {
     required this.messages,
     required this.historyLimited,
     required this.hasOlder,
+    this.memberCount,
   });
 
   final ConversationDetailTarget target;
@@ -127,6 +128,7 @@ class ConversationDetailSnapshot {
   final List<ConversationMessageSummary> messages;
   final bool historyLimited;
   final bool hasOlder;
+  final int? memberCount;
 }
 
 @immutable

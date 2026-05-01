@@ -106,6 +106,7 @@ class _ApiConversationRepository implements ConversationRepository {
         messages: messagesPayload.messages,
         historyLimited: messagesPayload.historyLimited,
         hasOlder: messagesPayload.hasOlder,
+        memberCount: metadata.memberCount,
       );
     } on AppFailure {
       rethrow;
@@ -598,6 +599,7 @@ _ConversationMetadata _resolveMetadata(
           return _ConversationMetadata(
             displayTitle: '#$name',
             summaryTitle: name,
+            memberCount: _readOptionalInt(item['memberCount']),
           );
         }
       case ConversationSurface.directMessage:
@@ -831,6 +833,12 @@ String? _readOptionalString(Object? value) {
   return readOptionalConversationPayloadString(value);
 }
 
+int? _readOptionalInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return null;
+}
+
 String? _readOptionalAvatarUrl(Map<String, dynamic> payload) {
   return _readOptionalString(payload['avatarUrl']) ??
       _readOptionalString(payload['avatar']);
@@ -842,10 +850,12 @@ class _ConversationMetadata {
   const _ConversationMetadata({
     required this.displayTitle,
     required this.summaryTitle,
+    this.memberCount,
   });
 
   final String displayTitle;
   final String summaryTitle;
+  final int? memberCount;
 }
 
 class _MessagesPayload {

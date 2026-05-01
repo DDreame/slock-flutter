@@ -11,6 +11,7 @@ class ConversationDetailState {
     required this.target,
     this.status = ConversationDetailStatus.initial,
     this.title,
+    this.memberCount,
     this.messages = const [],
     this.historyLimited = false,
     this.hasOlder = false,
@@ -32,6 +33,7 @@ class ConversationDetailState {
   final ConversationDetailTarget target;
   final ConversationDetailStatus status;
   final String? title;
+  final int? memberCount;
   final List<ConversationMessageSummary> messages;
   final bool historyLimited;
   final bool hasOlder;
@@ -63,6 +65,7 @@ class ConversationDetailState {
     ConversationDetailTarget? target,
     ConversationDetailStatus? status,
     String? title,
+    int? memberCount,
     List<ConversationMessageSummary>? messages,
     bool? historyLimited,
     bool? hasOlder,
@@ -86,6 +89,7 @@ class ConversationDetailState {
       target: target ?? this.target,
       status: status ?? this.status,
       title: title ?? this.title,
+      memberCount: memberCount ?? this.memberCount,
       messages: messages ?? this.messages,
       historyLimited: historyLimited ?? this.historyLimited,
       hasOlder: hasOlder ?? this.hasOlder,
@@ -114,6 +118,7 @@ class ConversationDetailState {
             target == other.target &&
             status == other.status &&
             title == other.title &&
+            memberCount == other.memberCount &&
             listEquals(messages, other.messages) &&
             historyLimited == other.historyLimited &&
             hasOlder == other.hasOlder &&
@@ -137,6 +142,7 @@ class ConversationDetailState {
         target,
         status,
         title,
+        memberCount,
         Object.hashAll(messages),
         historyLimited,
         hasOlder,
