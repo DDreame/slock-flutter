@@ -807,7 +807,10 @@ class _ConversationMessageCard extends ConsumerWidget {
                       target.surface == ConversationSurface.channel) ...[
                     const SizedBox(width: 8),
                     Flexible(
-                      child: _MessageLinkedTaskBadge(task: message.linkedTask!),
+                      child: _MessageLinkedTaskBadge(
+                        task: message.linkedTask!,
+                        serverId: target.serverId.value,
+                      ),
                     ),
                   ],
                 ],
@@ -848,7 +851,10 @@ class _ConversationMessageCard extends ConsumerWidget {
                       target.surface == ConversationSurface.channel) ...[
                     const SizedBox(width: 8),
                     Flexible(
-                      child: _MessageLinkedTaskBadge(task: message.linkedTask!),
+                      child: _MessageLinkedTaskBadge(
+                        task: message.linkedTask!,
+                        serverId: target.serverId.value,
+                      ),
                     ),
                   ],
                 ],
@@ -950,7 +956,15 @@ class _ConversationMessageCard extends ConsumerWidget {
       );
     }
 
-    return GestureDetector(
+    // Message tap → thread navigation for channel surface only,
+    // and only when the message already has a thread.
+    final enableTapToThread = target.surface == ConversationSurface.channel &&
+        visualKind != _ConversationMessageVisualKind.system &&
+        message.threadId != null;
+
+    return _TapFeedbackWrapper(
+      enableFeedback: enableTapToThread,
+      onTap: enableTapToThread ? () => _navigateToThread(context) : null,
       onLongPress: () => _showMessageActions(context, ref, isSaved),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -1069,6 +1083,17 @@ class _ConversationMessageCard extends ConsumerWidget {
     );
   }
 
+  void _navigateToThread(BuildContext context) {
+    context.push(
+      ThreadRouteTarget(
+        serverId: target.serverId.value,
+        parentChannelId: target.conversationId,
+        parentMessageId: message.id,
+        threadChannelId: message.threadId,
+      ).toLocation(),
+    );
+  }
+
   Future<void> _confirmAndDeleteMessage(
     BuildContext context,
     WidgetRef ref,
@@ -1143,10 +1168,77 @@ class _ConversationMessageCard extends ConsumerWidget {
   }
 }
 
+/// Duration of the press-state opacity transition.
+const _kPressFeedbackDuration = Duration(milliseconds: 150);
+
+/// Opacity applied to the bubble while the user holds a tap.
+const _kPressFeedbackOpacity = 0.7;
+
+/// Wraps a child in a [GestureDetector] with optional animated opacity
+/// feedback on tap-down. When [enableFeedback] is `false` the opacity
+/// animation is skipped and the child is rendered at full opacity.
+class _TapFeedbackWrapper extends StatefulWidget {
+  const _TapFeedbackWrapper({
+    required this.enableFeedback,
+    required this.child,
+    this.onTap,
+    this.onLongPress,
+  });
+
+  final bool enableFeedback;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final Widget child;
+
+  @override
+  State<_TapFeedbackWrapper> createState() => _TapFeedbackWrapperState();
+}
+
+class _TapFeedbackWrapperState extends State<_TapFeedbackWrapper> {
+  bool _isPressed = false;
+
+  void _handleTapDown(TapDownDetails _) {
+    if (!widget.enableFeedback) return;
+    setState(() => _isPressed = true);
+  }
+
+  void _handleTapUp(TapUpDetails _) {
+    if (!widget.enableFeedback) return;
+    setState(() => _isPressed = false);
+  }
+
+  void _handleTapCancel() {
+    if (!widget.enableFeedback) return;
+    setState(() => _isPressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
+      onTapDown: _handleTapDown,
+      onTapUp: _handleTapUp,
+      onTapCancel: _handleTapCancel,
+      child: AnimatedOpacity(
+        key: const ValueKey('message-tap-feedback'),
+        opacity: _isPressed ? _kPressFeedbackOpacity : 1.0,
+        duration: _kPressFeedbackDuration,
+        child: widget.child,
+      ),
+    );
+  }
+}
+
 class _MessageLinkedTaskBadge extends StatelessWidget {
-  const _MessageLinkedTaskBadge({required this.task});
+  const _MessageLinkedTaskBadge({
+    required this.task,
+    required this.serverId,
+  });
 
   final ConversationLinkedTaskSummary task;
+  final String serverId;
 
   @override
   Widget build(BuildContext context) {
@@ -1164,31 +1256,38 @@ class _MessageLinkedTaskBadge extends StatelessWidget {
       label.write(' @${task.claimedByName}');
     }
 
-    return Container(
-      key: ValueKey('message-linked-task-${task.id}'),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: colors.container,
-        border: Border.all(color: colors.foreground),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: colors.onContainer),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              label.toString(),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: colors.onContainer,
-                fontWeight: FontWeight.w700,
+    // Absorb taps and navigate to the tasks page so they don't
+    // bubble up to the message card's thread-navigation
+    // GestureDetector.
+    return GestureDetector(
+      onTap: () => context.push('/servers/$serverId/tasks'),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        key: ValueKey('message-linked-task-${task.id}'),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: colors.container,
+          border: Border.all(color: colors.foreground),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: colors.onContainer),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                label.toString(),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colors.onContainer,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
