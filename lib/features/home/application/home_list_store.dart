@@ -12,14 +12,31 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
-import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
-import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 
 final homeListStoreProvider = NotifierProvider<HomeListStore, HomeListState>(
   HomeListStore.new,
 );
+
+/// Loads the machine count for the home console tile.
+///
+/// Uses [appDioClientProvider] directly because [machinesRepositoryProvider]
+/// requires a scoped override not available in the home provider tree.
+/// Extracted as a top-level provider so tests can override it.
+final homeMachineCountLoaderProvider =
+    Provider<Future<int> Function(ServerScopeId)>((ref) {
+  return (ServerScopeId serverScopeId) async {
+    final client = ref.read(appDioClientProvider);
+    final response = await client.get<Object?>(
+      '/servers/${serverScopeId.routeParam}/machines',
+      options: Options(
+        headers: {'X-Server-Id': serverScopeId.value},
+      ),
+    );
+    return parseMachinesSnapshot(response.data).items.length;
+  };
+});
 
 class HomeListStore extends Notifier<HomeListState> {
   List<HomeChannelSummary> _allChannels = const [];
@@ -157,14 +174,8 @@ class HomeListStore extends Notifier<HomeListState> {
     ServerScopeId serverScopeId,
   ) async {
     try {
-      final client = ref.read(appDioClientProvider);
-      final response = await client.get<Object?>(
-        '/servers/${serverScopeId.routeParam}/machines',
-        options: Options(
-          headers: {'X-Server-Id': serverScopeId.value},
-        ),
-      );
-      return parseMachinesSnapshot(response.data).items.length;
+      final loader = ref.read(homeMachineCountLoaderProvider);
+      return await loader(serverScopeId);
     } catch (_) {
       return 0;
     }

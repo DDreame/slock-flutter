@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
@@ -12,6 +14,7 @@ import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
@@ -108,9 +111,13 @@ void main() {
           threadRepositoryProvider.overrideWithValue(
             const _FakeThreadRepository(),
           ),
+          homeMachineCountLoaderProvider.overrideWithValue(
+            (_) async => 0,
+          ),
         ],
         child: MaterialApp.router(
           routerConfig: router,
+          theme: AppTheme.light,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
         ),
@@ -464,6 +471,9 @@ void main() {
           threadRepositoryProvider.overrideWithValue(
             const _FakeThreadRepository(),
           ),
+          homeMachineCountLoaderProvider.overrideWithValue(
+            (_) async => 0,
+          ),
         ],
       );
 
@@ -773,7 +783,7 @@ void main() {
       await tester.pumpWidget(
         _buildApp(
           router: router,
-          homeRepository: const _FakeHomeRepository(_snapshotWithPreviews),
+          homeRepository: _FakeHomeRepository(_snapshotWithPreviews),
         ),
       );
       await tester.pumpAndSettle();
@@ -791,7 +801,7 @@ void main() {
       await tester.pumpWidget(
         _buildApp(
           router: router,
-          homeRepository: const _FakeHomeRepository(_snapshotWithPreviews),
+          homeRepository: _FakeHomeRepository(_snapshotWithPreviews),
         ),
       );
       await tester.pumpAndSettle();
@@ -830,6 +840,9 @@ void main() {
           threadRepositoryProvider.overrideWithValue(
             const _FakeThreadRepository(),
           ),
+          homeMachineCountLoaderProvider.overrideWithValue(
+            (_) async => 0,
+          ),
         ],
       );
 
@@ -858,6 +871,21 @@ void main() {
       expect(find.byType(UnreadBadge), findsAtLeastNWidgets(1));
       expect(find.text('3'), findsOneWidget);
 
+      // Assert that the unread channel row has primaryLight tint.
+      final channelRow = find.byKey(const ValueKey('channel-general'));
+      final materialWidget = find
+          .ancestor(
+            of: channelRow,
+            matching: find.byType(Material),
+          )
+          .evaluate()
+          .first
+          .widget as Material;
+      expect(
+        materialWidget.color,
+        equals(AppColors.light.primaryLight),
+      );
+
       container.dispose();
     },
   );
@@ -880,6 +908,7 @@ void main() {
       );
       expect(find.byKey(const ValueKey('dm-avatar')), findsOneWidget);
       expect(find.text('A'), findsOneWidget);
+      expect(find.byKey(const ValueKey('dm-status-dot')), findsOneWidget);
       expect(
         find.byIcon(Icons.person_outline),
         findsNothing,
@@ -924,7 +953,7 @@ void main() {
               ),
             ],
           ),
-          threadRepository: _FakeThreadRepository(
+          threadRepository: const _FakeThreadRepository(
             threads: [
               ThreadInboxItem(
                 routeTarget: ThreadRouteTarget(
@@ -934,10 +963,11 @@ void main() {
                 ),
                 replyCount: 3,
                 unreadCount: 1,
-                participantIds: const ['u1'],
+                participantIds: ['u1'],
               ),
             ],
           ),
+          machineCountLoader: (_) async => 5,
         ),
       );
       await tester.pumpAndSettle();
@@ -958,6 +988,16 @@ void main() {
         find.descendant(
           of: threadsTile,
           matching: find.text('1'),
+        ),
+        findsOneWidget,
+      );
+
+      final machinesTile = find.byKey(const ValueKey('home-machines'));
+      expect(machinesTile, findsOneWidget);
+      expect(
+        find.descendant(
+          of: machinesTile,
+          matching: find.text('5'),
         ),
         findsOneWidget,
       );
@@ -1055,6 +1095,7 @@ Widget _buildApp({
   AgentsRepository agentsRepository = const _FakeAgentsRepository(),
   TasksRepository tasksRepository = const _FakeTasksRepository(),
   ThreadRepository threadRepository = const _FakeThreadRepository(),
+  Future<int> Function(ServerScopeId)? machineCountLoader,
 }) {
   return ProviderScope(
     overrides: [
@@ -1067,6 +1108,9 @@ Widget _buildApp({
       agentsRepositoryProvider.overrideWithValue(agentsRepository),
       tasksRepositoryProvider.overrideWithValue(tasksRepository),
       threadRepositoryProvider.overrideWithValue(threadRepository),
+      homeMachineCountLoaderProvider.overrideWithValue(
+        machineCountLoader ?? (_) async => 0,
+      ),
       if (channelManagementRepository != null)
         channelManagementRepositoryProvider.overrideWithValue(
           channelManagementRepository,
@@ -1076,6 +1120,7 @@ Widget _buildApp({
     ],
     child: MaterialApp.router(
       routerConfig: router,
+      theme: AppTheme.light,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
     ),

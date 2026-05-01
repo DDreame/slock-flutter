@@ -15,6 +15,7 @@ class HomeDirectMessageRow extends StatelessWidget {
     required this.onTap,
     this.unreadCount = 0,
     this.isPinned = false,
+    this.isOnline = false,
     this.onTogglePin,
     this.onHide,
     this.onMoveUp,
@@ -25,6 +26,7 @@ class HomeDirectMessageRow extends StatelessWidget {
   final VoidCallback onTap;
   final int unreadCount;
   final bool isPinned;
+  final bool isOnline;
   final VoidCallback? onTogglePin;
   final VoidCallback? onHide;
   final VoidCallback? onMoveUp;
@@ -53,16 +55,45 @@ class HomeDirectMessageRow extends StatelessWidget {
                   color: hasUnread ? colors.primary : colors.textTertiary,
                 )
               else
-                CircleAvatar(
-                  key: const ValueKey('dm-avatar'),
-                  radius: 16,
-                  backgroundColor: colors.primaryLight,
-                  child: Text(
-                    _initials(directMessage.title),
-                    style: AppTypography.label.copyWith(
-                      color: colors.primary,
-                      fontSize: 12,
-                    ),
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        key: const ValueKey('dm-avatar'),
+                        radius: 16,
+                        backgroundColor: colors.primaryLight,
+                        child: Text(
+                          _initials(directMessage.title),
+                          style: AppTypography.label.copyWith(
+                            color: colors.primary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        right: -1,
+                        bottom: -1,
+                        child: Container(
+                          key: const ValueKey('dm-status-dot'),
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color:
+                                isOnline ? colors.success : colors.textTertiary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: hasUnread
+                                  ? colors.primaryLight
+                                  : colors.surface,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               const SizedBox(width: AppSpacing.md),
