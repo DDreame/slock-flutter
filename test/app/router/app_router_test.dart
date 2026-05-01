@@ -92,6 +92,7 @@ void main() {
       '/billing',
       '/release-notes',
       '/invite/:token',
+      '/roles',
     ];
     expect(paths, containsAll(expectedRoutes));
   });
@@ -272,6 +273,43 @@ void main() {
     expect(
       container.read(serverSelectionStoreProvider).selectedServerId,
       'my-server',
+    );
+  });
+
+  testWidgets('/roles route resolves without page-not-found error', (
+    tester,
+  ) async {
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(sessionStoreProvider.notifier)
+        .login(email: 'test@test.com', password: 'password');
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _buildRouterApp(router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/roles');
+    await tester.pumpAndSettle();
+
+    // Route should resolve — no "Page not found" error.
+    expect(find.textContaining('Page not found'), findsNothing);
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/roles',
     );
   });
 
