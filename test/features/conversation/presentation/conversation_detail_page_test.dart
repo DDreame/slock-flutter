@@ -1125,6 +1125,78 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+      'composer is inside body Column (not bottomNavigationBar) and stays visible with keyboard insets',
+      (tester) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Hello world',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify composer exists
+    final composerFinder = find.byKey(const ValueKey('composer-input'));
+    expect(composerFinder, findsOneWidget);
+
+    // Verify composer is NOT inside a bottomNavigationBar slot.
+    // The Scaffold's bottomNavigationBar is null when composer is in body.
+    final scaffoldState =
+        tester.state<ScaffoldState>(find.byType(Scaffold).first);
+    expect(scaffoldState.widget.bottomNavigationBar, isNull);
+
+    // Simulate keyboard appearing by injecting bottom view insets.
+    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+    await tester.pumpAndSettle();
+
+    // Composer should still be visible after keyboard appears.
+    expect(composerFinder, findsOneWidget);
+    final composerBox = tester.renderObject<RenderBox>(composerFinder);
+    expect(composerBox.hasSize, isTrue);
+
+    // The composer's bottom edge must be above the keyboard top.
+    // Keyboard top = viewHeight - (keyboardInset / devicePixelRatio).
+    final composerOffset = composerBox.localToGlobal(Offset.zero);
+    final viewHeight =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final keyboardLogicalHeight =
+        tester.view.viewInsets.bottom / tester.view.devicePixelRatio;
+    final keyboardTop = viewHeight - keyboardLogicalHeight;
+    expect(
+      composerOffset.dy + composerBox.size.height,
+      lessThanOrEqualTo(keyboardTop),
+    );
+
+    // Teardown
+    tester.view.resetViewInsets();
+  });
+
   testWidgets('URL linkification styles URLs distinctly in message content', (
     tester,
   ) async {

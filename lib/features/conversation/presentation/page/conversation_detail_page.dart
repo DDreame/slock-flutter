@@ -149,23 +149,6 @@ class _ConversationDetailScreenState
           ...?widget.appBarActionsBuilder?.call(context, ref, state),
         ],
       ),
-      bottomNavigationBar: state.status == ConversationDetailStatus.success
-          ? _ConversationComposer(
-              controller: _composerController,
-              focusNode: _composerFocusNode,
-              state: state,
-              onChanged: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .updateDraft,
-              onSend: _handleSend,
-              onPickAttachment: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .addPendingAttachment,
-              onRemoveAttachment: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .removePendingAttachment,
-            )
-          : null,
       body: Column(
         children: [
           if (state.isSearchActive)
@@ -206,6 +189,22 @@ class _ConversationDetailScreenState
                 ),
             },
           ),
+          if (state.status == ConversationDetailStatus.success)
+            _ConversationComposer(
+              controller: _composerController,
+              focusNode: _composerFocusNode,
+              state: state,
+              onChanged: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .updateDraft,
+              onSend: _handleSend,
+              onPickAttachment: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .addPendingAttachment,
+              onRemoveAttachment: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .removePendingAttachment,
+            ),
         ],
       ),
     );
