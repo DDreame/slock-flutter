@@ -41,6 +41,15 @@ class _HomePageState extends ConsumerState<HomePage> {
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
     final managementState = ref.watch(channelManagementStoreProvider);
     final l10n = context.l10n;
+
+    // Build a lookup of online agent display names for DM status dots.
+    // Human presence is not yet available in the home model.
+    // TODO: wire human presence when available.
+    final onlineAgentNames = <String>{
+      for (final agent in state.agents)
+        if (agent.isActive) agent.label,
+    };
+
     final pinnedConversationRows = _buildPinnedConversationRows(
       state: state,
       homeStore: homeStore,
@@ -48,6 +57,7 @@ class _HomePageState extends ConsumerState<HomePage> {
       dmUnreadCount: unreadState.dmUnreadCount,
       unreadStore: unreadStore,
       isMutating: managementState.isBusy,
+      onlineAgentNames: onlineAgentNames,
     );
 
     return Scaffold(
@@ -178,6 +188,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       directMessage: entry.value,
                       unreadCount:
                           unreadState.dmUnreadCount(entry.value.scopeId),
+                      isOnline: onlineAgentNames.contains(entry.value.title),
                       onTap: () {
                         unreadStore.markDmRead(entry.value.scopeId);
                         context.push(
@@ -465,6 +476,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     required int Function(DirectMessageScopeId) dmUnreadCount,
     required ChannelUnreadStore unreadStore,
     required bool isMutating,
+    required Set<String> onlineAgentNames,
   }) {
     final pinnedChannels = {
       for (final channel in state.pinnedChannels)
@@ -525,6 +537,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             directMessage: directMessage,
             unreadCount: dmUnreadCount(directMessage.scopeId),
             isPinned: true,
+            isOnline: onlineAgentNames.contains(directMessage.title),
             onTap: () {
               unreadStore.markDmRead(directMessage.scopeId);
               context.push(

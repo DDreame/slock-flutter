@@ -917,7 +917,45 @@ void main() {
   );
 
   testWidgets(
-    'console tiles display real counts from data providers',
+    'DM status dot shows green when peer is an active agent',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          agentsRepository: const _FakeAgentsRepository(
+            agents: [
+              AgentItem(
+                id: 'agent-alice',
+                name: 'alice',
+                displayName: 'Alice',
+                model: 'claude',
+                runtime: 'slock',
+                status: 'active',
+                activity: 'idle',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('dm-dm-alice')),
+      );
+
+      // Find the status dot container and verify it's green.
+      final dotFinder = find.byKey(const ValueKey('dm-status-dot'));
+      expect(dotFinder, findsOneWidget);
+      final dotContainer = tester.widget<Container>(dotFinder);
+      final decoration = dotContainer.decoration! as BoxDecoration;
+      expect(decoration.color, equals(AppColors.light.success));
+    },
+  );
+
+  testWidgets(
     (tester) async {
       final router = _buildRouter();
 
@@ -1404,10 +1442,12 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
 }
 
 class _FakeAgentsRepository implements AgentsRepository {
-  const _FakeAgentsRepository();
+  const _FakeAgentsRepository({this.agents = const []});
+
+  final List<AgentItem> agents;
 
   @override
-  Future<List<AgentItem>> listAgents() async => const [];
+  Future<List<AgentItem>> listAgents() async => agents;
 
   @override
   Future<void> startAgent(String agentId) async {}
