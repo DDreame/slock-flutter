@@ -225,7 +225,8 @@ void main() {
       expect(
         channel.lastMessagePreview,
         isNot('[Attachment]'),
-        reason: 'Empty non-attachment messages should not be labeled as attachment',
+        reason:
+            'Empty non-attachment messages should not be labeled as attachment',
       );
     });
 
