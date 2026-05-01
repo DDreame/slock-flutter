@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/core/telemetry/diagnostic_log_service.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+
+/// Icon size for the warning indicator at the top of the screen.
+const double _kWarningIconSize = 48;
 
 class FatalBootstrapScreen extends StatelessWidget {
   const FatalBootstrapScreen({super.key, required this.error});
@@ -22,55 +31,80 @@ class FatalBootstrapScreen extends StatelessWidget {
           'are provided at build time.'
       : 'If the problem persists, reinstall the app or contact support.';
 
+  /// Builds a diagnostics payload using [DiagnosticLogService] format.
+  ///
+  /// Creates a temporary [DiagnosticsCollector] with the bootstrap error
+  /// as a single entry, then formats it through the standard service
+  /// pipeline so the output matches the canonical log format.
   String get _diagnosticsPayload {
-    final buffer = StringBuffer()
-      ..writeln('--- Slock Diagnostics ---')
-      ..writeln('Error: ${error.runtimeType}')
-      ..writeln('Detail: $error')
-      ..writeln('Time: ${DateTime.now().toUtc().toIso8601String()}')
-      ..writeln('------------------------');
-    return buffer.toString();
+    final collector = DiagnosticsCollector();
+    collector.error(
+      'bootstrap',
+      error.toString(),
+      metadata: {
+        'errorType': error.runtimeType.toString(),
+      },
+    );
+    final service = DiagnosticLogService(collector: collector);
+    final bundle = service.buildBundle(
+      context: const DiagnosticContext(
+        appVersion: null,
+        platform: null,
+        locale: null,
+      ),
+    );
+    return service.formatText(bundle);
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.warning_amber_rounded, size: 48),
-                const SizedBox(height: 16),
-                Text(
-                  _friendlyTitle,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      home: Builder(
+        builder: (context) {
+          final colors = Theme.of(context).extension<AppColors>()!;
+          return Scaffold(
+            body: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: _kWarningIconSize,
+                      color: colors.warning,
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    Text(
+                      _friendlyTitle,
+                      style:
+                          AppTypography.headline.copyWith(color: colors.text),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      _friendlyBody,
+                      style: AppTypography.body.copyWith(color: colors.text),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      _friendlyHint,
+                      style: AppTypography.bodySmall
+                          .copyWith(color: colors.textSecondary),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _CopyDiagnosticsButton(
+                      diagnosticsPayload: _diagnosticsPayload,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  _friendlyBody,
-                  style: const TextStyle(fontSize: 14),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  _friendlyHint,
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
-                ),
-                const SizedBox(height: 32),
-                _CopyDiagnosticsButton(
-                  diagnosticsPayload: _diagnosticsPayload,
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -88,7 +122,9 @@ class _CopyDiagnosticsButton extends StatelessWidget {
       icon: const Icon(Icons.copy, size: 18),
       label: const Text('Copy diagnostics'),
       onPressed: () async {
-        await Clipboard.setData(ClipboardData(text: diagnosticsPayload));
+        await Clipboard.setData(
+          ClipboardData(text: diagnosticsPayload),
+        );
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

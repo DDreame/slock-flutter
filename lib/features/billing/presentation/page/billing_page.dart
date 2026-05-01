@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/widgets/friendly_error_state.dart';
+import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/features/billing/application/billing_realtime_binding.dart';
 import 'package:slock_app/features/billing/application/billing_state.dart';
 import 'package:slock_app/features/billing/application/billing_store.dart';
@@ -39,6 +40,7 @@ class _BillingPageState extends ConsumerState<BillingPage> {
             title: 'Billing unavailable',
             message: 'We could not load billing details right now.',
             onRetry: ref.read(billingStoreProvider.notifier).load,
+            onShareDiagnostics: () => DiagnosticShareSheet.show(context),
           ),
         BillingStatus.success => _BillingSuccess(
             summary: state.summary,
