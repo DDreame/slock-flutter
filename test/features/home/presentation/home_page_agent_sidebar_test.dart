@@ -6,7 +6,9 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
@@ -14,6 +16,12 @@ import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
@@ -268,9 +276,17 @@ Widget _buildApp({
       agentsRepositoryProvider.overrideWithValue(
         _FakeAgentsRepository(agents: agents),
       ),
+      tasksRepositoryProvider.overrideWithValue(
+        const _FakeTasksRepository(),
+      ),
+      threadRepositoryProvider.overrideWithValue(
+        const _FakeThreadRepository(),
+      ),
+      homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
     ],
     child: MaterialApp.router(
       routerConfig: router,
+      theme: AppTheme.light,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
     ),
@@ -371,4 +387,98 @@ class _FakeAgentsRepository implements AgentsRepository {
     int limit = 50,
   }) async =>
       const [];
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository();
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async =>
+      const [];
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) {
+    throw UnimplementedError();
+  }
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository();
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+    ServerScopeId serverId,
+  ) async =>
+      const [];
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) {
+    throw UnimplementedError();
+  }
 }

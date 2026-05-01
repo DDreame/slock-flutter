@@ -2,15 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/scope/channel_scope_id.dart';
 import 'package:slock_app/core/scope/direct_message_scope_id.dart';
 import 'package:slock_app/core/scope/server_scope_id.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
@@ -80,6 +88,10 @@ void main() {
             ],
           ),
         ),
+        tasksRepositoryProvider.overrideWithValue(const _FakeTasksRepository()),
+        threadRepositoryProvider
+            .overrideWithValue(const _FakeThreadRepository()),
+        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
       ],
     );
 
@@ -98,6 +110,7 @@ void main() {
       container: container,
       child: MaterialApp.router(
         routerConfig: router,
+        theme: AppTheme.light,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
       ),
@@ -182,4 +195,85 @@ void main() {
 class _FakeServerListRepository implements ServerListRepository {
   @override
   Future<List<ServerSummary>> loadServers() async => [];
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository();
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async => [];
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async =>
+      throw UnimplementedError();
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository();
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+    ServerScopeId serverId,
+  ) async =>
+      [];
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(
+    ThreadRouteTarget target,
+  ) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
 }
