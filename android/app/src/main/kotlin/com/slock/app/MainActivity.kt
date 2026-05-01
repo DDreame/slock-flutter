@@ -24,6 +24,7 @@ class MainActivity : FlutterActivity() {
         private const val methodChannelName = "slock/notifications/methods"
         private const val tapEventChannelName = "slock/notifications/taps"
         private const val foregroundEventChannelName = "slock/notifications/foreground"
+        private const val foregroundServiceChannelName = "slock/notifications/foreground_service"
         private const val notificationPermissionRequestCode = 1001
         private const val notificationChannelId = "slock_messages"
         private const val notificationChannelName = "Messages"
@@ -102,6 +103,32 @@ class MainActivity : FlutterActivity() {
                 }
             },
         )
+
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            foregroundServiceChannelName,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "startForegroundService" -> {
+                    val intent = Intent(this, SlockForegroundService::class.java)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(intent)
+                    } else {
+                        startService(intent)
+                    }
+                    result.success(null)
+                }
+                "stopForegroundService" -> {
+                    val intent = Intent(this, SlockForegroundService::class.java)
+                    stopService(intent)
+                    result.success(null)
+                }
+                "isForegroundServiceRunning" -> {
+                    result.success(SlockForegroundService.isRunning)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

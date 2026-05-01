@@ -7,6 +7,7 @@ import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
 import 'package:slock_app/app/bootstrap/fatal_bootstrap_screen.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/notifications/foreground_service_lifecycle_binding.dart';
 import 'package:slock_app/core/realtime/realtime.dart';
 import 'package:slock_app/core/storage/flutter_secure_storage_impl.dart';
 import 'package:slock_app/core/telemetry/crash_marker_service.dart';
@@ -62,6 +63,7 @@ class SlockApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(realtimeLifecycleBindingProvider);
+    ref.watch(foregroundServiceLifecycleBindingProvider);
     ref.watch(homeRealtimeUnreadBindingProvider);
     ref.watch(homeRealtimeDmMaterializationBindingProvider);
     ref.watch(pushTokenLifecycleBindingProvider);

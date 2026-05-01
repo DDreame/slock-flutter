@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
 import 'package:slock_app/core/network/network_config.dart';
+import 'package:slock_app/core/notifications/android_foreground_service_manager.dart';
 import 'package:slock_app/core/notifications/android_notification_initializer.dart';
+import 'package:slock_app/core/notifications/foreground_service_manager.dart';
 import 'package:slock_app/core/notifications/ios_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/realtime/providers.dart';
@@ -43,7 +45,7 @@ void main() {
       expect(result.reporter, isA<NoOpCrashReporter>());
       expect(result.diagnostics, isA<DiagnosticsCollector>());
       expect(result.notificationInitializer, isA<NotificationInitializer>());
-      expect(result.overrides, hasLength(5));
+      expect(result.overrides, hasLength(6));
     });
 
     test('provider overrides resolve correctly', () async {
@@ -141,6 +143,32 @@ void main() {
       );
 
       expect(initializer, isA<NoOpNotificationInitializer>());
+    });
+  });
+
+  group('createForegroundServiceManager', () {
+    test('returns Android manager for Android platform', () {
+      final manager = createForegroundServiceManager(
+        platform: TargetPlatform.android,
+        isWeb: false,
+      );
+      expect(manager, isA<AndroidForegroundServiceManager>());
+    });
+
+    test('returns NoOp manager for iOS platform', () {
+      final manager = createForegroundServiceManager(
+        platform: TargetPlatform.iOS,
+        isWeb: false,
+      );
+      expect(manager, isA<NoOpForegroundServiceManager>());
+    });
+
+    test('returns NoOp manager on web even for Android target', () {
+      final manager = createForegroundServiceManager(
+        platform: TargetPlatform.android,
+        isWeb: true,
+      );
+      expect(manager, isA<NoOpForegroundServiceManager>());
     });
   });
 
