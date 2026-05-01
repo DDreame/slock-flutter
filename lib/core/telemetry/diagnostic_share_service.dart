@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:slock_app/core/telemetry/diagnostic_log_service.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
 /// Result of a diagnostic share/export operation.
 enum DiagnosticShareResult {
@@ -41,8 +42,9 @@ class DefaultDiagnosticShareService implements DiagnosticShareService {
 
   @override
   Future<DiagnosticShareResult> shareText(String text) async {
-    final result = await SharePlus.instance.share(
-      ShareParams(text: text, title: 'Slock Diagnostics'),
+    final result = await Share.share(
+      text,
+      subject: 'Slock Diagnostics',
     );
     if (result.status == ShareResultStatus.dismissed) {
       return DiagnosticShareResult.dismissed;

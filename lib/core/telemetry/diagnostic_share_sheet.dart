@@ -6,6 +6,29 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/telemetry/diagnostic_log_service.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_service.dart';
 
+// --- Component-level sizing constants ---
+
+/// Width of the bottom sheet drag handle.
+const double _kHandleWidth = 36;
+
+/// Height of the bottom sheet drag handle.
+const double _kHandleHeight = 4;
+
+/// Border radius of the drag handle pill.
+const double _kHandleRadius = 2;
+
+/// Icon size for action tile leading icons.
+const double _kActionIconSize = 22;
+
+/// Icon size for action tile trailing chevron.
+const double _kChevronSize = 20;
+
+/// Size of the inline loading spinner.
+const double _kLoadingSize = 20;
+
+/// Stroke width of the loading spinner.
+const double _kLoadingStroke = 2;
+
 /// A bottom sheet that lets users copy, share, or save diagnostic logs.
 ///
 /// Builds a [DiagnosticBundle] from the current [DiagnosticLogService],
@@ -156,11 +179,11 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
             Center(
               child: Container(
                 key: const ValueKey('share-sheet-handle'),
-                width: 36,
-                height: 4,
+                width: _kHandleWidth,
+                height: _kHandleHeight,
                 decoration: BoxDecoration(
                   color: colors.textTertiary,
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(_kHandleRadius),
                 ),
               ),
             ),
@@ -227,9 +250,10 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
               const Center(
                 key: ValueKey('share-sheet-loading'),
                 child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  width: _kLoadingSize,
+                  height: _kLoadingSize,
+                  child:
+                      CircularProgressIndicator(strokeWidth: _kLoadingStroke),
                 ),
               ),
             ],
@@ -274,7 +298,7 @@ class _ActionTile extends StatelessWidget {
               Icon(
                 icon,
                 color: enabled ? colors.primary : colors.textTertiary,
-                size: 22,
+                size: _kActionIconSize,
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -288,7 +312,7 @@ class _ActionTile extends StatelessWidget {
               Icon(
                 Icons.chevron_right,
                 color: colors.textTertiary,
-                size: 20,
+                size: _kChevronSize,
               ),
             ],
           ),
