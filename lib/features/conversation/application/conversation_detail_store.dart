@@ -105,6 +105,7 @@ class ConversationDetailStore
         target: snapshot.target,
         status: ConversationDetailStatus.success,
         title: snapshot.title,
+        memberCount: snapshot.memberCount,
         messages: snapshot.messages,
         historyLimited: snapshot.historyLimited,
         hasOlder: snapshot.hasOlder,

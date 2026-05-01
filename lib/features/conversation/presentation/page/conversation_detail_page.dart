@@ -138,7 +138,23 @@ class _ConversationDetailScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.titleOverride ?? state.resolvedTitle),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.titleOverride ?? state.resolvedTitle),
+            if (state.memberCount != null)
+              Text(
+                '${state.memberCount} '
+                '${state.memberCount == 1 ? 'member' : 'members'}',
+                key: const ValueKey('conversation-member-count'),
+                style: AppTypography.caption.copyWith(
+                  color:
+                      Theme.of(context).extension<AppColors>()!.textSecondary,
+                ),
+              ),
+          ],
+        ),
         actions: [
           if (state.status == ConversationDetailStatus.success)
             IconButton(
@@ -751,37 +767,6 @@ class _ConversationMessageCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showSenderLabel)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (visualKind == _ConversationMessageVisualKind.agent) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xs,
-                        vertical: 1,
-                      ),
-                      decoration: BoxDecoration(
-                        color: colors.agentAccent,
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusSm),
-                      ),
-                      child: Text(
-                        'AI',
-                        style: AppTypography.caption.copyWith(
-                          color: colors.primaryForeground,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                  ],
-                  Text(senderLabel, style: senderStyle),
-                ],
-              ),
-            ),
           if (visualKind == _ConversationMessageVisualKind.self)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -880,6 +865,41 @@ class _ConversationMessageCard extends ConsumerWidget {
       ),
     );
 
+    // Sender label is placed ABOVE the bubble for other/agent messages.
+    Widget senderLabelWidget = const SizedBox.shrink();
+    if (showSenderLabel) {
+      senderLabelWidget = Padding(
+        key: const ValueKey('sender-label-row'),
+        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (visualKind == _ConversationMessageVisualKind.agent) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xs,
+                  vertical: 1,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.agentAccent,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: Text(
+                  'AI',
+                  style: AppTypography.caption.copyWith(
+                    color: colors.primaryForeground,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+            ],
+            Text(senderLabel, style: senderStyle),
+          ],
+        ),
+      );
+    }
+
     // Thread indicator is placed BELOW the bubble, not inside it.
     Widget threadIndicator = const SizedBox.shrink();
     if (message.threadId != null) {
@@ -946,6 +966,7 @@ class _ConversationMessageCard extends ConsumerWidget {
                             ? CrossAxisAlignment.end
                             : CrossAxisAlignment.start,
                     children: [
+                      senderLabelWidget,
                       bubble,
                       threadIndicator,
                     ],

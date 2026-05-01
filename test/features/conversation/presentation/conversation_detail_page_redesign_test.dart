@@ -541,6 +541,172 @@ void main() {
         findsOneWidget,
       );
     });
+    testWidgets('app bar shows member count when provided in snapshot',
+        (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          memberCount: 12,
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Hello',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          child: ConversationDetailPage(target: target),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('conversation-member-count')),
+        findsOneWidget,
+      );
+      expect(find.text('12 members'), findsOneWidget);
+    });
+
+    testWidgets('app bar hides member count when not provided in snapshot',
+        (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Hello',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          child: ConversationDetailPage(target: target),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('conversation-member-count')),
+        findsNothing,
+      );
+    });
+  });
+
+  group('sender label position', () {
+    testWidgets(
+        'other-user sender label renders above the bubble, not inside '
+        'it', (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-other',
+              content: 'Their message',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderId: 'user-2',
+              senderType: 'human',
+              messageType: 'message',
+              senderName: 'Alex',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          sessionState: const SessionState(
+            status: AuthStatus.authenticated,
+            userId: 'user-1',
+            displayName: 'Robin',
+          ),
+          child: ConversationDetailPage(target: target),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Sender label should exist
+      expect(find.text('Alex'), findsOneWidget);
+
+      // Sender label row should NOT be a descendant of the bubble
+      // container — it sits above it in the parent Column.
+      final labelInsideBubble = find.descendant(
+        of: find.byKey(const ValueKey('message-message-other')),
+        matching: find.byKey(const ValueKey('sender-label-row')),
+      );
+      expect(labelInsideBubble, findsNothing);
+    });
+
+    testWidgets(
+        'agent sender label with AI badge renders above the bubble, '
+        'not inside it', (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-agent',
+              content: 'Bot output',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderId: 'agent-1',
+              senderType: 'agent',
+              messageType: 'message',
+              senderName: 'Build Bot',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          child: ConversationDetailPage(target: target),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // AI badge and sender label should exist
+      expect(find.text('AI'), findsOneWidget);
+      expect(find.text('Build Bot'), findsOneWidget);
+
+      // Sender label row should NOT be inside the bubble container.
+      final labelInsideBubble = find.descendant(
+        of: find.byKey(const ValueKey('message-message-agent')),
+        matching: find.byKey(const ValueKey('sender-label-row')),
+      );
+      expect(labelInsideBubble, findsNothing);
+    });
   });
 
   group('pinned message indicator', () {
