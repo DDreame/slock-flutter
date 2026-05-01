@@ -219,8 +219,7 @@ void main() {
       final storage = _FakeSecureStorage();
       final crashMarker = CrashMarkerService(storage: storage);
       final previousFlutterHandler = FlutterError.onError;
-      final previousPlatformHandler =
-          PlatformDispatcher.instance.onError;
+      final previousPlatformHandler = PlatformDispatcher.instance.onError;
       addTearDown(() {
         FlutterError.onError = previousFlutterHandler;
         PlatformDispatcher.instance.onError = previousPlatformHandler;
