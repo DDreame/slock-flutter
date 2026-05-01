@@ -3,6 +3,18 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 
+/// Named constants for [MessageBubble] dimensions.
+abstract final class BubbleTokens {
+  /// Large corner radius (non-sender side).
+  static const double radiusLarge = 18;
+
+  /// Small corner radius (sender origin side).
+  static const double radiusSmall = 6;
+
+  /// Maximum bubble width.
+  static const double maxWidth = 300;
+}
+
 /// Visual variant of a [MessageBubble].
 enum MessageBubbleVariant {
   /// Current user's message — right-aligned, primary fill, white text.
@@ -68,17 +80,18 @@ class MessageBubble extends StatelessWidget {
 
     final borderRadius = switch (variant) {
       MessageBubbleVariant.self => const BorderRadius.only(
-          topLeft: Radius.circular(18),
-          topRight: Radius.circular(6),
-          bottomLeft: Radius.circular(18),
-          bottomRight: Radius.circular(18),
+          topLeft: Radius.circular(BubbleTokens.radiusLarge),
+          topRight: Radius.circular(BubbleTokens.radiusSmall),
+          bottomLeft: Radius.circular(BubbleTokens.radiusLarge),
+          bottomRight: Radius.circular(BubbleTokens.radiusLarge),
         ),
-      MessageBubbleVariant.system => BorderRadius.circular(18),
+      MessageBubbleVariant.system =>
+        BorderRadius.circular(BubbleTokens.radiusLarge),
       _ => const BorderRadius.only(
-          topLeft: Radius.circular(6),
-          topRight: Radius.circular(18),
-          bottomLeft: Radius.circular(18),
-          bottomRight: Radius.circular(18),
+          topLeft: Radius.circular(BubbleTokens.radiusSmall),
+          topRight: Radius.circular(BubbleTokens.radiusLarge),
+          bottomLeft: Radius.circular(BubbleTokens.radiusLarge),
+          bottomRight: Radius.circular(BubbleTokens.radiusLarge),
         ),
     };
 
@@ -155,7 +168,7 @@ class MessageBubble extends StatelessWidget {
 
     if (variant != MessageBubbleVariant.system) {
       content = ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 300),
+        constraints: const BoxConstraints(maxWidth: BubbleTokens.maxWidth),
         child: content,
       );
     }

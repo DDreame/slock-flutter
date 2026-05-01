@@ -21,6 +21,7 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       final container = tester.widget<Container>(
         find.byKey(const ValueKey('status-glow-ring')),
@@ -48,6 +49,7 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       final container = tester.widget<Container>(
         find.byKey(const ValueKey('status-glow-ring')),
@@ -74,6 +76,7 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       final container = tester.widget<Container>(
         find.byKey(const ValueKey('status-glow-ring')),
@@ -98,6 +101,7 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       final container = tester.widget<Container>(
         find.byKey(const ValueKey('status-glow-ring')),
@@ -124,12 +128,13 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       // Offline uses low opacity wrapper
       final opacity = tester.widget<Opacity>(
         find.byKey(const ValueKey('status-glow-ring-opacity')),
       );
-      expect(opacity.opacity, lessThan(1.0));
+      expect(opacity.opacity, GlowRingTokens.offlineOpacity);
 
       final container = tester.widget<Container>(
         find.byKey(const ValueKey('status-glow-ring')),
@@ -139,8 +144,10 @@ void main() {
       expect(border.top.color, AppColors.light.textTertiary);
     });
 
-    testWidgets('active states (online/thinking/working) have box shadow glow',
-        (tester) async {
+    testWidgets('active states animate glow intensity across pumps (breathing)',
+        (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
@@ -155,16 +162,32 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
-      final container = tester.widget<Container>(
-        find.byKey(const ValueKey('status-glow-ring')),
-      );
-      final decoration = container.decoration as BoxDecoration;
-      expect(decoration.boxShadow, isNotNull);
-      expect(decoration.boxShadow!.isNotEmpty, isTrue);
+      // Capture initial glow alpha
+      BoxDecoration getDecoration() {
+        final container = tester.widget<Container>(
+          find.byKey(const ValueKey('status-glow-ring')),
+        );
+        return container.decoration as BoxDecoration;
+      }
+
+      final initialShadow = getDecoration().boxShadow!.first;
+      final initialAlpha = initialShadow.color.a;
+
+      // Advance animation by half the breathing duration
+      await tester.pump(GlowRingTokens.breathDuration ~/ 2);
+
+      final midShadow = getDecoration().boxShadow!.first;
+      final midAlpha = midShadow.color.a;
+
+      // Alpha should have changed during the animation
+      expect(midAlpha, isNot(equals(initialAlpha)));
     });
 
-    testWidgets('offline state has no box shadow', (tester) async {
+    testWidgets('offline state has no box shadow and no animation', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
@@ -179,12 +202,21 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       final container = tester.widget<Container>(
         find.byKey(const ValueKey('status-glow-ring')),
       );
       final decoration = container.decoration as BoxDecoration;
       expect(decoration.boxShadow, isNull);
+
+      // Advance time — decoration should remain unchanged (no animation)
+      await tester.pump(const Duration(seconds: 1));
+      final containerAfter = tester.widget<Container>(
+        find.byKey(const ValueKey('status-glow-ring')),
+      );
+      final decorationAfter = containerAfter.decoration as BoxDecoration;
+      expect(decorationAfter.boxShadow, isNull);
     });
 
     testWidgets('respects custom size parameter', (tester) async {
@@ -202,6 +234,7 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       final sizedBox = tester.widget<SizedBox>(
         find.byKey(const ValueKey('status-glow-ring-size')),
@@ -225,6 +258,7 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       expect(find.byKey(const ValueKey('inner-icon')), findsOneWidget);
     });
@@ -244,6 +278,7 @@ void main() {
           ),
         ),
       );
+      await tester.pump();
 
       final container = tester.widget<Container>(
         find.byKey(const ValueKey('status-glow-ring')),
@@ -251,6 +286,31 @@ void main() {
       final decoration = container.decoration as BoxDecoration;
       final border = decoration.border as Border;
       expect(border.top.color, AppColors.dark.primary);
+    });
+
+    testWidgets('uses GlowRingTokens for border width', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: Center(
+              child: StatusGlowRing(
+                status: GlowRingStatus.online,
+                size: 48,
+                child: Icon(Icons.person),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final container = tester.widget<Container>(
+        find.byKey(const ValueKey('status-glow-ring')),
+      );
+      final decoration = container.decoration as BoxDecoration;
+      final border = decoration.border as Border;
+      expect(border.top.width, GlowRingTokens.borderWidth);
     });
   });
 }

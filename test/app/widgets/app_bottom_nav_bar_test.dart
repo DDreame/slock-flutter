@@ -6,7 +6,9 @@ import 'package:slock_app/app/widgets/app_bottom_nav_bar.dart';
 
 void main() {
   group('AppBottomNavBar', () {
-    testWidgets('renders all destination labels and icons', (tester) async {
+    testWidgets('renders all destination labels and line icons', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
@@ -17,17 +19,14 @@ void main() {
               items: const [
                 AppBottomNavItem(
                   icon: Icons.space_dashboard_outlined,
-                  activeIcon: Icons.space_dashboard,
                   label: 'Workspace',
                 ),
                 AppBottomNavItem(
                   icon: Icons.smart_toy_outlined,
-                  activeIcon: Icons.smart_toy,
                   label: 'Agents',
                 ),
                 AppBottomNavItem(
                   icon: Icons.settings_outlined,
-                  activeIcon: Icons.settings,
                   label: 'Settings',
                 ),
               ],
@@ -39,12 +38,14 @@ void main() {
       expect(find.text('Workspace'), findsOneWidget);
       expect(find.text('Agents'), findsOneWidget);
       expect(find.text('Settings'), findsOneWidget);
-      expect(find.byIcon(Icons.space_dashboard), findsOneWidget);
+      // All icons are line-style (outlined) regardless of active state
+      expect(find.byIcon(Icons.space_dashboard_outlined), findsOneWidget);
       expect(find.byIcon(Icons.smart_toy_outlined), findsOneWidget);
       expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
     });
 
-    testWidgets('active item uses activeIcon and primary color', (
+    testWidgets(
+        'active item uses same line icon with primary color differentiation', (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -57,17 +58,14 @@ void main() {
               items: const [
                 AppBottomNavItem(
                   icon: Icons.space_dashboard_outlined,
-                  activeIcon: Icons.space_dashboard,
                   label: 'Workspace',
                 ),
                 AppBottomNavItem(
                   icon: Icons.smart_toy_outlined,
-                  activeIcon: Icons.smart_toy,
                   label: 'Agents',
                 ),
                 AppBottomNavItem(
                   icon: Icons.settings_outlined,
-                  activeIcon: Icons.settings,
                   label: 'Settings',
                 ),
               ],
@@ -76,15 +74,20 @@ void main() {
         ),
       );
 
-      // Active item shows filled icon
-      expect(find.byIcon(Icons.smart_toy), findsOneWidget);
-      // Inactive items show outlined icons
-      expect(find.byIcon(Icons.space_dashboard_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+      // All icons remain line-style
+      final icons = tester.widgetList<Icon>(find.byType(Icon)).toList();
+      expect(icons.length, 3);
 
-      // Active icon is colored with primary
-      final activeIcon = tester.widget<Icon>(find.byIcon(Icons.smart_toy));
+      // Active item (index 1) is colored with primary
+      final activeIcon =
+          tester.widgetList<Icon>(find.byIcon(Icons.smart_toy_outlined)).first;
       expect(activeIcon.color, AppColors.light.primary);
+
+      // Inactive items use textTertiary
+      final inactiveIcon = tester
+          .widgetList<Icon>(find.byIcon(Icons.space_dashboard_outlined))
+          .first;
+      expect(inactiveIcon.color, AppColors.light.textTertiary);
     });
 
     testWidgets('inactive items use textTertiary color', (tester) async {
@@ -98,12 +101,10 @@ void main() {
               items: const [
                 AppBottomNavItem(
                   icon: Icons.space_dashboard_outlined,
-                  activeIcon: Icons.space_dashboard,
                   label: 'Workspace',
                 ),
                 AppBottomNavItem(
                   icon: Icons.smart_toy_outlined,
-                  activeIcon: Icons.smart_toy,
                   label: 'Agents',
                 ),
               ],
@@ -132,17 +133,14 @@ void main() {
               items: const [
                 AppBottomNavItem(
                   icon: Icons.space_dashboard_outlined,
-                  activeIcon: Icons.space_dashboard,
                   label: 'Workspace',
                 ),
                 AppBottomNavItem(
                   icon: Icons.smart_toy_outlined,
-                  activeIcon: Icons.smart_toy,
                   label: 'Agents',
                 ),
                 AppBottomNavItem(
                   icon: Icons.settings_outlined,
-                  activeIcon: Icons.settings,
                   label: 'Settings',
                 ),
               ],
@@ -169,7 +167,6 @@ void main() {
               items: const [
                 AppBottomNavItem(
                   icon: Icons.space_dashboard_outlined,
-                  activeIcon: Icons.space_dashboard,
                   label: 'Workspace',
                 ),
               ],
@@ -194,7 +191,6 @@ void main() {
               items: const [
                 AppBottomNavItem(
                   icon: Icons.space_dashboard_outlined,
-                  activeIcon: Icons.space_dashboard,
                   label: 'Workspace',
                 ),
               ],
@@ -211,6 +207,31 @@ void main() {
       expect(decoration.border, isNotNull);
     });
 
+    testWidgets('icon uses NavBarTokens.iconSize', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            bottomNavigationBar: AppBottomNavBar(
+              currentIndex: 0,
+              onTap: (_) {},
+              items: const [
+                AppBottomNavItem(
+                  icon: Icons.space_dashboard_outlined,
+                  label: 'Workspace',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final icon = tester.widget<Icon>(
+        find.byIcon(Icons.space_dashboard_outlined),
+      );
+      expect(icon.size, NavBarTokens.iconSize);
+    });
+
     testWidgets('works with dark theme tokens', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -222,12 +243,10 @@ void main() {
               items: const [
                 AppBottomNavItem(
                   icon: Icons.space_dashboard_outlined,
-                  activeIcon: Icons.space_dashboard,
                   label: 'Workspace',
                 ),
                 AppBottomNavItem(
                   icon: Icons.smart_toy_outlined,
-                  activeIcon: Icons.smart_toy,
                   label: 'Agents',
                 ),
               ],
@@ -243,7 +262,7 @@ void main() {
       expect(decoration.color, AppColors.dark.surface);
 
       final activeIcon =
-          tester.widget<Icon>(find.byIcon(Icons.space_dashboard));
+          tester.widget<Icon>(find.byIcon(Icons.space_dashboard_outlined));
       expect(activeIcon.color, AppColors.dark.primary);
 
       final inactiveIcon =

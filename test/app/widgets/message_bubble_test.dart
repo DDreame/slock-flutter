@@ -52,12 +52,12 @@ void main() {
         ),
       );
 
-      final defaultTextStyle = tester.widget<DefaultTextStyle>(
-        find.descendant(
-          of: find.byKey(const ValueKey('message-bubble-container')),
-          matching: find.byType(DefaultTextStyle).first,
-        ),
+      final defaultTextStyleFinder = find.descendant(
+        of: find.byKey(const ValueKey('message-bubble-container')),
+        matching: find.byType(DefaultTextStyle),
       );
+      final defaultTextStyle =
+          tester.widget<DefaultTextStyle>(defaultTextStyleFinder.first);
       expect(
         defaultTextStyle.style.color,
         AppColors.light.primaryForeground,
@@ -161,12 +161,12 @@ void main() {
       expect(decoration?.color, isNull);
 
       // Text is italic
-      final defaultTextStyle = tester.widget<DefaultTextStyle>(
-        find.descendant(
-          of: find.byKey(const ValueKey('message-bubble-container')),
-          matching: find.byType(DefaultTextStyle).first,
-        ),
+      final defaultTextStyleFinder = find.descendant(
+        of: find.byKey(const ValueKey('message-bubble-container')),
+        matching: find.byType(DefaultTextStyle),
       );
+      final defaultTextStyle =
+          tester.widget<DefaultTextStyle>(defaultTextStyleFinder.first);
       expect(defaultTextStyle.style.fontStyle, FontStyle.italic);
     });
 
@@ -194,10 +194,12 @@ void main() {
       final radius = decoration.borderRadius as BorderRadius;
 
       // Self = right-aligned, so top-right corner should be small (6px)
-      expect(radius.topLeft, const Radius.circular(18));
-      expect(radius.topRight, const Radius.circular(6));
-      expect(radius.bottomLeft, const Radius.circular(18));
-      expect(radius.bottomRight, const Radius.circular(18));
+      expect(radius.topLeft, const Radius.circular(BubbleTokens.radiusLarge));
+      expect(radius.topRight, const Radius.circular(BubbleTokens.radiusSmall));
+      expect(
+          radius.bottomLeft, const Radius.circular(BubbleTokens.radiusLarge));
+      expect(
+          radius.bottomRight, const Radius.circular(BubbleTokens.radiusLarge));
     });
 
     testWidgets('other bubble has asymmetric corners (6px on sender side)', (
@@ -225,10 +227,12 @@ void main() {
       final radius = decoration.borderRadius as BorderRadius;
 
       // Other = left-aligned, so top-left corner should be small (6px)
-      expect(radius.topLeft, const Radius.circular(6));
-      expect(radius.topRight, const Radius.circular(18));
-      expect(radius.bottomLeft, const Radius.circular(18));
-      expect(radius.bottomRight, const Radius.circular(18));
+      expect(radius.topLeft, const Radius.circular(BubbleTokens.radiusSmall));
+      expect(radius.topRight, const Radius.circular(BubbleTokens.radiusLarge));
+      expect(
+          radius.bottomLeft, const Radius.circular(BubbleTokens.radiusLarge));
+      expect(
+          radius.bottomRight, const Radius.circular(BubbleTokens.radiusLarge));
     });
 
     testWidgets('dark theme applies correct colors', (tester) async {
@@ -278,7 +282,7 @@ void main() {
       // Max width should be capped (not take full width)
       expect(
         constrainedBox.constraints.maxWidth,
-        lessThanOrEqualTo(320),
+        BubbleTokens.maxWidth,
       );
     });
   });

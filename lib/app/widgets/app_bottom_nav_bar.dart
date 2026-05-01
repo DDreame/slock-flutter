@@ -3,20 +3,22 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 
+/// Named constants for [AppBottomNavBar] dimensions.
+abstract final class NavBarTokens {
+  /// Icon size for nav items.
+  static const double iconSize = 22;
+}
+
 /// A single navigation destination in [AppBottomNavBar].
 @immutable
 class AppBottomNavItem {
   const AppBottomNavItem({
     required this.icon,
-    required this.activeIcon,
     required this.label,
   });
 
-  /// Line-style icon shown when inactive.
+  /// Line-style icon (used for both active and inactive states).
   final IconData icon;
-
-  /// Filled icon shown when active.
-  final IconData activeIcon;
 
   /// Short text label beneath the icon.
   final String label;
@@ -99,7 +101,6 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isActive ? colors.primary : colors.textTertiary;
-    final icon = isActive ? item.activeIcon : item.icon;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -109,7 +110,7 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 22, color: color),
+            Icon(item.icon, size: NavBarTokens.iconSize, color: color),
             const SizedBox(height: AppSpacing.xs),
             Text(
               item.label,
