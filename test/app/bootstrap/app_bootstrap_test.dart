@@ -218,20 +218,26 @@ void main() {
       final fake = FakeCrashReporter();
       final storage = _FakeSecureStorage();
       final crashMarker = CrashMarkerService(storage: storage);
-      final previousHandler = FlutterError.onError;
-      addTearDown(() => FlutterError.onError = previousHandler);
+      final previousFlutterHandler = FlutterError.onError;
+      final previousPlatformHandler =
+          PlatformDispatcher.instance.onError;
+      addTearDown(() {
+        FlutterError.onError = previousFlutterHandler;
+        PlatformDispatcher.instance.onError = previousPlatformHandler;
+      });
 
       installErrorHandlers(fake, crashMarker: crashMarker);
 
-      // We cannot directly call PlatformDispatcher.instance.onError in tests
-      // since it may already be overridden. Instead verify the handler
-      // captures a FlutterError and marks the crash via that path.
-      final details = FlutterErrorDetails(exception: StateError('platform'));
-      FlutterError.onError!(details);
+      // Invoke the PlatformDispatcher error handler directly.
+      final handler = PlatformDispatcher.instance.onError;
+      expect(handler, isNotNull);
+      handler!(StateError('platform-crash'), StackTrace.current);
 
+      // Allow async markCrash to complete.
       await Future<void>.delayed(Duration.zero);
 
       expect(await crashMarker.hasCrashMarker(), isTrue);
+      expect(fake.capturedErrors, hasLength(1));
     });
 
     test('crash marker is not written when crashMarker param is null',
