@@ -304,14 +304,27 @@ void main() {
       await tester.pumpAndSettle();
 
       // Section headers should exist
-      expect(find.text('To Do'), findsOneWidget);
-      expect(find.text('In Progress'), findsOneWidget);
-      expect(find.text('Done'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('task-section-todo')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('task-section-in_progress')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('task-section-done')),
+        findsOneWidget,
+      );
 
       // To Do should appear before In Progress, which appears before Done
-      final todoY = tester.getCenter(find.text('To Do')).dy;
-      final progressY = tester.getCenter(find.text('In Progress')).dy;
-      final doneY = tester.getCenter(find.text('Done')).dy;
+      final todoY =
+          tester.getCenter(find.byKey(const ValueKey('task-section-todo'))).dy;
+      final progressY = tester
+          .getCenter(find.byKey(const ValueKey('task-section-in_progress')))
+          .dy;
+      final doneY =
+          tester.getCenter(find.byKey(const ValueKey('task-section-done'))).dy;
       expect(todoY, lessThan(progressY));
       expect(progressY, lessThan(doneY));
     });

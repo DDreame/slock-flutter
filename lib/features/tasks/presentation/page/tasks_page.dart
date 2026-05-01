@@ -458,6 +458,7 @@ class _TaskSectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      key: ValueKey('task-section-$status'),
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.pageHorizontal,
         AppSpacing.md,

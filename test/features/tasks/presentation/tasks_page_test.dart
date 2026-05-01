@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
@@ -23,7 +24,8 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
           tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: TasksPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -35,7 +37,7 @@ void main() {
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
-  testWidgets('status icons use theme-safe colors in dark theme', (
+  testWidgets('status symbols use theme-safe colors in dark theme', (
     tester,
   ) async {
     final theme = AppTheme.dark;
@@ -54,22 +56,18 @@ void main() {
     await tester.pumpWidget(_buildApp(store, theme: theme));
     await tester.pumpAndSettle();
 
-    expect(
-      tester.widget<Icon>(find.byIcon(Icons.radio_button_unchecked)).color,
-      theme.colorScheme.outline,
-    );
-    expect(
-      tester.widget<Icon>(find.byIcon(Icons.timelapse)).color,
-      theme.colorScheme.primary,
-    );
-    expect(
-      tester.widget<Icon>(find.byIcon(Icons.rate_review)).color,
-      theme.colorScheme.tertiary,
-    );
-    expect(
-      tester.widget<Icon>(find.byIcon(Icons.check_circle)).color,
-      theme.colorScheme.secondary,
-    );
+    // Status symbols use AppColors dark tokens
+    final todoSymbol = tester.widget<Text>(find.text('○'));
+    expect(todoSymbol.style?.color, AppColors.dark.textTertiary);
+
+    final progressSymbol = tester.widget<Text>(find.text('◐'));
+    expect(progressSymbol.style?.color, AppColors.dark.primary);
+
+    final reviewSymbol = tester.widget<Text>(find.text('◑'));
+    expect(reviewSymbol.style?.color, AppColors.dark.warning);
+
+    final doneSymbol = tester.widget<Text>(find.text('●'));
+    expect(doneSymbol.style?.color, AppColors.dark.success);
   });
 
   testWidgets('delete confirmation uses destructive theme tokens', (
@@ -120,7 +118,8 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
           tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: TasksPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -147,7 +146,8 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
           tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: TasksPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -174,7 +174,8 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
           tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: TasksPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -201,7 +202,8 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
           tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: TasksPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -226,7 +228,8 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
           tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: TasksPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -256,7 +259,8 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
           tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: TasksPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -289,7 +293,8 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
           tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: TasksPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -313,7 +318,7 @@ Widget _buildApp(_FakeTasksStore store, {ThemeData? theme}) {
       tasksRealtimeBindingProvider.overrideWith((ref) {}),
     ],
     child: MaterialApp(
-      theme: theme,
+      theme: theme ?? AppTheme.light,
       home: const TasksPage(serverId: 'server-1'),
     ),
   );
