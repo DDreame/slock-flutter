@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/message_content_widget.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
@@ -852,11 +854,19 @@ class _ConversationMessageCard extends ConsumerWidget {
                 ],
               ),
             ),
-          _MessageContentBody(
+          MessageContentWidget(
             message: message,
+            isSystem: visualKind == _ConversationMessageVisualKind.system,
+            kind: switch (visualKind) {
+              _ConversationMessageVisualKind.self => MessageBubbleKind.self,
+              _ConversationMessageVisualKind.agent => MessageBubbleKind.agent,
+              _ => MessageBubbleKind.other,
+            },
             highlightQuery: highlightQuery,
             baseStyle: bodyStyle,
             highlightColor: colors.primaryLight,
+            onLinkTap: (text, href, title) =>
+                _confirmAndLaunchUrl(context, href),
           ),
           if (message.attachments != null && message.attachments!.isNotEmpty)
             _AttachmentSection(attachments: message.attachments!),
@@ -1184,130 +1194,37 @@ class _MessageLinkedTaskBadge extends StatelessWidget {
   }
 }
 
-class _MessageContentBody extends StatelessWidget {
-  const _MessageContentBody({
-    required this.message,
-    this.highlightQuery = '',
-    this.baseStyle,
-    this.highlightColor,
-  });
+/// Shows a confirmation dialog before launching an external URL.
+Future<void> _confirmAndLaunchUrl(BuildContext context, String? href) async {
+  if (href == null || href.isEmpty) return;
+  final uri = Uri.tryParse(href);
+  if (uri == null) return;
 
-  final ConversationMessageSummary message;
-  final String highlightQuery;
-  final TextStyle? baseStyle;
-  final Color? highlightColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final effectiveBaseStyle = baseStyle ??
-        (message.isSystem
-            ? theme.textTheme.bodyMedium?.copyWith(fontStyle: FontStyle.italic)
-            : theme.textTheme.bodyMedium);
-
-    if (highlightQuery.isNotEmpty) {
-      return Text.rich(
-        _buildHighlightedSpan(
-          message.content,
-          highlightQuery,
-          effectiveBaseStyle,
-          highlightColor ?? theme.colorScheme.primaryContainer,
+  final colors = Theme.of(context).extension<AppColors>()!;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Open Link'),
+      content: Text(
+        'Open $href?',
+        style: TextStyle(color: colors.textSecondary),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Cancel'),
         ),
-        key: const ValueKey('message-content'),
-      );
-    }
-
-    final spans = _buildLinkifiedSpans(
-      message.content,
-      effectiveBaseStyle,
-      theme,
-    );
-    if (spans.length == 1 && spans.first is! WidgetSpan) {
-      return Text.rich(spans.first, key: const ValueKey('message-content'));
-    }
-    return Text.rich(
-      TextSpan(children: spans),
-      key: const ValueKey('message-content'),
-    );
-  }
-}
-
-final _urlPattern = RegExp(
-  r'https?://[^\s<>\[\]()]+',
-  caseSensitive: false,
-);
-
-List<InlineSpan> _buildLinkifiedSpans(
-  String text,
-  TextStyle? baseStyle,
-  ThemeData theme,
-) {
-  final matches = _urlPattern.allMatches(text).toList();
-  if (matches.isEmpty) {
-    return [TextSpan(text: text, style: baseStyle)];
-  }
-
-  final linkStyle = (baseStyle ?? const TextStyle()).copyWith(
-    color: theme.colorScheme.primary,
-    decoration: TextDecoration.underline,
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Open'),
+        ),
+      ],
+    ),
   );
 
-  final spans = <InlineSpan>[];
-  var lastEnd = 0;
-  for (final match in matches) {
-    if (match.start > lastEnd) {
-      spans.add(TextSpan(
-          text: text.substring(lastEnd, match.start), style: baseStyle));
-    }
-    spans.add(TextSpan(text: match.group(0), style: linkStyle));
-    lastEnd = match.end;
+  if (confirmed == true && context.mounted) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
-  if (lastEnd < text.length) {
-    spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
-  }
-  return spans;
-}
-
-TextSpan _buildHighlightedSpan(
-  String text,
-  String query,
-  TextStyle? baseStyle,
-  Color highlightColor,
-) {
-  if (query.isEmpty) {
-    return TextSpan(text: text, style: baseStyle);
-  }
-
-  final lowerText = text.toLowerCase();
-  final lowerQuery = query.toLowerCase();
-  final spans = <InlineSpan>[];
-  var lastEnd = 0;
-
-  var index = lowerText.indexOf(lowerQuery);
-  while (index != -1) {
-    if (index > lastEnd) {
-      spans.add(
-          TextSpan(text: text.substring(lastEnd, index), style: baseStyle));
-    }
-    spans.add(TextSpan(
-      text: text.substring(index, index + query.length),
-      style: (baseStyle ?? const TextStyle()).copyWith(
-        backgroundColor: highlightColor,
-        fontWeight: FontWeight.bold,
-      ),
-    ));
-    lastEnd = index + query.length;
-    index = lowerText.indexOf(lowerQuery, lastEnd);
-  }
-
-  if (lastEnd < text.length) {
-    spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
-  }
-
-  if (spans.isEmpty) {
-    return TextSpan(text: text, style: baseStyle);
-  }
-  return TextSpan(children: spans);
 }
 
 class _ConversationSearchBar extends StatefulWidget {
