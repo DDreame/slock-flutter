@@ -10,7 +10,10 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// complete AND the service is not already running.
 ///
 /// **Stop condition**: user is explicitly unauthenticated (not just
-/// unknown/bootstrapping) AND the service is currently running.
+/// unknown/bootstrapping). The auth flag is always cleared on
+/// unauthentication (even if the service is not currently running)
+/// so native boot/restart never restores a stale flag. The service
+/// is only actually stopped when it is running.
 ///
 /// On start the binding also persists a native-readable auth flag
 /// via [ForegroundServiceManager.setAuthFlag] so the Android boot
@@ -37,7 +40,6 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
     final running = await manager.isRunning;
 
     final shouldStart = session.isAuthenticated && appReady && !running;
-    final shouldStop = session.isUnauthenticated && running;
 
     if (shouldStart) {
       await manager.setAuthFlag(true);
@@ -45,9 +47,14 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
       return;
     }
 
-    if (shouldStop) {
+    // Always clear the auth flag on explicit unauthentication so
+    // native boot/restart never restores a stale `true` flag.
+    // Only stop the service when it is actually running.
+    if (session.isUnauthenticated) {
       await manager.setAuthFlag(false);
-      await manager.stopService();
+      if (running) {
+        await manager.stopService();
+      }
     }
   }
 

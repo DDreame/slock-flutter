@@ -284,5 +284,30 @@ void main() {
           reason: 'auth flag should be cleared on logout');
       expect(fakeManager.stopCalls, 1);
     });
+
+    test(
+        'clears auth flag on unauthenticated even when '
+        'service is not running', () async {
+      // Simulate: auth flag was previously set true (e.g.
+      // service started then was externally killed/failed).
+      fakeManager.lastAuthFlag = true;
+
+      container.read(
+        foregroundServiceLifecycleBindingProvider,
+      );
+
+      // Service is not running, session goes to
+      // unauthenticated — flag must still be cleared.
+      await container.read(sessionStoreProvider.notifier).logout();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeManager.lastAuthFlag, isFalse,
+          reason: 'auth flag should be cleared on '
+              'unauthenticated even when service is '
+              'not running');
+      expect(fakeManager.stopCalls, 0,
+          reason: 'should not call stop when service '
+              'is not running');
+    });
   });
 }
