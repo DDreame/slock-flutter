@@ -956,6 +956,51 @@ void main() {
   );
 
   testWidgets(
+    'DM status dot shows green when peer is a pinned active agent',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          agentsRepository: const _FakeAgentsRepository(
+            agents: [
+              AgentItem(
+                id: 'agent-alice',
+                name: 'alice',
+                displayName: 'Alice',
+                model: 'claude',
+                runtime: 'slock',
+                status: 'active',
+                activity: 'idle',
+              ),
+            ],
+          ),
+          sidebarOrderRepository: const _FakeSidebarOrderRepository(
+            sidebarOrder: SidebarOrder(
+              pinnedAgentIds: ['agent-alice'],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('dm-dm-alice')),
+      );
+
+      // Pinned agent should still show green status dot.
+      final dotFinder = find.byKey(const ValueKey('dm-status-dot'));
+      expect(dotFinder, findsOneWidget);
+      final dotContainer = tester.widget<Container>(dotFinder);
+      final decoration = dotContainer.decoration! as BoxDecoration;
+      expect(decoration.color, equals(AppColors.light.success));
+    },
+  );
+
+  testWidgets(
+    'console tiles display real counts from data providers',
     (tester) async {
       final router = _buildRouter();
 
@@ -1427,11 +1472,15 @@ class _FakeMemberRepository implements MemberRepository {
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  const _FakeSidebarOrderRepository();
+  const _FakeSidebarOrderRepository({
+    this.sidebarOrder = const SidebarOrder(),
+  });
+
+  final SidebarOrder sidebarOrder;
 
   @override
   Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
-    return const SidebarOrder();
+    return sidebarOrder;
   }
 
   @override

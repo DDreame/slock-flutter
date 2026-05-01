@@ -48,6 +48,8 @@ class _HomePageState extends ConsumerState<HomePage> {
     final onlineAgentNames = <String>{
       for (final agent in state.agents)
         if (agent.isActive) agent.label,
+      for (final agent in state.pinnedAgents)
+        if (agent.isActive) agent.label,
     };
 
     final pinnedConversationRows = _buildPinnedConversationRows(
