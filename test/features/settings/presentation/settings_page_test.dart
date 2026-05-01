@@ -11,7 +11,8 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
-  testWidgets('settings page navigates to profile, billing, release notes, '
+  testWidgets(
+      'settings page navigates to profile, billing, release notes, '
       'and notification settings', (tester) async {
     final sessionStore = _FakeSessionStore();
     final notificationStore = _FakeNotificationStore();
@@ -230,11 +231,11 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   SessionState build() => const SessionState(
-    status: AuthStatus.authenticated,
-    userId: 'user-123',
-    displayName: 'Alice',
-    token: 'token',
-  );
+        status: AuthStatus.authenticated,
+        userId: 'user-123',
+        displayName: 'Alice',
+        token: 'token',
+      );
 
   @override
   Future<void> logout() async {
@@ -246,8 +247,8 @@ class _FakeSessionStore extends SessionStore {
 class _FakeNotificationStore extends NotificationStore {
   @override
   NotificationState build() => const NotificationState(
-    permissionStatus: NotificationPermissionStatus.unknown,
-  );
+        permissionStatus: NotificationPermissionStatus.unknown,
+      );
 
   @override
   Future<void> requestPermission() async {
