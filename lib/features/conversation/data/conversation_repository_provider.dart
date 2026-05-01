@@ -42,7 +42,13 @@ class _ApiConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
   ) async {
     try {
-      final storedChannelTitle = await _readStoredChannelTitle(target);
+      String? storedChannelTitle;
+      try {
+        storedChannelTitle = await _readStoredChannelTitle(target);
+      } catch (_) {
+        // Local store read failure is non-fatal.
+      }
+
       final responses = await Future.wait([
         _appDioClient.get<Object?>(
           '$_messagesPathPrefix${target.conversationId}',
@@ -66,29 +72,33 @@ class _ApiConversationRepository implements ConversationRepository {
         fallbackChannelTitle: storedChannelTitle,
       );
 
-      await _localStore.upsertMessages(messagesPayload.storedMessages);
-      await _localStore.upsertIdentities(messagesPayload.identities);
-      await _localStore.upsertConversationSummaries(
-        [
-          LocalConversationSummaryUpsert(
-            serverId: target.serverId.value,
-            conversationId: target.conversationId,
-            surface: _surfaceKey(target.surface),
-            title: metadata.summaryTitle,
-            sortIndex: 0,
-            lastMessageId: messagesPayload.messages.isEmpty
-                ? null
-                : messagesPayload.messages.last.id,
-            lastMessagePreview: messagesPayload.messages.isEmpty
-                ? null
-                : messagesPayload.messages.last.content,
-            lastActivityAt: messagesPayload.messages.isEmpty
-                ? null
-                : messagesPayload.messages.last.createdAt,
-          ),
-        ],
-        preserveExistingSortIndex: true,
-      );
+      try {
+        await _localStore.upsertMessages(messagesPayload.storedMessages);
+        await _localStore.upsertIdentities(messagesPayload.identities);
+        await _localStore.upsertConversationSummaries(
+          [
+            LocalConversationSummaryUpsert(
+              serverId: target.serverId.value,
+              conversationId: target.conversationId,
+              surface: _surfaceKey(target.surface),
+              title: metadata.summaryTitle,
+              sortIndex: 0,
+              lastMessageId: messagesPayload.messages.isEmpty
+                  ? null
+                  : messagesPayload.messages.last.id,
+              lastMessagePreview: messagesPayload.messages.isEmpty
+                  ? null
+                  : messagesPayload.messages.last.content,
+              lastActivityAt: messagesPayload.messages.isEmpty
+                  ? null
+                  : messagesPayload.messages.last.createdAt,
+            ),
+          ],
+          preserveExistingSortIndex: true,
+        );
+      } catch (_) {
+        // Local store write failure is non-fatal.
+      }
 
       return ConversationDetailSnapshot(
         target: target,
@@ -145,8 +155,12 @@ class _ApiConversationRepository implements ConversationRepository {
         serverId: target.serverId.value,
         conversationId: target.conversationId,
       );
-      await _localStore.upsertMessages(payload.storedMessages);
-      await _localStore.upsertIdentities(payload.identities);
+      try {
+        await _localStore.upsertMessages(payload.storedMessages);
+        await _localStore.upsertIdentities(payload.identities);
+      } catch (_) {
+        // Local store write failure is non-fatal.
+      }
       return ConversationMessagePage(
         messages: payload.messages,
         historyLimited: payload.historyLimited,
@@ -181,17 +195,21 @@ class _ApiConversationRepository implements ConversationRepository {
         serverId: target.serverId.value,
         conversationId: target.conversationId,
       );
-      await _localStore.upsertMessages(payload.storedMessages);
-      await _localStore.upsertIdentities(payload.identities);
-      if (payload.messages.isNotEmpty) {
-        final latest = payload.messages.last;
-        await _localStore.touchConversationSummary(
-          serverId: target.serverId.value,
-          conversationId: target.conversationId,
-          lastMessageId: latest.id,
-          preview: latest.content,
-          activityAt: latest.createdAt,
-        );
+      try {
+        await _localStore.upsertMessages(payload.storedMessages);
+        await _localStore.upsertIdentities(payload.identities);
+        if (payload.messages.isNotEmpty) {
+          final latest = payload.messages.last;
+          await _localStore.touchConversationSummary(
+            serverId: target.serverId.value,
+            conversationId: target.conversationId,
+            lastMessageId: latest.id,
+            preview: latest.content,
+            activityAt: latest.createdAt,
+          );
+        }
+      } catch (_) {
+        // Local store write failure is non-fatal.
       }
       return ConversationMessagePage(
         messages: payload.messages,
@@ -285,21 +303,24 @@ class _ApiConversationRepository implements ConversationRepository {
         conversationId: target.conversationId,
         payloadName: 'sendMessageResponse',
       );
-      await _localStore.upsertMessages([stored]);
-      await _localStore.upsertIdentities(
-        _extractIdentityUpserts(
-          response.data,
-          serverId: target.serverId.value,
-          senderIdFallback: null,
-        ),
-      );
-      await _localStore.touchConversationSummary(
+      final identities = _extractIdentityUpserts(
+        response.data,
         serverId: target.serverId.value,
-        conversationId: target.conversationId,
-        lastMessageId: message.id,
-        preview: message.content,
-        activityAt: message.createdAt,
+        senderIdFallback: null,
       );
+      try {
+        await _localStore.upsertMessages([stored]);
+        await _localStore.upsertIdentities(identities);
+        await _localStore.touchConversationSummary(
+          serverId: target.serverId.value,
+          conversationId: target.conversationId,
+          lastMessageId: message.id,
+          preview: message.content,
+          activityAt: message.createdAt,
+        );
+      } catch (_) {
+        // Local store write failure is non-fatal.
+      }
       return message;
     } on AppFailure {
       rethrow;

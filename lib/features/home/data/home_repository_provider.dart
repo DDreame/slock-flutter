@@ -135,69 +135,80 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
     serverId: serverId,
   );
 
-  await localStore.upsertConversationSummaries([
-    ...channelSummaries.asMap().entries.map(
-          (entry) => LocalConversationSummaryUpsert(
-            serverId: serverId.value,
-            conversationId: entry.value.scopeId.value,
-            surface: _channelSurface,
-            title: entry.value.name,
-            sortIndex: entry.key,
-            lastMessageId: entry.value.lastMessageId,
-            lastMessagePreview: entry.value.lastMessagePreview,
-            lastActivityAt: entry.value.lastActivityAt,
+  try {
+    await localStore.upsertConversationSummaries([
+      ...channelSummaries.asMap().entries.map(
+            (entry) => LocalConversationSummaryUpsert(
+              serverId: serverId.value,
+              conversationId: entry.value.scopeId.value,
+              surface: _channelSurface,
+              title: entry.value.name,
+              sortIndex: entry.key,
+              lastMessageId: entry.value.lastMessageId,
+              lastMessagePreview: entry.value.lastMessagePreview,
+              lastActivityAt: entry.value.lastActivityAt,
+            ),
           ),
-        ),
-    ...directMessageSummaries.asMap().entries.map(
-          (entry) => LocalConversationSummaryUpsert(
-            serverId: serverId.value,
-            conversationId: entry.value.scopeId.value,
-            surface: _directMessageSurface,
-            title: entry.value.title,
-            sortIndex: entry.key,
-            lastMessageId: entry.value.lastMessageId,
-            lastMessagePreview: entry.value.lastMessagePreview,
-            lastActivityAt: entry.value.lastActivityAt,
+      ...directMessageSummaries.asMap().entries.map(
+            (entry) => LocalConversationSummaryUpsert(
+              serverId: serverId.value,
+              conversationId: entry.value.scopeId.value,
+              surface: _directMessageSurface,
+              title: entry.value.title,
+              sortIndex: entry.key,
+              lastMessageId: entry.value.lastMessageId,
+              lastMessagePreview: entry.value.lastMessagePreview,
+              lastActivityAt: entry.value.lastActivityAt,
+            ),
           ),
-        ),
-  ]);
+    ]);
 
-  final storedChannels = await localStore.listConversationSummaries(
-    serverId.value,
-    surface: _channelSurface,
-  );
-  final storedDirectMessages = await localStore.listConversationSummaries(
-    serverId.value,
-    surface: _directMessageSurface,
-  );
+    final storedChannels = await localStore.listConversationSummaries(
+      serverId.value,
+      surface: _channelSurface,
+    );
+    final storedDirectMessages = await localStore.listConversationSummaries(
+      serverId.value,
+      surface: _directMessageSurface,
+    );
 
-  return HomeWorkspaceSnapshot(
-    serverId: serverId,
-    channels: storedChannels
-        .map((row) => HomeChannelSummary(
-              scopeId: ChannelScopeId(
-                serverId: serverId,
-                value: row.conversationId,
-              ),
-              name: row.title,
-              lastMessageId: row.lastMessageId,
-              lastMessagePreview: row.lastMessagePreview,
-              lastActivityAt: row.lastActivityAt,
-            ))
-        .toList(growable: false),
-    directMessages: storedDirectMessages
-        .map((row) => HomeDirectMessageSummary(
-              scopeId: DirectMessageScopeId(
-                serverId: serverId,
-                value: row.conversationId,
-              ),
-              title: row.title,
-              lastMessageId: row.lastMessageId,
-              lastMessagePreview: row.lastMessagePreview,
-              lastActivityAt: row.lastActivityAt,
-            ))
-        .toList(growable: false),
-  );
+    return HomeWorkspaceSnapshot(
+      serverId: serverId,
+      channels: storedChannels
+          .map((row) => HomeChannelSummary(
+                scopeId: ChannelScopeId(
+                  serverId: serverId,
+                  value: row.conversationId,
+                ),
+                name: row.title,
+                lastMessageId: row.lastMessageId,
+                lastMessagePreview: row.lastMessagePreview,
+                lastActivityAt: row.lastActivityAt,
+              ))
+          .toList(growable: false),
+      directMessages: storedDirectMessages
+          .map((row) => HomeDirectMessageSummary(
+                scopeId: DirectMessageScopeId(
+                  serverId: serverId,
+                  value: row.conversationId,
+                ),
+                title: row.title,
+                lastMessageId: row.lastMessageId,
+                lastMessagePreview: row.lastMessagePreview,
+                lastActivityAt: row.lastActivityAt,
+              ))
+          .toList(growable: false),
+    );
+  } on AppFailure {
+    rethrow;
+  } catch (_) {
+    // Local store failure is non-fatal — return API-parsed data directly.
+    return HomeWorkspaceSnapshot(
+      serverId: serverId,
+      channels: channelSummaries,
+      directMessages: directMessageSummaries,
+    );
+  }
 }
 
 Future<HomeWorkspaceSnapshot?> _loadCachedWorkspaceSnapshot({
