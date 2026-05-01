@@ -782,7 +782,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: SizedBox.shrink()),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SizedBox.shrink(),
+        ),
       ),
     );
     await tester.pumpAndSettle();

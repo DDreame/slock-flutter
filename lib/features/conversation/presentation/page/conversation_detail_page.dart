@@ -823,7 +823,6 @@ class _ConversationMessageCard extends ConsumerWidget {
                             color: foregroundColor,
                           )),
                     ),
-                  if (showSenderLabel) const Spacer(),
                   if (message.isPinned)
                     Padding(
                       padding: const EdgeInsets.only(right: 4),

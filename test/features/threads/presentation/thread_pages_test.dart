@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -263,7 +264,10 @@ void main() {
           conversationRepositoryProvider
               .overrideWithValue(conversationRepository),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.light,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -428,7 +432,7 @@ Widget _buildApp({
         conversationRepositoryProvider
             .overrideWithValue(conversationRepository),
     ],
-    child: MaterialApp(home: child),
+    child: MaterialApp(theme: AppTheme.light, home: child),
   );
 }
 
@@ -438,7 +442,7 @@ Widget _buildAppWithContainer({
 }) {
   return UncontrolledProviderScope(
     container: container,
-    child: MaterialApp(home: child),
+    child: MaterialApp(theme: AppTheme.light, home: child),
   );
 }
 
