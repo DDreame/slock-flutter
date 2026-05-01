@@ -66,7 +66,7 @@ void main() {
       // Compile-time type check — if the return type were wrong, the
       // assignment would fail to compile.
       // ignore: unused_local_variable
-      final Future<bool?> Function(BuildContext) fn = CrashRecoveryDialog.show;
+      const Future<bool?> Function(BuildContext) fn = CrashRecoveryDialog.show;
     });
 
     testWidgets('renders warning icon', (tester) async {
