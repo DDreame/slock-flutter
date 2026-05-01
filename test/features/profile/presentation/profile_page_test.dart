@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
@@ -115,7 +116,10 @@ void main() {
             const _FakeMemberRepository(channelId: 'dm-789'),
           ),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -183,7 +187,7 @@ Widget _buildApp({
       if (memberRepository != null)
         memberRepositoryProvider.overrideWithValue(memberRepository),
     ],
-    child: MaterialApp(home: child),
+    child: MaterialApp(theme: AppTheme.light, home: child),
   );
 }
 

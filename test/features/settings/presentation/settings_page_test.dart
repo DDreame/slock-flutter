@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
@@ -24,7 +25,10 @@ void main() {
             sessionStoreProvider.overrideWith(() => sessionStore),
             notificationStoreProvider.overrideWith(() => notificationStore),
           ],
-          child: MaterialApp.router(routerConfig: router),
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+          ),
         ),
       );
       await tester.pumpAndSettle();
