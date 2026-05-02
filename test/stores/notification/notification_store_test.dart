@@ -171,14 +171,17 @@ void main() {
       );
     });
 
-    test('refreshToken does not update when token unchanged', () async {
+    test('refreshToken updates timestamp even when token unchanged', () async {
       fakeInitializer.tokenResult = 'same-token';
       await readStore().refreshToken();
       final firstUpdatedAt = readState().pushTokenUpdatedAt;
 
+      // Small delay to ensure DateTime.now() differs
+      await Future<void>.delayed(const Duration(milliseconds: 2));
       await readStore().refreshToken();
 
-      expect(readState().pushTokenUpdatedAt, firstUpdatedAt);
+      // Timestamp should update on every successful refresh
+      expect(readState().pushTokenUpdatedAt, isNot(firstUpdatedAt));
     });
 
     test('refreshToken hydrates platform when token unchanged', () async {

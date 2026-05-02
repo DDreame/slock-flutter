@@ -99,16 +99,18 @@ class NotificationStore extends Notifier<NotificationState> {
     platform ??= Platform.operatingSystem;
     final token = await _initializer.getToken();
     if (token == null) return;
+    final now = DateTime.now();
     final tokenChanged = token != state.pushToken;
     final platformChanged = platform != state.pushTokenPlatform;
+    // Always update the timestamp to reflect the last registration
+    // attempt, even when the token and platform are unchanged.
+    state = state.copyWith(
+      pushToken: token,
+      pushTokenPlatform: platform,
+      pushTokenUpdatedAt: now,
+    );
+    await _persistPushToken(token, now, platform: platform);
     if (tokenChanged || platformChanged) {
-      final now = DateTime.now();
-      state = state.copyWith(
-        pushToken: token,
-        pushTokenPlatform: platform,
-        pushTokenUpdatedAt: now,
-      );
-      await _persistPushToken(token, now, platform: platform);
       _diagnostics.add(DiagnosticsEntry(
         timestamp: DateTime.now(),
         level: DiagnosticsLevel.info,

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,19 +10,23 @@ import 'package:slock_app/stores/notification/notification_lifecycle_binding.dar
 import 'package:slock_app/stores/notification/notification_store.dart';
 
 class _FakeNotificationInitializer implements NotificationInitializer {
+  NotificationPermissionStatus permissionStatus =
+      NotificationPermissionStatus.unknown;
+  String? tokenResult;
+
   @override
   Future<void> init() async {}
 
   @override
   Future<NotificationPermissionStatus> requestPermission() async =>
-      NotificationPermissionStatus.unknown;
+      permissionStatus;
 
   @override
   Future<NotificationPermissionStatus> getPermissionStatus() async =>
-      NotificationPermissionStatus.unknown;
+      permissionStatus;
 
   @override
-  Future<String?> getToken() async => null;
+  Future<String?> getToken() async => tokenResult;
 
   @override
   Future<Map<String, dynamic>?> getInitialNotification() async => null;
@@ -126,6 +132,65 @@ void main() {
         container.read(notificationStoreProvider).lifecycleStatus,
         AppLifecycleStatus.inactive,
       );
+    });
+
+    testWidgets('resume auto-refreshes token when permission granted',
+        (tester) async {
+      final fakeInitializer = _FakeNotificationInitializer();
+      fakeInitializer.permissionStatus = NotificationPermissionStatus.granted;
+      fakeInitializer.tokenResult = 'resume-token';
+
+      final container = ProviderContainer(
+        overrides: [
+          notificationInitializerProvider.overrideWithValue(fakeInitializer),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Init the store so permission status is populated.
+      await container.read(notificationStoreProvider.notifier).init();
+      // Activate the lifecycle binding.
+      container.read(notificationLifecycleBindingProvider);
+
+      // Simulate resume.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      // refreshToken is fire-and-forget — pump to let it settle.
+      await tester.pumpAndSettle();
+
+      final state = container.read(notificationStoreProvider);
+      expect(state.pushToken, 'resume-token');
+      expect(state.pushTokenPlatform, Platform.operatingSystem);
+      expect(state.pushTokenUpdatedAt, isNotNull);
+    });
+
+    testWidgets('resume does not refresh token when permission denied',
+        (tester) async {
+      final fakeInitializer = _FakeNotificationInitializer();
+      fakeInitializer.permissionStatus = NotificationPermissionStatus.denied;
+      fakeInitializer.tokenResult = 'should-not-appear';
+
+      final container = ProviderContainer(
+        overrides: [
+          notificationInitializerProvider.overrideWithValue(fakeInitializer),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Init the store so permission status is populated.
+      await container.read(notificationStoreProvider.notifier).init();
+      // Activate the lifecycle binding.
+      container.read(notificationLifecycleBindingProvider);
+
+      // Simulate resume.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      final state = container.read(notificationStoreProvider);
+      expect(state.pushToken, isNull);
     });
   });
 }
