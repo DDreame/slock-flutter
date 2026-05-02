@@ -13,6 +13,7 @@ import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   AgentItem makeAgent({
@@ -154,8 +155,11 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child:
-                MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+            child: MaterialApp.router(
+                theme: AppTheme.light,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                routerConfig: router),
           ),
         );
 
@@ -230,8 +234,11 @@ void main() {
                 RealtimeReductionIngress(),
               ),
             ],
-            child:
-                MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+            child: MaterialApp.router(
+                theme: AppTheme.light,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                routerConfig: router),
           ),
         );
 
@@ -422,6 +429,8 @@ void main() {
             ],
             child: MaterialApp(
                 theme: AppTheme.light,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
                 home: const TickerMode(
                     enabled: false, child: AgentsPage(serverId: 'server-1'))),
           ),
@@ -601,6 +610,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: theme,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const TickerMode(
               enabled: false,
               child: AgentsPage(serverId: 'server-1'),
