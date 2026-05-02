@@ -1689,7 +1689,11 @@ class _HtmlAttachmentRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    context.l10n.attachmentHtmlOpensInBrowser,
+                    [
+                      context.l10n.attachmentHtmlOpensInBrowser,
+                      if (attachment.formattedSize != null)
+                        attachment.formattedSize!,
+                    ].join(' · '),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -1753,7 +1757,10 @@ class _GenericFileAttachmentRow extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            attachment.type,
+            [
+              attachment.type,
+              if (attachment.formattedSize != null) attachment.formattedSize!,
+            ].join(' · '),
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),

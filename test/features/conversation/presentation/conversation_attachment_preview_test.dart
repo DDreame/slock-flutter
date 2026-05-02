@@ -299,6 +299,103 @@ void main() {
       reason: 'Image without URL should fall back to generic file row',
     );
   });
+
+  testWidgets('file attachment with sizeBytes displays formatted size',
+      (tester) async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'msg-sized',
+            content: '',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            attachments: const [
+              MessageAttachment(
+                name: 'archive.zip',
+                type: 'application/zip',
+                url: 'https://example.com/archive.zip',
+                id: 'att-sized',
+                sizeBytes: 2500000,
+              ),
+            ],
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(repository: repository, target: target),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('file-attachment-att-sized')),
+      findsOneWidget,
+    );
+    // Should display "application/zip · 2.4 MB"
+    expect(
+      find.textContaining('2.4 MB'),
+      findsOneWidget,
+      reason: 'File row should show formatted size when sizeBytes '
+          'is present',
+    );
+  });
+
+  testWidgets('file attachment without sizeBytes omits size', (tester) async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'msg-nosize',
+            content: '',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            attachments: const [
+              MessageAttachment(
+                name: 'doc.txt',
+                type: 'text/plain',
+                url: 'https://example.com/doc.txt',
+                id: 'att-nosize',
+              ),
+            ],
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(repository: repository, target: target),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('file-attachment-att-nosize')),
+      findsOneWidget,
+    );
+    // Should display just "text/plain" without size
+    expect(
+      find.textContaining('MB'),
+      findsNothing,
+      reason: 'File row should not show size when sizeBytes is absent',
+    );
+    expect(
+      find.textContaining('KB'),
+      findsNothing,
+    );
+  });
 }
 
 Widget _buildApp({
