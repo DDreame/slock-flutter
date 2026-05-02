@@ -814,6 +814,36 @@ abstract class AppLocalizations {
   /// **'{count}d ago'**
   String homeCardTimeAgoDays(int count);
 
+  /// No description provided for @homeCardUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'UNREAD'**
+  String get homeCardUnread;
+
+  /// No description provided for @homeCardUnreadEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'All caught up'**
+  String get homeCardUnreadEmpty;
+
+  /// No description provided for @homeCardUnreadOverflow.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String homeCardUnreadOverflow(int count);
+
+  /// No description provided for @homeCardUnreadBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}'**
+  String homeCardUnreadBadge(int count);
+
+  /// No description provided for @homeCardUnreadMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get homeCardUnreadMarkAllRead;
+
   /// No description provided for @homeSectionPinned.
   ///
   /// In en, this message translates to:

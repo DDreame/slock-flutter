@@ -414,6 +414,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get homeCardUnread => 'UNREAD';
+
+  @override
+  String get homeCardUnreadEmpty => 'All caught up';
+
+  @override
+  String homeCardUnreadOverflow(int count) {
+    return '+$count more';
+  }
+
+  @override
+  String homeCardUnreadBadge(int count) {
+    return '$count';
+  }
+
+  @override
+  String get homeCardUnreadMarkAllRead => 'Mark all read';
+
+  @override
   String get homeSectionPinned => 'Pinned';
 
   @override

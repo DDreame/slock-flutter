@@ -126,6 +126,11 @@
   "homeCardTimeAgoMinutes": "hace {count}m",
   "homeCardTimeAgoHours": "hace {count}h",
   "homeCardTimeAgoDays": "hace {count}d",
+  "homeCardUnread": "NO LEIDOS",
+  "homeCardUnreadEmpty": "Todo al dia",
+  "homeCardUnreadOverflow": "+{count} mas",
+  "homeCardUnreadBadge": "{count}",
+  "homeCardUnreadMarkAllRead": "Marcar todo como leido",
 
   "homeSectionPinned": "Pinned",
   "homeSectionChannels": "Channels",

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
@@ -11,6 +12,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/application/home_tasks_realtime_binding.dart';
+import 'package:slock_app/features/home/application/home_unread_item.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
@@ -18,6 +20,7 @@ import 'package:slock_app/features/servers/presentation/widgets/server_switcher_
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -91,6 +94,17 @@ class _HomePageState extends ConsumerState<HomePage> {
                     (sum, c) => sum + c,
                   ),
                   onViewAll: () => _pushServerRoute('channels'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _HomeUnreadSection(
+                  key: const ValueKey('home-card-unread'),
+                  threadItems: state.threadItems,
+                  channels: [
+                    ...state.pinnedChannels,
+                    ...state.channels,
+                  ],
+                  directMessages: state.directMessages,
+                  unreadState: unreadState,
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _HomeTasksSection(
@@ -729,6 +743,388 @@ class _TaskStatusChip extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Threads summary card with filter chips
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Unread section
+// ---------------------------------------------------------------------------
+
+const _maxVisibleUnreads = 5;
+
+class _HomeUnreadSection extends StatelessWidget {
+  const _HomeUnreadSection({
+    super.key,
+    required this.threadItems,
+    required this.channels,
+    required this.directMessages,
+    required this.unreadState,
+  });
+
+  final List<ThreadInboxItem> threadItems;
+  final List<HomeChannelSummary> channels;
+  final List<HomeDirectMessageSummary> directMessages;
+  final ChannelUnreadState unreadState;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    final unreadItems = _buildUnreadItems();
+
+    return _SummaryCardBase(
+      accentColor: colors.error,
+      title: l10n.homeCardUnread,
+      onViewAll: () {},
+      child: unreadItems.isEmpty
+          ? const _UnreadEmptyState(
+              key: ValueKey('home-unread-empty'),
+            )
+          : _UnreadListContent(
+              key: const ValueKey('home-unread-list'),
+              unreadItems: unreadItems,
+            ),
+    );
+  }
+
+  List<HomeUnreadItem> _buildUnreadItems() {
+    final items = <HomeUnreadItem>[];
+
+    // Threads with unread > 0
+    for (final thread in threadItems) {
+      if (thread.unreadCount > 0) {
+        items.add(HomeUnreadItem.fromThread(thread));
+      }
+    }
+
+    // Channels with unread > 0
+    for (final entry in unreadState.channelUnreadCounts.entries) {
+      if (entry.value > 0) {
+        final channel = _findChannel(entry.key);
+        if (channel != null) {
+          items.add(
+            HomeUnreadItem.fromChannel(channel, entry.value),
+          );
+        }
+      }
+    }
+
+    // DMs with unread > 0
+    for (final entry in unreadState.dmUnreadCounts.entries) {
+      if (entry.value > 0) {
+        final dm = _findDm(entry.key);
+        if (dm != null) {
+          items.add(
+            HomeUnreadItem.fromDirectMessage(dm, entry.value),
+          );
+        }
+      }
+    }
+
+    // Sort by last activity (most recent first), nulls last
+    items.sort((a, b) {
+      final aTime = a.lastActivityAt;
+      final bTime = b.lastActivityAt;
+      if (aTime == null && bTime == null) return 0;
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+      return bTime.compareTo(aTime);
+    });
+
+    return items;
+  }
+
+  HomeChannelSummary? _findChannel(ChannelScopeId scopeId) {
+    for (final ch in channels) {
+      if (ch.scopeId == scopeId) return ch;
+    }
+    return null;
+  }
+
+  HomeDirectMessageSummary? _findDm(DirectMessageScopeId scopeId) {
+    for (final dm in directMessages) {
+      if (dm.scopeId == scopeId) return dm;
+    }
+    return null;
+  }
+}
+
+class _UnreadListContent extends ConsumerWidget {
+  const _UnreadListContent({
+    super.key,
+    required this.unreadItems,
+  });
+
+  final List<HomeUnreadItem> unreadItems;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+    final now = ref.watch(homeNowProvider);
+
+    final visible = unreadItems.take(_maxVisibleUnreads).toList();
+    final overflowCount = unreadItems.length - visible.length;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: GestureDetector(
+            key: const ValueKey('home-unread-mark-all'),
+            onTap: () => _markAllRead(ref),
+            child: Padding(
+              padding: const EdgeInsets.only(
+                bottom: AppSpacing.xs,
+              ),
+              child: Text(
+                l10n.homeCardUnreadMarkAllRead,
+                style: AppTypography.caption.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ),
+        for (final item in visible)
+          _UnreadItemRow(
+            key: ValueKey('unread-item-${item.id}'),
+            item: item,
+            now: now,
+          ),
+        if (overflowCount > 0)
+          Padding(
+            key: const ValueKey('home-unread-overflow'),
+            padding: const EdgeInsets.only(
+              top: AppSpacing.xs,
+            ),
+            child: Text(
+              l10n.homeCardUnreadOverflow(overflowCount),
+              style: AppTypography.caption.copyWith(
+                color: colors.textTertiary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _markAllRead(WidgetRef ref) {
+    final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
+
+    for (final item in unreadItems) {
+      switch (item.kind) {
+        case HomeUnreadKind.channel:
+          if (item.channelScopeId != null) {
+            unreadStore.markChannelRead(item.channelScopeId!);
+          }
+        case HomeUnreadKind.directMessage:
+          if (item.dmScopeId != null) {
+            unreadStore.markDmRead(item.dmScopeId!);
+          }
+        case HomeUnreadKind.thread:
+          break; // No local thread unread API
+      }
+    }
+  }
+}
+
+class _UnreadEmptyState extends StatelessWidget {
+  const _UnreadEmptyState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    return Row(
+      children: [
+        Icon(
+          Icons.mark_email_read_outlined,
+          size: 20,
+          color: colors.textTertiary,
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          l10n.homeCardUnreadEmpty,
+          style: AppTypography.caption.copyWith(
+            color: colors.textTertiary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _UnreadItemRow extends StatelessWidget {
+  const _UnreadItemRow({
+    super.key,
+    required this.item,
+    required this.now,
+  });
+
+  final HomeUnreadItem item;
+  final DateTime now;
+
+  IconData get _kindIcon {
+    switch (item.kind) {
+      case HomeUnreadKind.thread:
+        return Icons.reply;
+      case HomeUnreadKind.channel:
+        return Icons.tag;
+      case HomeUnreadKind.directMessage:
+        return Icons.mail_outline;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return GestureDetector(
+      onTap: () => _navigateTo(context),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xs,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _kindIcon,
+              size: 16,
+              color: colors.textTertiary,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: AppTypography.body.copyWith(
+                      color: colors.text,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (item.preview != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      item.preview!,
+                      style: AppTypography.caption.copyWith(
+                        color: colors.textTertiary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            if (item.lastActivityAt != null)
+              _TimeAgoLabel(
+                time: item.lastActivityAt!,
+                now: now,
+              ),
+            const SizedBox(width: AppSpacing.xs),
+            _UnreadBadge(count: item.unreadCount),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _navigateTo(BuildContext context) {
+    switch (item.kind) {
+      case HomeUnreadKind.thread:
+        if (item.threadRouteTarget != null) {
+          context.push(item.threadRouteTarget!.toLocation());
+        }
+      case HomeUnreadKind.channel:
+        if (item.channelScopeId != null) {
+          final sid = item.channelScopeId!.serverId.routeParam;
+          final cid = item.channelScopeId!.routeParam;
+          context.push('/servers/$sid/channels/$cid');
+        }
+      case HomeUnreadKind.directMessage:
+        if (item.dmScopeId != null) {
+          final sid = item.dmScopeId!.serverId.routeParam;
+          final did = item.dmScopeId!.routeParam;
+          context.push('/servers/$sid/dms/$did');
+        }
+    }
+  }
+}
+
+class _TimeAgoLabel extends StatelessWidget {
+  const _TimeAgoLabel({
+    required this.time,
+    required this.now,
+  });
+
+  final DateTime time;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+    final diff = now.difference(time);
+
+    final String text;
+    if (diff.inMinutes < 1) {
+      text = l10n.homeCardTimeAgoNow;
+    } else if (diff.inHours < 1) {
+      text = l10n.homeCardTimeAgoMinutes(diff.inMinutes);
+    } else if (diff.inDays < 1) {
+      text = l10n.homeCardTimeAgoHours(diff.inHours);
+    } else {
+      text = l10n.homeCardTimeAgoDays(diff.inDays);
+    }
+
+    return Text(
+      text,
+      style: AppTypography.caption.copyWith(
+        color: colors.textTertiary,
+        fontSize: 11,
+      ),
+    );
+  }
+}
+
+class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 6,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: colors.error,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        style: AppTypography.caption.copyWith(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+}
 
 enum _ThreadFilter { unread, read, all }
 
