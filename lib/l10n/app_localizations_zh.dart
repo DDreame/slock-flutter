@@ -285,6 +285,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get homeCardAgentsEmpty => '所有智能体离线';
+
+  @override
   String get homeCardChannels => '频道';
 
   @override
@@ -359,7 +362,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeCardThreadsEmpty => '暂无话题';
 
   @override
-  String get homeCardAgentActivityIdle => '空闲';
+  String get homeCardAgentActivityOnline => '在线';
 
   @override
   String get homeCardAgentActivityThinking => '思考中';

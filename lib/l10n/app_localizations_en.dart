@@ -307,6 +307,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get homeCardAgentsEmpty => 'All agents offline';
+
+  @override
   String get homeCardChannels => 'CHANNELS';
 
   @override
@@ -381,7 +384,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeCardThreadsEmpty => 'No threads';
 
   @override
-  String get homeCardAgentActivityIdle => 'idle';
+  String get homeCardAgentActivityOnline => 'online';
 
   @override
   String get homeCardAgentActivityThinking => 'thinking';
