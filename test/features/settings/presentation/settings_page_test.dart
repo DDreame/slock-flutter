@@ -223,10 +223,6 @@ GoRouter _buildRouter() {
             const Scaffold(body: Text('members-route')),
       ),
       GoRoute(
-        path: '/roles',
-        builder: (context, state) => const Scaffold(body: Text('roles-route')),
-      ),
-      GoRoute(
         path: '/login',
         builder: (context, state) => const Scaffold(body: Text('login-route')),
       ),
