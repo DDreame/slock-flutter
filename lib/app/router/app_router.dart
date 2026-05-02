@@ -13,6 +13,8 @@ import 'package:slock_app/features/auth/presentation/page/verify_email_page.dart
 import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_members_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
+import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
+import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
 import 'package:slock_app/features/members/presentation/page/members_page.dart';
@@ -169,14 +171,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/home', builder: (context, state) => const HomePage()),
           GoRoute(
+            path: '/channels',
+            builder: (context, state) => const ChannelsTabPage(),
+          ),
+          GoRoute(
+            path: '/dms',
+            builder: (context, state) => const DmsTabPage(),
+          ),
+          GoRoute(
             path: '/agents',
             builder: (context, state) => const AgentsPage(),
           ),
-          GoRoute(
-            path: '/settings',
-            builder: (context, state) => const SettingsPage(),
-          ),
         ],
+      ),
+      GoRoute(
+        path: '/settings',
+        builder: (context, state) => const SettingsPage(),
       ),
       GoRoute(
         path: '/servers/:serverId/channels/:channelId',

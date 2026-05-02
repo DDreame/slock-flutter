@@ -439,8 +439,20 @@ abstract class AppLocalizations {
   /// No description provided for @navWorkspace.
   ///
   /// In en, this message translates to:
-  /// **'Workspace'**
+  /// **'Home'**
   String get navWorkspace;
+
+  /// No description provided for @navChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get navChannels;
+
+  /// No description provided for @navDms.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get navDms;
 
   /// No description provided for @navAgents.
   ///

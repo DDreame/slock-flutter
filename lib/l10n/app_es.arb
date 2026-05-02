@@ -61,7 +61,9 @@
   "verifyEmailFailedFallback": "Verification failed. The link may be expired.",
   "verifyEmailResendFailedFallback": "Failed to resend verification email.",
 
-  "navWorkspace": "Workspace",
+  "navWorkspace": "Home",
+  "navChannels": "Channels",
+  "navDms": "Messages",
   "navAgents": "Agents",
   "navSettings": "Settings",
 

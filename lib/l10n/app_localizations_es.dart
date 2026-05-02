@@ -195,7 +195,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Failed to resend verification email.';
 
   @override
-  String get navWorkspace => 'Workspace';
+  String get navWorkspace => 'Home';
+
+  @override
+  String get navChannels => 'Channels';
+
+  @override
+  String get navDms => 'Messages';
 
   @override
   String get navAgents => 'Agents';

@@ -177,7 +177,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get verifyEmailResendFailedFallback => '重新发送验证邮件失败。';
 
   @override
-  String get navWorkspace => '工作区';
+  String get navWorkspace => '首页';
+
+  @override
+  String get navChannels => '频道';
+
+  @override
+  String get navDms => '消息';
 
   @override
   String get navAgents => '智能体';

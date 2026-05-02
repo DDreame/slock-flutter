@@ -17,8 +17,9 @@ class AppShell extends StatelessWidget {
 
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
-    if (location.startsWith('/agents')) return 1;
-    if (location.startsWith('/settings')) return 2;
+    if (location.startsWith('/channels')) return 1;
+    if (location.startsWith('/dms')) return 2;
+    if (location.startsWith('/agents')) return 3;
     return 0;
   }
 
@@ -36,32 +37,56 @@ class AppShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: showBottomNavigation
           ? NavigationBar(
+              key: const ValueKey('app-bottom-nav'),
               selectedIndex: index,
               onDestinationSelected: (i) {
                 switch (i) {
                   case 0:
                     context.go('/home');
                   case 1:
-                    context.go('/agents');
+                    context.go('/channels');
                   case 2:
-                    context.go('/settings');
+                    context.go('/dms');
+                  case 3:
+                    context.go('/agents');
                 }
               },
               destinations: [
                 NavigationDestination(
-                  icon: const Icon(Icons.space_dashboard_outlined),
-                  selectedIcon: const Icon(Icons.space_dashboard),
+                  key: const ValueKey('nav-home'),
+                  icon: const Icon(
+                    Icons.space_dashboard_outlined,
+                  ),
+                  selectedIcon: const Icon(
+                    Icons.space_dashboard,
+                  ),
                   label: l10n.navWorkspace,
                 ),
                 NavigationDestination(
-                  icon: const Icon(Icons.smart_toy_outlined),
-                  selectedIcon: const Icon(Icons.smart_toy),
-                  label: l10n.navAgents,
+                  key: const ValueKey('nav-channels'),
+                  icon: const Icon(Icons.tag),
+                  selectedIcon: const Icon(Icons.tag),
+                  label: l10n.navChannels,
                 ),
                 NavigationDestination(
-                  icon: const Icon(Icons.settings_outlined),
-                  selectedIcon: const Icon(Icons.settings),
-                  label: l10n.navSettings,
+                  key: const ValueKey('nav-dms'),
+                  icon: const Icon(
+                    Icons.chat_bubble_outline,
+                  ),
+                  selectedIcon: const Icon(
+                    Icons.chat_bubble,
+                  ),
+                  label: l10n.navDms,
+                ),
+                NavigationDestination(
+                  key: const ValueKey('nav-agents'),
+                  icon: const Icon(
+                    Icons.smart_toy_outlined,
+                  ),
+                  selectedIcon: const Icon(
+                    Icons.smart_toy,
+                  ),
+                  label: l10n.navAgents,
                 ),
               ],
             )
