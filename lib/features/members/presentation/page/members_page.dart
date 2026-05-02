@@ -341,7 +341,6 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
       context: context,
       builder: (_) => _ChangeRoleDialog(
         currentRole: member.role ?? 'member',
-        initialSelection: suggestedRole,
       ),
     );
     if (newRole == null) return;
@@ -752,11 +751,9 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
 class _ChangeRoleDialog extends StatefulWidget {
   const _ChangeRoleDialog({
     required this.currentRole,
-    required this.initialSelection,
   });
 
   final String currentRole;
-  final String initialSelection;
 
   @override
   State<_ChangeRoleDialog> createState() => _ChangeRoleDialogState();
@@ -768,7 +765,7 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedRole = widget.initialSelection;
+    _selectedRole = widget.currentRole;
   }
 
   @override

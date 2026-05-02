@@ -360,6 +360,14 @@ void main() {
         ),
         findsOneWidget,
       );
+      // Dialog starts on current role (member) —
+      // select admin explicitly
+      await tester.tap(
+        find.byKey(
+          const ValueKey('members-role-option-admin'),
+        ),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(
           const ValueKey('members-change-role-confirm'),
@@ -442,21 +450,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Dialog opens with member pre-selected
+      // Dialog opens on current role (admin) — confirm
+      // is disabled immediately
       expect(
         find.byKey(
           const ValueKey('members-change-role-dialog'),
         ),
         findsOneWidget,
       );
-
-      // Switch back to admin (same as current role)
-      await tester.tap(
-        find.byKey(
-          const ValueKey('members-role-option-admin'),
-        ),
-      );
-      await tester.pumpAndSettle();
 
       // Confirm should be disabled — tapping does nothing
       await tester.tap(
