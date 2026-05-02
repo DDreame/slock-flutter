@@ -14,6 +14,7 @@ import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   AgentItem makeAgent({
@@ -63,6 +64,8 @@ void main() {
       ],
       child: MaterialApp(
         theme: theme ?? AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: TickerMode(
           enabled: false,
           child: AgentsPage(
@@ -287,6 +290,8 @@ void main() {
           ],
           child: MaterialApp.router(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
           ),
         ),
