@@ -956,30 +956,25 @@ void main() {
       reason: 'Local JSON should contain sizeBytes',
     );
 
-    // Step 2: Simulate loading from local cache — exercises
-    // _decodeAttachments(_storedRowToMessage)
-    final cachedMessages = await localStore.listMessages(
-      'server-1',
-      'general',
-    );
-    // Decode the stored JSON the same way the repository does
-    final restoredAttachmentsJson = cachedMessages.single.attachmentsJson;
-    expect(restoredAttachmentsJson, isNotNull);
-
-    // Persist and reload the message to exercise decode path
-    final restoredSnapshot = await repository.persistMessage(
+    // Step 2: Exercise the local decode path via
+    // updateStoredMessageContent → _storedRowToMessage →
+    // _decodeAttachments. This reads the stored JSON row and
+    // decodes it, proving sizeBytes survives the full round-trip.
+    final decoded = await repository.updateStoredMessageContent(
       ConversationDetailTarget.channel(
         const ChannelScopeId(
           serverId: ServerScopeId('server-1'),
           value: 'general',
         ),
       ),
-      message: snapshot.messages.single,
+      messageId: 'message-1',
+      content: 'Updated content',
     );
-    expect(restoredSnapshot.attachments, hasLength(2));
-    expect(restoredSnapshot.attachments![0].sizeBytes, 2500000);
-    expect(restoredSnapshot.attachments![0].formattedSize, '2.4 MB');
-    expect(restoredSnapshot.attachments![1].sizeBytes, isNull);
+    expect(decoded, isNotNull);
+    expect(decoded!.attachments, hasLength(2));
+    expect(decoded.attachments![0].sizeBytes, 2500000);
+    expect(decoded.attachments![0].formattedSize, '2.4 MB');
+    expect(decoded.attachments![1].sizeBytes, isNull);
   });
 }
 
