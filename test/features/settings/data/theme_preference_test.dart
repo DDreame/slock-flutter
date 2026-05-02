@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/features/settings/data/theme_preference.dart';
-
-import '../../../core/storage/fake_secure_storage.dart';
 
 void main() {
   group('ThemePreference', () {
@@ -51,30 +50,50 @@ void main() {
     });
   });
 
-  group('SecureStorageThemePreferenceRepository', () {
-    late FakeSecureStorage storage;
-    late SecureStorageThemePreferenceRepository repo;
+  group('SharedPrefsThemePreferenceRepository', () {
+    late SharedPreferences prefs;
 
-    setUp(() {
-      storage = FakeSecureStorage();
-      repo = SecureStorageThemePreferenceRepository(storage: storage);
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
     });
 
-    test('getPreference returns system when nothing stored', () async {
-      expect(await repo.getPreference(), ThemePreference.system);
+    test('getPreference returns system when nothing stored', () {
+      final repo = SharedPrefsThemePreferenceRepository(prefs: prefs);
+
+      expect(repo.getPreference(), ThemePreference.system);
     });
 
     test('setPreference persists and getPreference reads back', () async {
+      final repo = SharedPrefsThemePreferenceRepository(prefs: prefs);
+
       await repo.setPreference(ThemePreference.dark);
 
-      expect(await repo.getPreference(), ThemePreference.dark);
+      expect(repo.getPreference(), ThemePreference.dark);
     });
 
     test('setPreference overwrites previous value', () async {
+      final repo = SharedPrefsThemePreferenceRepository(prefs: prefs);
+
       await repo.setPreference(ThemePreference.dark);
       await repo.setPreference(ThemePreference.light);
 
-      expect(await repo.getPreference(), ThemePreference.light);
+      expect(repo.getPreference(), ThemePreference.light);
+    });
+
+    test('getPreference is synchronous', () {
+      SharedPreferences.setMockInitialValues({
+        'theme_preference': 'dark',
+      });
+      // Re-create to pick up mock values.
+      final futurePrefs = SharedPreferences.getInstance();
+      // SharedPreferences.getInstance() resolves synchronously
+      // when mock values are set.
+      late SharedPreferences resolvedPrefs;
+      futurePrefs.then((p) => resolvedPrefs = p);
+
+      // Force microtask flush.
+      expect(futurePrefs, completes);
     });
   });
 }

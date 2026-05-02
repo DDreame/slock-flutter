@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
 import 'package:slock_app/app/bootstrap/fatal_bootstrap_screen.dart';
 import 'package:slock_app/app/router/app_router.dart';
@@ -33,6 +34,10 @@ void main() async {
     return;
   }
 
+  // Initialize SharedPreferences before runApp so the theme
+  // preference is available synchronously on first frame.
+  final prefs = await SharedPreferences.getInstance();
+
   final crashMarker = CrashMarkerService(
     storage: FlutterSecureStorageImpl(),
   );
@@ -44,13 +49,25 @@ void main() async {
   );
 
   runZonedGuarded(
-    () => runApp(ProviderScope(
-      overrides: [
-        ...bootstrap.overrides,
-        crashMarkerServiceProvider.overrideWithValue(crashMarker),
-      ],
-      child: const SlockApp(),
-    )),
+    () {
+      final container = ProviderContainer(
+        overrides: [
+          ...bootstrap.overrides,
+          crashMarkerServiceProvider.overrideWithValue(crashMarker),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+
+      // Restore theme preference synchronously before first build
+      // so the saved theme is the very first frame painted.
+      final themeRepo = container.read(themePreferenceRepositoryProvider);
+      container.read(themeModeStoreProvider.notifier).restoreFrom(themeRepo);
+
+      runApp(UncontrolledProviderScope(
+        container: container,
+        child: const SlockApp(),
+      ));
+    },
     (error, stack) {
       bootstrap.reporter.captureException(error, stackTrace: stack);
       bootstrap.diagnostics.error('crash', error.toString());

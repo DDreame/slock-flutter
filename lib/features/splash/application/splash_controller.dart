@@ -10,7 +10,6 @@ import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
-import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 final splashControllerProvider =
     AutoDisposeAsyncNotifierProvider<SplashController, void>(
@@ -21,9 +20,6 @@ class SplashController extends AutoDisposeAsyncNotifier<void> {
   @override
   Future<void> build() async {
     try {
-      // Restore theme preference early to avoid a theme flash.
-      await ref.read(themeModeStoreProvider.notifier).restore();
-
       final session = ref.read(sessionStoreProvider);
       if (session.status == AuthStatus.unknown) {
         await ref.read(sessionStoreProvider.notifier).restoreSession();

@@ -159,13 +159,13 @@ class MarkdownMessageBody extends StatelessWidget {
 
     // Inline code colors
     final codeBackground = isSelf
-        ? Colors.white.withValues(alpha: _kSelfOverlayAlpha)
+        ? colors.primaryForeground.withValues(alpha: _kSelfOverlayAlpha)
         : colors.surfaceAlt;
     final codeTextColor = isSelf ? colors.primaryForeground : colors.primary;
 
     // Code block colors
     final codeBlockBackground = isSelf
-        ? Colors.white.withValues(alpha: _kSelfOverlayAlpha)
+        ? colors.primaryForeground.withValues(alpha: _kSelfOverlayAlpha)
         : colors.surfaceAlt;
 
     // Link colors

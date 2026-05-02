@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/features/settings/data/theme_preference.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
-import '../../core/storage/fake_secure_storage.dart';
-
 void main() {
-  late FakeSecureStorage fakeStorage;
+  late SharedPreferences prefs;
   late ProviderContainer container;
 
-  setUp(() {
-    fakeStorage = FakeSecureStorage();
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
     container = ProviderContainer(
       overrides: [
-        secureStorageProvider.overrideWithValue(fakeStorage),
+        sharedPreferencesProvider.overrideWithValue(prefs),
       ],
     );
   });
@@ -31,17 +30,19 @@ void main() {
       expect(readState().themeMode, ThemeMode.system);
     });
 
-    test('restore reads persisted preference', () async {
-      fakeStorage.store['theme_preference'] = 'dark';
+    test('restoreFrom reads persisted preference', () async {
+      await prefs.setString('theme_preference', 'dark');
 
-      await readStore().restore();
+      final repo = container.read(themePreferenceRepositoryProvider);
+      readStore().restoreFrom(repo);
 
       expect(readState().preference, ThemePreference.dark);
       expect(readState().themeMode, ThemeMode.dark);
     });
 
-    test('restore defaults to system when nothing stored', () async {
-      await readStore().restore();
+    test('restoreFrom defaults to system when nothing stored', () {
+      final repo = container.read(themePreferenceRepositoryProvider);
+      readStore().restoreFrom(repo);
 
       expect(readState().preference, ThemePreference.system);
       expect(readState().themeMode, ThemeMode.system);
@@ -52,7 +53,7 @@ void main() {
 
       expect(readState().preference, ThemePreference.light);
       expect(readState().themeMode, ThemeMode.light);
-      expect(fakeStorage.store['theme_preference'], 'light');
+      expect(prefs.getString('theme_preference'), 'light');
     });
 
     test('setPreference to dark updates state and persists', () async {
@@ -60,7 +61,7 @@ void main() {
 
       expect(readState().preference, ThemePreference.dark);
       expect(readState().themeMode, ThemeMode.dark);
-      expect(fakeStorage.store['theme_preference'], 'dark');
+      expect(prefs.getString('theme_preference'), 'dark');
     });
 
     test('setPreference back to system updates state and persists', () async {
@@ -69,7 +70,7 @@ void main() {
 
       expect(readState().preference, ThemePreference.system);
       expect(readState().themeMode, ThemeMode.system);
-      expect(fakeStorage.store['theme_preference'], 'system');
+      expect(prefs.getString('theme_preference'), 'system');
     });
   });
 }

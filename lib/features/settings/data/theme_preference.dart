@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:slock_app/core/storage/secure_storage.dart';
-import 'package:slock_app/core/storage/theme_storage_keys.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const _themePreferenceKey = 'theme_preference';
 
 enum ThemePreference {
   system(
@@ -45,38 +45,29 @@ enum ThemePreference {
 }
 
 abstract class ThemePreferenceRepository {
-  Future<ThemePreference> getPreference();
+  ThemePreference getPreference();
   Future<void> setPreference(ThemePreference preference);
 }
 
-class SecureStorageThemePreferenceRepository
+class SharedPrefsThemePreferenceRepository
     implements ThemePreferenceRepository {
-  const SecureStorageThemePreferenceRepository({
-    required SecureStorage storage,
-  }) : _storage = storage;
+  const SharedPrefsThemePreferenceRepository({
+    required SharedPreferences prefs,
+  }) : _prefs = prefs;
 
-  final SecureStorage _storage;
+  final SharedPreferences _prefs;
 
   @override
-  Future<ThemePreference> getPreference() async {
-    final value = await _storage.read(
-      key: ThemeStorageKeys.themePreference,
-    );
+  ThemePreference getPreference() {
+    final value = _prefs.getString(_themePreferenceKey);
     return ThemePreference.fromStorageValue(value);
   }
 
   @override
   Future<void> setPreference(ThemePreference preference) async {
-    await _storage.write(
-      key: ThemeStorageKeys.themePreference,
-      value: preference.storageValue,
+    await _prefs.setString(
+      _themePreferenceKey,
+      preference.storageValue,
     );
   }
 }
-
-final themePreferenceRepositoryProvider =
-    Provider<ThemePreferenceRepository>((ref) {
-  return SecureStorageThemePreferenceRepository(
-    storage: ref.watch(secureStorageProvider),
-  );
-});
