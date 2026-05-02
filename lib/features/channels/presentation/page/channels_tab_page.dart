@@ -163,8 +163,6 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         for (var i = 0; i < sorted.length; i++)
           _buildChannelRow(
             channel: sorted[i],
-            index: i,
-            total: sorted.length,
             isPinned: pinnedIds.contains(sorted[i].scopeId.value),
             homeStore: homeStore,
             unreadState: unreadState,
@@ -204,14 +202,15 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
 
   Widget _buildChannelRow({
     required HomeChannelSummary channel,
-    required int index,
-    required int total,
     required bool isPinned,
     required HomeListStore homeStore,
     required ChannelUnreadState unreadState,
     required ChannelUnreadStore unreadStore,
     required ChannelManagementState managementState,
   }) {
+    // Move actions are suppressed in this tab because the unread-first
+    // merged view does not match the persisted sidebar order that
+    // moveChannel() / movePinnedConversation() operate on.
     return HomeChannelRow(
       key: ValueKey('channels-tab-${channel.scopeId.routeParam}'),
       channel: channel,
@@ -228,18 +227,6 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       onTogglePin: () => isPinned
           ? homeStore.unpinChannel(channel.scopeId)
           : homeStore.pinChannel(channel.scopeId),
-      onMoveUp: index > 0
-          ? () => homeStore.moveChannel(
-                channel.scopeId,
-                moveUp: true,
-              )
-          : null,
-      onMoveDown: index < total - 1
-          ? () => homeStore.moveChannel(
-                channel.scopeId,
-                moveUp: false,
-              )
-          : null,
     );
   }
 
