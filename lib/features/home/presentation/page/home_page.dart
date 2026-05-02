@@ -76,31 +76,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                 AppSpacing.xl,
               ),
               children: [
-                _HomeAgentsSection(
-                  key: const ValueKey('home-card-agents'),
-                  agents: [
-                    ...state.pinnedAgents,
-                    ...state.agents,
+                _HomeTasksSection(
+                  key: const ValueKey('home-card-tasks'),
+                  taskItems: state.taskItems,
+                  channels: [
+                    ...state.pinnedChannels,
+                    ...state.channels,
                   ],
-                  onViewAll: () => _pushServerRoute('agents'),
-                  onAgentTap: (agent) {
-                    final sid = ref.read(activeServerScopeIdProvider)?.value;
-                    if (sid == null) return;
-                    context.push(
-                      '/servers/$sid/agents/${agent.id}',
-                    );
-                  },
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _ChannelsSummaryCard(
-                  key: const ValueKey('home-card-channels'),
-                  channelCount:
-                      state.channels.length + state.pinnedChannels.length,
-                  unreadCount: unreadState.channelUnreadCounts.values.fold(
-                    0,
-                    (sum, c) => sum + c,
-                  ),
-                  onViewAll: () => _pushServerRoute('channels'),
+                  onViewAll: () => _pushServerRoute('tasks'),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _HomeUnreadSection(
@@ -117,20 +100,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                   unreadState: unreadState,
                 ),
                 const SizedBox(height: AppSpacing.md),
-                _HomeTasksSection(
-                  key: const ValueKey('home-card-tasks'),
-                  taskItems: state.taskItems,
-                  channels: [
-                    ...state.pinnedChannels,
-                    ...state.channels,
+                _HomeAgentsSection(
+                  key: const ValueKey('home-card-agents'),
+                  agents: [
+                    ...state.pinnedAgents,
+                    ...state.agents,
                   ],
-                  onViewAll: () => _pushServerRoute('tasks'),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _ThreadsSummaryCard(
-                  key: const ValueKey('home-card-threads'),
-                  threadItems: state.threadItems,
-                  onViewAll: () => _pushServerRoute('threads'),
+                  onViewAll: () => _pushServerRoute('agents'),
+                  onAgentTap: (agent) {
+                    final sid = ref.read(activeServerScopeIdProvider)?.value;
+                    if (sid == null) return;
+                    context.push(
+                      '/servers/$sid/agents/${agent.id}',
+                    );
+                  },
                 ),
               ],
             ),
@@ -566,66 +549,6 @@ class _MiniAgentRow extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Channels summary card
-// ---------------------------------------------------------------------------
-
-class _ChannelsSummaryCard extends StatelessWidget {
-  const _ChannelsSummaryCard({
-    super.key,
-    required this.channelCount,
-    required this.unreadCount,
-    required this.onViewAll,
-  });
-
-  final int channelCount;
-  final int unreadCount;
-  final VoidCallback onViewAll;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final l10n = context.l10n;
-
-    return _SummaryCardBase(
-      accentColor: colors.agentAccent,
-      title: l10n.homeCardChannels,
-      onViewAll: onViewAll,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '$channelCount',
-            style: AppTypography.displayMedium.copyWith(
-              color: colors.text,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            l10n.homeCardChannelsSubtitle,
-            style: AppTypography.caption.copyWith(
-              color: colors.textTertiary,
-            ),
-          ),
-          if (unreadCount > 0) ...[
-            const SizedBox(height: AppSpacing.md),
-            Wrap(
-              spacing: AppSpacing.sm,
-              children: [
-                _StatusChip(
-                  label: l10n.homeCardChannelsUnread(unreadCount),
-                  color: colors.primary,
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Tasks section — detailed task list
 // ---------------------------------------------------------------------------
 
@@ -917,10 +840,6 @@ class _TaskStatusChip extends StatelessWidget {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
-// Threads summary card with filter chips
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // Unread section
@@ -1305,252 +1224,6 @@ class _UnreadBadge extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-enum _ThreadFilter { unread, read, all }
-
-class _ThreadsSummaryCard extends StatefulWidget {
-  const _ThreadsSummaryCard({
-    super.key,
-    required this.threadItems,
-    required this.onViewAll,
-  });
-
-  final List<ThreadInboxItem> threadItems;
-  final VoidCallback onViewAll;
-
-  @override
-  State<_ThreadsSummaryCard> createState() => _ThreadsSummaryCardState();
-}
-
-class _ThreadsSummaryCardState extends State<_ThreadsSummaryCard> {
-  _ThreadFilter _filter = _ThreadFilter.unread;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final l10n = context.l10n;
-
-    final unreadItems =
-        widget.threadItems.where((t) => t.unreadCount > 0).toList();
-    final readItems =
-        widget.threadItems.where((t) => t.unreadCount == 0).toList();
-
-    final filtered = switch (_filter) {
-      _ThreadFilter.unread => unreadItems,
-      _ThreadFilter.read => readItems,
-      _ThreadFilter.all => widget.threadItems,
-    };
-
-    return _SummaryCardBase(
-      accentColor: colors.primaryLight,
-      title: l10n.homeCardThreads,
-      onViewAll: widget.onViewAll,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              _FilterChip(
-                key: const ValueKey('thread-filter-unread'),
-                label: l10n.homeCardThreadsFilterUnread,
-                count: unreadItems.length,
-                isSelected: _filter == _ThreadFilter.unread,
-                onTap: () => setState(() => _filter = _ThreadFilter.unread),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              _FilterChip(
-                key: const ValueKey('thread-filter-read'),
-                label: l10n.homeCardThreadsFilterRead,
-                count: readItems.length,
-                isSelected: _filter == _ThreadFilter.read,
-                onTap: () => setState(() => _filter = _ThreadFilter.read),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              _FilterChip(
-                key: const ValueKey('thread-filter-all'),
-                label: l10n.homeCardThreadsFilterAll,
-                isSelected: _filter == _ThreadFilter.all,
-                onTap: () => setState(() => _filter = _ThreadFilter.all),
-              ),
-            ],
-          ),
-          if (filtered.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.md),
-            for (final item in filtered.take(3)) _ThreadItemRow(item: item),
-          ],
-          if (filtered.isEmpty) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              l10n.homeCardThreadsEmpty,
-              key: const ValueKey('home-threads-empty'),
-              style: AppTypography.bodySmall.copyWith(
-                color: colors.textTertiary,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    super.key,
-    required this.label,
-    this.count,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final int? count;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: 4,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? colors.primary.withAlpha(30) : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-          border: Border.all(
-            color: isSelected ? colors.primary : colors.border,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: AppTypography.caption.copyWith(
-                color: isSelected ? colors.primary : colors.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              ),
-            ),
-            if (count != null) ...[
-              const SizedBox(width: 4),
-              Text(
-                '$count',
-                style: AppTypography.caption.copyWith(
-                  color: isSelected ? colors.primary : colors.textTertiary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ThreadItemRow extends StatelessWidget {
-  const _ThreadItemRow({required this.item});
-
-  final ThreadInboxItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final l10n = context.l10n;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (item.title != null)
-            Text(
-              item.title!,
-              style: AppTypography.caption.copyWith(
-                color: colors.primary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          if (item.preview != null)
-            Text(
-              item.preview!,
-              style: AppTypography.bodySmall.copyWith(
-                color: colors.text,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          const SizedBox(height: 2),
-          Row(
-            children: [
-              Text(
-                l10n.homeCardThreadsReplies(item.replyCount),
-                style: AppTypography.caption.copyWith(
-                  color: colors.textTertiary,
-                ),
-              ),
-              if (item.lastReplyAt != null) ...[
-                Text(
-                  ' \u00b7 ',
-                  style: AppTypography.caption.copyWith(
-                    color: colors.textTertiary,
-                  ),
-                ),
-                Text(
-                  _timeAgo(context, item.lastReplyAt!),
-                  style: AppTypography.caption.copyWith(
-                    color: colors.textTertiary,
-                  ),
-                ),
-              ],
-              if (item.unreadCount > 0) ...[
-                const SizedBox(width: AppSpacing.sm),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.primary,
-                    borderRadius: BorderRadius.circular(
-                      AppSpacing.radiusSm,
-                    ),
-                  ),
-                  child: Text(
-                    l10n.homeCardThreadsNew(item.unreadCount),
-                    style: AppTypography.caption.copyWith(
-                      color: colors.primaryForeground,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 10,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _timeAgo(BuildContext context, DateTime dt) {
-    final l10n = context.l10n;
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return l10n.homeCardTimeAgoNow;
-    if (diff.inMinutes < 60) {
-      return l10n.homeCardTimeAgoMinutes(diff.inMinutes);
-    }
-    if (diff.inHours < 24) {
-      return l10n.homeCardTimeAgoHours(diff.inHours);
-    }
-    return l10n.homeCardTimeAgoDays(diff.inDays);
   }
 }
 

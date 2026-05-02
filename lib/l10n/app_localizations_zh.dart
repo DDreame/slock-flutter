@@ -288,17 +288,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeCardAgentsEmpty => '所有智能体离线';
 
   @override
-  String get homeCardChannels => '频道';
-
-  @override
-  String get homeCardChannelsSubtitle => '活跃频道';
-
-  @override
-  String homeCardChannelsUnread(int count) {
-    return '$count 未读';
-  }
-
-  @override
   String get homeCardTasks => '任务';
 
   @override
@@ -334,32 +323,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get homeCardThreads => '话题';
-
-  @override
   String get homeCardViewAll => '查看全部';
-
-  @override
-  String get homeCardThreadsFilterUnread => '未读';
-
-  @override
-  String get homeCardThreadsFilterRead => '已读';
-
-  @override
-  String get homeCardThreadsFilterAll => '全部';
-
-  @override
-  String homeCardThreadsReplies(int count) {
-    return '$count 条回复';
-  }
-
-  @override
-  String homeCardThreadsNew(int count) {
-    return '$count 条新消息';
-  }
-
-  @override
-  String get homeCardThreadsEmpty => '暂无话题';
 
   @override
   String get homeCardAgentActivityOnline => '在线';

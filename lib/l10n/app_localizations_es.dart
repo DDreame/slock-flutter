@@ -317,17 +317,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeCardAgentsEmpty => 'Todos los agentes desconectados';
 
   @override
-  String get homeCardChannels => 'CANALES';
-
-  @override
-  String get homeCardChannelsSubtitle => 'canales activos';
-
-  @override
-  String homeCardChannelsUnread(int count) {
-    return '$count sin leer';
-  }
-
-  @override
   String get homeCardTasks => 'TAREAS';
 
   @override
@@ -363,32 +352,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get homeCardThreads => 'HILOS';
-
-  @override
   String get homeCardViewAll => 'Ver todo';
-
-  @override
-  String get homeCardThreadsFilterUnread => 'Sin leer';
-
-  @override
-  String get homeCardThreadsFilterRead => 'Leidos';
-
-  @override
-  String get homeCardThreadsFilterAll => 'Todos';
-
-  @override
-  String homeCardThreadsReplies(int count) {
-    return '$count respuestas';
-  }
-
-  @override
-  String homeCardThreadsNew(int count) {
-    return '$count nuevos';
-  }
-
-  @override
-  String get homeCardThreadsEmpty => 'Sin hilos';
 
   @override
   String get homeCardAgentActivityOnline => 'en linea';
