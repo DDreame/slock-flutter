@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -61,10 +62,37 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     final state = ref.watch(memberListStoreProvider);
     final serverId = ref.read(currentMembersServerIdProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
+    final canManageMembers = _canManageMembers(state.members);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Members'),
+        actions: state.status == MemberListStatus.success && canManageMembers
+            ? [
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: state.isInvitingByEmail
+                      ? const Center(
+                          child: SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        )
+                      : IconButton(
+                          key: const ValueKey(
+                            'members-invite-human',
+                          ),
+                          onPressed: _inviteHuman,
+                          icon: const Icon(
+                            Icons.person_add_alt_1,
+                          ),
+                          tooltip: 'Invite human',
+                        ),
+                ),
+              ]
+            : null,
       ),
       body: switch (state.status) {
         MemberListStatus.initial || MemberListStatus.loading => const Center(
@@ -88,6 +116,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             state,
             serverId,
             colors,
+            canManageMembers,
           ),
       },
     );
@@ -97,6 +126,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     MemberListState state,
     ServerScopeId serverId,
     AppColors colors,
+    bool canManageMembers,
   ) {
     final humans = state.humans;
     final agents = state.agents;
@@ -174,6 +204,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                           member,
                           serverId,
                           state,
+                          canManageMembers,
                         ),
                     ],
                     if (agents.isNotEmpty) ...[
@@ -190,6 +221,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                           member,
                           serverId,
                           state,
+                          canManageMembers,
                         ),
                     ],
                   ],
@@ -203,18 +235,21 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     MemberProfile member,
     ServerScopeId serverId,
     MemberListState state,
+    bool canManageMembers,
   ) {
     return MemberListItem(
       member: member,
       isOpeningDirectMessage: state.isOpeningDirectMessage(member.id),
-      canManageMember: false,
+      isUpdatingRole: state.isUpdatingRole(member.id),
+      isRemoving: state.isRemovingMember(member.id),
+      canManageMember: canManageMembers,
       onTap: () => showMemberProfileSheet(
         context: context,
         member: member,
       ),
       onMessage: () => _openDirectMessage(context, member.id, serverId),
-      onChangeRole: (_) {},
-      onRemove: () {},
+      onChangeRole: (role) => _changeMemberRole(member, role),
+      onRemove: () => _removeMember(member),
     );
   }
 
@@ -246,6 +281,162 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
         ),
       );
     }
+  }
+
+  Future<void> _inviteHuman() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final store = ref.read(memberListStoreProvider.notifier);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _InviteHumanSheet(
+        onSendEmail: (email) async {
+          try {
+            await store.inviteByEmail(email);
+            if (!mounted) return;
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Invite email sent to $email.',
+                ),
+              ),
+            );
+          } on AppFailure catch (failure) {
+            if (!mounted) return;
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  failure.message ?? 'Failed to send invite email.',
+                ),
+              ),
+            );
+          }
+        },
+        onGenerateLink: () async {
+          try {
+            return await store.createInvite();
+          } on AppFailure catch (failure) {
+            if (!mounted) return null;
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  failure.message ?? 'Failed to generate invite link.',
+                ),
+              ),
+            );
+            return null;
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _changeMemberRole(
+    MemberProfile member,
+    String suggestedRole,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final newRole = await showDialog<String>(
+      context: context,
+      builder: (_) => _ChangeRoleDialog(
+        currentRole: member.role ?? 'member',
+      ),
+    );
+    if (newRole == null) return;
+
+    try {
+      await ref
+          .read(memberListStoreProvider.notifier)
+          .updateMemberRole(member.id, newRole);
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '${member.displayName} is now'
+            ' ${formatMemberRoleLabel(newRole)}.',
+          ),
+        ),
+      );
+    } on AppFailure catch (failure) {
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            failure.message ?? 'Failed to update member role.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeMember(MemberProfile member) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: const Text('Remove Member?'),
+              content: Text(
+                'Remove ${member.displayName}'
+                ' from this server?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  key: const ValueKey(
+                    'members-confirm-remove',
+                  ),
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: const Text('Remove'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await ref.read(memberListStoreProvider.notifier).removeMember(member.id);
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('${member.displayName} removed.'),
+        ),
+      );
+    } on AppFailure catch (failure) {
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            failure.message ?? 'Failed to remove member.',
+          ),
+        ),
+      );
+    }
+  }
+
+  bool _canManageMembers(List<MemberProfile> members) {
+    for (final member in members) {
+      if (member.isSelf) {
+        return member.role == 'owner' || member.role == 'admin';
+      }
+    }
+    return false;
   }
 }
 
@@ -327,6 +518,309 @@ class _EmptyState extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// --- Invite bottom sheet ---
+
+class _InviteHumanSheet extends StatefulWidget {
+  const _InviteHumanSheet({
+    required this.onSendEmail,
+    required this.onGenerateLink,
+  });
+
+  final Future<void> Function(String email) onSendEmail;
+  final Future<String?> Function() onGenerateLink;
+
+  @override
+  State<_InviteHumanSheet> createState() => _InviteHumanSheetState();
+}
+
+class _InviteHumanSheetState extends State<_InviteHumanSheet> {
+  late final TextEditingController _emailController;
+  bool _isSendingEmail = false;
+  bool _isGeneratingLink = false;
+  String? _inviteLink;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  bool get _isValidEmail {
+    final email = _emailController.text.trim();
+    return email.isNotEmpty && email.contains('@') && !email.startsWith('@');
+  }
+
+  Future<void> _sendEmail() async {
+    final email = _emailController.text.trim();
+    setState(() => _isSendingEmail = true);
+    await widget.onSendEmail(email);
+    if (!mounted) return;
+    setState(() => _isSendingEmail = false);
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _generateLink() async {
+    setState(() => _isGeneratingLink = true);
+    final link = await widget.onGenerateLink();
+    if (!mounted) return;
+    setState(() {
+      _isGeneratingLink = false;
+      _inviteLink = link;
+    });
+  }
+
+  Future<void> _copyLink() async {
+    if (_inviteLink == null) return;
+    await Clipboard.setData(
+      ClipboardData(text: _inviteLink!),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Invite link copied.'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: AppSpacing.xl,
+          right: AppSpacing.xl,
+          top: AppSpacing.lg,
+          bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 32,
+                height: 4,
+                margin: const EdgeInsets.only(
+                  bottom: AppSpacing.lg,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.textTertiary,
+                  borderRadius: BorderRadius.circular(
+                    AppSpacing.radiusFull,
+                  ),
+                ),
+              ),
+            ),
+            Text(
+              'Invite Human',
+              style: AppTypography.headline.copyWith(
+                color: colors.text,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // --- Email section ---
+            Text(
+              'Send email invite',
+              style: AppTypography.title.copyWith(
+                color: colors.text,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey(
+                      'members-invite-email-field',
+                    ),
+                    controller: _emailController,
+                    autofocus: true,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      hintText: 'user@example.com',
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                FilledButton(
+                  key: const ValueKey(
+                    'members-invite-email-submit',
+                  ),
+                  onPressed:
+                      _isValidEmail && !_isSendingEmail ? _sendEmail : null,
+                  child: _isSendingEmail
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Send'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            // --- Link section ---
+            Text(
+              'Or share invite link',
+              style: AppTypography.title.copyWith(
+                color: colors.text,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (_inviteLink != null) ...[
+              Container(
+                padding: const EdgeInsets.all(
+                  AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.surfaceAlt,
+                  borderRadius: BorderRadius.circular(
+                    AppSpacing.radiusMd,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _inviteLink!,
+                        key: const ValueKey(
+                          'members-invite-link-text',
+                        ),
+                        style: AppTypography.body.copyWith(
+                          color: colors.text,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      key: const ValueKey(
+                        'members-invite-link-copy',
+                      ),
+                      icon: const Icon(Icons.copy),
+                      onPressed: _copyLink,
+                      tooltip: 'Copy link',
+                    ),
+                  ],
+                ),
+              ),
+            ] else
+              FilledButton.icon(
+                key: const ValueKey(
+                  'members-invite-generate-link',
+                ),
+                onPressed: _isGeneratingLink ? null : _generateLink,
+                icon: _isGeneratingLink
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.link),
+                label: const Text('Generate Link'),
+              ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- Change role dialog ---
+
+class _ChangeRoleDialog extends StatefulWidget {
+  const _ChangeRoleDialog({
+    required this.currentRole,
+  });
+
+  final String currentRole;
+
+  @override
+  State<_ChangeRoleDialog> createState() => _ChangeRoleDialogState();
+}
+
+class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
+  late String _selectedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.currentRole;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      key: const ValueKey('members-change-role-dialog'),
+      title: const Text('Change Role'),
+      content: RadioGroup<String>(
+        groupValue: _selectedRole,
+        onChanged: (value) {
+          if (value != null) {
+            setState(() => _selectedRole = value);
+          }
+        },
+        child: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              key: ValueKey(
+                'members-role-option-admin',
+              ),
+              title: Text('Admin'),
+              subtitle: Text(
+                'Can manage members and invite',
+              ),
+              value: 'admin',
+            ),
+            RadioListTile<String>(
+              key: ValueKey(
+                'members-role-option-member',
+              ),
+              title: Text('Member'),
+              subtitle: Text(
+                'Standard workspace access',
+              ),
+              value: 'member',
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          key: const ValueKey(
+            'members-change-role-confirm',
+          ),
+          onPressed: _selectedRole == widget.currentRole
+              ? null
+              : () => Navigator.of(context).pop(_selectedRole),
+          child: const Text('Confirm'),
+        ),
+      ],
     );
   }
 }

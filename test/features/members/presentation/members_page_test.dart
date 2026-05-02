@@ -199,6 +199,329 @@ void main() {
     expect(find.text('Retry'), findsOneWidget);
   });
 
+  testWidgets('invite human submits email invite flow', (
+    tester,
+  ) async {
+    final repository = _FakeMemberRepository(
+      members: const [
+        MemberProfile(
+          id: 'user-123',
+          displayName: 'Alice',
+          role: 'owner',
+        ),
+        MemberProfile(
+          id: 'user-2',
+          displayName: 'Bob',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      _buildApp(repository: repository),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Owner'),
+      findsAtLeastNWidgets(1),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('members-invite-human'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(
+        const ValueKey('members-invite-email-field'),
+      ),
+      'user@example.com',
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey('members-invite-email-submit'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      repository.inviteEmails,
+      ['user@example.com'],
+    );
+    expect(
+      find.text('Invite email sent to user@example.com.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'invite link generation displays link and copy button',
+    (tester) async {
+      final repository = _FakeMemberRepository(
+        members: const [
+          MemberProfile(
+            id: 'user-123',
+            displayName: 'Alice',
+            role: 'owner',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildApp(repository: repository),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('members-invite-human'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey(
+            'members-invite-generate-link',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'members-invite-generate-link',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('members-invite-link-text'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'https://slock.ai/invite/token-100',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('members-invite-link-copy'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'member admin actions update role and remove member',
+    (tester) async {
+      final repository = _FakeMemberRepository(
+        members: const [
+          MemberProfile(
+            id: 'user-123',
+            displayName: 'Alice',
+            role: 'owner',
+          ),
+          MemberProfile(
+            id: 'user-2',
+            displayName: 'Bob',
+            role: 'member',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildApp(repository: repository),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('member-actions-user-2'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Make admin').last);
+      await tester.pumpAndSettle();
+
+      // Confirm via Change Role dialog
+      expect(
+        find.byKey(
+          const ValueKey('members-change-role-dialog'),
+        ),
+        findsOneWidget,
+      );
+      // Dialog starts on current role (member) —
+      // select admin explicitly
+      await tester.tap(
+        find.byKey(
+          const ValueKey('members-role-option-admin'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('members-change-role-confirm'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repository.roleRequests, [
+        ('server-1', 'user-2', 'admin'),
+      ]);
+      expect(
+        find.byKey(
+          const ValueKey('member-role-user-2'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('member-actions-user-2'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.text('Remove member').last,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('members-confirm-remove'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        repository.removeRequests,
+        [('server-1', 'user-2')],
+      );
+      expect(
+        find.byKey(
+          const ValueKey('member-user-2'),
+        ),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'change role dialog disables confirm when same role',
+    (tester) async {
+      final repository = _FakeMemberRepository(
+        members: const [
+          MemberProfile(
+            id: 'user-123',
+            displayName: 'Alice',
+            role: 'owner',
+          ),
+          MemberProfile(
+            id: 'user-2',
+            displayName: 'Bob',
+            role: 'admin',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _buildApp(repository: repository),
+      );
+      await tester.pumpAndSettle();
+
+      // Open popup for Bob (admin) and tap Make member
+      await tester.tap(
+        find.byKey(
+          const ValueKey('member-actions-user-2'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.text('Make member').last,
+      );
+      await tester.pumpAndSettle();
+
+      // Dialog opens on current role (admin) — confirm
+      // is disabled immediately
+      expect(
+        find.byKey(
+          const ValueKey('members-change-role-dialog'),
+        ),
+        findsOneWidget,
+      );
+
+      // Confirm should be disabled — tapping does nothing
+      await tester.tap(
+        find.byKey(
+          const ValueKey('members-change-role-confirm'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Dialog still visible, no role change request
+      expect(
+        find.byKey(
+          const ValueKey('members-change-role-dialog'),
+        ),
+        findsOneWidget,
+      );
+      expect(repository.roleRequests, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'non-admin viewers do not see invite or admin actions',
+    (tester) async {
+      await tester.pumpWidget(
+        _buildApp(
+          repository: _FakeMemberRepository(
+            members: const [
+              MemberProfile(
+                id: 'user-123',
+                displayName: 'Alice',
+                role: 'member',
+              ),
+              MemberProfile(
+                id: 'user-2',
+                displayName: 'Bob',
+                role: 'member',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('members-invite-human'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('member-actions-user-2'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('member-message-user-2'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets(
     'search bar filters members by display name',
     (tester) async {
