@@ -1430,9 +1430,20 @@ class _AttachmentSection extends StatelessWidget {
 
   final List<MessageAttachment> attachments;
 
+  static const _imageTypes = {
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/gif',
+    'image/webp',
+  };
+
+  static const _htmlTypes = {
+    'text/html',
+  };
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
@@ -1442,49 +1453,310 @@ class _AttachmentSection extends StatelessWidget {
           for (final attachment in attachments)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: InkWell(
-                key: ValueKey('attachment-tap-${attachment.name}'),
-                onTap: attachment.url != null
-                    ? () => launchUrl(
-                          Uri.parse(attachment.url!),
-                          mode: LaunchMode.externalApplication,
-                        )
-                    : null,
-                borderRadius: BorderRadius.circular(4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.attach_file,
-                      size: 16,
-                      color: theme.colorScheme.onSurfaceVariant,
+              child: _buildAttachmentWidget(context, attachment),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttachmentWidget(
+    BuildContext context,
+    MessageAttachment attachment,
+  ) {
+    final mimeType = attachment.type.toLowerCase();
+
+    if (_imageTypes.contains(mimeType) && attachment.url != null) {
+      return _ImageAttachmentPreview(attachment: attachment);
+    }
+
+    if (_htmlTypes.contains(mimeType)) {
+      return _HtmlAttachmentRow(attachment: attachment);
+    }
+
+    return _GenericFileAttachmentRow(attachment: attachment);
+  }
+}
+
+class _ImageAttachmentPreview extends StatelessWidget {
+  const _ImageAttachmentPreview({required this.attachment});
+
+  final MessageAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      key: ValueKey('image-preview-${attachment.id ?? attachment.name}'),
+      onTap: () => _openFullScreen(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxHeight: 200,
+                maxWidth: 280,
+              ),
+              child: Image.network(
+                attachment.url!,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return SizedBox(
+                    height: 120,
+                    width: 200,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                      ),
                     ),
-                    const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        attachment.name,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: attachment.url != null
-                              ? theme.colorScheme.primary
-                              : null,
-                          decoration: attachment.url != null
-                              ? TextDecoration.underline
-                              : null,
+                  );
+                },
+                errorBuilder: (context, error, stack) {
+                  return Container(
+                    height: 80,
+                    width: 200,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image_outlined,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          attachment.name,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 4),
-                    Text(
-                      attachment.type,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            attachment.name,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openFullScreen(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _FullScreenImageViewer(attachment: attachment),
+      ),
+    );
+  }
+}
+
+class _FullScreenImageViewer extends StatelessWidget {
+  const _FullScreenImageViewer({required this.attachment});
+
+  final MessageAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        title: Text(
+          attachment.name,
+          style: const TextStyle(fontSize: 14),
+        ),
+        actions: [
+          if (attachment.url != null)
+            IconButton(
+              key: const ValueKey('image-viewer-open-external'),
+              icon: const Icon(Icons.open_in_new),
+              onPressed: () => launchUrl(
+                Uri.parse(attachment.url!),
+                mode: LaunchMode.externalApplication,
+              ),
+              tooltip: 'Open in browser',
+            ),
+        ],
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          key: const ValueKey('image-viewer-interactive'),
+          minScale: 0.5,
+          maxScale: 4.0,
+          child: Image.network(
+            attachment.url!,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stack) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white54,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Unable to load image',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: Colors.white54),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HtmlAttachmentRow extends StatelessWidget {
+  const _HtmlAttachmentRow({required this.attachment});
+
+  final MessageAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      key: ValueKey('html-attachment-${attachment.id ?? attachment.name}'),
+      onTap: attachment.url != null
+          ? () => launchUrl(
+                Uri.parse(attachment.url!),
+                mode: LaunchMode.externalApplication,
+              )
+          : null,
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 8,
+          vertical: 6,
+        ),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.language,
+              size: 18,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    attachment.name,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: attachment.url != null
+                          ? theme.colorScheme.primary
+                          : null,
+                      decoration: attachment.url != null
+                          ? TextDecoration.underline
+                          : null,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'HTML • Opens in browser',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (attachment.url != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Icon(
+                  Icons.open_in_new,
+                  size: 14,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GenericFileAttachmentRow extends StatelessWidget {
+  const _GenericFileAttachmentRow({required this.attachment});
+
+  final MessageAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      key: ValueKey('file-attachment-${attachment.id ?? attachment.name}'),
+      onTap: attachment.url != null
+          ? () => launchUrl(
+                Uri.parse(attachment.url!),
+                mode: LaunchMode.externalApplication,
+              )
+          : null,
+      borderRadius: BorderRadius.circular(4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.attach_file,
+            size: 16,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              attachment.name,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color:
+                    attachment.url != null ? theme.colorScheme.primary : null,
+                decoration:
+                    attachment.url != null ? TextDecoration.underline : null,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            attachment.type,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );

@@ -331,7 +331,7 @@ void main() {
 
       // Tap specifically on the attachment row.
       await tester.tap(
-        find.byKey(const ValueKey('attachment-tap-report.pdf')),
+        find.byKey(const ValueKey('file-attachment-report.pdf')),
       );
       await tester.pumpAndSettle();
 

@@ -905,7 +905,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final inkWellFinder =
-        find.byKey(const ValueKey('attachment-tap-report.pdf'));
+        find.byKey(const ValueKey('file-attachment-report.pdf'));
     expect(inkWellFinder, findsOneWidget);
     final inkWell = tester.widget<InkWell>(inkWellFinder);
     expect(inkWell.onTap, isNotNull);
@@ -954,7 +954,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final inkWellFinder =
-        find.byKey(const ValueKey('attachment-tap-report.pdf'));
+        find.byKey(const ValueKey('file-attachment-report.pdf'));
     expect(inkWellFinder, findsOneWidget);
     final inkWell = tester.widget<InkWell>(inkWellFinder);
     expect(inkWell.onTap, isNull);
