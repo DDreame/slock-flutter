@@ -6,6 +6,8 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
+import 'package:slock_app/core/scope/server_scope_id.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -44,7 +46,7 @@ void main() {
               const Scaffold(body: Text('release-notes-route')),
         ),
         GoRoute(
-          path: '/members',
+          path: '/servers/:serverId/members',
           builder: (context, state) =>
               const Scaffold(body: Text('members-route')),
         ),
@@ -61,6 +63,9 @@ void main() {
         sessionStoreProvider
             .overrideWith(() => sessionStore ?? _FakeSessionStore()),
         notificationStoreProvider.overrideWith(() => _FakeNotificationStore()),
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
       ],
       child: MaterialApp.router(
         theme: AppTheme.light,
@@ -182,7 +187,7 @@ void main() {
                 const Scaffold(body: Text('release-notes-route')),
           ),
           GoRoute(
-            path: '/members',
+            path: '/servers/:serverId/members',
             builder: (context, state) =>
                 const Scaffold(body: Text('members-route')),
           ),
@@ -200,6 +205,9 @@ void main() {
             sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
             notificationStoreProvider
                 .overrideWith(() => _FakeNotificationStore()),
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
           ],
           child: MaterialApp.router(
             theme: AppTheme.dark,

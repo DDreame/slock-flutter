@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
@@ -111,7 +112,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   title: 'Members',
                   subtitle: 'View and manage workspace members.',
                   colors: colors,
-                  onTap: () => context.push('/members'),
+                  onTap: () {
+                    final sid = ref.read(activeServerScopeIdProvider)?.value;
+                    if (sid == null) return;
+                    context.push('/servers/$sid/members');
+                  },
                 ),
               ],
             ),
