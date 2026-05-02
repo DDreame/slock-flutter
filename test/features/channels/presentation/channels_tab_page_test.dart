@@ -23,7 +23,6 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -605,9 +604,8 @@ class _FakeThreadRepository implements ThreadRepository {
 }
 
 class _FakeChannelManagementRepository implements ChannelManagementRepository {
-  _FakeChannelManagementRepository({this.createdChannelId});
+  _FakeChannelManagementRepository();
 
-  final String? createdChannelId;
   final List<String> createdNames = [];
 
   @override
@@ -616,7 +614,7 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     required String name,
   }) async {
     createdNames.add(name);
-    return createdChannelId;
+    return null;
   }
 
   @override
