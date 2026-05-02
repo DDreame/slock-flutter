@@ -11,6 +11,7 @@ import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
@@ -1595,7 +1596,7 @@ class _FullScreenImageViewer extends StatelessWidget {
                 Uri.parse(attachment.url!),
                 mode: LaunchMode.externalApplication,
               ),
-              tooltip: 'Open in browser',
+              tooltip: context.l10n.attachmentOpenInBrowser,
             ),
         ],
       ),
@@ -1618,7 +1619,7 @@ class _FullScreenImageViewer extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Unable to load image',
+                    context.l10n.attachmentUnableToLoadImage,
                     style: Theme.of(context)
                         .textTheme
                         .bodyMedium
@@ -1688,7 +1689,7 @@ class _HtmlAttachmentRow extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    'HTML • Opens in browser',
+                    context.l10n.attachmentHtmlOpensInBrowser,
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

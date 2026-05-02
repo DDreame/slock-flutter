@@ -14,6 +14,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository_pro
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -576,6 +577,8 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: ConversationDetailPage(target: target),
         ),
       ),
@@ -654,6 +657,8 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: ConversationDetailPage(target: target),
         ),
       ),
@@ -754,6 +759,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
             home: ConversationDetailPage(target: target),
           ),
         ),
@@ -1283,6 +1290,8 @@ Widget _buildApp({
     ],
     child: MaterialApp(
       theme: AppTheme.light,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: child,
     ),
   );

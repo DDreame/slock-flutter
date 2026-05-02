@@ -1155,6 +1155,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Custom API and WebSocket endpoints.'**
   String get baseUrlSettingsSettingsTileSubtitle;
+
+  /// No description provided for @attachmentOpenInBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in browser'**
+  String get attachmentOpenInBrowser;
+
+  /// No description provided for @attachmentUnableToLoadImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load image'**
+  String get attachmentUnableToLoadImage;
+
+  /// No description provided for @attachmentHtmlOpensInBrowser.
+  ///
+  /// In en, this message translates to:
+  /// **'HTML • Opens in browser'**
+  String get attachmentHtmlOpensInBrowser;
 }
 
 class _AppLocalizationsDelegate

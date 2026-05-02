@@ -187,5 +187,9 @@
   "baseUrlEmptyDefault": "Usando valor predeterminado",
   "baseUrlRestartRequired": "Se requiere reiniciar para aplicar los cambios.",
   "baseUrlSettingsSettingsTile": "Servidor",
-  "baseUrlSettingsSettingsTileSubtitle": "Endpoints personalizados de API y WebSocket."
+  "baseUrlSettingsSettingsTileSubtitle": "Endpoints personalizados de API y WebSocket.",
+
+  "attachmentOpenInBrowser": "Abrir en navegador",
+  "attachmentUnableToLoadImage": "No se pudo cargar la imagen",
+  "attachmentHtmlOpensInBrowser": "HTML · Abrir en navegador"
 }

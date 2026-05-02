@@ -217,5 +217,9 @@
   "baseUrlEmptyDefault": "Using build-time default",
   "baseUrlRestartRequired": "Restart required to apply changes.",
   "baseUrlSettingsSettingsTile": "Server",
-  "baseUrlSettingsSettingsTileSubtitle": "Custom API and WebSocket endpoints."
+  "baseUrlSettingsSettingsTileSubtitle": "Custom API and WebSocket endpoints.",
+
+  "attachmentOpenInBrowser": "Open in browser",
+  "attachmentUnableToLoadImage": "Unable to load image",
+  "attachmentHtmlOpensInBrowser": "HTML • Opens in browser"
 }
