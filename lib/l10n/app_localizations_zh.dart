@@ -189,6 +189,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navAgents => '智能体';
 
   @override
+  String get agentsNewTooltip => '新建智能体';
+
+  @override
   String get navSettings => '设置';
 
   @override

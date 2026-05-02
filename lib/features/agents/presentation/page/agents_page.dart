@@ -94,7 +94,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                 : IconButton(
                     key: const ValueKey('agents-new-btn'),
                     icon: const Icon(Icons.add),
-                    tooltip: 'New agent',
+                    tooltip: l10n.agentsNewTooltip,
                     onPressed: _createAgent,
                   ),
         ],

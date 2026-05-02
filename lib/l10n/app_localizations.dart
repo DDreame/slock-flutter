@@ -460,6 +460,12 @@ abstract class AppLocalizations {
   /// **'Agents'**
   String get navAgents;
 
+  /// No description provided for @agentsNewTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'New agent'**
+  String get agentsNewTooltip;
+
   /// No description provided for @navSettings.
   ///
   /// In en, this message translates to:

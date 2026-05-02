@@ -200,6 +200,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navAgents => 'Agents';
 
   @override
+  String get agentsNewTooltip => 'New agent';
+
+  @override
   String get navSettings => 'Settings';
 
   @override

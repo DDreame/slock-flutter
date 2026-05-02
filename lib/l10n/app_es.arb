@@ -65,6 +65,7 @@
   "navChannels": "Canales",
   "navDms": "Mensajes",
   "navAgents": "Agents",
+  "agentsNewTooltip": "Nuevo agente",
   "navSettings": "Settings",
 
   "homeWorkspaceConsole": "Workspace Console",
