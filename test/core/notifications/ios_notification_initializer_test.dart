@@ -27,6 +27,10 @@ class FakeIosNotificationPlatformBridge
       permissionStatus;
 
   @override
+  Future<NotificationPermissionStatus> getPermissionStatus() async =>
+      permissionStatus;
+
+  @override
   Future<String?> getToken() async => token;
 
   @override
@@ -73,6 +77,14 @@ void main() {
       final status = await initializer.requestPermission();
 
       expect(status, NotificationPermissionStatus.provisional);
+    });
+
+    test('delegates getPermissionStatus to platform bridge', () async {
+      fakeBridge.permissionStatus = NotificationPermissionStatus.granted;
+
+      final status = await initializer.getPermissionStatus();
+
+      expect(status, NotificationPermissionStatus.granted);
     });
 
     test('delegates token reads to platform bridge', () async {

@@ -43,6 +43,8 @@ class NotificationStore extends Notifier<NotificationState> {
     if (_initialized) return;
     try {
       await _initializer.init();
+      final nativeStatus = await _initializer.getPermissionStatus();
+      state = state.copyWith(permissionStatus: nativeStatus);
       await restorePushToken();
       await restoreNotificationPreference();
       final initial = await _initializer.getInitialNotification();
@@ -57,6 +59,17 @@ class NotificationStore extends Notifier<NotificationState> {
       _tapSubscription = null;
       rethrow;
     }
+  }
+
+  /// Requests notification permission if the status is still [unknown],
+  /// meaning the user has never been prompted (Android 13+ first-ask
+  /// state). Safe to call on every launch — skips when permission is
+  /// already decided.
+  Future<void> onboardPermissionIfNeeded() async {
+    if (state.permissionStatus != NotificationPermissionStatus.unknown) {
+      return;
+    }
+    await requestPermission();
   }
 
   void handleNotificationTap(Map<String, dynamic> payload) {

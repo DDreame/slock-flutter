@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/notifications/foreground_service_manager.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -32,6 +33,7 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
   // succession, which would otherwise let two syncs both read
   // isRunning = false before either completes startService).
   Future<void> pending = Future<void>.value();
+  final diagnostics = ref.read(diagnosticsCollectorProvider);
 
   Future<void> sync() async {
     final session = ref.read(sessionStoreProvider);
@@ -41,9 +43,20 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
 
     final shouldStart = session.isAuthenticated && appReady && !running;
 
+    diagnostics.info(
+      'foreground-service',
+      'sync: authenticated=${session.isAuthenticated}, '
+          'appReady=$appReady, running=$running, '
+          'shouldStart=$shouldStart',
+    );
+
     if (shouldStart) {
       await manager.setAuthFlag(true);
       await manager.startService();
+      diagnostics.info(
+        'foreground-service',
+        'Started foreground service',
+      );
       return;
     }
 
@@ -54,14 +67,21 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
       await manager.setAuthFlag(false);
       if (running) {
         await manager.stopService();
+        diagnostics.info(
+          'foreground-service',
+          'Stopped foreground service (unauthenticated)',
+        );
       }
     }
   }
 
   void scheduleSync() {
-    pending = pending
-        .then((_) => sync())
-        .catchError((_) {}); // keep chain alive on error
+    pending = pending.then((_) => sync()).catchError((Object e) {
+      diagnostics.error(
+        'foreground-service',
+        'sync error: $e',
+      );
+    });
   }
 
   ref.listen<SessionState>(sessionStoreProvider, (_, __) {

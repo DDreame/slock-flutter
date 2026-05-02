@@ -36,7 +36,13 @@ class SplashController extends AutoDisposeAsyncNotifier<void> {
       final notificationStore = ref.read(notificationStoreProvider.notifier);
       final diagnostics = ref.read(diagnosticsCollectorProvider);
       unawaited(
-        notificationStore.init().catchError((Object e) {
+        notificationStore.init().then((_) {
+          // After init, trigger permission onboarding if the user is
+          // authenticated and has never been prompted (Android 13+).
+          if (updatedSession.isAuthenticated) {
+            return notificationStore.onboardPermissionIfNeeded();
+          }
+        }).catchError((Object e) {
           diagnostics.add(DiagnosticsEntry(
             timestamp: DateTime.now(),
             level: DiagnosticsLevel.error,

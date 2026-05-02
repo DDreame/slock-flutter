@@ -72,6 +72,10 @@ import BackgroundTasks
         } else {
           result(nil)
         }
+      case "getPermissionStatus":
+        self.resolvePermissionStatus { status in
+          result(status)
+        }
       case "showLocalNotification":
         if let payload = call.arguments as? [String: Any] {
           self.postLocalNotification(payload: payload)

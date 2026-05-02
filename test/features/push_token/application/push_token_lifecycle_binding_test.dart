@@ -27,6 +27,10 @@ class _FakeNotificationInitializer implements NotificationInitializer {
       NotificationPermissionStatus.granted;
 
   @override
+  Future<NotificationPermissionStatus> getPermissionStatus() async =>
+      NotificationPermissionStatus.unknown;
+
+  @override
   Future<String?> getToken() async {
     if (_callIndex >= tokens.length) return tokens.last;
     return tokens[_callIndex++];
