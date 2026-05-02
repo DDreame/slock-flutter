@@ -486,7 +486,7 @@ class _HomeTasksSection extends ConsumerWidget {
       title: l10n.homeCardTasks,
       onViewAll: onViewAll,
       child: activeTasks.isEmpty
-          ? _TasksEmptyState(key: const ValueKey('home-tasks-empty'))
+          ? const _TasksEmptyState(key: ValueKey('home-tasks-empty'))
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
