@@ -286,6 +286,105 @@ class AppLocalizationsEn extends AppLocalizations {
       'Configure workspace-level defaults and access.';
 
   @override
+  String get homeCardAgents => 'AGENTS';
+
+  @override
+  String get homeCardAgentsSubtitle => 'agents in workspace';
+
+  @override
+  String homeCardAgentsOnline(int count) {
+    return '$count online';
+  }
+
+  @override
+  String homeCardAgentsError(int count) {
+    return '$count error';
+  }
+
+  @override
+  String homeCardAgentsStopped(int count) {
+    return '$count stopped';
+  }
+
+  @override
+  String get homeCardChannels => 'CHANNELS';
+
+  @override
+  String get homeCardChannelsSubtitle => 'active channels';
+
+  @override
+  String homeCardChannelsUnread(int count) {
+    return '$count unread';
+  }
+
+  @override
+  String get homeCardTasks => 'TASKS';
+
+  @override
+  String get homeCardTasksSubtitle => 'total tasks';
+
+  @override
+  String get homeCardThreads => 'THREADS';
+
+  @override
+  String get homeCardViewAll => 'View all';
+
+  @override
+  String get homeCardThreadsFilterUnread => 'Unread';
+
+  @override
+  String get homeCardThreadsFilterRead => 'Read';
+
+  @override
+  String get homeCardThreadsFilterAll => 'All';
+
+  @override
+  String homeCardThreadsReplies(int count) {
+    return '$count replies';
+  }
+
+  @override
+  String homeCardThreadsNew(int count) {
+    return '$count new';
+  }
+
+  @override
+  String get homeCardThreadsEmpty => 'No threads';
+
+  @override
+  String get homeCardAgentActivityIdle => 'idle';
+
+  @override
+  String get homeCardAgentActivityThinking => 'thinking';
+
+  @override
+  String get homeCardAgentActivityWorking => 'working';
+
+  @override
+  String get homeCardAgentActivityError => 'error';
+
+  @override
+  String get homeCardAgentActivityOffline => 'offline';
+
+  @override
+  String get homeCardTimeAgoNow => 'now';
+
+  @override
+  String homeCardTimeAgoMinutes(int count) {
+    return '${count}m ago';
+  }
+
+  @override
+  String homeCardTimeAgoHours(int count) {
+    return '${count}h ago';
+  }
+
+  @override
+  String homeCardTimeAgoDays(int count) {
+    return '${count}d ago';
+  }
+
+  @override
   String get homeSectionPinned => 'Pinned';
 
   @override

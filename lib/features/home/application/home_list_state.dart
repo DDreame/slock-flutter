@@ -3,6 +3,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
 
 enum HomeListStatus { initial, loading, success, failure, noActiveServer }
 
@@ -22,6 +23,7 @@ class HomeListState {
     this.taskCount = 0,
     this.machineCount = 0,
     this.threadCount = 0,
+    this.threadItems = const [],
     this.sidebarOrder = const SidebarOrder(),
     this.failure,
   });
@@ -39,6 +41,7 @@ class HomeListState {
   final int taskCount;
   final int machineCount;
   final int threadCount;
+  final List<ThreadInboxItem> threadItems;
   final SidebarOrder sidebarOrder;
   final AppFailure? failure;
 
@@ -67,6 +70,7 @@ class HomeListState {
     int? taskCount,
     int? machineCount,
     int? threadCount,
+    List<ThreadInboxItem>? threadItems,
     SidebarOrder? sidebarOrder,
     AppFailure? failure,
     bool clearFailure = false,
@@ -86,6 +90,7 @@ class HomeListState {
       taskCount: taskCount ?? this.taskCount,
       machineCount: machineCount ?? this.machineCount,
       threadCount: threadCount ?? this.threadCount,
+      threadItems: threadItems ?? this.threadItems,
       sidebarOrder: sidebarOrder ?? this.sidebarOrder,
       failure: clearFailure ? null : (failure ?? this.failure),
     );
@@ -112,6 +117,7 @@ class HomeListState {
             taskCount == other.taskCount &&
             machineCount == other.machineCount &&
             threadCount == other.threadCount &&
+            listEquals(threadItems, other.threadItems) &&
             sidebarOrder == other.sidebarOrder &&
             failure == other.failure;
   }
@@ -131,6 +137,7 @@ class HomeListState {
         taskCount,
         machineCount,
         threadCount,
+        Object.hashAll(threadItems),
         sidebarOrder,
         failure,
       );

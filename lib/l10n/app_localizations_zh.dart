@@ -264,6 +264,105 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeConsoleWorkspaceSettingsDescription => '配置工作区级别的默认值和访问权限。';
 
   @override
+  String get homeCardAgents => '智能体';
+
+  @override
+  String get homeCardAgentsSubtitle => '工作区中的智能体';
+
+  @override
+  String homeCardAgentsOnline(int count) {
+    return '$count 在线';
+  }
+
+  @override
+  String homeCardAgentsError(int count) {
+    return '$count 错误';
+  }
+
+  @override
+  String homeCardAgentsStopped(int count) {
+    return '$count 已停止';
+  }
+
+  @override
+  String get homeCardChannels => '频道';
+
+  @override
+  String get homeCardChannelsSubtitle => '活跃频道';
+
+  @override
+  String homeCardChannelsUnread(int count) {
+    return '$count 未读';
+  }
+
+  @override
+  String get homeCardTasks => '任务';
+
+  @override
+  String get homeCardTasksSubtitle => '全部任务';
+
+  @override
+  String get homeCardThreads => '话题';
+
+  @override
+  String get homeCardViewAll => '查看全部';
+
+  @override
+  String get homeCardThreadsFilterUnread => '未读';
+
+  @override
+  String get homeCardThreadsFilterRead => '已读';
+
+  @override
+  String get homeCardThreadsFilterAll => '全部';
+
+  @override
+  String homeCardThreadsReplies(int count) {
+    return '$count 条回复';
+  }
+
+  @override
+  String homeCardThreadsNew(int count) {
+    return '$count 条新消息';
+  }
+
+  @override
+  String get homeCardThreadsEmpty => '暂无话题';
+
+  @override
+  String get homeCardAgentActivityIdle => '空闲';
+
+  @override
+  String get homeCardAgentActivityThinking => '思考中';
+
+  @override
+  String get homeCardAgentActivityWorking => '工作中';
+
+  @override
+  String get homeCardAgentActivityError => '错误';
+
+  @override
+  String get homeCardAgentActivityOffline => '离线';
+
+  @override
+  String get homeCardTimeAgoNow => '刚刚';
+
+  @override
+  String homeCardTimeAgoMinutes(int count) {
+    return '$count分钟前';
+  }
+
+  @override
+  String homeCardTimeAgoHours(int count) {
+    return '$count小时前';
+  }
+
+  @override
+  String homeCardTimeAgoDays(int count) {
+    return '$count天前';
+  }
+
+  @override
   String get homeSectionPinned => '已置顶';
 
   @override

@@ -293,6 +293,105 @@ class AppLocalizationsEs extends AppLocalizations {
       'Configure workspace-level defaults and access.';
 
   @override
+  String get homeCardAgents => 'AGENTES';
+
+  @override
+  String get homeCardAgentsSubtitle => 'agentes en el espacio';
+
+  @override
+  String homeCardAgentsOnline(int count) {
+    return '$count en linea';
+  }
+
+  @override
+  String homeCardAgentsError(int count) {
+    return '$count error';
+  }
+
+  @override
+  String homeCardAgentsStopped(int count) {
+    return '$count detenidos';
+  }
+
+  @override
+  String get homeCardChannels => 'CANALES';
+
+  @override
+  String get homeCardChannelsSubtitle => 'canales activos';
+
+  @override
+  String homeCardChannelsUnread(int count) {
+    return '$count sin leer';
+  }
+
+  @override
+  String get homeCardTasks => 'TAREAS';
+
+  @override
+  String get homeCardTasksSubtitle => 'tareas totales';
+
+  @override
+  String get homeCardThreads => 'HILOS';
+
+  @override
+  String get homeCardViewAll => 'Ver todo';
+
+  @override
+  String get homeCardThreadsFilterUnread => 'Sin leer';
+
+  @override
+  String get homeCardThreadsFilterRead => 'Leidos';
+
+  @override
+  String get homeCardThreadsFilterAll => 'Todos';
+
+  @override
+  String homeCardThreadsReplies(int count) {
+    return '$count respuestas';
+  }
+
+  @override
+  String homeCardThreadsNew(int count) {
+    return '$count nuevos';
+  }
+
+  @override
+  String get homeCardThreadsEmpty => 'Sin hilos';
+
+  @override
+  String get homeCardAgentActivityIdle => 'inactivo';
+
+  @override
+  String get homeCardAgentActivityThinking => 'pensando';
+
+  @override
+  String get homeCardAgentActivityWorking => 'trabajando';
+
+  @override
+  String get homeCardAgentActivityError => 'error';
+
+  @override
+  String get homeCardAgentActivityOffline => 'desconectado';
+
+  @override
+  String get homeCardTimeAgoNow => 'ahora';
+
+  @override
+  String homeCardTimeAgoMinutes(int count) {
+    return 'hace ${count}m';
+  }
+
+  @override
+  String homeCardTimeAgoHours(int count) {
+    return 'hace ${count}h';
+  }
+
+  @override
+  String homeCardTimeAgoDays(int count) {
+    return 'hace ${count}d';
+  }
+
+  @override
   String get homeSectionPinned => 'Pinned';
 
   @override
