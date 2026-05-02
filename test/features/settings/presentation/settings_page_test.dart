@@ -216,6 +216,8 @@ void main() {
         child: MaterialApp.router(
           theme: AppTheme.light,
           routerConfig: router,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
         ),
       ),
     );

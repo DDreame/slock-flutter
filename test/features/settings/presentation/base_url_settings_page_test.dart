@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/settings/data/base_url_connection_tester.dart';
 import 'package:slock_app/features/settings/data/base_url_settings.dart';
 import 'package:slock_app/features/settings/presentation/page/base_url_settings_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/base_url/base_url_settings_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
@@ -29,6 +30,8 @@ void main() {
       ],
       child: MaterialApp.router(
         theme: AppTheme.light,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
         routerConfig: GoRouter(
           initialLocation: '/settings/base-url',
           routes: [
