@@ -55,6 +55,9 @@ class MainActivity : FlutterActivity() {
                     result.success(null)
                 }
                 "requestPermission" -> requestNotificationPermission(result)
+                "getPermissionStatus" -> {
+                    result.success(readPermissionStatus().wireValue)
+                }
                 "getToken" -> getNotificationToken(result)
                 "getInitialNotification" -> {
                     result.success(initialNotificationPayload)

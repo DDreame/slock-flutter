@@ -9,6 +9,8 @@ class FakeAndroidNotificationPlatformBridge
   int initCount = 0;
   NotificationPermissionStatus permissionStatus =
       NotificationPermissionStatus.unknown;
+  NotificationPermissionStatus nativePermissionStatus =
+      NotificationPermissionStatus.unknown;
   String? token;
   Map<String, dynamic>? initialPayload;
   final StreamController<Map<String, dynamic>> tapController =
@@ -22,6 +24,10 @@ class FakeAndroidNotificationPlatformBridge
   @override
   Future<NotificationPermissionStatus> requestPermission() async =>
       permissionStatus;
+
+  @override
+  Future<NotificationPermissionStatus> getPermissionStatus() async =>
+      nativePermissionStatus;
 
   @override
   Future<String?> getToken() async => token;
@@ -66,6 +72,14 @@ void main() {
       final status = await initializer.requestPermission();
 
       expect(status, NotificationPermissionStatus.granted);
+    });
+
+    test('delegates getPermissionStatus to platform bridge', () async {
+      fakeBridge.nativePermissionStatus = NotificationPermissionStatus.denied;
+
+      final status = await initializer.getPermissionStatus();
+
+      expect(status, NotificationPermissionStatus.denied);
     });
 
     test('delegates token reads to platform bridge', () async {

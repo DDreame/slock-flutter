@@ -37,6 +37,9 @@ class FakeNotificationInitializer implements NotificationInitializer {
   bool shouldThrowOnInit = false;
   NotificationPermissionStatus permissionResult =
       NotificationPermissionStatus.granted;
+  NotificationPermissionStatus nativePermissionStatus =
+      NotificationPermissionStatus.unknown;
+  int requestPermissionCount = 0;
   String? tokenResult;
   Map<String, dynamic>? initialNotificationResult;
   final StreamController<Map<String, dynamic>> tapController =
@@ -49,8 +52,14 @@ class FakeNotificationInitializer implements NotificationInitializer {
   }
 
   @override
-  Future<NotificationPermissionStatus> requestPermission() async =>
-      permissionResult;
+  Future<NotificationPermissionStatus> requestPermission() async {
+    requestPermissionCount++;
+    return permissionResult;
+  }
+
+  @override
+  Future<NotificationPermissionStatus> getPermissionStatus() async =>
+      nativePermissionStatus;
 
   @override
   Future<String?> getToken() async => tokenResult;
@@ -522,6 +531,109 @@ void main() {
           diagnostics.entries.where((e) => e.tag == 'notification').toList();
       expect(entries, hasLength(1));
       expect(entries.first.message, contains('Platform updated'));
+    });
+
+    group('permission onboarding', () {
+      test('init reads native permission status into state', () async {
+        fakeInitializer.nativePermissionStatus =
+            NotificationPermissionStatus.granted;
+
+        await readStore().init();
+
+        expect(
+          readState().permissionStatus,
+          NotificationPermissionStatus.granted,
+        );
+      });
+
+      test('init reads denied native permission status', () async {
+        fakeInitializer.nativePermissionStatus =
+            NotificationPermissionStatus.denied;
+
+        await readStore().init();
+
+        expect(
+          readState().permissionStatus,
+          NotificationPermissionStatus.denied,
+        );
+      });
+
+      test('init reads unknown native permission status', () async {
+        fakeInitializer.nativePermissionStatus =
+            NotificationPermissionStatus.unknown;
+
+        await readStore().init();
+
+        expect(
+          readState().permissionStatus,
+          NotificationPermissionStatus.unknown,
+        );
+      });
+
+      test(
+        'onboardPermissionIfNeeded requests when status is unknown',
+        () async {
+          fakeInitializer.nativePermissionStatus =
+              NotificationPermissionStatus.unknown;
+          fakeInitializer.permissionResult =
+              NotificationPermissionStatus.granted;
+          await readStore().init();
+
+          await readStore().onboardPermissionIfNeeded();
+
+          expect(fakeInitializer.requestPermissionCount, 1);
+          expect(
+            readState().permissionStatus,
+            NotificationPermissionStatus.granted,
+          );
+        },
+      );
+
+      test(
+        'onboardPermissionIfNeeded skips when status is granted',
+        () async {
+          fakeInitializer.nativePermissionStatus =
+              NotificationPermissionStatus.granted;
+          await readStore().init();
+
+          await readStore().onboardPermissionIfNeeded();
+
+          expect(fakeInitializer.requestPermissionCount, 0);
+        },
+      );
+
+      test(
+        'onboardPermissionIfNeeded skips when status is denied',
+        () async {
+          fakeInitializer.nativePermissionStatus =
+              NotificationPermissionStatus.denied;
+          await readStore().init();
+
+          await readStore().onboardPermissionIfNeeded();
+
+          expect(fakeInitializer.requestPermissionCount, 0);
+        },
+      );
+
+      test(
+        'onboardPermissionIfNeeded logs diagnostics on request',
+        () async {
+          fakeInitializer.nativePermissionStatus =
+              NotificationPermissionStatus.unknown;
+          fakeInitializer.permissionResult =
+              NotificationPermissionStatus.denied;
+          await readStore().init();
+          diagnostics.clear();
+
+          await readStore().onboardPermissionIfNeeded();
+
+          final entries = diagnostics.entries
+              .where((e) => e.tag == 'notification')
+              .toList();
+          expect(entries, isNotEmpty);
+          expect(entries.first.message, contains('denied'));
+        },
+      );
     });
   });
 

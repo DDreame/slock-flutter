@@ -21,6 +21,9 @@ object ForegroundMessageBroker {
         foregroundActive = active
     }
 
+    val isForegroundActive: Boolean
+        get() = foregroundActive
+
     fun push(payload: Map<String, Any?>) {
         if (foregroundActive) {
             sink?.success(payload)

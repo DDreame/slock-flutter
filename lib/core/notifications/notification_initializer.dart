@@ -5,6 +5,7 @@ enum NotificationPermissionStatus { unknown, granted, denied, provisional }
 abstract class NotificationInitializer {
   Future<void> init();
   Future<NotificationPermissionStatus> requestPermission();
+  Future<NotificationPermissionStatus> getPermissionStatus();
   Future<String?> getToken();
   Future<Map<String, dynamic>?> getInitialNotification();
   Stream<Map<String, dynamic>> get onNotificationTapped;
@@ -18,6 +19,10 @@ class NoOpNotificationInitializer implements NotificationInitializer {
 
   @override
   Future<NotificationPermissionStatus> requestPermission() async =>
+      NotificationPermissionStatus.unknown;
+
+  @override
+  Future<NotificationPermissionStatus> getPermissionStatus() async =>
       NotificationPermissionStatus.unknown;
 
   @override

@@ -10,6 +10,7 @@ const _notificationForegroundEventChannelName =
 abstract class IosNotificationPlatformBridge {
   Future<void> init();
   Future<NotificationPermissionStatus> requestPermission();
+  Future<NotificationPermissionStatus> getPermissionStatus();
   Future<String?> getToken();
   Future<Map<String, dynamic>?> getInitialNotification();
   Stream<Map<String, dynamic>> get onNotificationTapped;
@@ -31,6 +32,10 @@ class IosNotificationInitializer implements NotificationInitializer {
   @override
   Future<NotificationPermissionStatus> requestPermission() =>
       _bridge.requestPermission();
+
+  @override
+  Future<NotificationPermissionStatus> getPermissionStatus() =>
+      _bridge.getPermissionStatus();
 
   @override
   Future<String?> getToken() => _bridge.getToken();
@@ -75,6 +80,14 @@ class MethodChannelIosNotificationPlatformBridge
   Future<NotificationPermissionStatus> requestPermission() async {
     final value = await _methodChannel.invokeMethod<String>(
       'requestPermission',
+    );
+    return parseIosNotificationPermissionStatus(value);
+  }
+
+  @override
+  Future<NotificationPermissionStatus> getPermissionStatus() async {
+    final value = await _methodChannel.invokeMethod<String>(
+      'getPermissionStatus',
     );
     return parseIosNotificationPermissionStatus(value);
   }
