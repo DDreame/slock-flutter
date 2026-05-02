@@ -672,6 +672,15 @@ class HomeListStore extends Notifier<HomeListState> {
     );
   }
 
+  /// Locally sets all thread items' unreadCount to 0 (no server
+  /// call). Used by the home unread section "Mark all read" action.
+  void clearThreadUnreads() {
+    _threadItems = [
+      for (final item in _threadItems) item.copyWith(unreadCount: 0),
+    ];
+    state = state.copyWith(threadItems: _threadItems);
+  }
+
   List<String> _orderedChannelIds() {
     return _sortByOrder(
       _allChannels,

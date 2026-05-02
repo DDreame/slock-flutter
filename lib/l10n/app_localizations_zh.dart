@@ -392,6 +392,25 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get homeCardUnread => '未读';
+
+  @override
+  String get homeCardUnreadEmpty => '全部已读';
+
+  @override
+  String homeCardUnreadOverflow(int count) {
+    return '还有 $count 项';
+  }
+
+  @override
+  String homeCardUnreadBadge(int count) {
+    return '$count';
+  }
+
+  @override
+  String get homeCardUnreadMarkAllRead => '全部标为已读';
+
+  @override
   String get homeSectionPinned => '已置顶';
 
   @override

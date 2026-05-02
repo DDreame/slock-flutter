@@ -35,7 +35,7 @@ void main() {
   // -----------------------------------------------------------------------
 
   group('summary cards', () {
-    testWidgets('renders 4 summary cards in success state', (
+    testWidgets('renders 5 summary cards in success state', (
       tester,
     ) async {
       final router = _buildRouter();
@@ -54,6 +54,10 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('home-card-channels')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('home-card-unread')),
         findsOneWidget,
       );
       expect(
@@ -801,6 +805,669 @@ void main() {
       },
     );
 
+    // -----------------------------------------------------------------
+    // Unread section tests
+    // -----------------------------------------------------------------
+
+    testWidgets(
+      'unread section shows empty state when no unreads',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('home-unread-empty')),
+          findsOneWidget,
+          reason: 'Should show empty state when no unreads',
+        );
+        expect(
+          find.text('All caught up'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'unread section shows thread, channel, and DM items',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _unreadSnapshot,
+            ),
+            threadRepository: const _FakeThreadRepository(
+              threads: [
+                ThreadInboxItem(
+                  routeTarget: ThreadRouteTarget(
+                    serverId: 'server-1',
+                    parentChannelId: 'general',
+                    parentMessageId: 'msg-1',
+                  ),
+                  title: 'Thread title',
+                  preview: 'Thread preview text',
+                  replyCount: 3,
+                  unreadCount: 2,
+                  participantIds: ['u1'],
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Thread with unreadCount > 0 should appear
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-thread:msg-1'),
+          ),
+          findsOneWidget,
+          reason: 'Thread unread should appear',
+        );
+
+        // Title and preview should render
+        final row = find.byKey(
+          const ValueKey('unread-item-thread:msg-1'),
+        );
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('Thread title'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('Thread preview text'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'unread section shows max 5 items with overflow',
+      (tester) async {
+        final router = _buildRouter();
+
+        // Create 7 threads with unread > 0
+        final threads = List.generate(
+          7,
+          (i) => ThreadInboxItem(
+            routeTarget: ThreadRouteTarget(
+              serverId: 'server-1',
+              parentChannelId: 'general',
+              parentMessageId: 'msg-$i',
+            ),
+            title: 'Thread $i',
+            replyCount: 1,
+            unreadCount: 1,
+            participantIds: const ['u1'],
+          ),
+        );
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            threadRepository: _FakeThreadRepository(
+              threads: threads,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Should show 5 items + overflow
+        for (var i = 0; i < 5; i++) {
+          expect(
+            find.byKey(ValueKey('unread-item-thread:msg-$i')),
+            findsOneWidget,
+          );
+        }
+        // Items 5 and 6 should be hidden
+        expect(
+          find.byKey(const ValueKey('unread-item-thread:msg-5')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('unread-item-thread:msg-6')),
+          findsNothing,
+        );
+        // Overflow indicator
+        expect(
+          find.byKey(const ValueKey('home-unread-overflow')),
+          findsOneWidget,
+        );
+        expect(find.text('+2 more'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'unread section mark all read clears items',
+      (tester) async {
+        final router = _buildRouter();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Inject channel unreads
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .hydrateChannelUnreads({
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ): 3,
+        });
+        await tester.pumpAndSettle();
+
+        // Verify unread item appears
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-channel:general'),
+          ),
+          findsOneWidget,
+        );
+
+        // Tap mark all read
+        await tester.tap(
+          find.byKey(const ValueKey('home-unread-mark-all')),
+        );
+        await tester.pumpAndSettle();
+
+        // Channel unread should be cleared
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-channel:general'),
+          ),
+          findsNothing,
+          reason: 'Channel unreads should be cleared '
+              'after mark all read',
+        );
+        // Empty state should appear
+        expect(
+          find.byKey(const ValueKey('home-unread-empty')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'unread section includes pinned DMs with unread counts',
+      (tester) async {
+        final router = _buildRouter();
+
+        // Snapshot has pinned-dm in directMessages;
+        // SidebarOrder pins it so HomeListStore moves it
+        // to pinnedDirectMessages.
+        const pinnedDmSnapshot = HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [],
+          directMessages: [
+            HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'pinned-dm',
+              ),
+              title: 'Pinned Friend',
+              lastMessagePreview: 'Hey!',
+            ),
+            HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'regular-dm',
+              ),
+              title: 'Regular Friend',
+              lastMessagePreview: 'Hello',
+            ),
+          ],
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(pinnedDmSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(
+                order: SidebarOrder(
+                  pinnedOrder: ['pinned-dm'],
+                ),
+              ),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Inject DM unreads for the pinned DM
+        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'pinned-dm',
+          ): 4,
+        });
+        await tester.pumpAndSettle();
+
+        // Pinned DM with unreads should appear
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-dm:pinned-dm'),
+          ),
+          findsOneWidget,
+          reason: 'Pinned DM with positive unread '
+              'count must appear in unread section',
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('unread-item-dm:pinned-dm'),
+            ),
+            matching: find.text('Pinned Friend'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'unread section mark all read clears thread items too',
+      (tester) async {
+        final router = _buildRouter();
+        final now = DateTime(2026, 1, 1, 12);
+
+        final threads = [
+          ThreadInboxItem(
+            routeTarget: const ThreadRouteTarget(
+              serverId: 'server-1',
+              parentChannelId: 'general',
+              parentMessageId: 'msg-1',
+            ),
+            title: '#general',
+            preview: 'unread thread',
+            replyCount: 5,
+            unreadCount: 3,
+            lastReplyAt: now.subtract(const Duration(minutes: 5)),
+            participantIds: const ['u1'],
+          ),
+        ];
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              _FakeThreadRepository(threads: threads),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+            homeNowProvider.overrideWithValue(now),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Thread unread item should be visible
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-thread:msg-1'),
+          ),
+          findsOneWidget,
+          reason: 'Thread with unreadCount > 0 should appear',
+        );
+
+        // Tap mark all read
+        await tester.tap(
+          find.byKey(
+            const ValueKey('home-unread-mark-all'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Thread should be gone (local clear via HomeListStore)
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-thread:msg-1'),
+          ),
+          findsNothing,
+          reason: 'Thread unreads should be cleared after mark all read',
+        );
+      },
+    );
+
+    testWidgets(
+      'unread section has no View all action',
+      (tester) async {
+        final router = _buildRouter();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Unread card should exist but have no View all link
+        expect(
+          find.byKey(const ValueKey('home-card-unread')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('card-view-all-unread'),
+          ),
+          findsNothing,
+          reason: 'Unread section should not have View all action',
+        );
+      },
+    );
+
+    testWidgets(
+      'unread section sorts by last activity',
+      (tester) async {
+        final router = _buildRouter();
+        final now = DateTime(2026, 1, 1, 12);
+
+        final threads = [
+          ThreadInboxItem(
+            routeTarget: const ThreadRouteTarget(
+              serverId: 'server-1',
+              parentChannelId: 'general',
+              parentMessageId: 'old-msg',
+            ),
+            title: 'Old thread',
+            replyCount: 1,
+            unreadCount: 1,
+            lastReplyAt: now.subtract(const Duration(hours: 5)),
+            participantIds: const ['u1'],
+          ),
+          ThreadInboxItem(
+            routeTarget: const ThreadRouteTarget(
+              serverId: 'server-1',
+              parentChannelId: 'random',
+              parentMessageId: 'new-msg',
+            ),
+            title: 'New thread',
+            replyCount: 1,
+            unreadCount: 1,
+            lastReplyAt: now.subtract(
+              const Duration(minutes: 10),
+            ),
+            participantIds: const ['u2'],
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            now: now,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            threadRepository: _FakeThreadRepository(
+              threads: threads,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final newItem = find.byKey(
+          const ValueKey('unread-item-thread:new-msg'),
+        );
+        final oldItem = find.byKey(
+          const ValueKey('unread-item-thread:old-msg'),
+        );
+
+        expect(newItem, findsOneWidget);
+        expect(oldItem, findsOneWidget);
+
+        // New thread should appear before old thread
+        final newPos = tester.getTopLeft(newItem).dy;
+        final oldPos = tester.getTopLeft(oldItem).dy;
+        expect(
+          newPos,
+          lessThan(oldPos),
+          reason: 'More recent activity should sort first',
+        );
+      },
+    );
+
+    testWidgets(
+      'unread item shows kind-specific icon',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            threadRepository: const _FakeThreadRepository(
+              threads: [
+                ThreadInboxItem(
+                  routeTarget: ThreadRouteTarget(
+                    serverId: 'server-1',
+                    parentChannelId: 'general',
+                    parentMessageId: 'thread-msg',
+                  ),
+                  title: 'A thread',
+                  replyCount: 1,
+                  unreadCount: 1,
+                  participantIds: ['u1'],
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(
+          const ValueKey('unread-item-thread:thread-msg'),
+        );
+        expect(row, findsOneWidget);
+
+        // Thread icon should be reply
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.byIcon(Icons.reply),
+          ),
+          findsOneWidget,
+          reason: 'Thread unread should show reply icon',
+        );
+      },
+    );
+
+    testWidgets(
+      'unread item shows unread badge with count',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            threadRepository: const _FakeThreadRepository(
+              threads: [
+                ThreadInboxItem(
+                  routeTarget: ThreadRouteTarget(
+                    serverId: 'server-1',
+                    parentChannelId: 'general',
+                    parentMessageId: 'badge-msg',
+                  ),
+                  title: 'Badge thread',
+                  replyCount: 1,
+                  unreadCount: 5,
+                  participantIds: ['u1'],
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(
+          const ValueKey('unread-item-thread:badge-msg'),
+        );
+        expect(row, findsOneWidget);
+
+        // Badge shows count
+        expect(
+          find.descendant(of: row, matching: find.text('5')),
+          findsOneWidget,
+          reason: 'Unread badge should show count',
+        );
+      },
+    );
+
     testWidgets(
       'threads card shows filter chips and thread items',
       (tester) async {
@@ -860,10 +1527,22 @@ void main() {
 
         // Unread filter is selected by default — shows thread with
         // unreadCount > 0
-        expect(find.text('#general'), findsOneWidget);
-        expect(find.text('Check the latest PR'), findsOneWidget);
+        expect(
+          find.descendant(of: card, matching: find.text('#general')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('Check the latest PR'),
+          ),
+          findsOneWidget,
+        );
         // Read thread is hidden when Unread filter is on
-        expect(find.text('#random'), findsNothing);
+        expect(
+          find.descendant(of: card, matching: find.text('#random')),
+          findsNothing,
+        );
       },
     );
 
@@ -887,9 +1566,25 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('thread-filter-read')));
         await tester.pumpAndSettle();
 
-        expect(find.text('#random'), findsOneWidget);
-        expect(find.text('Done thread'), findsOneWidget);
-        expect(find.text('#general'), findsNothing);
+        final card = find.byKey(const ValueKey('home-card-threads'));
+        expect(
+          find.descendant(of: card, matching: find.text('#random')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('Done thread'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('#general'),
+          ),
+          findsNothing,
+        );
       },
     );
 
@@ -913,8 +1608,15 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('thread-filter-all')));
         await tester.pumpAndSettle();
 
-        expect(find.text('#general'), findsOneWidget);
-        expect(find.text('#random'), findsOneWidget);
+        final card = find.byKey(const ValueKey('home-card-threads'));
+        expect(
+          find.descendant(of: card, matching: find.text('#general')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.text('#random')),
+          findsOneWidget,
+        );
       },
     );
 
@@ -1324,6 +2026,30 @@ const _sampleSnapshot = HomeWorkspaceSnapshot(
         value: 'dm-alice',
       ),
       title: 'Alice',
+    ),
+  ],
+);
+
+const _unreadSnapshot = HomeWorkspaceSnapshot(
+  serverId: ServerScopeId('server-1'),
+  channels: [
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+      name: 'general',
+      lastMessagePreview: 'Latest channel message',
+    ),
+  ],
+  directMessages: [
+    HomeDirectMessageSummary(
+      scopeId: DirectMessageScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'dm-alice',
+      ),
+      title: 'Alice',
+      lastMessagePreview: 'Hey there!',
     ),
   ],
 );

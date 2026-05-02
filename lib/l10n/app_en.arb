@@ -139,6 +139,13 @@
   "@homeCardTimeAgoHours": { "placeholders": { "count": { "type": "int" } } },
   "homeCardTimeAgoDays": "{count}d ago",
   "@homeCardTimeAgoDays": { "placeholders": { "count": { "type": "int" } } },
+  "homeCardUnread": "UNREAD",
+  "homeCardUnreadEmpty": "All caught up",
+  "homeCardUnreadOverflow": "+{count} more",
+  "@homeCardUnreadOverflow": { "placeholders": { "count": { "type": "int" } } },
+  "homeCardUnreadBadge": "{count}",
+  "@homeCardUnreadBadge": { "placeholders": { "count": { "type": "int" } } },
+  "homeCardUnreadMarkAllRead": "Mark all read",
 
   "homeSectionPinned": "Pinned",
   "homeSectionChannels": "Channels",

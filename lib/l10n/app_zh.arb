@@ -127,6 +127,11 @@
   "homeCardTimeAgoMinutes": "{count}分钟前",
   "homeCardTimeAgoHours": "{count}小时前",
   "homeCardTimeAgoDays": "{count}天前",
+  "homeCardUnread": "未读",
+  "homeCardUnreadEmpty": "全部已读",
+  "homeCardUnreadOverflow": "还有 {count} 项",
+  "homeCardUnreadBadge": "{count}",
+  "homeCardUnreadMarkAllRead": "全部标为已读",
 
   "homeSectionPinned": "已置顶",
   "homeSectionChannels": "频道",
