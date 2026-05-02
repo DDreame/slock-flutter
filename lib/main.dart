@@ -20,6 +20,7 @@ import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_lifecycle_binding.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,11 +73,13 @@ class SlockApp extends ConsumerWidget {
     ref.watch(notificationLifecycleBindingProvider);
     ref.watch(notificationVisibleTargetBindingProvider);
     ref.watch(notificationForegroundSuppressionBindingProvider);
+    final themeState = ref.watch(themeModeStoreProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(
       onGenerateTitle: (context) => context.l10n.appTitle,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      themeMode: themeState.themeMode,
       routerConfig: router,
       builder: (context, child) =>
           CrashRecoveryWrapper(child: child ?? const SizedBox.shrink()),
