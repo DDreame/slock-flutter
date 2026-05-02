@@ -323,9 +323,10 @@ void main() {
     container.read(homeRealtimeUnreadBindingProvider);
     await container.read(homeListStoreProvider.notifier).load();
 
-    // Register a thread channel ID (simulates ThreadRepliesStore.load)
+    // Register a server-qualified thread channel ID
+    // (simulates ThreadRepliesStore.load)
     container.read(knownThreadChannelIdsProvider.notifier).state = {
-      'thread-channel-abc',
+      'server-1/thread-channel-abc',
     };
 
     container.read(realtimeReductionIngressProvider).accept(
@@ -363,7 +364,7 @@ void main() {
     await container.read(homeListStoreProvider.notifier).load();
 
     container.read(knownThreadChannelIdsProvider.notifier).state = {
-      'thread-channel-abc',
+      'server-1/thread-channel-abc',
     };
 
     container.read(realtimeReductionIngressProvider).accept(
@@ -395,7 +396,7 @@ void main() {
     await container.read(homeListStoreProvider.notifier).load();
 
     container.read(knownThreadChannelIdsProvider.notifier).state = {
-      'thread-ch-99',
+      'server-1/thread-ch-99',
     };
 
     final ingress = container.read(realtimeReductionIngressProvider);

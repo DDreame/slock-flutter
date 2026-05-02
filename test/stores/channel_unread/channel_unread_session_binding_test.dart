@@ -5,6 +5,7 @@ import 'package:slock_app/core/scope/direct_message_scope_id.dart';
 import 'package:slock_app/core/scope/server_scope_id.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_session_binding.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -59,6 +60,12 @@ void main() {
             .read(channelUnreadStoreProvider.notifier)
             .hydrateDmUnreads({dmAlice: 3});
 
+        // Populate known thread channel IDs
+        container.read(knownThreadChannelIdsProvider.notifier).state = {
+          'server-1/thread-1',
+          'server-1/thread-2',
+        };
+
         expect(
           container.read(channelUnreadStoreProvider).totalUnreadCount,
           8,
@@ -79,6 +86,11 @@ void main() {
         expect(
           container.read(channelUnreadStoreProvider).dmUnreadCounts,
           isEmpty,
+        );
+        expect(
+          container.read(knownThreadChannelIdsProvider),
+          isEmpty,
+          reason: 'Known thread channel IDs must be cleared on logout',
         );
       },
     );

@@ -114,9 +114,11 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
 
   if (matchedChannel == null && matchedDirectMessage == null) {
     final knownThreadIds = ref.read(knownThreadChannelIdsProvider);
-    if (isSelfMessage ||
-        isOpen ||
-        knownThreadIds.contains(incoming.conversationId)) {
+    final qualifiedId = threadChannelKey(
+      homeState.serverScopeId!.value,
+      incoming.conversationId,
+    );
+    if (isSelfMessage || isOpen || knownThreadIds.contains(qualifiedId)) {
       return;
     }
     final newScopeId = DirectMessageScopeId(

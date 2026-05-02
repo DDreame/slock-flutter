@@ -74,7 +74,7 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
         final ids = ref.read(knownThreadChannelIdsProvider);
         ref.read(knownThreadChannelIdsProvider.notifier).state = {
           ...ids,
-          threadChannelId,
+          threadChannelKey(routeTarget.serverId, threadChannelId),
         };
         unawaited(_markRead(routeTarget, threadChannelId));
       }

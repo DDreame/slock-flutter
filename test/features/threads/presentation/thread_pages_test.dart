@@ -265,9 +265,9 @@ void main() {
 
     expect(
       container.read(knownThreadChannelIdsProvider),
-      contains('thread-abc'),
-      reason: 'Resolving a thread must register its channel ID to prevent '
-          'phantom DM materialization',
+      contains('server-1/thread-abc'),
+      reason: 'Resolving a thread must register its server-qualified '
+          'channel ID to prevent phantom DM materialization',
     );
   });
 
