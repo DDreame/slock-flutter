@@ -859,7 +859,7 @@ void main() {
                   preview: 'Thread preview text',
                   replyCount: 3,
                   unreadCount: 2,
-                  participantIds: const ['u1'],
+                  participantIds: ['u1'],
                 ),
               ],
             ),
@@ -1292,7 +1292,7 @@ void main() {
                   title: 'A thread',
                   replyCount: 1,
                   unreadCount: 1,
-                  participantIds: const ['u1'],
+                  participantIds: ['u1'],
                 ),
               ],
             ),
@@ -1339,7 +1339,7 @@ void main() {
                   title: 'Badge thread',
                   replyCount: 1,
                   unreadCount: 5,
-                  participantIds: const ['u1'],
+                  participantIds: ['u1'],
                 ),
               ],
             ),
@@ -1376,7 +1376,7 @@ void main() {
             preview: 'Check the latest PR',
             replyCount: 5,
             unreadCount: 2,
-            participantIds: const ['u1'],
+            participantIds: ['u1'],
           ),
           ThreadInboxItem(
             routeTarget: ThreadRouteTarget(
@@ -1388,7 +1388,7 @@ void main() {
             preview: 'Old discussion',
             replyCount: 3,
             unreadCount: 0,
-            participantIds: const ['u2'],
+            participantIds: ['u2'],
           ),
         ];
 
