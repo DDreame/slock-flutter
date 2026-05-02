@@ -139,6 +139,87 @@ void main() {
         ),
       );
     });
+
+    test(
+      'loadWorkspace extracts unreadCount from channel '
+      'and dm payloads',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              {
+                'id': 'channel-1',
+                'name': 'Engineering',
+                'unreadCount': 5,
+              },
+              {
+                'id': 'channel-2',
+                'name': 'General',
+                'unreadCount': 0,
+              },
+              {'id': 'channel-3', 'name': 'Random'},
+            ],
+            '/channels/dm': [
+              {
+                'id': 'dm-1',
+                'participant': {'displayName': 'Alice'},
+                'unreadCount': 3,
+              },
+              {
+                'id': 'dm-2',
+                'peer': {'name': 'Bob'},
+              },
+            ],
+          },
+        );
+        final container = _createContainer(appDioClient);
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        expect(
+          snapshot.channelUnreadCounts,
+          {'channel-1': 5},
+        );
+        expect(
+          snapshot.dmUnreadCounts,
+          {'dm-1': 3},
+        );
+      },
+    );
+
+    test(
+      'loadWorkspace returns empty unread maps when no '
+      'unreadCount fields present',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              {'id': 'channel-1', 'name': 'Engineering'},
+            ],
+            '/channels/dm': [
+              {
+                'id': 'dm-1',
+                'participant': {'displayName': 'Alice'},
+              },
+            ],
+          },
+        );
+        final container = _createContainer(appDioClient);
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        expect(snapshot.channelUnreadCounts, isEmpty);
+        expect(snapshot.dmUnreadCounts, isEmpty);
+      },
+    );
   });
 
   test(

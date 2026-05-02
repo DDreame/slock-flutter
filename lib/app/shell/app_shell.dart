@@ -45,6 +45,7 @@ class AppShell extends ConsumerWidget {
       0,
       (sum, c) => sum + c,
     );
+    final homeUnreadTotal = channelUnreadTotal + dmUnreadTotal;
 
     return Scaffold(
       body: child,
@@ -67,11 +68,22 @@ class AppShell extends ConsumerWidget {
               destinations: [
                 NavigationDestination(
                   key: const ValueKey('nav-home'),
-                  icon: const Icon(
-                    Icons.space_dashboard_outlined,
+                  icon: Badge(
+                    key: const ValueKey(
+                      'home-unread-badge',
+                    ),
+                    isLabelVisible: homeUnreadTotal > 0,
+                    label: Text('$homeUnreadTotal'),
+                    child: const Icon(
+                      Icons.space_dashboard_outlined,
+                    ),
                   ),
-                  selectedIcon: const Icon(
-                    Icons.space_dashboard,
+                  selectedIcon: Badge(
+                    isLabelVisible: homeUnreadTotal > 0,
+                    label: Text('$homeUnreadTotal'),
+                    child: const Icon(
+                      Icons.space_dashboard,
+                    ),
                   ),
                   label: l10n.navWorkspace,
                 ),

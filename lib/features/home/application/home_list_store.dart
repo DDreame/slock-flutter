@@ -15,6 +15,7 @@ import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
+import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 final homeListStoreProvider = NotifierProvider<HomeListStore, HomeListState>(
   HomeListStore.new,
@@ -126,6 +127,8 @@ class HomeListStore extends Notifier<HomeListState> {
       _threadItems = List.of(threadItems);
       _sidebarOrder = sidebarOrder;
 
+      _hydrateUnreadCounts(snapshot);
+
       _emitPersonalizedState(
         serverScopeId: snapshot.serverId,
         status: HomeListStatus.success,
@@ -198,6 +201,21 @@ class HomeListStore extends Notifier<HomeListState> {
   }
 
   Future<void> retry() => load();
+
+  void _hydrateUnreadCounts(HomeWorkspaceSnapshot snapshot) {
+    final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
+    final serverId = snapshot.serverId;
+
+    unreadStore.hydrateChannelUnreads({
+      for (final entry in snapshot.channelUnreadCounts.entries)
+        ChannelScopeId(serverId: serverId, value: entry.key): entry.value,
+    });
+
+    unreadStore.hydrateDmUnreads({
+      for (final entry in snapshot.dmUnreadCounts.entries)
+        DirectMessageScopeId(serverId: serverId, value: entry.key): entry.value,
+    });
+  }
 
   void addDirectMessage(HomeDirectMessageSummary dm) {
     if (state.status != HomeListStatus.success) return;

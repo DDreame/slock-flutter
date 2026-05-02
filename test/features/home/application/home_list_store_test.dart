@@ -20,6 +20,8 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 
+import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
+
 final _testActiveServerProvider = StateProvider<ServerScopeId?>((ref) => null);
 
 void main() {
@@ -368,6 +370,163 @@ void main() {
       final state = container.read(homeListStoreProvider);
       expect(state.directMessages, isEmpty);
     });
+  });
+
+  group('unread count hydration', () {
+    test(
+      'load hydrates ChannelUnreadStore with server-provided '
+      'channel and DM unread counts',
+      () async {
+        final repository = _FakeHomeRepository(
+          snapshot: const HomeWorkspaceSnapshot(
+            serverId: ServerScopeId('server-1'),
+            channels: [
+              HomeChannelSummary(
+                scopeId: ChannelScopeId(
+                  serverId: ServerScopeId('server-1'),
+                  value: 'general',
+                ),
+                name: 'general',
+              ),
+              HomeChannelSummary(
+                scopeId: ChannelScopeId(
+                  serverId: ServerScopeId('server-1'),
+                  value: 'random',
+                ),
+                name: 'random',
+              ),
+            ],
+            directMessages: [
+              HomeDirectMessageSummary(
+                scopeId: DirectMessageScopeId(
+                  serverId: ServerScopeId('server-1'),
+                  value: 'dm-alice',
+                ),
+                title: 'Alice',
+              ),
+            ],
+            channelUnreadCounts: {'general': 5, 'random': 2},
+            dmUnreadCounts: {'dm-alice': 3},
+          ),
+        );
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(repository),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+
+        final unreadState = container.read(channelUnreadStoreProvider);
+
+        expect(
+          unreadState.channelUnreadCount(
+            const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'general',
+            ),
+          ),
+          5,
+        );
+        expect(
+          unreadState.channelUnreadCount(
+            const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'random',
+            ),
+          ),
+          2,
+        );
+        expect(
+          unreadState.dmUnreadCount(
+            const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-alice',
+            ),
+          ),
+          3,
+        );
+        expect(unreadState.totalUnreadCount, 10);
+      },
+    );
+
+    test(
+      'load clears stale unread counts when snapshot '
+      'has empty unread maps',
+      () async {
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              _FakeHomeRepository(
+                snapshot: const HomeWorkspaceSnapshot(
+                  serverId: ServerScopeId('server-1'),
+                  channels: [],
+                  directMessages: [],
+                ),
+              ),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Pre-populate with stale counts
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .hydrateChannelUnreads({
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'pre-existing',
+          ): 99,
+        });
+        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'stale-dm',
+          ): 42,
+        });
+
+        await container.read(homeListStoreProvider.notifier).load();
+
+        // Empty snapshot should clear all stale counts
+        final unreadState = container.read(channelUnreadStoreProvider);
+        expect(unreadState.channelUnreadCounts, isEmpty);
+        expect(unreadState.dmUnreadCounts, isEmpty);
+        expect(unreadState.totalUnreadCount, 0);
+      },
+    );
   });
 }
 
