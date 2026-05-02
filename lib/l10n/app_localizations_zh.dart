@@ -299,7 +299,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeCardTasks => '任务';
 
   @override
-  String get homeCardTasksSubtitle => '进行中';
+  String get homeCardTasksSubtitle => '全部任务';
 
   @override
   String get homeCardThreads => '话题';
@@ -308,10 +308,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeCardViewAll => '查看全部';
 
   @override
-  String get homeCardThreadsFilterActive => '活跃';
+  String get homeCardThreadsFilterUnread => '未读';
 
   @override
-  String get homeCardThreadsFilterDone => '已完成';
+  String get homeCardThreadsFilterRead => '已读';
 
   @override
   String get homeCardThreadsFilterAll => '全部';
@@ -324,6 +324,42 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String homeCardThreadsNew(int count) {
     return '$count 条新消息';
+  }
+
+  @override
+  String get homeCardThreadsEmpty => '暂无话题';
+
+  @override
+  String get homeCardAgentActivityIdle => '空闲';
+
+  @override
+  String get homeCardAgentActivityThinking => '思考中';
+
+  @override
+  String get homeCardAgentActivityWorking => '工作中';
+
+  @override
+  String get homeCardAgentActivityError => '错误';
+
+  @override
+  String get homeCardAgentActivityOffline => '离线';
+
+  @override
+  String get homeCardTimeAgoNow => '刚刚';
+
+  @override
+  String homeCardTimeAgoMinutes(int count) {
+    return '$count分钟前';
+  }
+
+  @override
+  String homeCardTimeAgoHours(int count) {
+    return '$count小时前';
+  }
+
+  @override
+  String homeCardTimeAgoDays(int count) {
+    return '$count天前';
   }
 
   @override

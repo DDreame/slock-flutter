@@ -321,7 +321,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeCardTasks => 'TASKS';
 
   @override
-  String get homeCardTasksSubtitle => 'in progress';
+  String get homeCardTasksSubtitle => 'total tasks';
 
   @override
   String get homeCardThreads => 'THREADS';
@@ -330,10 +330,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeCardViewAll => 'View all';
 
   @override
-  String get homeCardThreadsFilterActive => 'Active';
+  String get homeCardThreadsFilterUnread => 'Unread';
 
   @override
-  String get homeCardThreadsFilterDone => 'Done';
+  String get homeCardThreadsFilterRead => 'Read';
 
   @override
   String get homeCardThreadsFilterAll => 'All';
@@ -346,6 +346,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String homeCardThreadsNew(int count) {
     return '$count new';
+  }
+
+  @override
+  String get homeCardThreadsEmpty => 'No threads';
+
+  @override
+  String get homeCardAgentActivityIdle => 'idle';
+
+  @override
+  String get homeCardAgentActivityThinking => 'thinking';
+
+  @override
+  String get homeCardAgentActivityWorking => 'working';
+
+  @override
+  String get homeCardAgentActivityError => 'error';
+
+  @override
+  String get homeCardAgentActivityOffline => 'offline';
+
+  @override
+  String get homeCardTimeAgoNow => 'now';
+
+  @override
+  String homeCardTimeAgoMinutes(int count) {
+    return '${count}m ago';
+  }
+
+  @override
+  String homeCardTimeAgoHours(int count) {
+    return '${count}h ago';
+  }
+
+  @override
+  String homeCardTimeAgoDays(int count) {
+    return '${count}d ago';
   }
 
   @override

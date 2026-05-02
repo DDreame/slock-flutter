@@ -342,7 +342,7 @@ class _MiniAgentRow extends StatelessWidget {
             ),
           ),
           Text(
-            _activityText(agent.activity),
+            _activityText(context, agent.activity),
             style: AppTypography.caption.copyWith(
               color: colors.textTertiary,
             ),
@@ -352,13 +352,14 @@ class _MiniAgentRow extends StatelessWidget {
     );
   }
 
-  String _activityText(String activity) {
+  String _activityText(BuildContext context, String activity) {
+    final l10n = context.l10n;
     return switch (activity) {
-      'online' => 'idle',
-      'thinking' => 'thinking',
-      'working' => 'working',
-      'error' => 'error',
-      _ => 'offline',
+      'online' => l10n.homeCardAgentActivityIdle,
+      'thinking' => l10n.homeCardAgentActivityThinking,
+      'working' => l10n.homeCardAgentActivityWorking,
+      'error' => l10n.homeCardAgentActivityError,
+      _ => l10n.homeCardAgentActivityOffline,
     };
   }
 }
@@ -473,7 +474,7 @@ class _TasksSummaryCard extends StatelessWidget {
 // Threads summary card with filter chips
 // ---------------------------------------------------------------------------
 
-enum _ThreadFilter { active, done, all }
+enum _ThreadFilter { unread, read, all }
 
 class _ThreadsSummaryCard extends StatefulWidget {
   const _ThreadsSummaryCard({
@@ -490,21 +491,21 @@ class _ThreadsSummaryCard extends StatefulWidget {
 }
 
 class _ThreadsSummaryCardState extends State<_ThreadsSummaryCard> {
-  _ThreadFilter _filter = _ThreadFilter.active;
+  _ThreadFilter _filter = _ThreadFilter.unread;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
-    final activeItems =
+    final unreadItems =
         widget.threadItems.where((t) => t.unreadCount > 0).toList();
-    final doneItems =
+    final readItems =
         widget.threadItems.where((t) => t.unreadCount == 0).toList();
 
     final filtered = switch (_filter) {
-      _ThreadFilter.active => activeItems,
-      _ThreadFilter.done => doneItems,
+      _ThreadFilter.unread => unreadItems,
+      _ThreadFilter.read => readItems,
       _ThreadFilter.all => widget.threadItems,
     };
 
@@ -518,19 +519,19 @@ class _ThreadsSummaryCardState extends State<_ThreadsSummaryCard> {
           Row(
             children: [
               _FilterChip(
-                key: const ValueKey('thread-filter-active'),
-                label: l10n.homeCardThreadsFilterActive,
-                count: activeItems.length,
-                isSelected: _filter == _ThreadFilter.active,
-                onTap: () => setState(() => _filter = _ThreadFilter.active),
+                key: const ValueKey('thread-filter-unread'),
+                label: l10n.homeCardThreadsFilterUnread,
+                count: unreadItems.length,
+                isSelected: _filter == _ThreadFilter.unread,
+                onTap: () => setState(() => _filter = _ThreadFilter.unread),
               ),
               const SizedBox(width: AppSpacing.sm),
               _FilterChip(
-                key: const ValueKey('thread-filter-done'),
-                label: l10n.homeCardThreadsFilterDone,
-                count: doneItems.length,
-                isSelected: _filter == _ThreadFilter.done,
-                onTap: () => setState(() => _filter = _ThreadFilter.done),
+                key: const ValueKey('thread-filter-read'),
+                label: l10n.homeCardThreadsFilterRead,
+                count: readItems.length,
+                isSelected: _filter == _ThreadFilter.read,
+                onTap: () => setState(() => _filter = _ThreadFilter.read),
               ),
               const SizedBox(width: AppSpacing.sm),
               _FilterChip(
@@ -548,7 +549,7 @@ class _ThreadsSummaryCardState extends State<_ThreadsSummaryCard> {
           if (filtered.isEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             Text(
-              'No threads',
+              l10n.homeCardThreadsEmpty,
               key: const ValueKey('home-threads-empty'),
               style: AppTypography.bodySmall.copyWith(
                 color: colors.textTertiary,
@@ -669,7 +670,7 @@ class _ThreadItemRow extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  _timeAgo(item.lastReplyAt!),
+                  _timeAgo(context, item.lastReplyAt!),
                   style: AppTypography.caption.copyWith(
                     color: colors.textTertiary,
                   ),
@@ -705,12 +706,17 @@ class _ThreadItemRow extends StatelessWidget {
     );
   }
 
-  String _timeAgo(DateTime dt) {
+  String _timeAgo(BuildContext context, DateTime dt) {
+    final l10n = context.l10n;
     final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    if (diff.inMinutes < 1) return l10n.homeCardTimeAgoNow;
+    if (diff.inMinutes < 60) {
+      return l10n.homeCardTimeAgoMinutes(diff.inMinutes);
+    }
+    if (diff.inHours < 24) {
+      return l10n.homeCardTimeAgoHours(diff.inHours);
+    }
+    return l10n.homeCardTimeAgoDays(diff.inDays);
   }
 }
 

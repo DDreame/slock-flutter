@@ -667,7 +667,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeCardTasksSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'in progress'**
+  /// **'total tasks'**
   String get homeCardTasksSubtitle;
 
   /// No description provided for @homeCardThreads.
@@ -682,17 +682,17 @@ abstract class AppLocalizations {
   /// **'View all'**
   String get homeCardViewAll;
 
-  /// No description provided for @homeCardThreadsFilterActive.
+  /// No description provided for @homeCardThreadsFilterUnread.
   ///
   /// In en, this message translates to:
-  /// **'Active'**
-  String get homeCardThreadsFilterActive;
+  /// **'Unread'**
+  String get homeCardThreadsFilterUnread;
 
-  /// No description provided for @homeCardThreadsFilterDone.
+  /// No description provided for @homeCardThreadsFilterRead.
   ///
   /// In en, this message translates to:
-  /// **'Done'**
-  String get homeCardThreadsFilterDone;
+  /// **'Read'**
+  String get homeCardThreadsFilterRead;
 
   /// No description provided for @homeCardThreadsFilterAll.
   ///
@@ -711,6 +711,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} new'**
   String homeCardThreadsNew(int count);
+
+  /// No description provided for @homeCardThreadsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No threads'**
+  String get homeCardThreadsEmpty;
+
+  /// No description provided for @homeCardAgentActivityIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'idle'**
+  String get homeCardAgentActivityIdle;
+
+  /// No description provided for @homeCardAgentActivityThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'thinking'**
+  String get homeCardAgentActivityThinking;
+
+  /// No description provided for @homeCardAgentActivityWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'working'**
+  String get homeCardAgentActivityWorking;
+
+  /// No description provided for @homeCardAgentActivityError.
+  ///
+  /// In en, this message translates to:
+  /// **'error'**
+  String get homeCardAgentActivityError;
+
+  /// No description provided for @homeCardAgentActivityOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'offline'**
+  String get homeCardAgentActivityOffline;
+
+  /// No description provided for @homeCardTimeAgoNow.
+  ///
+  /// In en, this message translates to:
+  /// **'now'**
+  String get homeCardTimeAgoNow;
+
+  /// No description provided for @homeCardTimeAgoMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m ago'**
+  String homeCardTimeAgoMinutes(int count);
+
+  /// No description provided for @homeCardTimeAgoHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h ago'**
+  String homeCardTimeAgoHours(int count);
+
+  /// No description provided for @homeCardTimeAgoDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d ago'**
+  String homeCardTimeAgoDays(int count);
 
   /// No description provided for @homeSectionPinned.
   ///

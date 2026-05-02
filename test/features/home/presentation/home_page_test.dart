@@ -288,7 +288,7 @@ void main() {
       expect(
         find.descendant(
           of: card,
-          matching: find.text('in progress'),
+          matching: find.text('total tasks'),
         ),
         findsOneWidget,
       );
@@ -339,11 +339,11 @@ void main() {
 
         // Filter chips
         expect(
-          find.byKey(const ValueKey('thread-filter-active')),
+          find.byKey(const ValueKey('thread-filter-unread')),
           findsOneWidget,
         );
         expect(
-          find.byKey(const ValueKey('thread-filter-done')),
+          find.byKey(const ValueKey('thread-filter-read')),
           findsOneWidget,
         );
         expect(
@@ -351,17 +351,17 @@ void main() {
           findsOneWidget,
         );
 
-        // Active filter is selected by default — shows thread with
+        // Unread filter is selected by default — shows thread with
         // unreadCount > 0
         expect(find.text('#general'), findsOneWidget);
         expect(find.text('Check the latest PR'), findsOneWidget);
-        // Done thread is hidden when Active filter is on
+        // Read thread is hidden when Unread filter is on
         expect(find.text('#random'), findsNothing);
       },
     );
 
     testWidgets(
-      'thread filter Done shows only read threads',
+      'thread filter Read shows only read threads',
       (tester) async {
         final router = _buildRouter();
 
@@ -376,8 +376,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Tap "Done" filter
-        await tester.tap(find.byKey(const ValueKey('thread-filter-done')));
+        // Tap "Read" filter
+        await tester.tap(find.byKey(const ValueKey('thread-filter-read')));
         await tester.pumpAndSettle();
 
         expect(find.text('#random'), findsOneWidget);
@@ -424,7 +424,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Default "Active" filter with no threads
+        // Default "Unread" filter with no threads
         expect(
           find.byKey(const ValueKey('home-threads-empty')),
           findsOneWidget,
