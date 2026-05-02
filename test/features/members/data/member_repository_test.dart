@@ -17,6 +17,7 @@ void main() {
                 'id': 'user-1',
                 'displayName': 'Alice',
                 'username': 'alice',
+                'type': 'human',
                 'presence': {'label': 'online'},
               },
             ],
@@ -36,12 +37,68 @@ void main() {
           id: 'user-1',
           displayName: 'Alice',
           username: 'alice',
+          type: MemberType.human,
           presence: 'online',
         ),
       ]);
       expect(appDioClient.requests.single.method, 'GET');
       expect(appDioClient.requests.single.path, '/servers/s1/members');
       expect(appDioClient.requests.single.serverIdHeader, 's1');
+    });
+
+    test('listMembers parses agent type and description', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('GET', '/servers/s1/members'): {
+            'members': [
+              {
+                'id': 'agent-1',
+                'displayName': 'J1',
+                'type': 'agent',
+                'description': 'Developer agent',
+                'presence': 'online',
+                'role': 'member',
+              },
+            ],
+          },
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(memberRepositoryProvider);
+      final members = await repository.listMembers(const ServerScopeId('s1'));
+
+      expect(members.single.type, MemberType.agent);
+      expect(members.single.isAgent, isTrue);
+      expect(members.single.description, 'Developer agent');
+    });
+
+    test('listMembers defaults to human type when not specified', () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('GET', '/servers/s1/members'): {
+            'members': [
+              {
+                'id': 'user-1',
+                'displayName': 'Alice',
+              },
+            ],
+          },
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(memberRepositoryProvider);
+      final members = await repository.listMembers(const ServerScopeId('s1'));
+
+      expect(members.single.type, MemberType.human);
+      expect(members.single.isAgent, isFalse);
     });
 
     test(

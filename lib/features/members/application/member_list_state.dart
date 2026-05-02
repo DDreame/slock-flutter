@@ -9,6 +9,7 @@ class MemberListState {
   const MemberListState({
     this.status = MemberListStatus.initial,
     this.members = const [],
+    this.query = '',
     this.failure,
     this.isInvitingByEmail = false,
     this.openingDirectMessageMemberId,
@@ -18,11 +19,32 @@ class MemberListState {
 
   final MemberListStatus status;
   final List<MemberProfile> members;
+  final String query;
   final AppFailure? failure;
   final bool isInvitingByEmail;
   final String? openingDirectMessageMemberId;
   final Set<String> updatingRoleMemberIds;
   final Set<String> removingMemberIds;
+
+  /// All human members, optionally filtered by [query].
+  List<MemberProfile> get humans {
+    final all = members.where((m) => m.type == MemberType.human).toList();
+    return _applyQuery(all);
+  }
+
+  /// All agent members, optionally filtered by [query].
+  List<MemberProfile> get agents {
+    final all = members.where((m) => m.type == MemberType.agent).toList();
+    return _applyQuery(all);
+  }
+
+  List<MemberProfile> _applyQuery(List<MemberProfile> list) {
+    if (query.isEmpty) return list;
+    final lower = query.toLowerCase();
+    return list
+        .where((m) => m.displayName.toLowerCase().contains(lower))
+        .toList();
+  }
 
   bool isOpeningDirectMessage(String userId) =>
       openingDirectMessageMemberId == userId;
@@ -39,6 +61,7 @@ class MemberListState {
   MemberListState copyWith({
     MemberListStatus? status,
     List<MemberProfile>? members,
+    String? query,
     AppFailure? failure,
     bool clearFailure = false,
     bool? isInvitingByEmail,
@@ -50,6 +73,7 @@ class MemberListState {
     return MemberListState(
       status: status ?? this.status,
       members: members ?? this.members,
+      query: query ?? this.query,
       failure: clearFailure ? null : (failure ?? this.failure),
       isInvitingByEmail: isInvitingByEmail ?? this.isInvitingByEmail,
       openingDirectMessageMemberId: clearOpeningDirectMessage
@@ -68,6 +92,7 @@ class MemberListState {
           runtimeType == other.runtimeType &&
           status == other.status &&
           listEquals(members, other.members) &&
+          query == other.query &&
           failure == other.failure &&
           isInvitingByEmail == other.isInvitingByEmail &&
           openingDirectMessageMemberId == other.openingDirectMessageMemberId &&
@@ -78,6 +103,7 @@ class MemberListState {
   int get hashCode => Object.hash(
         status,
         Object.hashAll(members),
+        query,
         failure,
         isInvitingByEmail,
         openingDirectMessageMemberId,

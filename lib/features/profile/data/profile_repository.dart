@@ -1,11 +1,25 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 
+/// The type of a workspace member.
+enum MemberType {
+  human,
+  agent;
+
+  /// Parse from API string; defaults to [human] for unknown/null.
+  static MemberType fromString(String? value) => switch (value) {
+        'agent' => MemberType.agent,
+        _ => MemberType.human,
+      };
+}
+
 @immutable
 class MemberProfile {
   const MemberProfile({
     required this.id,
     required this.displayName,
+    this.type = MemberType.human,
+    this.description,
     this.avatarUrl,
     this.username,
     this.email,
@@ -17,6 +31,8 @@ class MemberProfile {
 
   final String id;
   final String displayName;
+  final MemberType type;
+  final String? description;
   final String? avatarUrl;
   final String? username;
   final String? email;
@@ -25,9 +41,14 @@ class MemberProfile {
   final DateTime? joinedAt;
   final bool isSelf;
 
+  /// Whether this member is an agent.
+  bool get isAgent => type == MemberType.agent;
+
   MemberProfile copyWith({
     String? id,
     String? displayName,
+    MemberType? type,
+    String? description,
     String? avatarUrl,
     String? username,
     String? email,
@@ -39,6 +60,8 @@ class MemberProfile {
     return MemberProfile(
       id: id ?? this.id,
       displayName: displayName ?? this.displayName,
+      type: type ?? this.type,
+      description: description ?? this.description,
       avatarUrl: avatarUrl ?? this.avatarUrl,
       username: username ?? this.username,
       email: email ?? this.email,
@@ -56,6 +79,8 @@ class MemberProfile {
           runtimeType == other.runtimeType &&
           id == other.id &&
           displayName == other.displayName &&
+          type == other.type &&
+          description == other.description &&
           avatarUrl == other.avatarUrl &&
           username == other.username &&
           email == other.email &&
@@ -68,6 +93,8 @@ class MemberProfile {
   int get hashCode => Object.hash(
         id,
         displayName,
+        type,
+        description,
         avatarUrl,
         username,
         email,
@@ -112,6 +139,13 @@ MemberProfile parseMemberProfilePayload(
           fields: const ['displayName', 'name', 'username', 'title'],
         ) ??
         userId,
+    type: MemberType.fromString(
+      _firstPresentString(map, fields: const ['type', 'memberType']),
+    ),
+    description: _firstPresentString(
+      map,
+      fields: const ['description', 'bio'],
+    ),
     avatarUrl: _firstPresentString(
       map,
       fields: const ['avatarUrl', 'avatar', 'imageUrl', 'profileImageUrl'],

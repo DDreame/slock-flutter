@@ -178,4 +178,9 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       rethrow;
     }
   }
+
+  /// Update the search query for filtering the member list.
+  void setQuery(String query) {
+    state = state.copyWith(query: query);
+  }
 }
