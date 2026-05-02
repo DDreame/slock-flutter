@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
@@ -285,7 +287,7 @@ void main() {
     await Future<void>.delayed(Duration.zero);
 
     expect(fakeRepo.calls, hasLength(1));
-    expect(fakeRepo.calls.first.platform, 'unknown');
+    expect(fakeRepo.calls.first.platform, Platform.operatingSystem);
     fakeRepo.calls.clear();
 
     await container
