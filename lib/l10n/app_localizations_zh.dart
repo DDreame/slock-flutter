@@ -302,6 +302,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeCardTasksSubtitle => '全部任务';
 
   @override
+  String get homeCardTasksEmpty => '暂无活跃任务';
+
+  @override
+  String homeCardTasksOverflow(int count) {
+    return '还有 $count 项';
+  }
+
+  @override
+  String get homeCardTasksInProgress => '进行中';
+
+  @override
+  String get homeCardTasksTodo => '待办';
+
+  @override
+  String homeCardTasksDurationMinutes(int count) {
+    return '$count分钟';
+  }
+
+  @override
+  String homeCardTasksDurationHours(int hours, int minutes) {
+    return '$hours小时$minutes分钟';
+  }
+
+  @override
+  String homeCardTasksDurationHoursOnly(int count) {
+    return '$count小时';
+  }
+
+  @override
   String get homeCardThreads => '话题';
 
   @override

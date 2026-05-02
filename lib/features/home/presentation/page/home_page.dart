@@ -9,9 +9,12 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
+import 'package:slock_app/features/home/application/home_tasks_realtime_binding.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
@@ -27,6 +30,7 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     ref.watch(homeAdminRealtimeBindingProvider);
+    ref.watch(homeTasksRealtimeBindingProvider);
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final unreadState = ref.watch(channelUnreadStoreProvider);
@@ -88,9 +92,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onViewAll: () => _pushServerRoute('channels'),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                _TasksSummaryCard(
+                _HomeTasksSection(
                   key: const ValueKey('home-card-tasks'),
-                  taskCount: state.taskCount,
+                  taskItems: state.taskItems,
                   onViewAll: () => _pushServerRoute('tasks'),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -425,46 +429,281 @@ class _ChannelsSummaryCard extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Tasks summary card
+// Tasks section — detailed task list
 // ---------------------------------------------------------------------------
 
-class _TasksSummaryCard extends StatelessWidget {
-  const _TasksSummaryCard({
+const _maxVisibleTasks = 5;
+
+class _HomeTasksSection extends ConsumerWidget {
+  const _HomeTasksSection({
     super.key,
-    required this.taskCount,
+    required this.taskItems,
     required this.onViewAll,
   });
 
-  final int taskCount;
+  final List<TaskItem> taskItems;
   final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+    final now = ref.watch(homeNowProvider);
+
+    // Filter: only in_progress + todo
+    final activeTasks = taskItems
+        .where(
+          (task) => task.status == 'in_progress' || task.status == 'todo',
+        )
+        .toList();
+
+    // Sort: in_progress first, then todo
+    activeTasks.sort((a, b) {
+      final aInProgress = a.status == 'in_progress' ? 0 : 1;
+      final bInProgress = b.status == 'in_progress' ? 0 : 1;
+      return aInProgress.compareTo(bInProgress);
+    });
+
+    final visibleTasks = activeTasks.take(_maxVisibleTasks).toList();
+    final overflowCount = activeTasks.length - visibleTasks.length;
+
+    return _SummaryCardBase(
+      accentColor: colors.warning,
+      title: l10n.homeCardTasks,
+      onViewAll: onViewAll,
+      child: activeTasks.isEmpty
+          ? _TasksEmptyState(key: const ValueKey('home-tasks-empty'))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final task in visibleTasks)
+                  _TaskItemRow(
+                    key: ValueKey('task-item-${task.id}'),
+                    task: task,
+                    now: now,
+                  ),
+                if (overflowCount > 0)
+                  Padding(
+                    key: const ValueKey('home-tasks-overflow'),
+                    padding: const EdgeInsets.only(
+                      top: AppSpacing.xs,
+                    ),
+                    child: Text(
+                      l10n.homeCardTasksOverflow(overflowCount),
+                      style: AppTypography.caption.copyWith(
+                        color: colors.textTertiary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+class _TasksEmptyState extends StatelessWidget {
+  const _TasksEmptyState({super.key});
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
-    return _SummaryCardBase(
-      accentColor: colors.warning,
-      title: l10n.homeCardTasks,
-      onViewAll: onViewAll,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      children: [
+        Icon(
+          Icons.check_circle_outline,
+          size: 20,
+          color: colors.textTertiary,
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          l10n.homeCardTasksEmpty,
+          style: AppTypography.caption.copyWith(
+            color: colors.textTertiary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaskItemRow extends StatelessWidget {
+  const _TaskItemRow({
+    super.key,
+    required this.task,
+    required this.now,
+  });
+
+  final TaskItem task;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+    final isInProgress = task.status == 'in_progress';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.xs,
+      ),
+      child: Row(
         children: [
-          Text(
-            '$taskCount',
-            style: AppTypography.displayMedium.copyWith(
-              color: colors.text,
-              fontWeight: FontWeight.w700,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: AppTypography.body.copyWith(
+                    color: colors.text,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Text(
+                      '#${task.channelId}',
+                      style: AppTypography.caption.copyWith(
+                        color: colors.textTertiary,
+                      ),
+                    ),
+                    if (task.claimedByName != null) ...[
+                      Text(
+                        ' · ',
+                        style: AppTypography.caption.copyWith(
+                          color: colors.textTertiary,
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          task.claimedByName!,
+                          style: AppTypography.caption.copyWith(
+                            color: colors.textTertiary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            l10n.homeCardTasksSubtitle,
-            style: AppTypography.caption.copyWith(
-              color: colors.textTertiary,
+          const SizedBox(width: AppSpacing.sm),
+          if (isInProgress && task.claimedAt != null)
+            Padding(
+              key: ValueKey('task-duration-${task.id}'),
+              padding: const EdgeInsets.only(
+                right: AppSpacing.xs,
+              ),
+              child: _DurationChip(
+                duration: now.difference(task.claimedAt!),
+                l10n: l10n,
+              ),
             ),
+          _TaskStatusChip(
+            key: ValueKey('task-status-${task.id}'),
+            label: isInProgress
+                ? l10n.homeCardTasksInProgress
+                : l10n.homeCardTasksTodo,
+            color: isInProgress ? colors.primary : colors.textTertiary,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _DurationChip extends StatelessWidget {
+  const _DurationChip({
+    required this.duration,
+    required this.l10n,
+  });
+
+  final Duration duration;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalMinutes = duration.inMinutes;
+    final hours = duration.inHours;
+    final minutes = totalMinutes % 60;
+
+    // Color: blue <1h, yellow 1-4h, red >4h
+    final Color chipColor;
+    if (hours < 1) {
+      chipColor = Colors.blue;
+    } else if (hours < 4) {
+      chipColor = Colors.orange;
+    } else {
+      chipColor = Colors.red;
+    }
+
+    // Format: <1h → "45m", 1-4h → "2h 15m", >4h → "6h"
+    final String text;
+    if (hours < 1) {
+      text = l10n.homeCardTasksDurationMinutes(totalMinutes);
+    } else if (hours < 4) {
+      text = l10n.homeCardTasksDurationHours(hours, minutes);
+    } else {
+      text = l10n.homeCardTasksDurationHoursOnly(hours);
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 6,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: chipColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: AppTypography.caption.copyWith(
+          color: chipColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskStatusChip extends StatelessWidget {
+  const _TaskStatusChip({
+    super.key,
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 6,
+        vertical: 2,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
       ),
     );
   }

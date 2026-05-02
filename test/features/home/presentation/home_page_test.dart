@@ -11,6 +11,7 @@ import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
@@ -236,63 +237,436 @@ void main() {
       },
     );
 
-    testWidgets('tasks card shows count', (tester) async {
-      final router = _buildRouter();
+    testWidgets(
+      'tasks card shows task items with in_progress sorted first',
+      (tester) async {
+        final router = _buildRouter();
+        final now = DateTime.utc(2026, 5, 2, 12);
 
-      await tester.pumpWidget(
-        _buildApp(
-          router: router,
-          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-          tasksRepository: _FakeTasksRepository(
-            tasks: [
-              TaskItem(
-                id: 't1',
-                taskNumber: 1,
-                title: 'Fix bug',
-                status: 'todo',
-                channelId: 'general',
-                channelType: 'channel',
-                createdById: 'u1',
-                createdByName: 'Alice',
-                createdByType: 'user',
-                createdAt: DateTime(2026),
-              ),
-              TaskItem(
-                id: 't2',
-                taskNumber: 2,
-                title: 'Add feature',
-                status: 'in_progress',
-                channelId: 'general',
-                channelType: 'channel',
-                createdById: 'u1',
-                createdByName: 'Alice',
-                createdByType: 'user',
-                createdAt: DateTime(2026),
-              ),
-            ],
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            tasksRepository: _FakeTasksRepository(
+              tasks: [
+                TaskItem(
+                  id: 't1',
+                  taskNumber: 1,
+                  title: 'Fix bug',
+                  status: 'todo',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+                TaskItem(
+                  id: 't2',
+                  taskNumber: 2,
+                  title: 'Add feature',
+                  status: 'in_progress',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  claimedByName: 'Bob',
+                  claimedAt: now.subtract(
+                    const Duration(minutes: 30),
+                  ),
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+              ],
+            ),
+            now: now,
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final card = find.byKey(const ValueKey('home-card-tasks'));
-      expect(card, findsOneWidget);
+        final card = find.byKey(const ValueKey('home-card-tasks'));
+        expect(card, findsOneWidget);
 
-      // Task count
-      expect(
-        find.descendant(of: card, matching: find.text('2')),
-        findsOneWidget,
-      );
+        // Task rows should exist
+        expect(
+          find.byKey(const ValueKey('task-item-t2')),
+          findsOneWidget,
+          reason: 'in_progress task should render',
+        );
+        expect(
+          find.byKey(const ValueKey('task-item-t1')),
+          findsOneWidget,
+          reason: 'todo task should render',
+        );
 
-      // Subtitle
-      expect(
-        find.descendant(
-          of: card,
-          matching: find.text('total tasks'),
-        ),
-        findsOneWidget,
-      );
-    });
+        // Task titles
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('Add feature'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('Fix bug'),
+          ),
+          findsOneWidget,
+        );
+
+        // Assignee name for in_progress
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('task-item-t2')),
+            matching: find.text('Bob'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'tasks card filters out in_review and done tasks',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            tasksRepository: _FakeTasksRepository(
+              tasks: [
+                TaskItem(
+                  id: 't-ip',
+                  taskNumber: 1,
+                  title: 'Active task',
+                  status: 'in_progress',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+                TaskItem(
+                  id: 't-review',
+                  taskNumber: 2,
+                  title: 'Reviewing task',
+                  status: 'in_review',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+                TaskItem(
+                  id: 't-done',
+                  taskNumber: 3,
+                  title: 'Done task',
+                  status: 'done',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+                TaskItem(
+                  id: 't-todo',
+                  taskNumber: 4,
+                  title: 'Pending task',
+                  status: 'todo',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('task-item-t-ip')),
+          findsOneWidget,
+          reason: 'in_progress should be visible',
+        );
+        expect(
+          find.byKey(const ValueKey('task-item-t-todo')),
+          findsOneWidget,
+          reason: 'todo should be visible',
+        );
+        expect(
+          find.byKey(const ValueKey('task-item-t-review')),
+          findsNothing,
+          reason: 'in_review should be filtered out',
+        );
+        expect(
+          find.byKey(const ValueKey('task-item-t-done')),
+          findsNothing,
+          reason: 'done should be filtered out',
+        );
+      },
+    );
+
+    testWidgets(
+      'tasks card shows max 5 items with overflow indicator',
+      (tester) async {
+        final router = _buildRouter();
+        final tasks = List.generate(
+          8,
+          (i) => TaskItem(
+            id: 't$i',
+            taskNumber: i + 1,
+            title: 'Task ${i + 1}',
+            status: i < 3 ? 'in_progress' : 'todo',
+            channelId: 'general',
+            channelType: 'channel',
+            createdById: 'u1',
+            createdByName: 'Alice',
+            createdByType: 'user',
+            createdAt: DateTime(2026),
+          ),
+        );
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            tasksRepository: _FakeTasksRepository(tasks: tasks),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Should render exactly 5 task items
+        for (var i = 0; i < 5; i++) {
+          expect(
+            find.byKey(ValueKey('task-item-t$i')),
+            findsOneWidget,
+            reason: 'Task $i should be visible (within max 5)',
+          );
+        }
+        // Items beyond 5 should NOT be rendered
+        expect(
+          find.byKey(const ValueKey('task-item-t5')),
+          findsNothing,
+          reason: 'Task 5 exceeds max 5 limit',
+        );
+
+        // Overflow indicator: "+3 more"
+        expect(
+          find.byKey(const ValueKey('home-tasks-overflow')),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('+3'),
+          findsOneWidget,
+          reason: 'Should show +3 more overflow',
+        );
+      },
+    );
+
+    testWidgets(
+      'tasks card shows empty state when no active tasks',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('home-tasks-empty')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'tasks card shows empty state when all tasks are done',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            tasksRepository: _FakeTasksRepository(
+              tasks: [
+                TaskItem(
+                  id: 't-done',
+                  taskNumber: 1,
+                  title: 'Completed',
+                  status: 'done',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('home-tasks-empty')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'in_progress task without claimedAt shows no duration chip',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            tasksRepository: _FakeTasksRepository(
+              tasks: [
+                TaskItem(
+                  id: 't-noclaimat',
+                  taskNumber: 1,
+                  title: 'No claim time',
+                  status: 'in_progress',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('task-item-t-noclaimat')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('task-duration-t-noclaimat'),
+          ),
+          findsNothing,
+          reason: 'No duration chip when claimedAt is null',
+        );
+      },
+    );
+
+    testWidgets(
+      'todo task shows no duration chip',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            tasksRepository: _FakeTasksRepository(
+              tasks: [
+                TaskItem(
+                  id: 't-todo',
+                  taskNumber: 1,
+                  title: 'A todo',
+                  status: 'todo',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('task-item-t-todo')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('task-duration-t-todo')),
+          findsNothing,
+          reason: 'Todo tasks should not show duration chip',
+        );
+      },
+    );
+
+    testWidgets(
+      'task row shows source channel name',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            tasksRepository: _FakeTasksRepository(
+              tasks: [
+                TaskItem(
+                  id: 't1',
+                  taskNumber: 1,
+                  title: 'Channel task',
+                  status: 'todo',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(const ValueKey('task-item-t1'));
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('#general'),
+          ),
+          findsOneWidget,
+          reason: 'Task row should display source channel',
+        );
+      },
+    );
 
     testWidgets(
       'threads card shows filter chips and thread items',
@@ -865,6 +1239,7 @@ Widget _buildApp({
   AgentsRepository agentsRepository = const _FakeAgentsRepository(),
   TasksRepository tasksRepository = const _FakeTasksRepository(),
   ThreadRepository threadRepository = const _FakeThreadRepository(),
+  DateTime? now,
 }) {
   return ProviderScope(
     overrides: [
@@ -884,6 +1259,7 @@ Widget _buildApp({
       homeMachineCountLoaderProvider.overrideWithValue(
         (_) async => 0,
       ),
+      if (now != null) homeNowProvider.overrideWithValue(now),
     ],
     child: MaterialApp.router(
       routerConfig: router,

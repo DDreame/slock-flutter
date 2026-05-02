@@ -12,6 +12,7 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
@@ -45,6 +46,7 @@ class HomeListStore extends Notifier<HomeListState> {
   List<HomeDirectMessageSummary> _allDirectMessages = const [];
   List<AgentItem> _allAgents = const [];
   int _taskCount = 0;
+  List<TaskItem> _taskItems = const [];
   int _machineCount = 0;
   int _threadCount = 0;
   List<ThreadInboxItem> _threadItems = const [];
@@ -56,6 +58,7 @@ class HomeListStore extends Notifier<HomeListState> {
     _allDirectMessages = const [];
     _allAgents = const [];
     _taskCount = 0;
+    _taskItems = const [];
     _machineCount = 0;
     _threadCount = 0;
     _threadItems = const [];
@@ -114,14 +117,15 @@ class HomeListStore extends Notifier<HomeListState> {
       final snapshot = results[0] as HomeWorkspaceSnapshot;
       final sidebarOrder = results[1] as SidebarOrder;
       final agents = results[2] as List<AgentItem>;
-      final taskCount = results[3] as int;
+      final taskCount = results[3] as List<TaskItem>;
       final machineCount = results[4] as int;
       final threadItems = results[5] as List<ThreadInboxItem>;
 
       _allChannels = List.of(snapshot.channels);
       _allDirectMessages = List.of(snapshot.directMessages);
       _allAgents = List.of(agents);
-      _taskCount = taskCount;
+      _taskCount = taskCount.length;
+      _taskItems = List.of(taskCount);
       _machineCount = machineCount;
       _threadCount = threadItems.length;
       _threadItems = List.of(threadItems);
@@ -166,14 +170,15 @@ class HomeListStore extends Notifier<HomeListState> {
     }
   }
 
-  Future<int> _loadTaskCountSafe(ServerScopeId serverScopeId) async {
+  Future<List<TaskItem>> _loadTaskCountSafe(
+    ServerScopeId serverScopeId,
+  ) async {
     try {
-      final tasks = await ref
+      return await ref
           .read(tasksRepositoryProvider)
           .listServerTasks(serverScopeId);
-      return tasks.length;
     } catch (_) {
-      return 0;
+      return const [];
     }
   }
 
@@ -658,6 +663,7 @@ class HomeListStore extends Notifier<HomeListState> {
       pinnedAgents: pinnedAgentList,
       agents: unpinnedAgentList,
       taskCount: _taskCount,
+      taskItems: _taskItems,
       machineCount: _machineCount,
       threadCount: _threadCount,
       threadItems: _threadItems,

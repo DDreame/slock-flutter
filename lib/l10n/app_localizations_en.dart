@@ -324,6 +324,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeCardTasksSubtitle => 'total tasks';
 
   @override
+  String get homeCardTasksEmpty => 'No active tasks';
+
+  @override
+  String homeCardTasksOverflow(int count) {
+    return '+$count more';
+  }
+
+  @override
+  String get homeCardTasksInProgress => 'In Progress';
+
+  @override
+  String get homeCardTasksTodo => 'To Do';
+
+  @override
+  String homeCardTasksDurationMinutes(int count) {
+    return '${count}m';
+  }
+
+  @override
+  String homeCardTasksDurationHours(int hours, int minutes) {
+    return '${hours}h ${minutes}m';
+  }
+
+  @override
+  String homeCardTasksDurationHoursOnly(int count) {
+    return '${count}h';
+  }
+
+  @override
   String get homeCardThreads => 'THREADS';
 
   @override

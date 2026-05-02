@@ -3,6 +3,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 
 enum HomeListStatus { initial, loading, success, failure, noActiveServer }
@@ -21,6 +22,7 @@ class HomeListState {
     this.pinnedAgents = const [],
     this.agents = const [],
     this.taskCount = 0,
+    this.taskItems = const [],
     this.machineCount = 0,
     this.threadCount = 0,
     this.threadItems = const [],
@@ -39,6 +41,7 @@ class HomeListState {
   final List<AgentItem> pinnedAgents;
   final List<AgentItem> agents;
   final int taskCount;
+  final List<TaskItem> taskItems;
   final int machineCount;
   final int threadCount;
   final List<ThreadInboxItem> threadItems;
@@ -68,6 +71,7 @@ class HomeListState {
     List<AgentItem>? pinnedAgents,
     List<AgentItem>? agents,
     int? taskCount,
+    List<TaskItem>? taskItems,
     int? machineCount,
     int? threadCount,
     List<ThreadInboxItem>? threadItems,
@@ -88,6 +92,7 @@ class HomeListState {
       pinnedAgents: pinnedAgents ?? this.pinnedAgents,
       agents: agents ?? this.agents,
       taskCount: taskCount ?? this.taskCount,
+      taskItems: taskItems ?? this.taskItems,
       machineCount: machineCount ?? this.machineCount,
       threadCount: threadCount ?? this.threadCount,
       threadItems: threadItems ?? this.threadItems,
@@ -115,6 +120,7 @@ class HomeListState {
             listEquals(pinnedAgents, other.pinnedAgents) &&
             listEquals(agents, other.agents) &&
             taskCount == other.taskCount &&
+            listEquals(taskItems, other.taskItems) &&
             machineCount == other.machineCount &&
             threadCount == other.threadCount &&
             listEquals(threadItems, other.threadItems) &&
@@ -135,6 +141,7 @@ class HomeListState {
         Object.hashAll(pinnedAgents),
         Object.hashAll(agents),
         taskCount,
+        Object.hashAll(taskItems),
         machineCount,
         threadCount,
         Object.hashAll(threadItems),
