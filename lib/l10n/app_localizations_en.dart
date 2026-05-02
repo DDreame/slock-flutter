@@ -362,6 +362,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Direct messages will be available here soon.';
 
   @override
+  String get dmsTabSearchHint => 'Search messages';
+
+  @override
+  String get dmsTabEmpty => 'No direct messages yet.';
+
+  @override
   String get settingsTooltip => 'Settings';
 
   @override

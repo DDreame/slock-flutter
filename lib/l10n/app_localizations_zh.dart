@@ -338,6 +338,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dmsTabPlaceholder => '私信列表即将上线。';
 
   @override
+  String get dmsTabSearchHint => '搜索消息';
+
+  @override
+  String get dmsTabEmpty => '暂无私信。';
+
+  @override
   String get settingsTooltip => '设置';
 
   @override

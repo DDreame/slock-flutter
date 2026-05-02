@@ -41,6 +41,10 @@ class AppShell extends ConsumerWidget {
       0,
       (sum, c) => sum + c,
     );
+    final dmUnreadTotal = unreadState.dmUnreadCounts.values.fold(
+      0,
+      (sum, c) => sum + c,
+    );
 
     return Scaffold(
       body: child,
@@ -90,11 +94,22 @@ class AppShell extends ConsumerWidget {
                 ),
                 NavigationDestination(
                   key: const ValueKey('nav-dms'),
-                  icon: const Icon(
-                    Icons.chat_bubble_outline,
+                  icon: Badge(
+                    key: const ValueKey(
+                      'dms-unread-badge',
+                    ),
+                    isLabelVisible: dmUnreadTotal > 0,
+                    label: Text('$dmUnreadTotal'),
+                    child: const Icon(
+                      Icons.chat_bubble_outline,
+                    ),
                   ),
-                  selectedIcon: const Icon(
-                    Icons.chat_bubble,
+                  selectedIcon: Badge(
+                    isLabelVisible: dmUnreadTotal > 0,
+                    label: Text('$dmUnreadTotal'),
+                    child: const Icon(
+                      Icons.chat_bubble,
+                    ),
                   ),
                   label: l10n.navDms,
                 ),

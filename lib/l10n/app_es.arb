@@ -118,6 +118,8 @@
   "dmsTabTitle": "Mensajes",
   "dmsTabHeadline": "Mensajes directos",
   "dmsTabPlaceholder": "Los mensajes directos estaran disponibles pronto.",
+  "dmsTabSearchHint": "Buscar mensajes",
+  "dmsTabEmpty": "Aun no hay mensajes directos.",
   "settingsTooltip": "Configuracion",
 
   "homeChannelCreated": "Channel created.",
