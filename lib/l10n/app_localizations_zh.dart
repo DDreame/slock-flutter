@@ -323,6 +323,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelsTabPlaceholder => '频道列表即将上线。';
 
   @override
+  String get channelsTabSearchHint => '搜索频道';
+
+  @override
+  String get channelsTabEmpty => '暂无频道。';
+
+  @override
   String get dmsTabTitle => '消息';
 
   @override

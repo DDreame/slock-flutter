@@ -113,6 +113,8 @@
 
   "channelsTabTitle": "Canales",
   "channelsTabPlaceholder": "La lista de canales estara disponible pronto.",
+  "channelsTabSearchHint": "Buscar canales",
+  "channelsTabEmpty": "Aun no hay canales.",
   "dmsTabTitle": "Mensajes",
   "dmsTabHeadline": "Mensajes directos",
   "dmsTabPlaceholder": "Los mensajes directos estaran disponibles pronto.",
