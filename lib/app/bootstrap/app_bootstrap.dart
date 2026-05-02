@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/notifications/android_foreground_service_manager.dart';
 import 'package:slock_app/core/notifications/android_notification_initializer.dart';
+import 'package:slock_app/core/notifications/background_sync_manager.dart';
 import 'package:slock_app/core/notifications/foreground_service_manager.dart';
+import 'package:slock_app/core/notifications/ios_background_sync_manager.dart';
 import 'package:slock_app/core/notifications/ios_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/realtime/providers.dart';
@@ -43,6 +45,7 @@ Future<AppBootstrapResult> appBootstrap({
   final diagnostics = DiagnosticsCollector();
   final notificationInitializer = createNotificationInitializer();
   final foregroundServiceManager = createForegroundServiceManager();
+  final backgroundSyncManager = createBackgroundSyncManager();
   final apiBaseUrl = _validatedRuntimeEndpoint(
     key: apiBaseUrlEnvironmentKey,
     rawValue: environmentReader(apiBaseUrlEnvironmentKey),
@@ -66,6 +69,9 @@ Future<AppBootstrapResult> appBootstrap({
       ),
       foregroundServiceManagerProvider.overrideWithValue(
         foregroundServiceManager,
+      ),
+      backgroundSyncManagerProvider.overrideWithValue(
+        backgroundSyncManager,
       ),
       networkConfigProvider.overrideWithValue(
         NetworkConfig(baseUrl: apiBaseUrl),
@@ -141,6 +147,17 @@ ForegroundServiceManager createForegroundServiceManager({
     return const AndroidForegroundServiceManager();
   }
   return const NoOpForegroundServiceManager();
+}
+
+BackgroundSyncManager createBackgroundSyncManager({
+  TargetPlatform? platform,
+  bool isWeb = kIsWeb,
+}) {
+  final targetPlatform = platform ?? defaultTargetPlatform;
+  if (!isWeb && targetPlatform == TargetPlatform.iOS) {
+    return const IosBackgroundSyncManager();
+  }
+  return const NoOpBackgroundSyncManager();
 }
 
 void installErrorHandlers(
