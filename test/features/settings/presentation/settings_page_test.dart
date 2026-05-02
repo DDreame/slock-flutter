@@ -35,9 +35,30 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // Visit items top-to-bottom so scrollUntilVisible always scrolls
+    // forward. (Notification Settings sits above Billing/Release Notes;
+    // reversing the order would require scrolling back up, which the
+    // default positive delta cannot do.)
+
     await tester.tap(find.byKey(const ValueKey('settings-my-profile')));
     await tester.pumpAndSettle();
     expect(find.text('profile-route'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-notification-link')),
+      200,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-notification-link')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-notification-link')));
+    await tester.pumpAndSettle();
+    expect(find.text('notification-settings-route'), findsOneWidget);
 
     router.pop();
     await tester.pumpAndSettle();
@@ -70,22 +91,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('settings-release-notes')));
     await tester.pumpAndSettle();
     expect(find.text('release-notes-route'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-    expect(find.byType(SettingsPage), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('settings-notification-link')),
-      200,
-    );
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('settings-notification-link')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('settings-notification-link')));
-    await tester.pumpAndSettle();
-    expect(find.text('notification-settings-route'), findsOneWidget);
 
     router.pop();
     await tester.pumpAndSettle();

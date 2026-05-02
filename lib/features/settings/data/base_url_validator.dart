@@ -1,14 +1,17 @@
 /// Normalizes and validates base URL input.
 ///
-/// For API URLs: accepts http/https, strips trailing `/`.
+/// For API URLs: accepts http/https, strips trailing `/`,
+/// and requires a parseable URI with non-empty host.
 /// For Realtime URLs: accepts http/https/ws/wss, auto-normalizes
-/// http→ws and https→wss, strips trailing `/`.
+/// http→ws and https→wss, strips trailing `/`,
+/// and requires a parseable URI with non-empty host.
 class BaseUrlValidator {
   const BaseUrlValidator._();
 
   /// Validates and normalizes an API base URL.
   ///
-  /// Returns the normalized URL or `null` if invalid.
+  /// Returns the normalized URL, empty string for empty input,
+  /// or `null` if invalid.
   static String? normalizeApiUrl(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return '';
@@ -16,13 +19,16 @@ class BaseUrlValidator {
     if (!lower.startsWith('http://') && !lower.startsWith('https://')) {
       return null;
     }
-    return _stripTrailingSlash(trimmed);
+    final stripped = _stripTrailingSlash(trimmed);
+    if (!_hasNonEmptyHost(stripped)) return null;
+    return stripped;
   }
 
   /// Validates and normalizes a Realtime/WebSocket base URL.
   ///
   /// Accepts http/https/ws/wss. Normalizes http→ws and https→wss.
-  /// Returns the normalized URL or `null` if invalid.
+  /// Returns the normalized URL, empty string for empty input,
+  /// or `null` if invalid.
   static String? normalizeRealtimeUrl(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return '';
@@ -35,7 +41,9 @@ class BaseUrlValidator {
     } else if (!lower.startsWith('ws://') && !lower.startsWith('wss://')) {
       return null;
     }
-    return _stripTrailingSlash(url);
+    final stripped = _stripTrailingSlash(url);
+    if (!_hasNonEmptyHost(stripped)) return null;
+    return stripped;
   }
 
   static String _stripTrailingSlash(String url) {
@@ -44,5 +52,12 @@ class BaseUrlValidator {
       result = result.substring(0, result.length - 1);
     }
     return result;
+  }
+
+  /// Returns `true` when [url] can be parsed as a URI with a
+  /// non-empty host component (i.e. not just a bare scheme).
+  static bool _hasNonEmptyHost(String url) {
+    final uri = Uri.tryParse(url);
+    return uri != null && uri.host.isNotEmpty;
   }
 }

@@ -60,6 +60,20 @@ void main() {
       );
     });
 
+    test('rejects scheme-only https://', () {
+      expect(
+        BaseUrlValidator.normalizeApiUrl('https://'),
+        null,
+      );
+    });
+
+    test('rejects scheme-only http://', () {
+      expect(
+        BaseUrlValidator.normalizeApiUrl('http://'),
+        null,
+      );
+    });
+
     test('trims whitespace', () {
       expect(
         BaseUrlValidator.normalizeApiUrl('  https://api.example.com  '),
@@ -115,6 +129,34 @@ void main() {
     test('rejects bare domain', () {
       expect(
         BaseUrlValidator.normalizeRealtimeUrl('example.com'),
+        null,
+      );
+    });
+
+    test('rejects scheme-only wss://', () {
+      expect(
+        BaseUrlValidator.normalizeRealtimeUrl('wss://'),
+        null,
+      );
+    });
+
+    test('rejects scheme-only ws://', () {
+      expect(
+        BaseUrlValidator.normalizeRealtimeUrl('ws://'),
+        null,
+      );
+    });
+
+    test('rejects scheme-only https:// (after normalization)', () {
+      expect(
+        BaseUrlValidator.normalizeRealtimeUrl('https://'),
+        null,
+      );
+    });
+
+    test('rejects scheme-only http:// (after normalization)', () {
+      expect(
+        BaseUrlValidator.normalizeRealtimeUrl('http://'),
         null,
       );
     });
