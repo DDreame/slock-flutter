@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
-import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/role_badge.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
