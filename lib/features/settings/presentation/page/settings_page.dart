@@ -11,6 +11,7 @@ import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.d
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -26,6 +27,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Widget build(BuildContext context) {
     final session = ref.watch(sessionStoreProvider);
     final notificationState = ref.watch(notificationStoreProvider);
+    final themeState = ref.watch(themeModeStoreProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return Scaffold(
@@ -141,6 +143,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               subtitle: _notificationSummary(notificationState),
               colors: colors,
               onTap: () => context.push('/settings/notifications'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sectionGap),
+
+          // --- Appearance section ---
+          Text(
+            'Appearance',
+            key: const ValueKey('settings-section-appearance'),
+            style: AppTypography.title.copyWith(color: colors.text),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SectionCard(
+            padding: EdgeInsets.zero,
+            child: _SettingsTile(
+              key: const ValueKey('settings-appearance-link'),
+              icon: Icons.palette_outlined,
+              iconColor: colors.primary,
+              title: 'Theme',
+              subtitle: themeState.preference.title,
+              subtitleKey: const ValueKey(
+                'settings-appearance-subtitle',
+              ),
+              colors: colors,
+              onTap: () => context.push('/settings/appearance'),
             ),
           ),
           const SizedBox(height: AppSpacing.sectionGap),

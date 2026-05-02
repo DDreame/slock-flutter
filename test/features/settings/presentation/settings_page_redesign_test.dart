@@ -271,7 +271,11 @@ void main() {
       );
       expect(dangerHeader.style?.color, AppColors.light.error);
 
-      // Log Out tile is in its own SectionCard under Danger Zone
+      // Log Out tile is below the header — scroll it into view.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('settings-logout')),
+        200,
+      );
       expect(
         find.byKey(const ValueKey('settings-logout')),
         findsOneWidget,
