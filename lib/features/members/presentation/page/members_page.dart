@@ -780,25 +780,25 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
             setState(() => _selectedRole = value);
           }
         },
-        child: Column(
+        child: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<String>(
-              key: const ValueKey(
+              key: ValueKey(
                 'members-role-option-admin',
               ),
-              title: const Text('Admin'),
-              subtitle: const Text(
+              title: Text('Admin'),
+              subtitle: Text(
                 'Can manage members and invite',
               ),
               value: 'admin',
             ),
             RadioListTile<String>(
-              key: const ValueKey(
+              key: ValueKey(
                 'members-role-option-member',
               ),
-              title: const Text('Member'),
-              subtitle: const Text(
+              title: Text('Member'),
+              subtitle: Text(
                 'Standard workspace access',
               ),
               value: 'member',
