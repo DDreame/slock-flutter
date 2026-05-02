@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
+import 'package:slock_app/core/scope/server_scope_id.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
@@ -24,6 +26,9 @@ void main() {
         overrides: [
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,
@@ -108,6 +113,9 @@ void main() {
         overrides: [
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,
@@ -132,6 +140,9 @@ void main() {
         overrides: [
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,
@@ -175,6 +186,9 @@ void main() {
         overrides: [
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,
@@ -217,6 +231,9 @@ void main() {
         overrides: [
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,
@@ -239,6 +256,44 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('settings-base-url')));
     await tester.pumpAndSettle();
     expect(find.text('base-url-route'), findsOneWidget);
+  });
+
+  testWidgets('settings page navigates to server-scoped members route',
+      (tester) async {
+    final sessionStore = _FakeSessionStore();
+    final notificationStore = _FakeNotificationStore();
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() => sessionStore),
+          notificationStoreProvider.overrideWith(() => notificationStore),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-members')),
+      200,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-members')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-members')));
+    await tester.pumpAndSettle();
+    expect(find.text('members-route'), findsOneWidget);
   });
 }
 
@@ -271,7 +326,7 @@ GoRouter _buildRouter() {
             const Scaffold(body: Text('release-notes-route')),
       ),
       GoRoute(
-        path: '/members',
+        path: '/servers/:serverId/members',
         builder: (context, state) =>
             const Scaffold(body: Text('members-route')),
       ),
