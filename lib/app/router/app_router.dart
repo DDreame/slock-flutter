@@ -19,7 +19,6 @@ import 'package:slock_app/features/members/presentation/page/members_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/release_notes/presentation/page/release_notes_page.dart';
-import 'package:slock_app/features/roles/presentation/page/roles_page.dart';
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
 import 'package:slock_app/features/settings/presentation/page/diagnostics_page.dart';
@@ -309,10 +308,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/release-notes',
         builder: (context, state) => const ReleaseNotesPage(),
-      ),
-      GoRoute(
-        path: '/roles',
-        builder: (context, state) => const RolesPage(),
       ),
       GoRoute(
         path: '/invite/:token',

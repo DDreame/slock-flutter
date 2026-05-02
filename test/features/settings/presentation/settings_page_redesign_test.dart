@@ -48,11 +48,6 @@ void main() {
               const Scaffold(body: Text('members-route')),
         ),
         GoRoute(
-          path: '/roles',
-          builder: (context, state) =>
-              const Scaffold(body: Text('roles-route')),
-        ),
-        GoRoute(
           path: '/login',
           builder: (context, state) =>
               const Scaffold(body: Text('login-route')),
@@ -233,7 +228,7 @@ void main() {
       expect(chevronIcon.color, AppColors.light.textTertiary);
     });
 
-    testWidgets('Workspace section renders Members and Roles tiles', (
+    testWidgets('Workspace section renders Members tile', (
       tester,
     ) async {
       await tester.pumpWidget(buildApp());
@@ -253,7 +248,7 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey('settings-roles')),
-        findsOneWidget,
+        findsNothing,
       );
     });
 
