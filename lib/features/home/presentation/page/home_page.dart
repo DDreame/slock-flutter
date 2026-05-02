@@ -96,7 +96,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _HomeTasksSection(
                   key: const ValueKey('home-card-tasks'),
                   taskItems: state.taskItems,
-                  channels: state.channels,
+                  channels: [
+                    ...state.pinnedChannels,
+                    ...state.channels,
+                  ],
                   onViewAll: () => _pushServerRoute('tasks'),
                 ),
                 const SizedBox(height: AppSpacing.md),

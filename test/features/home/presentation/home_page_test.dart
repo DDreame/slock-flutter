@@ -739,6 +739,69 @@ void main() {
     );
 
     testWidgets(
+      'task row resolves pinned channel name',
+      (tester) async {
+        final router = _buildRouter();
+
+        const snapshot = HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'pinned-ch-id',
+              ),
+              name: 'announcements',
+            ),
+          ],
+          directMessages: [],
+        );
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(snapshot),
+            sidebarOrderRepository: const _FakeSidebarOrderRepository(
+              order: SidebarOrder(
+                pinnedChannelIds: ['pinned-ch-id'],
+              ),
+            ),
+            tasksRepository: _FakeTasksRepository(
+              tasks: [
+                TaskItem(
+                  id: 't-pinned',
+                  taskNumber: 1,
+                  title: 'Pinned channel task',
+                  status: 'todo',
+                  channelId: 'pinned-ch-id',
+                  channelType: 'channel',
+                  createdById: 'u1',
+                  createdByName: 'Alice',
+                  createdByType: 'user',
+                  createdAt: DateTime(2026),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(
+          const ValueKey('task-item-t-pinned'),
+        );
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('#announcements'),
+          ),
+          findsOneWidget,
+          reason: 'Task row should resolve pinned channel '
+              'name, not show raw ID',
+        );
+      },
+    );
+
+    testWidgets(
       'threads card shows filter chips and thread items',
       (tester) async {
         final router = _buildRouter();
@@ -1309,6 +1372,8 @@ Widget _buildApp({
   AgentsRepository agentsRepository = const _FakeAgentsRepository(),
   TasksRepository tasksRepository = const _FakeTasksRepository(),
   ThreadRepository threadRepository = const _FakeThreadRepository(),
+  SidebarOrderRepository sidebarOrderRepository =
+      const _FakeSidebarOrderRepository(),
   DateTime? now,
 }) {
   return ProviderScope(
@@ -1321,7 +1386,7 @@ Widget _buildApp({
         serverListRepository,
       ),
       sidebarOrderRepositoryProvider.overrideWithValue(
-        const _FakeSidebarOrderRepository(),
+        sidebarOrderRepository,
       ),
       agentsRepositoryProvider.overrideWithValue(agentsRepository),
       tasksRepositoryProvider.overrideWithValue(tasksRepository),
@@ -1500,13 +1565,15 @@ class _FakeServerListRepository implements ServerListRepository {
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  const _FakeSidebarOrderRepository();
+  const _FakeSidebarOrderRepository({this.order = const SidebarOrder()});
+
+  final SidebarOrder order;
 
   @override
   Future<SidebarOrder> loadSidebarOrder(
     ServerScopeId serverId,
   ) async {
-    return const SidebarOrder();
+    return order;
   }
 
   @override
