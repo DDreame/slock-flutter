@@ -4,15 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
-import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
-import 'package:slock_app/features/channels/data/channel_management_repository.dart';
-import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -20,9 +16,6 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
-import 'package:slock_app/features/members/data/member_repository.dart';
-import 'package:slock_app/features/members/data/member_repository_provider.dart';
-import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -36,974 +29,214 @@ import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
 void main() {
-  testWidgets('HomePage renders console sections and conversation rows', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.text('Channels'));
-    expect(find.byKey(const ValueKey('home-console-grid')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-agents')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-tasks')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-machines')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-threads')), findsOneWidget);
-    expect(find.text('Channels'), findsOneWidget);
-    expect(find.text('Direct Messages'), findsOneWidget);
-    expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
-    expect(find.byKey(const ValueKey('channel-random')), findsOneWidget);
-    expect(find.byKey(const ValueKey('dm-dm-alice')), findsOneWidget);
-  });
-
-  testWidgets('tapping a channel row navigates to the existing channel route', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('channel-general')));
-    await tester.tap(find.byKey(const ValueKey('channel-general')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('channel:server-1/general'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('shows no-server placeholder when no server is selected', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(null),
-          homeRepositoryProvider.overrideWithValue(
-            const _FakeHomeRepository(_sampleSnapshot),
-          ),
-          serverListRepositoryProvider.overrideWithValue(
-            const _FakeServerListRepository([]),
-          ),
-          sidebarOrderRepositoryProvider.overrideWithValue(
-            const _FakeSidebarOrderRepository(),
-          ),
-          tasksRepositoryProvider.overrideWithValue(
-            const _FakeTasksRepository(),
-          ),
-          threadRepositoryProvider.overrideWithValue(
-            const _FakeThreadRepository(),
-          ),
-          homeMachineCountLoaderProvider.overrideWithValue(
-            (_) async => 0,
-          ),
-        ],
-        child: MaterialApp.router(
-          routerConfig: router,
-          theme: AppTheme.light,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-        ),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Select a server to get started.'), findsOneWidget);
-    expect(find.text('Select workspace'), findsOneWidget);
-    expect(find.text('Channels'), findsNothing);
-  });
-
-  testWidgets('tapping a DM row navigates to the existing DM route', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('dm-dm-alice')));
-    await tester.tap(find.byKey(const ValueKey('dm-dm-alice')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('dm:server-1/dm-alice'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('tasks console tile preserves the home return stack', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('home-tasks')));
-    await tester.tap(find.byKey(const ValueKey('home-tasks')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('tasks:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('threads console tile preserves the home return stack', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('home-threads')));
-    await tester.tap(find.byKey(const ValueKey('home-threads')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('threads:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('create channel opens dialog and navigates when id is returned', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-    final channelManagementRepository = _FakeChannelManagementRepository(
-      createdChannelId: 'support',
-    );
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        channelManagementRepository: channelManagementRepository,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('channel-create-button')));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const ValueKey('create-channel-name')),
-      'support',
-    );
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
-    await tester.pumpAndSettle();
-
-    expect(channelManagementRepository.createdNames, ['support']);
-    expect(find.text('channel:server-1/support'), findsOneWidget);
-  });
-
-  testWidgets('create channel stays on home when response omits id', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-    final channelManagementRepository = _FakeChannelManagementRepository();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        channelManagementRepository: channelManagementRepository,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('channel-create-button')));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const ValueKey('create-channel-name')),
-      'support',
-    );
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
-    await tester.pumpAndSettle();
-
-    expect(channelManagementRepository.createdNames, ['support']);
-    expect(find.byType(HomePage), findsOneWidget);
-    expect(find.text('channel:server-1/support'), findsNothing);
-  });
-
-  testWidgets('DM create button opens dialog and navigates on member select', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-    final memberRepository = _FakeMemberRepository(
-      members: const [
-        MemberProfile(id: 'user-1', displayName: 'Charlie'),
-        MemberProfile(id: 'user-2', displayName: 'Dana'),
-      ],
-      dmChannelId: 'dm-new-dana',
-    );
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        memberRepository: memberRepository,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byKey(const ValueKey('dm-create-button')));
-    await tester.tap(find.byKey(const ValueKey('dm-create-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('new-dm-dialog')), findsOneWidget);
-    expect(find.text('Charlie'), findsOneWidget);
-    expect(find.text('Dana'), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('dm-member-user-2')));
-    await tester.pumpAndSettle();
-
-    expect(memberRepository.openedDmUserIds, ['user-2']);
-    expect(find.text('dm:server-1/dm-new-dana'), findsOneWidget);
-  });
-
-  testWidgets('edit/delete/leave actions call the channel management seam', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-    final channelManagementRepository = _FakeChannelManagementRepository();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        channelManagementRepository: channelManagementRepository,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final menuFinder = find.byKey(const ValueKey('channel-menu-general'));
-
-    await tester.ensureVisible(menuFinder);
-    await tester.tap(menuFinder, warnIfMissed: false);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Edit channel'));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const ValueKey('edit-channel-name')),
-      'general-2',
-    );
-    await tester.pump();
-    await tester.tap(find.widgetWithText(FilledButton, 'Save'));
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(menuFinder);
-    await tester.tap(menuFinder, warnIfMissed: false);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete channel'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(menuFinder);
-    await tester.tap(menuFinder, warnIfMissed: false);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Leave channel'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Leave'));
-    await tester.pumpAndSettle();
-
-    expect(channelManagementRepository.updatedChannels, [
-      ('general', 'general-2'),
-    ]);
-    expect(channelManagementRepository.deletedChannelIds, ['general']);
-    expect(channelManagementRepository.leftChannelIds, ['general']);
-  });
-
-  testWidgets('AppBar shows server name when server list is loaded', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        serverListRepository: const _FakeServerListRepository(_sampleServers),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Workspace A'), findsOneWidget);
-  });
-
-  testWidgets('AppBar shows Slock when server list is not loaded', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        serverListRepository: const _FakeServerListRepository([]),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.text('Slock'), findsOneWidget);
-  });
-
-  testWidgets('tapping AppBar title opens server switcher sheet', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        serverListRepository: const _FakeServerListRepository(_sampleServers),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.arrow_drop_down));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Switch workspace'), findsOneWidget);
-    expect(find.byKey(const ValueKey('server-server-1')), findsOneWidget);
-    expect(find.byKey(const ValueKey('server-server-2')), findsOneWidget);
-  });
-
-  testWidgets(
-    'tapping Select workspace button in no-server state opens switcher',
-    (tester) async {
+  // -----------------------------------------------------------------------
+  // Summary cards
+  // -----------------------------------------------------------------------
+
+  group('summary cards', () {
+    testWidgets('renders 4 summary cards in success state', (
+      tester,
+    ) async {
       final router = _buildRouter();
 
       await tester.pumpWidget(
-        ProviderScope(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('home-card-agents')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('home-card-channels')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('home-card-tasks')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('home-card-threads')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+      'agents card shows count and status chips',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            agentsRepository: const _FakeAgentsRepository(
+              agents: [
+                AgentItem(
+                  id: 'a1',
+                  name: 'alpha',
+                  displayName: 'Alpha',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'working',
+                ),
+                AgentItem(
+                  id: 'a2',
+                  name: 'beta',
+                  displayName: 'Beta',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'error',
+                ),
+                AgentItem(
+                  id: 'a3',
+                  name: 'gamma',
+                  displayName: 'Gamma',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'stopped',
+                  activity: 'offline',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final card = find.byKey(const ValueKey('home-card-agents'));
+        expect(card, findsOneWidget);
+
+        // Agent count
+        expect(
+          find.descendant(of: card, matching: find.text('3')),
+          findsOneWidget,
+        );
+
+        // Status chips
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('1 online'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('1 error'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('1 stopped'),
+          ),
+          findsOneWidget,
+        );
+
+        // Mini agent rows (top 3)
+        expect(
+          find.descendant(of: card, matching: find.text('Alpha')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.text('Beta')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: card, matching: find.text('Gamma')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'channels card shows count and unread chip',
+      (tester) async {
+        final router = _buildRouter();
+        final container = ProviderContainer(
           overrides: [
-            activeServerScopeIdProvider.overrideWithValue(null),
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
             homeRepositoryProvider.overrideWithValue(
               const _FakeHomeRepository(_sampleSnapshot),
             ),
             serverListRepositoryProvider.overrideWithValue(
-              const _FakeServerListRepository(_sampleServers),
+              const _FakeServerListRepository([]),
             ),
             sidebarOrderRepositoryProvider.overrideWithValue(
               const _FakeSidebarOrderRepository(),
             ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
           ],
-          child: MaterialApp.router(
-            routerConfig: router,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.text('Select workspace'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Switch workspace'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'selecting a server in switcher updates selection and loads workspace',
-    (tester) async {
-      final router = _buildRouter();
-      final container = ProviderContainer(
-        overrides: [
-          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
-          homeRepositoryProvider.overrideWithValue(
-            const _FakeHomeRepository(_sampleSnapshot),
-          ),
-          serverListRepositoryProvider.overrideWithValue(
-            const _FakeServerListRepository(_sampleServers),
-          ),
-          sidebarOrderRepositoryProvider.overrideWithValue(
-            const _FakeSidebarOrderRepository(),
-          ),
-          tasksRepositoryProvider.overrideWithValue(
-            const _FakeTasksRepository(),
-          ),
-          threadRepositoryProvider.overrideWithValue(
-            const _FakeThreadRepository(),
-          ),
-          homeMachineCountLoaderProvider.overrideWithValue(
-            (_) async => 0,
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp.router(
-            routerConfig: router,
-            theme: AppTheme.light,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Select a server to get started.'), findsOneWidget);
-      expect(find.text('Channels'), findsNothing);
-
-      await tester.tap(find.text('Select workspace'));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const ValueKey('server-server-1')));
-      await tester.pumpAndSettle();
-
-      expect(
-        container.read(serverSelectionStoreProvider).selectedServerId,
-        'server-1',
-      );
-      expect(find.text('Select a server to get started.'), findsNothing);
-      expect(find.text('Channels'), findsOneWidget);
-      expect(find.text('Direct Messages'), findsOneWidget);
-
-      container.dispose();
-    },
-  );
-
-  testWidgets('machines console tile navigates to the machines route', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const ValueKey('home-machines')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('machines:server-1'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-
-    expect(find.byType(HomePage), findsOneWidget);
-  });
-
-  testWidgets('machines console tile is reachable in empty workspace', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-    const emptySnapshot = HomeWorkspaceSnapshot(
-      serverId: ServerScopeId('server-1'),
-      channels: [],
-      directMessages: [],
-    );
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(emptySnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('home-machines')), findsOneWidget);
-
-    await tester.tap(find.byKey(const ValueKey('home-machines')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('machines:server-1'), findsOneWidget);
-  });
-
-  testWidgets('server switcher sheet scrolls with many servers', (
-    tester,
-  ) async {
-    final manyServers = List.generate(
-      30,
-      (i) => ServerSummary(id: 'server-$i', name: 'Workspace $i'),
-    );
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        serverListRepository: _FakeServerListRepository(manyServers),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byIcon(Icons.arrow_drop_down));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Switch workspace'), findsOneWidget);
-    expect(find.byKey(const ValueKey('server-server-0')), findsOneWidget);
-
-    final lastServerFinder = find.byKey(const ValueKey('server-server-29'));
-    expect(lastServerFinder, findsNothing);
-
-    await tester.scrollUntilVisible(
-      lastServerFinder,
-      200,
-      scrollable: find.descendant(
-        of: find.byType(BottomSheet),
-        matching: find.byType(Scrollable),
-      ),
-    );
-
-    expect(lastServerFinder, findsOneWidget);
-  });
-
-  testWidgets('renders stale cached data before network completes', (
-    tester,
-  ) async {
-    final networkCompleter = Completer<HomeWorkspaceSnapshot>();
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: _DelayedFakeHomeRepository(
-          cachedSnapshot: _staleSnapshot,
-          networkCompleter: networkCompleter,
-        ),
-      ),
-    );
-
-    await tester.pump();
-    await tester.pump();
-
-    expect(find.text('Channels'), findsOneWidget);
-    expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
-    expect(find.byKey(const ValueKey('channel-random')), findsNothing);
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-
-    networkCompleter.complete(_sampleSnapshot);
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
-    expect(find.byKey(const ValueKey('channel-random')), findsOneWidget);
-    expect(find.byKey(const ValueKey('dm-dm-alice')), findsOneWidget);
-  });
-
-  testWidgets('shows spinner on cold cache then renders after network', (
-    tester,
-  ) async {
-    final networkCompleter = Completer<HomeWorkspaceSnapshot>();
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: _DelayedFakeHomeRepository(
-          cachedSnapshot: null,
-          networkCompleter: networkCompleter,
-        ),
-      ),
-    );
-
-    await tester.pump();
-    await tester.pump();
-
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(find.text('Channels'), findsNothing);
-
-    networkCompleter.complete(_sampleSnapshot);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-    expect(find.text('Channels'), findsOneWidget);
-    expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
-  });
-
-  testWidgets(
-    'stale-first suppresses failure state when network fails but cache exists',
-    (tester) async {
-      final networkCompleter = Completer<HomeWorkspaceSnapshot>();
-      final router = _buildRouter();
-
-      await tester.pumpWidget(
-        _buildApp(
-          router: router,
-          homeRepository: _DelayedFakeHomeRepository(
-            cachedSnapshot: _staleSnapshot,
-            networkCompleter: networkCompleter,
-          ),
-        ),
-      );
-
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
-
-      networkCompleter.completeError(
-        const UnknownFailure(message: 'network down', causeType: 'test'),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const ValueKey('channel-general')), findsOneWidget);
-      expect(find.text('Something went wrong'), findsNothing);
-    },
-  );
-
-  testWidgets('pull-to-refresh indicator is present in success state', (
-    tester,
-  ) async {
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('home-refresh-indicator')),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('shows empty channels placeholder when no channels exist', (
-    tester,
-  ) async {
-    const emptySnapshot = HomeWorkspaceSnapshot(
-      serverId: ServerScopeId('server-1'),
-      channels: [],
-      directMessages: [
-        HomeDirectMessageSummary(
-          scopeId: DirectMessageScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'dm-alice',
-          ),
-          title: 'Alice',
-        ),
-      ],
-    );
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(emptySnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const ValueKey('home-channels-empty')), findsOneWidget);
-    expect(find.text('No channels yet.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-dms-empty')), findsNothing);
-  });
-
-  testWidgets('shows empty DMs placeholder when no direct messages exist', (
-    tester,
-  ) async {
-    const emptyDmsSnapshot = HomeWorkspaceSnapshot(
-      serverId: ServerScopeId('server-1'),
-      channels: [
-        HomeChannelSummary(
-          scopeId: ChannelScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'general',
-          ),
-          name: 'general',
-        ),
-      ],
-      directMessages: [],
-    );
-    final router = _buildRouter();
-
-    await tester.pumpWidget(
-      _buildApp(
-        router: router,
-        homeRepository: const _FakeHomeRepository(emptyDmsSnapshot),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.text('Direct Messages'));
-
-    expect(find.byKey(const ValueKey('home-dms-empty')), findsOneWidget);
-    expect(find.text('No direct messages yet.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-channels-empty')), findsNothing);
-  });
-
-  testWidgets(
-    'channel row renders preview text and relative timestamp',
-    (tester) async {
-      final router = _buildRouter();
-
-      await tester.pumpWidget(
-        _buildApp(
-          router: router,
-          homeRepository: _FakeHomeRepository(_snapshotWithPreviews),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Hello from general'), findsOneWidget);
-      expect(find.text('5m ago'), findsAtLeastNWidgets(1));
-    },
-  );
-
-  testWidgets(
-    'DM row renders preview text and relative timestamp',
-    (tester) async {
-      final router = _buildRouter();
-
-      await tester.pumpWidget(
-        _buildApp(
-          router: router,
-          homeRepository: _FakeHomeRepository(_snapshotWithPreviews),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('dm-dm-alice')),
-      );
-      expect(find.text('Hey, how are you?'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'channel row shows UnreadBadge and tint when unread',
-    (tester) async {
-      final router = _buildRouter();
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
-          ),
-          homeRepositoryProvider.overrideWithValue(
-            const _FakeHomeRepository(_sampleSnapshot),
-          ),
-          serverListRepositoryProvider.overrideWithValue(
-            const _FakeServerListRepository([]),
-          ),
-          sidebarOrderRepositoryProvider.overrideWithValue(
-            const _FakeSidebarOrderRepository(),
-          ),
-          agentsRepositoryProvider.overrideWithValue(
-            const _FakeAgentsRepository(),
-          ),
-          tasksRepositoryProvider.overrideWithValue(
-            const _FakeTasksRepository(),
-          ),
-          threadRepositoryProvider.overrideWithValue(
-            const _FakeThreadRepository(),
-          ),
-          homeMachineCountLoaderProvider.overrideWithValue(
-            (_) async => 0,
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp.router(
-            routerConfig: router,
-            theme: AppTheme.light,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .hydrateChannelUnreads({
-        const ChannelScopeId(
-          serverId: ServerScopeId('server-1'),
-          value: 'general',
-        ): 3,
-      });
-      await tester.pumpAndSettle();
-
-      expect(find.byType(UnreadBadge), findsAtLeastNWidgets(1));
-      expect(find.text('3'), findsOneWidget);
-
-      // Assert that the unread channel row has primaryLight tint.
-      final channelRow = find.byKey(const ValueKey('channel-general'));
-      final materialWidget = find
-          .descendant(
-            of: channelRow,
-            matching: find.byType(Material),
-          )
-          .evaluate()
-          .first
-          .widget as Material;
-      expect(
-        materialWidget.color,
-        equals(AppColors.light.primaryLight),
-      );
-
-      container.dispose();
-    },
-  );
-
-  testWidgets(
-    'DM row renders initials avatar instead of person icon',
-    (tester) async {
-      final router = _buildRouter();
-
-      await tester.pumpWidget(
-        _buildApp(
-          router: router,
-          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('dm-dm-alice')),
-      );
-      expect(find.byKey(const ValueKey('dm-avatar')), findsOneWidget);
-      expect(find.text('A'), findsOneWidget);
-      expect(find.byKey(const ValueKey('dm-status-dot')), findsOneWidget);
-      expect(
-        find.byIcon(Icons.person_outline),
-        findsNothing,
-      );
-    },
-  );
-
-  testWidgets(
-    'DM status dot shows green when peer is an active agent',
-    (tester) async {
-      final router = _buildRouter();
-
-      await tester.pumpWidget(
-        _buildApp(
-          router: router,
-          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-          agentsRepository: const _FakeAgentsRepository(
-            agents: [
-              AgentItem(
-                id: 'agent-alice',
-                name: 'alice',
-                displayName: 'Alice',
-                model: 'claude',
-                runtime: 'slock',
-                status: 'active',
-                activity: 'idle',
-              ),
-            ],
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('dm-dm-alice')),
-      );
-
-      // Find the status dot container and verify it's green.
-      final dotFinder = find.byKey(const ValueKey('dm-status-dot'));
-      expect(dotFinder, findsOneWidget);
-      final dotContainer = tester.widget<Container>(dotFinder);
-      final decoration = dotContainer.decoration! as BoxDecoration;
-      expect(decoration.color, equals(AppColors.light.success));
-    },
-  );
-
-  testWidgets(
-    'DM status dot shows green when peer is a pinned active agent',
-    (tester) async {
-      final router = _buildRouter();
-
-      await tester.pumpWidget(
-        _buildApp(
-          router: router,
-          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-          agentsRepository: const _FakeAgentsRepository(
-            agents: [
-              AgentItem(
-                id: 'agent-alice',
-                name: 'alice',
-                displayName: 'Alice',
-                model: 'claude',
-                runtime: 'slock',
-                status: 'active',
-                activity: 'idle',
-              ),
-            ],
-          ),
-          sidebarOrderRepository: const _FakeSidebarOrderRepository(
-            sidebarOrder: SidebarOrder(
-              pinnedAgentIds: ['agent-alice'],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('dm-dm-alice')),
-      );
+        // Inject unreads
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .hydrateChannelUnreads({
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ): 5,
+        });
+        await tester.pumpAndSettle();
 
-      // Pinned agent should still show green status dot.
-      final dotFinder = find.byKey(const ValueKey('dm-status-dot'));
-      expect(dotFinder, findsOneWidget);
-      final dotContainer = tester.widget<Container>(dotFinder);
-      final decoration = dotContainer.decoration! as BoxDecoration;
-      expect(decoration.color, equals(AppColors.light.success));
-    },
-  );
+        final card = find.byKey(const ValueKey('home-card-channels'));
+        expect(card, findsOneWidget);
 
-  testWidgets(
-    'console tiles display real counts from data providers',
-    (tester) async {
+        // Channel count (2 channels in _sampleSnapshot)
+        expect(
+          find.descendant(of: card, matching: find.text('2')),
+          findsOneWidget,
+        );
+
+        // Unread chip
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('5 unread'),
+          ),
+          findsOneWidget,
+        );
+
+        container.dispose();
+      },
+    );
+
+    testWidgets('tasks card shows count', (tester) async {
       final router = _buildRouter();
 
       await tester.pumpWidget(
@@ -1038,57 +271,526 @@ void main() {
               ),
             ],
           ),
-          threadRepository: const _FakeThreadRepository(
-            threads: [
-              ThreadInboxItem(
-                routeTarget: ThreadRouteTarget(
-                  serverId: 'server-1',
-                  parentChannelId: 'general',
-                  parentMessageId: 'msg-1',
-                ),
-                replyCount: 3,
-                unreadCount: 1,
-                participantIds: ['u1'],
-              ),
-            ],
-          ),
-          machineCountLoader: (_) async => 5,
         ),
       );
       await tester.pumpAndSettle();
 
-      final tasksTile = find.byKey(const ValueKey('home-tasks'));
-      expect(tasksTile, findsOneWidget);
+      final card = find.byKey(const ValueKey('home-card-tasks'));
+      expect(card, findsOneWidget);
+
+      // Task count
       expect(
-        find.descendant(
-          of: tasksTile,
-          matching: find.text('2'),
-        ),
+        find.descendant(of: card, matching: find.text('2')),
         findsOneWidget,
       );
 
-      final threadsTile = find.byKey(const ValueKey('home-threads'));
-      expect(threadsTile, findsOneWidget);
+      // Subtitle
       expect(
         find.descendant(
-          of: threadsTile,
-          matching: find.text('1'),
+          of: card,
+          matching: find.text('in progress'),
         ),
         findsOneWidget,
       );
+    });
 
-      final machinesTile = find.byKey(const ValueKey('home-machines'));
-      expect(machinesTile, findsOneWidget);
-      expect(
-        find.descendant(
-          of: machinesTile,
-          matching: find.text('5'),
+    testWidgets(
+      'threads card shows filter chips and thread items',
+      (tester) async {
+        final router = _buildRouter();
+        const threads = [
+          ThreadInboxItem(
+            routeTarget: ThreadRouteTarget(
+              serverId: 'server-1',
+              parentChannelId: 'general',
+              parentMessageId: 'msg-1',
+            ),
+            title: '#general',
+            preview: 'Check the latest PR',
+            replyCount: 5,
+            unreadCount: 2,
+            participantIds: ['u1'],
+          ),
+          ThreadInboxItem(
+            routeTarget: ThreadRouteTarget(
+              serverId: 'server-1',
+              parentChannelId: 'random',
+              parentMessageId: 'msg-2',
+            ),
+            title: '#random',
+            preview: 'Old discussion',
+            replyCount: 3,
+            unreadCount: 0,
+            participantIds: ['u2'],
+          ),
+        ];
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            threadRepository: const _FakeThreadRepository(threads: threads),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final card = find.byKey(const ValueKey('home-card-threads'));
+        expect(card, findsOneWidget);
+
+        // Filter chips
+        expect(
+          find.byKey(const ValueKey('thread-filter-active')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('thread-filter-done')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('thread-filter-all')),
+          findsOneWidget,
+        );
+
+        // Active filter is selected by default — shows thread with
+        // unreadCount > 0
+        expect(find.text('#general'), findsOneWidget);
+        expect(find.text('Check the latest PR'), findsOneWidget);
+        // Done thread is hidden when Active filter is on
+        expect(find.text('#random'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'thread filter Done shows only read threads',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            threadRepository: const _FakeThreadRepository(
+              threads: _sampleThreads,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap "Done" filter
+        await tester.tap(find.byKey(const ValueKey('thread-filter-done')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('#random'), findsOneWidget);
+        expect(find.text('Done thread'), findsOneWidget);
+        expect(find.text('#general'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'thread filter All shows all threads',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            threadRepository: const _FakeThreadRepository(
+              threads: _sampleThreads,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap "All" filter
+        await tester.tap(find.byKey(const ValueKey('thread-filter-all')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('#general'), findsOneWidget);
+        expect(find.text('#random'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'threads card shows empty state when no threads match filter',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Default "Active" filter with no threads
+        expect(
+          find.byKey(const ValueKey('home-threads-empty')),
+          findsOneWidget,
+        );
+        expect(find.text('No threads'), findsOneWidget);
+      },
+    );
+  });
+
+  // -----------------------------------------------------------------------
+  // Summary card navigation
+  // -----------------------------------------------------------------------
+
+  group('summary card navigation', () {
+    testWidgets('agents card View all navigates to agents route', (
+      tester,
+    ) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
         ),
-        findsOneWidget,
       );
-    },
-  );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('card-view-all-agents')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('agents:server-1'), findsOneWidget);
+    });
+
+    testWidgets(
+      'channels card View all navigates to channels route',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const ValueKey('card-view-all-channels')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('channels:server-1'), findsOneWidget);
+      },
+    );
+
+    testWidgets('tasks card View all navigates to tasks route', (
+      tester,
+    ) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('card-view-all-tasks')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('tasks:server-1'), findsOneWidget);
+    });
+
+    testWidgets(
+      'threads card View all navigates to threads route',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const ValueKey('card-view-all-threads')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('threads:server-1'), findsOneWidget);
+      },
+    );
+  });
+
+  // -----------------------------------------------------------------------
+  // AppBar and server switcher
+  // -----------------------------------------------------------------------
+
+  group('AppBar and server switcher', () {
+    testWidgets('AppBar shows server name when server list is loaded', (
+      tester,
+    ) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          serverListRepository: const _FakeServerListRepository(
+            _sampleServers,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Workspace A'), findsOneWidget);
+    });
+
+    testWidgets(
+      'AppBar shows Slock when server list is not loaded',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            serverListRepository: const _FakeServerListRepository([]),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Slock'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'tapping AppBar title opens server switcher sheet',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            serverListRepository: const _FakeServerListRepository(
+              _sampleServers,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.arrow_drop_down));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Switch workspace'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('server-server-1')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('server-server-2')),
+          findsOneWidget,
+        );
+      },
+    );
+  });
+
+  // -----------------------------------------------------------------------
+  // State variations
+  // -----------------------------------------------------------------------
+
+  group('state variations', () {
+    testWidgets(
+      'shows no-server placeholder when no server is selected',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              activeServerScopeIdProvider.overrideWithValue(null),
+              homeRepositoryProvider.overrideWithValue(
+                const _FakeHomeRepository(_sampleSnapshot),
+              ),
+              serverListRepositoryProvider.overrideWithValue(
+                const _FakeServerListRepository([]),
+              ),
+              sidebarOrderRepositoryProvider.overrideWithValue(
+                const _FakeSidebarOrderRepository(),
+              ),
+              tasksRepositoryProvider.overrideWithValue(
+                const _FakeTasksRepository(),
+              ),
+              threadRepositoryProvider.overrideWithValue(
+                const _FakeThreadRepository(),
+              ),
+              homeMachineCountLoaderProvider.overrideWithValue(
+                (_) async => 0,
+              ),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('Select a server to get started.'),
+          findsOneWidget,
+        );
+        expect(find.text('Select workspace'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'shows spinner on cold cache then renders after network',
+      (tester) async {
+        final networkCompleter = Completer<HomeWorkspaceSnapshot>();
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: _DelayedFakeHomeRepository(
+              cachedSnapshot: null,
+              networkCompleter: networkCompleter,
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump();
+
+        expect(
+          find.byType(CircularProgressIndicator),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('home-card-agents')),
+          findsNothing,
+        );
+
+        networkCompleter.complete(_sampleSnapshot);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(CircularProgressIndicator),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('home-card-agents')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'pull-to-refresh indicator is present in success state',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('home-refresh-indicator')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'selecting a server in switcher updates selection and loads',
+      (tester) async {
+        final router = _buildRouter();
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(
+              _FakeSecureStorage(),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_sampleSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository(_sampleServers),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // No server selected → placeholder
+        expect(
+          find.text('Select a server to get started.'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('Select workspace'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('server-server-1')));
+        await tester.pumpAndSettle();
+
+        expect(
+          container.read(serverSelectionStoreProvider).selectedServerId,
+          'server-1',
+        );
+        expect(
+          find.text('Select a server to get started.'),
+          findsNothing,
+        );
+        // Summary cards should now be visible
+        expect(
+          find.byKey(const ValueKey('home-card-agents')),
+          findsOneWidget,
+        );
+
+        container.dispose();
+      },
+    );
+  });
 }
+
+// ---------------------------------------------------------------------------
+// Test data
+// ---------------------------------------------------------------------------
 
 const _sampleSnapshot = HomeWorkspaceSnapshot(
   serverId: ServerScopeId('server-1'),
@@ -1124,63 +826,45 @@ const _sampleServers = [
   ServerSummary(id: 'server-2', name: 'Workspace B'),
 ];
 
-const _staleSnapshot = HomeWorkspaceSnapshot(
-  serverId: ServerScopeId('server-1'),
-  channels: [
-    HomeChannelSummary(
-      scopeId: ChannelScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'general',
-      ),
-      name: 'general',
+const _sampleThreads = [
+  ThreadInboxItem(
+    routeTarget: ThreadRouteTarget(
+      serverId: 'server-1',
+      parentChannelId: 'general',
+      parentMessageId: 'msg-1',
     ),
-  ],
-  directMessages: [],
-);
+    title: '#general',
+    preview: 'Active thread',
+    replyCount: 5,
+    unreadCount: 2,
+    participantIds: ['u1'],
+  ),
+  ThreadInboxItem(
+    routeTarget: ThreadRouteTarget(
+      serverId: 'server-1',
+      parentChannelId: 'random',
+      parentMessageId: 'msg-2',
+    ),
+    title: '#random',
+    preview: 'Done thread',
+    replyCount: 3,
+    unreadCount: 0,
+    participantIds: ['u2'],
+  ),
+];
 
-/// Snapshot with preview and timestamp data for deeper row tests.
-final _snapshotWithPreviews = HomeWorkspaceSnapshot(
-  serverId: const ServerScopeId('server-1'),
-  channels: [
-    HomeChannelSummary(
-      scopeId: const ChannelScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'general',
-      ),
-      name: 'general',
-      lastMessageId: 'msg-1',
-      lastMessagePreview: 'Hello from general',
-      lastActivityAt: DateTime.now().subtract(const Duration(minutes: 5)),
-    ),
-  ],
-  directMessages: [
-    HomeDirectMessageSummary(
-      scopeId: const DirectMessageScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'dm-alice',
-      ),
-      title: 'Alice',
-      lastMessageId: 'msg-2',
-      lastMessagePreview: 'Hey, how are you?',
-      lastActivityAt: DateTime.now().subtract(const Duration(minutes: 5)),
-    ),
-  ],
-);
+// ---------------------------------------------------------------------------
+// Test helpers
+// ---------------------------------------------------------------------------
 
 Widget _buildApp({
   required GoRouter router,
   required HomeRepository homeRepository,
-  ServerListRepository serverListRepository = const _FakeServerListRepository(
-    [],
-  ),
-  ChannelManagementRepository? channelManagementRepository,
-  MemberRepository? memberRepository,
-  SidebarOrderRepository sidebarOrderRepository =
-      const _FakeSidebarOrderRepository(),
+  ServerListRepository serverListRepository =
+      const _FakeServerListRepository([]),
   AgentsRepository agentsRepository = const _FakeAgentsRepository(),
   TasksRepository tasksRepository = const _FakeTasksRepository(),
   ThreadRepository threadRepository = const _FakeThreadRepository(),
-  Future<int> Function(ServerScopeId)? machineCountLoader,
 }) {
   return ProviderScope(
     overrides: [
@@ -1188,20 +872,18 @@ Widget _buildApp({
         const ServerScopeId('server-1'),
       ),
       homeRepositoryProvider.overrideWithValue(homeRepository),
-      serverListRepositoryProvider.overrideWithValue(serverListRepository),
-      sidebarOrderRepositoryProvider.overrideWithValue(sidebarOrderRepository),
+      serverListRepositoryProvider.overrideWithValue(
+        serverListRepository,
+      ),
+      sidebarOrderRepositoryProvider.overrideWithValue(
+        const _FakeSidebarOrderRepository(),
+      ),
       agentsRepositoryProvider.overrideWithValue(agentsRepository),
       tasksRepositoryProvider.overrideWithValue(tasksRepository),
       threadRepositoryProvider.overrideWithValue(threadRepository),
       homeMachineCountLoaderProvider.overrideWithValue(
-        machineCountLoader ?? (_) async => 0,
+        (_) async => 0,
       ),
-      if (channelManagementRepository != null)
-        channelManagementRepositoryProvider.overrideWithValue(
-          channelManagementRepository,
-        ),
-      if (memberRepository != null)
-        memberRepositoryProvider.overrideWithValue(memberRepository),
     ],
     child: MaterialApp.router(
       routerConfig: router,
@@ -1216,40 +898,25 @@ GoRouter _buildRouter() {
   return GoRouter(
     initialLocation: '/home',
     routes: [
-      GoRoute(path: '/home', builder: (context, state) => const HomePage()),
       GoRoute(
-        path: '/servers/:serverId/channels/:channelId',
+        path: '/home',
+        builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/agents',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text('agents:${state.pathParameters['serverId']}'),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/channels',
         builder: (context, state) => Scaffold(
           body: Center(
             child: Text(
-              'channel:${state.pathParameters['serverId']}/${state.pathParameters['channelId']}',
+              'channels:${state.pathParameters['serverId']}',
             ),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/servers/:serverId/dms/:channelId',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text(
-              'dm:${state.pathParameters['serverId']}/${state.pathParameters['channelId']}',
-            ),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/servers/:serverId/search',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text('search:${state.pathParameters['serverId']}'),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/servers/:serverId/members',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text('members:${state.pathParameters['serverId']}'),
           ),
         ),
       ),
@@ -1262,54 +929,28 @@ GoRouter _buildRouter() {
         ),
       ),
       GoRoute(
-        path: '/servers/:serverId/machines',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text('machines:${state.pathParameters['serverId']}'),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/servers/:serverId/saved-messages',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text('saved:${state.pathParameters['serverId']}'),
-          ),
-        ),
-      ),
-      GoRoute(
         path: '/servers/:serverId/threads',
         builder: (context, state) => Scaffold(
           body: Center(
-            child: Text('threads:${state.pathParameters['serverId']}'),
+            child: Text(
+              'threads:${state.pathParameters['serverId']}',
+            ),
           ),
         ),
       ),
       GoRoute(
-        path: '/servers/:serverId/agents',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text('agents:${state.pathParameters['serverId']}'),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/servers/:serverId/settings',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text('settings:${state.pathParameters['serverId']}'),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/billing',
+        path: '/settings',
         builder: (context, state) => const Scaffold(
-          body: Center(child: Text('billing')),
+          body: Center(child: Text('settings')),
         ),
       ),
     ],
   );
 }
+
+// ---------------------------------------------------------------------------
+// Fakes
+// ---------------------------------------------------------------------------
 
 class _FakeHomeRepository implements HomeRepository {
   const _FakeHomeRepository(this.snapshot);
@@ -1317,7 +958,9 @@ class _FakeHomeRepository implements HomeRepository {
   final HomeWorkspaceSnapshot snapshot;
 
   @override
-  Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
+  Future<HomeWorkspaceSnapshot> loadWorkspace(
+    ServerScopeId serverId,
+  ) async {
     return snapshot;
   }
 
@@ -1326,6 +969,54 @@ class _FakeHomeRepository implements HomeRepository {
     ServerScopeId serverId,
   ) async {
     return null;
+  }
+
+  @override
+  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
+    HomeDirectMessageSummary summary,
+  ) async {
+    return summary;
+  }
+
+  @override
+  Future<void> persistConversationActivity({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) async {}
+
+  @override
+  Future<void> persistConversationPreviewUpdate({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) async {}
+}
+
+class _DelayedFakeHomeRepository implements HomeRepository {
+  _DelayedFakeHomeRepository({
+    required this.cachedSnapshot,
+    required this.networkCompleter,
+  });
+
+  final HomeWorkspaceSnapshot? cachedSnapshot;
+  final Completer<HomeWorkspaceSnapshot> networkCompleter;
+
+  @override
+  Future<HomeWorkspaceSnapshot> loadWorkspace(
+    ServerScopeId serverId,
+  ) {
+    return networkCompleter.future;
+  }
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return cachedSnapshot;
   }
 
   @override
@@ -1362,127 +1053,14 @@ class _FakeServerListRepository implements ServerListRepository {
   Future<List<ServerSummary>> loadServers() async => servers;
 }
 
-class _FakeSecureStorage implements SecureStorage {
-  final Map<String, String> _store = {};
-
-  @override
-  Future<String?> read({required String key}) async => _store[key];
-
-  @override
-  Future<void> write({required String key, required String value}) async {
-    _store[key] = value;
-  }
-
-  @override
-  Future<void> delete({required String key}) async {
-    _store.remove(key);
-  }
-}
-
-class _FakeChannelManagementRepository implements ChannelManagementRepository {
-  _FakeChannelManagementRepository({this.createdChannelId});
-
-  final String? createdChannelId;
-  final List<String> createdNames = [];
-  final List<(String, String)> updatedChannels = [];
-  final List<String> deletedChannelIds = [];
-  final List<String> leftChannelIds = [];
-
-  @override
-  Future<String?> createChannel(
-    ServerScopeId serverId, {
-    required String name,
-  }) async {
-    createdNames.add(name);
-    return createdChannelId;
-  }
-
-  @override
-  Future<void> updateChannel(
-    ServerScopeId serverId, {
-    required String channelId,
-    required String name,
-  }) async {
-    updatedChannels.add((channelId, name));
-  }
-
-  @override
-  Future<void> deleteChannel(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {
-    deletedChannelIds.add(channelId);
-  }
-
-  @override
-  Future<void> leaveChannel(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {
-    leftChannelIds.add(channelId);
-  }
-}
-
-class _FakeMemberRepository implements MemberRepository {
-  _FakeMemberRepository({
-    this.members = const [],
-    this.dmChannelId = 'dm-channel-1',
-  });
-
-  final List<MemberProfile> members;
-  final String dmChannelId;
-  final List<String> openedDmUserIds = [];
-
-  @override
-  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
-    return members;
-  }
-
-  @override
-  Future<String> createInvite(ServerScopeId serverId) async {
-    return 'invite-code';
-  }
-
-  @override
-  Future<void> updateMemberRole(
-    ServerScopeId serverId, {
-    required String userId,
-    required String role,
-  }) async {}
-
-  @override
-  Future<void> removeMember(
-    ServerScopeId serverId, {
-    required String userId,
-  }) async {}
-
-  @override
-  Future<String> openDirectMessage(
-    ServerScopeId serverId, {
-    required String userId,
-  }) async {
-    openedDmUserIds.add(userId);
-    return dmChannelId;
-  }
-
-  @override
-  Future<String> openAgentDirectMessage(
-    ServerScopeId serverId, {
-    required String agentId,
-  }) async =>
-      'dm-agent-$agentId';
-}
-
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  const _FakeSidebarOrderRepository({
-    this.sidebarOrder = const SidebarOrder(),
-  });
-
-  final SidebarOrder sidebarOrder;
+  const _FakeSidebarOrderRepository();
 
   @override
-  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
-    return sidebarOrder;
+  Future<SidebarOrder> loadSidebarOrder(
+    ServerScopeId serverId,
+  ) async {
+    return const SidebarOrder();
   }
 
   @override
@@ -1507,7 +1085,10 @@ class _FakeAgentsRepository implements AgentsRepository {
   Future<void> stopAgent(String agentId) async {}
 
   @override
-  Future<void> resetAgent(String agentId, {required String mode}) async {}
+  Future<void> resetAgent(
+    String agentId, {
+    required String mode,
+  }) async {}
 
   @override
   Future<List<AgentActivityLogEntry>> getActivityLog(
@@ -1517,59 +1098,15 @@ class _FakeAgentsRepository implements AgentsRepository {
       const [];
 }
 
-class _DelayedFakeHomeRepository implements HomeRepository {
-  _DelayedFakeHomeRepository({
-    required this.cachedSnapshot,
-    required this.networkCompleter,
-  });
-
-  final HomeWorkspaceSnapshot? cachedSnapshot;
-  final Completer<HomeWorkspaceSnapshot> networkCompleter;
-
-  @override
-  Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) {
-    return networkCompleter.future;
-  }
-
-  @override
-  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
-    ServerScopeId serverId,
-  ) async {
-    return cachedSnapshot;
-  }
-
-  @override
-  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
-    HomeDirectMessageSummary summary,
-  ) async {
-    return summary;
-  }
-
-  @override
-  Future<void> persistConversationActivity({
-    required ServerScopeId serverId,
-    required String conversationId,
-    required String messageId,
-    required String preview,
-    required DateTime activityAt,
-  }) async {}
-
-  @override
-  Future<void> persistConversationPreviewUpdate({
-    required ServerScopeId serverId,
-    required String conversationId,
-    required String messageId,
-    required String preview,
-  }) async {}
-}
-
 class _FakeTasksRepository implements TasksRepository {
   const _FakeTasksRepository({this.tasks = const []});
 
   final List<TaskItem> tasks;
 
   @override
-  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async {
+  Future<List<TaskItem>> listServerTasks(
+    ServerScopeId serverId,
+  ) async {
     return tasks;
   }
 
@@ -1649,4 +1186,24 @@ class _FakeThreadRepository implements ThreadRepository {
     ServerScopeId serverId, {
     required String threadChannelId,
   }) async {}
+}
+
+class _FakeSecureStorage implements SecureStorage {
+  final Map<String, String> _store = {};
+
+  @override
+  Future<String?> read({required String key}) async => _store[key];
+
+  @override
+  Future<void> write({
+    required String key,
+    required String value,
+  }) async {
+    _store[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    _store.remove(key);
+  }
 }

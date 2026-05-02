@@ -4,24 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
-import 'package:slock_app/features/channels/application/channel_management_state.dart';
-import 'package:slock_app/features/channels/application/channel_management_store.dart';
-import 'package:slock_app/features/channels/presentation/widgets/channel_management_dialogs.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
-import 'package:slock_app/features/home/data/home_repository.dart';
-import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
-import 'package:slock_app/features/home/presentation/widgets/home_console_grid.dart';
-import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
-import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
-import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -38,29 +30,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final unreadState = ref.watch(channelUnreadStoreProvider);
-    final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
-    final managementState = ref.watch(channelManagementStoreProvider);
     final l10n = context.l10n;
-
-    // Build a lookup of online agent display names for DM status dots.
-    // Human presence is not yet available in the home model.
-    // TODO: wire human presence when available.
-    final onlineAgentNames = <String>{
-      for (final agent in state.agents)
-        if (agent.isActive) agent.label,
-      for (final agent in state.pinnedAgents)
-        if (agent.isActive) agent.label,
-    };
-
-    final pinnedConversationRows = _buildPinnedConversationRows(
-      state: state,
-      homeStore: homeStore,
-      channelUnreadCount: unreadState.channelUnreadCount,
-      dmUnreadCount: unreadState.dmUnreadCount,
-      unreadStore: unreadStore,
-      isMutating: managementState.isBusy,
-      onlineAgentNames: onlineAgentNames,
-    );
 
     return Scaffold(
       appBar: AppBar(
@@ -90,661 +60,698 @@ class _HomePageState extends ConsumerState<HomePage> {
         HomeListStatus.success => RefreshIndicator(
             key: const ValueKey('home-refresh-indicator'),
             onRefresh: homeStore.load,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  HomeConsoleGrid(
-                    key: const ValueKey('home-console-grid'),
-                    items: [
-                      HomeConsoleGridItem(
-                        tileKey: const ValueKey('home-agents'),
-                        icon: Icons.smart_toy_outlined,
-                        label: l10n.homeConsoleAgentControl,
-                        value:
-                            '${state.agents.length + state.pinnedAgents.length}',
-                        onTap: () => _pushServerRoute('agents'),
-                      ),
-                      HomeConsoleGridItem(
-                        tileKey: const ValueKey('home-tasks'),
-                        icon: Icons.check_circle_outline,
-                        label: l10n.homeConsoleTasks,
-                        value: '${state.taskCount}',
-                        onTap: () => _pushServerRoute('tasks'),
-                      ),
-                      HomeConsoleGridItem(
-                        tileKey: const ValueKey('home-machines'),
-                        icon: Icons.memory_outlined,
-                        label: l10n.homeConsoleMachines,
-                        value: '${state.machineCount}',
-                        onTap: () => _pushServerRoute('machines'),
-                      ),
-                      HomeConsoleGridItem(
-                        tileKey: const ValueKey('home-threads'),
-                        icon: Icons.forum_outlined,
-                        label: l10n.homeConsoleThreads,
-                        value: '${state.threadCount}',
-                        onTap: () => _pushServerRoute('threads'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  if (pinnedConversationRows.isNotEmpty) ...[
-                    _HomeSectionHeader(title: l10n.homeSectionPinned),
-                    ...pinnedConversationRows,
-                  ],
-                  _HomeSectionHeader(
-                    title: l10n.homeSectionChannels,
-                    onAdd: _showCreateChannelDialog,
-                    addButtonKey: const ValueKey('channel-create-button'),
-                    addTooltip: l10n.homeCreateChannelTooltip,
-                  ),
-                  if (state.channels.isEmpty)
-                    Padding(
-                      key: const ValueKey('home-channels-empty'),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Text(l10n.homeChannelsEmpty),
-                    ),
-                  for (final entry in state.channels.asMap().entries)
-                    HomeChannelRow(
-                      key: ValueKey(
-                        'channel-${entry.value.scopeId.routeParam}',
-                      ),
-                      channel: entry.value,
-                      unreadCount:
-                          unreadState.channelUnreadCount(entry.value.scopeId),
-                      isMutating: managementState.isBusy,
-                      onTap: () {
-                        unreadStore.markChannelRead(entry.value.scopeId);
-                        context.push(
-                          homeStore.channelRoutePath(entry.value.scopeId),
-                        );
-                      },
-                      onEdit: () => _showEditChannelDialog(entry.value),
-                      onDelete: () => _showDeleteChannelDialog(entry.value),
-                      onLeave: () => _showLeaveChannelDialog(entry.value),
-                      onTogglePin: () =>
-                          homeStore.pinChannel(entry.value.scopeId),
-                      onMoveUp: entry.key > 0
-                          ? () => homeStore.moveChannel(
-                                entry.value.scopeId,
-                                moveUp: true,
-                              )
-                          : null,
-                      onMoveDown: entry.key < state.channels.length - 1
-                          ? () => homeStore.moveChannel(
-                                entry.value.scopeId,
-                                moveUp: false,
-                              )
-                          : null,
-                    ),
-                  _HomeSectionHeader(
-                    title: l10n.homeSectionDirectMessages,
-                    onAdd: _showNewDmDialog,
-                    addButtonKey: const ValueKey('dm-create-button'),
-                    addTooltip: l10n.homeNewMessageTooltip,
-                  ),
-                  if (state.directMessages.isEmpty)
-                    Padding(
-                      key: const ValueKey('home-dms-empty'),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      child: Text(l10n.homeDirectMessagesEmpty),
-                    ),
-                  for (final entry in state.directMessages.asMap().entries)
-                    HomeDirectMessageRow(
-                      key: ValueKey('dm-${entry.value.scopeId.routeParam}'),
-                      directMessage: entry.value,
-                      unreadCount:
-                          unreadState.dmUnreadCount(entry.value.scopeId),
-                      isOnline: onlineAgentNames.contains(entry.value.title),
-                      onTap: () {
-                        unreadStore.markDmRead(entry.value.scopeId);
-                        context.push(
-                          homeStore.directMessageRoutePath(entry.value.scopeId),
-                        );
-                      },
-                      onTogglePin: () => homeStore.pinDirectMessage(
-                        entry.value.scopeId,
-                      ),
-                      onHide: () => homeStore.hideDm(entry.value.scopeId),
-                      onMoveUp: entry.key > 0
-                          ? () => homeStore.moveDirectMessage(
-                                entry.value.scopeId,
-                                moveUp: true,
-                              )
-                          : null,
-                      onMoveDown: entry.key < state.directMessages.length - 1
-                          ? () => homeStore.moveDirectMessage(
-                                entry.value.scopeId,
-                                moveUp: false,
-                              )
-                          : null,
-                    ),
-                  if (state.hiddenDirectMessages.isNotEmpty)
-                    ListTile(
-                      key: const ValueKey('home-hidden-dms'),
-                      leading: const Icon(Icons.visibility_off_outlined),
-                      title: Text(
-                        l10n.homeHiddenConversationsCount(
-                            state.hiddenDirectMessages.length),
-                      ),
-                      onTap: () => _showHiddenDmsSheet(homeStore, unreadStore),
-                    ),
-                  if (state.pinnedAgents.isNotEmpty) ...[
-                    _HomeSectionHeader(title: l10n.homeSectionPinnedAgents),
-                    for (final agent in state.pinnedAgents)
-                      _HomeAgentRow(
-                        key: ValueKey('pinned-agent-${agent.id}'),
-                        agent: agent,
-                        isPinned: true,
-                        onTap: () => _openAgentDetail(agent.id),
-                        onTogglePin: () => homeStore.unpinAgent(agent.id),
-                      ),
-                  ],
-                  if (state.agents.isNotEmpty ||
-                      state.pinnedAgents.isNotEmpty) ...[
-                    _HomeSectionHeader(title: l10n.homeSectionAgents),
-                    for (final agent in state.agents)
-                      _HomeAgentRow(
-                        key: ValueKey('agent-${agent.id}'),
-                        agent: agent,
-                        isPinned: false,
-                        onTap: () => _openAgentDetail(agent.id),
-                        onTogglePin: () => homeStore.pinAgent(agent.id),
-                      ),
-                  ],
-                ],
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pageHorizontal,
+                AppSpacing.md,
+                AppSpacing.pageHorizontal,
+                AppSpacing.xl,
               ),
+              children: [
+                _AgentsSummaryCard(
+                  key: const ValueKey('home-card-agents'),
+                  agents: [
+                    ...state.pinnedAgents,
+                    ...state.agents,
+                  ],
+                  onViewAll: () => _pushServerRoute('agents'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _ChannelsSummaryCard(
+                  key: const ValueKey('home-card-channels'),
+                  channelCount:
+                      state.channels.length + state.pinnedChannels.length,
+                  unreadCount: unreadState.channelUnreadCounts.values.fold(
+                    0,
+                    (sum, c) => sum + c,
+                  ),
+                  onViewAll: () => _pushServerRoute('channels'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _TasksSummaryCard(
+                  key: const ValueKey('home-card-tasks'),
+                  taskCount: state.taskCount,
+                  onViewAll: () => _pushServerRoute('tasks'),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                _ThreadsSummaryCard(
+                  key: const ValueKey('home-card-threads'),
+                  threadItems: state.threadItems,
+                  onViewAll: () => _pushServerRoute('threads'),
+                ),
+              ],
             ),
           ),
       },
     );
-  }
-
-  void _openAgentDetail(String agentId) {
-    final serverId = ref.read(activeServerScopeIdProvider)?.value;
-    if (serverId != null) {
-      context.go('/servers/$serverId/agents/$agentId');
-      return;
-    }
-    context.go('/agents/$agentId');
-  }
-
-  Future<void> _showCreateChannelDialog() async {
-    final l10n = context.l10n;
-    final serverId = ref.read(activeServerScopeIdProvider);
-    if (serverId == null) {
-      return;
-    }
-    final pageContext = context;
-
-    await showDialog<void>(
-      context: pageContext,
-      builder: (dialogContext) {
-        return Consumer(
-          builder: (_, ref, __) {
-            final state = ref.watch(channelManagementStoreProvider);
-            final store = ref.read(channelManagementStoreProvider.notifier);
-            return CreateChannelDialog(
-              isSubmitting: state.isRunning(ChannelManagementAction.create),
-              onCancel: () => Navigator.of(dialogContext).pop(),
-              onCreate: (name) async {
-                try {
-                  final channelId = await store.createChannel(name);
-                  if (!mounted || !pageContext.mounted) {
-                    return;
-                  }
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  _showSnackBar(l10n.homeChannelCreated);
-                  if (channelId != null) {
-                    pageContext.go(
-                      '/servers/${serverId.routeParam}/channels/$channelId',
-                    );
-                  }
-                } on AppFailure catch (failure) {
-                  if (!mounted) {
-                    return;
-                  }
-                  _showSnackBar(
-                      failure.message ?? l10n.homeChannelCreateFailed);
-                }
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _showNewDmDialog() async {
-    final serverId = ref.read(activeServerScopeIdProvider);
-    if (serverId == null) {
-      return;
-    }
-    final pageContext = context;
-
-    final channelId = await showDialog<String>(
-      context: pageContext,
-      builder: (_) => NewDmDialog(serverId: serverId),
-    );
-
-    if (channelId != null && mounted && pageContext.mounted) {
-      pageContext.go('/servers/${serverId.value}/dms/$channelId');
-    }
-  }
-
-  Future<void> _showEditChannelDialog(HomeChannelSummary channel) async {
-    final l10n = context.l10n;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return Consumer(
-          builder: (context, ref, _) {
-            final state = ref.watch(channelManagementStoreProvider);
-            final store = ref.read(channelManagementStoreProvider.notifier);
-            return EditChannelDialog(
-              currentName: channel.name,
-              isSubmitting: state.isRunning(
-                ChannelManagementAction.edit,
-                channelId: channel.scopeId.value,
-              ),
-              onCancel: () => Navigator.of(dialogContext).pop(),
-              onSave: (name) async {
-                try {
-                  await store.renameChannel(channel.scopeId, name: name);
-                  if (!mounted) {
-                    return;
-                  }
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  _showSnackBar(l10n.homeChannelUpdated);
-                } on AppFailure catch (failure) {
-                  if (!mounted) {
-                    return;
-                  }
-                  _showSnackBar(
-                      failure.message ?? l10n.homeChannelUpdateFailed);
-                }
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _showDeleteChannelDialog(HomeChannelSummary channel) async {
-    final l10n = context.l10n;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return Consumer(
-          builder: (context, ref, _) {
-            final state = ref.watch(channelManagementStoreProvider);
-            final store = ref.read(channelManagementStoreProvider.notifier);
-            return ConfirmChannelActionDialog(
-              dialogKey: const ValueKey('delete-channel-dialog'),
-              title: l10n.homeDeleteChannelTitle,
-              message: l10n.homeDeleteChannelMessage(channel.name),
-              confirmLabel: l10n.homeDeleteChannelConfirm,
-              isSubmitting: state.isRunning(
-                ChannelManagementAction.delete,
-                channelId: channel.scopeId.value,
-              ),
-              onCancel: () => Navigator.of(dialogContext).pop(),
-              onConfirm: () async {
-                try {
-                  await store.deleteChannel(channel.scopeId);
-                  if (!mounted) {
-                    return;
-                  }
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  _showSnackBar(l10n.homeChannelDeleted);
-                } on AppFailure catch (failure) {
-                  if (!mounted) {
-                    return;
-                  }
-                  _showSnackBar(
-                      failure.message ?? l10n.homeChannelDeleteFailed);
-                }
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Future<void> _showLeaveChannelDialog(HomeChannelSummary channel) async {
-    final l10n = context.l10n;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return Consumer(
-          builder: (context, ref, _) {
-            final state = ref.watch(channelManagementStoreProvider);
-            final store = ref.read(channelManagementStoreProvider.notifier);
-            return ConfirmChannelActionDialog(
-              dialogKey: const ValueKey('leave-channel-dialog'),
-              title: l10n.homeLeaveChannelTitle,
-              message: l10n.homeLeaveChannelMessage(channel.name),
-              confirmLabel: l10n.homeLeaveChannelConfirm,
-              isSubmitting: state.isRunning(
-                ChannelManagementAction.leave,
-                channelId: channel.scopeId.value,
-              ),
-              onCancel: () => Navigator.of(dialogContext).pop(),
-              onConfirm: () async {
-                try {
-                  await store.leaveChannel(channel.scopeId);
-                  if (!mounted) {
-                    return;
-                  }
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  _showSnackBar(l10n.homeChannelLeft);
-                } on AppFailure catch (failure) {
-                  if (!mounted) {
-                    return;
-                  }
-                  _showSnackBar(failure.message ?? l10n.homeChannelLeaveFailed);
-                }
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _pushServerRoute(String routeSuffix) {
     final serverId = ref.read(activeServerScopeIdProvider)?.value;
-    if (serverId == null) {
-      return;
-    }
+    if (serverId == null) return;
     context.push('/servers/$serverId/$routeSuffix');
-  }
-
-  List<Widget> _buildPinnedConversationRows({
-    required HomeListState state,
-    required HomeListStore homeStore,
-    required int Function(ChannelScopeId) channelUnreadCount,
-    required int Function(DirectMessageScopeId) dmUnreadCount,
-    required ChannelUnreadStore unreadStore,
-    required bool isMutating,
-    required Set<String> onlineAgentNames,
-  }) {
-    final pinnedChannels = {
-      for (final channel in state.pinnedChannels)
-        channel.scopeId.value: channel,
-    };
-    final pinnedDms = {
-      for (final dm in state.pinnedDirectMessages) dm.scopeId.value: dm,
-    };
-    final rows = <Widget>[];
-    final pinnedIds = state.pinnedConversationOrder;
-
-    for (final entry in pinnedIds.asMap().entries) {
-      final pinnedId = entry.value;
-      final canMoveUp = entry.key > 0;
-      final canMoveDown = entry.key < pinnedIds.length - 1;
-
-      final channel = pinnedChannels[pinnedId];
-      if (channel != null) {
-        rows.add(
-          HomeChannelRow(
-            key: ValueKey('pinned-${channel.scopeId.routeParam}'),
-            channel: channel,
-            unreadCount: channelUnreadCount(channel.scopeId),
-            isMutating: isMutating,
-            isPinned: true,
-            onTap: () {
-              unreadStore.markChannelRead(channel.scopeId);
-              context.push(homeStore.channelRoutePath(channel.scopeId));
-            },
-            onEdit: () => _showEditChannelDialog(channel),
-            onDelete: () => _showDeleteChannelDialog(channel),
-            onLeave: () => _showLeaveChannelDialog(channel),
-            onTogglePin: () => homeStore.unpinChannel(channel.scopeId),
-            onMoveUp: canMoveUp
-                ? () => homeStore.movePinnedConversation(
-                      channel.scopeId.serverId,
-                      channel.scopeId.value,
-                      moveUp: true,
-                    )
-                : null,
-            onMoveDown: canMoveDown
-                ? () => homeStore.movePinnedConversation(
-                      channel.scopeId.serverId,
-                      channel.scopeId.value,
-                      moveUp: false,
-                    )
-                : null,
-          ),
-        );
-        continue;
-      }
-
-      final directMessage = pinnedDms[pinnedId];
-      if (directMessage != null) {
-        rows.add(
-          HomeDirectMessageRow(
-            key: ValueKey('pinned-dm-${directMessage.scopeId.routeParam}'),
-            directMessage: directMessage,
-            unreadCount: dmUnreadCount(directMessage.scopeId),
-            isPinned: true,
-            isOnline: onlineAgentNames.contains(directMessage.title),
-            onTap: () {
-              unreadStore.markDmRead(directMessage.scopeId);
-              context.push(
-                homeStore.directMessageRoutePath(directMessage.scopeId),
-              );
-            },
-            onTogglePin: () => homeStore.unpinDirectMessage(
-              directMessage.scopeId,
-            ),
-            onHide: () => homeStore.hideDm(directMessage.scopeId),
-            onMoveUp: canMoveUp
-                ? () => homeStore.movePinnedConversation(
-                      directMessage.scopeId.serverId,
-                      directMessage.scopeId.value,
-                      moveUp: true,
-                    )
-                : null,
-            onMoveDown: canMoveDown
-                ? () => homeStore.movePinnedConversation(
-                      directMessage.scopeId.serverId,
-                      directMessage.scopeId.value,
-                      moveUp: false,
-                    )
-                : null,
-          ),
-        );
-      }
-    }
-
-    return rows;
-  }
-
-  void _showHiddenDmsSheet(
-    HomeListStore homeStore,
-    ChannelUnreadStore unreadStore,
-  ) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (sheetContext) {
-        return Consumer(
-          builder: (_, ref, __) {
-            final hiddenDms =
-                ref.watch(homeListStoreProvider).hiddenDirectMessages;
-            if (hiddenDms.isEmpty) {
-              Navigator.of(sheetContext).pop();
-              return const SizedBox.shrink();
-            }
-            return SafeArea(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.of(sheetContext).size.height * 0.6,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Text(
-                        context.l10n.homeHiddenConversationsTitle,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Flexible(
-                      child: ListView(
-                        shrinkWrap: true,
-                        children: [
-                          for (final dm in hiddenDms)
-                            ListTile(
-                              key: ValueKey(
-                                'hidden-dm-${dm.scopeId.routeParam}',
-                              ),
-                              leading: const Icon(Icons.person_outline),
-                              title: Text(dm.title),
-                              trailing: TextButton(
-                                key: ValueKey(
-                                  'unhide-dm-${dm.scopeId.routeParam}',
-                                ),
-                                onPressed: () => homeStore.unhideDm(dm.scopeId),
-                                child: Text(context.l10n.homeUnhide),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 }
 
-class _HomeAgentRow extends StatelessWidget {
-  const _HomeAgentRow({
-    super.key,
-    required this.agent,
-    required this.isPinned,
-    required this.onTap,
-    required this.onTogglePin,
+// ---------------------------------------------------------------------------
+// Summary card base
+// ---------------------------------------------------------------------------
+
+class _SummaryCardBase extends StatelessWidget {
+  const _SummaryCardBase({
+    required this.accentColor,
+    required this.title,
+    required this.onViewAll,
+    required this.child,
   });
 
-  final AgentItem agent;
-  final bool isPinned;
-  final VoidCallback onTap;
-  final VoidCallback onTogglePin;
+  final Color accentColor;
+  final String title;
+  final VoidCallback onViewAll;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: const Icon(Icons.smart_toy_outlined),
-      title: Text(agent.label),
-      subtitle: Text(agent.activity),
-      trailing: PopupMenuButton<String>(
-        key: ValueKey('agent-menu-${agent.id}'),
-        onSelected: (value) {
-          if (value == 'toggle_pin') onTogglePin();
-        },
-        itemBuilder: (context) => [
-          PopupMenuItem(
-            value: 'toggle_pin',
-            child:
-                Text(isPinned ? context.l10n.homeUnpin : context.l10n.homePin),
-          ),
-        ],
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        border: Border.all(color: colors.border),
       ),
-      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+        child: Stack(
+          children: [
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: 4,
+                color: accentColor,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: AppTypography.caption.copyWith(
+                            color: colors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        key: ValueKey(
+                          'card-view-all-${title.toLowerCase()}',
+                        ),
+                        onTap: onViewAll,
+                        child: Text(
+                          '${l10n.homeCardViewAll} \u2192',
+                          style: AppTypography.caption.copyWith(
+                            color: colors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  child,
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _HomeSectionHeader extends StatelessWidget {
-  const _HomeSectionHeader({
-    required this.title,
-    this.onAdd,
-    this.addButtonKey,
-    this.addTooltip,
+// ---------------------------------------------------------------------------
+// Agents summary card
+// ---------------------------------------------------------------------------
+
+class _AgentsSummaryCard extends StatelessWidget {
+  const _AgentsSummaryCard({
+    super.key,
+    required this.agents,
+    required this.onViewAll,
   });
 
-  final String title;
-  final VoidCallback? onAdd;
-  final Key? addButtonKey;
-  final String? addTooltip;
+  final List<AgentItem> agents;
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    final online =
+        agents.where((a) => a.isActive && a.activity != 'error').length;
+    final error = agents.where((a) => a.activity == 'error').length;
+    final stopped = agents.where((a) => !a.isActive).length;
+
+    return _SummaryCardBase(
+      accentColor: colors.primary,
+      title: l10n.homeCardAgents,
+      onViewAll: onViewAll,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${agents.length}',
+            style: AppTypography.displayMedium.copyWith(
+              color: colors.text,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            l10n.homeCardAgentsSubtitle,
+            style: AppTypography.caption.copyWith(
+              color: colors.textTertiary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              if (online > 0)
+                _StatusChip(
+                  label: l10n.homeCardAgentsOnline(online),
+                  color: colors.success,
+                ),
+              if (error > 0)
+                _StatusChip(
+                  label: l10n.homeCardAgentsError(error),
+                  color: colors.error,
+                ),
+              if (stopped > 0)
+                _StatusChip(
+                  label: l10n.homeCardAgentsStopped(stopped),
+                  color: colors.warning,
+                ),
+            ],
+          ),
+          if (agents.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            for (final agent in agents.take(3)) _MiniAgentRow(agent: agent),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniAgentRow extends StatelessWidget {
+  const _MiniAgentRow({required this.agent});
+
+  final AgentItem agent;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    return Column(
-      children: [
-        Divider(
-          height: 1,
-          thickness: 1,
-          color: colors.border,
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.pageHorizontal,
-            AppSpacing.md,
-            AppSpacing.pageHorizontal,
-            AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: AppTypography.title.copyWith(
-                    color: colors.text,
+    final dotColor = switch (agent.activity) {
+      'online' || 'thinking' || 'working' => colors.success,
+      'error' => colors.error,
+      _ => colors.textTertiary,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: colors.primary.withAlpha(20),
+                  child: Text(
+                    agent.label.isNotEmpty ? agent.label[0].toUpperCase() : '?',
+                    style: AppTypography.caption.copyWith(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: colors.surface,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              agent.label,
+              style: AppTypography.bodySmall.copyWith(
+                color: colors.text,
+                fontWeight: FontWeight.w500,
               ),
-              if (onAdd != null)
-                IconButton(
-                  key: addButtonKey,
-                  onPressed: onAdd,
-                  icon: Icon(
-                    Icons.add,
-                    color: colors.textSecondary,
-                  ),
-                  tooltip: addTooltip,
-                ),
-            ],
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-        ),
-      ],
+          Text(
+            _activityText(agent.activity),
+            style: AppTypography.caption.copyWith(
+              color: colors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _activityText(String activity) {
+    return switch (activity) {
+      'online' => 'idle',
+      'thinking' => 'thinking',
+      'working' => 'working',
+      'error' => 'error',
+      _ => 'offline',
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Channels summary card
+// ---------------------------------------------------------------------------
+
+class _ChannelsSummaryCard extends StatelessWidget {
+  const _ChannelsSummaryCard({
+    super.key,
+    required this.channelCount,
+    required this.unreadCount,
+    required this.onViewAll,
+  });
+
+  final int channelCount;
+  final int unreadCount;
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    return _SummaryCardBase(
+      accentColor: colors.agentAccent,
+      title: l10n.homeCardChannels,
+      onViewAll: onViewAll,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$channelCount',
+            style: AppTypography.displayMedium.copyWith(
+              color: colors.text,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            l10n.homeCardChannelsSubtitle,
+            style: AppTypography.caption.copyWith(
+              color: colors.textTertiary,
+            ),
+          ),
+          if (unreadCount > 0) ...[
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                _StatusChip(
+                  label: l10n.homeCardChannelsUnread(unreadCount),
+                  color: colors.primary,
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Tasks summary card
+// ---------------------------------------------------------------------------
+
+class _TasksSummaryCard extends StatelessWidget {
+  const _TasksSummaryCard({
+    super.key,
+    required this.taskCount,
+    required this.onViewAll,
+  });
+
+  final int taskCount;
+  final VoidCallback onViewAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    return _SummaryCardBase(
+      accentColor: colors.warning,
+      title: l10n.homeCardTasks,
+      onViewAll: onViewAll,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$taskCount',
+            style: AppTypography.displayMedium.copyWith(
+              color: colors.text,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            l10n.homeCardTasksSubtitle,
+            style: AppTypography.caption.copyWith(
+              color: colors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Threads summary card with filter chips
+// ---------------------------------------------------------------------------
+
+enum _ThreadFilter { active, done, all }
+
+class _ThreadsSummaryCard extends StatefulWidget {
+  const _ThreadsSummaryCard({
+    super.key,
+    required this.threadItems,
+    required this.onViewAll,
+  });
+
+  final List<ThreadInboxItem> threadItems;
+  final VoidCallback onViewAll;
+
+  @override
+  State<_ThreadsSummaryCard> createState() => _ThreadsSummaryCardState();
+}
+
+class _ThreadsSummaryCardState extends State<_ThreadsSummaryCard> {
+  _ThreadFilter _filter = _ThreadFilter.active;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    final activeItems =
+        widget.threadItems.where((t) => t.unreadCount > 0).toList();
+    final doneItems =
+        widget.threadItems.where((t) => t.unreadCount == 0).toList();
+
+    final filtered = switch (_filter) {
+      _ThreadFilter.active => activeItems,
+      _ThreadFilter.done => doneItems,
+      _ThreadFilter.all => widget.threadItems,
+    };
+
+    return _SummaryCardBase(
+      accentColor: colors.primaryLight,
+      title: l10n.homeCardThreads,
+      onViewAll: widget.onViewAll,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              _FilterChip(
+                key: const ValueKey('thread-filter-active'),
+                label: l10n.homeCardThreadsFilterActive,
+                count: activeItems.length,
+                isSelected: _filter == _ThreadFilter.active,
+                onTap: () => setState(() => _filter = _ThreadFilter.active),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _FilterChip(
+                key: const ValueKey('thread-filter-done'),
+                label: l10n.homeCardThreadsFilterDone,
+                count: doneItems.length,
+                isSelected: _filter == _ThreadFilter.done,
+                onTap: () => setState(() => _filter = _ThreadFilter.done),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _FilterChip(
+                key: const ValueKey('thread-filter-all'),
+                label: l10n.homeCardThreadsFilterAll,
+                isSelected: _filter == _ThreadFilter.all,
+                onTap: () => setState(() => _filter = _ThreadFilter.all),
+              ),
+            ],
+          ),
+          if (filtered.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            for (final item in filtered.take(3)) _ThreadItemRow(item: item),
+          ],
+          if (filtered.isEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'No threads',
+              key: const ValueKey('home-threads-empty'),
+              style: AppTypography.bodySmall.copyWith(
+                color: colors.textTertiary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    super.key,
+    required this.label,
+    this.count,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int? count;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: 4,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected ? colors.primary.withAlpha(30) : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+          border: Border.all(
+            color: isSelected ? colors.primary : colors.border,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: AppTypography.caption.copyWith(
+                color: isSelected ? colors.primary : colors.textSecondary,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+            if (count != null) ...[
+              const SizedBox(width: 4),
+              Text(
+                '$count',
+                style: AppTypography.caption.copyWith(
+                  color: isSelected ? colors.primary : colors.textTertiary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThreadItemRow extends StatelessWidget {
+  const _ThreadItemRow({required this.item});
+
+  final ThreadInboxItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (item.title != null)
+            Text(
+              item.title!,
+              style: AppTypography.caption.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          if (item.preview != null)
+            Text(
+              item.preview!,
+              style: AppTypography.bodySmall.copyWith(
+                color: colors.text,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          const SizedBox(height: 2),
+          Row(
+            children: [
+              Text(
+                l10n.homeCardThreadsReplies(item.replyCount),
+                style: AppTypography.caption.copyWith(
+                  color: colors.textTertiary,
+                ),
+              ),
+              if (item.lastReplyAt != null) ...[
+                Text(
+                  ' \u00b7 ',
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textTertiary,
+                  ),
+                ),
+                Text(
+                  _timeAgo(item.lastReplyAt!),
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textTertiary,
+                  ),
+                ),
+              ],
+              if (item.unreadCount > 0) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.primary,
+                    borderRadius: BorderRadius.circular(
+                      AppSpacing.radiusSm,
+                    ),
+                  ),
+                  child: Text(
+                    l10n.homeCardThreadsNew(item.unreadCount),
+                    style: AppTypography.caption.copyWith(
+                      color: colors.primaryForeground,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 10,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _timeAgo(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Status chip
+// ---------------------------------------------------------------------------
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.label,
+    required this.color,
+  });
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.caption.copyWith(
+          color: color,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// State widgets
+// ---------------------------------------------------------------------------
 
 class _HomeNoServerState extends StatelessWidget {
   const _HomeNoServerState({required this.onSelectServer});
@@ -776,7 +783,10 @@ class _HomeNoServerState extends StatelessWidget {
 }
 
 class _HomeErrorState extends StatelessWidget {
-  const _HomeErrorState({required this.message, required this.onRetry});
+  const _HomeErrorState({
+    required this.message,
+    required this.onRetry,
+  });
 
   final String message;
   final Future<void> Function() onRetry;
@@ -792,7 +802,9 @@ class _HomeErrorState extends StatelessWidget {
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
             FilledButton(
-                onPressed: onRetry, child: Text(context.l10n.homeRetry)),
+              onPressed: onRetry,
+              child: Text(context.l10n.homeRetry),
+            ),
           ],
         ),
       ),
@@ -826,7 +838,9 @@ class _HomeAppBarTitle extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Flexible(child: Text(title, overflow: TextOverflow.ellipsis)),
+          Flexible(
+            child: Text(title, overflow: TextOverflow.ellipsis),
+          ),
           const SizedBox(width: 4),
           const Icon(Icons.arrow_drop_down),
         ],

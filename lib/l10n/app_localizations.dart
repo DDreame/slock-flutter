@@ -610,6 +610,108 @@ abstract class AppLocalizations {
   /// **'Configure workspace-level defaults and access.'**
   String get homeConsoleWorkspaceSettingsDescription;
 
+  /// No description provided for @homeCardAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'AGENTS'**
+  String get homeCardAgents;
+
+  /// No description provided for @homeCardAgentsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'agents in workspace'**
+  String get homeCardAgentsSubtitle;
+
+  /// No description provided for @homeCardAgentsOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} online'**
+  String homeCardAgentsOnline(int count);
+
+  /// No description provided for @homeCardAgentsError.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} error'**
+  String homeCardAgentsError(int count);
+
+  /// No description provided for @homeCardAgentsStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} stopped'**
+  String homeCardAgentsStopped(int count);
+
+  /// No description provided for @homeCardChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANNELS'**
+  String get homeCardChannels;
+
+  /// No description provided for @homeCardChannelsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'active channels'**
+  String get homeCardChannelsSubtitle;
+
+  /// No description provided for @homeCardChannelsUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unread'**
+  String homeCardChannelsUnread(int count);
+
+  /// No description provided for @homeCardTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'TASKS'**
+  String get homeCardTasks;
+
+  /// No description provided for @homeCardTasksSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'in progress'**
+  String get homeCardTasksSubtitle;
+
+  /// No description provided for @homeCardThreads.
+  ///
+  /// In en, this message translates to:
+  /// **'THREADS'**
+  String get homeCardThreads;
+
+  /// No description provided for @homeCardViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View all'**
+  String get homeCardViewAll;
+
+  /// No description provided for @homeCardThreadsFilterActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get homeCardThreadsFilterActive;
+
+  /// No description provided for @homeCardThreadsFilterDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get homeCardThreadsFilterDone;
+
+  /// No description provided for @homeCardThreadsFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get homeCardThreadsFilterAll;
+
+  /// No description provided for @homeCardThreadsReplies.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} replies'**
+  String homeCardThreadsReplies(int count);
+
+  /// No description provided for @homeCardThreadsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} new'**
+  String homeCardThreadsNew(int count);
+
   /// No description provided for @homeSectionPinned.
   ///
   /// In en, this message translates to:

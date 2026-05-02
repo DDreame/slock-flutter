@@ -264,6 +264,69 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeConsoleWorkspaceSettingsDescription => '配置工作区级别的默认值和访问权限。';
 
   @override
+  String get homeCardAgents => '智能体';
+
+  @override
+  String get homeCardAgentsSubtitle => '工作区中的智能体';
+
+  @override
+  String homeCardAgentsOnline(int count) {
+    return '$count 在线';
+  }
+
+  @override
+  String homeCardAgentsError(int count) {
+    return '$count 错误';
+  }
+
+  @override
+  String homeCardAgentsStopped(int count) {
+    return '$count 已停止';
+  }
+
+  @override
+  String get homeCardChannels => '频道';
+
+  @override
+  String get homeCardChannelsSubtitle => '活跃频道';
+
+  @override
+  String homeCardChannelsUnread(int count) {
+    return '$count 未读';
+  }
+
+  @override
+  String get homeCardTasks => '任务';
+
+  @override
+  String get homeCardTasksSubtitle => '进行中';
+
+  @override
+  String get homeCardThreads => '话题';
+
+  @override
+  String get homeCardViewAll => '查看全部';
+
+  @override
+  String get homeCardThreadsFilterActive => '活跃';
+
+  @override
+  String get homeCardThreadsFilterDone => '已完成';
+
+  @override
+  String get homeCardThreadsFilterAll => '全部';
+
+  @override
+  String homeCardThreadsReplies(int count) {
+    return '$count 条回复';
+  }
+
+  @override
+  String homeCardThreadsNew(int count) {
+    return '$count 条新消息';
+  }
+
+  @override
   String get homeSectionPinned => '已置顶';
 
   @override

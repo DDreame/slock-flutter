@@ -293,6 +293,69 @@ class AppLocalizationsEs extends AppLocalizations {
       'Configure workspace-level defaults and access.';
 
   @override
+  String get homeCardAgents => 'AGENTES';
+
+  @override
+  String get homeCardAgentsSubtitle => 'agentes en el espacio';
+
+  @override
+  String homeCardAgentsOnline(int count) {
+    return '$count en linea';
+  }
+
+  @override
+  String homeCardAgentsError(int count) {
+    return '$count error';
+  }
+
+  @override
+  String homeCardAgentsStopped(int count) {
+    return '$count detenidos';
+  }
+
+  @override
+  String get homeCardChannels => 'CANALES';
+
+  @override
+  String get homeCardChannelsSubtitle => 'canales activos';
+
+  @override
+  String homeCardChannelsUnread(int count) {
+    return '$count sin leer';
+  }
+
+  @override
+  String get homeCardTasks => 'TAREAS';
+
+  @override
+  String get homeCardTasksSubtitle => 'en progreso';
+
+  @override
+  String get homeCardThreads => 'HILOS';
+
+  @override
+  String get homeCardViewAll => 'Ver todo';
+
+  @override
+  String get homeCardThreadsFilterActive => 'Activos';
+
+  @override
+  String get homeCardThreadsFilterDone => 'Hechos';
+
+  @override
+  String get homeCardThreadsFilterAll => 'Todos';
+
+  @override
+  String homeCardThreadsReplies(int count) {
+    return '$count respuestas';
+  }
+
+  @override
+  String homeCardThreadsNew(int count) {
+    return '$count nuevos';
+  }
+
+  @override
   String get homeSectionPinned => 'Pinned';
 
   @override
