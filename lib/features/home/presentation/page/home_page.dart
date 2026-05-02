@@ -238,13 +238,15 @@ class _SummaryCardBase extends StatelessWidget {
 
 /// Priority order for sorting agents by activity.
 /// Lower = more prominent (shown first).
+/// Stopped agents always sort last regardless of stale activity value.
 int _agentActivityPriority(AgentItem agent) {
+  if (agent.status == 'stopped') return 4;
   return switch (agent.activity) {
     'working' => 0,
     'thinking' => 1,
     'error' => 2,
     'online' => 3,
-    _ => 4, // stopped / offline
+    _ => 4, // offline
   };
 }
 
@@ -252,7 +254,9 @@ const _maxVisibleAgents = 3;
 
 /// Whether an agent is considered "active" (working/thinking/error/online) —
 /// these are shown as individual rows.
+/// Stopped agents are never active regardless of stale activity value.
 bool _isAgentActive(AgentItem agent) {
+  if (agent.status == 'stopped') return false;
   return agent.activity == 'working' ||
       agent.activity == 'thinking' ||
       agent.activity == 'error' ||
@@ -286,9 +290,18 @@ class _HomeAgentsSection extends StatelessWidget {
     final active = sorted.where((a) => _isAgentActive(a)).toList();
     final stopped = sorted.where((a) => !_isAgentActive(a)).toList();
 
-    // Chip counts — each bucket counted independently
-    final online = agents.where((a) => a.activity == 'online').length;
-    final errorCount = agents.where((a) => a.activity == 'error').length;
+    // Chip counts — each bucket counted independently;
+    // exclude stopped agents from online/error counts.
+    final online = agents
+        .where(
+          (a) => a.activity == 'online' && a.status != 'stopped',
+        )
+        .length;
+    final errorCount = agents
+        .where(
+          (a) => a.activity == 'error' && a.status != 'stopped',
+        )
+        .length;
 
     // Show up to 3 active agents as rows
     final visibleAgents = active.take(_maxVisibleAgents).toList();

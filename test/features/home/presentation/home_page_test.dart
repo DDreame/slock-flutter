@@ -460,6 +460,88 @@ void main() {
     );
 
     testWidgets(
+      'stopped agent with stale online activity folds as stopped',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            agentsRepository: const _FakeAgentsRepository(
+              agents: [
+                AgentItem(
+                  id: 'a1',
+                  name: 'active-worker',
+                  displayName: 'Worker',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'working',
+                ),
+                AgentItem(
+                  id: 'a2',
+                  name: 'stale-online',
+                  displayName: 'Stale',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'stopped',
+                  activity: 'online',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Active worker should be a visible row
+        expect(
+          find.byKey(const ValueKey('agent-row-a1')),
+          findsOneWidget,
+          reason: 'Active working agent should be a row',
+        );
+
+        // Stopped agent with stale online activity must
+        // NOT be a row — it should fold as stopped
+        expect(
+          find.byKey(const ValueKey('agent-row-a2')),
+          findsNothing,
+          reason: 'Stopped agent with stale online activity '
+              'must fold, not render as online row',
+        );
+
+        // Fold should show 1 stopped
+        final fold = find.byKey(
+          const ValueKey('home-agents-fold'),
+        );
+        expect(fold, findsOneWidget);
+        expect(
+          find.descendant(
+            of: fold,
+            matching: find.textContaining('1 stopped'),
+          ),
+          findsOneWidget,
+        );
+
+        // Online chip should NOT count the stopped agent
+        final card = find.byKey(
+          const ValueKey('home-card-agents'),
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('1 online'),
+          ),
+          findsNothing,
+          reason: 'Stopped agent should not inflate '
+              'online chip count',
+        );
+      },
+    );
+
+    testWidgets(
       'channels card shows count and unread chip',
       (tester) async {
         final router = _buildRouter();
