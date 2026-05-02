@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/features/threads/application/thread_replies_state.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
@@ -70,6 +71,11 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
       );
       final threadChannelId = state.resolvedThreadChannelId;
       if (threadChannelId != null) {
+        final ids = ref.read(knownThreadChannelIdsProvider);
+        ref.read(knownThreadChannelIdsProvider.notifier).state = {
+          ...ids,
+          threadChannelKey(routeTarget.serverId, threadChannelId),
+        };
         unawaited(_markRead(routeTarget, threadChannelId));
       }
     } on AppFailure catch (failure) {

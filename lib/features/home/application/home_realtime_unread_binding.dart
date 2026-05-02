@@ -9,6 +9,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -112,7 +113,14 @@ void _handleMessageNew(Ref ref, RealtimeEventEnvelope event) {
   }
 
   if (matchedChannel == null && matchedDirectMessage == null) {
-    if (isSelfMessage || isOpen) return;
+    final knownThreadIds = ref.read(knownThreadChannelIdsProvider);
+    final qualifiedId = threadChannelKey(
+      homeState.serverScopeId!.value,
+      incoming.conversationId,
+    );
+    if (isSelfMessage || isOpen || knownThreadIds.contains(qualifiedId)) {
+      return;
+    }
     final newScopeId = DirectMessageScopeId(
       serverId: homeState.serverScopeId!,
       value: incoming.conversationId,
