@@ -493,4 +493,71 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeChannelLeaveFailed => '离开频道失败。';
+
+  @override
+  String get baseUrlSettingsTitle => '服务器配置';
+
+  @override
+  String get baseUrlSettingsSubtitle => '配置自定义 API 和 WebSocket 端点。';
+
+  @override
+  String get baseUrlApiLabel => 'API 地址';
+
+  @override
+  String get baseUrlApiHint => 'https://api.example.com';
+
+  @override
+  String get baseUrlRealtimeLabel => '实时连接地址';
+
+  @override
+  String get baseUrlRealtimeHint => 'wss://realtime.example.com';
+
+  @override
+  String get baseUrlSave => '保存';
+
+  @override
+  String get baseUrlRestoreDefaults => '恢复默认';
+
+  @override
+  String get baseUrlTestConnection => '测试连接';
+
+  @override
+  String get baseUrlTesting => '测试中……';
+
+  @override
+  String get baseUrlSaved => '设置已保存。请重启应用以生效。';
+
+  @override
+  String get baseUrlRestored => '已恢复默认。请重启应用以生效。';
+
+  @override
+  String get baseUrlApiInvalidError => '请输入有效的 http:// 或 https:// 地址。';
+
+  @override
+  String get baseUrlRealtimeInvalidError =>
+      '请输入有效的 ws://、wss://、http:// 或 https:// 地址。';
+
+  @override
+  String get baseUrlResultReachable => '可达';
+
+  @override
+  String get baseUrlResultUnauthorized => '可达（未授权）';
+
+  @override
+  String get baseUrlResultTimeout => '超时';
+
+  @override
+  String get baseUrlResultInvalid => '无效地址';
+
+  @override
+  String get baseUrlEmptyDefault => '使用编译时默认值';
+
+  @override
+  String get baseUrlRestartRequired => '需重启应用以应用更改。';
+
+  @override
+  String get baseUrlSettingsSettingsTile => '服务器';
+
+  @override
+  String get baseUrlSettingsSettingsTileSubtitle => '自定义 API 和 WebSocket 端点。';
 }

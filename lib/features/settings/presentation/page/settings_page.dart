@@ -161,6 +161,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           const SizedBox(height: AppSpacing.sectionGap),
 
+          // --- Server section ---
+          Text(
+            'Server',
+            key: const ValueKey('settings-section-server'),
+            style: AppTypography.title.copyWith(color: colors.text),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SectionCard(
+            padding: EdgeInsets.zero,
+            child: _SettingsTile(
+              key: const ValueKey('settings-base-url'),
+              icon: Icons.dns_outlined,
+              iconColor: colors.primary,
+              title: 'Server',
+              subtitle: 'Custom API and WebSocket endpoints.',
+              colors: colors,
+              onTap: () => context.push('/settings/base-url'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sectionGap),
+
           // --- More section ---
           Text(
             'More',

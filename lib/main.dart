@@ -17,6 +17,7 @@ import 'package:slock_app/core/telemetry/crash_recovery_wrapper.dart';
 import 'package:slock_app/features/home/application/home_realtime_dm_materialization_binding.dart';
 import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
 import 'package:slock_app/features/push_token/application/push_token_lifecycle_binding.dart';
+import 'package:slock_app/features/settings/data/base_url_settings.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_lifecycle_binding.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
@@ -26,17 +27,20 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Read SharedPreferences early so saved base URL overrides are available
+  // before bootstrap validates compile-time endpoints.
+  final prefs = await SharedPreferences.getInstance();
+  final savedBaseUrls = SharedPrefsBaseUrlRepository(prefs: prefs).load();
+
   final AppBootstrapResult bootstrap;
   try {
-    bootstrap = await appBootstrap();
+    bootstrap = await appBootstrap(
+      savedBaseUrlSettings: savedBaseUrls,
+    );
   } catch (error) {
     runApp(FatalBootstrapScreen(error: error));
     return;
   }
-
-  // Initialize SharedPreferences before runApp so the theme
-  // preference is available synchronously on first frame.
-  final prefs = await SharedPreferences.getInstance();
 
   final crashMarker = CrashMarkerService(
     storage: FlutterSecureStorageImpl(),

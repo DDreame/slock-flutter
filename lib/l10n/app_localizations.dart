@@ -1023,6 +1023,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to leave channel.'**
   String get homeChannelLeaveFailed;
+
+  /// No description provided for @baseUrlSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Server Configuration'**
+  String get baseUrlSettingsTitle;
+
+  /// No description provided for @baseUrlSettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure custom API and WebSocket endpoints.'**
+  String get baseUrlSettingsSubtitle;
+
+  /// No description provided for @baseUrlApiLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'API Base URL'**
+  String get baseUrlApiLabel;
+
+  /// No description provided for @baseUrlApiHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://api.example.com'**
+  String get baseUrlApiHint;
+
+  /// No description provided for @baseUrlRealtimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Realtime URL'**
+  String get baseUrlRealtimeLabel;
+
+  /// No description provided for @baseUrlRealtimeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'wss://realtime.example.com'**
+  String get baseUrlRealtimeHint;
+
+  /// No description provided for @baseUrlSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get baseUrlSave;
+
+  /// No description provided for @baseUrlRestoreDefaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get baseUrlRestoreDefaults;
+
+  /// No description provided for @baseUrlTestConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get baseUrlTestConnection;
+
+  /// No description provided for @baseUrlTesting.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing…'**
+  String get baseUrlTesting;
+
+  /// No description provided for @baseUrlSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings saved. Restart the app to apply changes.'**
+  String get baseUrlSaved;
+
+  /// No description provided for @baseUrlRestored.
+  ///
+  /// In en, this message translates to:
+  /// **'Defaults restored. Restart the app to apply changes.'**
+  String get baseUrlRestored;
+
+  /// No description provided for @baseUrlApiInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid http:// or https:// URL.'**
+  String get baseUrlApiInvalidError;
+
+  /// No description provided for @baseUrlRealtimeInvalidError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid ws://, wss://, http://, or https:// URL.'**
+  String get baseUrlRealtimeInvalidError;
+
+  /// No description provided for @baseUrlResultReachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Reachable'**
+  String get baseUrlResultReachable;
+
+  /// No description provided for @baseUrlResultUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Reachable (unauthorized)'**
+  String get baseUrlResultUnauthorized;
+
+  /// No description provided for @baseUrlResultTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeout'**
+  String get baseUrlResultTimeout;
+
+  /// No description provided for @baseUrlResultInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid URL'**
+  String get baseUrlResultInvalid;
+
+  /// No description provided for @baseUrlEmptyDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Using build-time default'**
+  String get baseUrlEmptyDefault;
+
+  /// No description provided for @baseUrlRestartRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Restart required to apply changes.'**
+  String get baseUrlRestartRequired;
+
+  /// No description provided for @baseUrlSettingsSettingsTile.
+  ///
+  /// In en, this message translates to:
+  /// **'Server'**
+  String get baseUrlSettingsSettingsTile;
+
+  /// No description provided for @baseUrlSettingsSettingsTileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom API and WebSocket endpoints.'**
+  String get baseUrlSettingsSettingsTileSubtitle;
 }
 
 class _AppLocalizationsDelegate

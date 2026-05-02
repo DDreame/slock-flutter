@@ -517,4 +517,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeChannelLeaveFailed => 'Failed to leave channel.';
+
+  @override
+  String get baseUrlSettingsTitle => 'Server Configuration';
+
+  @override
+  String get baseUrlSettingsSubtitle =>
+      'Configure custom API and WebSocket endpoints.';
+
+  @override
+  String get baseUrlApiLabel => 'API Base URL';
+
+  @override
+  String get baseUrlApiHint => 'https://api.example.com';
+
+  @override
+  String get baseUrlRealtimeLabel => 'Realtime URL';
+
+  @override
+  String get baseUrlRealtimeHint => 'wss://realtime.example.com';
+
+  @override
+  String get baseUrlSave => 'Save';
+
+  @override
+  String get baseUrlRestoreDefaults => 'Restore defaults';
+
+  @override
+  String get baseUrlTestConnection => 'Test connection';
+
+  @override
+  String get baseUrlTesting => 'Testing…';
+
+  @override
+  String get baseUrlSaved =>
+      'Settings saved. Restart the app to apply changes.';
+
+  @override
+  String get baseUrlRestored =>
+      'Defaults restored. Restart the app to apply changes.';
+
+  @override
+  String get baseUrlApiInvalidError => 'Enter a valid http:// or https:// URL.';
+
+  @override
+  String get baseUrlRealtimeInvalidError =>
+      'Enter a valid ws://, wss://, http://, or https:// URL.';
+
+  @override
+  String get baseUrlResultReachable => 'Reachable';
+
+  @override
+  String get baseUrlResultUnauthorized => 'Reachable (unauthorized)';
+
+  @override
+  String get baseUrlResultTimeout => 'Timeout';
+
+  @override
+  String get baseUrlResultInvalid => 'Invalid URL';
+
+  @override
+  String get baseUrlEmptyDefault => 'Using build-time default';
+
+  @override
+  String get baseUrlRestartRequired => 'Restart required to apply changes.';
+
+  @override
+  String get baseUrlSettingsSettingsTile => 'Server';
+
+  @override
+  String get baseUrlSettingsSettingsTileSubtitle =>
+      'Custom API and WebSocket endpoints.';
 }

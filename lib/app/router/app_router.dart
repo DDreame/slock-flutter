@@ -23,6 +23,7 @@ import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/release_notes/presentation/page/release_notes_page.dart';
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
+import 'package:slock_app/features/settings/presentation/page/base_url_settings_page.dart';
 import 'package:slock_app/features/settings/presentation/page/diagnostics_page.dart';
 import 'package:slock_app/features/settings/presentation/page/appearance_settings_page.dart';
 import 'package:slock_app/features/settings/presentation/page/notification_settings_page.dart';
@@ -47,14 +48,23 @@ const _authRoutes = {
   '/verify-email',
 };
 
+/// Routes accessible regardless of authentication status.
+const _publicRoutes = {
+  '/settings/base-url',
+};
+
 @visibleForTesting
 String? authRedirect(SessionState session, String path) {
   final isSplash = path == '/splash';
   final isAuthRoute = _authRoutes.contains(path);
+  final isPublicRoute = _publicRoutes.contains(path);
   final isTokenRecoveryRoute =
       path == '/reset-password' || path == '/verify-email';
   final needsEmailVerification =
       session.isAuthenticated && session.emailVerified == false;
+
+  // Public routes bypass all auth redirects.
+  if (isPublicRoute) return null;
 
   if (session.status == AuthStatus.unknown) {
     return isSplash || isTokenRecoveryRoute ? null : '/splash';
@@ -314,6 +324,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/diagnostics',
         builder: (context, state) => const DiagnosticsPage(),
+      ),
+      GoRoute(
+        path: '/settings/base-url',
+        builder: (context, state) => const BaseUrlSettingsPage(),
       ),
       GoRoute(
         path: '/release-notes',

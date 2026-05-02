@@ -187,6 +187,40 @@ void main() {
     expect(sessionStore.loggedOut, isFalse);
     expect(find.byType(SettingsPage), findsOneWidget);
   });
+
+  testWidgets('settings page navigates to base URL settings', (
+    tester,
+  ) async {
+    final sessionStore = _FakeSessionStore();
+    final notificationStore = _FakeNotificationStore();
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() => sessionStore),
+          notificationStoreProvider.overrideWith(() => notificationStore),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-base-url')),
+      200,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-base-url')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-base-url')));
+    await tester.pumpAndSettle();
+    expect(find.text('base-url-route'), findsOneWidget);
+  });
 }
 
 GoRouter _buildRouter() {
@@ -221,6 +255,21 @@ GoRouter _buildRouter() {
         path: '/members',
         builder: (context, state) =>
             const Scaffold(body: Text('members-route')),
+      ),
+      GoRoute(
+        path: '/settings/base-url',
+        builder: (context, state) =>
+            const Scaffold(body: Text('base-url-route')),
+      ),
+      GoRoute(
+        path: '/settings/appearance',
+        builder: (context, state) =>
+            const Scaffold(body: Text('appearance-route')),
+      ),
+      GoRoute(
+        path: '/settings/diagnostics',
+        builder: (context, state) =>
+            const Scaffold(body: Text('diagnostics-route')),
       ),
       GoRoute(
         path: '/login',

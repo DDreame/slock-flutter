@@ -17,6 +17,7 @@ import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/core/telemetry/noop_crash_reporter.dart';
 import 'package:slock_app/core/telemetry/sentry_crash_reporter.dart';
+import 'package:slock_app/features/settings/data/base_url_settings.dart';
 
 import '../../core/telemetry/crash_reporter_test.dart' show FakeCrashReporter;
 
@@ -114,6 +115,71 @@ void main() {
               contains(realtimeUrlEnvironmentKey),
             ),
           ),
+        );
+      },
+    );
+
+    test('uses saved base URL overrides instead of env vars', () async {
+      const savedUrls = BaseUrlSettings(
+        apiBaseUrl: 'https://custom-api.test.com',
+        realtimeUrl: 'wss://custom-rt.test.com',
+      );
+      final result = await appBootstrap(
+        environmentReader: _environmentReader,
+        savedBaseUrlSettings: savedUrls,
+      );
+      final container = ProviderContainer(overrides: result.overrides);
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(networkConfigProvider).baseUrl,
+        'https://custom-api.test.com',
+      );
+      expect(
+        container.read(realtimeSocketOptionsProvider).uri,
+        'wss://custom-rt.test.com',
+      );
+    });
+
+    test('falls back to env vars when saved URLs are empty', () async {
+      const savedUrls = BaseUrlSettings();
+      final result = await appBootstrap(
+        environmentReader: _environmentReader,
+        savedBaseUrlSettings: savedUrls,
+      );
+      final container = ProviderContainer(overrides: result.overrides);
+      addTearDown(container.dispose);
+
+      expect(container.read(networkConfigProvider).baseUrl, _apiBaseUrl);
+      expect(
+        container.read(realtimeSocketOptionsProvider).uri,
+        _realtimeUrl,
+      );
+    });
+
+    test(
+      'saved API URL overrides env even when env is missing',
+      () async {
+        const savedUrls = BaseUrlSettings(
+          apiBaseUrl: 'https://saved-api.test.com',
+          realtimeUrl: 'wss://saved-rt.test.com',
+        );
+        // Env vars are empty (would normally throw), but saved overrides
+        // take priority.
+        final result = await appBootstrap(
+          environmentReader: (_) => '',
+          savedBaseUrlSettings: savedUrls,
+        );
+        final container = ProviderContainer(overrides: result.overrides);
+        addTearDown(container.dispose);
+
+        expect(
+          container.read(networkConfigProvider).baseUrl,
+          'https://saved-api.test.com',
+        );
+        expect(
+          container.read(realtimeSocketOptionsProvider).uri,
+          'wss://saved-rt.test.com',
         );
       },
     );

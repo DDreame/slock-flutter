@@ -14,6 +14,7 @@ import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/core/telemetry/noop_crash_reporter.dart';
 import 'package:slock_app/core/telemetry/sentry_crash_reporter.dart';
+import 'package:slock_app/features/settings/data/base_url_settings.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 typedef EnvironmentReader = String Function(String key);
@@ -38,6 +39,7 @@ class AppBootstrapResult {
 
 Future<AppBootstrapResult> appBootstrap({
   EnvironmentReader environmentReader = _readCompileTimeEnvironment,
+  BaseUrlSettings? savedBaseUrlSettings,
 }) async {
   final reporter = createCrashReporter(
     dsn: environmentReader(sentryDsnEnvironmentKey),
@@ -46,13 +48,15 @@ Future<AppBootstrapResult> appBootstrap({
   final notificationInitializer = createNotificationInitializer();
   final foregroundServiceManager = createForegroundServiceManager();
   final backgroundSyncManager = createBackgroundSyncManager();
-  final apiBaseUrl = _validatedRuntimeEndpoint(
+  final apiBaseUrl = _resolveEndpoint(
     key: apiBaseUrlEnvironmentKey,
-    rawValue: environmentReader(apiBaseUrlEnvironmentKey),
+    envValue: environmentReader(apiBaseUrlEnvironmentKey),
+    savedOverride: savedBaseUrlSettings?.apiBaseUrl,
   );
-  final realtimeUrl = _validatedRuntimeEndpoint(
+  final realtimeUrl = _resolveEndpoint(
     key: realtimeUrlEnvironmentKey,
-    rawValue: environmentReader(realtimeUrlEnvironmentKey),
+    envValue: environmentReader(realtimeUrlEnvironmentKey),
+    savedOverride: savedBaseUrlSettings?.realtimeUrl,
   );
 
   await reporter.init();
@@ -122,6 +126,21 @@ String _validatedRuntimeEndpoint({
     throw StateError('Invalid runtime endpoint for $key: $value');
   }
   return value;
+}
+
+/// Resolves an endpoint URL: saved user override wins over env var.
+///
+/// If [savedOverride] is non-empty, it is used directly (already validated
+/// at save-time). Otherwise the compile-time [envValue] is validated.
+String _resolveEndpoint({
+  required String key,
+  required String envValue,
+  String? savedOverride,
+}) {
+  if (savedOverride != null && savedOverride.isNotEmpty) {
+    return savedOverride;
+  }
+  return _validatedRuntimeEndpoint(key: key, rawValue: envValue);
 }
 
 NotificationInitializer createNotificationInitializer({
