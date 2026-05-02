@@ -353,6 +353,12 @@ class AppLocalizationsEs extends AppLocalizations {
       'La lista de canales estara disponible pronto.';
 
   @override
+  String get channelsTabSearchHint => 'Buscar canales';
+
+  @override
+  String get channelsTabEmpty => 'Aun no hay canales.';
+
+  @override
   String get dmsTabTitle => 'Mensajes';
 
   @override

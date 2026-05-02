@@ -724,6 +724,18 @@ abstract class AppLocalizations {
   /// **'Channel list will be available here soon.'**
   String get channelsTabPlaceholder;
 
+  /// No description provided for @channelsTabSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search channels'**
+  String get channelsTabSearchHint;
+
+  /// No description provided for @channelsTabEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No channels yet.'**
+  String get channelsTabEmpty;
+
   /// No description provided for @dmsTabTitle.
   ///
   /// In en, this message translates to:

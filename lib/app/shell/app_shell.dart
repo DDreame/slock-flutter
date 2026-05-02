@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 const _hiddenBottomNavPaths = {
   '/login',
@@ -10,7 +12,7 @@ const _hiddenBottomNavPaths = {
   '/verify-email',
 };
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   final Widget child;
 
   const AppShell({super.key, required this.child});
@@ -29,10 +31,17 @@ class AppShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final index = _currentIndex(context);
     final showBottomNavigation = _showBottomNavigation(context);
     final l10n = context.l10n;
+
+    final unreadState = ref.watch(channelUnreadStoreProvider);
+    final channelUnreadTotal = unreadState.channelUnreadCounts.values.fold(
+      0,
+      (sum, c) => sum + c,
+    );
+
     return Scaffold(
       body: child,
       bottomNavigationBar: showBottomNavigation
@@ -64,8 +73,19 @@ class AppShell extends StatelessWidget {
                 ),
                 NavigationDestination(
                   key: const ValueKey('nav-channels'),
-                  icon: const Icon(Icons.tag),
-                  selectedIcon: const Icon(Icons.tag),
+                  icon: Badge(
+                    key: const ValueKey(
+                      'channels-unread-badge',
+                    ),
+                    isLabelVisible: channelUnreadTotal > 0,
+                    label: Text('$channelUnreadTotal'),
+                    child: const Icon(Icons.tag),
+                  ),
+                  selectedIcon: Badge(
+                    isLabelVisible: channelUnreadTotal > 0,
+                    label: Text('$channelUnreadTotal'),
+                    child: const Icon(Icons.tag),
+                  ),
                   label: l10n.navChannels,
                 ),
                 NavigationDestination(

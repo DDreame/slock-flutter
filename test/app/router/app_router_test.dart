@@ -19,6 +19,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 
 import '../../stores/session/session_store_persistence_test.dart'
     show FakeAuthRepository;
@@ -1181,10 +1182,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(router.routeInformationProvider.value.uri.path, '/channels');
-      expect(
-        find.byKey(const ValueKey('channels-tab-placeholder')),
-        findsOneWidget,
-      );
+      expect(find.byType(ChannelsTabPage), findsOneWidget);
       expect(find.byType(NavigationBar), findsOneWidget);
     });
 

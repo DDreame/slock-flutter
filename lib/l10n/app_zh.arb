@@ -114,6 +114,8 @@
 
   "channelsTabTitle": "频道",
   "channelsTabPlaceholder": "频道列表即将上线。",
+  "channelsTabSearchHint": "搜索频道",
+  "channelsTabEmpty": "暂无频道。",
   "dmsTabTitle": "消息",
   "dmsTabHeadline": "私信",
   "dmsTabPlaceholder": "私信列表即将上线。",
