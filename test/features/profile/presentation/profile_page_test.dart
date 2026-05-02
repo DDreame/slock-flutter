@@ -11,6 +11,7 @@ import 'package:slock_app/features/profile/data/profile_repository_provider.dart
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -192,7 +193,12 @@ Widget _buildApp({
       if (memberRepository != null)
         memberRepositoryProvider.overrideWithValue(memberRepository),
     ],
-    child: MaterialApp(theme: AppTheme.light, home: child),
+    child: MaterialApp(
+      theme: AppTheme.light,
+      home: child,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+    ),
   );
 }
 

@@ -180,6 +180,19 @@ void main() {
       expect(find.text('Correo electronico'), findsOneWidget);
       expect(find.text('Olvidaste tu contrasena?'), findsOneWidget);
     });
+
+    testWidgets('shows server config gear icon in AppBar', (tester) async {
+      await tester.pumpWidget(
+        _buildPage(const LoginPage(), repository: _FakeAuthRepository()),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('login-server-config')),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.settings), findsOneWidget);
+    });
   });
 
   group('RegisterPage', () {

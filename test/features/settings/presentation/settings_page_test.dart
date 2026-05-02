@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -24,14 +25,40 @@ void main() {
           sessionStoreProvider.overrideWith(() => sessionStore),
           notificationStoreProvider.overrideWith(() => notificationStore),
         ],
-        child: MaterialApp.router(theme: AppTheme.light, routerConfig: router),
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
+    // Visit items top-to-bottom so scrollUntilVisible always scrolls
+    // forward. (Notification Settings sits above Billing/Release Notes;
+    // reversing the order would require scrolling back up, which the
+    // default positive delta cannot do.)
+
     await tester.tap(find.byKey(const ValueKey('settings-my-profile')));
     await tester.pumpAndSettle();
     expect(find.text('profile-route'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-notification-link')),
+      200,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-notification-link')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-notification-link')));
+    await tester.pumpAndSettle();
+    expect(find.text('notification-settings-route'), findsOneWidget);
 
     router.pop();
     await tester.pumpAndSettle();
@@ -68,22 +95,6 @@ void main() {
     router.pop();
     await tester.pumpAndSettle();
     expect(find.byType(SettingsPage), findsOneWidget);
-
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('settings-notification-link')),
-      200,
-    );
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('settings-notification-link')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('settings-notification-link')));
-    await tester.pumpAndSettle();
-    expect(find.text('notification-settings-route'), findsOneWidget);
-
-    router.pop();
-    await tester.pumpAndSettle();
-    expect(find.byType(SettingsPage), findsOneWidget);
   });
 
   testWidgets('notification summary shows permission and filter', (
@@ -101,6 +112,8 @@ void main() {
         child: MaterialApp.router(
           theme: AppTheme.light,
           routerConfig: _buildRouter(),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
         ),
       ),
     );
@@ -123,6 +136,8 @@ void main() {
         child: MaterialApp.router(
           theme: AppTheme.light,
           routerConfig: _buildRouter(),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
         ),
       ),
     );
@@ -164,6 +179,8 @@ void main() {
         child: MaterialApp.router(
           theme: AppTheme.light,
           routerConfig: _buildRouter(),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
         ),
       ),
     );
@@ -186,6 +203,42 @@ void main() {
 
     expect(sessionStore.loggedOut, isFalse);
     expect(find.byType(SettingsPage), findsOneWidget);
+  });
+
+  testWidgets('settings page navigates to base URL settings', (
+    tester,
+  ) async {
+    final sessionStore = _FakeSessionStore();
+    final notificationStore = _FakeNotificationStore();
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() => sessionStore),
+          notificationStoreProvider.overrideWith(() => notificationStore),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-base-url')),
+      200,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-base-url')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-base-url')));
+    await tester.pumpAndSettle();
+    expect(find.text('base-url-route'), findsOneWidget);
   });
 }
 
@@ -221,6 +274,21 @@ GoRouter _buildRouter() {
         path: '/members',
         builder: (context, state) =>
             const Scaffold(body: Text('members-route')),
+      ),
+      GoRoute(
+        path: '/settings/base-url',
+        builder: (context, state) =>
+            const Scaffold(body: Text('base-url-route')),
+      ),
+      GoRoute(
+        path: '/settings/appearance',
+        builder: (context, state) =>
+            const Scaffold(body: Text('appearance-route')),
+      ),
+      GoRoute(
+        path: '/settings/diagnostics',
+        builder: (context, state) =>
+            const Scaffold(body: Text('diagnostics-route')),
       ),
       GoRoute(
         path: '/login',

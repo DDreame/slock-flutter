@@ -524,4 +524,77 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get homeChannelLeaveFailed => 'Failed to leave channel.';
+
+  @override
+  String get baseUrlSettingsTitle => 'Configuracion del servidor';
+
+  @override
+  String get baseUrlSettingsSubtitle =>
+      'Configura endpoints personalizados de API y WebSocket.';
+
+  @override
+  String get baseUrlApiLabel => 'URL base de API';
+
+  @override
+  String get baseUrlApiHint => 'https://api.example.com';
+
+  @override
+  String get baseUrlRealtimeLabel => 'URL de tiempo real';
+
+  @override
+  String get baseUrlRealtimeHint => 'wss://realtime.example.com';
+
+  @override
+  String get baseUrlSave => 'Guardar';
+
+  @override
+  String get baseUrlRestoreDefaults => 'Restaurar valores predeterminados';
+
+  @override
+  String get baseUrlTestConnection => 'Probar conexion';
+
+  @override
+  String get baseUrlTesting => 'Probando...';
+
+  @override
+  String get baseUrlSaved =>
+      'Configuracion guardada. Reinicia la aplicacion para aplicar los cambios.';
+
+  @override
+  String get baseUrlRestored =>
+      'Valores predeterminados restaurados. Reinicia la aplicacion para aplicar los cambios.';
+
+  @override
+  String get baseUrlApiInvalidError =>
+      'Ingresa una URL valida con http:// o https://.';
+
+  @override
+  String get baseUrlRealtimeInvalidError =>
+      'Ingresa una URL valida con ws://, wss://, http:// o https://.';
+
+  @override
+  String get baseUrlResultReachable => 'Accesible';
+
+  @override
+  String get baseUrlResultUnauthorized => 'Accesible (no autorizado)';
+
+  @override
+  String get baseUrlResultTimeout => 'Tiempo agotado';
+
+  @override
+  String get baseUrlResultInvalid => 'URL invalida';
+
+  @override
+  String get baseUrlEmptyDefault => 'Usando valor predeterminado';
+
+  @override
+  String get baseUrlRestartRequired =>
+      'Se requiere reiniciar para aplicar los cambios.';
+
+  @override
+  String get baseUrlSettingsSettingsTile => 'Servidor';
+
+  @override
+  String get baseUrlSettingsSettingsTileSubtitle =>
+      'Endpoints personalizados de API y WebSocket.';
 }

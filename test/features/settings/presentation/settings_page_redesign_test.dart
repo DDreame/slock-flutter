@@ -8,6 +8,7 @@ import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -64,6 +65,8 @@ void main() {
       child: MaterialApp.router(
         theme: AppTheme.light,
         routerConfig: router,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
       ),
     );
   }
@@ -201,6 +204,8 @@ void main() {
           child: MaterialApp.router(
             theme: AppTheme.dark,
             routerConfig: router,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
           ),
         ),
       );

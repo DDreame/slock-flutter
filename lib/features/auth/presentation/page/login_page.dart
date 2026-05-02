@@ -31,7 +31,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.loginTitle)),
+      appBar: AppBar(
+        title: Text(l10n.loginTitle),
+        actions: [
+          IconButton(
+            key: const ValueKey('login-server-config'),
+            icon: const Icon(Icons.settings),
+            tooltip: l10n.baseUrlSettingsTitle,
+            onPressed: () => context.push('/settings/base-url'),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),

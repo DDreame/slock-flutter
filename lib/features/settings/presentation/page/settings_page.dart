@@ -8,6 +8,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -29,6 +30,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final notificationState = ref.watch(notificationStoreProvider);
     final themeState = ref.watch(themeModeStoreProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -157,6 +159,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
               colors: colors,
               onTap: () => context.push('/settings/appearance'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sectionGap),
+
+          // --- Server section ---
+          Text(
+            l10n.baseUrlSettingsSettingsTile,
+            key: const ValueKey('settings-section-server'),
+            style: AppTypography.title.copyWith(color: colors.text),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SectionCard(
+            padding: EdgeInsets.zero,
+            child: _SettingsTile(
+              key: const ValueKey('settings-base-url'),
+              icon: Icons.dns_outlined,
+              iconColor: colors.primary,
+              title: l10n.baseUrlSettingsSettingsTile,
+              subtitle: l10n.baseUrlSettingsSettingsTileSubtitle,
+              colors: colors,
+              onTap: () => context.push('/settings/base-url'),
             ),
           ),
           const SizedBox(height: AppSpacing.sectionGap),

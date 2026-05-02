@@ -243,6 +243,23 @@ void main() {
       expect(authRedirect(session, '/home'), isNull);
       expect(authRedirect(session, '/settings'), isNull);
     });
+
+    test('public route /settings/base-url bypasses all auth redirects', () {
+      const unknown = SessionState();
+      expect(authRedirect(unknown, '/settings/base-url'), isNull);
+
+      const unauth = SessionState(status: AuthStatus.unauthenticated);
+      expect(authRedirect(unauth, '/settings/base-url'), isNull);
+
+      const auth = SessionState(status: AuthStatus.authenticated);
+      expect(authRedirect(auth, '/settings/base-url'), isNull);
+
+      const unverified = SessionState(
+        status: AuthStatus.authenticated,
+        emailVerified: false,
+      );
+      expect(authRedirect(unverified, '/settings/base-url'), isNull);
+    });
   });
 
   testWidgets('server-scoped route syncs server selection via redirect', (
