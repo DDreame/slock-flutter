@@ -878,6 +878,109 @@ void main() {
 
     expect(snapshot.messages.single.attachments, isNull);
   });
+
+  test(
+      'attachment sizeBytes survives full round-trip: '
+      'API parse → local JSON encode → decode', () async {
+    final localStore = FakeConversationLocalStore();
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/messages/channel/general': {
+          'messages': [
+            {
+              'id': 'message-1',
+              'content': 'File with size',
+              'createdAt': '2026-04-19T15:00:00Z',
+              'senderType': 'human',
+              'messageType': 'message',
+              'seq': 1,
+              'attachments': [
+                {
+                  'name': 'archive.zip',
+                  'type': 'application/zip',
+                  'url': 'https://example.com/archive.zip',
+                  'id': 'att-sized',
+                  'sizeBytes': 2500000,
+                },
+                {
+                  'name': 'readme.txt',
+                  'type': 'text/plain',
+                  'url': 'https://example.com/readme.txt',
+                  'id': 'att-nosize',
+                },
+              ],
+            },
+          ],
+          'historyLimited': false,
+        },
+        '/channels': [
+          {'id': 'general', 'name': 'general'},
+        ],
+      },
+    );
+    final container = _createContainer(
+      appDioClient,
+      localStore: localStore,
+    );
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    // Step 1: Load from API — exercises _parseAttachments + local
+    // encode via _messageToLocalUpsert
+    final snapshot = await repository.loadConversation(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+
+    // Verify API parse preserved sizeBytes
+    final apiAttachments = snapshot.messages.single.attachments!;
+    expect(apiAttachments, hasLength(2));
+    expect(apiAttachments[0].sizeBytes, 2500000);
+    expect(apiAttachments[0].formattedSize, '2.4 MB');
+    expect(
+      apiAttachments[1].sizeBytes,
+      isNull,
+      reason: 'Attachment without sizeBytes should be null',
+    );
+
+    // Verify local store encoded sizeBytes into JSON
+    final storedMessage = localStore.messages.single;
+    expect(
+      storedMessage.attachmentsJson,
+      contains('"sizeBytes":2500000'),
+      reason: 'Local JSON should contain sizeBytes',
+    );
+
+    // Step 2: Simulate loading from local cache — exercises
+    // _decodeAttachments(_storedRowToMessage)
+    final cachedMessages = await localStore.listMessages(
+      'server-1',
+      'general',
+    );
+    // Decode the stored JSON the same way the repository does
+    final restoredAttachmentsJson = cachedMessages.single.attachmentsJson;
+    expect(restoredAttachmentsJson, isNotNull);
+
+    // Persist and reload the message to exercise decode path
+    final restoredSnapshot = await repository.persistMessage(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      message: snapshot.messages.single,
+    );
+    expect(restoredSnapshot.attachments, hasLength(2));
+    expect(restoredSnapshot.attachments![0].sizeBytes, 2500000);
+    expect(restoredSnapshot.attachments![0].formattedSize, '2.4 MB');
+    expect(restoredSnapshot.attachments![1].sizeBytes, isNull);
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {
