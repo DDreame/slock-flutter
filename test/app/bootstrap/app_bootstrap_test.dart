@@ -5,7 +5,9 @@ import 'package:slock_app/app/bootstrap/app_bootstrap.dart';
 import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/notifications/android_foreground_service_manager.dart';
 import 'package:slock_app/core/notifications/android_notification_initializer.dart';
+import 'package:slock_app/core/notifications/background_sync_manager.dart';
 import 'package:slock_app/core/notifications/foreground_service_manager.dart';
+import 'package:slock_app/core/notifications/ios_background_sync_manager.dart';
 import 'package:slock_app/core/notifications/ios_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/realtime/providers.dart';
@@ -45,7 +47,7 @@ void main() {
       expect(result.reporter, isA<NoOpCrashReporter>());
       expect(result.diagnostics, isA<DiagnosticsCollector>());
       expect(result.notificationInitializer, isA<NotificationInitializer>());
-      expect(result.overrides, hasLength(6));
+      expect(result.overrides, hasLength(7));
     });
 
     test('provider overrides resolve correctly', () async {
@@ -169,6 +171,32 @@ void main() {
         isWeb: true,
       );
       expect(manager, isA<NoOpForegroundServiceManager>());
+    });
+  });
+
+  group('createBackgroundSyncManager', () {
+    test('returns iOS manager for iOS platform', () {
+      final manager = createBackgroundSyncManager(
+        platform: TargetPlatform.iOS,
+        isWeb: false,
+      );
+      expect(manager, isA<IosBackgroundSyncManager>());
+    });
+
+    test('returns NoOp manager for Android platform', () {
+      final manager = createBackgroundSyncManager(
+        platform: TargetPlatform.android,
+        isWeb: false,
+      );
+      expect(manager, isA<NoOpBackgroundSyncManager>());
+    });
+
+    test('returns NoOp manager on web even for iOS target', () {
+      final manager = createBackgroundSyncManager(
+        platform: TargetPlatform.iOS,
+        isWeb: true,
+      );
+      expect(manager, isA<NoOpBackgroundSyncManager>());
     });
   });
 
