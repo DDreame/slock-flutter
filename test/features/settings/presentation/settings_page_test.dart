@@ -41,6 +41,10 @@ void main() {
       find.byKey(const ValueKey('settings-billing')),
       200,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-billing')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('settings-billing')));
     await tester.pumpAndSettle();
     expect(find.text('billing-route'), findsOneWidget);
@@ -69,6 +73,10 @@ void main() {
       find.byKey(const ValueKey('settings-notification-link')),
       200,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-notification-link')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('settings-notification-link')));
     await tester.pumpAndSettle();
     expect(find.text('notification-settings-route'), findsOneWidget);
