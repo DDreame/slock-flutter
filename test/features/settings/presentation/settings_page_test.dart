@@ -295,6 +295,45 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('members-route'), findsOneWidget);
   });
+
+  testWidgets('members tile does not navigate when no active server',
+      (tester) async {
+    final sessionStore = _FakeSessionStore();
+    final notificationStore = _FakeNotificationStore();
+    final router = _buildRouter();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() => sessionStore),
+          notificationStoreProvider.overrideWith(() => notificationStore),
+          activeServerScopeIdProvider.overrideWithValue(null),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: router,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-members')),
+      200,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('settings-members')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('settings-members')));
+    await tester.pumpAndSettle();
+
+    // Should stay on Settings page — no navigation when server is null
+    expect(find.byType(SettingsPage), findsOneWidget);
+    expect(find.text('members-route'), findsNothing);
+  });
 }
 
 GoRouter _buildRouter() {
