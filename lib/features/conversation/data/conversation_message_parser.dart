@@ -264,6 +264,7 @@ List<MessageAttachment>? _parseAttachments(Object? value) {
       type: type,
       url: readOptionalConversationPayloadString(map['url']),
       id: readOptionalConversationPayloadString(map['id']),
+      sizeBytes: readOptionalConversationPayloadInt(map['sizeBytes']),
     ));
   }
   return results.isEmpty ? null : results;

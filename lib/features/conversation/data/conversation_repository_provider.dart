@@ -671,6 +671,8 @@ LocalMessageUpsert _messageToLocalUpsert(
                 'type': attachment.type,
                 'url': attachment.url,
                 'id': attachment.id,
+                if (attachment.sizeBytes != null)
+                  'sizeBytes': attachment.sizeBytes,
               })
           .toList(growable: false),
     ),
@@ -797,6 +799,7 @@ List<MessageAttachment>? _decodeAttachments(String? payload) {
       type: type,
       url: _readOptionalString(map['url']),
       id: _readOptionalString(map['id']),
+      sizeBytes: _readOptionalInt(map['sizeBytes']),
     ));
   }
   return attachments.isEmpty ? null : attachments;

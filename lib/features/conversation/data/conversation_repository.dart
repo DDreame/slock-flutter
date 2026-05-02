@@ -153,12 +153,26 @@ class MessageAttachment {
     required this.type,
     this.url,
     this.id,
+    this.sizeBytes,
   });
 
   final String name;
   final String type;
   final String? url;
   final String? id;
+  final int? sizeBytes;
+
+  /// Formats [sizeBytes] into a human-readable string (e.g. "2.4 MB").
+  /// Returns `null` when [sizeBytes] is absent.
+  String? get formattedSize {
+    final bytes = sizeBytes;
+    if (bytes == null) return null;
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) {
+      return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
 
   @override
   bool operator ==(Object other) {
@@ -168,11 +182,12 @@ class MessageAttachment {
             name == other.name &&
             type == other.type &&
             url == other.url &&
-            id == other.id;
+            id == other.id &&
+            sizeBytes == other.sizeBytes;
   }
 
   @override
-  int get hashCode => Object.hash(name, type, url, id);
+  int get hashCode => Object.hash(name, type, url, id, sizeBytes);
 }
 
 @immutable

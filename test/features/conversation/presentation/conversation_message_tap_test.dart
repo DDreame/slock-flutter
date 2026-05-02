@@ -8,6 +8,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -331,7 +332,7 @@ void main() {
 
       // Tap specifically on the attachment row.
       await tester.tap(
-        find.byKey(const ValueKey('attachment-tap-report.pdf')),
+        find.byKey(const ValueKey('file-attachment-report.pdf')),
       );
       await tester.pumpAndSettle();
 
@@ -555,6 +556,8 @@ Widget _buildApp({
     ],
     child: MaterialApp.router(
       theme: AppTheme.light,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: router,
     ),
   );

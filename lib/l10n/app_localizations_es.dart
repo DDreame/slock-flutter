@@ -597,4 +597,13 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get baseUrlSettingsSettingsTileSubtitle =>
       'Endpoints personalizados de API y WebSocket.';
+
+  @override
+  String get attachmentOpenInBrowser => 'Abrir en navegador';
+
+  @override
+  String get attachmentUnableToLoadImage => 'No se pudo cargar la imagen';
+
+  @override
+  String get attachmentHtmlOpensInBrowser => 'HTML · Abrir en navegador';
 }

@@ -68,7 +68,7 @@ class LocalMessageUpsert {
   final String? attachmentsJson;
   final String? threadId;
 
-  static String? encodeAttachments(List<Map<String, String?>>? attachments) {
+  static String? encodeAttachments(List<Map<String, Object?>>? attachments) {
     if (attachments == null || attachments.isEmpty) {
       return null;
     }

@@ -560,4 +560,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get baseUrlSettingsSettingsTileSubtitle => '自定义 API 和 WebSocket 端点。';
+
+  @override
+  String get attachmentOpenInBrowser => '在浏览器中打开';
+
+  @override
+  String get attachmentUnableToLoadImage => '无法加载图片';
+
+  @override
+  String get attachmentHtmlOpensInBrowser => 'HTML · 在浏览器中打开';
 }

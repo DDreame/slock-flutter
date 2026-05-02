@@ -188,5 +188,9 @@
   "baseUrlEmptyDefault": "使用编译时默认值",
   "baseUrlRestartRequired": "需重启应用以应用更改。",
   "baseUrlSettingsSettingsTile": "服务器",
-  "baseUrlSettingsSettingsTileSubtitle": "自定义 API 和 WebSocket 端点。"
+  "baseUrlSettingsSettingsTileSubtitle": "自定义 API 和 WebSocket 端点。",
+
+  "attachmentOpenInBrowser": "在浏览器中打开",
+  "attachmentUnableToLoadImage": "无法加载图片",
+  "attachmentHtmlOpensInBrowser": "HTML · 在浏览器中打开"
 }
