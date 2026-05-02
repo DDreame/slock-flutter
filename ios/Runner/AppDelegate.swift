@@ -406,9 +406,12 @@ import BackgroundTasks
   /// Read the session token from the iOS Keychain where
   /// flutter_secure_storage stores it.
   private func readKeychainToken() -> String? {
+    // flutter_secure_storage on iOS uses a fixed service name
+    // ("flutter_secure_storage_service") and stores the logical
+    // key as the account attribute.
     let query: [String: Any] = [
       kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: Bundle.main.bundleIdentifier ?? "",
+      kSecAttrService as String: "flutter_secure_storage_service",
       kSecAttrAccount as String: AppDelegate.keychainTokenKey,
       kSecReturnData as String: true,
       kSecMatchLimit as String: kSecMatchLimitOne,
@@ -527,6 +530,7 @@ import BackgroundTasks
       ? "You have a new message"
       : "You have new messages in \(messageCount) conversations"
     content.sound = .default
+    content.badge = NSNumber(value: messageCount)
     content.userInfo = ["slock.bgSync": true]
 
     let request = UNNotificationRequest(
