@@ -74,6 +74,26 @@ void main() {
     },
   );
 
+  test(
+    'openDirectMessage routes agent members through agent DM path',
+    () async {
+      fakeRepository.members = const [
+        MemberProfile(
+          id: 'agent-1',
+          displayName: 'J1',
+          type: MemberType.agent,
+        ),
+      ];
+      await store().load();
+
+      final channelId = await store().openDirectMessage('agent-1');
+
+      expect(channelId, 'dm-agent-agent-1');
+      // Should NOT use the human openDirectMessage path
+      expect(fakeRepository.openRequests, isEmpty);
+    },
+  );
+
   test('createInvite returns code and clears invite busy state', () async {
     final inviteCode = await store().createInvite();
 

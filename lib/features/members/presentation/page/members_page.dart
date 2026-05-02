@@ -61,33 +61,10 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     final state = ref.watch(memberListStoreProvider);
     final serverId = ref.read(currentMembersServerIdProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
-    final canManageMembers = _canManageMembers(state.members);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Members'),
-        actions: state.status == MemberListStatus.success && canManageMembers
-            ? [
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: state.isInvitingByEmail
-                      ? const Center(
-                          child: SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        )
-                      : IconButton(
-                          key: const ValueKey('members-invite-human'),
-                          onPressed: _inviteHuman,
-                          icon: const Icon(Icons.person_add_alt_1),
-                          tooltip: 'Invite human',
-                        ),
-                ),
-              ]
-            : null,
       ),
       body: switch (state.status) {
         MemberListStatus.initial || MemberListStatus.loading => const Center(
@@ -111,7 +88,6 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             state,
             serverId,
             colors,
-            canManageMembers,
           ),
       },
     );
@@ -121,7 +97,6 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     MemberListState state,
     ServerScopeId serverId,
     AppColors colors,
-    bool canManageMembers,
   ) {
     final humans = state.humans;
     final agents = state.agents;
@@ -199,7 +174,6 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                           member,
                           serverId,
                           state,
-                          canManageMembers,
                         ),
                     ],
                     if (agents.isNotEmpty) ...[
@@ -216,7 +190,6 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                           member,
                           serverId,
                           state,
-                          canManageMembers,
                         ),
                     ],
                   ],
@@ -230,51 +203,19 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     MemberProfile member,
     ServerScopeId serverId,
     MemberListState state,
-    bool canManageMembers,
   ) {
     return MemberListItem(
       member: member,
       isOpeningDirectMessage: state.isOpeningDirectMessage(member.id),
-      isUpdatingRole: state.isUpdatingRole(member.id),
-      isRemoving: state.isRemovingMember(member.id),
-      canManageMember: canManageMembers,
+      canManageMember: false,
       onTap: () => showMemberProfileSheet(
         context: context,
         member: member,
       ),
       onMessage: () => _openDirectMessage(context, member.id, serverId),
-      onChangeRole: (role) => _changeMemberRole(member, role),
-      onRemove: () => _removeMember(member),
+      onChangeRole: (_) {},
+      onRemove: () {},
     );
-  }
-
-  Future<void> _inviteHuman() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final email = await _promptInviteEmail();
-    if (email == null) {
-      return;
-    }
-
-    try {
-      await ref.read(memberListStoreProvider.notifier).inviteByEmail(email);
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(content: Text('Invite email sent to $email.')),
-      );
-    } on AppFailure catch (failure) {
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            failure.message ?? 'Failed to send invite email.',
-          ),
-        ),
-      );
-    }
   }
 
   Future<void> _openDirectMessage(
@@ -305,112 +246,6 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
         ),
       );
     }
-  }
-
-  Future<void> _changeMemberRole(
-    MemberProfile member,
-    String role,
-  ) async {
-    final messenger = ScaffoldMessenger.of(context);
-
-    try {
-      await ref
-          .read(memberListStoreProvider.notifier)
-          .updateMemberRole(member.id, role);
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            '${member.displayName} is now'
-            ' ${formatMemberRoleLabel(role)}.',
-          ),
-        ),
-      );
-    } on AppFailure catch (failure) {
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            failure.message ?? 'Failed to update member role.',
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<void> _removeMember(MemberProfile member) async {
-    final messenger = ScaffoldMessenger.of(context);
-    final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (dialogContext) {
-            return AlertDialog(
-              title: const Text('Remove Member?'),
-              content: Text(
-                'Remove ${member.displayName} from this server?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
-                ),
-                FilledButton(
-                  key: const ValueKey('members-confirm-remove'),
-                  onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Remove'),
-                ),
-              ],
-            );
-          },
-        ) ??
-        false;
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await ref.read(memberListStoreProvider.notifier).removeMember(member.id);
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('${member.displayName} removed.'),
-        ),
-      );
-    } on AppFailure catch (failure) {
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            failure.message ?? 'Failed to remove member.',
-          ),
-        ),
-      );
-    }
-  }
-
-  Future<String?> _promptInviteEmail() async {
-    return showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return const _InviteHumanDialog();
-      },
-    );
-  }
-
-  bool _canManageMembers(List<MemberProfile> members) {
-    for (final member in members) {
-      if (member.isSelf) {
-        return member.role == 'owner' || member.role == 'admin';
-      }
-    }
-    return false;
   }
 }
 
@@ -492,63 +327,6 @@ class _EmptyState extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// --- Invite dialog ---
-
-class _InviteHumanDialog extends StatefulWidget {
-  const _InviteHumanDialog();
-
-  @override
-  State<_InviteHumanDialog> createState() => _InviteHumanDialogState();
-}
-
-class _InviteHumanDialogState extends State<_InviteHumanDialog> {
-  late final TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final email = _controller.text.trim();
-    final isValid =
-        email.isNotEmpty && email.contains('@') && !email.startsWith('@');
-    return AlertDialog(
-      title: const Text('Invite Human'),
-      content: TextField(
-        key: const ValueKey('members-invite-email-field'),
-        controller: _controller,
-        autofocus: true,
-        keyboardType: TextInputType.emailAddress,
-        decoration: const InputDecoration(
-          labelText: 'Email',
-          hintText: 'user@example.com',
-        ),
-        onChanged: (_) => setState(() {}),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          key: const ValueKey('members-invite-email-submit'),
-          onPressed: isValid ? () => Navigator.of(context).pop(email) : null,
-          child: const Text('Send Invite'),
-        ),
-      ],
     );
   }
 }

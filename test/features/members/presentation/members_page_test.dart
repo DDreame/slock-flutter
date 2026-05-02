@@ -128,50 +128,45 @@ void main() {
     );
   });
 
-  testWidgets('invite human submits email invite flow', (
-    tester,
-  ) async {
-    final repository = _FakeMemberRepository(
-      members: const [
-        MemberProfile(
-          id: 'user-123',
-          displayName: 'Alice',
-          role: 'owner',
+  testWidgets(
+    'message button uses agent DM route for agent members',
+    (tester) async {
+      final router = _buildRouter();
+
+      await tester.pumpWidget(
+        _buildApp(
+          router: router,
+          repository: _FakeMemberRepository(
+            members: const [
+              MemberProfile(
+                id: 'agent-1',
+                displayName: 'J1',
+                type: MemberType.agent,
+                presence: 'online',
+              ),
+            ],
+          ),
         ),
-        MemberProfile(id: 'user-2', displayName: 'Bob'),
-      ],
-    );
+      );
+      // Use pump() — StatusGlowRing loops forever.
+      await tester.pump();
+      await tester.pump();
 
-    await tester.pumpWidget(
-      _buildApp(repository: repository),
-    );
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('member-message-agent-1'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
 
-    expect(find.text('Owner'), findsAtLeastNWidgets(1));
-
-    await tester.tap(
-      find.byKey(const ValueKey('members-invite-human')),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const ValueKey('members-invite-email-field')),
-      'user@example.com',
-    );
-    await tester.pump();
-    await tester.tap(
-      find.byKey(
-        const ValueKey('members-invite-email-submit'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(repository.inviteEmails, ['user@example.com']);
-    expect(
-      find.text('Invite email sent to user@example.com.'),
-      findsOneWidget,
-    );
-  });
+      expect(
+        find.text('dm:server-1/dm-agent-agent-1'),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('shows friendly retry state on load failure', (
     tester,
@@ -203,105 +198,6 @@ void main() {
     expect(find.text('Server exploded'), findsNothing);
     expect(find.text('Retry'), findsOneWidget);
   });
-
-  testWidgets(
-    'member admin actions update role and remove member',
-    (tester) async {
-      final repository = _FakeMemberRepository(
-        members: const [
-          MemberProfile(
-            id: 'user-123',
-            displayName: 'Alice',
-            role: 'owner',
-          ),
-          MemberProfile(
-            id: 'user-2',
-            displayName: 'Bob',
-            role: 'member',
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(
-        _buildApp(repository: repository),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(
-        find.byKey(const ValueKey('member-actions-user-2')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Make admin').last);
-      await tester.pumpAndSettle();
-
-      expect(repository.roleRequests, [
-        ('server-1', 'user-2', 'admin'),
-      ]);
-      expect(
-        find.byKey(const ValueKey('member-role-user-2')),
-        findsOneWidget,
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey('member-actions-user-2')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Remove member').last);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('members-confirm-remove')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        repository.removeRequests,
-        [('server-1', 'user-2')],
-      );
-      expect(
-        find.byKey(const ValueKey('member-user-2')),
-        findsNothing,
-      );
-    },
-  );
-
-  testWidgets(
-    'non-admin viewers do not see invite or member admin '
-    'actions',
-    (tester) async {
-      await tester.pumpWidget(
-        _buildApp(
-          repository: _FakeMemberRepository(
-            members: const [
-              MemberProfile(
-                id: 'user-123',
-                displayName: 'Alice',
-                role: 'member',
-              ),
-              MemberProfile(
-                id: 'user-2',
-                displayName: 'Bob',
-                role: 'member',
-              ),
-            ],
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const ValueKey('members-invite-human')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey('member-actions-user-2')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey('member-message-user-2')),
-        findsOneWidget,
-      );
-    },
-  );
 
   testWidgets(
     'search bar filters members by display name',
