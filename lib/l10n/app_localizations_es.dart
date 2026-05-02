@@ -195,7 +195,13 @@ class AppLocalizationsEs extends AppLocalizations {
       'Failed to resend verification email.';
 
   @override
-  String get navWorkspace => 'Workspace';
+  String get navWorkspace => 'Home';
+
+  @override
+  String get navChannels => 'Canales';
+
+  @override
+  String get navDms => 'Mensajes';
 
   @override
   String get navAgents => 'Agents';
@@ -338,6 +344,26 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get homeRetry => 'Retry';
+
+  @override
+  String get channelsTabTitle => 'Canales';
+
+  @override
+  String get channelsTabPlaceholder =>
+      'La lista de canales estara disponible pronto.';
+
+  @override
+  String get dmsTabTitle => 'Mensajes';
+
+  @override
+  String get dmsTabHeadline => 'Mensajes directos';
+
+  @override
+  String get dmsTabPlaceholder =>
+      'Los mensajes directos estaran disponibles pronto.';
+
+  @override
+  String get settingsTooltip => 'Configuracion';
 
   @override
   String get homeChannelCreated => 'Channel created.';

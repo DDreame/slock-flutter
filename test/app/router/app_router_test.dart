@@ -70,6 +70,8 @@ void main() {
       '/reset-password',
       '/verify-email',
       '/home',
+      '/channels',
+      '/dms',
       '/agents',
       '/settings',
       '/servers/:serverId/channels/:channelId',
@@ -1128,6 +1130,193 @@ void main() {
       },
     );
   });
+  group('4-tab bottom navigation', () {
+    /// Helper: authenticated session with bottom nav visible.
+    Future<({ProviderContainer container, GoRouter router})> pumpAuthed(
+      WidgetTester tester,
+    ) async {
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          splashControllerProvider
+              .overrideWith(() => _StallingSplashController()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'p');
+      container.read(appReadyProvider.notifier).state = true;
+
+      final router = container.read(appRouterProvider);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: _buildRouterApp(router),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return (container: container, router: router);
+    }
+
+    testWidgets('/home shows bottom nav with 4 destinations', (tester) async {
+      final (:container, :router) = await pumpAuthed(tester);
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+      expect(find.byType(NavigationBar), findsOneWidget);
+
+      expect(find.byKey(const ValueKey('nav-home')), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav-channels')), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav-dms')), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav-agents')), findsOneWidget);
+    });
+
+    testWidgets('/channels renders ChannelsTabPage with bottom nav', (
+      tester,
+    ) async {
+      final (:container, :router) = await pumpAuthed(tester);
+      router.go('/channels');
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/channels');
+      expect(
+        find.byKey(const ValueKey('channels-tab-placeholder')),
+        findsOneWidget,
+      );
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
+
+    testWidgets('/dms renders DmsTabPage with bottom nav', (tester) async {
+      final (:container, :router) = await pumpAuthed(tester);
+      router.go('/dms');
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/dms');
+      expect(
+        find.byKey(const ValueKey('dms-tab-placeholder')),
+        findsOneWidget,
+      );
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
+
+    testWidgets('/agents renders AgentsPage with bottom nav', (tester) async {
+      final (:container, :router) = await pumpAuthed(tester);
+      router.go('/agents');
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/agents');
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
+
+    testWidgets('tapping Channels destination navigates to /channels', (
+      tester,
+    ) async {
+      final (:container, :router) = await pumpAuthed(tester);
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+
+      await tester.tap(find.byKey(const ValueKey('nav-channels')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/channels');
+    });
+
+    testWidgets('tapping DMs destination navigates to /dms', (tester) async {
+      final (:container, :router) = await pumpAuthed(tester);
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+
+      await tester.tap(find.byKey(const ValueKey('nav-dms')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/dms');
+    });
+
+    testWidgets('tapping Agents destination navigates to /agents', (
+      tester,
+    ) async {
+      final (:container, :router) = await pumpAuthed(tester);
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+
+      await tester.tap(find.byKey(const ValueKey('nav-agents')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/agents');
+    });
+
+    testWidgets('tapping Home destination returns to /home from another tab', (
+      tester,
+    ) async {
+      final (:container, :router) = await pumpAuthed(tester);
+
+      // Navigate to channels first
+      router.go('/channels');
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/channels');
+
+      // Tap Home
+      await tester.tap(find.byKey(const ValueKey('nav-home')));
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+    });
+
+    testWidgets('round-trip across all 4 tabs preserves navigation', (
+      tester,
+    ) async {
+      final (:container, :router) = await pumpAuthed(tester);
+
+      // Home → Channels
+      await tester.tap(find.byKey(const ValueKey('nav-channels')));
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/channels');
+
+      // Channels → DMs
+      await tester.tap(find.byKey(const ValueKey('nav-dms')));
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/dms');
+
+      // DMs → Agents
+      await tester.tap(find.byKey(const ValueKey('nav-agents')));
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/agents');
+
+      // Agents → Home
+      await tester.tap(find.byKey(const ValueKey('nav-home')));
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+    });
+
+    testWidgets('/settings does not show bottom navigation bar', (
+      tester,
+    ) async {
+      final (:container, :router) = await pumpAuthed(tester);
+
+      router.go('/settings');
+      await tester.pumpAndSettle();
+
+      expect(router.routeInformationProvider.value.uri.path, '/settings');
+      expect(find.byType(NavigationBar), findsNothing);
+    });
+
+    testWidgets('navigating to /settings and back to /home works', (
+      tester,
+    ) async {
+      final (:container, :router) = await pumpAuthed(tester);
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+
+      router.go('/settings');
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/settings');
+      expect(find.byType(NavigationBar), findsNothing);
+
+      router.go('/home');
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/home');
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
+  });
+
   group('mid-session notification landing', () {
     testWidgets('valid channel deep link navigates from /home', (tester) async {
       final container = ProviderContainer(

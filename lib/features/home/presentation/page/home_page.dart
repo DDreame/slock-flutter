@@ -64,7 +64,17 @@ class _HomePageState extends ConsumerState<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: _HomeAppBarTitle(onTap: () => showServerSwitcherSheet(context)),
+        title: _HomeAppBarTitle(
+          onTap: () => showServerSwitcherSheet(context),
+        ),
+        actions: [
+          IconButton(
+            key: const ValueKey('home-settings-button'),
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: l10n.settingsTooltip,
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
       ),
       body: switch (state.status) {
         HomeListStatus.noActiveServer => _HomeNoServerState(

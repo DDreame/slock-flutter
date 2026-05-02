@@ -439,8 +439,20 @@ abstract class AppLocalizations {
   /// No description provided for @navWorkspace.
   ///
   /// In en, this message translates to:
-  /// **'Workspace'**
+  /// **'Home'**
   String get navWorkspace;
+
+  /// No description provided for @navChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get navChannels;
+
+  /// No description provided for @navDms.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get navDms;
 
   /// No description provided for @navAgents.
   ///
@@ -699,6 +711,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get homeRetry;
+
+  /// No description provided for @channelsTabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get channelsTabTitle;
+
+  /// No description provided for @channelsTabPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel list will be available here soon.'**
+  String get channelsTabPlaceholder;
+
+  /// No description provided for @dmsTabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get dmsTabTitle;
+
+  /// No description provided for @dmsTabHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct Messages'**
+  String get dmsTabHeadline;
+
+  /// No description provided for @dmsTabPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct messages will be available here soon.'**
+  String get dmsTabPlaceholder;
+
+  /// No description provided for @settingsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTooltip;
 
   /// No description provided for @homeChannelCreated.
   ///

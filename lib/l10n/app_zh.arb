@@ -62,7 +62,9 @@
   "verifyEmailFailedFallback": "验证失败，链接可能已过期。",
   "verifyEmailResendFailedFallback": "重新发送验证邮件失败。",
 
-  "navWorkspace": "工作区",
+  "navWorkspace": "首页",
+  "navChannels": "频道",
+  "navDms": "消息",
   "navAgents": "智能体",
   "navSettings": "设置",
 
@@ -109,6 +111,13 @@
   "homeSelectWorkspace": "选择工作区",
   "homeLoadFailedFallback": "无法加载对话列表。",
   "homeRetry": "重试",
+
+  "channelsTabTitle": "频道",
+  "channelsTabPlaceholder": "频道列表即将上线。",
+  "dmsTabTitle": "消息",
+  "dmsTabHeadline": "私信",
+  "dmsTabPlaceholder": "私信列表即将上线。",
+  "settingsTooltip": "设置",
 
   "homeChannelCreated": "频道已创建。",
   "homeChannelCreateFailed": "创建频道失败。",

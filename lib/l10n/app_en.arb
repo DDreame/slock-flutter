@@ -61,7 +61,9 @@
   "verifyEmailFailedFallback": "Verification failed. The link may be expired.",
   "verifyEmailResendFailedFallback": "Failed to resend verification email.",
 
-  "navWorkspace": "Workspace",
+  "navWorkspace": "Home",
+  "navChannels": "Channels",
+  "navDms": "Messages",
   "navAgents": "Agents",
   "navSettings": "Settings",
 
@@ -115,6 +117,13 @@
   "homeSelectWorkspace": "Select workspace",
   "homeLoadFailedFallback": "Unable to load conversations.",
   "homeRetry": "Retry",
+
+  "channelsTabTitle": "Channels",
+  "channelsTabPlaceholder": "Channel list will be available here soon.",
+  "dmsTabTitle": "Messages",
+  "dmsTabHeadline": "Direct Messages",
+  "dmsTabPlaceholder": "Direct messages will be available here soon.",
+  "settingsTooltip": "Settings",
 
   "homeChannelCreated": "Channel created.",
   "homeChannelCreateFailed": "Failed to create channel.",

@@ -177,7 +177,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get verifyEmailResendFailedFallback => '重新发送验证邮件失败。';
 
   @override
-  String get navWorkspace => '工作区';
+  String get navWorkspace => '首页';
+
+  @override
+  String get navChannels => '频道';
+
+  @override
+  String get navDms => '消息';
 
   @override
   String get navAgents => '智能体';
@@ -309,6 +315,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeRetry => '重试';
+
+  @override
+  String get channelsTabTitle => '频道';
+
+  @override
+  String get channelsTabPlaceholder => '频道列表即将上线。';
+
+  @override
+  String get dmsTabTitle => '消息';
+
+  @override
+  String get dmsTabHeadline => '私信';
+
+  @override
+  String get dmsTabPlaceholder => '私信列表即将上线。';
+
+  @override
+  String get settingsTooltip => '设置';
 
   @override
   String get homeChannelCreated => '频道已创建。';
