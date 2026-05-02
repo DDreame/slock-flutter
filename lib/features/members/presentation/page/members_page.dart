@@ -773,32 +773,38 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
     return AlertDialog(
       key: const ValueKey('members-change-role-dialog'),
       title: const Text('Change Role'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          RadioListTile<String>(
-            key: const ValueKey(
-              'members-role-option-admin',
+      content: RadioGroup<String>(
+        groupValue: _selectedRole,
+        onChanged: (value) {
+          if (value != null) {
+            setState(() => _selectedRole = value);
+          }
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<String>(
+              key: const ValueKey(
+                'members-role-option-admin',
+              ),
+              title: const Text('Admin'),
+              subtitle: const Text(
+                'Can manage members and invite',
+              ),
+              value: 'admin',
             ),
-            title: const Text('Admin'),
-            subtitle: const Text(
-              'Can manage members and invite',
+            RadioListTile<String>(
+              key: const ValueKey(
+                'members-role-option-member',
+              ),
+              title: const Text('Member'),
+              subtitle: const Text(
+                'Standard workspace access',
+              ),
+              value: 'member',
             ),
-            value: 'admin',
-            groupValue: _selectedRole,
-            onChanged: (value) => setState(() => _selectedRole = value!),
-          ),
-          RadioListTile<String>(
-            key: const ValueKey(
-              'members-role-option-member',
-            ),
-            title: const Text('Member'),
-            subtitle: const Text('Standard workspace access'),
-            value: 'member',
-            groupValue: _selectedRole,
-            onChanged: (value) => setState(() => _selectedRole = value!),
-          ),
-        ],
+          ],
+        ),
       ),
       actions: [
         TextButton(
