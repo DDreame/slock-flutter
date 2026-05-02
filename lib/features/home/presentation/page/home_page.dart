@@ -103,7 +103,10 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ...state.pinnedChannels,
                     ...state.channels,
                   ],
-                  directMessages: state.directMessages,
+                  directMessages: [
+                    ...state.pinnedDirectMessages,
+                    ...state.directMessages,
+                  ],
                   unreadState: unreadState,
                 ),
                 const SizedBox(height: AppSpacing.md),

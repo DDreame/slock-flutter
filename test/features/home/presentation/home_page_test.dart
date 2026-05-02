@@ -1046,6 +1046,113 @@ void main() {
     );
 
     testWidgets(
+      'unread section includes pinned DMs with unread counts',
+      (tester) async {
+        final router = _buildRouter();
+
+        // Snapshot has pinned-dm in directMessages;
+        // SidebarOrder pins it so HomeListStore moves it
+        // to pinnedDirectMessages.
+        const pinnedDmSnapshot = HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [],
+          directMessages: [
+            HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'pinned-dm',
+              ),
+              title: 'Pinned Friend',
+              lastMessagePreview: 'Hey!',
+            ),
+            HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'regular-dm',
+              ),
+              title: 'Regular Friend',
+              lastMessagePreview: 'Hello',
+            ),
+          ],
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(pinnedDmSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(
+                order: SidebarOrder(
+                  pinnedOrder: ['pinned-dm'],
+                ),
+              ),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Inject DM unreads for the pinned DM
+        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'pinned-dm',
+          ): 4,
+        });
+        await tester.pumpAndSettle();
+
+        // Pinned DM with unreads should appear
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-dm:pinned-dm'),
+          ),
+          findsOneWidget,
+          reason: 'Pinned DM with positive unread '
+              'count must appear in unread section',
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('unread-item-dm:pinned-dm'),
+            ),
+            matching: find.text('Pinned Friend'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
       'unread section mark all read clears thread items too',
       (tester) async {
         final router = _buildRouter();
