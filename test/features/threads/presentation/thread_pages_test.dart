@@ -10,6 +10,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/threads/application/current_open_thread_target_provider.dart';
+import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
@@ -202,6 +203,72 @@ void main() {
     expect(find.text('Thread replies'), findsOneWidget);
     expect(find.text('First reply'), findsOneWidget);
     expect(find.byKey(const ValueKey('thread-follow-action')), findsOneWidget);
+  });
+
+  testWidgets(
+      'ThreadRepliesPage registers resolved thread channel ID in knownThreadChannelIdsProvider',
+      (
+    tester,
+  ) async {
+    final threadRepository = _FakeThreadRepository(
+      resolvedThread: const ResolvedThreadChannel(
+        threadChannelId: 'thread-abc',
+        replyCount: 2,
+        participantIds: ['u1'],
+      ),
+    );
+    final conversationRepository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'thread-abc',
+          ),
+        ),
+        title: 'Thread',
+        messages: [
+          ConversationMessageSummary(
+            id: 'reply-1',
+            content: 'A reply',
+            createdAt: DateTime.parse('2026-04-21T08:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        threadRepositoryProvider.overrideWithValue(threadRepository),
+        conversationRepositoryProvider
+            .overrideWithValue(conversationRepository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      _buildAppWithContainer(
+        container: container,
+        child: const ThreadRepliesPage(
+          routeTarget: ThreadRouteTarget(
+            serverId: 'server-1',
+            parentChannelId: 'general',
+            parentMessageId: 'message-1',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      container.read(knownThreadChannelIdsProvider),
+      contains('thread-abc'),
+      reason: 'Resolving a thread must register its channel ID to prevent '
+          'phantom DM materialization',
+    );
   });
 
   testWidgets(
