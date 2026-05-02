@@ -859,7 +859,7 @@ void main() {
                   preview: 'Thread preview text',
                   replyCount: 3,
                   unreadCount: 2,
-                  participantIds: ['u1'],
+                  participantIds: const ['u1'],
                 ),
               ],
             ),
@@ -914,7 +914,7 @@ void main() {
             title: 'Thread $i',
             replyCount: 1,
             unreadCount: 1,
-            participantIds: ['u1'],
+            participantIds: const ['u1'],
           ),
         );
 
@@ -1249,9 +1249,6 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final unreadCard = find.byKey(
-          const ValueKey('home-card-unread'),
-        );
         final newItem = find.byKey(
           const ValueKey('unread-item-thread:new-msg'),
         );
@@ -1295,7 +1292,7 @@ void main() {
                   title: 'A thread',
                   replyCount: 1,
                   unreadCount: 1,
-                  participantIds: ['u1'],
+                  participantIds: const ['u1'],
                 ),
               ],
             ),
@@ -1342,7 +1339,7 @@ void main() {
                   title: 'Badge thread',
                   replyCount: 1,
                   unreadCount: 5,
-                  participantIds: ['u1'],
+                  participantIds: const ['u1'],
                 ),
               ],
             ),
@@ -1379,7 +1376,7 @@ void main() {
             preview: 'Check the latest PR',
             replyCount: 5,
             unreadCount: 2,
-            participantIds: ['u1'],
+            participantIds: const ['u1'],
           ),
           ThreadInboxItem(
             routeTarget: ThreadRouteTarget(
@@ -1391,7 +1388,7 @@ void main() {
             preview: 'Old discussion',
             replyCount: 3,
             unreadCount: 0,
-            participantIds: ['u2'],
+            participantIds: const ['u2'],
           ),
         ];
 
