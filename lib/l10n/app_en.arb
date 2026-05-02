@@ -118,6 +118,13 @@
   "homeLoadFailedFallback": "Unable to load conversations.",
   "homeRetry": "Retry",
 
+  "channelsTabTitle": "Channels",
+  "channelsTabPlaceholder": "Channel list will be available here soon.",
+  "dmsTabTitle": "Messages",
+  "dmsTabHeadline": "Direct Messages",
+  "dmsTabPlaceholder": "Direct messages will be available here soon.",
+  "settingsTooltip": "Settings",
+
   "homeChannelCreated": "Channel created.",
   "homeChannelCreateFailed": "Failed to create channel.",
   "homeChannelUpdated": "Channel updated.",

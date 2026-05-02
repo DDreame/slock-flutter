@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Placeholder Channels tab.
 ///
@@ -12,8 +13,9 @@ class ChannelsTabPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Channels')),
+      appBar: AppBar(title: Text(l10n.channelsTabTitle)),
       body: Center(
         key: const ValueKey('channels-tab-placeholder'),
         child: Column(
@@ -26,14 +28,14 @@ class ChannelsTabPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Channels',
+              l10n.channelsTabTitle,
               style: AppTypography.headline.copyWith(
                 color: colors.text,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Channel list coming in next update.',
+              l10n.channelsTabPlaceholder,
               style: AppTypography.body.copyWith(
                 color: colors.textSecondary,
               ),

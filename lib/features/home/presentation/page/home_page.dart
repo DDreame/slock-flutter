@@ -71,7 +71,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           IconButton(
             key: const ValueKey('home-settings-button'),
             icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
+            tooltip: l10n.settingsTooltip,
             onPressed: () => context.push('/settings'),
           ),
         ],

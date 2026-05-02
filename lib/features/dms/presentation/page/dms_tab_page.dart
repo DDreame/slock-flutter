@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Placeholder DMs tab.
 ///
@@ -12,8 +13,9 @@ class DmsTabPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
     return Scaffold(
-      appBar: AppBar(title: const Text('Messages')),
+      appBar: AppBar(title: Text(l10n.dmsTabTitle)),
       body: Center(
         key: const ValueKey('dms-tab-placeholder'),
         child: Column(
@@ -26,14 +28,14 @@ class DmsTabPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Direct Messages',
+              l10n.dmsTabHeadline,
               style: AppTypography.headline.copyWith(
                 color: colors.text,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'DM list coming in next update.',
+              l10n.dmsTabPlaceholder,
               style: AppTypography.body.copyWith(
                 color: colors.textSecondary,
               ),
