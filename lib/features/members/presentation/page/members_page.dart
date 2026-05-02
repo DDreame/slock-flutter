@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -284,45 +285,71 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
 
   Future<void> _inviteHuman() async {
     final messenger = ScaffoldMessenger.of(context);
-    final email = await _promptInviteEmail();
-    if (email == null) {
-      return;
-    }
+    final store = ref.read(memberListStoreProvider.notifier);
 
-    try {
-      await ref.read(memberListStoreProvider.notifier).inviteByEmail(email);
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Invite email sent to $email.'),
-        ),
-      );
-    } on AppFailure catch (failure) {
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            failure.message ?? 'Failed to send invite email.',
-          ),
-        ),
-      );
-    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _InviteHumanSheet(
+        onSendEmail: (email) async {
+          try {
+            await store.inviteByEmail(email);
+            if (!mounted) return;
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Invite email sent to $email.',
+                ),
+              ),
+            );
+          } on AppFailure catch (failure) {
+            if (!mounted) return;
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  failure.message ?? 'Failed to send invite email.',
+                ),
+              ),
+            );
+          }
+        },
+        onGenerateLink: () async {
+          try {
+            return await store.createInvite();
+          } on AppFailure catch (failure) {
+            if (!mounted) return null;
+            messenger.showSnackBar(
+              SnackBar(
+                content: Text(
+                  failure.message ?? 'Failed to generate invite link.',
+                ),
+              ),
+            );
+            return null;
+          }
+        },
+      ),
+    );
   }
 
   Future<void> _changeMemberRole(
     MemberProfile member,
-    String role,
+    String suggestedRole,
   ) async {
     final messenger = ScaffoldMessenger.of(context);
+    final newRole = await showDialog<String>(
+      context: context,
+      builder: (_) => _ChangeRoleDialog(
+        currentRole: member.role ?? 'member',
+        initialSelection: suggestedRole,
+      ),
+    );
+    if (newRole == null) return;
 
     try {
       await ref
           .read(memberListStoreProvider.notifier)
-          .updateMemberRole(member.id, role);
+          .updateMemberRole(member.id, newRole);
       if (!mounted) {
         return;
       }
@@ -330,7 +357,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
         SnackBar(
           content: Text(
             '${member.displayName} is now'
-            ' ${formatMemberRoleLabel(role)}.',
+            ' ${formatMemberRoleLabel(newRole)}.',
           ),
         ),
       );
@@ -402,15 +429,6 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
         ),
       );
     }
-  }
-
-  Future<String?> _promptInviteEmail() async {
-    return showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        return const _InviteHumanDialog();
-      },
-    );
   }
 
   bool _canManageMembers(List<MemberProfile> members) {
@@ -505,49 +523,285 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-// --- Invite dialog ---
+// --- Invite bottom sheet ---
 
-class _InviteHumanDialog extends StatefulWidget {
-  const _InviteHumanDialog();
+class _InviteHumanSheet extends StatefulWidget {
+  const _InviteHumanSheet({
+    required this.onSendEmail,
+    required this.onGenerateLink,
+  });
+
+  final Future<void> Function(String email) onSendEmail;
+  final Future<String?> Function() onGenerateLink;
 
   @override
-  State<_InviteHumanDialog> createState() => _InviteHumanDialogState();
+  State<_InviteHumanSheet> createState() => _InviteHumanSheetState();
 }
 
-class _InviteHumanDialogState extends State<_InviteHumanDialog> {
-  late final TextEditingController _controller;
+class _InviteHumanSheetState extends State<_InviteHumanSheet> {
+  late final TextEditingController _emailController;
+  bool _isSendingEmail = false;
+  bool _isGeneratingLink = false;
+  String? _inviteLink;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController();
+    _emailController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _emailController.dispose();
     super.dispose();
+  }
+
+  bool get _isValidEmail {
+    final email = _emailController.text.trim();
+    return email.isNotEmpty && email.contains('@') && !email.startsWith('@');
+  }
+
+  Future<void> _sendEmail() async {
+    final email = _emailController.text.trim();
+    setState(() => _isSendingEmail = true);
+    await widget.onSendEmail(email);
+    if (!mounted) return;
+    setState(() => _isSendingEmail = false);
+    Navigator.of(context).pop();
+  }
+
+  Future<void> _generateLink() async {
+    setState(() => _isGeneratingLink = true);
+    final link = await widget.onGenerateLink();
+    if (!mounted) return;
+    setState(() {
+      _isGeneratingLink = false;
+      _inviteLink = link;
+    });
+  }
+
+  Future<void> _copyLink() async {
+    if (_inviteLink == null) return;
+    await Clipboard.setData(
+      ClipboardData(text: _inviteLink!),
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Invite link copied.'),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final email = _controller.text.trim();
-    final isValid =
-        email.isNotEmpty && email.contains('@') && !email.startsWith('@');
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: AppSpacing.xl,
+          right: AppSpacing.xl,
+          top: AppSpacing.lg,
+          bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 32,
+                height: 4,
+                margin: const EdgeInsets.only(
+                  bottom: AppSpacing.lg,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.textTertiary,
+                  borderRadius: BorderRadius.circular(
+                    AppSpacing.radiusFull,
+                  ),
+                ),
+              ),
+            ),
+            Text(
+              'Invite Human',
+              style: AppTypography.headline.copyWith(
+                color: colors.text,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+
+            // --- Email section ---
+            Text(
+              'Send email invite',
+              style: AppTypography.title.copyWith(
+                color: colors.text,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey(
+                      'members-invite-email-field',
+                    ),
+                    controller: _emailController,
+                    autofocus: true,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      hintText: 'user@example.com',
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                FilledButton(
+                  key: const ValueKey(
+                    'members-invite-email-submit',
+                  ),
+                  onPressed:
+                      _isValidEmail && !_isSendingEmail ? _sendEmail : null,
+                  child: _isSendingEmail
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Send'),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.xl),
+
+            // --- Link section ---
+            Text(
+              'Or share invite link',
+              style: AppTypography.title.copyWith(
+                color: colors.text,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            if (_inviteLink != null) ...[
+              Container(
+                padding: const EdgeInsets.all(
+                  AppSpacing.md,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.surfaceAlt,
+                  borderRadius: BorderRadius.circular(
+                    AppSpacing.radiusMd,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _inviteLink!,
+                        key: const ValueKey(
+                          'members-invite-link-text',
+                        ),
+                        style: AppTypography.body.copyWith(
+                          color: colors.text,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    IconButton(
+                      key: const ValueKey(
+                        'members-invite-link-copy',
+                      ),
+                      icon: const Icon(Icons.copy),
+                      onPressed: _copyLink,
+                      tooltip: 'Copy link',
+                    ),
+                  ],
+                ),
+              ),
+            ] else
+              FilledButton.icon(
+                key: const ValueKey(
+                  'members-invite-generate-link',
+                ),
+                onPressed: _isGeneratingLink ? null : _generateLink,
+                icon: _isGeneratingLink
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(Icons.link),
+                label: const Text('Generate Link'),
+              ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- Change role dialog ---
+
+class _ChangeRoleDialog extends StatefulWidget {
+  const _ChangeRoleDialog({
+    required this.currentRole,
+    required this.initialSelection,
+  });
+
+  final String currentRole;
+  final String initialSelection;
+
+  @override
+  State<_ChangeRoleDialog> createState() => _ChangeRoleDialogState();
+}
+
+class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
+  late String _selectedRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.initialSelection;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Invite Human'),
-      content: TextField(
-        key: const ValueKey(
-          'members-invite-email-field',
-        ),
-        controller: _controller,
-        autofocus: true,
-        keyboardType: TextInputType.emailAddress,
-        decoration: const InputDecoration(
-          labelText: 'Email',
-          hintText: 'user@example.com',
-        ),
-        onChanged: (_) => setState(() {}),
+      key: const ValueKey('members-change-role-dialog'),
+      title: const Text('Change Role'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          RadioListTile<String>(
+            key: const ValueKey(
+              'members-role-option-admin',
+            ),
+            title: const Text('Admin'),
+            subtitle: const Text(
+              'Can manage members and invite',
+            ),
+            value: 'admin',
+            groupValue: _selectedRole,
+            onChanged: (value) => setState(() => _selectedRole = value!),
+          ),
+          RadioListTile<String>(
+            key: const ValueKey(
+              'members-role-option-member',
+            ),
+            title: const Text('Member'),
+            subtitle: const Text('Standard workspace access'),
+            value: 'member',
+            groupValue: _selectedRole,
+            onChanged: (value) => setState(() => _selectedRole = value!),
+          ),
+        ],
       ),
       actions: [
         TextButton(
@@ -556,10 +810,12 @@ class _InviteHumanDialogState extends State<_InviteHumanDialog> {
         ),
         FilledButton(
           key: const ValueKey(
-            'members-invite-email-submit',
+            'members-change-role-confirm',
           ),
-          onPressed: isValid ? () => Navigator.of(context).pop(email) : null,
-          child: const Text('Send Invite'),
+          onPressed: _selectedRole == widget.currentRole
+              ? null
+              : () => Navigator.of(context).pop(_selectedRole),
+          child: const Text('Confirm'),
         ),
       ],
     );
