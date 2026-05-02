@@ -198,10 +198,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get navWorkspace => 'Home';
 
   @override
-  String get navChannels => 'Channels';
+  String get navChannels => 'Canales';
 
   @override
-  String get navDms => 'Messages';
+  String get navDms => 'Mensajes';
 
   @override
   String get navAgents => 'Agents';

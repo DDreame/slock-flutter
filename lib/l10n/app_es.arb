@@ -62,8 +62,8 @@
   "verifyEmailResendFailedFallback": "Failed to resend verification email.",
 
   "navWorkspace": "Home",
-  "navChannels": "Channels",
-  "navDms": "Messages",
+  "navChannels": "Canales",
+  "navDms": "Mensajes",
   "navAgents": "Agents",
   "navSettings": "Settings",
 
