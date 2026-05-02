@@ -307,12 +307,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String homeCardAgentsIdle(int count) {
-    return '$count idle';
-  }
-
-  @override
-  String get homeCardAgentsEmpty => 'All agents idle';
+  String get homeCardAgentsEmpty => 'All agents offline';
 
   @override
   String get homeCardChannels => 'CHANNELS';
@@ -389,7 +384,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeCardThreadsEmpty => 'No threads';
 
   @override
-  String get homeCardAgentActivityIdle => 'idle';
+  String get homeCardAgentActivityOnline => 'online';
 
   @override
   String get homeCardAgentActivityThinking => 'thinking';

@@ -250,12 +250,13 @@ int _agentActivityPriority(AgentItem agent) {
 
 const _maxVisibleAgents = 3;
 
-/// Whether an agent is considered "busy" (working/thinking/error) —
+/// Whether an agent is considered "active" (working/thinking/error/online) —
 /// these are shown as individual rows.
-bool _isAgentBusy(AgentItem agent) {
+bool _isAgentActive(AgentItem agent) {
   return agent.activity == 'working' ||
       agent.activity == 'thinking' ||
-      agent.activity == 'error';
+      agent.activity == 'error' ||
+      agent.activity == 'online';
 }
 
 class _HomeAgentsSection extends StatelessWidget {
@@ -282,21 +283,15 @@ class _HomeAgentsSection extends StatelessWidget {
             _agentActivityPriority(a).compareTo(_agentActivityPriority(b)),
       );
 
-    final busy = sorted.where((a) => _isAgentBusy(a)).toList();
-    final idle = sorted.where((a) => a.activity == 'online').toList();
-    final stopped = sorted
-        .where(
-          (a) => !_isAgentBusy(a) && a.activity != 'online',
-        )
-        .toList();
+    final active = sorted.where((a) => _isAgentActive(a)).toList();
+    final stopped = sorted.where((a) => !_isAgentActive(a)).toList();
 
-    // Chip counts match original semantics
-    final online =
-        agents.where((a) => a.isActive && a.activity != 'error').length;
+    // Chip counts — each bucket counted independently
+    final online = agents.where((a) => a.activity == 'online').length;
     final errorCount = agents.where((a) => a.activity == 'error').length;
 
-    // Show up to 3 busy agents as rows
-    final visibleAgents = busy.take(_maxVisibleAgents).toList();
+    // Show up to 3 active agents as rows
+    final visibleAgents = active.take(_maxVisibleAgents).toList();
     final hasActiveRows = visibleAgents.isNotEmpty;
 
     return _SummaryCardBase(
@@ -364,12 +359,11 @@ class _HomeAgentsSection extends StatelessWidget {
             ),
           ],
 
-          // Fold: idle + stopped summary
-          if (idle.isNotEmpty || stopped.isNotEmpty) ...[
+          // Fold: stopped/offline summary
+          if (stopped.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             _AgentFoldSummary(
               key: const ValueKey('home-agents-fold'),
-              idleCount: idle.length,
               stoppedCount: stopped.length,
               onTap: onViewAll,
             ),
@@ -410,12 +404,10 @@ class _AgentsEmptyState extends StatelessWidget {
 class _AgentFoldSummary extends StatelessWidget {
   const _AgentFoldSummary({
     super.key,
-    required this.idleCount,
     required this.stoppedCount,
     required this.onTap,
   });
 
-  final int idleCount;
   final int stoppedCount;
   final VoidCallback onTap;
 
@@ -424,14 +416,7 @@ class _AgentFoldSummary extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
-    final parts = <String>[];
-    if (idleCount > 0) {
-      parts.add(l10n.homeCardAgentsIdle(idleCount));
-    }
-    if (stoppedCount > 0) {
-      parts.add(l10n.homeCardAgentsStopped(stoppedCount));
-    }
-    final text = parts.join(' \u00b7 ');
+    final text = l10n.homeCardAgentsStopped(stoppedCount);
 
     return GestureDetector(
       onTap: onTap,
@@ -558,7 +543,7 @@ class _MiniAgentRow extends StatelessWidget {
   ) {
     final l10n = context.l10n;
     return switch (activity) {
-      'online' => l10n.homeCardAgentActivityIdle,
+      'online' => l10n.homeCardAgentActivityOnline,
       'thinking' => l10n.homeCardAgentActivityThinking,
       'working' => l10n.homeCardAgentActivityWorking,
       'error' => l10n.homeCardAgentActivityError,

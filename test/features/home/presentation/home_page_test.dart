@@ -108,6 +108,15 @@ void main() {
                   status: 'stopped',
                   activity: 'offline',
                 ),
+                AgentItem(
+                  id: 'a4',
+                  name: 'delta',
+                  displayName: 'Delta',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'online',
+                ),
               ],
             ),
           ),
@@ -119,11 +128,11 @@ void main() {
 
         // Agent count
         expect(
-          find.descendant(of: card, matching: find.text('3')),
+          find.descendant(of: card, matching: find.text('4')),
           findsOneWidget,
         );
 
-        // Status chips
+        // Status chips (each bucket counted independently)
         expect(
           find.descendant(
             of: card,
@@ -139,8 +148,7 @@ void main() {
           findsOneWidget,
         );
 
-        // "1 stopped" appears in both the status chip and fold
-        // summary (0 idle agents → fold text is just "1 stopped").
+        // "1 stopped" in both chip and fold summary
         expect(
           find.descendant(
             of: card,
@@ -149,7 +157,7 @@ void main() {
           findsNWidgets(2),
         );
 
-        // Busy agent rows (working/error shown, stopped folded)
+        // Active agent rows: working, error, online visible
         expect(
           find.descendant(
             of: card,
@@ -163,6 +171,12 @@ void main() {
             matching: find.text('Beta'),
           ),
           findsOneWidget,
+        );
+        // Delta (online) is active → shown as row (max 3)
+        expect(
+          find.byKey(const ValueKey('agent-row-a4')),
+          findsOneWidget,
+          reason: 'Online agents should be visible rows',
         );
 
         // Gamma is stopped → appears in fold, not as a row
@@ -191,8 +205,8 @@ void main() {
               agents: [
                 AgentItem(
                   id: 'a1',
-                  name: 'idle-agent',
-                  displayName: 'Idle',
+                  name: 'online-agent',
+                  displayName: 'Online',
                   model: 'claude',
                   runtime: 'docker',
                   status: 'active',
@@ -222,41 +236,34 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final card = find.byKey(const ValueKey('home-card-agents'));
-
-        // Worker and Thinker should appear as active rows
+        // All three are active → shown as rows
         final workerRow = find.byKey(const ValueKey('agent-row-a2'));
         final thinkerRow = find.byKey(const ValueKey('agent-row-a3'));
+        final onlineRow = find.byKey(const ValueKey('agent-row-a1'));
         expect(workerRow, findsOneWidget);
         expect(thinkerRow, findsOneWidget);
+        expect(onlineRow, findsOneWidget);
 
-        // Worker (priority 0) should be above Thinker (priority 1)
+        // Worker (priority 0) above Thinker (priority 1)
+        // above Online (priority 3)
         final workerY = tester.getTopLeft(workerRow).dy;
         final thinkerY = tester.getTopLeft(thinkerRow).dy;
+        final onlineY = tester.getTopLeft(onlineRow).dy;
         expect(
           workerY,
           lessThan(thinkerY),
           reason: 'Working agents should sort before thinking',
         );
-
-        // Idle agent should be in fold, not as a row
         expect(
-          find.byKey(const ValueKey('agent-row-a1')),
-          findsNothing,
-          reason: 'Online/idle agents should be folded',
+          thinkerY,
+          lessThan(onlineY),
+          reason: 'Thinking agents should sort before online',
         );
+
+        // No stopped → no fold
         expect(
           find.byKey(const ValueKey('home-agents-fold')),
-          findsOneWidget,
-        );
-
-        // Fold should show idle count
-        expect(
-          find.descendant(
-            of: card,
-            matching: find.textContaining('1 idle'),
-          ),
-          findsOneWidget,
+          findsNothing,
         );
       },
     );
@@ -317,7 +324,7 @@ void main() {
     );
 
     testWidgets(
-      'agents card shows empty state when all idle',
+      'agents card shows empty state when all stopped',
       (tester) async {
         final router = _buildRouter();
 
@@ -329,17 +336,17 @@ void main() {
               agents: [
                 AgentItem(
                   id: 'a1',
-                  name: 'idle1',
-                  displayName: 'Idle One',
+                  name: 'stopped1',
+                  displayName: 'Stopped One',
                   model: 'claude',
                   runtime: 'docker',
-                  status: 'active',
-                  activity: 'online',
+                  status: 'stopped',
+                  activity: 'offline',
                 ),
                 AgentItem(
                   id: 'a2',
-                  name: 'stopped1',
-                  displayName: 'Stopped One',
+                  name: 'stopped2',
+                  displayName: 'Stopped Two',
                   model: 'claude',
                   runtime: 'docker',
                   status: 'stopped',
@@ -366,7 +373,7 @@ void main() {
     );
 
     testWidgets(
-      'agents card fold shows idle and stopped counts',
+      'agents card fold shows stopped count',
       (tester) async {
         final router = _buildRouter();
 
@@ -387,8 +394,8 @@ void main() {
                 ),
                 AgentItem(
                   id: 'a2',
-                  name: 'idle1',
-                  displayName: 'Idle 1',
+                  name: 'online1',
+                  displayName: 'Online 1',
                   model: 'claude',
                   runtime: 'docker',
                   status: 'active',
@@ -396,17 +403,17 @@ void main() {
                 ),
                 AgentItem(
                   id: 'a3',
-                  name: 'idle2',
-                  displayName: 'Idle 2',
+                  name: 'stopped1',
+                  displayName: 'Stopped 1',
                   model: 'claude',
                   runtime: 'docker',
-                  status: 'active',
-                  activity: 'online',
+                  status: 'stopped',
+                  activity: 'offline',
                 ),
                 AgentItem(
                   id: 'a4',
-                  name: 'stopped1',
-                  displayName: 'Stopped 1',
+                  name: 'stopped2',
+                  displayName: 'Stopped 2',
                   model: 'claude',
                   runtime: 'docker',
                   status: 'stopped',
@@ -418,33 +425,36 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final card = find.byKey(const ValueKey('home-card-agents'));
         final fold = find.byKey(const ValueKey('home-agents-fold'));
         expect(fold, findsOneWidget);
 
-        // Fold text should contain "2 idle" and "1 stopped"
+        // Fold shows stopped count only
         expect(
           find.descendant(
             of: fold,
-            matching: find.textContaining('2 idle'),
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(
-            of: fold,
-            matching: find.textContaining('1 stopped'),
+            matching: find.textContaining('2 stopped'),
           ),
           findsOneWidget,
         );
 
-        // Status chip also shows "1 stopped" separately
+        // Active agents shown as rows
         expect(
-          find.descendant(
-            of: card,
-            matching: find.text('1 stopped'),
-          ),
+          find.byKey(const ValueKey('agent-row-a1')),
           findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('agent-row-a2')),
+          findsOneWidget,
+        );
+
+        // Stopped agents not shown as rows
+        expect(
+          find.byKey(const ValueKey('agent-row-a3')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('agent-row-a4')),
+          findsNothing,
         );
       },
     );

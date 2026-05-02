@@ -640,16 +640,10 @@ abstract class AppLocalizations {
   /// **'{count} stopped'**
   String homeCardAgentsStopped(int count);
 
-  /// No description provided for @homeCardAgentsIdle.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} idle'**
-  String homeCardAgentsIdle(int count);
-
   /// No description provided for @homeCardAgentsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'All agents idle'**
+  /// **'All agents offline'**
   String get homeCardAgentsEmpty;
 
   /// No description provided for @homeCardChannels.
@@ -772,11 +766,11 @@ abstract class AppLocalizations {
   /// **'No threads'**
   String get homeCardThreadsEmpty;
 
-  /// No description provided for @homeCardAgentActivityIdle.
+  /// No description provided for @homeCardAgentActivityOnline.
   ///
   /// In en, this message translates to:
-  /// **'idle'**
-  String get homeCardAgentActivityIdle;
+  /// **'online'**
+  String get homeCardAgentActivityOnline;
 
   /// No description provided for @homeCardAgentActivityThinking.
   ///
