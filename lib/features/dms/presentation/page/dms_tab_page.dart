@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
