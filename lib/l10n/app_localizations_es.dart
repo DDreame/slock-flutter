@@ -314,6 +314,14 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
+  String homeCardAgentsIdle(int count) {
+    return '$count inactivos';
+  }
+
+  @override
+  String get homeCardAgentsEmpty => 'Todos los agentes inactivos';
+
+  @override
   String get homeCardChannels => 'CANALES';
 
   @override

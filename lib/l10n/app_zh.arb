@@ -98,6 +98,8 @@
   "homeCardAgentsOnline": "{count} 在线",
   "homeCardAgentsError": "{count} 错误",
   "homeCardAgentsStopped": "{count} 已停止",
+  "homeCardAgentsIdle": "{count} 空闲",
+  "homeCardAgentsEmpty": "所有智能体空闲",
   "homeCardChannels": "频道",
   "homeCardChannelsSubtitle": "活跃频道",
   "homeCardChannelsUnread": "{count} 未读",

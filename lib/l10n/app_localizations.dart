@@ -640,6 +640,18 @@ abstract class AppLocalizations {
   /// **'{count} stopped'**
   String homeCardAgentsStopped(int count);
 
+  /// No description provided for @homeCardAgentsIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} idle'**
+  String homeCardAgentsIdle(int count);
+
+  /// No description provided for @homeCardAgentsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'All agents idle'**
+  String get homeCardAgentsEmpty;
+
   /// No description provided for @homeCardChannels.
   ///
   /// In en, this message translates to:

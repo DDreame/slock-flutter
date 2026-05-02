@@ -71,7 +71,7 @@ void main() {
     });
 
     testWidgets(
-      'agents card shows count and status chips',
+      'agents card shows count, status chips, and sorted rows',
       (tester) async {
         final router = _buildRouter();
 
@@ -138,25 +138,312 @@ void main() {
           ),
           findsOneWidget,
         );
+
+        // "1 stopped" appears in both the status chip and fold
+        // summary (0 idle agents → fold text is just "1 stopped").
         expect(
           find.descendant(
             of: card,
             matching: find.text('1 stopped'),
           ),
+          findsNWidgets(2),
+        );
+
+        // Busy agent rows (working/error shown, stopped folded)
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('Alpha'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('Beta'),
+          ),
           findsOneWidget,
         );
 
-        // Mini agent rows (top 3)
+        // Gamma is stopped → appears in fold, not as a row
         expect(
-          find.descendant(of: card, matching: find.text('Alpha')),
+          find.byKey(const ValueKey('agent-row-a3')),
+          findsNothing,
+          reason: 'Stopped agents should be folded',
+        );
+        expect(
+          find.byKey(const ValueKey('home-agents-fold')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'agents card sorting: working/thinking before online',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            agentsRepository: const _FakeAgentsRepository(
+              agents: [
+                AgentItem(
+                  id: 'a1',
+                  name: 'idle-agent',
+                  displayName: 'Idle',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'online',
+                ),
+                AgentItem(
+                  id: 'a2',
+                  name: 'working-agent',
+                  displayName: 'Worker',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'working',
+                ),
+                AgentItem(
+                  id: 'a3',
+                  name: 'thinking-agent',
+                  displayName: 'Thinker',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'thinking',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final card = find.byKey(const ValueKey('home-card-agents'));
+
+        // Worker and Thinker should appear as active rows
+        final workerRow = find.byKey(const ValueKey('agent-row-a2'));
+        final thinkerRow = find.byKey(const ValueKey('agent-row-a3'));
+        expect(workerRow, findsOneWidget);
+        expect(thinkerRow, findsOneWidget);
+
+        // Worker (priority 0) should be above Thinker (priority 1)
+        final workerY = tester.getTopLeft(workerRow).dy;
+        final thinkerY = tester.getTopLeft(thinkerRow).dy;
+        expect(
+          workerY,
+          lessThan(thinkerY),
+          reason: 'Working agents should sort before thinking',
+        );
+
+        // Idle agent should be in fold, not as a row
+        expect(
+          find.byKey(const ValueKey('agent-row-a1')),
+          findsNothing,
+          reason: 'Online/idle agents should be folded',
+        );
+        expect(
+          find.byKey(const ValueKey('home-agents-fold')),
+          findsOneWidget,
+        );
+
+        // Fold should show idle count
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.textContaining('1 idle'),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'agents card max 3 active rows',
+      (tester) async {
+        final router = _buildRouter();
+
+        final agents = List.generate(
+          5,
+          (i) => AgentItem(
+            id: 'a$i',
+            name: 'agent-$i',
+            displayName: 'Agent $i',
+            model: 'claude',
+            runtime: 'docker',
+            status: 'active',
+            activity: 'working',
+          ),
+        );
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            agentsRepository: _FakeAgentsRepository(agents: agents),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // First 3 should be visible
+        expect(
+          find.byKey(const ValueKey('agent-row-a0')),
           findsOneWidget,
         );
         expect(
-          find.descendant(of: card, matching: find.text('Beta')),
+          find.byKey(const ValueKey('agent-row-a1')),
           findsOneWidget,
         );
         expect(
-          find.descendant(of: card, matching: find.text('Gamma')),
+          find.byKey(const ValueKey('agent-row-a2')),
+          findsOneWidget,
+        );
+
+        // 4th and 5th should NOT be visible as rows
+        expect(
+          find.byKey(const ValueKey('agent-row-a3')),
+          findsNothing,
+          reason: 'Max 3 active rows',
+        );
+        expect(
+          find.byKey(const ValueKey('agent-row-a4')),
+          findsNothing,
+          reason: 'Max 3 active rows',
+        );
+      },
+    );
+
+    testWidgets(
+      'agents card shows empty state when all idle',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            agentsRepository: const _FakeAgentsRepository(
+              agents: [
+                AgentItem(
+                  id: 'a1',
+                  name: 'idle1',
+                  displayName: 'Idle One',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'online',
+                ),
+                AgentItem(
+                  id: 'a2',
+                  name: 'stopped1',
+                  displayName: 'Stopped One',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'stopped',
+                  activity: 'offline',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Empty state should appear
+        expect(
+          find.byKey(const ValueKey('home-agents-empty')),
+          findsOneWidget,
+        );
+
+        // Fold should show counts
+        expect(
+          find.byKey(const ValueKey('home-agents-fold')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'agents card fold shows idle and stopped counts',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+            agentsRepository: const _FakeAgentsRepository(
+              agents: [
+                AgentItem(
+                  id: 'a1',
+                  name: 'working',
+                  displayName: 'Worker',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'working',
+                ),
+                AgentItem(
+                  id: 'a2',
+                  name: 'idle1',
+                  displayName: 'Idle 1',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'online',
+                ),
+                AgentItem(
+                  id: 'a3',
+                  name: 'idle2',
+                  displayName: 'Idle 2',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'active',
+                  activity: 'online',
+                ),
+                AgentItem(
+                  id: 'a4',
+                  name: 'stopped1',
+                  displayName: 'Stopped 1',
+                  model: 'claude',
+                  runtime: 'docker',
+                  status: 'stopped',
+                  activity: 'offline',
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final card = find.byKey(const ValueKey('home-card-agents'));
+        final fold = find.byKey(const ValueKey('home-agents-fold'));
+        expect(fold, findsOneWidget);
+
+        // Fold text should contain "2 idle" and "1 stopped"
+        expect(
+          find.descendant(
+            of: fold,
+            matching: find.textContaining('2 idle'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: fold,
+            matching: find.textContaining('1 stopped'),
+          ),
+          findsOneWidget,
+        );
+
+        // Status chip also shows "1 stopped" separately
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('1 stopped'),
+          ),
           findsOneWidget,
         );
       },

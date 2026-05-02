@@ -285,6 +285,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String homeCardAgentsIdle(int count) {
+    return '$count 空闲';
+  }
+
+  @override
+  String get homeCardAgentsEmpty => '所有智能体空闲';
+
+  @override
   String get homeCardChannels => '频道';
 
   @override

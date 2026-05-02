@@ -76,13 +76,20 @@ class _HomePageState extends ConsumerState<HomePage> {
                 AppSpacing.xl,
               ),
               children: [
-                _AgentsSummaryCard(
+                _HomeAgentsSection(
                   key: const ValueKey('home-card-agents'),
                   agents: [
                     ...state.pinnedAgents,
                     ...state.agents,
                   ],
                   onViewAll: () => _pushServerRoute('agents'),
+                  onAgentTap: (agent) {
+                    final sid = ref.read(activeServerScopeIdProvider)?.value;
+                    if (sid == null) return;
+                    context.push(
+                      '/servers/$sid/agents/${agent.id}',
+                    );
+                  },
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _ChannelsSummaryCard(
@@ -229,25 +236,68 @@ class _SummaryCardBase extends StatelessWidget {
 // Agents summary card
 // ---------------------------------------------------------------------------
 
-class _AgentsSummaryCard extends StatelessWidget {
-  const _AgentsSummaryCard({
+/// Priority order for sorting agents by activity.
+/// Lower = more prominent (shown first).
+int _agentActivityPriority(AgentItem agent) {
+  return switch (agent.activity) {
+    'working' => 0,
+    'thinking' => 1,
+    'error' => 2,
+    'online' => 3,
+    _ => 4, // stopped / offline
+  };
+}
+
+const _maxVisibleAgents = 3;
+
+/// Whether an agent is considered "busy" (working/thinking/error) —
+/// these are shown as individual rows.
+bool _isAgentBusy(AgentItem agent) {
+  return agent.activity == 'working' ||
+      agent.activity == 'thinking' ||
+      agent.activity == 'error';
+}
+
+class _HomeAgentsSection extends StatelessWidget {
+  const _HomeAgentsSection({
     super.key,
     required this.agents,
     required this.onViewAll,
+    required this.onAgentTap,
   });
 
   final List<AgentItem> agents;
   final VoidCallback onViewAll;
+  final void Function(AgentItem agent) onAgentTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
+    // Sort: working/thinking/error → online → stopped/offline
+    final sorted = List.of(agents)
+      ..sort(
+        (a, b) =>
+            _agentActivityPriority(a).compareTo(_agentActivityPriority(b)),
+      );
+
+    final busy = sorted.where((a) => _isAgentBusy(a)).toList();
+    final idle = sorted.where((a) => a.activity == 'online').toList();
+    final stopped = sorted
+        .where(
+          (a) => !_isAgentBusy(a) && a.activity != 'online',
+        )
+        .toList();
+
+    // Chip counts match original semantics
     final online =
         agents.where((a) => a.isActive && a.activity != 'error').length;
-    final error = agents.where((a) => a.activity == 'error').length;
-    final stopped = agents.where((a) => !a.isActive).length;
+    final errorCount = agents.where((a) => a.activity == 'error').length;
+
+    // Show up to 3 busy agents as rows
+    final visibleAgents = busy.take(_maxVisibleAgents).toList();
+    final hasActiveRows = visibleAgents.isNotEmpty;
 
     return _SummaryCardBase(
       accentColor: colors.primary,
@@ -256,6 +306,7 @@ class _AgentsSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Total count + subtitle
           Text(
             '${agents.length}',
             style: AppTypography.displayMedium.copyWith(
@@ -270,6 +321,8 @@ class _AgentsSummaryCard extends StatelessWidget {
               color: colors.textTertiary,
             ),
           ),
+
+          // Status chips
           const SizedBox(height: AppSpacing.md),
           Wrap(
             spacing: AppSpacing.sm,
@@ -280,21 +333,46 @@ class _AgentsSummaryCard extends StatelessWidget {
                   label: l10n.homeCardAgentsOnline(online),
                   color: colors.success,
                 ),
-              if (error > 0)
+              if (errorCount > 0)
                 _StatusChip(
-                  label: l10n.homeCardAgentsError(error),
+                  label: l10n.homeCardAgentsError(errorCount),
                   color: colors.error,
                 ),
-              if (stopped > 0)
+              if (stopped.isNotEmpty)
                 _StatusChip(
-                  label: l10n.homeCardAgentsStopped(stopped),
+                  label: l10n.homeCardAgentsStopped(
+                    stopped.length,
+                  ),
                   color: colors.warning,
                 ),
             ],
           ),
-          if (agents.isNotEmpty) ...[
+
+          // Active agent rows or empty state
+          if (hasActiveRows) ...[
             const SizedBox(height: AppSpacing.md),
-            for (final agent in agents.take(3)) _MiniAgentRow(agent: agent),
+            for (final agent in visibleAgents)
+              _MiniAgentRow(
+                key: ValueKey('agent-row-${agent.id}'),
+                agent: agent,
+                onTap: () => onAgentTap(agent),
+              ),
+          ] else if (agents.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            const _AgentsEmptyState(
+              key: ValueKey('home-agents-empty'),
+            ),
+          ],
+
+          // Fold: idle + stopped summary
+          if (idle.isNotEmpty || stopped.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _AgentFoldSummary(
+              key: const ValueKey('home-agents-fold'),
+              idleCount: idle.length,
+              stoppedCount: stopped.length,
+              onTap: onViewAll,
+            ),
           ],
         ],
       ),
@@ -302,10 +380,99 @@ class _AgentsSummaryCard extends StatelessWidget {
   }
 }
 
+class _AgentsEmptyState extends StatelessWidget {
+  const _AgentsEmptyState({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    return Row(
+      children: [
+        Icon(
+          Icons.check_circle_outline,
+          size: 20,
+          color: colors.textTertiary,
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text(
+          l10n.homeCardAgentsEmpty,
+          style: AppTypography.bodySmall.copyWith(
+            color: colors.textTertiary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AgentFoldSummary extends StatelessWidget {
+  const _AgentFoldSummary({
+    super.key,
+    required this.idleCount,
+    required this.stoppedCount,
+    required this.onTap,
+  });
+
+  final int idleCount;
+  final int stoppedCount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
+
+    final parts = <String>[];
+    if (idleCount > 0) {
+      parts.add(l10n.homeCardAgentsIdle(idleCount));
+    }
+    if (stoppedCount > 0) {
+      parts.add(l10n.homeCardAgentsStopped(stoppedCount));
+    }
+    final text = parts.join(' \u00b7 ');
+
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xs,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                text,
+                style: AppTypography.caption.copyWith(
+                  color: colors.textTertiary,
+                ),
+              ),
+            ),
+            Text(
+              '${l10n.homeCardViewAll} \u2192',
+              style: AppTypography.caption.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _MiniAgentRow extends StatelessWidget {
-  const _MiniAgentRow({required this.agent});
+  const _MiniAgentRow({
+    super.key,
+    required this.agent,
+    this.onTap,
+  });
 
   final AgentItem agent;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -317,69 +484,78 @@ class _MiniAgentRow extends StatelessWidget {
       _ => colors.textTertiary,
     };
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 28,
-            height: 28,
-            child: Stack(
-              children: [
-                CircleAvatar(
-                  radius: 14,
-                  backgroundColor: colors.primary.withAlpha(20),
-                  child: Text(
-                    agent.label.isNotEmpty ? agent.label[0].toUpperCase() : '?',
-                    style: AppTypography.caption.copyWith(
-                      color: colors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: dotColor,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: colors.surface,
-                        width: 2,
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 28,
+              height: 28,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: colors.primary.withAlpha(20),
+                    child: Text(
+                      agent.label.isNotEmpty
+                          ? agent.label[0].toUpperCase()
+                          : '?',
+                      style: AppTypography.caption.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(
-              agent.label,
-              style: AppTypography.bodySmall.copyWith(
-                color: colors.text,
-                fontWeight: FontWeight.w500,
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: colors.surface,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          Text(
-            _activityText(context, agent.activity),
-            style: AppTypography.caption.copyWith(
-              color: colors.textTertiary,
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                agent.label,
+                style: AppTypography.bodySmall.copyWith(
+                  color: colors.text,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-        ],
+            Text(
+              _activityText(context, agent.activity),
+              style: AppTypography.caption.copyWith(
+                color: colors.textTertiary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  String _activityText(BuildContext context, String activity) {
+  String _activityText(
+    BuildContext context,
+    String activity,
+  ) {
     final l10n = context.l10n;
     return switch (activity) {
       'online' => l10n.homeCardAgentActivityIdle,

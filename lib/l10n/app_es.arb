@@ -97,6 +97,8 @@
   "homeCardAgentsOnline": "{count} en linea",
   "homeCardAgentsError": "{count} error",
   "homeCardAgentsStopped": "{count} detenidos",
+  "homeCardAgentsIdle": "{count} inactivos",
+  "homeCardAgentsEmpty": "Todos los agentes inactivos",
   "homeCardChannels": "CANALES",
   "homeCardChannelsSubtitle": "canales activos",
   "homeCardChannelsUnread": "{count} sin leer",
