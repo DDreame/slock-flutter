@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/network/network_config.dart';
+import 'package:slock_app/core/notifications/android_foreground_service_manager.dart';
 import 'package:slock_app/core/notifications/android_notification_initializer.dart';
+import 'package:slock_app/core/notifications/foreground_service_manager.dart';
 import 'package:slock_app/core/notifications/ios_notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/realtime/providers.dart';
@@ -40,6 +42,7 @@ Future<AppBootstrapResult> appBootstrap({
   );
   final diagnostics = DiagnosticsCollector();
   final notificationInitializer = createNotificationInitializer();
+  final foregroundServiceManager = createForegroundServiceManager();
   final apiBaseUrl = _validatedRuntimeEndpoint(
     key: apiBaseUrlEnvironmentKey,
     rawValue: environmentReader(apiBaseUrlEnvironmentKey),
@@ -60,6 +63,9 @@ Future<AppBootstrapResult> appBootstrap({
       diagnosticsCollectorProvider.overrideWithValue(diagnostics),
       notificationInitializerProvider.overrideWithValue(
         notificationInitializer,
+      ),
+      foregroundServiceManagerProvider.overrideWithValue(
+        foregroundServiceManager,
       ),
       networkConfigProvider.overrideWithValue(
         NetworkConfig(baseUrl: apiBaseUrl),
@@ -124,6 +130,17 @@ NotificationInitializer createNotificationInitializer({
     return const IosNotificationInitializer();
   }
   return NoOpNotificationInitializer();
+}
+
+ForegroundServiceManager createForegroundServiceManager({
+  TargetPlatform? platform,
+  bool isWeb = kIsWeb,
+}) {
+  final targetPlatform = platform ?? defaultTargetPlatform;
+  if (!isWeb && targetPlatform == TargetPlatform.android) {
+    return const AndroidForegroundServiceManager();
+  }
+  return const NoOpForegroundServiceManager();
 }
 
 void installErrorHandlers(
