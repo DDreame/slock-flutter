@@ -11,6 +11,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/application/home_tasks_realtime_binding.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
@@ -95,6 +96,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 _HomeTasksSection(
                   key: const ValueKey('home-card-tasks'),
                   taskItems: state.taskItems,
+                  channels: state.channels,
                   onViewAll: () => _pushServerRoute('tasks'),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -438,11 +440,20 @@ class _HomeTasksSection extends ConsumerWidget {
   const _HomeTasksSection({
     super.key,
     required this.taskItems,
+    required this.channels,
     required this.onViewAll,
   });
 
   final List<TaskItem> taskItems;
+  final List<HomeChannelSummary> channels;
   final VoidCallback onViewAll;
+
+  String _channelName(String channelId) {
+    for (final ch in channels) {
+      if (ch.scopeId.value == channelId) return ch.name;
+    }
+    return channelId;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -480,6 +491,7 @@ class _HomeTasksSection extends ConsumerWidget {
                   _TaskItemRow(
                     key: ValueKey('task-item-${task.id}'),
                     task: task,
+                    channelName: _channelName(task.channelId),
                     now: now,
                   ),
                 if (overflowCount > 0)
@@ -532,10 +544,12 @@ class _TaskItemRow extends StatelessWidget {
   const _TaskItemRow({
     super.key,
     required this.task,
+    required this.channelName,
     required this.now,
   });
 
   final TaskItem task;
+  final String channelName;
   final DateTime now;
 
   @override
@@ -567,7 +581,7 @@ class _TaskItemRow extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '#${task.channelId}',
+                      '#$channelName',
                       style: AppTypography.caption.copyWith(
                         color: colors.textTertiary,
                       ),
@@ -635,11 +649,11 @@ class _DurationChip extends StatelessWidget {
     final hours = duration.inHours;
     final minutes = totalMinutes % 60;
 
-    // Color: blue <1h, yellow 1-4h, red >4h
+    // Color: blue <1h, orange 1-4h, red >4h
     final Color chipColor;
     if (hours < 1) {
       chipColor = Colors.blue;
-    } else if (hours < 4) {
+    } else if (hours <= 4) {
       chipColor = Colors.orange;
     } else {
       chipColor = Colors.red;
@@ -649,7 +663,7 @@ class _DurationChip extends StatelessWidget {
     final String text;
     if (hours < 1) {
       text = l10n.homeCardTasksDurationMinutes(totalMinutes);
-    } else if (hours < 4) {
+    } else if (hours <= 4) {
       text = l10n.homeCardTasksDurationHours(hours, minutes);
     } else {
       text = l10n.homeCardTasksDurationHoursOnly(hours);

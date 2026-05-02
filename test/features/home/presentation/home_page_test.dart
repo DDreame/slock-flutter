@@ -626,16 +626,85 @@ void main() {
     );
 
     testWidgets(
-      'task row shows source channel name',
+      'duration chip at exactly 4h boundary stays orange',
       (tester) async {
         final router = _buildRouter();
+        final now = DateTime(2026, 1, 1, 12);
+        final claimedAt = now.subtract(const Duration(hours: 4));
 
         await tester.pumpWidget(
           _buildApp(
             router: router,
+            now: now,
             homeRepository: const _FakeHomeRepository(
               _sampleSnapshot,
             ),
+            tasksRepository: _FakeTasksRepository(
+              tasks: [
+                TaskItem(
+                  id: 't-4h',
+                  taskNumber: 1,
+                  title: 'Exactly 4h',
+                  status: 'in_progress',
+                  channelId: 'general',
+                  channelType: 'channel',
+                  claimedById: 'u1',
+                  claimedByName: 'Bob',
+                  claimedByType: 'user',
+                  claimedAt: claimedAt,
+                  createdById: 'u1',
+                  createdByName: 'Bob',
+                  createdByType: 'user',
+                  createdAt: claimedAt,
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final chip = find.byKey(
+          const ValueKey('task-duration-t-4h'),
+        );
+        expect(chip, findsOneWidget);
+
+        // 4h should use hours+minutes format (orange),
+        // not hoursOnly format (red)
+        expect(
+          find.descendant(
+            of: chip,
+            matching: find.text('4h 0m'),
+          ),
+          findsOneWidget,
+          reason: 'Exactly 4h should stay in the 1-4h orange '
+              'range, not overflow to red',
+        );
+      },
+    );
+
+    testWidgets(
+      'task row shows resolved channel name instead of raw ID',
+      (tester) async {
+        final router = _buildRouter();
+
+        const snapshot = HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'ch-uuid-123',
+              ),
+              name: 'design-reviews',
+            ),
+          ],
+          directMessages: [],
+        );
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(snapshot),
             tasksRepository: _FakeTasksRepository(
               tasks: [
                 TaskItem(
@@ -643,7 +712,7 @@ void main() {
                   taskNumber: 1,
                   title: 'Channel task',
                   status: 'todo',
-                  channelId: 'general',
+                  channelId: 'ch-uuid-123',
                   channelType: 'channel',
                   createdById: 'u1',
                   createdByName: 'Alice',
@@ -660,10 +729,11 @@ void main() {
         expect(
           find.descendant(
             of: row,
-            matching: find.text('#general'),
+            matching: find.text('#design-reviews'),
           ),
           findsOneWidget,
-          reason: 'Task row should display source channel',
+          reason: 'Task row should display resolved channel name, '
+              'not raw ID',
         );
       },
     );
