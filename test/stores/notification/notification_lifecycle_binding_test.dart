@@ -138,7 +138,8 @@ void main() {
         (tester) async {
       final fakeInitializer = _FakeNotificationInitializer();
       fakeInitializer.permissionStatus = NotificationPermissionStatus.granted;
-      fakeInitializer.tokenResult = 'resume-token';
+      // Return null during init so auto-refresh on init is a no-op.
+      fakeInitializer.tokenResult = null;
 
       final container = ProviderContainer(
         overrides: [
@@ -150,8 +151,14 @@ void main() {
 
       // Init the store so permission status is populated.
       await container.read(notificationStoreProvider.notifier).init();
+      // Token should still be null after init (getToken returned null).
+      expect(container.read(notificationStoreProvider).pushToken, isNull);
+
       // Activate the lifecycle binding.
       container.read(notificationLifecycleBindingProvider);
+
+      // Now make getToken() return a real token for the resume path.
+      fakeInitializer.tokenResult = 'resume-token';
 
       // Simulate resume.
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
