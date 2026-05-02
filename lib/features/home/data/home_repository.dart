@@ -163,11 +163,21 @@ class HomeWorkspaceSnapshot {
     required this.serverId,
     required this.channels,
     required this.directMessages,
+    this.channelUnreadCounts = const {},
+    this.dmUnreadCounts = const {},
   });
 
   final ServerScopeId serverId;
   final List<HomeChannelSummary> channels;
   final List<HomeDirectMessageSummary> directMessages;
+
+  /// Per-channel unread counts keyed by raw channel id.
+  /// Populated only from the network response; cached snapshots
+  /// return empty maps.
+  final Map<String, int> channelUnreadCounts;
+
+  /// Per-DM unread counts keyed by raw DM channel id.
+  final Map<String, int> dmUnreadCounts;
 }
 
 class HomeChannelSummary {

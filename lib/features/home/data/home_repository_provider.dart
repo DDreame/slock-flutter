@@ -134,6 +134,8 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
     responses[1].data,
     serverId: serverId,
   );
+  final channelUnreadCounts = _parseUnreadCounts(responses[0].data);
+  final dmUnreadCounts = _parseUnreadCounts(responses[1].data);
 
   try {
     await localStore.upsertConversationSummaries([
@@ -198,6 +200,8 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
                 lastActivityAt: row.lastActivityAt,
               ))
           .toList(growable: false),
+      channelUnreadCounts: channelUnreadCounts,
+      dmUnreadCounts: dmUnreadCounts,
     );
   } on AppFailure {
     rethrow;
@@ -207,6 +211,8 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
       serverId: serverId,
       channels: channelSummaries,
       directMessages: directMessageSummaries,
+      channelUnreadCounts: channelUnreadCounts,
+      dmUnreadCounts: dmUnreadCounts,
     );
   }
 }
@@ -355,3 +361,25 @@ String _requireStringField(
 }
 
 String _describeType(Object? value) => value?.runtimeType.toString() ?? 'Null';
+
+/// Extracts a `{id: unreadCount}` map from a list payload.
+///
+/// Each item is expected to be a map with an `id` string field and an
+/// optional `unreadCount` integer field. Items without a positive
+/// `unreadCount` are excluded; malformed items are silently skipped so
+/// that unread parsing never blocks the main channel/DM load.
+Map<String, int> _parseUnreadCounts(Object? payload) {
+  if (payload is! List) return const {};
+  final result = <String, int>{};
+  for (final item in payload) {
+    if (item is! Map) continue;
+    final id = item['id'];
+    if (id is! String || id.isEmpty) continue;
+    final raw = item['unreadCount'];
+    final count = raw is int ? raw : (raw is num ? raw.toInt() : null);
+    if (count != null && count > 0) {
+      result[id] = count;
+    }
+  }
+  return result;
+}
