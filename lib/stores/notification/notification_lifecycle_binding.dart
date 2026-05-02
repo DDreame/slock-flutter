@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
+import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 
 AppLifecycleStatus mapAppLifecycleState(AppLifecycleState state) {
@@ -27,8 +30,15 @@ class _LifecycleObserver extends WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    _ref
-        .read(notificationStoreProvider.notifier)
-        .setLifecycleStatus(mapAppLifecycleState(state));
+    final store = _ref.read(notificationStoreProvider.notifier);
+    store.setLifecycleStatus(mapAppLifecycleState(state));
+    if (state == AppLifecycleState.resumed) {
+      final notifState = _ref.read(notificationStoreProvider);
+      if (notifState.permissionStatus == NotificationPermissionStatus.granted ||
+          notifState.permissionStatus ==
+              NotificationPermissionStatus.provisional) {
+        unawaited(store.refreshToken().catchError((_) {}));
+      }
+    }
   }
 }

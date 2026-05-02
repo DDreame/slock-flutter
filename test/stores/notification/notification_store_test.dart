@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -170,20 +171,23 @@ void main() {
       );
     });
 
-    test('refreshToken does not update when token unchanged', () async {
+    test('refreshToken updates timestamp even when token unchanged', () async {
       fakeInitializer.tokenResult = 'same-token';
       await readStore().refreshToken();
       final firstUpdatedAt = readState().pushTokenUpdatedAt;
 
+      // Small delay to ensure DateTime.now() differs
+      await Future<void>.delayed(const Duration(milliseconds: 2));
       await readStore().refreshToken();
 
-      expect(readState().pushTokenUpdatedAt, firstUpdatedAt);
+      // Timestamp should update on every successful refresh
+      expect(readState().pushTokenUpdatedAt, isNot(firstUpdatedAt));
     });
 
     test('refreshToken hydrates platform when token unchanged', () async {
       fakeInitializer.tokenResult = 'existing-token';
       await readStore().refreshToken();
-      expect(readState().pushTokenPlatform, isNull);
+      expect(readState().pushTokenPlatform, Platform.operatingSystem);
 
       await readStore().refreshToken(platform: 'android');
 
@@ -634,6 +638,107 @@ void main() {
           expect(entries.first.message, contains('denied'));
         },
       );
+    });
+
+    group('auto-refresh on init', () {
+      test('init auto-refreshes token when permission granted', () async {
+        fakeInitializer.nativePermissionStatus =
+            NotificationPermissionStatus.granted;
+        fakeInitializer.tokenResult = 'auto-token';
+
+        await readStore().init();
+
+        expect(readState().pushToken, 'auto-token');
+        expect(readState().pushTokenPlatform, Platform.operatingSystem);
+        expect(readState().pushTokenUpdatedAt, isNotNull);
+      });
+
+      test('init auto-refreshes token when permission provisional', () async {
+        fakeInitializer.nativePermissionStatus =
+            NotificationPermissionStatus.provisional;
+        fakeInitializer.tokenResult = 'provisional-token';
+
+        await readStore().init();
+
+        expect(readState().pushToken, 'provisional-token');
+        expect(
+          readState().pushTokenPlatform,
+          Platform.operatingSystem,
+        );
+        expect(readState().pushTokenUpdatedAt, isNotNull);
+      });
+
+      test('init does not auto-refresh when permission denied', () async {
+        fakeInitializer.nativePermissionStatus =
+            NotificationPermissionStatus.denied;
+        fakeInitializer.tokenResult = 'should-not-appear';
+
+        await readStore().init();
+
+        // Token should not be populated — only storage restore applies
+        expect(readState().pushToken, isNull);
+        expect(readState().pushTokenUpdatedAt, isNull);
+      });
+
+      test('init does not auto-refresh when permission unknown', () async {
+        fakeInitializer.nativePermissionStatus =
+            NotificationPermissionStatus.unknown;
+        fakeInitializer.tokenResult = 'should-not-appear';
+
+        await readStore().init();
+
+        expect(readState().pushToken, isNull);
+        expect(readState().pushTokenUpdatedAt, isNull);
+      });
+    });
+
+    group('auto-refresh on permission grant', () {
+      test('requestPermission auto-refreshes token when granted', () async {
+        fakeInitializer.permissionResult = NotificationPermissionStatus.granted;
+        fakeInitializer.tokenResult = 'permission-token';
+
+        await readStore().requestPermission();
+
+        expect(readState().pushToken, 'permission-token');
+        expect(
+          readState().pushTokenPlatform,
+          Platform.operatingSystem,
+        );
+        expect(readState().pushTokenUpdatedAt, isNotNull);
+      });
+
+      test('requestPermission does not auto-refresh when denied', () async {
+        fakeInitializer.permissionResult = NotificationPermissionStatus.denied;
+        fakeInitializer.tokenResult = 'should-not-appear';
+
+        await readStore().requestPermission();
+
+        expect(readState().pushToken, isNull);
+        expect(readState().pushTokenUpdatedAt, isNull);
+      });
+    });
+
+    group('platform auto-derivation', () {
+      test('refreshToken defaults platform to Platform.operatingSystem',
+          () async {
+        fakeInitializer.tokenResult = 'platform-token';
+
+        await readStore().refreshToken();
+
+        expect(readState().pushToken, 'platform-token');
+        expect(
+          readState().pushTokenPlatform,
+          Platform.operatingSystem,
+        );
+      });
+
+      test('refreshToken uses explicit platform when provided', () async {
+        fakeInitializer.tokenResult = 'explicit-token';
+
+        await readStore().refreshToken(platform: 'custom-os');
+
+        expect(readState().pushTokenPlatform, 'custom-os');
+      });
     });
   });
 

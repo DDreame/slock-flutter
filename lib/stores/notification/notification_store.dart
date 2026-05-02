@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
@@ -59,6 +60,8 @@ class NotificationStore extends Notifier<NotificationState> {
       _tapSubscription = null;
       rethrow;
     }
+    // Auto-refresh push token when permission is already granted.
+    await _autoRefreshTokenIfPermitted();
   }
 
   /// Requests notification permission if the status is still [unknown],
@@ -88,22 +91,26 @@ class NotificationStore extends Notifier<NotificationState> {
       tag: 'notification',
       message: 'Permission request result: ${status.name}',
     ));
+    // Auto-refresh push token when permission was just granted.
+    await _autoRefreshTokenIfPermitted();
   }
 
   Future<void> refreshToken({String? platform}) async {
+    platform ??= Platform.operatingSystem;
     final token = await _initializer.getToken();
     if (token == null) return;
+    final now = DateTime.now();
     final tokenChanged = token != state.pushToken;
-    final platformChanged =
-        platform != null && platform != state.pushTokenPlatform;
+    final platformChanged = platform != state.pushTokenPlatform;
+    // Always update the timestamp to reflect the last registration
+    // attempt, even when the token and platform are unchanged.
+    state = state.copyWith(
+      pushToken: token,
+      pushTokenPlatform: platform,
+      pushTokenUpdatedAt: now,
+    );
+    await _persistPushToken(token, now, platform: platform);
     if (tokenChanged || platformChanged) {
-      final now = DateTime.now();
-      state = state.copyWith(
-        pushToken: token,
-        pushTokenPlatform: platform,
-        pushTokenUpdatedAt: now,
-      );
-      await _persistPushToken(token, now, platform: platform);
       _diagnostics.add(DiagnosticsEntry(
         timestamp: DateTime.now(),
         level: DiagnosticsLevel.info,
@@ -179,6 +186,14 @@ class NotificationStore extends Notifier<NotificationState> {
       clearPushTokenUpdatedAt: true,
     );
     await NotificationStorageKeys.clear(_storage);
+  }
+
+  Future<void> _autoRefreshTokenIfPermitted() async {
+    final status = state.permissionStatus;
+    if (status == NotificationPermissionStatus.granted ||
+        status == NotificationPermissionStatus.provisional) {
+      await refreshToken();
+    }
   }
 
   Future<void> _persistPushToken(
