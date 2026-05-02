@@ -168,14 +168,21 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     );
 
     try {
-      final channelId = await ref
-          .read(memberRepositoryProvider)
-          .openDirectMessage(serverId, userId: userId);
+      final member = state.members.firstWhere((m) => m.id == userId);
+      final repo = ref.read(memberRepositoryProvider);
+      final channelId = member.isAgent
+          ? await repo.openAgentDirectMessage(serverId, agentId: userId)
+          : await repo.openDirectMessage(serverId, userId: userId);
       state = state.copyWith(clearOpeningDirectMessage: true);
       return channelId;
     } on AppFailure catch (failure) {
       state = state.copyWith(failure: failure, clearOpeningDirectMessage: true);
       rethrow;
     }
+  }
+
+  /// Update the search query for filtering the member list.
+  void setQuery(String query) {
+    state = state.copyWith(query: query);
   }
 }

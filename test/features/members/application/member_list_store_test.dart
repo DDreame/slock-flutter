@@ -74,6 +74,26 @@ void main() {
     },
   );
 
+  test(
+    'openDirectMessage routes agent members through agent DM path',
+    () async {
+      fakeRepository.members = const [
+        MemberProfile(
+          id: 'agent-1',
+          displayName: 'J1',
+          type: MemberType.agent,
+        ),
+      ];
+      await store().load();
+
+      final channelId = await store().openDirectMessage('agent-1');
+
+      expect(channelId, 'dm-agent-agent-1');
+      // Should NOT use the human openDirectMessage path
+      expect(fakeRepository.openRequests, isEmpty);
+    },
+  );
+
   test('createInvite returns code and clears invite busy state', () async {
     final inviteCode = await store().createInvite();
 
@@ -124,6 +144,82 @@ void main() {
       expect(state().isRemovingMember('user-456'), isFalse);
     },
   );
+
+  test('humans and agents getters split members by type', () async {
+    fakeRepository.members = const [
+      MemberProfile(
+        id: 'user-1',
+        displayName: 'Alice',
+        type: MemberType.human,
+      ),
+      MemberProfile(
+        id: 'agent-1',
+        displayName: 'J1',
+        type: MemberType.agent,
+      ),
+      MemberProfile(
+        id: 'user-2',
+        displayName: 'Bob',
+        type: MemberType.human,
+      ),
+    ];
+    await store().load();
+
+    expect(state().humans.length, 2);
+    expect(state().humans.map((m) => m.id), ['user-1', 'user-2']);
+    expect(state().agents.length, 1);
+    expect(state().agents.single.id, 'agent-1');
+  });
+
+  test('setQuery filters humans and agents by display name', () async {
+    fakeRepository.members = const [
+      MemberProfile(
+        id: 'user-1',
+        displayName: 'Alice',
+        type: MemberType.human,
+      ),
+      MemberProfile(
+        id: 'user-2',
+        displayName: 'Bob',
+        type: MemberType.human,
+      ),
+      MemberProfile(
+        id: 'agent-1',
+        displayName: 'J1 Agent',
+        type: MemberType.agent,
+      ),
+    ];
+    await store().load();
+
+    store().setQuery('ali');
+
+    expect(state().query, 'ali');
+    expect(state().humans.length, 1);
+    expect(state().humans.single.displayName, 'Alice');
+    expect(state().agents, isEmpty);
+  });
+
+  test('setQuery with empty string clears filter', () async {
+    fakeRepository.members = const [
+      MemberProfile(
+        id: 'user-1',
+        displayName: 'Alice',
+        type: MemberType.human,
+      ),
+      MemberProfile(
+        id: 'user-2',
+        displayName: 'Bob',
+        type: MemberType.human,
+      ),
+    ];
+    await store().load();
+    store().setQuery('ali');
+    expect(state().humans.length, 1);
+
+    store().setQuery('');
+
+    expect(state().humans.length, 2);
+  });
 }
 
 class _FakeMemberRepository

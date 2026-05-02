@@ -1,6 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/role_badge.dart';
+import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+
+/// Returns the [AppColors] token color for a given role string.
+///
+/// - owner → amber ([AppColors.warning])
+/// - admin → indigo ([AppColors.primary])
+/// - member / unknown → gray ([AppColors.textTertiary])
+Color memberRoleColor(AppColors colors, String? role) {
+  return switch (role) {
+    'owner' => colors.warning,
+    'admin' => colors.primary,
+    _ => colors.textTertiary,
+  };
+}
+
+/// Maps a presence string to a [GlowRingStatus] for agent members.
+GlowRingStatus _presenceToGlowStatus(String? presence) {
+  return switch (presence) {
+    'online' => GlowRingStatus.online,
+    'thinking' => GlowRingStatus.thinking,
+    'working' => GlowRingStatus.working,
+    'error' => GlowRingStatus.error,
+    _ => GlowRingStatus.offline,
+  };
+}
 
 class MemberListItem extends StatelessWidget {
   const MemberListItem({
@@ -28,30 +56,48 @@ class MemberListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
     final canManageTarget =
         canManageMember && !member.isSelf && member.role != 'owner';
-    final subtitle = [
-      if (member.role != null) formatMemberRoleLabel(member.role!),
-      if (member.presence != null) member.presence,
-      if (member.username != null) '@${member.username}',
-      member.id,
-    ].join(' • ');
+
+    final avatar = ProfileAvatar(
+      displayName: member.displayName,
+      avatarUrl: member.avatarUrl,
+      radius: 20,
+    );
 
     return ListTile(
       key: ValueKey('member-${member.id}'),
-      leading: ProfileAvatar(
-        displayName: member.displayName,
-        avatarUrl: member.avatarUrl,
-        radius: 20,
-      ),
+      leading: member.isAgent
+          ? StatusGlowRing(
+              key: ValueKey('member-status-${member.id}'),
+              status: _presenceToGlowStatus(member.presence),
+              size: 48,
+              child: avatar,
+            )
+          : avatar,
       title: Row(
         children: [
-          Expanded(child: Text(member.displayName)),
+          Expanded(
+            child: Text(
+              member.displayName,
+              style: AppTypography.body.copyWith(color: colors.text),
+            ),
+          ),
           if (member.role != null)
-            _MemberRoleBadge(role: member.role!, userId: member.id),
+            RoleBadge(
+              key: ValueKey('member-role-${member.id}'),
+              label: formatMemberRoleLabel(member.role!),
+              color: memberRoleColor(colors, member.role),
+            ),
         ],
       ),
-      subtitle: Text(subtitle),
+      subtitle: Text(
+        _subtitle,
+        style: AppTypography.caption.copyWith(
+          color: colors.textSecondary,
+        ),
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -62,7 +108,10 @@ class MemberListItem extends StatelessWidget {
                     dimension: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.chat_bubble_outline),
+                : Icon(
+                    Icons.chat_bubble_outline,
+                    color: colors.textTertiary,
+                  ),
             onPressed: isOpeningDirectMessage ? null : onMessage,
             tooltip: 'Message',
           ),
@@ -74,7 +123,10 @@ class MemberListItem extends StatelessWidget {
                   )
                 : PopupMenuButton<_MemberAction>(
                     key: ValueKey('member-actions-${member.id}'),
-                    icon: const Icon(Icons.more_vert),
+                    icon: Icon(
+                      Icons.more_vert,
+                      color: colors.textTertiary,
+                    ),
                     tooltip: 'Member admin actions',
                     onSelected: (action) {
                       switch (action) {
@@ -113,39 +165,18 @@ class MemberListItem extends StatelessWidget {
       onTap: onTap,
     );
   }
+
+  String get _subtitle {
+    final parts = <String>[
+      if (member.description != null) member.description!,
+      if (member.presence != null) member.presence!,
+      if (member.username != null) '@${member.username}',
+    ];
+    return parts.isEmpty ? member.id : parts.join(' · ');
+  }
 }
 
 enum _MemberAction { makeAdmin, makeMember, remove }
-
-class _MemberRoleBadge extends StatelessWidget {
-  const _MemberRoleBadge({required this.role, required this.userId});
-
-  final String role;
-  final String userId;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isOwner = role == 'owner';
-    final isAdmin = role == 'admin';
-    return Container(
-      key: ValueKey('member-role-$userId'),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isOwner
-            ? colorScheme.tertiaryContainer
-            : (isAdmin
-                ? colorScheme.primaryContainer
-                : colorScheme.surfaceContainerHighest),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        formatMemberRoleLabel(role),
-        style: Theme.of(context).textTheme.labelSmall,
-      ),
-    );
-  }
-}
 
 String formatMemberRoleLabel(String role) {
   switch (role) {
