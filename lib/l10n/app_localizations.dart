@@ -670,6 +670,48 @@ abstract class AppLocalizations {
   /// **'total tasks'**
   String get homeCardTasksSubtitle;
 
+  /// No description provided for @homeCardTasksEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No active tasks'**
+  String get homeCardTasksEmpty;
+
+  /// No description provided for @homeCardTasksOverflow.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String homeCardTasksOverflow(int count);
+
+  /// No description provided for @homeCardTasksInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get homeCardTasksInProgress;
+
+  /// No description provided for @homeCardTasksTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To Do'**
+  String get homeCardTasksTodo;
+
+  /// No description provided for @homeCardTasksDurationMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m'**
+  String homeCardTasksDurationMinutes(int count);
+
+  /// No description provided for @homeCardTasksDurationHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h {minutes}m'**
+  String homeCardTasksDurationHours(int hours, int minutes);
+
+  /// No description provided for @homeCardTasksDurationHoursOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h'**
+  String homeCardTasksDurationHoursOnly(int count);
+
   /// No description provided for @homeCardThreads.
   ///
   /// In en, this message translates to:
