@@ -34,7 +34,7 @@ final backgroundSyncLifecycleBindingProvider = Provider<void>((ref) {
   // Serialize sync calls to avoid races (same pattern as
   // foreground service lifecycle binding).
   Future<void> pending = Future<void>.value();
-  bool _scheduled = false;
+  bool scheduled = false;
 
   Future<void> sync() async {
     final session = ref.read(sessionStoreProvider);
@@ -48,18 +48,18 @@ final backgroundSyncLifecycleBindingProvider = Provider<void>((ref) {
 
     // Cancel on unauthenticated — always clear config.
     if (session.isUnauthenticated) {
-      if (_scheduled) {
+      if (scheduled) {
         await manager.cancelPeriodicSync();
-        _scheduled = false;
+        scheduled = false;
       }
       await manager.clearSyncConfig();
       return;
     }
 
     // Cancel when app returns to foreground.
-    if (!isPaused && _scheduled) {
+    if (!isPaused && scheduled) {
       await manager.cancelPeriodicSync();
-      _scheduled = false;
+      scheduled = false;
       return;
     }
 
@@ -68,7 +68,7 @@ final backgroundSyncLifecycleBindingProvider = Provider<void>((ref) {
         appReady &&
         isPaused &&
         hasServer &&
-        !_scheduled;
+        !scheduled;
 
     if (shouldSchedule) {
       final config = ref.read(networkConfigProvider);
@@ -77,7 +77,7 @@ final backgroundSyncLifecycleBindingProvider = Provider<void>((ref) {
         serverId: serverSelection.selectedServerId!,
       );
       await manager.schedulePeriodicSync();
-      _scheduled = true;
+      scheduled = true;
     }
   }
 
