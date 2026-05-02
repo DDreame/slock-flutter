@@ -468,8 +468,8 @@ void main() {
     );
 
     test(
-      'load does not hydrate when snapshot has empty '
-      'unread maps',
+      'load clears stale unread counts when snapshot '
+      'has empty unread maps',
       () async {
         final container = ProviderContainer(
           overrides: [
@@ -502,7 +502,7 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        // Pre-populate with some counts
+        // Pre-populate with stale counts
         container
             .read(channelUnreadStoreProvider.notifier)
             .hydrateChannelUnreads({
@@ -511,20 +511,20 @@ void main() {
             value: 'pre-existing',
           ): 99,
         });
+        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'stale-dm',
+          ): 42,
+        });
 
         await container.read(homeListStoreProvider.notifier).load();
 
-        // Empty snapshot should not wipe pre-existing counts
+        // Empty snapshot should clear all stale counts
         final unreadState = container.read(channelUnreadStoreProvider);
-        expect(
-          unreadState.channelUnreadCount(
-            const ChannelScopeId(
-              serverId: ServerScopeId('server-1'),
-              value: 'pre-existing',
-            ),
-          ),
-          99,
-        );
+        expect(unreadState.channelUnreadCounts, isEmpty);
+        expect(unreadState.dmUnreadCounts, isEmpty);
+        expect(unreadState.totalUnreadCount, 0);
       },
     );
   });

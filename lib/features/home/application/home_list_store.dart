@@ -206,20 +206,15 @@ class HomeListStore extends Notifier<HomeListState> {
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
     final serverId = snapshot.serverId;
 
-    if (snapshot.channelUnreadCounts.isNotEmpty) {
-      unreadStore.hydrateChannelUnreads({
-        for (final entry in snapshot.channelUnreadCounts.entries)
-          ChannelScopeId(serverId: serverId, value: entry.key): entry.value,
-      });
-    }
+    unreadStore.hydrateChannelUnreads({
+      for (final entry in snapshot.channelUnreadCounts.entries)
+        ChannelScopeId(serverId: serverId, value: entry.key): entry.value,
+    });
 
-    if (snapshot.dmUnreadCounts.isNotEmpty) {
-      unreadStore.hydrateDmUnreads({
-        for (final entry in snapshot.dmUnreadCounts.entries)
-          DirectMessageScopeId(serverId: serverId, value: entry.key):
-              entry.value,
-      });
-    }
+    unreadStore.hydrateDmUnreads({
+      for (final entry in snapshot.dmUnreadCounts.entries)
+        DirectMessageScopeId(serverId: serverId, value: entry.key): entry.value,
+    });
   }
 
   void addDirectMessage(HomeDirectMessageSummary dm) {
