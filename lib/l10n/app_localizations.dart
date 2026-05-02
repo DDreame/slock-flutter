@@ -646,24 +646,6 @@ abstract class AppLocalizations {
   /// **'All agents offline'**
   String get homeCardAgentsEmpty;
 
-  /// No description provided for @homeCardChannels.
-  ///
-  /// In en, this message translates to:
-  /// **'CHANNELS'**
-  String get homeCardChannels;
-
-  /// No description provided for @homeCardChannelsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'active channels'**
-  String get homeCardChannelsSubtitle;
-
-  /// No description provided for @homeCardChannelsUnread.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} unread'**
-  String homeCardChannelsUnread(int count);
-
   /// No description provided for @homeCardTasks.
   ///
   /// In en, this message translates to:
@@ -718,53 +700,11 @@ abstract class AppLocalizations {
   /// **'{count}h'**
   String homeCardTasksDurationHoursOnly(int count);
 
-  /// No description provided for @homeCardThreads.
-  ///
-  /// In en, this message translates to:
-  /// **'THREADS'**
-  String get homeCardThreads;
-
   /// No description provided for @homeCardViewAll.
   ///
   /// In en, this message translates to:
   /// **'View all'**
   String get homeCardViewAll;
-
-  /// No description provided for @homeCardThreadsFilterUnread.
-  ///
-  /// In en, this message translates to:
-  /// **'Unread'**
-  String get homeCardThreadsFilterUnread;
-
-  /// No description provided for @homeCardThreadsFilterRead.
-  ///
-  /// In en, this message translates to:
-  /// **'Read'**
-  String get homeCardThreadsFilterRead;
-
-  /// No description provided for @homeCardThreadsFilterAll.
-  ///
-  /// In en, this message translates to:
-  /// **'All'**
-  String get homeCardThreadsFilterAll;
-
-  /// No description provided for @homeCardThreadsReplies.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} replies'**
-  String homeCardThreadsReplies(int count);
-
-  /// No description provided for @homeCardThreadsNew.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} new'**
-  String homeCardThreadsNew(int count);
-
-  /// No description provided for @homeCardThreadsEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No threads'**
-  String get homeCardThreadsEmpty;
 
   /// No description provided for @homeCardAgentActivityOnline.
   ///

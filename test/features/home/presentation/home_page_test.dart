@@ -35,40 +35,55 @@ void main() {
   // -----------------------------------------------------------------------
 
   group('summary cards', () {
-    testWidgets('renders 5 summary cards in success state', (
-      tester,
-    ) async {
-      final router = _buildRouter();
+    testWidgets(
+      'renders 3 sections in Tasks → Unread → Agents order',
+      (tester) async {
+        final router = _buildRouter();
 
-      await tester.pumpWidget(
-        _buildApp(
-          router: router,
-          homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('home-card-agents')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('home-card-channels')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('home-card-unread')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('home-card-tasks')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('home-card-threads')),
-        findsOneWidget,
-      );
-    });
+        final tasks = find.byKey(const ValueKey('home-card-tasks'));
+        final unread = find.byKey(const ValueKey('home-card-unread'));
+        final agents = find.byKey(const ValueKey('home-card-agents'));
+
+        expect(tasks, findsOneWidget);
+        expect(unread, findsOneWidget);
+        expect(agents, findsOneWidget);
+
+        // Removed cards should not exist
+        expect(
+          find.byKey(const ValueKey('home-card-channels')),
+          findsNothing,
+          reason: 'Channels card removed in redesign D',
+        );
+        expect(
+          find.byKey(const ValueKey('home-card-threads')),
+          findsNothing,
+          reason: 'Threads card removed in redesign D',
+        );
+
+        // Verify render order: Tasks → Unread → Agents
+        final tasksY = tester.getTopLeft(tasks).dy;
+        final unreadY = tester.getTopLeft(unread).dy;
+        final agentsY = tester.getTopLeft(agents).dy;
+        expect(
+          tasksY,
+          lessThan(unreadY),
+          reason: 'Tasks should render above Unread',
+        );
+        expect(
+          unreadY,
+          lessThan(agentsY),
+          reason: 'Unread should render above Agents',
+        );
+      },
+    );
 
     testWidgets(
       'agents card shows count, status chips, and sorted rows',
@@ -538,85 +553,6 @@ void main() {
           reason: 'Stopped agent should not inflate '
               'online chip count',
         );
-      },
-    );
-
-    testWidgets(
-      'channels card shows count and unread chip',
-      (tester) async {
-        final router = _buildRouter();
-        final container = ProviderContainer(
-          overrides: [
-            activeServerScopeIdProvider.overrideWithValue(
-              const ServerScopeId('server-1'),
-            ),
-            homeRepositoryProvider.overrideWithValue(
-              const _FakeHomeRepository(_sampleSnapshot),
-            ),
-            serverListRepositoryProvider.overrideWithValue(
-              const _FakeServerListRepository([]),
-            ),
-            sidebarOrderRepositoryProvider.overrideWithValue(
-              const _FakeSidebarOrderRepository(),
-            ),
-            agentsRepositoryProvider.overrideWithValue(
-              const _FakeAgentsRepository(),
-            ),
-            tasksRepositoryProvider.overrideWithValue(
-              const _FakeTasksRepository(),
-            ),
-            threadRepositoryProvider.overrideWithValue(
-              const _FakeThreadRepository(),
-            ),
-            homeMachineCountLoaderProvider.overrideWithValue(
-              (_) async => 0,
-            ),
-          ],
-        );
-
-        await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: MaterialApp.router(
-              routerConfig: router,
-              theme: AppTheme.light,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Inject unreads
-        container
-            .read(channelUnreadStoreProvider.notifier)
-            .hydrateChannelUnreads({
-          const ChannelScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'general',
-          ): 5,
-        });
-        await tester.pumpAndSettle();
-
-        final card = find.byKey(const ValueKey('home-card-channels'));
-        expect(card, findsOneWidget);
-
-        // Channel count (2 channels in _sampleSnapshot)
-        expect(
-          find.descendant(of: card, matching: find.text('2')),
-          findsOneWidget,
-        );
-
-        // Unread chip
-        expect(
-          find.descendant(
-            of: card,
-            matching: find.text('5 unread'),
-          ),
-          findsOneWidget,
-        );
-
-        container.dispose();
       },
     );
 
@@ -1846,180 +1782,6 @@ void main() {
         );
       },
     );
-
-    testWidgets(
-      'threads card shows filter chips and thread items',
-      (tester) async {
-        final router = _buildRouter();
-        const threads = [
-          ThreadInboxItem(
-            routeTarget: ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'general',
-              parentMessageId: 'msg-1',
-            ),
-            title: '#general',
-            preview: 'Check the latest PR',
-            replyCount: 5,
-            unreadCount: 2,
-            participantIds: ['u1'],
-          ),
-          ThreadInboxItem(
-            routeTarget: ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'random',
-              parentMessageId: 'msg-2',
-            ),
-            title: '#random',
-            preview: 'Old discussion',
-            replyCount: 3,
-            unreadCount: 0,
-            participantIds: ['u2'],
-          ),
-        ];
-
-        await tester.pumpWidget(
-          _buildApp(
-            router: router,
-            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-            threadRepository: const _FakeThreadRepository(threads: threads),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        final card = find.byKey(const ValueKey('home-card-threads'));
-        expect(card, findsOneWidget);
-
-        // Filter chips
-        expect(
-          find.byKey(const ValueKey('thread-filter-unread')),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('thread-filter-read')),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('thread-filter-all')),
-          findsOneWidget,
-        );
-
-        // Unread filter is selected by default — shows thread with
-        // unreadCount > 0
-        expect(
-          find.descendant(of: card, matching: find.text('#general')),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(
-            of: card,
-            matching: find.text('Check the latest PR'),
-          ),
-          findsOneWidget,
-        );
-        // Read thread is hidden when Unread filter is on
-        expect(
-          find.descendant(of: card, matching: find.text('#random')),
-          findsNothing,
-        );
-      },
-    );
-
-    testWidgets(
-      'thread filter Read shows only read threads',
-      (tester) async {
-        final router = _buildRouter();
-
-        await tester.pumpWidget(
-          _buildApp(
-            router: router,
-            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-            threadRepository: const _FakeThreadRepository(
-              threads: _sampleThreads,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap "Read" filter
-        await tester.tap(find.byKey(const ValueKey('thread-filter-read')));
-        await tester.pumpAndSettle();
-
-        final card = find.byKey(const ValueKey('home-card-threads'));
-        expect(
-          find.descendant(of: card, matching: find.text('#random')),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(
-            of: card,
-            matching: find.text('Done thread'),
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(
-            of: card,
-            matching: find.text('#general'),
-          ),
-          findsNothing,
-        );
-      },
-    );
-
-    testWidgets(
-      'thread filter All shows all threads',
-      (tester) async {
-        final router = _buildRouter();
-
-        await tester.pumpWidget(
-          _buildApp(
-            router: router,
-            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-            threadRepository: const _FakeThreadRepository(
-              threads: _sampleThreads,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap "All" filter
-        await tester.tap(find.byKey(const ValueKey('thread-filter-all')));
-        await tester.pumpAndSettle();
-
-        final card = find.byKey(const ValueKey('home-card-threads'));
-        expect(
-          find.descendant(of: card, matching: find.text('#general')),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(of: card, matching: find.text('#random')),
-          findsOneWidget,
-        );
-      },
-    );
-
-    testWidgets(
-      'threads card shows empty state when no threads match filter',
-      (tester) async {
-        final router = _buildRouter();
-
-        await tester.pumpWidget(
-          _buildApp(
-            router: router,
-            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Default "Unread" filter with no threads
-        expect(
-          find.byKey(const ValueKey('home-threads-empty')),
-          findsOneWidget,
-        );
-        expect(find.text('No threads'), findsOneWidget);
-      },
-    );
   });
 
   // -----------------------------------------------------------------------
@@ -2048,28 +1810,6 @@ void main() {
       expect(find.text('agents:server-1'), findsOneWidget);
     });
 
-    testWidgets(
-      'channels card View all navigates to channels route',
-      (tester) async {
-        final router = _buildRouter();
-
-        await tester.pumpWidget(
-          _buildApp(
-            router: router,
-            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(
-          find.byKey(const ValueKey('card-view-all-channels')),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.text('channels:server-1'), findsOneWidget);
-      },
-    );
-
     testWidgets('tasks card View all navigates to tasks route', (
       tester,
     ) async {
@@ -2090,28 +1830,6 @@ void main() {
 
       expect(find.text('tasks:server-1'), findsOneWidget);
     });
-
-    testWidgets(
-      'threads card View all navigates to threads route',
-      (tester) async {
-        final router = _buildRouter();
-
-        await tester.pumpWidget(
-          _buildApp(
-            router: router,
-            homeRepository: const _FakeHomeRepository(_sampleSnapshot),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        await tester.tap(
-          find.byKey(const ValueKey('card-view-all-threads')),
-        );
-        await tester.pumpAndSettle();
-
-        expect(find.text('threads:server-1'), findsOneWidget);
-      },
-    );
   });
 
   // -----------------------------------------------------------------------
@@ -2374,6 +2092,73 @@ void main() {
       },
     );
   });
+
+  // -----------------------------------------------------------------------
+  // Dark mode
+  // -----------------------------------------------------------------------
+
+  group('dark mode', () {
+    testWidgets(
+      'all three sections render in dark theme',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              activeServerScopeIdProvider.overrideWithValue(
+                const ServerScopeId('server-1'),
+              ),
+              homeRepositoryProvider.overrideWithValue(
+                const _FakeHomeRepository(_sampleSnapshot),
+              ),
+              serverListRepositoryProvider.overrideWithValue(
+                const _FakeServerListRepository([]),
+              ),
+              sidebarOrderRepositoryProvider.overrideWithValue(
+                const _FakeSidebarOrderRepository(),
+              ),
+              agentsRepositoryProvider.overrideWithValue(
+                const _FakeAgentsRepository(),
+              ),
+              tasksRepositoryProvider.overrideWithValue(
+                const _FakeTasksRepository(),
+              ),
+              threadRepositoryProvider.overrideWithValue(
+                const _FakeThreadRepository(),
+              ),
+              homeMachineCountLoaderProvider.overrideWithValue(
+                (_) async => 0,
+              ),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.dark,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('home-card-tasks')),
+          findsOneWidget,
+          reason: 'Tasks section renders in dark mode',
+        );
+        expect(
+          find.byKey(const ValueKey('home-card-unread')),
+          findsOneWidget,
+          reason: 'Unread section renders in dark mode',
+        );
+        expect(
+          find.byKey(const ValueKey('home-card-agents')),
+          findsOneWidget,
+          reason: 'Agents section renders in dark mode',
+        );
+      },
+    );
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -2438,33 +2223,6 @@ const _sampleServers = [
   ServerSummary(id: 'server-2', name: 'Workspace B'),
 ];
 
-const _sampleThreads = [
-  ThreadInboxItem(
-    routeTarget: ThreadRouteTarget(
-      serverId: 'server-1',
-      parentChannelId: 'general',
-      parentMessageId: 'msg-1',
-    ),
-    title: '#general',
-    preview: 'Active thread',
-    replyCount: 5,
-    unreadCount: 2,
-    participantIds: ['u1'],
-  ),
-  ThreadInboxItem(
-    routeTarget: ThreadRouteTarget(
-      serverId: 'server-1',
-      parentChannelId: 'random',
-      parentMessageId: 'msg-2',
-    ),
-    title: '#random',
-    preview: 'Done thread',
-    replyCount: 3,
-    unreadCount: 0,
-    participantIds: ['u2'],
-  ),
-];
-
 // ---------------------------------------------------------------------------
 // Test helpers
 // ---------------------------------------------------------------------------
@@ -2527,30 +2285,10 @@ GoRouter _buildRouter() {
         ),
       ),
       GoRoute(
-        path: '/servers/:serverId/channels',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text(
-              'channels:${state.pathParameters['serverId']}',
-            ),
-          ),
-        ),
-      ),
-      GoRoute(
         path: '/servers/:serverId/tasks',
         builder: (context, state) => Scaffold(
           body: Center(
             child: Text('tasks:${state.pathParameters['serverId']}'),
-          ),
-        ),
-      ),
-      GoRoute(
-        path: '/servers/:serverId/threads',
-        builder: (context, state) => Scaffold(
-          body: Center(
-            child: Text(
-              'threads:${state.pathParameters['serverId']}',
-            ),
           ),
         ),
       ),
