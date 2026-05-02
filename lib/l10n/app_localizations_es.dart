@@ -346,24 +346,24 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeRetry => 'Retry';
 
   @override
-  String get channelsTabTitle => 'Channels';
+  String get channelsTabTitle => 'Canales';
 
   @override
   String get channelsTabPlaceholder =>
-      'Channel list will be available here soon.';
+      'La lista de canales estara disponible pronto.';
 
   @override
-  String get dmsTabTitle => 'Messages';
+  String get dmsTabTitle => 'Mensajes';
 
   @override
-  String get dmsTabHeadline => 'Direct Messages';
+  String get dmsTabHeadline => 'Mensajes directos';
 
   @override
   String get dmsTabPlaceholder =>
-      'Direct messages will be available here soon.';
+      'Los mensajes directos estaran disponibles pronto.';
 
   @override
-  String get settingsTooltip => 'Settings';
+  String get settingsTooltip => 'Configuracion';
 
   @override
   String get homeChannelCreated => 'Channel created.';
