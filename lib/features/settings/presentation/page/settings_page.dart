@@ -8,7 +8,6 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
-import 'package:slock_app/features/settings/data/theme_preference.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';

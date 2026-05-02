@@ -88,11 +88,7 @@ void main() {
       // Re-create to pick up mock values.
       final futurePrefs = SharedPreferences.getInstance();
       // SharedPreferences.getInstance() resolves synchronously
-      // when mock values are set.
-      late SharedPreferences resolvedPrefs;
-      futurePrefs.then((p) => resolvedPrefs = p);
-
-      // Force microtask flush.
+      // when mock values are set — just verify it completes.
       expect(futurePrefs, completes);
     });
   });
