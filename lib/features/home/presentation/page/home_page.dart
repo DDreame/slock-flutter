@@ -144,13 +144,13 @@ class _SummaryCardBase extends StatelessWidget {
   const _SummaryCardBase({
     required this.accentColor,
     required this.title,
-    required this.onViewAll,
+    this.onViewAll,
     required this.child,
   });
 
   final Color accentColor;
   final String title;
-  final VoidCallback onViewAll;
+  final VoidCallback? onViewAll;
   final Widget child;
 
   @override
@@ -194,19 +194,20 @@ class _SummaryCardBase extends StatelessWidget {
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        key: ValueKey(
-                          'card-view-all-${title.toLowerCase()}',
-                        ),
-                        onTap: onViewAll,
-                        child: Text(
-                          '${l10n.homeCardViewAll} \u2192',
-                          style: AppTypography.caption.copyWith(
-                            color: colors.primary,
-                            fontWeight: FontWeight.w500,
+                      if (onViewAll != null)
+                        GestureDetector(
+                          key: ValueKey(
+                            'card-view-all-${title.toLowerCase()}',
+                          ),
+                          onTap: onViewAll,
+                          child: Text(
+                            '${l10n.homeCardViewAll} \u2192',
+                            style: AppTypography.caption.copyWith(
+                              color: colors.primary,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -774,7 +775,6 @@ class _HomeUnreadSection extends StatelessWidget {
     return _SummaryCardBase(
       accentColor: colors.error,
       title: l10n.homeCardUnread,
-      onViewAll: () {},
       child: unreadItems.isEmpty
           ? const _UnreadEmptyState(
               key: ValueKey('home-unread-empty'),
@@ -924,8 +924,13 @@ class _UnreadListContent extends ConsumerWidget {
             unreadStore.markDmRead(item.dmScopeId!);
           }
         case HomeUnreadKind.thread:
-          break; // No local thread unread API
+          break; // Handled below via HomeListStore.
       }
+    }
+
+    // Clear thread unreads locally so threads also disappear.
+    if (unreadItems.any((i) => i.kind == HomeUnreadKind.thread)) {
+      ref.read(homeListStoreProvider.notifier).clearThreadUnreads();
     }
   }
 }

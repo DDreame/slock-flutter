@@ -1046,6 +1046,161 @@ void main() {
     );
 
     testWidgets(
+      'unread section mark all read clears thread items too',
+      (tester) async {
+        final router = _buildRouter();
+        final now = DateTime(2026, 1, 1, 12);
+
+        final threads = [
+          ThreadInboxItem(
+            routeTarget: const ThreadRouteTarget(
+              serverId: 'server-1',
+              parentChannelId: 'general',
+              parentMessageId: 'msg-1',
+            ),
+            title: '#general',
+            preview: 'unread thread',
+            replyCount: 5,
+            unreadCount: 3,
+            lastReplyAt: now.subtract(const Duration(minutes: 5)),
+            participantIds: const ['u1'],
+          ),
+        ];
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              _FakeThreadRepository(threads: threads),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+            homeNowProvider.overrideWithValue(now),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Thread unread item should be visible
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-thread:msg-1'),
+          ),
+          findsOneWidget,
+          reason: 'Thread with unreadCount > 0 should appear',
+        );
+
+        // Tap mark all read
+        await tester.tap(
+          find.byKey(
+            const ValueKey('home-unread-mark-all'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Thread should be gone (local clear via HomeListStore)
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-thread:msg-1'),
+          ),
+          findsNothing,
+          reason: 'Thread unreads should be cleared after mark all read',
+        );
+      },
+    );
+
+    testWidgets(
+      'unread section has no View all action',
+      (tester) async {
+        final router = _buildRouter();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Unread card should exist but have no View all link
+        expect(
+          find.byKey(const ValueKey('home-card-unread')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('card-view-all-unread'),
+          ),
+          findsNothing,
+          reason: 'Unread section should not have View all action',
+        );
+      },
+    );
+
+    testWidgets(
       'unread section sorts by last activity',
       (tester) async {
         final router = _buildRouter();
