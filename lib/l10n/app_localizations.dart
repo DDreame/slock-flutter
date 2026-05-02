@@ -754,6 +754,18 @@ abstract class AppLocalizations {
   /// **'Direct messages will be available here soon.'**
   String get dmsTabPlaceholder;
 
+  /// No description provided for @dmsTabSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search messages'**
+  String get dmsTabSearchHint;
+
+  /// No description provided for @dmsTabEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No direct messages yet.'**
+  String get dmsTabEmpty;
+
   /// No description provided for @settingsTooltip.
   ///
   /// In en, this message translates to:

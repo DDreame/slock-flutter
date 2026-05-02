@@ -125,6 +125,8 @@
   "dmsTabTitle": "Messages",
   "dmsTabHeadline": "Direct Messages",
   "dmsTabPlaceholder": "Direct messages will be available here soon.",
+  "dmsTabSearchHint": "Search messages",
+  "dmsTabEmpty": "No direct messages yet.",
   "settingsTooltip": "Settings",
 
   "homeChannelCreated": "Channel created.",

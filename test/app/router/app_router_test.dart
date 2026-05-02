@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
+import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 
 import '../../stores/session/session_store_persistence_test.dart'
     show FakeAuthRepository;
@@ -1192,10 +1193,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(router.routeInformationProvider.value.uri.path, '/dms');
-      expect(
-        find.byKey(const ValueKey('dms-tab-placeholder')),
-        findsOneWidget,
-      );
+      expect(find.byType(DmsTabPage), findsOneWidget);
       expect(find.byType(NavigationBar), findsOneWidget);
     });
 
