@@ -1201,7 +1201,7 @@ void main() {
         expect(
           find.descendant(
             of: row,
-            matching: find.text('Thread title'),
+            matching: find.text('#general \u00b7 Thread title'),
           ),
           findsOneWidget,
         );
