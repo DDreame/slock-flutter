@@ -140,13 +140,16 @@ class HomeListStore extends Notifier<HomeListState> {
       // Retain cached previews for entries where the
       // network snapshot omitted lastMessage, so persisted
       // previews survive the cold-start refresh cycle.
+      // Only preview text and activity timestamp are carried
+      // over — lastMessageId is left null so the background
+      // fallback can still replace the stale cached preview
+      // with an authoritative API response.
       for (var i = 0; i < _allChannels.length; i++) {
         final ch = _allChannels[i];
         if (ch.lastMessageId != null) continue;
         final cached = priorChById[ch.scopeId.value];
         if (cached == null) continue;
         _allChannels[i] = ch.copyWith(
-          lastMessageId: cached.lastMessageId,
           lastMessagePreview: cached.lastMessagePreview,
           lastActivityAt: cached.lastActivityAt,
         );
@@ -157,7 +160,6 @@ class HomeListStore extends Notifier<HomeListState> {
         final cached = priorDmById[dm.scopeId.value];
         if (cached == null) continue;
         _allDirectMessages[i] = dm.copyWith(
-          lastMessageId: cached.lastMessageId,
           lastMessagePreview: cached.lastMessagePreview,
           lastActivityAt: cached.lastActivityAt,
         );

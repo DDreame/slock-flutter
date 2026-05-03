@@ -893,7 +893,9 @@ void main() {
         reason: 'Cached channel preview must survive '
             'network refresh that omits lastMessage',
       );
-      expect(ch.lastMessageId, 'msg-cached');
+      // lastMessageId is intentionally NOT retained so the
+      // fallback loader can still replace stale cached previews.
+      expect(ch.lastMessageId, isNull);
 
       expect(
         dm.lastMessagePreview,
@@ -901,7 +903,140 @@ void main() {
         reason: 'Cached DM preview must survive '
             'network refresh that omits lastMessage',
       );
-      expect(dm.lastMessageId, 'dm-cached');
+      expect(dm.lastMessageId, isNull);
+    },
+  );
+
+  test(
+    'fallback replaces stale cached preview '
+    'after network refresh omits lastMessage',
+    () async {
+      final cachedSnapshot = HomeWorkspaceSnapshot(
+        serverId: const ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+            lastMessageId: 'msg-cached',
+            lastMessagePreview: 'Cached hello',
+            lastActivityAt: DateTime.utc(2026, 5, 1),
+          ),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+            lastMessageId: 'dm-cached',
+            lastMessagePreview: 'Cached DM',
+            lastActivityAt: DateTime.utc(2026, 5, 1),
+          ),
+        ],
+      );
+
+      // Network snapshot omits lastMessage for both.
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+          ),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+          ),
+        ],
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: networkSnapshot,
+        cachedSnapshot: cachedSnapshot,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async {
+              if (conversationId == 'ch-1') {
+                return HomePreviewFallbackResult(
+                  messageId: 'msg-fresh',
+                  preview: 'Fresh hello',
+                  activityAt: DateTime.utc(2026, 5, 3),
+                );
+              }
+              if (conversationId == 'dm-1') {
+                return HomePreviewFallbackResult(
+                  messageId: 'dm-fresh',
+                  preview: 'Fresh DM',
+                  activityAt: DateTime.utc(2026, 5, 3),
+                );
+              }
+              return null;
+            },
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Drain fire-and-forget fallback.
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+      final dm = state.directMessages.firstWhere(
+        (d) => d.scopeId.value == 'dm-1',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Fresh hello',
+        reason: 'Fallback must replace stale '
+            'cached preview with fresh data',
+      );
+      expect(ch.lastMessageId, 'msg-fresh');
+
+      expect(
+        dm.lastMessagePreview,
+        'Fresh DM',
+        reason: 'Fallback must replace stale '
+            'cached DM preview with fresh data',
+      );
+      expect(dm.lastMessageId, 'dm-fresh');
     },
   );
 }
