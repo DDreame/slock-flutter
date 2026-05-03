@@ -42,7 +42,7 @@ class _ReleaseNoteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      key: ValueKey('release-note-${note.date}'),
+      key: ValueKey('release-note-${note.version}'),
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
         color: colors.surface,
@@ -54,10 +54,17 @@ class _ReleaseNoteCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            note.date,
+            note.version,
             style: AppTypography.title.copyWith(
               color: colors.text,
               fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            note.date,
+            style: AppTypography.caption.copyWith(
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
