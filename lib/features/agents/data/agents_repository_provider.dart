@@ -3,9 +3,12 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/machines/data/machine_item.dart';
+import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:dio/dio.dart';
 
 const _agentsPath = '/agents';
+const _serversPath = '/servers';
 const _serverHeaderName = 'X-Server-Id';
 
 final agentsRepositoryProvider = Provider<AgentsRepository>((ref) {
@@ -272,5 +275,40 @@ class _ApiAgentsRepository
   String? _optionalString(Object? value) {
     if (value is String && value.isNotEmpty) return value;
     return null;
+  }
+}
+
+/// Loads the machine list for the active server,
+/// used by the Agents Tab to resolve machine names
+/// for grouping.  Returns an empty list when the
+/// server ID is not set or the request fails.
+typedef AgentsMachinesLoader = Future<List<MachineItem>> Function();
+
+final agentsMachinesLoaderProvider = Provider<AgentsMachinesLoader>((ref) {
+  final appDioClient = ref.watch(appDioClientProvider);
+  final serverId = ref.watch(activeServerScopeIdProvider);
+  return () => _loadMachinesForAgents(
+        appDioClient: appDioClient,
+        serverId: serverId,
+      );
+});
+
+Future<List<MachineItem>> _loadMachinesForAgents({
+  required AppDioClient appDioClient,
+  required ServerScopeId? serverId,
+}) async {
+  if (serverId == null || serverId.value.isEmpty) {
+    return const [];
+  }
+  try {
+    final response = await appDioClient.get<Object?>(
+      '$_serversPath/${serverId.routeParam}/machines',
+      options: Options(
+        headers: {_serverHeaderName: serverId.value},
+      ),
+    );
+    return parseMachinesSnapshot(response.data).items;
+  } catch (_) {
+    return const [];
   }
 }

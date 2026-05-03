@@ -8,6 +8,8 @@ import 'package:slock_app/app/widgets/role_badge.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agent_machine_group.dart';
+import 'package:slock_app/features/agents/application/agents_fold_state.dart';
 import 'package:slock_app/features/agents/application/agents_realtime_binding.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
@@ -116,15 +118,34 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
               ),
             ),
           ),
-        AgentsStatus.success => _AgentsListView(
-            items: state.items,
-            colors: colors,
-            onTap: _openAgentDetail,
-            onStart: _startAgent,
-            onStop: _stopAgent,
-            onReset: _resetAgent,
+        AgentsStatus.success => _buildGroupedList(
+            state,
+            colors,
           ),
       },
+    );
+  }
+
+  Widget _buildGroupedList(
+    AgentsState state,
+    AppColors colors,
+  ) {
+    final groups = groupAgentsByMachine(
+      agents: state.items,
+      machines: state.machines,
+    );
+    final active = state.items.where((a) => a.isActive).length;
+    final stopped = state.items.length - active;
+
+    return _GroupedAgentsListView(
+      groups: groups,
+      totalActive: active,
+      totalStopped: stopped,
+      colors: colors,
+      onTap: _openAgentDetail,
+      onStart: _startAgent,
+      onStop: _stopAgent,
+      onReset: _resetAgent,
     );
   }
 
@@ -397,12 +418,14 @@ class _AgentsStatsSummary extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// List view
+// Machine-grouped list view
 // ---------------------------------------------------------------------------
 
-class _AgentsListView extends StatelessWidget {
-  const _AgentsListView({
-    required this.items,
+class _GroupedAgentsListView extends ConsumerWidget {
+  const _GroupedAgentsListView({
+    required this.groups,
+    required this.totalActive,
+    required this.totalStopped,
     required this.colors,
     required this.onTap,
     required this.onStart,
@@ -410,7 +433,9 @@ class _AgentsListView extends StatelessWidget {
     required this.onReset,
   });
 
-  final List<AgentItem> items;
+  final List<AgentMachineGroup> groups;
+  final int totalActive;
+  final int totalStopped;
   final AppColors colors;
   final void Function(AgentItem) onTap;
   final Future<void> Function(AgentItem) onStart;
@@ -418,48 +443,40 @@ class _AgentsListView extends StatelessWidget {
   final Future<void> Function(AgentItem) onReset;
 
   @override
-  Widget build(BuildContext context) {
-    final active = items.where((a) => a.isActive).toList();
-    final stopped = items.where((a) => !a.isActive).toList();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final collapsed = ref.watch(agentsFoldStateProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _AgentsStatsSummary(
-          activeCount: active.length,
-          stoppedCount: stopped.length,
+          activeCount: totalActive,
+          stoppedCount: totalStopped,
           colors: colors,
         ),
         const SizedBox(height: AppSpacing.md),
         Expanded(
           child: ListView(
             key: const ValueKey('agents-list'),
-            padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+            padding: const EdgeInsets.only(
+              bottom: AppSpacing.lg,
+            ),
             children: [
-              if (active.isNotEmpty) ...[
-                _SectionLabel(title: 'Active', colors: colors),
-                for (final agent in active)
-                  _AgentRow(
-                    agent: agent,
-                    colors: colors,
-                    onTap: onTap,
-                    onStart: onStart,
-                    onStop: onStop,
-                    onReset: onReset,
-                  ),
-              ],
-              if (stopped.isNotEmpty) ...[
-                _SectionLabel(title: 'Stopped', colors: colors),
-                for (final agent in stopped)
-                  _AgentRow(
-                    agent: agent,
-                    colors: colors,
-                    onTap: onTap,
-                    onStart: onStart,
-                    onStop: onStop,
-                    onReset: onReset,
-                  ),
-              ],
+              for (final group in groups)
+                _MachineGroupSection(
+                  group: group,
+                  isCollapsed: collapsed.contains(group.foldKey),
+                  colors: colors,
+                  onToggle: () => ref
+                      .read(
+                        agentsFoldStateProvider.notifier,
+                      )
+                      .toggle(group.foldKey),
+                  onTap: onTap,
+                  onStart: onStart,
+                  onStop: onStop,
+                  onReset: onReset,
+                ),
             ],
           ),
         ),
@@ -469,30 +486,233 @@ class _AgentsListView extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Section label
+// Machine group section (collapsible)
 // ---------------------------------------------------------------------------
 
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.title, required this.colors});
+class _MachineGroupSection extends StatelessWidget {
+  const _MachineGroupSection({
+    required this.group,
+    required this.isCollapsed,
+    required this.colors,
+    required this.onToggle,
+    required this.onTap,
+    required this.onStart,
+    required this.onStop,
+    required this.onReset,
+  });
 
-  final String title;
+  final AgentMachineGroup group;
+  final bool isCollapsed;
+  final AppColors colors;
+  final VoidCallback onToggle;
+  final void Function(AgentItem) onTap;
+  final Future<void> Function(AgentItem) onStart;
+  final Future<void> Function(AgentItem) onStop;
+  final Future<void> Function(AgentItem) onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: ValueKey('machine-group-${group.foldKey}'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _MachineGroupHeader(
+          group: group,
+          isCollapsed: isCollapsed,
+          colors: colors,
+          onToggle: onToggle,
+        ),
+        if (isCollapsed)
+          _CollapsedSummary(
+            group: group,
+            colors: colors,
+          )
+        else
+          for (final agent in group.agents)
+            _AgentRow(
+              agent: agent,
+              colors: colors,
+              onTap: onTap,
+              onStart: onStart,
+              onStop: onStop,
+              onReset: onReset,
+            ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Machine group header
+// ---------------------------------------------------------------------------
+
+class _MachineGroupHeader extends StatelessWidget {
+  const _MachineGroupHeader({
+    required this.group,
+    required this.isCollapsed,
+    required this.colors,
+    required this.onToggle,
+  });
+
+  final AgentMachineGroup group;
+  final bool isCollapsed;
+  final AppColors colors;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      key: ValueKey(
+        'machine-header-${group.foldKey}',
+      ),
+      onTap: onToggle,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.pageHorizontal,
+          AppSpacing.md,
+          AppSpacing.pageHorizontal,
+          AppSpacing.xs,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isCollapsed ? Icons.expand_more : Icons.expand_less,
+              size: 20,
+              color: colors.textTertiary,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Icon(
+              Icons.dns_outlined,
+              size: 16,
+              color: group.machineOnline ? colors.success : colors.textTertiary,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                group.machineId == null
+                    ? context.l10n.agentsNoMachineAssigned
+                    : group.machineName,
+                style: AppTypography.label.copyWith(
+                  color: colors.text,
+                  fontWeight: FontWeight.w600,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            _StatusDotMatrix(
+              group: group,
+              colors: colors,
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              '${group.totalCount}',
+              style: AppTypography.caption.copyWith(
+                color: colors.textTertiary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Status dot matrix
+// ---------------------------------------------------------------------------
+
+class _StatusDotMatrix extends StatelessWidget {
+  const _StatusDotMatrix({
+    required this.group,
+    required this.colors,
+  });
+
+  final AgentMachineGroup group;
   final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final agent in group.agents) ...[
+          Container(
+            key: ValueKey(
+              'status-dot-${agent.id}',
+            ),
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(
+              right: 3,
+            ),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _dotColor(agent),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Color _dotColor(AgentItem agent) {
+    if (agent.isStopped) return colors.textTertiary;
+    return switch (agent.activity) {
+      'working' => colors.primary,
+      'thinking' => colors.warning,
+      'error' => colors.error,
+      'online' => colors.success,
+      _ => colors.textTertiary,
+    };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Collapsed summary line
+// ---------------------------------------------------------------------------
+
+class _CollapsedSummary extends StatelessWidget {
+  const _CollapsedSummary({
+    required this.group,
+    required this.colors,
+  });
+
+  final AgentMachineGroup group;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final summary = group.agents.map((a) {
+      final activity = switch (a.activity) {
+        'online' => l10n.homeCardAgentActivityOnline,
+        'thinking' => l10n.homeCardAgentActivityThinking,
+        'working' => l10n.homeCardAgentActivityWorking,
+        'error' => l10n.homeCardAgentActivityError,
+        _ => l10n.homeCardAgentActivityOffline,
+      };
+      return '${a.label} $activity';
+    }).join(' · ');
+
     return Padding(
+      key: ValueKey(
+        'collapsed-summary-${group.foldKey}',
+      ),
       padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal + 24,
+        0,
         AppSpacing.pageHorizontal,
-        AppSpacing.md,
-        AppSpacing.pageHorizontal,
-        AppSpacing.xs,
+        AppSpacing.sm,
       ),
       child: Text(
-        title,
-        style: AppTypography.label.copyWith(
-          color: colors.textTertiary,
-          fontWeight: FontWeight.w600,
+        summary,
+        style: AppTypography.bodySmall.copyWith(
+          color: colors.textSecondary,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

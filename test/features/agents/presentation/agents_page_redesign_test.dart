@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/role_badge.dart';
@@ -15,6 +16,7 @@ import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() {
   AgentItem makeAgent({
@@ -45,6 +47,13 @@ void main() {
     );
   }
 
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   Widget buildApp({
     required _MutableAgentsRepository fakeRepo,
     RealtimeReductionIngress? ingress,
@@ -56,6 +65,8 @@ void main() {
     return ProviderScope(
       overrides: [
         agentsRepositoryProvider.overrideWithValue(fakeRepo),
+        agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+        sharedPreferencesProvider.overrideWithValue(prefs),
         realtimeReductionIngressProvider.overrideWithValue(
           ingress ?? RealtimeReductionIngress(),
         ),
@@ -175,11 +186,14 @@ void main() {
         final rings =
             tester.widgetList<StatusGlowRing>(find.byType(StatusGlowRing));
         final statuses = rings.map((r) => r.status).toList();
+        // Within a machine group, agents are sorted by
+        // activity priority: working > thinking > error >
+        // online > stopped.
         expect(statuses, [
-          GlowRingStatus.online,
-          GlowRingStatus.thinking,
           GlowRingStatus.working,
+          GlowRingStatus.thinking,
           GlowRingStatus.error,
+          GlowRingStatus.online,
           GlowRingStatus.offline,
         ]);
       },
@@ -231,30 +245,36 @@ void main() {
       expect(opacity.opacity, lessThan(1.0));
     });
 
-    testWidgets('active agents are listed before stopped agents', (
-      tester,
-    ) async {
-      final repo = _MutableAgentsRepository(initialItems: [
-        makeAgent(
-          id: 'stopped-1',
-          name: 'StoppedBot',
-          status: 'stopped',
-          activity: 'offline',
-        ),
-        makeAgent(id: 'active-1', name: 'ActiveBot', status: 'active'),
-      ]);
-      await tester.pumpWidget(buildApp(fakeRepo: repo));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'working agents are listed before stopped agents '
+      'within a machine group',
+      (tester) async {
+        final repo = _MutableAgentsRepository(initialItems: [
+          makeAgent(
+            id: 'stopped-1',
+            name: 'StoppedBot',
+            status: 'stopped',
+            activity: 'offline',
+          ),
+          makeAgent(
+            id: 'active-1',
+            name: 'ActiveBot',
+            status: 'active',
+          ),
+        ]);
+        await tester.pumpWidget(buildApp(fakeRepo: repo));
+        await tester.pumpAndSettle();
 
-      // Active section header before stopped section header
-      expect(find.text('Active'), findsOneWidget);
-      expect(find.text('Stopped'), findsOneWidget);
-
-      // ActiveBot should appear before StoppedBot in the widget tree
-      final activeCenter = tester.getCenter(find.text('ActiveBot'));
-      final stoppedCenter = tester.getCenter(find.text('StoppedBot'));
-      expect(activeCenter.dy, lessThan(stoppedCenter.dy));
-    });
+        // Within the same machine group, active agents
+        // should sort before stopped agents.
+        final activeCenter = tester.getCenter(find.text('ActiveBot'));
+        final stoppedCenter = tester.getCenter(find.text('StoppedBot'));
+        expect(
+          activeCenter.dy,
+          lessThan(stoppedCenter.dy),
+        );
+      },
+    );
 
     testWidgets('tapping agent row navigates to detail', (tester) async {
       final repo = _MutableAgentsRepository(initialItems: [
@@ -284,6 +304,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(repo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),

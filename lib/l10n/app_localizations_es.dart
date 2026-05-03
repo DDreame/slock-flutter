@@ -210,6 +210,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get agentsNewTooltip => 'Nuevo agente';
 
   @override
+  String get agentsNoMachineAssigned => 'Sin máquina asignada';
+
+  @override
   String get navSettings => 'Settings';
 
   @override
