@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
@@ -699,7 +700,7 @@ Color _statusColor(String status, AppColors colors) {
 // Task row
 // ---------------------------------------------------------------------------
 
-class _TaskRow extends StatelessWidget {
+class _TaskRow extends ConsumerWidget {
   const _TaskRow({
     required this.task,
     required this.colors,
@@ -717,12 +718,12 @@ class _TaskRow extends StatelessWidget {
   final Future<void> Function(TaskItem) onUnclaim;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDone = task.status == 'done';
 
     Widget row = InkWell(
       key: ValueKey('task-${task.id}'),
-      onTap: () => _onPrimaryTap(context),
+      onTap: () => _onPrimaryTap(context, ref),
       onLongPress: () => _showTaskActions(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -787,17 +788,12 @@ class _TaskRow extends StatelessWidget {
     return row;
   }
 
-  void _onPrimaryTap(BuildContext context) {
-    final nextStatus = switch (task.status) {
-      'todo' => 'in_progress',
-      'in_progress' => 'in_review',
-      'in_review' => 'done',
-      _ => null,
-    };
-    if (nextStatus != null) {
-      onStatusUpdate(task, nextStatus);
+  void _onPrimaryTap(BuildContext context, WidgetRef ref) {
+    final serverId = ref.read(currentTasksServerIdProvider).value;
+    if (task.channelType == 'dm') {
+      context.push('/servers/$serverId/dms/${task.channelId}');
     } else {
-      _showTaskActions(context);
+      context.push('/servers/$serverId/channels/${task.channelId}');
     }
   }
 
