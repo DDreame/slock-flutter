@@ -1746,63 +1746,42 @@ void main() {
     );
 
     testWidgets(
-      'unread section has no View all action',
+      'unread section View all navigates to unread list route',
       (tester) async {
         final router = _buildRouter();
 
-        final container = ProviderContainer(
-          overrides: [
-            activeServerScopeIdProvider.overrideWithValue(
-              const ServerScopeId('server-1'),
-            ),
-            homeRepositoryProvider.overrideWithValue(
-              const _FakeHomeRepository(_unreadSnapshot),
-            ),
-            serverListRepositoryProvider.overrideWithValue(
-              const _FakeServerListRepository([]),
-            ),
-            sidebarOrderRepositoryProvider.overrideWithValue(
-              const _FakeSidebarOrderRepository(),
-            ),
-            agentsRepositoryProvider.overrideWithValue(
-              const _FakeAgentsRepository(),
-            ),
-            tasksRepositoryProvider.overrideWithValue(
-              const _FakeTasksRepository(),
-            ),
-            threadRepositoryProvider.overrideWithValue(
-              const _FakeThreadRepository(),
-            ),
-            homeMachineCountLoaderProvider.overrideWithValue(
-              (_) async => 0,
-            ),
-          ],
-        );
-
         await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: MaterialApp.router(
-              routerConfig: router,
-              theme: AppTheme.light,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _unreadSnapshot,
             ),
           ),
         );
         await tester.pumpAndSettle();
 
-        // Unread card should exist but have no View all link
+        // Unread card should have View all link
         expect(
           find.byKey(const ValueKey('home-card-unread')),
           findsOneWidget,
         );
+        final viewAll = find.byKey(
+          const ValueKey('card-view-all-unread'),
+        );
         expect(
-          find.byKey(
-            const ValueKey('card-view-all-unread'),
-          ),
-          findsNothing,
-          reason: 'Unread section should not have View all action',
+          viewAll,
+          findsOneWidget,
+          reason: 'Unread section should have View all action',
+        );
+
+        // Tap View all → navigates to unread list
+        await tester.tap(viewAll);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('unread:server-1'),
+          findsOneWidget,
+          reason: 'View all should navigate to threads route',
         );
       },
     );
@@ -1912,14 +1891,24 @@ void main() {
         );
         expect(row, findsOneWidget);
 
-        // Thread icon should be reply
+        // Thread kind badge should show ↩ glyph
         expect(
           find.descendant(
             of: row,
-            matching: find.byIcon(Icons.reply),
+            matching: find.byKey(
+              const ValueKey('unread-kind-thread'),
+            ),
           ),
           findsOneWidget,
-          reason: 'Thread unread should show reply icon',
+          reason: 'Thread unread should show kind badge',
+        );
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('\u21a9'),
+          ),
+          findsOneWidget,
+          reason: 'Thread unread should show ↩ glyph',
         );
       },
     );
@@ -1964,6 +1953,181 @@ void main() {
           find.descendant(of: row, matching: find.text('5')),
           findsOneWidget,
           reason: 'Unread badge should show count',
+        );
+      },
+    );
+
+    testWidgets(
+      'unread thread item shows source label with parent channel name',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _unreadSnapshot,
+            ),
+            threadRepository: const _FakeThreadRepository(
+              threads: [
+                ThreadInboxItem(
+                  routeTarget: ThreadRouteTarget(
+                    serverId: 'server-1',
+                    parentChannelId: 'general',
+                    parentMessageId: 'src-msg',
+                  ),
+                  title: 'Bug discussion',
+                  preview: 'Latest reply',
+                  replyCount: 3,
+                  unreadCount: 2,
+                  participantIds: ['u1'],
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(
+          const ValueKey('unread-item-thread:src-msg'),
+        );
+        expect(row, findsOneWidget);
+
+        // Source label should show "#general · Bug discussion"
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('#general \u00b7 Bug discussion'),
+          ),
+          findsOneWidget,
+          reason: 'Thread source label should show parent channel and title',
+        );
+      },
+    );
+
+    testWidgets(
+      'unread channel item shows source label with # prefix',
+      (tester) async {
+        final router = _buildRouter();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Inject channel unread for 'general'
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .hydrateChannelUnreads({
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ): 3,
+        });
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(
+          const ValueKey('unread-item-channel:general'),
+        );
+        expect(row, findsOneWidget);
+
+        // Source label should show "#general"
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('#general'),
+          ),
+          findsOneWidget,
+          reason: 'Channel source label should show channel name with # prefix',
+        );
+      },
+    );
+
+    testWidgets(
+      'overflow +N more is tappable and navigates to unread list',
+      (tester) async {
+        final router = _buildRouter();
+
+        // Create 7 threads with unread > 0
+        final threads = List.generate(
+          7,
+          (i) => ThreadInboxItem(
+            routeTarget: ThreadRouteTarget(
+              serverId: 'server-1',
+              parentChannelId: 'general',
+              parentMessageId: 'ov-msg-$i',
+            ),
+            title: 'Thread $i',
+            replyCount: 1,
+            unreadCount: 1,
+            participantIds: const ['u1'],
+          ),
+        );
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+            threadRepository: _FakeThreadRepository(
+              threads: threads,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Overflow indicator should be present
+        final overflow = find.byKey(
+          const ValueKey('home-unread-overflow'),
+        );
+        expect(overflow, findsOneWidget);
+
+        // Tap overflow → navigates to unread list
+        await tester.tap(overflow);
+        await tester.pumpAndSettle();
+
+        expect(
+          find.text('unread:server-1'),
+          findsOneWidget,
+          reason: 'Tapping overflow should navigate to unread list',
         );
       },
     );
@@ -2015,6 +2179,30 @@ void main() {
 
       expect(find.text('tasks:server-1'), findsOneWidget);
     });
+
+    testWidgets(
+      'unread card View all navigates to unread list route',
+      (tester) async {
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: const _FakeHomeRepository(
+              _sampleSnapshot,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const ValueKey('card-view-all-unread')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('unread:server-1'), findsOneWidget);
+      },
+    );
   });
 
   // -----------------------------------------------------------------------
@@ -2494,6 +2682,14 @@ GoRouter _buildRouter() {
             child: Text(
               'dm:${state.pathParameters['dmId']}',
             ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/unread',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text('unread:${state.pathParameters['serverId']}'),
           ),
         ),
       ),

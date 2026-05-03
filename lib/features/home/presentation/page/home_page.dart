@@ -102,6 +102,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ...state.directMessages,
                   ],
                   unreadState: unreadState,
+                  onViewAll: () => _pushServerRoute('unread'),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 _HomeAgentsSection(
@@ -858,12 +859,14 @@ class _HomeUnreadSection extends StatelessWidget {
     required this.channels,
     required this.directMessages,
     required this.unreadState,
+    this.onViewAll,
   });
 
   final List<ThreadInboxItem> threadItems;
   final List<HomeChannelSummary> channels;
   final List<HomeDirectMessageSummary> directMessages;
   final ChannelUnreadState unreadState;
+  final VoidCallback? onViewAll;
 
   @override
   Widget build(BuildContext context) {
@@ -875,6 +878,7 @@ class _HomeUnreadSection extends StatelessWidget {
     return _SummaryCardBase(
       accentColor: colors.error,
       title: l10n.homeCardUnread,
+      onViewAll: onViewAll,
       child: unreadItems.isEmpty
           ? const _UnreadEmptyState(
               key: ValueKey('home-unread-empty'),
@@ -882,6 +886,7 @@ class _HomeUnreadSection extends StatelessWidget {
           : _UnreadListContent(
               key: const ValueKey('home-unread-list'),
               unreadItems: unreadItems,
+              onViewAll: onViewAll,
             ),
     );
   }
@@ -892,7 +897,15 @@ class _HomeUnreadSection extends StatelessWidget {
     // Threads with unread > 0
     for (final thread in threadItems) {
       if (thread.unreadCount > 0) {
-        items.add(HomeUnreadItem.fromThread(thread));
+        final parentName = _findChannelName(
+          thread.routeTarget.parentChannelId,
+        );
+        items.add(
+          HomeUnreadItem.fromThread(
+            thread,
+            parentChannelName: parentName,
+          ),
+        );
       }
     }
 
@@ -946,15 +959,26 @@ class _HomeUnreadSection extends StatelessWidget {
     }
     return null;
   }
+
+  /// Look up a channel name from its raw ID string
+  /// (used for thread parent channel display).
+  String? _findChannelName(String channelId) {
+    for (final ch in channels) {
+      if (ch.scopeId.value == channelId) return ch.name;
+    }
+    return null;
+  }
 }
 
 class _UnreadListContent extends ConsumerWidget {
   const _UnreadListContent({
     super.key,
     required this.unreadItems,
+    this.onViewAll,
   });
 
   final List<HomeUnreadItem> unreadItems;
+  final VoidCallback? onViewAll;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -994,15 +1018,19 @@ class _UnreadListContent extends ConsumerWidget {
             now: now,
           ),
         if (overflowCount > 0)
-          Padding(
+          GestureDetector(
             key: const ValueKey('home-unread-overflow'),
-            padding: const EdgeInsets.only(
-              top: AppSpacing.xs,
-            ),
-            child: Text(
-              l10n.homeCardUnreadOverflow(overflowCount),
-              style: AppTypography.caption.copyWith(
-                color: colors.textTertiary,
+            onTap: onViewAll,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xs,
+              ),
+              child: Text(
+                l10n.homeCardUnreadOverflow(overflowCount),
+                style: AppTypography.caption.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
@@ -1084,20 +1112,23 @@ class _UnreadItemRow extends ConsumerWidget {
   final HomeUnreadItem item;
   final DateTime now;
 
-  IconData get _kindIcon {
+  /// Z2-style type glyph and theme-safe badge color per kind.
+  (String glyph, Color Function(AppColors) colorFn) get _kindBadge {
     switch (item.kind) {
       case HomeUnreadKind.thread:
-        return Icons.reply;
+        return ('\u21a9', (c) => c.primary);
       case HomeUnreadKind.channel:
-        return Icons.tag;
+        return ('#', (c) => c.success);
       case HomeUnreadKind.directMessage:
-        return Icons.mail_outline;
+        return ('\u2709', (c) => c.warning);
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final (glyph, colorFn) = _kindBadge;
+    final badgeColor = colorFn(colors);
 
     return GestureDetector(
       onTap: () => _navigateTo(context, ref),
@@ -1108,25 +1139,52 @@ class _UnreadItemRow extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              _kindIcon,
-              size: 16,
-              color: colors.textTertiary,
+            Container(
+              key: ValueKey('unread-kind-${item.kind.name}'),
+              width: 22,
+              height: 22,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: badgeColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                glyph,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: badgeColor,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
+                semanticsLabel: item.kind.name,
+              ),
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.title,
-                    style: AppTypography.body.copyWith(
-                      color: colors.text,
-                      fontWeight: FontWeight.w500,
+                  if (item.sourceLabel != null)
+                    Text(
+                      item.sourceLabel!,
+                      key: ValueKey('unread-source-${item.id}'),
+                      style: AppTypography.body.copyWith(
+                        color: colors.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  else
+                    Text(
+                      item.title,
+                      style: AppTypography.body.copyWith(
+                        color: colors.text,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
                   if (item.preview != null) ...[
                     const SizedBox(height: 2),
                     Text(

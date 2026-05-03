@@ -18,6 +18,7 @@ class HomeUnreadItem {
     required this.id,
     required this.title,
     required this.unreadCount,
+    this.sourceLabel,
     this.preview,
     this.lastActivityAt,
     this.threadRouteTarget,
@@ -26,12 +27,22 @@ class HomeUnreadItem {
   });
 
   /// Build from a [ThreadInboxItem] with unreadCount > 0.
-  factory HomeUnreadItem.fromThread(ThreadInboxItem thread) {
+  ///
+  /// Pass [parentChannelName] to include the parent channel
+  /// in the [sourceLabel] (e.g. "#general · Thread title").
+  factory HomeUnreadItem.fromThread(
+    ThreadInboxItem thread, {
+    String? parentChannelName,
+  }) {
+    final title = thread.resolvedTitle;
+    final label =
+        parentChannelName != null ? '#$parentChannelName \u00b7 $title' : title;
     return HomeUnreadItem(
       kind: HomeUnreadKind.thread,
       id: 'thread:${thread.routeTarget.parentMessageId}',
-      title: thread.resolvedTitle,
+      title: title,
       unreadCount: thread.unreadCount,
+      sourceLabel: label,
       preview: thread.preview,
       lastActivityAt: thread.lastReplyAt,
       threadRouteTarget: thread.routeTarget,
@@ -48,6 +59,7 @@ class HomeUnreadItem {
       id: 'channel:${channel.scopeId.value}',
       title: channel.name,
       unreadCount: unreadCount,
+      sourceLabel: '#${channel.name}',
       preview: channel.lastMessagePreview,
       lastActivityAt: channel.lastActivityAt,
       channelScopeId: channel.scopeId,
@@ -64,6 +76,7 @@ class HomeUnreadItem {
       id: 'dm:${dm.scopeId.value}',
       title: dm.title,
       unreadCount: unreadCount,
+      sourceLabel: dm.title,
       preview: dm.lastMessagePreview,
       lastActivityAt: dm.lastActivityAt,
       dmScopeId: dm.scopeId,
@@ -74,6 +87,13 @@ class HomeUnreadItem {
   final String id;
   final String title;
   final int unreadCount;
+
+  /// Formatted display label for the unread source.
+  ///
+  /// Thread: "#channelName · threadTitle"
+  /// Channel: "#channelName"
+  /// DM: "peerName"
+  final String? sourceLabel;
   final String? preview;
   final DateTime? lastActivityAt;
 
@@ -95,6 +115,7 @@ class HomeUnreadItem {
           id == other.id &&
           title == other.title &&
           unreadCount == other.unreadCount &&
+          sourceLabel == other.sourceLabel &&
           preview == other.preview &&
           lastActivityAt == other.lastActivityAt;
 
@@ -104,6 +125,7 @@ class HomeUnreadItem {
         id,
         title,
         unreadCount,
+        sourceLabel,
         preview,
         lastActivityAt,
       );
