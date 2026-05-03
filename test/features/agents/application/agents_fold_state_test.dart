@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_fold_state.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() {
@@ -15,6 +17,9 @@ void main() {
     container = ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
       ],
     );
     sub = container.listen(
@@ -63,13 +68,13 @@ void main() {
     );
 
     test(
-      'collapsed state persists to SharedPreferences',
+      'collapsed state persists to server-scoped SharedPreferences key',
       () {
         store().toggle('m1');
         store().toggle('m2');
 
         final stored = prefs.getStringList(
-          'agents_collapsed_machines',
+          'agents_collapsed_machines_server-1',
         );
         expect(stored, isNotNull);
         expect(stored!.toSet(), {'m1', 'm2'});
@@ -77,10 +82,10 @@ void main() {
     );
 
     test(
-      'initial state reads from SharedPreferences',
+      'initial state reads from server-scoped SharedPreferences',
       () async {
         await prefs.setStringList(
-          'agents_collapsed_machines',
+          'agents_collapsed_machines_server-1',
           ['m1', 'm3'],
         );
 
@@ -90,6 +95,9 @@ void main() {
         container = ProviderContainer(
           overrides: [
             sharedPreferencesProvider.overrideWithValue(prefs),
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
           ],
         );
         sub = container.listen(
@@ -110,6 +118,50 @@ void main() {
         store().toggle('m3');
 
         expect(state(), {'m2', 'm3'});
+      },
+    );
+
+    test(
+      'different servers have isolated fold state',
+      () async {
+        // Collapse m1 on server-1.
+        store().toggle('m1');
+        expect(state(), {'m1'});
+
+        // Re-create container with server-2.
+        sub.close();
+        container.dispose();
+        container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-2'),
+            ),
+          ],
+        );
+        sub = container.listen(
+          agentsFoldStateProvider,
+          (_, __) {},
+        );
+
+        // server-2 should have empty state.
+        expect(state(), isEmpty);
+
+        // Collapse m2 on server-2.
+        store().toggle('m2');
+        expect(state(), {'m2'});
+
+        // Verify server-1 still only has m1.
+        final server1Stored = prefs.getStringList(
+          'agents_collapsed_machines_server-1',
+        );
+        expect(server1Stored!.toSet(), {'m1'});
+
+        // Verify server-2 only has m2.
+        final server2Stored = prefs.getStringList(
+          'agents_collapsed_machines_server-2',
+        );
+        expect(server2Stored!.toSet(), {'m2'});
       },
     );
   });

@@ -684,6 +684,18 @@ class _CollapsedSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final summary = group.agents.map((a) {
+      final activity = switch (a.activity) {
+        'online' => l10n.homeCardAgentActivityOnline,
+        'thinking' => l10n.homeCardAgentActivityThinking,
+        'working' => l10n.homeCardAgentActivityWorking,
+        'error' => l10n.homeCardAgentActivityError,
+        _ => l10n.homeCardAgentActivityOffline,
+      };
+      return '${a.label} $activity';
+    }).join(' · ');
+
     return Padding(
       key: ValueKey(
         'collapsed-summary-${group.foldKey}',
@@ -695,7 +707,7 @@ class _CollapsedSummary extends StatelessWidget {
         AppSpacing.sm,
       ),
       child: Text(
-        group.collapsedSummary,
+        summary,
         style: AppTypography.bodySmall.copyWith(
           color: colors.textSecondary,
         ),
