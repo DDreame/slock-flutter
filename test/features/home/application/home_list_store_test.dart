@@ -601,10 +601,10 @@ void main() {
       );
 
       final repository = _FakeHomeRepository(
-        snapshot: HomeWorkspaceSnapshot(
-          serverId: const ServerScopeId('server-1'),
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
           channels: [
-            const HomeChannelSummary(
+            HomeChannelSummary(
               scopeId: ChannelScopeId(
                 serverId: ServerScopeId('server-1'),
                 value: 'has-preview-ch',
@@ -614,7 +614,7 @@ void main() {
               lastMessagePreview: 'Existing preview',
               lastActivityAt: null,
             ),
-            const HomeChannelSummary(
+            HomeChannelSummary(
               scopeId: ChannelScopeId(
                 serverId: ServerScopeId('server-1'),
                 value: 'no-preview-ch',
@@ -623,7 +623,7 @@ void main() {
             ),
           ],
           directMessages: [
-            const HomeDirectMessageSummary(
+            HomeDirectMessageSummary(
               scopeId: DirectMessageScopeId(
                 serverId: ServerScopeId('server-1'),
                 value: 'no-preview-dm',
