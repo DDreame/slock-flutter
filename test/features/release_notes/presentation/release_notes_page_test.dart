@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/release_notes/data/release_note_item.dart';
 import 'package:slock_app/features/release_notes/data/release_notes_catalog.dart';
