@@ -152,6 +152,14 @@ class HomeListStore extends Notifier<HomeListState> {
         serverScopeId: snapshot.serverId,
         status: HomeListStatus.success,
       );
+
+      // Fire-and-forget background fallback: for channels / DMs
+      // whose API response did not include a lastMessage object,
+      // fetch the most recent message individually and update both
+      // the local store and in-memory state.
+      unawaited(
+        _fetchMissingPreviews(snapshot).catchError((_) {}),
+      );
     } on AppFailure catch (failure) {
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
       if (cached != null) return;
@@ -221,6 +229,71 @@ class HomeListStore extends Notifier<HomeListState> {
   }
 
   Future<void> retry() => load();
+
+  /// Background fallback: fetches the most recent message for
+  /// channels / DMs that had no `lastMessage` in the initial API
+  /// response, then updates the local store and in-memory list.
+  Future<void> _fetchMissingPreviews(
+    HomeWorkspaceSnapshot snapshot,
+  ) async {
+    final loader = ref.read(homePreviewFallbackLoaderProvider);
+    final repo = ref.read(homeRepositoryProvider);
+    final serverId = snapshot.serverId;
+
+    final missingChannels = snapshot.channels
+        .where((ch) => ch.lastMessagePreview == null)
+        .toList(growable: false);
+    final missingDms = snapshot.directMessages
+        .where((dm) => dm.lastMessagePreview == null)
+        .toList(growable: false);
+
+    // Fetch in parallel, but each result is applied independently.
+    final channelFutures = missingChannels.map((ch) async {
+      final result = await loader(serverId, ch.scopeId.value);
+      if (result == null) return;
+      try {
+        await repo.persistConversationActivity(
+          serverId: serverId,
+          conversationId: ch.scopeId.value,
+          messageId: result.messageId,
+          preview: result.preview,
+          activityAt: result.activityAt,
+        );
+      } catch (_) {
+        // Local store failure is non-fatal.
+      }
+      updateChannelLastMessage(
+        conversationId: ch.scopeId.value,
+        messageId: result.messageId,
+        preview: result.preview,
+        activityAt: result.activityAt,
+      );
+    });
+
+    final dmFutures = missingDms.map((dm) async {
+      final result = await loader(serverId, dm.scopeId.value);
+      if (result == null) return;
+      try {
+        await repo.persistConversationActivity(
+          serverId: serverId,
+          conversationId: dm.scopeId.value,
+          messageId: result.messageId,
+          preview: result.preview,
+          activityAt: result.activityAt,
+        );
+      } catch (_) {
+        // Local store failure is non-fatal.
+      }
+      updateDmLastMessage(
+        conversationId: dm.scopeId.value,
+        messageId: result.messageId,
+        preview: result.preview,
+        activityAt: result.activityAt,
+      );
+    });
+
+    await Future.wait([...channelFutures, ...dmFutures]);
+  }
 
   void _hydrateUnreadCounts(HomeWorkspaceSnapshot snapshot) {
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);

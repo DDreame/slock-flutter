@@ -583,6 +583,126 @@ void main() {
       );
     },
   );
+
+  test(
+    'load fetches missing previews in background and '
+    'updates in-memory state',
+    () async {
+      final fallbackResults = <String, HomePreviewFallbackResult>{};
+      fallbackResults['no-preview-ch'] = HomePreviewFallbackResult(
+        messageId: 'msg-bg-1',
+        preview: 'Background fetched',
+        activityAt: DateTime.utc(2026, 5, 3, 10),
+      );
+      fallbackResults['no-preview-dm'] = HomePreviewFallbackResult(
+        messageId: 'msg-bg-2',
+        preview: 'DM background fetched',
+        activityAt: DateTime.utc(2026, 5, 3, 11),
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: HomeWorkspaceSnapshot(
+          serverId: const ServerScopeId('server-1'),
+          channels: [
+            const HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'has-preview-ch',
+              ),
+              name: 'Has Preview',
+              lastMessageId: 'msg-1',
+              lastMessagePreview: 'Existing preview',
+              lastActivityAt: null,
+            ),
+            const HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'no-preview-ch',
+              ),
+              name: 'No Preview',
+            ),
+          ],
+          directMessages: [
+            const HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'no-preview-dm',
+              ),
+              title: 'Alice',
+            ),
+          ],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async => fallbackResults[conversationId],
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Drain the fire-and-forget _fetchMissingPreviews future.
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+
+      // Channel with existing preview should be unchanged.
+      final hasPreview = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'has-preview-ch',
+      );
+      expect(
+        hasPreview.lastMessagePreview,
+        'Existing preview',
+        reason: 'Channels with an existing preview '
+            'should not be touched by the fallback',
+      );
+
+      // Channel without preview should be populated
+      // by the background fallback.
+      final noPreview = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'no-preview-ch',
+      );
+      expect(
+        noPreview.lastMessagePreview,
+        'Background fetched',
+        reason: 'Channel missing preview should be '
+            'populated by async fallback',
+      );
+      expect(noPreview.lastMessageId, 'msg-bg-1');
+
+      // DM without preview should also be populated.
+      final dm = state.directMessages.firstWhere(
+        (d) => d.scopeId.value == 'no-preview-dm',
+      );
+      expect(
+        dm.lastMessagePreview,
+        'DM background fetched',
+        reason: 'DM missing preview should be '
+            'populated by async fallback',
+      );
+      expect(dm.lastMessageId, 'msg-bg-2');
+    },
+  );
 }
 
 class _FakeHomeRepository implements HomeRepository {
