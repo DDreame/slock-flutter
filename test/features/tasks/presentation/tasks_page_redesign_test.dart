@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
@@ -40,14 +41,41 @@ void main() {
     _FakeTasksStore store, {
     ThemeData? theme,
   }) {
+    final router = GoRouter(
+      initialLocation: '/servers/server-1/tasks',
+      routes: [
+        GoRoute(
+          path: '/servers/:serverId/tasks',
+          builder: (context, state) =>
+              TasksPage(serverId: state.pathParameters['serverId']!),
+        ),
+        GoRoute(
+          path: '/servers/:serverId/channels/:channelId',
+          builder: (context, state) => Scaffold(
+            key: ValueKey(
+              'nav-channel-${state.pathParameters['channelId']}',
+            ),
+            body: const Text('navigated-to-channel'),
+          ),
+        ),
+        GoRoute(
+          path: '/servers/:serverId/dms/:channelId',
+          builder: (context, state) => Scaffold(
+            key: ValueKey('nav-dm-${state.pathParameters['channelId']}'),
+            body: const Text('navigated-to-dm'),
+          ),
+        ),
+      ],
+    );
+
     return ProviderScope(
       overrides: [
         tasksStoreProvider.overrideWith(() => store),
         tasksRealtimeBindingProvider.overrideWith((ref) {}),
       ],
-      child: MaterialApp(
+      child: MaterialApp.router(
+        routerConfig: router,
         theme: theme ?? AppTheme.light,
-        home: const TasksPage(serverId: 'server-1'),
       ),
     );
   }
@@ -344,7 +372,8 @@ void main() {
       expect(find.byKey(const ValueKey('tasks-create-fab')), findsNothing);
     });
 
-    testWidgets('preserves existing tap-to-advance behavior', (tester) async {
+    testWidgets('single tap navigates to source context instead of advancing',
+        (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
           status: TasksStatus.success,
@@ -358,7 +387,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('task-task-1')));
       await tester.pumpAndSettle();
 
-      expect(store.statusUpdates, [('task-1', 'in_progress')]);
+      // Should navigate, NOT advance status
+      expect(store.statusUpdates, isEmpty);
+      expect(
+        find.byKey(const ValueKey('nav-channel-channel-1')),
+        findsOneWidget,
+        reason: 'Tap should navigate to channel, not advance status',
+      );
     });
 
     testWidgets('dark theme uses AppColors.dark tokens', (tester) async {

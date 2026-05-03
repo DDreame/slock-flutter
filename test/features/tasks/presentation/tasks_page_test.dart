@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
@@ -102,7 +103,7 @@ void main() {
     );
   });
 
-  testWidgets('single tap on todo task advances to in_progress', (
+  testWidgets('single tap on channel task navigates to channel route', (
     tester,
   ) async {
     final store = _FakeTasksStore(
@@ -112,81 +113,78 @@ void main() {
       ),
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
-        ],
-        child: MaterialApp(
-            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
-      ),
-    );
-    await tester.pump();
+    await tester.pumpWidget(_buildApp(store));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('task-task-1')));
     await tester.pumpAndSettle();
 
-    expect(store.statusUpdates, [('task-1', 'in_progress')]);
+    // Should navigate, NOT update status
+    expect(store.statusUpdates, isEmpty);
+    expect(
+      find.byKey(const ValueKey('nav-channel-channel-1')),
+      findsOneWidget,
+      reason: 'Single tap should navigate to the channel route',
+    );
   });
 
-  testWidgets('single tap on in_progress task advances to in_review', (
+  testWidgets('single tap on DM task navigates to DM route', (
     tester,
   ) async {
     final store = _FakeTasksStore(
       initialState: TasksState(
         status: TasksStatus.success,
-        items: [_taskItem(status: 'in_progress')],
-      ),
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
+        items: [
+          _taskItem(
+            id: 'dm-task',
+            channelId: 'dm-1',
+            channelType: 'dm',
+          ),
         ],
-        child: MaterialApp(
-            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
       ),
     );
-    await tester.pump();
 
-    await tester.tap(find.byKey(const ValueKey('task-task-1')));
+    await tester.pumpWidget(_buildApp(store));
     await tester.pumpAndSettle();
 
-    expect(store.statusUpdates, [('task-1', 'in_review')]);
+    await tester.tap(find.byKey(const ValueKey('task-dm-task')));
+    await tester.pumpAndSettle();
+
+    expect(store.statusUpdates, isEmpty);
+    expect(
+      find.byKey(const ValueKey('nav-dm-dm-1')),
+      findsOneWidget,
+      reason: 'Single tap on DM task should navigate to the DM route',
+    );
   });
 
-  testWidgets('single tap on in_review task advances to done', (
+  testWidgets('single tap on done task navigates instead of opening sheet', (
     tester,
   ) async {
     final store = _FakeTasksStore(
       initialState: TasksState(
         status: TasksStatus.success,
-        items: [_taskItem(status: 'in_review')],
+        items: [_taskItem(status: 'done')],
       ),
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
-        ],
-        child: MaterialApp(
-            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
-      ),
-    );
-    await tester.pump();
+    await tester.pumpWidget(_buildApp(store));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('task-task-1')));
     await tester.pumpAndSettle();
 
-    expect(store.statusUpdates, [('task-1', 'done')]);
+    // Should navigate, NOT open bottom sheet
+    expect(store.statusUpdates, isEmpty);
+    expect(find.text('Reopen'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('nav-channel-channel-1')),
+      findsOneWidget,
+      reason: 'Done task tap should also navigate, not open bottom sheet',
+    );
   });
 
-  testWidgets('single tap on done task opens bottom sheet with Reopen', (
+  testWidgets('long-press on done task opens bottom sheet with Reopen', (
     tester,
   ) async {
     final store = _FakeTasksStore(
@@ -208,7 +206,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byKey(const ValueKey('task-task-1')));
+    await tester.longPress(find.byKey(const ValueKey('task-task-1')));
     await tester.pumpAndSettle();
 
     expect(find.text('Reopen'), findsOneWidget);
@@ -234,7 +232,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.byKey(const ValueKey('task-task-1')));
+    await tester.longPress(find.byKey(const ValueKey('task-task-1')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('task-action-reopen')));
@@ -312,26 +310,56 @@ void main() {
 }
 
 Widget _buildApp(_FakeTasksStore store, {ThemeData? theme}) {
+  final router = GoRouter(
+    initialLocation: '/servers/server-1/tasks',
+    routes: [
+      GoRoute(
+        path: '/servers/:serverId/tasks',
+        builder: (context, state) =>
+            TasksPage(serverId: state.pathParameters['serverId']!),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/channels/:channelId',
+        builder: (context, state) => Scaffold(
+          key: ValueKey('nav-channel-${state.pathParameters['channelId']}'),
+          body: const Text('navigated-to-channel'),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/dms/:channelId',
+        builder: (context, state) => Scaffold(
+          key: ValueKey('nav-dm-${state.pathParameters['channelId']}'),
+          body: const Text('navigated-to-dm'),
+        ),
+      ),
+    ],
+  );
+
   return ProviderScope(
     overrides: [
       tasksStoreProvider.overrideWith(() => store),
       tasksRealtimeBindingProvider.overrideWith((ref) {}),
     ],
-    child: MaterialApp(
+    child: MaterialApp.router(
+      routerConfig: router,
       theme: theme ?? AppTheme.light,
-      home: const TasksPage(serverId: 'server-1'),
     ),
   );
 }
 
-TaskItem _taskItem({String id = 'task-1', String status = 'todo'}) {
+TaskItem _taskItem({
+  String id = 'task-1',
+  String status = 'todo',
+  String channelId = 'channel-1',
+  String channelType = 'channel',
+}) {
   return TaskItem(
     id: id,
     taskNumber: 1,
     title: 'Investigate loading surface',
     status: status,
-    channelId: 'channel-1',
-    channelType: 'channel',
+    channelId: channelId,
+    channelType: channelType,
     createdById: 'user-1',
     createdByName: 'Alice',
     createdByType: 'human',
