@@ -252,6 +252,80 @@ void main() {
     );
 
     test(
+      'logout then login on same server triggers fresh fetch',
+      () async {
+        fakeRepo.nextUnreadCounts = {'ch-1': 5};
+
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
+            activeServerScopeIdProvider.overrideWithValue(server1),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // First login → hydration fetches.
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(channelUnreadHydrationBindingProvider);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(fakeRepo.calls, hasLength(1));
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(const ChannelScopeId(
+                serverId: server1,
+                value: 'ch-1',
+              )),
+          5,
+        );
+
+        // Logout.
+        await container.read(sessionStoreProvider.notifier).logout();
+        await Future<void>.delayed(Duration.zero);
+
+        // Update server response for re-login.
+        fakeRepo.nextUnreadCounts = {'ch-1': 10};
+
+        // Login again on same server.
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        await Future<void>.delayed(Duration.zero);
+
+        // Must have fetched again (2 total calls).
+        expect(
+          fakeRepo.calls
+              .where(
+                (c) => c == 'fetchUnreadCounts:server-1',
+              )
+              .length,
+          2,
+          reason: 'Logout/login must trigger fresh fetch '
+              'even on the same server',
+        );
+
+        // Store should reflect updated server response.
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(const ChannelScopeId(
+                serverId: server1,
+                value: 'ch-1',
+              )),
+          10,
+          reason: 'Re-login must hydrate from fresh server '
+              'data, not stale reclassify',
+        );
+      },
+    );
+
+    test(
       'splits DM counts when HomeListStore is loaded',
       () async {
         fakeRepo.nextUnreadCounts = {

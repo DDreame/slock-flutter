@@ -31,7 +31,12 @@ final channelUnreadHydrationBindingProvider = Provider<void>((ref) {
     homeListStoreProvider.select(_dmIdFingerprint),
   );
 
-  if (serverId == null || !session.isAuthenticated) return;
+  if (serverId == null || !session.isAuthenticated) {
+    // Reset fetch tracker on logout so the next login always
+    // takes the fresh-fetch path — even for the same server.
+    ref.read(_fetchedServerIdProvider.notifier).state = null;
+    return;
+  }
 
   final knownDmIds = _parseDmFingerprint(dmFingerprint);
 
