@@ -472,6 +472,12 @@ abstract class AppLocalizations {
   /// **'No Machine Assigned'**
   String get agentsNoMachineAssigned;
 
+  /// No description provided for @releaseNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Release Notes'**
+  String get releaseNotesTitle;
+
   /// No description provided for @navSettings.
   ///
   /// In en, this message translates to:

@@ -195,6 +195,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentsNoMachineAssigned => '未分配机器';
 
   @override
+  String get releaseNotesTitle => '版本说明';
+
+  @override
   String get navSettings => '设置';
 
   @override

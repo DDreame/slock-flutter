@@ -213,6 +213,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get agentsNoMachineAssigned => 'Sin máquina asignada';
 
   @override
+  String get releaseNotesTitle => 'Notas de versión';
+
+  @override
   String get navSettings => 'Settings';
 
   @override
