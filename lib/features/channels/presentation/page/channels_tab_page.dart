@@ -14,6 +14,7 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
@@ -218,7 +219,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       isPinned: isPinned,
       isMutating: managementState.isBusy,
       onTap: () {
-        unreadStore.markChannelRead(channel.scopeId);
+        ref.read(markChannelReadUseCaseProvider)(channel.scopeId);
         context.push(homeStore.channelRoutePath(channel.scopeId));
       },
       onEdit: () => _showEditChannelDialog(channel),

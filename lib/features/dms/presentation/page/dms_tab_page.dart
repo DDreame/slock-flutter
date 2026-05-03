@@ -12,6 +12,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
@@ -242,7 +243,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       isPinned: isPinned,
       isOnline: isOnline,
       onTap: () {
-        unreadStore.markDmRead(dm.scopeId);
+        ref.read(markDmReadUseCaseProvider)(dm.scopeId);
         context.push(homeStore.directMessageRoutePath(dm.scopeId));
       },
       onTogglePin: () => isPinned

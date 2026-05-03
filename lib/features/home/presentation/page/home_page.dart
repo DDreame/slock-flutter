@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +21,8 @@ import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
+import 'package:slock_app/features/unread/data/channel_unread_repository_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
@@ -1007,17 +1011,18 @@ class _UnreadListContent extends ConsumerWidget {
   }
 
   void _markAllRead(WidgetRef ref) {
-    final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
+    final markChannel = ref.read(markChannelReadUseCaseProvider);
+    final markDm = ref.read(markDmReadUseCaseProvider);
 
     for (final item in unreadItems) {
       switch (item.kind) {
         case HomeUnreadKind.channel:
           if (item.channelScopeId != null) {
-            unreadStore.markChannelRead(item.channelScopeId!);
+            markChannel(item.channelScopeId!);
           }
         case HomeUnreadKind.directMessage:
           if (item.dmScopeId != null) {
-            unreadStore.markDmRead(item.dmScopeId!);
+            markDm(item.dmScopeId!);
           }
         case HomeUnreadKind.thread:
           break; // Handled below via HomeListStore.
@@ -1027,6 +1032,17 @@ class _UnreadListContent extends ConsumerWidget {
     // Clear thread unreads locally so threads also disappear.
     if (unreadItems.any((i) => i.kind == HomeUnreadKind.thread)) {
       ref.read(homeListStoreProvider.notifier).clearThreadUnreads();
+    }
+
+    // Fire-and-forget server-side bulk read.
+    final serverId = ref.read(activeServerScopeIdProvider);
+    if (serverId != null) {
+      unawaited(
+        ref
+            .read(channelUnreadRepositoryProvider)
+            .markAllInboxRead(serverId)
+            .catchError((_) {}),
+      );
     }
   }
 }
