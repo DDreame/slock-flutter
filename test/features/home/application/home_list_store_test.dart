@@ -1221,6 +1221,94 @@ void main() {
       expect(fallbackCallCount, 2);
     },
   );
+
+  test(
+    'realtime preview survives when it arrives '
+    'during fallback persist await',
+    () async {
+      final persistCompleter = Completer<void>();
+
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-race',
+            ),
+            name: 'Race Channel',
+          ),
+        ],
+        directMessages: [],
+      );
+
+      final repository = _DelayedPersistRepository(
+        snapshot: networkSnapshot,
+        persistCompleter: persistCompleter,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async {
+              return HomePreviewFallbackResult(
+                messageId: 'fallback-msg',
+                preview: 'Fallback preview',
+                activityAt: DateTime.utc(2026, 5, 2),
+              );
+            },
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Fallback is now awaiting persistCompleter.
+      // Simulate a realtime message:new arriving mid-persist.
+      container.read(homeListStoreProvider.notifier).updateChannelLastMessage(
+            conversationId: 'ch-race',
+            messageId: 'realtime-msg',
+            preview: 'Realtime preview',
+            activityAt: DateTime.utc(2026, 5, 3, 12),
+          );
+
+      // Now let the persist complete.
+      persistCompleter.complete();
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-race',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Realtime preview',
+        reason: 'Realtime preview must survive '
+            'fallback that was in persist-await '
+            'when the realtime event arrived',
+      );
+      expect(ch.lastMessageId, 'realtime-msg');
+    },
+  );
 }
 
 class _FakeHomeRepository implements HomeRepository {
@@ -1308,6 +1396,56 @@ class _DelayedHomeRepository implements HomeRepository {
     required String preview,
     required DateTime activityAt,
   }) async {}
+
+  @override
+  Future<void> persistConversationPreviewUpdate({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) async {}
+}
+
+class _DelayedPersistRepository implements HomeRepository {
+  _DelayedPersistRepository({
+    required this.snapshot,
+    required this.persistCompleter,
+  });
+
+  final HomeWorkspaceSnapshot snapshot;
+  final Completer<void> persistCompleter;
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return null;
+  }
+
+  @override
+  Future<HomeWorkspaceSnapshot> loadWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return snapshot;
+  }
+
+  @override
+  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
+    HomeDirectMessageSummary summary,
+  ) async {
+    return summary;
+  }
+
+  @override
+  Future<void> persistConversationActivity({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) {
+    return persistCompleter.future;
+  }
 
   @override
   Future<void> persistConversationPreviewUpdate({
