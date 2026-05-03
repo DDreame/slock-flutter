@@ -1128,6 +1128,99 @@ void main() {
       expect(dm.lastMessageId, 'dm-fresh');
     },
   );
+
+  test(
+    'fallback-populated preview does not block '
+    'fresh fallback on second load cycle',
+    () async {
+      var fallbackCallCount = 0;
+
+      // Network always omits lastMessage.
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+          ),
+        ],
+        directMessages: [],
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: networkSnapshot,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async {
+              fallbackCallCount++;
+              return HomePreviewFallbackResult(
+                messageId: 'msg-v$fallbackCallCount',
+                preview: 'Preview v$fallbackCallCount',
+                activityAt: DateTime.utc(
+                  2026,
+                  5,
+                  fallbackCallCount,
+                ),
+              );
+            },
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // First load cycle — fallback populates preview.
+      await container.read(homeListStoreProvider.notifier).load();
+      await Future.delayed(Duration.zero);
+
+      var state = container.read(homeListStoreProvider);
+      var ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+      expect(ch.lastMessagePreview, 'Preview v1');
+      expect(ch.lastMessageId, 'msg-v1');
+
+      // Second load cycle — fallback should NOT be blocked
+      // by the first cycle's fallback-populated preview.
+      await container.read(homeListStoreProvider.notifier).load();
+      await Future.delayed(Duration.zero);
+
+      state = container.read(homeListStoreProvider);
+      ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+      expect(
+        ch.lastMessagePreview,
+        'Preview v2',
+        reason: 'Fallback on second load must not '
+            'be blocked by first load fallback',
+      );
+      expect(ch.lastMessageId, 'msg-v2');
+      expect(fallbackCallCount, 2);
+    },
+  );
 }
 
 class _FakeHomeRepository implements HomeRepository {

@@ -94,6 +94,9 @@ class HomeListStore extends Notifier<HomeListState> {
       return;
     }
 
+    // Reset per-load-cycle state so retries start clean.
+    _realtimePreviewIds.clear();
+
     state = state.copyWith(
       serverScopeId: serverScopeId,
       status: HomeListStatus.loading,
@@ -337,6 +340,9 @@ class HomeListStore extends Notifier<HomeListState> {
         preview: result.preview,
         activityAt: result.activityAt,
       );
+      // Fallback is not a realtime event — undo the set
+      // addition so this ID is not treated as protected.
+      _realtimePreviewIds.remove(ch.scopeId.value);
     }
 
     Future<void> fetchDm(HomeDirectMessageSummary dm) async {
@@ -366,6 +372,9 @@ class HomeListStore extends Notifier<HomeListState> {
         preview: result.preview,
         activityAt: result.activityAt,
       );
+      // Fallback is not a realtime event — undo the set
+      // addition so this ID is not treated as protected.
+      _realtimePreviewIds.remove(dm.scopeId.value);
     }
 
     // Process in batches to avoid stampeding the API.
