@@ -66,6 +66,7 @@
   "navDms": "Mensajes",
   "navAgents": "Agents",
   "agentsNewTooltip": "Nuevo agente",
+  "agentsNoMachineAssigned": "Sin máquina asignada",
   "navSettings": "Settings",
 
   "homeWorkspaceConsole": "Workspace Console",

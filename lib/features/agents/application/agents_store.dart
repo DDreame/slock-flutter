@@ -4,6 +4,7 @@ import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
+import 'package:slock_app/features/machines/data/machine_item.dart';
 
 final agentsStoreProvider =
     NotifierProvider.autoDispose<AgentsStore, AgentsState>(AgentsStore.new);
@@ -17,20 +18,37 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
   }
 
   Future<void> load() async {
-    state = state.copyWith(status: AgentsStatus.loading, clearFailure: true);
+    state = state.copyWith(
+      status: AgentsStatus.loading,
+      clearFailure: true,
+    );
 
     try {
       final repo = ref.read(agentsRepositoryProvider);
-      final agents = await repo.listAgents();
+      final loadMachines = ref.read(agentsMachinesLoaderProvider);
+
+      // Fetch agents and machines in parallel.
+      final results = await Future.wait([
+        repo.listAgents(),
+        loadMachines(),
+      ]);
+
+      final agents = results[0] as List<AgentItem>;
+      final machines = results[1] as List<MachineItem>;
       final agentIds = agents.map((agent) => agent.id).toSet();
+
       state = state.copyWith(
         status: AgentsStatus.success,
         items: agents,
+        machines: machines,
         activityLogs: _pruneActivityLogs(agentIds),
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
-      state = state.copyWith(status: AgentsStatus.failure, failure: failure);
+      state = state.copyWith(
+        status: AgentsStatus.failure,
+        failure: failure,
+      );
     }
   }
 

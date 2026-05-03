@@ -192,6 +192,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get agentsNewTooltip => '新建智能体';
 
   @override
+  String get agentsNoMachineAssigned => '未分配机器';
+
+  @override
   String get navSettings => '设置';
 
   @override

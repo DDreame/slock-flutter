@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/machines/data/machine_item.dart';
 
 enum AgentsStatus { initial, loading, success, failure }
 
@@ -10,6 +11,7 @@ class AgentsState {
   const AgentsState({
     this.status = AgentsStatus.initial,
     this.items = const [],
+    this.machines = const [],
     this.activityLogs = const <String, List<AgentActivityLogEntry>>{},
     this.failure,
     this.isCreating = false,
@@ -20,6 +22,7 @@ class AgentsState {
 
   final AgentsStatus status;
   final List<AgentItem> items;
+  final List<MachineItem> machines;
   final Map<String, List<AgentActivityLogEntry>> activityLogs;
   final AppFailure? failure;
   final bool isCreating;
@@ -41,6 +44,7 @@ class AgentsState {
   AgentsState copyWith({
     AgentsStatus? status,
     List<AgentItem>? items,
+    List<MachineItem>? machines,
     Map<String, List<AgentActivityLogEntry>>? activityLogs,
     AppFailure? failure,
     bool? isCreating,
@@ -52,6 +56,7 @@ class AgentsState {
     return AgentsState(
       status: status ?? this.status,
       items: items ?? this.items,
+      machines: machines ?? this.machines,
       activityLogs: activityLogs ?? this.activityLogs,
       failure: clearFailure ? null : (failure ?? this.failure),
       isCreating: isCreating ?? this.isCreating,

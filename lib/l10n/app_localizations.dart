@@ -466,6 +466,12 @@ abstract class AppLocalizations {
   /// **'New agent'**
   String get agentsNewTooltip;
 
+  /// No description provided for @agentsNoMachineAssigned.
+  ///
+  /// In en, this message translates to:
+  /// **'No Machine Assigned'**
+  String get agentsNoMachineAssigned;
+
   /// No description provided for @navSettings.
   ///
   /// In en, this message translates to:

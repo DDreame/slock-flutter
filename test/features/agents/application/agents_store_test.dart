@@ -31,7 +31,10 @@ void main() {
   setUp(() {
     fakeRepo = _FakeAgentsRepository();
     container = ProviderContainer(
-      overrides: [agentsRepositoryProvider.overrideWithValue(fakeRepo)],
+      overrides: [
+        agentsRepositoryProvider.overrideWithValue(fakeRepo),
+        agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+      ],
     );
     sub = container.listen(agentsStoreProvider, (_, __) {});
   });

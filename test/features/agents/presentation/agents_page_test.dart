@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
@@ -14,6 +15,7 @@ import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() {
   AgentItem makeAgent({
@@ -40,6 +42,13 @@ void main() {
     );
   }
 
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   group('AgentsPage direct detail route', () {
     testWidgets('shows failure + retry on load failure', (tester) async {
       final fakeRepo = _FailingAgentsRepository();
@@ -48,6 +57,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
@@ -87,6 +99,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
@@ -151,6 +166,9 @@ void main() {
           ProviderScope(
             overrides: [
               agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              agentsMachinesLoaderProvider
+                  .overrideWithValue(() async => const []),
+              sharedPreferencesProvider.overrideWithValue(prefs),
               realtimeReductionIngressProvider.overrideWithValue(
                 RealtimeReductionIngress(),
               ),
@@ -229,6 +247,9 @@ void main() {
           ProviderScope(
             overrides: [
               agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              agentsMachinesLoaderProvider
+                  .overrideWithValue(() async => const []),
+              sharedPreferencesProvider.overrideWithValue(prefs),
               memberRepositoryProvider.overrideWithValue(fakeMemberRepo),
               realtimeReductionIngressProvider.overrideWithValue(
                 RealtimeReductionIngress(),
@@ -282,6 +303,9 @@ void main() {
           ProviderScope(
             overrides: [
               agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              agentsMachinesLoaderProvider
+                  .overrideWithValue(() async => const []),
+              sharedPreferencesProvider.overrideWithValue(prefs),
               realtimeReductionIngressProvider.overrideWithValue(ingress),
             ],
             child: MaterialApp(
@@ -357,6 +381,9 @@ void main() {
           ProviderScope(
             overrides: [
               agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              agentsMachinesLoaderProvider
+                  .overrideWithValue(() async => const []),
+              sharedPreferencesProvider.overrideWithValue(prefs),
               realtimeReductionIngressProvider.overrideWithValue(
                 RealtimeReductionIngress(),
               ),
@@ -422,6 +449,9 @@ void main() {
           ProviderScope(
             overrides: [
               agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              agentsMachinesLoaderProvider
+                  .overrideWithValue(() async => const []),
+              sharedPreferencesProvider.overrideWithValue(prefs),
               appDioClientProvider.overrideWithValue(appDioClient),
               realtimeReductionIngressProvider.overrideWithValue(
                 RealtimeReductionIngress(),
@@ -504,6 +534,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             appDioClientProvider.overrideWithValue(appDioClient),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
@@ -555,6 +588,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
@@ -604,6 +640,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
@@ -628,10 +667,10 @@ void main() {
 
       final statuses = rings.map((r) => r.status).toList();
       expect(statuses, [
-        GlowRingStatus.online,
-        GlowRingStatus.thinking,
         GlowRingStatus.working,
+        GlowRingStatus.thinking,
         GlowRingStatus.error,
+        GlowRingStatus.online,
         GlowRingStatus.offline,
       ]);
     });
@@ -648,6 +687,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
@@ -687,6 +729,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
@@ -724,6 +769,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
@@ -763,6 +811,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
@@ -798,6 +849,9 @@ void main() {
         ProviderScope(
           overrides: [
             agentsRepositoryProvider.overrideWithValue(fakeRepo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
             realtimeReductionIngressProvider.overrideWithValue(
               RealtimeReductionIngress(),
             ),
