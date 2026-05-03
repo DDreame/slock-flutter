@@ -192,6 +192,150 @@ void main() {
     );
 
     test(
+      'loadWorkspace filters thread, inbox, system, and '
+      'archived channels from response',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              {'id': 'ch-1', 'name': 'General'},
+              {
+                'id': 'thread-ch',
+                'name': 'Thread Channel',
+                'type': 'thread',
+              },
+              {
+                'id': 'inbox-ch',
+                'name': 'Inbox Channel',
+                'type': 'inbox',
+              },
+              {
+                'id': 'system-ch',
+                'name': 'System Channel',
+                'type': 'system',
+              },
+              {
+                'id': 'archived-ch',
+                'name': 'Archived Channel',
+                'archived': true,
+              },
+              {'id': 'ch-2', 'name': 'Engineering'},
+            ],
+            '/channels/dm': <Object?>[],
+          },
+        );
+        final container = _createContainer(appDioClient);
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        expect(
+          snapshot.channels.map((c) => c.scopeId.value),
+          ['ch-1', 'ch-2'],
+          reason: 'Only top-level, non-archived channels '
+              'should be included',
+        );
+      },
+    );
+
+    test(
+      'loadWorkspace populates threadChannelIds from '
+      'filtered thread channels',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              {'id': 'ch-1', 'name': 'General'},
+              {
+                'id': 'thread-a',
+                'name': 'Thread A',
+                'type': 'thread',
+              },
+              {
+                'id': 'thread-b',
+                'name': 'Thread B',
+                'type': 'thread',
+              },
+            ],
+            '/channels/dm': <Object?>[],
+          },
+        );
+        final container = _createContainer(appDioClient);
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        expect(
+          snapshot.threadChannelIds,
+          {'thread-a', 'thread-b'},
+          reason: 'Thread channel IDs should be collected '
+              'for knownThreadChannelIds guard',
+        );
+      },
+    );
+
+    test(
+      'loadWorkspace removes stale local phantoms not in '
+      'current API response',
+      () async {
+        final localStore = FakeConversationLocalStore();
+        // Pre-populate local store with a phantom channel.
+        await localStore.upsertConversationSummaries([
+          const LocalConversationSummaryUpsert(
+            serverId: 'server-1',
+            conversationId: 'phantom-ch',
+            surface: 'channel',
+            title: 'Phantom',
+            sortIndex: 0,
+          ),
+          const LocalConversationSummaryUpsert(
+            serverId: 'server-1',
+            conversationId: 'real-ch',
+            surface: 'channel',
+            title: 'Real',
+            sortIndex: 1,
+          ),
+        ]);
+
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              // Only real-ch is in the API response.
+              {'id': 'real-ch', 'name': 'Real'},
+            ],
+            '/channels/dm': <Object?>[],
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [
+            appDioClientProvider.overrideWithValue(appDioClient),
+            conversationLocalStoreProvider.overrideWithValue(localStore),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        expect(
+          snapshot.channels.map((c) => c.scopeId.value),
+          ['real-ch'],
+          reason: 'Phantom channel not in API response '
+              'must be removed from local store and '
+              'excluded from snapshot',
+        );
+      },
+    );
+
+    test(
       'loadWorkspace returns empty unread maps when no '
       'unreadCount fields present',
       () async {

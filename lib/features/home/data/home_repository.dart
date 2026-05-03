@@ -165,6 +165,7 @@ class HomeWorkspaceSnapshot {
     required this.directMessages,
     this.channelUnreadCounts = const {},
     this.dmUnreadCounts = const {},
+    this.threadChannelIds = const {},
   });
 
   final ServerScopeId serverId;
@@ -178,6 +179,12 @@ class HomeWorkspaceSnapshot {
 
   /// Per-DM unread counts keyed by raw DM channel id.
   final Map<String, int> dmUnreadCounts;
+
+  /// IDs of channels with type `thread`, collected during parsing
+  /// so [HomeListStore] can populate [knownThreadChannelIdsProvider]
+  /// on initial load — preventing phantom DM materialization from
+  /// `message:new` events targeting thread channels.
+  final Set<String> threadChannelIds;
 }
 
 class HomeChannelSummary {

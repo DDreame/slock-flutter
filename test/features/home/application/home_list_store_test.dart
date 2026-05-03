@@ -16,6 +16,7 @@ import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
@@ -528,6 +529,60 @@ void main() {
       },
     );
   });
+
+  test(
+    'load populates knownThreadChannelIds from snapshot '
+    'threadChannelIds',
+    () async {
+      final repository = _FakeHomeRepository(
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'general',
+              ),
+              name: 'general',
+            ),
+          ],
+          directMessages: [],
+          threadChannelIds: {'thread-a', 'thread-b'},
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(const _FakeAgentsRepository()),
+          tasksRepositoryProvider
+              .overrideWithValue(const _FakeTasksRepository()),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      final knownIds = container.read(knownThreadChannelIdsProvider);
+      expect(
+        knownIds,
+        containsAll([
+          'server-1/thread-a',
+          'server-1/thread-b',
+        ]),
+        reason: 'Thread channel IDs from the initial load '
+            'must be added to knownThreadChannelIds',
+      );
+    },
+  );
 }
 
 class _FakeHomeRepository implements HomeRepository {

@@ -14,6 +14,7 @@ import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
@@ -130,6 +131,20 @@ class HomeListStore extends Notifier<HomeListState> {
       _threadCount = threadItems.length;
       _threadItems = List.of(threadItems);
       _sidebarOrder = sidebarOrder;
+
+      // Populate known thread channel IDs from the initial load
+      // so the realtime unread binding can suppress phantom DM
+      // materialization for thread channels before the user
+      // opens any thread view.
+      if (snapshot.threadChannelIds.isNotEmpty) {
+        final current = ref.read(knownThreadChannelIdsProvider);
+        final servId = serverScopeId.value;
+        ref.read(knownThreadChannelIdsProvider.notifier).state = {
+          ...current,
+          for (final id in snapshot.threadChannelIds)
+            threadChannelKey(servId, id),
+        };
+      }
 
       _hydrateUnreadCounts(snapshot);
 
