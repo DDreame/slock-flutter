@@ -34,7 +34,9 @@ final channelUnreadHydrationBindingProvider = Provider<void>((ref) {
   if (serverId == null || !session.isAuthenticated) {
     // Reset fetch tracker on logout so the next login always
     // takes the fresh-fetch path — even for the same server.
-    ref.read(_fetchedServerIdProvider.notifier).state = null;
+    // Use invalidate (not direct state write) because Riverpod
+    // forbids modifying other providers during initialization.
+    ref.invalidate(_fetchedServerIdProvider);
     return;
   }
 
