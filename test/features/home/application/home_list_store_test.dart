@@ -893,9 +893,7 @@ void main() {
         reason: 'Cached channel preview must survive '
             'network refresh that omits lastMessage',
       );
-      // lastMessageId is intentionally NOT retained so the
-      // fallback loader can still replace stale cached previews.
-      expect(ch.lastMessageId, isNull);
+      expect(ch.lastMessageId, 'msg-cached');
 
       expect(
         dm.lastMessagePreview,
@@ -903,7 +901,98 @@ void main() {
         reason: 'Cached DM preview must survive '
             'network refresh that omits lastMessage',
       );
-      expect(dm.lastMessageId, isNull);
+      expect(dm.lastMessageId, 'dm-cached');
+    },
+  );
+
+  test(
+    'message:updated syncs preview during '
+    'cached-retained preview window',
+    () async {
+      final cachedSnapshot = HomeWorkspaceSnapshot(
+        serverId: const ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+            lastMessageId: 'msg-cached',
+            lastMessagePreview: 'Original text',
+            lastActivityAt: DateTime.utc(2026, 5, 2),
+          ),
+        ],
+        directMessages: [],
+      );
+
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+          ),
+        ],
+        directMessages: [],
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: networkSnapshot,
+        cachedSnapshot: cachedSnapshot,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async => null,
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Simulate message:updated for the cached message.
+      container.read(homeListStoreProvider.notifier).updateChannelPreview(
+            conversationId: 'ch-1',
+            messageId: 'msg-cached',
+            preview: 'Edited text',
+          );
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Edited text',
+        reason: 'message:updated must sync preview '
+            'during cached-retained window because '
+            'lastMessageId is preserved',
+      );
+      expect(ch.lastMessageId, 'msg-cached');
     },
   );
 

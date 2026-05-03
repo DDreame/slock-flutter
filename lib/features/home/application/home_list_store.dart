@@ -55,6 +55,13 @@ class HomeListStore extends Notifier<HomeListState> {
   List<ThreadInboxItem> _threadItems = const [];
   SidebarOrder _sidebarOrder = const SidebarOrder();
 
+  /// Tracks conversation IDs whose preview was set by a realtime
+  /// `message:new` event.  The fallback loader checks this set
+  /// instead of [lastMessageId] so cached-retained previews can
+  /// still be replaced by the fallback while genuine realtime
+  /// previews are protected.
+  final Set<String> _realtimePreviewIds = {};
+
   @override
   HomeListState build() {
     _allChannels = const [];
@@ -66,6 +73,7 @@ class HomeListStore extends Notifier<HomeListState> {
     _threadCount = 0;
     _threadItems = const [];
     _sidebarOrder = const SidebarOrder();
+    _realtimePreviewIds.clear();
 
     final serverScopeId = ref.watch(activeServerScopeIdProvider);
     if (serverScopeId == null) {
@@ -140,16 +148,18 @@ class HomeListStore extends Notifier<HomeListState> {
       // Retain cached previews for entries where the
       // network snapshot omitted lastMessage, so persisted
       // previews survive the cold-start refresh cycle.
-      // Only preview text and activity timestamp are carried
-      // over — lastMessageId is left null so the background
-      // fallback can still replace the stale cached preview
-      // with an authoritative API response.
+      // lastMessageId IS retained so that message:updated
+      // edits still match during the cached-preview window.
+      // The fallback guard uses [_realtimePreviewIds] instead
+      // of lastMessageId to distinguish cache-retained from
+      // realtime previews.
       for (var i = 0; i < _allChannels.length; i++) {
         final ch = _allChannels[i];
         if (ch.lastMessageId != null) continue;
         final cached = priorChById[ch.scopeId.value];
         if (cached == null) continue;
         _allChannels[i] = ch.copyWith(
+          lastMessageId: cached.lastMessageId,
           lastMessagePreview: cached.lastMessagePreview,
           lastActivityAt: cached.lastActivityAt,
         );
@@ -160,6 +170,7 @@ class HomeListStore extends Notifier<HomeListState> {
         final cached = priorDmById[dm.scopeId.value];
         if (cached == null) continue;
         _allDirectMessages[i] = dm.copyWith(
+          lastMessageId: cached.lastMessageId,
           lastMessagePreview: cached.lastMessagePreview,
           lastActivityAt: cached.lastActivityAt,
         );
@@ -275,9 +286,11 @@ class HomeListStore extends Notifier<HomeListState> {
   /// response, then updates the local store and in-memory list.
   ///
   /// Guarded against stale overwrites: before applying a fallback
-  /// result, the current in-memory `lastMessageId` is checked.
-  /// If a realtime `message:new` event already populated it, the
-  /// fallback result is silently discarded.
+  /// result, [_realtimePreviewIds] is checked.  If a realtime
+  /// `message:new` event already populated the preview, the
+  /// fallback result is silently discarded.  Cache-retained
+  /// previews (which keep [lastMessageId] for edit-sync) are
+  /// NOT in [_realtimePreviewIds] and can be replaced.
   ///
   /// Requests are batched (max [_fallbackBatchSize] concurrent)
   /// to avoid stampeding the messages API.
@@ -301,11 +314,11 @@ class HomeListStore extends Notifier<HomeListState> {
 
       // Guard: skip if a realtime message:new already populated
       // this channel's preview while the fallback was in flight.
-      final current = _allChannels.firstWhere(
-        (c) => c.scopeId.value == ch.scopeId.value,
-        orElse: () => ch,
-      );
-      if (current.lastMessageId != null) return;
+      // Cache-retained previews are NOT in _realtimePreviewIds
+      // and can be replaced by the fallback.
+      if (_realtimePreviewIds.contains(ch.scopeId.value)) {
+        return;
+      }
 
       try {
         await repo.persistConversationActivity(
@@ -332,11 +345,9 @@ class HomeListStore extends Notifier<HomeListState> {
 
       // Guard: skip if a realtime message:new already populated
       // this DM's preview while the fallback was in flight.
-      final current = _allDirectMessages.firstWhere(
-        (d) => d.scopeId.value == dm.scopeId.value,
-        orElse: () => dm,
-      );
-      if (current.lastMessageId != null) return;
+      if (_realtimePreviewIds.contains(dm.scopeId.value)) {
+        return;
+      }
 
       try {
         await repo.persistConversationActivity(
@@ -402,6 +413,7 @@ class HomeListStore extends Notifier<HomeListState> {
     final index =
         _allChannels.indexWhere((c) => c.scopeId.value == conversationId);
     if (index == -1) return;
+    _realtimePreviewIds.add(conversationId);
     final channels = List<HomeChannelSummary>.of(_allChannels);
     channels[index] = channels[index].copyWith(
       lastMessageId: messageId,
@@ -422,6 +434,7 @@ class HomeListStore extends Notifier<HomeListState> {
     final index =
         _allDirectMessages.indexWhere((d) => d.scopeId.value == conversationId);
     if (index == -1) return;
+    _realtimePreviewIds.add(conversationId);
     final dms = List<HomeDirectMessageSummary>.of(_allDirectMessages);
     dms[index] = dms[index].copyWith(
       lastMessageId: messageId,
