@@ -50,6 +50,12 @@ class _FakeChannelUnreadRepository implements ChannelUnreadRepository {
   }
 }
 
+/// A no-op HomeListStore that does not trigger auto-load.
+const _defaultHomeState = HomeListState(
+  status: HomeListStatus.success,
+  serverScopeId: ServerScopeId('server-1'),
+);
+
 void main() {
   const server1 = ServerScopeId('server-1');
 
@@ -75,6 +81,9 @@ void main() {
                 .overrideWithValue(const FakeAuthRepository()),
             channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
             activeServerScopeIdProvider.overrideWithValue(server1),
+            homeListStoreProvider.overrideWith(
+              () => _PreloadedHomeListStore(_defaultHomeState),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -123,6 +132,9 @@ void main() {
                 .overrideWithValue(const FakeAuthRepository()),
             channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
             activeServerScopeIdProvider.overrideWithValue(server1),
+            homeListStoreProvider.overrideWith(
+              () => _PreloadedHomeListStore(_defaultHomeState),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -145,6 +157,9 @@ void main() {
                 .overrideWithValue(const FakeAuthRepository()),
             channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
             activeServerScopeIdProvider.overrideWithValue(null),
+            homeListStoreProvider.overrideWith(
+              () => _PreloadedHomeListStore(_defaultHomeState),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -163,8 +178,6 @@ void main() {
       'empty response clears stale counts from previous '
       'server',
       () async {
-        // Pre-populate store with stale counts from a
-        // previous server.
         fakeRepo.nextUnreadCounts = {};
 
         final container = ProviderContainer(
@@ -174,6 +187,9 @@ void main() {
                 .overrideWithValue(const FakeAuthRepository()),
             channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
             activeServerScopeIdProvider.overrideWithValue(server1),
+            homeListStoreProvider.overrideWith(
+              () => _PreloadedHomeListStore(_defaultHomeState),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -232,6 +248,9 @@ void main() {
                 .overrideWithValue(const FakeAuthRepository()),
             channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
             activeServerScopeIdProvider.overrideWithValue(server1),
+            homeListStoreProvider.overrideWith(
+              () => _PreloadedHomeListStore(_defaultHomeState),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -263,15 +282,24 @@ void main() {
                 .overrideWithValue(const FakeAuthRepository()),
             channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
             activeServerScopeIdProvider.overrideWithValue(server1),
+            homeListStoreProvider.overrideWith(
+              () => _PreloadedHomeListStore(_defaultHomeState),
+            ),
           ],
         );
         addTearDown(container.dispose);
+
+        // Keep the binding alive so it rebuilds on session
+        // changes.
+        container.listen(
+          channelUnreadHydrationBindingProvider,
+          (_, __) {},
+        );
 
         // First login → hydration fetches.
         await container
             .read(sessionStoreProvider.notifier)
             .login(email: 'a@b.com', password: 'p');
-        container.read(channelUnreadHydrationBindingProvider);
         await Future<void>.delayed(Duration.zero);
 
         expect(fakeRepo.calls, hasLength(1));
@@ -417,11 +445,17 @@ void main() {
         );
         addTearDown(container.dispose);
 
+        // Keep the binding alive so it can respond to
+        // HomeListStore mutations.
+        container.listen(
+          channelUnreadHydrationBindingProvider,
+          (_, __) {},
+        );
+
         // Login → hydration fetches.
         await container
             .read(sessionStoreProvider.notifier)
             .login(email: 'a@b.com', password: 'p');
-        container.read(channelUnreadHydrationBindingProvider);
         await Future<void>.delayed(Duration.zero);
 
         // Verify initial hydration fetched once.
@@ -454,7 +488,7 @@ void main() {
         );
 
         // Simulate message:new → HomeListStore preview change.
-        // This changes a non-DM-identity field (channel preview).
+        // This changes a non-DM-identity field.
         (container.read(homeListStoreProvider.notifier)
                 as _MutableHomeListStore)
             .mutatePreview('new preview text');
@@ -503,10 +537,15 @@ void main() {
         );
         addTearDown(container.dispose);
 
+        // Keep the binding alive.
+        container.listen(
+          channelUnreadHydrationBindingProvider,
+          (_, __) {},
+        );
+
         await container
             .read(sessionStoreProvider.notifier)
             .login(email: 'a@b.com', password: 'p');
-        container.read(channelUnreadHydrationBindingProvider);
         await Future<void>.delayed(Duration.zero);
 
         // Simulate message:new → local increment.
@@ -558,6 +597,7 @@ void main() {
         );
       },
     );
+
     test(
       'DM fingerprint change after increment preserves '
       'realtime counts via reclassify',
@@ -581,11 +621,17 @@ void main() {
         );
         addTearDown(container.dispose);
 
+        // Keep the binding alive so it responds to DM
+        // fingerprint changes.
+        container.listen(
+          channelUnreadHydrationBindingProvider,
+          (_, __) {},
+        );
+
         // Login → hydration fetches.
         await container
             .read(sessionStoreProvider.notifier)
             .login(email: 'a@b.com', password: 'p');
-        container.read(channelUnreadHydrationBindingProvider);
         await Future<void>.delayed(Duration.zero);
 
         // Both in channel bucket (DMs not known yet).
