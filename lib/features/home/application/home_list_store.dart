@@ -124,8 +124,44 @@ class HomeListStore extends Notifier<HomeListState> {
       final machineCount = results[4] as int;
       final threadItems = results[5] as List<ThreadInboxItem>;
 
+      // Build cached-preview lookup before overwriting.
+      final priorChById = <String, HomeChannelSummary>{
+        for (final ch in _allChannels)
+          if (ch.lastMessageId != null) ch.scopeId.value: ch,
+      };
+      final priorDmById = <String, HomeDirectMessageSummary>{
+        for (final dm in _allDirectMessages)
+          if (dm.lastMessageId != null) dm.scopeId.value: dm,
+      };
+
       _allChannels = List.of(snapshot.channels);
       _allDirectMessages = List.of(snapshot.directMessages);
+
+      // Retain cached previews for entries where the
+      // network snapshot omitted lastMessage, so persisted
+      // previews survive the cold-start refresh cycle.
+      for (var i = 0; i < _allChannels.length; i++) {
+        final ch = _allChannels[i];
+        if (ch.lastMessageId != null) continue;
+        final cached = priorChById[ch.scopeId.value];
+        if (cached == null) continue;
+        _allChannels[i] = ch.copyWith(
+          lastMessageId: cached.lastMessageId,
+          lastMessagePreview: cached.lastMessagePreview,
+          lastActivityAt: cached.lastActivityAt,
+        );
+      }
+      for (var i = 0; i < _allDirectMessages.length; i++) {
+        final dm = _allDirectMessages[i];
+        if (dm.lastMessageId != null) continue;
+        final cached = priorDmById[dm.scopeId.value];
+        if (cached == null) continue;
+        _allDirectMessages[i] = dm.copyWith(
+          lastMessageId: cached.lastMessageId,
+          lastMessagePreview: cached.lastMessagePreview,
+          lastActivityAt: cached.lastActivityAt,
+        );
+      }
       _allAgents = List.of(agents);
       _taskCount = taskCount.length;
       _taskItems = List.of(taskCount);

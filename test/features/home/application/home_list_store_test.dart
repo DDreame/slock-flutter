@@ -790,12 +790,131 @@ void main() {
       expect(ch.lastMessageId, 'realtime-msg');
     },
   );
+
+  test(
+    'cached preview survives network refresh '
+    'that omits lastMessage',
+    () async {
+      final cachedSnapshot = HomeWorkspaceSnapshot(
+        serverId: const ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+            lastMessageId: 'msg-cached',
+            lastMessagePreview: 'Cached hello',
+            lastActivityAt: DateTime.utc(2026, 5, 2),
+          ),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+            lastMessageId: 'dm-cached',
+            lastMessagePreview: 'Cached DM',
+            lastActivityAt: DateTime.utc(2026, 5, 2),
+          ),
+        ],
+      );
+
+      // Network snapshot omits lastMessage for both.
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+          ),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+          ),
+        ],
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: networkSnapshot,
+        cachedSnapshot: cachedSnapshot,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async => null,
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+      final dm = state.directMessages.firstWhere(
+        (d) => d.scopeId.value == 'dm-1',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Cached hello',
+        reason: 'Cached channel preview must survive '
+            'network refresh that omits lastMessage',
+      );
+      expect(ch.lastMessageId, 'msg-cached');
+
+      expect(
+        dm.lastMessagePreview,
+        'Cached DM',
+        reason: 'Cached DM preview must survive '
+            'network refresh that omits lastMessage',
+      );
+      expect(dm.lastMessageId, 'dm-cached');
+    },
+  );
 }
 
 class _FakeHomeRepository implements HomeRepository {
-  _FakeHomeRepository({this.snapshot, this.failure});
+  _FakeHomeRepository({
+    this.snapshot,
+    this.cachedSnapshot,
+    this.failure,
+  });
 
   final HomeWorkspaceSnapshot? snapshot;
+  final HomeWorkspaceSnapshot? cachedSnapshot;
   final AppFailure? failure;
   final List<ServerScopeId> requestedServerIds = [];
 
@@ -803,7 +922,7 @@ class _FakeHomeRepository implements HomeRepository {
   Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
     ServerScopeId serverId,
   ) async {
-    return null;
+    return cachedSnapshot;
   }
 
   @override
