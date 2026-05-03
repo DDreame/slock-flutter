@@ -12,37 +12,38 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// Hydrates [ChannelUnreadStore] from the dedicated
 /// `GET /channels/unread` endpoint on login and server-switch.
 ///
-/// This binding is independent of [HomeListStore]'s workspace load.
-/// It fires as soon as the user is authenticated and has an active
-/// server, providing authoritative unread counts even before the
-/// full channel/DM lists are loaded.
+/// This binding watches [homeListStoreProvider] so that it
+/// re-splits the channel/DM buckets once the DM list is known.
+/// It always overwrites the store — even on empty responses —
+/// so that switching to a server with no unreads clears stale
+/// badges from the previous server.
 final channelUnreadHydrationBindingProvider = Provider<void>((ref) {
-  // Re-run whenever server or session changes.
+  // Re-run whenever server, session, or home-list status
+  // changes.
   final serverId = ref.watch(activeServerScopeIdProvider);
   final session = ref.watch(sessionStoreProvider);
+  final homeState = ref.watch(homeListStoreProvider);
 
   if (serverId == null || !session.isAuthenticated) return;
 
   // Fire-and-forget hydration.
   unawaited(
-    _hydrateUnreadCounts(ref, serverId).catchError((_) {}),
+    _hydrateUnreadCounts(ref, serverId, homeState).catchError((_) {}),
   );
 });
 
 Future<void> _hydrateUnreadCounts(
   Ref ref,
   ServerScopeId serverId,
+  HomeListState homeState,
 ) async {
   final repo = ref.read(channelUnreadRepositoryProvider);
   final rawCounts = await repo.fetchUnreadCounts(serverId);
 
-  if (rawCounts.isEmpty) return;
-
-  // Attempt to distinguish channel vs DM IDs by cross-referencing
-  // with the loaded home state.  If HomeListStore hasn't loaded yet,
-  // all counts go into the channel bucket; the workspace load will
-  // re-hydrate with the properly-split inline counts shortly after.
-  final homeState = ref.read(homeListStoreProvider);
+  // Build the known-DM ID set from HomeListStore when it has
+  // loaded.  Before that, all IDs fall into the channel bucket
+  // temporarily; this provider re-fires once homeListStore
+  // reaches success, at which point the split is corrected.
   final knownDmIds = <String>{};
   if (homeState.status == HomeListStatus.success) {
     for (final dm in [
@@ -71,6 +72,9 @@ Future<void> _hydrateUnreadCounts(
     }
   }
 
+  // Always hydrate — even with empty maps — so that switching
+  // to a server with no unreads clears the previous server's
+  // stale counts.
   final store = ref.read(channelUnreadStoreProvider.notifier);
   store.hydrateChannelUnreads(channelCounts);
   store.hydrateDmUnreads(dmCounts);

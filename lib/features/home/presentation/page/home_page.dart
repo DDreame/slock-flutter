@@ -1074,7 +1074,7 @@ class _UnreadEmptyState extends StatelessWidget {
   }
 }
 
-class _UnreadItemRow extends StatelessWidget {
+class _UnreadItemRow extends ConsumerWidget {
   const _UnreadItemRow({
     super.key,
     required this.item,
@@ -1096,11 +1096,11 @@ class _UnreadItemRow extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return GestureDetector(
-      onTap: () => _navigateTo(context),
+      onTap: () => _navigateTo(context, ref),
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(
@@ -1155,7 +1155,7 @@ class _UnreadItemRow extends StatelessWidget {
     );
   }
 
-  void _navigateTo(BuildContext context) {
+  void _navigateTo(BuildContext context, WidgetRef ref) {
     switch (item.kind) {
       case HomeUnreadKind.thread:
         if (item.threadRouteTarget != null) {
@@ -1163,12 +1163,16 @@ class _UnreadItemRow extends StatelessWidget {
         }
       case HomeUnreadKind.channel:
         if (item.channelScopeId != null) {
+          ref.read(markChannelReadUseCaseProvider)(
+            item.channelScopeId!,
+          );
           final sid = item.channelScopeId!.serverId.routeParam;
           final cid = item.channelScopeId!.routeParam;
           context.push('/servers/$sid/channels/$cid');
         }
       case HomeUnreadKind.directMessage:
         if (item.dmScopeId != null) {
+          ref.read(markDmReadUseCaseProvider)(item.dmScopeId!);
           final sid = item.dmScopeId!.serverId.routeParam;
           final did = item.dmScopeId!.routeParam;
           context.push('/servers/$sid/dms/$did');

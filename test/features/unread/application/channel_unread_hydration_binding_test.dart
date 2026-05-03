@@ -89,11 +89,12 @@ void main() {
         // Let the fire-and-forget future settle.
         await Future<void>.delayed(Duration.zero);
 
-        expect(fakeRepo.calls, contains('fetchUnreadCounts:server-1'));
+        expect(
+          fakeRepo.calls,
+          contains('fetchUnreadCounts:server-1'),
+        );
 
         final state = container.read(channelUnreadStoreProvider);
-        // Without HomeListStore loaded, all go to channel
-        // bucket.
         expect(state.channelUnreadCounts, hasLength(2));
         expect(
           state.channelUnreadCount(const ChannelScopeId(
@@ -159,8 +160,11 @@ void main() {
     );
 
     test(
-      'empty response leaves store empty',
+      'empty response clears stale counts from previous '
+      'server',
       () async {
+        // Pre-populate store with stale counts from a
+        // previous server.
         fakeRepo.nextUnreadCounts = {};
 
         final container = ProviderContainer(
@@ -174,15 +178,44 @@ void main() {
         );
         addTearDown(container.dispose);
 
+        // Simulate stale counts from a previous server.
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .hydrateChannelUnreads({
+          const ChannelScopeId(
+            serverId: ServerScopeId('old-server'),
+            value: 'stale-ch',
+          ): 10,
+        });
+        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('old-server'),
+            value: 'stale-dm',
+          ): 5,
+        });
+        expect(
+          container.read(channelUnreadStoreProvider).totalUnreadCount,
+          15,
+        );
+
         await container
             .read(sessionStoreProvider.notifier)
             .login(email: 'a@b.com', password: 'p');
         container.read(channelUnreadHydrationBindingProvider);
         await Future<void>.delayed(Duration.zero);
 
+        // Stale counts must be cleared.
         expect(
           container.read(channelUnreadStoreProvider).totalUnreadCount,
           0,
+        );
+        expect(
+          container.read(channelUnreadStoreProvider).channelUnreadCounts,
+          isEmpty,
+        );
+        expect(
+          container.read(channelUnreadStoreProvider).dmUnreadCounts,
+          isEmpty,
         );
       },
     );
@@ -226,8 +259,6 @@ void main() {
           'dm-1': 3,
         };
 
-        // Provide a pre-loaded HomeListState with dm-1 as a
-        // known DM.
         const dmScopeId = DirectMessageScopeId(
           serverId: server1,
           value: 'dm-1',
@@ -249,9 +280,11 @@ void main() {
                 .overrideWithValue(const FakeAuthRepository()),
             channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
             activeServerScopeIdProvider.overrideWithValue(server1),
-            homeListStoreProvider.overrideWith(() => _PreloadedHomeListStore(
-                  preloadedHomeState,
-                )),
+            homeListStoreProvider.overrideWith(
+              () => _PreloadedHomeListStore(
+                preloadedHomeState,
+              ),
+            ),
           ],
         );
         addTearDown(container.dispose);
@@ -263,6 +296,7 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         final state = container.read(channelUnreadStoreProvider);
+        // ch-1 should be in channel bucket.
         expect(
           state.channelUnreadCount(const ChannelScopeId(
             serverId: server1,
@@ -270,9 +304,18 @@ void main() {
           )),
           5,
         );
+        // dm-1 should be in DM bucket (not channel).
         expect(
           state.dmUnreadCount(dmScopeId),
           3,
+        );
+        // dm-1 must NOT appear in channel bucket.
+        expect(
+          state.channelUnreadCount(const ChannelScopeId(
+            serverId: server1,
+            value: 'dm-1',
+          )),
+          0,
         );
       },
     );
