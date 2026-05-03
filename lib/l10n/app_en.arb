@@ -67,6 +67,7 @@
   "navAgents": "Agents",
   "agentsNewTooltip": "New agent",
   "agentsNoMachineAssigned": "No Machine Assigned",
+  "releaseNotesTitle": "Release Notes",
   "navSettings": "Settings",
 
   "homeWorkspaceConsole": "Workspace Console",

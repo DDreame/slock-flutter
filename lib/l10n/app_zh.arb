@@ -68,6 +68,7 @@
   "navAgents": "智能体",
   "agentsNewTooltip": "新建智能体",
   "agentsNoMachineAssigned": "未分配机器",
+  "releaseNotesTitle": "版本说明",
   "navSettings": "设置",
 
   "homeWorkspaceConsole": "工作区控制台",
