@@ -12,13 +12,8 @@ class ReleaseNoteEntry {
 
 @immutable
 class ReleaseNoteItem {
-  const ReleaseNoteItem({
-    required this.version,
-    required this.date,
-    required this.items,
-  });
+  const ReleaseNoteItem({required this.date, required this.items});
 
-  final String version;
   final String date;
   final List<ReleaseNoteEntry> items;
 }
