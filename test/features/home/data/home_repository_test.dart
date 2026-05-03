@@ -379,6 +379,237 @@ void main() {
         expect(snapshot.dmUnreadCounts, isEmpty);
       },
     );
+
+    test(
+      'loadWorkspace parses lastMessage from channel '
+      'and dm API responses',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              {
+                'id': 'ch-1',
+                'name': 'General',
+                'lastMessage': {
+                  'id': 'msg-100',
+                  'content': 'Hello from channel',
+                  'createdAt': '2026-05-01T12:00:00Z',
+                },
+              },
+              {
+                'id': 'ch-2',
+                'name': 'Random',
+                // No lastMessage — preview should be null.
+              },
+            ],
+            '/channels/dm': [
+              {
+                'id': 'dm-1',
+                'participant': {'displayName': 'Alice'},
+                'lastMessage': {
+                  'id': 'msg-200',
+                  'content': 'Hey there',
+                  'createdAt': '2026-05-02T08:30:00Z',
+                },
+              },
+              {
+                'id': 'dm-2',
+                'peer': {'name': 'Bob'},
+                // No lastMessage.
+              },
+            ],
+          },
+        );
+        final container = _createContainer(appDioClient);
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        // Channel with lastMessage.
+        expect(snapshot.channels[0].lastMessageId, 'msg-100');
+        expect(
+          snapshot.channels[0].lastMessagePreview,
+          'Hello from channel',
+        );
+        expect(
+          snapshot.channels[0].lastActivityAt,
+          DateTime.utc(2026, 5, 1, 12),
+        );
+
+        // Channel without lastMessage.
+        expect(snapshot.channels[1].lastMessageId, isNull);
+        expect(snapshot.channels[1].lastMessagePreview, isNull);
+        expect(snapshot.channels[1].lastActivityAt, isNull);
+
+        // DM with lastMessage.
+        expect(
+          snapshot.directMessages[0].lastMessageId,
+          'msg-200',
+        );
+        expect(
+          snapshot.directMessages[0].lastMessagePreview,
+          'Hey there',
+        );
+        expect(
+          snapshot.directMessages[0].lastActivityAt,
+          DateTime.utc(2026, 5, 2, 8, 30),
+        );
+
+        // DM without lastMessage.
+        expect(
+          snapshot.directMessages[1].lastMessageId,
+          isNull,
+        );
+        expect(
+          snapshot.directMessages[1].lastMessagePreview,
+          isNull,
+        );
+      },
+    );
+
+    test(
+      'loadWorkspace persists lastMessage previews so '
+      'cached load returns them',
+      () async {
+        final localStore = FakeConversationLocalStore();
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              {
+                'id': 'ch-1',
+                'name': 'General',
+                'lastMessage': {
+                  'id': 'msg-100',
+                  'content': 'Persisted preview',
+                  'createdAt': '2026-05-01T12:00:00Z',
+                },
+              },
+            ],
+            '/channels/dm': [
+              {
+                'id': 'dm-1',
+                'participant': {'displayName': 'Alice'},
+                'lastMessage': {
+                  'id': 'msg-200',
+                  'content': 'DM persisted',
+                  'createdAt': '2026-05-02T08:30:00Z',
+                },
+              },
+            ],
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [
+            appDioClientProvider.overrideWithValue(appDioClient),
+            conversationLocalStoreProvider.overrideWithValue(localStore),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        // Network load → persists to local store.
+        await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        // Cached load — should return persisted previews.
+        final cached = await repository.loadCachedWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        expect(cached, isNotNull);
+        expect(cached!.channels.first.lastMessageId, 'msg-100');
+        expect(
+          cached.channels.first.lastMessagePreview,
+          'Persisted preview',
+        );
+        expect(
+          cached.channels.first.lastActivityAt,
+          DateTime.utc(2026, 5, 1, 12),
+        );
+        expect(
+          cached.directMessages.first.lastMessageId,
+          'msg-200',
+        );
+        expect(
+          cached.directMessages.first.lastMessagePreview,
+          'DM persisted',
+        );
+        expect(
+          cached.directMessages.first.lastActivityAt,
+          DateTime.utc(2026, 5, 2, 8, 30),
+        );
+      },
+    );
+
+    test(
+      'loadWorkspace handles malformed lastMessage '
+      'content gracefully',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              {
+                'id': 'ch-1',
+                'name': 'General',
+                'lastMessage': {
+                  'id': 'msg-1',
+                  // content is a non-string (number) — must not throw.
+                  'content': 42,
+                  'createdAt': '2026-05-01T12:00:00Z',
+                },
+              },
+              {
+                'id': 'ch-2',
+                'name': 'Random',
+                'lastMessage': {
+                  'id': 'msg-2',
+                  // content is a nested object — must not throw.
+                  'content': {'html': '<b>bold</b>'},
+                  'createdAt': '2026-05-01T13:00:00Z',
+                },
+              },
+              {
+                'id': 'ch-3',
+                'name': 'Empty',
+                // lastMessage missing id — treated as absent.
+                'lastMessage': {'content': 'No id'},
+              },
+            ],
+            '/channels/dm': <Object?>[],
+          },
+        );
+        final container = _createContainer(appDioClient);
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        // Non-string content → falls back to empty string.
+        expect(snapshot.channels[0].lastMessageId, 'msg-1');
+        expect(snapshot.channels[0].lastMessagePreview, '');
+        expect(
+          snapshot.channels[0].lastActivityAt,
+          DateTime.utc(2026, 5, 1, 12),
+        );
+
+        // Object content → falls back to empty string.
+        expect(snapshot.channels[1].lastMessageId, 'msg-2');
+        expect(snapshot.channels[1].lastMessagePreview, '');
+
+        // Missing id → lastMessage treated as absent.
+        expect(snapshot.channels[2].lastMessageId, isNull);
+        expect(
+          snapshot.channels[2].lastMessagePreview,
+          isNull,
+        );
+      },
+    );
   });
 
   test(

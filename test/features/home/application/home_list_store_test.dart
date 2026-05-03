@@ -583,12 +583,743 @@ void main() {
       );
     },
   );
+
+  test(
+    'load fetches missing previews in background and '
+    'updates in-memory state',
+    () async {
+      final fallbackResults = <String, HomePreviewFallbackResult>{};
+      fallbackResults['no-preview-ch'] = HomePreviewFallbackResult(
+        messageId: 'msg-bg-1',
+        preview: 'Background fetched',
+        activityAt: DateTime.utc(2026, 5, 3, 10),
+      );
+      fallbackResults['no-preview-dm'] = HomePreviewFallbackResult(
+        messageId: 'msg-bg-2',
+        preview: 'DM background fetched',
+        activityAt: DateTime.utc(2026, 5, 3, 11),
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'has-preview-ch',
+              ),
+              name: 'Has Preview',
+              lastMessageId: 'msg-1',
+              lastMessagePreview: 'Existing preview',
+              lastActivityAt: null,
+            ),
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'no-preview-ch',
+              ),
+              name: 'No Preview',
+            ),
+          ],
+          directMessages: [
+            HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'no-preview-dm',
+              ),
+              title: 'Alice',
+            ),
+          ],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async => fallbackResults[conversationId],
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Drain the fire-and-forget _fetchMissingPreviews future.
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+
+      // Channel with existing preview should be unchanged.
+      final hasPreview = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'has-preview-ch',
+      );
+      expect(
+        hasPreview.lastMessagePreview,
+        'Existing preview',
+        reason: 'Channels with an existing preview '
+            'should not be touched by the fallback',
+      );
+
+      // Channel without preview should be populated
+      // by the background fallback.
+      final noPreview = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'no-preview-ch',
+      );
+      expect(
+        noPreview.lastMessagePreview,
+        'Background fetched',
+        reason: 'Channel missing preview should be '
+            'populated by async fallback',
+      );
+      expect(noPreview.lastMessageId, 'msg-bg-1');
+
+      // DM without preview should also be populated.
+      final dm = state.directMessages.firstWhere(
+        (d) => d.scopeId.value == 'no-preview-dm',
+      );
+      expect(
+        dm.lastMessagePreview,
+        'DM background fetched',
+        reason: 'DM missing preview should be '
+            'populated by async fallback',
+      );
+      expect(dm.lastMessageId, 'msg-bg-2');
+    },
+  );
+
+  test(
+    'fallback does not overwrite a newer realtime '
+    'preview that arrived during the fetch',
+    () async {
+      // Fallback loader returns a stale preview after a delay.
+      final fallbackCompleter = Completer<HomePreviewFallbackResult?>();
+
+      final repository = _FakeHomeRepository(
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'ch-race',
+              ),
+              name: 'Race Channel',
+              // No preview — triggers fallback.
+            ),
+          ],
+          directMessages: [],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) => fallbackCompleter.future,
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Simulate realtime message:new arriving before
+      // the fallback completes.
+      container.read(homeListStoreProvider.notifier).updateChannelLastMessage(
+            conversationId: 'ch-race',
+            messageId: 'realtime-msg',
+            preview: 'Realtime preview',
+            activityAt: DateTime.utc(2026, 5, 3, 12),
+          );
+
+      // Now complete the stale fallback.
+      fallbackCompleter.complete(
+        HomePreviewFallbackResult(
+          messageId: 'stale-msg',
+          preview: 'Stale fallback preview',
+          activityAt: DateTime.utc(2026, 5, 3, 10),
+        ),
+      );
+
+      // Drain async work.
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-race',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Realtime preview',
+        reason: 'Realtime message:new preview must '
+            'survive a stale fallback response',
+      );
+      expect(ch.lastMessageId, 'realtime-msg');
+    },
+  );
+
+  test(
+    'cached preview survives network refresh '
+    'that omits lastMessage',
+    () async {
+      final cachedSnapshot = HomeWorkspaceSnapshot(
+        serverId: const ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+            lastMessageId: 'msg-cached',
+            lastMessagePreview: 'Cached hello',
+            lastActivityAt: DateTime.utc(2026, 5, 2),
+          ),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+            lastMessageId: 'dm-cached',
+            lastMessagePreview: 'Cached DM',
+            lastActivityAt: DateTime.utc(2026, 5, 2),
+          ),
+        ],
+      );
+
+      // Network snapshot omits lastMessage for both.
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+          ),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+          ),
+        ],
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: networkSnapshot,
+        cachedSnapshot: cachedSnapshot,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async => null,
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+      final dm = state.directMessages.firstWhere(
+        (d) => d.scopeId.value == 'dm-1',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Cached hello',
+        reason: 'Cached channel preview must survive '
+            'network refresh that omits lastMessage',
+      );
+      expect(ch.lastMessageId, 'msg-cached');
+
+      expect(
+        dm.lastMessagePreview,
+        'Cached DM',
+        reason: 'Cached DM preview must survive '
+            'network refresh that omits lastMessage',
+      );
+      expect(dm.lastMessageId, 'dm-cached');
+    },
+  );
+
+  test(
+    'message:updated syncs preview during '
+    'cached-retained preview window',
+    () async {
+      final cachedSnapshot = HomeWorkspaceSnapshot(
+        serverId: const ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+            lastMessageId: 'msg-cached',
+            lastMessagePreview: 'Original text',
+            lastActivityAt: DateTime.utc(2026, 5, 2),
+          ),
+        ],
+        directMessages: [],
+      );
+
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+          ),
+        ],
+        directMessages: [],
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: networkSnapshot,
+        cachedSnapshot: cachedSnapshot,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async => null,
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Simulate message:updated for the cached message.
+      container.read(homeListStoreProvider.notifier).updateChannelPreview(
+            conversationId: 'ch-1',
+            messageId: 'msg-cached',
+            preview: 'Edited text',
+          );
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Edited text',
+        reason: 'message:updated must sync preview '
+            'during cached-retained window because '
+            'lastMessageId is preserved',
+      );
+      expect(ch.lastMessageId, 'msg-cached');
+    },
+  );
+
+  test(
+    'fallback replaces stale cached preview '
+    'after network refresh omits lastMessage',
+    () async {
+      final cachedSnapshot = HomeWorkspaceSnapshot(
+        serverId: const ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+            lastMessageId: 'msg-cached',
+            lastMessagePreview: 'Cached hello',
+            lastActivityAt: DateTime.utc(2026, 5, 1),
+          ),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+            lastMessageId: 'dm-cached',
+            lastMessagePreview: 'Cached DM',
+            lastActivityAt: DateTime.utc(2026, 5, 1),
+          ),
+        ],
+      );
+
+      // Network snapshot omits lastMessage for both.
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+          ),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+          ),
+        ],
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: networkSnapshot,
+        cachedSnapshot: cachedSnapshot,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async {
+              if (conversationId == 'ch-1') {
+                return HomePreviewFallbackResult(
+                  messageId: 'msg-fresh',
+                  preview: 'Fresh hello',
+                  activityAt: DateTime.utc(2026, 5, 3),
+                );
+              }
+              if (conversationId == 'dm-1') {
+                return HomePreviewFallbackResult(
+                  messageId: 'dm-fresh',
+                  preview: 'Fresh DM',
+                  activityAt: DateTime.utc(2026, 5, 3),
+                );
+              }
+              return null;
+            },
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Drain fire-and-forget fallback.
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+      final dm = state.directMessages.firstWhere(
+        (d) => d.scopeId.value == 'dm-1',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Fresh hello',
+        reason: 'Fallback must replace stale '
+            'cached preview with fresh data',
+      );
+      expect(ch.lastMessageId, 'msg-fresh');
+
+      expect(
+        dm.lastMessagePreview,
+        'Fresh DM',
+        reason: 'Fallback must replace stale '
+            'cached DM preview with fresh data',
+      );
+      expect(dm.lastMessageId, 'dm-fresh');
+    },
+  );
+
+  test(
+    'fallback-populated preview does not block '
+    'fresh fallback on second load cycle',
+    () async {
+      var fallbackCallCount = 0;
+
+      // Network always omits lastMessage.
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+            name: 'Channel One',
+          ),
+        ],
+        directMessages: [],
+      );
+
+      final repository = _FakeHomeRepository(
+        snapshot: networkSnapshot,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async {
+              fallbackCallCount++;
+              return HomePreviewFallbackResult(
+                messageId: 'msg-v$fallbackCallCount',
+                preview: 'Preview v$fallbackCallCount',
+                activityAt: DateTime.utc(
+                  2026,
+                  5,
+                  fallbackCallCount,
+                ),
+              );
+            },
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // First load cycle — fallback populates preview.
+      await container.read(homeListStoreProvider.notifier).load();
+      await Future.delayed(Duration.zero);
+
+      var state = container.read(homeListStoreProvider);
+      var ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+      expect(ch.lastMessagePreview, 'Preview v1');
+      expect(ch.lastMessageId, 'msg-v1');
+
+      // Second load cycle — fallback should NOT be blocked
+      // by the first cycle's fallback-populated preview.
+      await container.read(homeListStoreProvider.notifier).load();
+      await Future.delayed(Duration.zero);
+
+      state = container.read(homeListStoreProvider);
+      ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-1',
+      );
+      expect(
+        ch.lastMessagePreview,
+        'Preview v2',
+        reason: 'Fallback on second load must not '
+            'be blocked by first load fallback',
+      );
+      expect(ch.lastMessageId, 'msg-v2');
+      expect(fallbackCallCount, 2);
+    },
+  );
+
+  test(
+    'realtime preview survives when it arrives '
+    'during fallback persist await',
+    () async {
+      final persistCompleter = Completer<void>();
+
+      const networkSnapshot = HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-race',
+            ),
+            name: 'Race Channel',
+          ),
+        ],
+        directMessages: [],
+      );
+
+      final repository = _DelayedPersistRepository(
+        snapshot: networkSnapshot,
+        persistCompleter: persistCompleter,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) async {
+              return HomePreviewFallbackResult(
+                messageId: 'fallback-msg',
+                preview: 'Fallback preview',
+                activityAt: DateTime.utc(2026, 5, 2),
+              );
+            },
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Fallback is now awaiting persistCompleter.
+      // Simulate a realtime message:new arriving mid-persist.
+      container.read(homeListStoreProvider.notifier).updateChannelLastMessage(
+            conversationId: 'ch-race',
+            messageId: 'realtime-msg',
+            preview: 'Realtime preview',
+            activityAt: DateTime.utc(2026, 5, 3, 12),
+          );
+
+      // Now let the persist complete.
+      persistCompleter.complete();
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-race',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Realtime preview',
+        reason: 'Realtime preview must survive '
+            'fallback that was in persist-await '
+            'when the realtime event arrived',
+      );
+      expect(ch.lastMessageId, 'realtime-msg');
+    },
+  );
 }
 
 class _FakeHomeRepository implements HomeRepository {
-  _FakeHomeRepository({this.snapshot, this.failure});
+  _FakeHomeRepository({
+    this.snapshot,
+    this.cachedSnapshot,
+    this.failure,
+  });
 
   final HomeWorkspaceSnapshot? snapshot;
+  final HomeWorkspaceSnapshot? cachedSnapshot;
   final AppFailure? failure;
   final List<ServerScopeId> requestedServerIds = [];
 
@@ -596,7 +1327,7 @@ class _FakeHomeRepository implements HomeRepository {
   Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
     ServerScopeId serverId,
   ) async {
-    return null;
+    return cachedSnapshot;
   }
 
   @override
@@ -665,6 +1396,56 @@ class _DelayedHomeRepository implements HomeRepository {
     required String preview,
     required DateTime activityAt,
   }) async {}
+
+  @override
+  Future<void> persistConversationPreviewUpdate({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) async {}
+}
+
+class _DelayedPersistRepository implements HomeRepository {
+  _DelayedPersistRepository({
+    required this.snapshot,
+    required this.persistCompleter,
+  });
+
+  final HomeWorkspaceSnapshot snapshot;
+  final Completer<void> persistCompleter;
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return null;
+  }
+
+  @override
+  Future<HomeWorkspaceSnapshot> loadWorkspace(
+    ServerScopeId serverId,
+  ) async {
+    return snapshot;
+  }
+
+  @override
+  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
+    HomeDirectMessageSummary summary,
+  ) async {
+    return summary;
+  }
+
+  @override
+  Future<void> persistConversationActivity({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) {
+    return persistCompleter.future;
+  }
 
   @override
   Future<void> persistConversationPreviewUpdate({
