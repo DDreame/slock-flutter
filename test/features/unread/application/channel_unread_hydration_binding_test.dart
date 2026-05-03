@@ -484,6 +484,146 @@ void main() {
         );
       },
     );
+    test(
+      'DM fingerprint change after increment preserves '
+      'realtime counts via reclassify',
+      () async {
+        // Server returns ch-1: 5 and dm-1: 3.
+        // Before HomeListStore knows about DMs, both land
+        // in the channel bucket.
+        fakeRepo.nextUnreadCounts = {'ch-1': 5, 'dm-1': 3};
+
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
+            activeServerScopeIdProvider.overrideWithValue(server1),
+            homeListStoreProvider.overrideWith(
+              () => _MutableHomeListStore(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Login → hydration fetches.
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(channelUnreadHydrationBindingProvider);
+        await Future<void>.delayed(Duration.zero);
+
+        // Both in channel bucket (DMs not known yet).
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(const ChannelScopeId(
+                serverId: server1,
+                value: 'ch-1',
+              )),
+          5,
+        );
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(const ChannelScopeId(
+                serverId: server1,
+                value: 'dm-1',
+              )),
+          3,
+        );
+
+        // Simulate message:new → increment ch-1.
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .incrementChannelUnread(const ChannelScopeId(
+              serverId: server1,
+              value: 'ch-1',
+            ));
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(const ChannelScopeId(
+                serverId: server1,
+                value: 'ch-1',
+              )),
+          6,
+        );
+
+        // Simulate message:new → increment dm-1
+        // (still in channel bucket).
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .incrementChannelUnread(const ChannelScopeId(
+              serverId: server1,
+              value: 'dm-1',
+            ));
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(const ChannelScopeId(
+                serverId: server1,
+                value: 'dm-1',
+              )),
+          4,
+        );
+
+        // Now HomeListStore discovers DMs → fingerprint
+        // changes → triggers reclassify.
+        (container.read(homeListStoreProvider.notifier)
+                as _MutableHomeListStore)
+            .addDm('dm-1', 'Alice');
+        await Future<void>.delayed(Duration.zero);
+
+        // Still only 1 fetch — reclassify doesn't re-fetch.
+        expect(
+          fakeRepo.calls,
+          hasLength(1),
+          reason: 'DM fingerprint change must not re-fetch',
+        );
+
+        // ch-1 stays in channel bucket with incremented
+        // count (6, not original 5).
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(const ChannelScopeId(
+                serverId: server1,
+                value: 'ch-1',
+              )),
+          6,
+          reason: 'Channel increment must survive '
+              'DM reclassify',
+        );
+
+        // dm-1 moved to DM bucket with incremented count
+        // (4, not original 3).
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .dmUnreadCount(const DirectMessageScopeId(
+                serverId: server1,
+                value: 'dm-1',
+              )),
+          4,
+          reason: 'DM increment must survive reclassify — '
+              'not reset to stale server value',
+        );
+
+        // dm-1 must no longer be in channel bucket.
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(const ChannelScopeId(
+                serverId: server1,
+                value: 'dm-1',
+              )),
+          0,
+          reason: 'dm-1 must be moved out of channel bucket',
+        );
+      },
+    );
   });
 }
 
@@ -528,6 +668,22 @@ class _MutableHomeListStore extends HomeListStore {
           ),
           name: 'general',
           lastMessagePreview: preview,
+        ),
+      ],
+    );
+  }
+
+  /// Simulate Home discovering a DM (changes DM fingerprint).
+  void addDm(String dmId, String title) {
+    state = state.copyWith(
+      directMessages: [
+        ...state.directMessages,
+        HomeDirectMessageSummary(
+          scopeId: DirectMessageScopeId(
+            serverId: const ServerScopeId('server-1'),
+            value: dmId,
+          ),
+          title: title,
         ),
       ],
     );
