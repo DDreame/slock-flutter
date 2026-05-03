@@ -29,6 +29,9 @@ import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
+import 'package:slock_app/features/unread/data/channel_unread_repository.dart';
+import 'package:slock_app/features/unread/data/channel_unread_repository_provider.dart';
+
 void main() {
   // -----------------------------------------------------------------------
   // Summary cards
@@ -1361,6 +1364,188 @@ void main() {
     );
 
     testWidgets(
+      'tapping channel unread row calls mark-read use case',
+      (tester) async {
+        final router = _buildRouter();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            channelUnreadRepositoryProvider.overrideWithValue(
+              _NoOpChannelUnreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Inject channel unread for 'general'.
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .hydrateChannelUnreads({
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ): 3,
+        });
+        await tester.pumpAndSettle();
+
+        // Verify unread row is present.
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-channel:general'),
+          ),
+          findsOneWidget,
+        );
+
+        // Tap the unread row.
+        await tester.tap(
+          find.byKey(
+            const ValueKey('unread-item-channel:general'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // After tap, mark-read use case clears the count.
+        expect(
+          container.read(channelUnreadStoreProvider).channelUnreadCount(
+                const ChannelScopeId(
+                  serverId: ServerScopeId('server-1'),
+                  value: 'general',
+                ),
+              ),
+          0,
+          reason: 'Tapping channel unread row should '
+              'clear its unread count via mark-read use case',
+        );
+      },
+    );
+
+    testWidgets(
+      'tapping DM unread row calls mark-read use case',
+      (tester) async {
+        final router = _buildRouter();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            channelUnreadRepositoryProvider.overrideWithValue(
+              _NoOpChannelUnreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Inject DM unread for 'dm-alice'.
+        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'dm-alice',
+          ): 4,
+        });
+        await tester.pumpAndSettle();
+
+        // Verify DM unread row is present.
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-dm:dm-alice'),
+          ),
+          findsOneWidget,
+        );
+
+        // Tap the DM unread row.
+        await tester.tap(
+          find.byKey(
+            const ValueKey('unread-item-dm:dm-alice'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // After tap, mark-read use case clears the DM count.
+        expect(
+          container.read(channelUnreadStoreProvider).dmUnreadCount(
+                const DirectMessageScopeId(
+                  serverId: ServerScopeId('server-1'),
+                  value: 'dm-alice',
+                ),
+              ),
+          0,
+          reason: 'Tapping DM unread row should '
+              'clear its unread count via mark-read use case',
+        );
+      },
+    );
+
+    testWidgets(
       'unread section includes pinned DMs with unread counts',
       (tester) async {
         final router = _buildRouter();
@@ -2293,6 +2478,26 @@ GoRouter _buildRouter() {
         ),
       ),
       GoRoute(
+        path: '/servers/:serverId/channels/:channelId',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text(
+              'channel:${state.pathParameters['channelId']}',
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/dms/:dmId',
+        builder: (context, state) => Scaffold(
+          body: Center(
+            child: Text(
+              'dm:${state.pathParameters['dmId']}',
+            ),
+          ),
+        ),
+      ),
+      GoRoute(
         path: '/settings',
         builder: (context, state) => const Scaffold(
           body: Center(child: Text('settings')),
@@ -2562,4 +2767,24 @@ class _FakeSecureStorage implements SecureStorage {
   Future<void> delete({required String key}) async {
     _store.remove(key);
   }
+}
+
+class _NoOpChannelUnreadRepository implements ChannelUnreadRepository {
+  @override
+  Future<Map<String, int>> fetchUnreadCounts(
+    ServerScopeId serverId,
+  ) async {
+    return {};
+  }
+
+  @override
+  Future<void> markChannelRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllInboxRead(
+    ServerScopeId serverId,
+  ) async {}
 }
