@@ -43,6 +43,8 @@ final homeMachineCountLoaderProvider =
 });
 
 class HomeListStore extends Notifier<HomeListState> {
+  static const _fallbackBatchSize = 5;
+
   List<HomeChannelSummary> _allChannels = const [];
   List<HomeDirectMessageSummary> _allDirectMessages = const [];
   List<AgentItem> _allAgents = const [];
@@ -233,6 +235,14 @@ class HomeListStore extends Notifier<HomeListState> {
   /// Background fallback: fetches the most recent message for
   /// channels / DMs that had no `lastMessage` in the initial API
   /// response, then updates the local store and in-memory list.
+  ///
+  /// Guarded against stale overwrites: before applying a fallback
+  /// result, the current in-memory `lastMessageId` is checked.
+  /// If a realtime `message:new` event already populated it, the
+  /// fallback result is silently discarded.
+  ///
+  /// Requests are batched (max [_fallbackBatchSize] concurrent)
+  /// to avoid stampeding the messages API.
   Future<void> _fetchMissingPreviews(
     HomeWorkspaceSnapshot snapshot,
   ) async {
@@ -247,10 +257,18 @@ class HomeListStore extends Notifier<HomeListState> {
         .where((dm) => dm.lastMessagePreview == null)
         .toList(growable: false);
 
-    // Fetch in parallel, but each result is applied independently.
-    final channelFutures = missingChannels.map((ch) async {
+    Future<void> fetchChannel(HomeChannelSummary ch) async {
       final result = await loader(serverId, ch.scopeId.value);
       if (result == null) return;
+
+      // Guard: skip if a realtime message:new already populated
+      // this channel's preview while the fallback was in flight.
+      final current = _allChannels.firstWhere(
+        (c) => c.scopeId.value == ch.scopeId.value,
+        orElse: () => ch,
+      );
+      if (current.lastMessageId != null) return;
+
       try {
         await repo.persistConversationActivity(
           serverId: serverId,
@@ -268,11 +286,20 @@ class HomeListStore extends Notifier<HomeListState> {
         preview: result.preview,
         activityAt: result.activityAt,
       );
-    });
+    }
 
-    final dmFutures = missingDms.map((dm) async {
+    Future<void> fetchDm(HomeDirectMessageSummary dm) async {
       final result = await loader(serverId, dm.scopeId.value);
       if (result == null) return;
+
+      // Guard: skip if a realtime message:new already populated
+      // this DM's preview while the fallback was in flight.
+      final current = _allDirectMessages.firstWhere(
+        (d) => d.scopeId.value == dm.scopeId.value,
+        orElse: () => dm,
+      );
+      if (current.lastMessageId != null) return;
+
       try {
         await repo.persistConversationActivity(
           serverId: serverId,
@@ -290,9 +317,19 @@ class HomeListStore extends Notifier<HomeListState> {
         preview: result.preview,
         activityAt: result.activityAt,
       );
-    });
+    }
 
-    await Future.wait([...channelFutures, ...dmFutures]);
+    // Process in batches to avoid stampeding the API.
+    final allWork = <Future<void> Function()>[
+      ...missingChannels.map((ch) => () => fetchChannel(ch)),
+      ...missingDms.map((dm) => () => fetchDm(dm)),
+    ];
+    for (var i = 0; i < allWork.length; i += _fallbackBatchSize) {
+      final end = (i + _fallbackBatchSize).clamp(0, allWork.length);
+      await Future.wait([
+        for (var j = i; j < end; j++) allWork[j](),
+      ]);
+    }
   }
 
   void _hydrateUnreadCounts(HomeWorkspaceSnapshot snapshot) {

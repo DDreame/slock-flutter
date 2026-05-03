@@ -544,6 +544,72 @@ void main() {
         );
       },
     );
+
+    test(
+      'loadWorkspace handles malformed lastMessage '
+      'content gracefully',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': [
+              {
+                'id': 'ch-1',
+                'name': 'General',
+                'lastMessage': {
+                  'id': 'msg-1',
+                  // content is a non-string (number) — must not throw.
+                  'content': 42,
+                  'createdAt': '2026-05-01T12:00:00Z',
+                },
+              },
+              {
+                'id': 'ch-2',
+                'name': 'Random',
+                'lastMessage': {
+                  'id': 'msg-2',
+                  // content is a nested object — must not throw.
+                  'content': {'html': '<b>bold</b>'},
+                  'createdAt': '2026-05-01T13:00:00Z',
+                },
+              },
+              {
+                'id': 'ch-3',
+                'name': 'Empty',
+                // lastMessage missing id — treated as absent.
+                'lastMessage': {'content': 'No id'},
+              },
+            ],
+            '/channels/dm': <Object?>[],
+          },
+        );
+        final container = _createContainer(appDioClient);
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        // Non-string content → falls back to empty string.
+        expect(snapshot.channels[0].lastMessageId, 'msg-1');
+        expect(snapshot.channels[0].lastMessagePreview, '');
+        expect(
+          snapshot.channels[0].lastActivityAt,
+          DateTime.utc(2026, 5, 1, 12),
+        );
+
+        // Object content → falls back to empty string.
+        expect(snapshot.channels[1].lastMessageId, 'msg-2');
+        expect(snapshot.channels[1].lastMessagePreview, '');
+
+        // Missing id → lastMessage treated as absent.
+        expect(snapshot.channels[2].lastMessageId, isNull);
+        expect(
+          snapshot.channels[2].lastMessagePreview,
+          isNull,
+        );
+      },
+    );
   });
 
   test(

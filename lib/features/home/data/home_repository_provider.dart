@@ -446,7 +446,7 @@ _LastMessagePreview? _parseLastMessage(Object? payload) {
   final id = map['id'];
   if (id is! String || id.isEmpty) return null;
 
-  final content = map['content'] as String? ?? '';
+  final content = map['content'] is String ? map['content'] as String : '';
   final rawCreatedAt = map['createdAt'];
   final createdAt =
       rawCreatedAt is String ? DateTime.tryParse(rawCreatedAt) : null;
@@ -518,7 +518,7 @@ Future<HomePreviewFallbackResult?> _fetchLastMessagePreview({
     final id = map['id'];
     if (id is! String || id.isEmpty) return null;
 
-    final content = map['content'] as String? ?? '';
+    final content = map['content'] is String ? map['content'] as String : '';
     final rawCreatedAt = map['createdAt'];
     final createdAt =
         rawCreatedAt is String ? DateTime.tryParse(rawCreatedAt) : null;

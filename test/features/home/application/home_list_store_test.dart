@@ -703,6 +703,93 @@ void main() {
       expect(dm.lastMessageId, 'msg-bg-2');
     },
   );
+
+  test(
+    'fallback does not overwrite a newer realtime '
+    'preview that arrived during the fetch',
+    () async {
+      // Fallback loader returns a stale preview after a delay.
+      final fallbackCompleter = Completer<HomePreviewFallbackResult?>();
+
+      final repository = _FakeHomeRepository(
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: ServerScopeId('server-1'),
+                value: 'ch-race',
+              ),
+              name: 'Race Channel',
+              // No preview — triggers fallback.
+            ),
+          ],
+          directMessages: [],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          homePreviewFallbackLoaderProvider.overrideWithValue(
+            (serverId, conversationId) => fallbackCompleter.future,
+          ),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          tasksRepositoryProvider.overrideWithValue(
+            const _FakeTasksRepository(),
+          ),
+          threadRepositoryProvider.overrideWithValue(
+            const _FakeThreadRepository(),
+          ),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Simulate realtime message:new arriving before
+      // the fallback completes.
+      container.read(homeListStoreProvider.notifier).updateChannelLastMessage(
+            conversationId: 'ch-race',
+            messageId: 'realtime-msg',
+            preview: 'Realtime preview',
+            activityAt: DateTime.utc(2026, 5, 3, 12),
+          );
+
+      // Now complete the stale fallback.
+      fallbackCompleter.complete(
+        HomePreviewFallbackResult(
+          messageId: 'stale-msg',
+          preview: 'Stale fallback preview',
+          activityAt: DateTime.utc(2026, 5, 3, 10),
+        ),
+      );
+
+      // Drain async work.
+      await Future.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      final ch = state.channels.firstWhere(
+        (c) => c.scopeId.value == 'ch-race',
+      );
+
+      expect(
+        ch.lastMessagePreview,
+        'Realtime preview',
+        reason: 'Realtime message:new preview must '
+            'survive a stale fallback response',
+      );
+      expect(ch.lastMessageId, 'realtime-msg');
+    },
+  );
 }
 
 class _FakeHomeRepository implements HomeRepository {
