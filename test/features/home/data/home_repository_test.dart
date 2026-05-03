@@ -332,6 +332,21 @@ void main() {
               'must be removed from local store and '
               'excluded from snapshot',
         );
+
+        // Verify the persisted store was actually cleaned —
+        // a subsequent cached load must also exclude the
+        // phantom, not just the immediate snapshot.
+        final cachedSnapshot = await repository.loadCachedWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        expect(
+          cachedSnapshot?.channels.map((c) => c.scopeId.value),
+          ['real-ch'],
+          reason: 'Phantom channel must be purged from the '
+              'persisted store so it does not reappear '
+              'on the cached-load path / app restart',
+        );
       },
     );
 

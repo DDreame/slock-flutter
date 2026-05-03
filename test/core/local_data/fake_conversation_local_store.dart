@@ -257,6 +257,20 @@ class FakeConversationLocalStore implements ConversationLocalStore {
     return rows;
   }
 
+  @override
+  Future<void> removeConversationSummariesNotIn({
+    required String serverId,
+    required String surface,
+    required Set<String> retainedConversationIds,
+  }) async {
+    _summaries.removeWhere(
+      (_, row) =>
+          row.serverId == serverId &&
+          row.surface == surface &&
+          !retainedConversationIds.contains(row.conversationId),
+    );
+  }
+
   List<LocalConversationSummaryRecord> get conversationSummaries =>
       _summaries.values.toList(growable: false);
 

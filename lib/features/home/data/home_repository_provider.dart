@@ -167,17 +167,22 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
           ),
     ]);
 
+    // Purge stale phantom channels from the persisted store
+    // so they don't reappear on the cached-load path / app
+    // restart / network-fallback load.
+    final freshChannelIds = <String>{
+      for (final ch in channelSummaries) ch.scopeId.value,
+    };
+    await localStore.removeConversationSummariesNotIn(
+      serverId: serverId.value,
+      surface: _channelSurface,
+      retainedConversationIds: freshChannelIds,
+    );
+
     final storedChannels = await localStore.listConversationSummaries(
       serverId.value,
       surface: _channelSurface,
     );
-
-    // Local reconciliation: only include channels that are
-    // still present in the current API response.  This removes
-    // stale phantoms from previous sessions.
-    final freshChannelIds = <String>{
-      for (final ch in channelSummaries) ch.scopeId.value,
-    };
 
     final storedDirectMessages = await localStore.listConversationSummaries(
       serverId.value,
@@ -187,7 +192,6 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
     return HomeWorkspaceSnapshot(
       serverId: serverId,
       channels: storedChannels
-          .where((row) => freshChannelIds.contains(row.conversationId))
           .map((row) => HomeChannelSummary(
                 scopeId: ChannelScopeId(
                   serverId: serverId,

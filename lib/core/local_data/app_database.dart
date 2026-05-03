@@ -202,4 +202,16 @@ abstract class ConversationLocalStore {
     String serverId,
     String query,
   );
+
+  /// Removes conversation summaries for [serverId] and [surface] whose
+  /// `conversationId` is **not** in [retainedConversationIds].
+  ///
+  /// This is used during workspace reconciliation to purge stale
+  /// phantom entries that are no longer present in the API response,
+  /// so they don't reappear on the cached-load path.
+  Future<void> removeConversationSummariesNotIn({
+    required String serverId,
+    required String surface,
+    required Set<String> retainedConversationIds,
+  });
 }
