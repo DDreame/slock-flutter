@@ -42,9 +42,15 @@ final channelUnreadHydrationBindingProvider = Provider<void>((ref) {
 
   final knownDmIds = _parseDmFingerprint(dmFingerprint);
 
-  // Fire-and-forget hydration.
+  // Fire-and-forget hydration.  Wrapped in Future.microtask so the
+  // function body always runs after buildState() returns — the
+  // reclassify path is synchronous (no await) and would otherwise
+  // mutate channelUnreadStoreProvider while _debugCurrentlyBuildingElement
+  // is still set, triggering a Riverpod assertion in debug mode.
   unawaited(
-    _hydrateUnreadCounts(ref, serverId, knownDmIds).catchError((_) {}),
+    Future.microtask(
+      () => _hydrateUnreadCounts(ref, serverId, knownDmIds),
+    ).catchError((_) {}),
   );
 });
 
