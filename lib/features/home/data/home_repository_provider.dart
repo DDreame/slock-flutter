@@ -126,10 +126,12 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
     ),
   ]);
 
-  final channelSummaries = _parseChannelSummaries(
+  final channelParseResult = _parseChannelSummaries(
     responses[0].data,
     serverId: serverId,
   );
+  final channelSummaries = channelParseResult.channels;
+  final threadChannelIds = channelParseResult.threadChannelIds;
   final directMessageSummaries = _parseDirectMessageSummaries(
     responses[1].data,
     serverId: serverId,
@@ -165,10 +167,23 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
           ),
     ]);
 
+    // Purge stale phantom channels from the persisted store
+    // so they don't reappear on the cached-load path / app
+    // restart / network-fallback load.
+    final freshChannelIds = <String>{
+      for (final ch in channelSummaries) ch.scopeId.value,
+    };
+    await localStore.removeConversationSummariesNotIn(
+      serverId: serverId.value,
+      surface: _channelSurface,
+      retainedConversationIds: freshChannelIds,
+    );
+
     final storedChannels = await localStore.listConversationSummaries(
       serverId.value,
       surface: _channelSurface,
     );
+
     final storedDirectMessages = await localStore.listConversationSummaries(
       serverId.value,
       surface: _directMessageSurface,
@@ -202,6 +217,7 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
           .toList(growable: false),
       channelUnreadCounts: channelUnreadCounts,
       dmUnreadCounts: dmUnreadCounts,
+      threadChannelIds: threadChannelIds,
     );
   } on AppFailure {
     rethrow;
@@ -213,6 +229,7 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
       directMessages: directMessageSummaries,
       channelUnreadCounts: channelUnreadCounts,
       dmUnreadCounts: dmUnreadCounts,
+      threadChannelIds: threadChannelIds,
     );
   }
 }
@@ -267,32 +284,58 @@ Options _serverScopedOptions(ServerScopeId serverId) {
   return Options(headers: {_serverHeaderName: serverId.routeParam});
 }
 
-List<HomeChannelSummary> _parseChannelSummaries(
+/// Channel types that are excluded from the Channel Tab.
+const _filteredChannelTypes = {'thread', 'inbox', 'system'};
+
+({
+  List<HomeChannelSummary> channels,
+  Set<String> threadChannelIds,
+}) _parseChannelSummaries(
   Object? payload, {
   required ServerScopeId serverId,
 }) {
-  final channels = _requireList(payload, payloadName: 'channels');
-  return List<HomeChannelSummary>.generate(channels.length, (index) {
+  final raw = _requireList(payload, payloadName: 'channels');
+  final channels = <HomeChannelSummary>[];
+  final threadChannelIds = <String>{};
+
+  for (var index = 0; index < raw.length; index++) {
     final item = _requireMap(
-      channels[index],
+      raw[index],
       payloadName: 'channels[$index]',
     );
-    return HomeChannelSummary(
+    final id = _requireStringField(
+      item,
+      field: 'id',
+      payloadName: 'channels[$index]',
+    );
+    final name = _requireStringField(
+      item,
+      field: 'name',
+      payloadName: 'channels[$index]',
+    );
+
+    final type = item['type'] as String?;
+    final archived = item['archived'] as bool? ?? false;
+
+    if (type == 'thread') {
+      threadChannelIds.add(id);
+    }
+
+    // Exclude non-top-level and archived channels.
+    if (_filteredChannelTypes.contains(type) || archived) {
+      continue;
+    }
+
+    channels.add(HomeChannelSummary(
       scopeId: ChannelScopeId(
         serverId: serverId,
-        value: _requireStringField(
-          item,
-          field: 'id',
-          payloadName: 'channels[$index]',
-        ),
+        value: id,
       ),
-      name: _requireStringField(
-        item,
-        field: 'name',
-        payloadName: 'channels[$index]',
-      ),
-    );
-  }, growable: false);
+      name: name,
+    ));
+  }
+
+  return (channels: channels, threadChannelIds: threadChannelIds);
 }
 
 List<HomeDirectMessageSummary> _parseDirectMessageSummaries(
