@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
@@ -892,81 +891,12 @@ class _HomeUnreadSection extends StatelessWidget {
   }
 
   List<HomeUnreadItem> _buildUnreadItems() {
-    final items = <HomeUnreadItem>[];
-
-    // Threads with unread > 0
-    for (final thread in threadItems) {
-      if (thread.unreadCount > 0) {
-        final parentName = _findChannelName(
-          thread.routeTarget.parentChannelId,
-        );
-        items.add(
-          HomeUnreadItem.fromThread(
-            thread,
-            parentChannelName: parentName,
-          ),
-        );
-      }
-    }
-
-    // Channels with unread > 0
-    for (final entry in unreadState.channelUnreadCounts.entries) {
-      if (entry.value > 0) {
-        final channel = _findChannel(entry.key);
-        if (channel != null) {
-          items.add(
-            HomeUnreadItem.fromChannel(channel, entry.value),
-          );
-        }
-      }
-    }
-
-    // DMs with unread > 0
-    for (final entry in unreadState.dmUnreadCounts.entries) {
-      if (entry.value > 0) {
-        final dm = _findDm(entry.key);
-        if (dm != null) {
-          items.add(
-            HomeUnreadItem.fromDirectMessage(dm, entry.value),
-          );
-        }
-      }
-    }
-
-    // Sort by last activity (most recent first), nulls last
-    items.sort((a, b) {
-      final aTime = a.lastActivityAt;
-      final bTime = b.lastActivityAt;
-      if (aTime == null && bTime == null) return 0;
-      if (aTime == null) return 1;
-      if (bTime == null) return -1;
-      return bTime.compareTo(aTime);
-    });
-
-    return items;
-  }
-
-  HomeChannelSummary? _findChannel(ChannelScopeId scopeId) {
-    for (final ch in channels) {
-      if (ch.scopeId == scopeId) return ch;
-    }
-    return null;
-  }
-
-  HomeDirectMessageSummary? _findDm(DirectMessageScopeId scopeId) {
-    for (final dm in directMessages) {
-      if (dm.scopeId == scopeId) return dm;
-    }
-    return null;
-  }
-
-  /// Look up a channel name from its raw ID string
-  /// (used for thread parent channel display).
-  String? _findChannelName(String channelId) {
-    for (final ch in channels) {
-      if (ch.scopeId.value == channelId) return ch.name;
-    }
-    return null;
+    return buildUnreadItems(
+      threadItems: threadItems,
+      channels: channels,
+      directMessages: directMessages,
+      unreadState: unreadState,
+    );
   }
 }
 

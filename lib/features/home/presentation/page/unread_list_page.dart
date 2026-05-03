@@ -4,13 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_unread_item.dart';
-import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/l10n/l10n.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 /// Full-screen unread list page.
@@ -29,7 +26,15 @@ class UnreadListPage extends ConsumerWidget {
     final state = ref.watch(homeListStoreProvider);
     final unreadState = ref.watch(channelUnreadStoreProvider);
 
-    final items = _buildUnreadItems(state, unreadState);
+    final items = buildUnreadItems(
+      threadItems: state.threadItems,
+      channels: [...state.pinnedChannels, ...state.channels],
+      directMessages: [
+        ...state.pinnedDirectMessages,
+        ...state.directMessages,
+      ],
+      unreadState: unreadState,
+    );
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -74,88 +79,6 @@ class UnreadListPage extends ConsumerWidget {
               },
             ),
     );
-  }
-
-  List<HomeUnreadItem> _buildUnreadItems(
-    HomeListState state,
-    ChannelUnreadState unreadState,
-  ) {
-    final items = <HomeUnreadItem>[];
-    final allChannels = [
-      ...state.pinnedChannels,
-      ...state.channels,
-    ];
-
-    // Threads
-    for (final thread in state.threadItems) {
-      if (thread.unreadCount > 0) {
-        String? parentName;
-        for (final ch in allChannels) {
-          if (ch.scopeId.value == thread.routeTarget.parentChannelId) {
-            parentName = ch.name;
-            break;
-          }
-        }
-        items.add(
-          HomeUnreadItem.fromThread(
-            thread,
-            parentChannelName: parentName,
-          ),
-        );
-      }
-    }
-
-    // Channels
-    for (final entry in unreadState.channelUnreadCounts.entries) {
-      if (entry.value > 0) {
-        HomeChannelSummary? channel;
-        for (final ch in allChannels) {
-          if (ch.scopeId == entry.key) {
-            channel = ch;
-            break;
-          }
-        }
-        if (channel != null) {
-          items.add(
-            HomeUnreadItem.fromChannel(channel, entry.value),
-          );
-        }
-      }
-    }
-
-    // DMs
-    final allDms = [
-      ...state.pinnedDirectMessages,
-      ...state.directMessages,
-    ];
-    for (final entry in unreadState.dmUnreadCounts.entries) {
-      if (entry.value > 0) {
-        HomeDirectMessageSummary? dm;
-        for (final d in allDms) {
-          if (d.scopeId == entry.key) {
-            dm = d;
-            break;
-          }
-        }
-        if (dm != null) {
-          items.add(
-            HomeUnreadItem.fromDirectMessage(dm, entry.value),
-          );
-        }
-      }
-    }
-
-    // Sort by last activity (most recent first), nulls last
-    items.sort((a, b) {
-      final aTime = a.lastActivityAt;
-      final bTime = b.lastActivityAt;
-      if (aTime == null && bTime == null) return 0;
-      if (aTime == null) return 1;
-      if (bTime == null) return -1;
-      return bTime.compareTo(aTime);
-    });
-
-    return items;
   }
 }
 

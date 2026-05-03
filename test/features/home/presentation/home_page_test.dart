@@ -2081,6 +2081,99 @@ void main() {
     );
 
     testWidgets(
+      'unread DM item shows ✉ glyph badge and peer name label',
+      (tester) async {
+        final router = _buildRouter();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            homeRepositoryProvider.overrideWithValue(
+              const _FakeHomeRepository(_unreadSnapshot),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              const _FakeServerListRepository([]),
+            ),
+            sidebarOrderRepositoryProvider.overrideWithValue(
+              const _FakeSidebarOrderRepository(),
+            ),
+            agentsRepositoryProvider.overrideWithValue(
+              const _FakeAgentsRepository(),
+            ),
+            tasksRepositoryProvider.overrideWithValue(
+              const _FakeTasksRepository(),
+            ),
+            threadRepositoryProvider.overrideWithValue(
+              const _FakeThreadRepository(),
+            ),
+            homeMachineCountLoaderProvider.overrideWithValue(
+              (_) async => 0,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: router,
+              theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Inject DM unread for 'dm-alice'
+        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'dm-alice',
+          ): 2,
+        });
+        await tester.pumpAndSettle();
+
+        final row = find.byKey(
+          const ValueKey('unread-item-dm:dm-alice'),
+        );
+        expect(row, findsOneWidget);
+
+        // DM kind badge should show ✉ glyph
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.byKey(
+              const ValueKey('unread-kind-directMessage'),
+            ),
+          ),
+          findsOneWidget,
+          reason: 'DM unread should show kind badge',
+        );
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('\u2709'),
+          ),
+          findsOneWidget,
+          reason: 'DM unread should show ✉ glyph',
+        );
+
+        // Source label should show peer name
+        expect(
+          find.descendant(
+            of: row,
+            matching: find.text('Alice'),
+          ),
+          findsOneWidget,
+          reason: 'DM source label should show peer name',
+        );
+      },
+    );
+
+    testWidgets(
       'overflow +N more is tappable and navigates to unread list',
       (tester) async {
         final router = _buildRouter();

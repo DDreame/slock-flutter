@@ -3,6 +3,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
 
 /// The kind of source for an unread item.
 enum HomeUnreadKind { thread, channel, directMessage }
@@ -129,4 +130,76 @@ class HomeUnreadItem {
         preview,
         lastActivityAt,
       );
+}
+
+/// Build a sorted list of [HomeUnreadItem]s from the provided data.
+///
+/// Shared by the Home unread card and the full unread-list page.
+List<HomeUnreadItem> buildUnreadItems({
+  required List<ThreadInboxItem> threadItems,
+  required List<HomeChannelSummary> channels,
+  required List<HomeDirectMessageSummary> directMessages,
+  required ChannelUnreadState unreadState,
+}) {
+  final items = <HomeUnreadItem>[];
+
+  // Threads with unread > 0
+  for (final thread in threadItems) {
+    if (thread.unreadCount > 0) {
+      String? parentName;
+      for (final ch in channels) {
+        if (ch.scopeId.value == thread.routeTarget.parentChannelId) {
+          parentName = ch.name;
+          break;
+        }
+      }
+      items.add(
+        HomeUnreadItem.fromThread(thread, parentChannelName: parentName),
+      );
+    }
+  }
+
+  // Channels with unread > 0
+  for (final entry in unreadState.channelUnreadCounts.entries) {
+    if (entry.value > 0) {
+      HomeChannelSummary? channel;
+      for (final ch in channels) {
+        if (ch.scopeId == entry.key) {
+          channel = ch;
+          break;
+        }
+      }
+      if (channel != null) {
+        items.add(HomeUnreadItem.fromChannel(channel, entry.value));
+      }
+    }
+  }
+
+  // DMs with unread > 0
+  for (final entry in unreadState.dmUnreadCounts.entries) {
+    if (entry.value > 0) {
+      HomeDirectMessageSummary? dm;
+      for (final d in directMessages) {
+        if (d.scopeId == entry.key) {
+          dm = d;
+          break;
+        }
+      }
+      if (dm != null) {
+        items.add(HomeUnreadItem.fromDirectMessage(dm, entry.value));
+      }
+    }
+  }
+
+  // Sort by last activity (most recent first), nulls last
+  items.sort((a, b) {
+    final aTime = a.lastActivityAt;
+    final bTime = b.lastActivityAt;
+    if (aTime == null && bTime == null) return 0;
+    if (aTime == null) return 1;
+    if (bTime == null) return -1;
+    return bTime.compareTo(aTime);
+  });
+
+  return items;
 }
