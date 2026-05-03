@@ -320,6 +320,171 @@ void main() {
       },
     );
   });
+
+  group('hydration does not clobber realtime increments', () {
+    test(
+      'HomeListState preview mutation does not re-fetch or '
+      'overwrite local increment',
+      () async {
+        // Initial server response: ch-1 has 5 unreads.
+        fakeRepo.nextUnreadCounts = {'ch-1': 5};
+
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
+            activeServerScopeIdProvider.overrideWithValue(server1),
+            homeListStoreProvider.overrideWith(
+              () => _MutableHomeListStore(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Login → hydration fetches.
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(channelUnreadHydrationBindingProvider);
+        await Future<void>.delayed(Duration.zero);
+
+        // Verify initial hydration fetched once.
+        expect(fakeRepo.calls, hasLength(1));
+        expect(
+          container.read(channelUnreadStoreProvider).channelUnreadCount(
+                const ChannelScopeId(
+                  serverId: server1,
+                  value: 'ch-1',
+                ),
+              ),
+          5,
+        );
+
+        // Simulate message:new → local increment.
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .incrementChannelUnread(const ChannelScopeId(
+              serverId: server1,
+              value: 'ch-1',
+            ));
+        expect(
+          container.read(channelUnreadStoreProvider).channelUnreadCount(
+                const ChannelScopeId(
+                  serverId: server1,
+                  value: 'ch-1',
+                ),
+              ),
+          6,
+        );
+
+        // Simulate message:new → HomeListStore preview change.
+        // This changes a non-DM-identity field (channel preview).
+        (container.read(homeListStoreProvider.notifier)
+                as _MutableHomeListStore)
+            .mutatePreview('new preview text');
+        await Future<void>.delayed(Duration.zero);
+
+        // No additional fetch should have occurred.
+        expect(
+          fakeRepo.calls,
+          hasLength(1),
+          reason: 'Preview mutation must not trigger re-fetch',
+        );
+
+        // Increment must survive — not clobbered to 5.
+        expect(
+          container.read(channelUnreadStoreProvider).channelUnreadCount(
+                const ChannelScopeId(
+                  serverId: server1,
+                  value: 'ch-1',
+                ),
+              ),
+          6,
+          reason: 'Realtime increment must not be '
+              'overwritten by stale hydration',
+        );
+      },
+    );
+
+    test(
+      'stale/empty server response after increment does not '
+      'clobber local count',
+      () async {
+        // First fetch returns ch-1: 5.
+        fakeRepo.nextUnreadCounts = {'ch-1': 5};
+
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            channelUnreadRepositoryProvider.overrideWithValue(fakeRepo),
+            activeServerScopeIdProvider.overrideWithValue(server1),
+            homeListStoreProvider.overrideWith(
+              () => _MutableHomeListStore(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(channelUnreadHydrationBindingProvider);
+        await Future<void>.delayed(Duration.zero);
+
+        // Simulate message:new → local increment.
+        container
+            .read(channelUnreadStoreProvider.notifier)
+            .incrementChannelUnread(const ChannelScopeId(
+              serverId: server1,
+              value: 'ch-1',
+            ));
+        expect(
+          container.read(channelUnreadStoreProvider).channelUnreadCount(
+                const ChannelScopeId(
+                  serverId: server1,
+                  value: 'ch-1',
+                ),
+              ),
+          6,
+        );
+
+        // Change fake repo to return stale/empty response.
+        fakeRepo.nextUnreadCounts = {};
+
+        // Simulate multiple HomeListStore preview mutations.
+        for (var i = 0; i < 3; i++) {
+          (container.read(homeListStoreProvider.notifier)
+                  as _MutableHomeListStore)
+              .mutatePreview('preview $i');
+        }
+        await Future<void>.delayed(Duration.zero);
+
+        // Still only 1 fetch from initial hydration.
+        expect(
+          fakeRepo.calls,
+          hasLength(1),
+          reason: 'Preview mutations must not trigger re-fetch',
+        );
+
+        // Count must remain at 6.
+        expect(
+          container.read(channelUnreadStoreProvider).channelUnreadCount(
+                const ChannelScopeId(
+                  serverId: server1,
+                  value: 'ch-1',
+                ),
+              ),
+          6,
+          reason: 'Multiple preview mutations must not '
+              'clobber realtime increment',
+        );
+      },
+    );
+  });
 }
 
 class _PreloadedHomeListStore extends HomeListStore {
@@ -329,4 +494,42 @@ class _PreloadedHomeListStore extends HomeListStore {
 
   @override
   HomeListState build() => _initialState;
+}
+
+/// A HomeListStore that starts with a success state containing
+/// a channel, and supports preview mutations via [mutatePreview].
+class _MutableHomeListStore extends HomeListStore {
+  static const _initialState = HomeListState(
+    status: HomeListStatus.success,
+    serverScopeId: ServerScopeId('server-1'),
+    channels: [
+      HomeChannelSummary(
+        scopeId: ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'ch-1',
+        ),
+        name: 'general',
+      ),
+    ],
+  );
+
+  @override
+  HomeListState build() => _initialState;
+
+  /// Simulate a preview mutation (like message:new triggers)
+  /// without relying on private _allChannels.
+  void mutatePreview(String preview) {
+    state = state.copyWith(
+      channels: [
+        HomeChannelSummary(
+          scopeId: const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'ch-1',
+          ),
+          name: 'general',
+          lastMessagePreview: preview,
+        ),
+      ],
+    );
+  }
 }
