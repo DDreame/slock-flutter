@@ -24,6 +24,7 @@ import 'package:slock_app/stores/channel_unread/channel_unread_session_binding.d
 import 'package:slock_app/stores/notification/notification_lifecycle_binding.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/notification/notification_permission_onboarding_binding.dart';
+import 'package:slock_app/core/notifications/realtime_notification_bridge.dart';
 import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
@@ -97,6 +98,7 @@ class SlockApp extends ConsumerWidget {
     ref.watch(notificationLifecycleBindingProvider);
     ref.watch(notificationVisibleTargetBindingProvider);
     ref.watch(notificationForegroundSuppressionBindingProvider);
+    ref.watch(realtimeNotificationBridgeProvider);
     ref.watch(notificationPermissionOnboardingBindingProvider);
     ref.watch(channelUnreadSessionBindingProvider);
     ref.watch(channelUnreadHydrationBindingProvider);
