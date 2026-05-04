@@ -34,7 +34,11 @@ class AppDioInterceptor extends Interceptor {
   ) async {
     try {
       final headers = await _buildHeaders().timeout(_headerBuildTimeout);
+      final explicitServerHeader = options.headers['X-Server-Id'];
       options.headers.addAll(headers);
+      if (explicitServerHeader != null) {
+        options.headers['X-Server-Id'] = explicitServerHeader;
+      }
       _logSink(
         NetworkLogEvent(
           stage: NetworkLogStage.request,

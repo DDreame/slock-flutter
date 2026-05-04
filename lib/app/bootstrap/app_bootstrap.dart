@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/network/auth_token_provider.dart';
 import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/notifications/android_foreground_service_manager.dart';
 import 'package:slock_app/core/notifications/android_notification_initializer.dart';
@@ -84,7 +85,12 @@ Future<AppBootstrapResult> appBootstrap({
         final token = ref.watch(
           sessionStoreProvider.select((sessionState) => sessionState.token),
         );
-        return buildRealtimeSocketOptions(uri: realtimeUrl, token: token);
+        final selectedServerId = ref.watch(selectedServerIdProvider);
+        return buildRealtimeSocketOptions(
+          uri: realtimeUrl,
+          token: token,
+          serverId: selectedServerId,
+        );
       }),
     ],
   );

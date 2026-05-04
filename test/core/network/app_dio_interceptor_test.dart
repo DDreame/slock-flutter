@@ -166,6 +166,80 @@ void main() {
       expect(adapter.callCount, 2);
     });
 
+    test('preserves explicit request X-Server-Id over global fallback',
+        () async {
+      final adapter = _SequenceAdapter([
+        const _StubResponse(statusCode: 200, body: '{"ok":true}'),
+      ]);
+
+      final coordinator = TokenRefreshCoordinator(
+        refreshToken: () async => 'new-token',
+      );
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {
+            'Authorization': 'Bearer token',
+            'X-Server-Id': 'global-server',
+          },
+          tokenRefreshCoordinator: coordinator,
+          logSink: noopNetworkLogSink,
+          dioForRetry: () => dio,
+        ),
+      );
+
+      await dio.get<Object?>(
+        '/test',
+        options: Options(headers: {'X-Server-Id': 'specific-server'}),
+      );
+
+      final captured = adapter.capturedOptions.last;
+      expect(captured.headers['X-Server-Id'], 'specific-server');
+      expect(captured.headers['Authorization'], 'Bearer token');
+    });
+
+    test('401 retry preserves explicit X-Server-Id and updates Authorization',
+        () async {
+      final adapter = _SequenceAdapter([
+        const _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
+        const _StubResponse(statusCode: 200, body: '{"data":"ok"}'),
+      ]);
+
+      var currentToken = 'stale';
+      final coordinator = TokenRefreshCoordinator(
+        refreshToken: () async {
+          currentToken = 'fresh-token';
+          return 'fresh-token';
+        },
+      );
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {
+            'Authorization': 'Bearer $currentToken',
+            'X-Server-Id': 'global-server',
+          },
+          tokenRefreshCoordinator: coordinator,
+          logSink: noopNetworkLogSink,
+          dioForRetry: () => dio,
+        ),
+      );
+
+      final response = await dio.get<Object?>(
+        '/test',
+        options: Options(headers: {'X-Server-Id': 'specific-server'}),
+      );
+
+      expect(response.statusCode, 200);
+      final retryOpts = adapter.capturedOptions.last;
+      expect(retryOpts.headers['X-Server-Id'], 'specific-server');
+      expect(retryOpts.headers['Authorization'], 'Bearer fresh-token');
+    });
+
     test('retry preserves original request method and body', () async {
       final adapter = _SequenceAdapter([
         const _StubResponse(statusCode: 401, body: '{}'),

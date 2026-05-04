@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
+import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 typedef AuthTokenReader = Future<String?> Function();
@@ -58,6 +59,7 @@ final refreshAuthTokenProvider = Provider<RefreshAuthToken>((ref) {
 final requestHeadersBuilderProvider = Provider<RequestHeadersBuilder>((ref) {
   final config = ref.watch(networkConfigProvider);
   final readToken = ref.watch(authTokenProvider);
+  final selectedServerId = ref.watch(selectedServerIdProvider);
 
   return () async {
     final headers = Map<String, String>.from(config.defaultHeaders);
@@ -65,6 +67,16 @@ final requestHeadersBuilderProvider = Provider<RequestHeadersBuilder>((ref) {
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
+    if (selectedServerId != null && selectedServerId.isNotEmpty) {
+      headers['X-Server-Id'] = selectedServerId;
+    }
     return headers;
   };
+});
+
+/// Selected server ID — thin seam for testability.
+final selectedServerIdProvider = Provider<String?>((ref) {
+  return ref.watch(
+    serverSelectionStoreProvider.select((s) => s.selectedServerId),
+  );
 });

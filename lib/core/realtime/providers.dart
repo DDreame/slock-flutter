@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/network/auth_token_provider.dart';
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
 import 'package:slock_app/core/realtime/realtime_event_envelope.dart';
 import 'package:slock_app/core/realtime/realtime_reduction_ingress.dart';
@@ -16,12 +17,19 @@ final realtimeClockProvider = Provider<Clock>((ref) => DateTime.now);
 RealtimeSocketOptions buildRealtimeSocketOptions({
   required String uri,
   required String? token,
+  String? serverId,
 }) {
+  final authMap = <String, dynamic>{
+    if (token != null && token.isNotEmpty) 'token': token,
+    if (serverId != null && serverId.isNotEmpty) 'serverId': serverId,
+  };
+
   return RealtimeSocketOptions(
     uri: uri,
     extraHeaders: {
       if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     },
+    auth: authMap.isNotEmpty ? authMap : null,
   );
 }
 
@@ -29,8 +37,13 @@ final realtimeSocketOptionsProvider = Provider<RealtimeSocketOptions>((ref) {
   final token = ref.watch(
     sessionStoreProvider.select((sessionState) => sessionState.token),
   );
+  final selectedServerId = ref.watch(selectedServerIdProvider);
 
-  return buildRealtimeSocketOptions(uri: placeholderRealtimeUrl, token: token);
+  return buildRealtimeSocketOptions(
+    uri: placeholderRealtimeUrl,
+    token: token,
+    serverId: selectedServerId,
+  );
 });
 
 final realtimeEventNormalizerProvider = Provider<RealtimeEventNormalizer>((
