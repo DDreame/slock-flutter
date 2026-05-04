@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
@@ -20,7 +21,18 @@ class SessionStore extends Notifier<SessionState> {
   Future<void> restoreSession() async {
     try {
       final token = await _storage.read(key: SessionStorageKeys.token);
+      final refreshToken =
+          await _storage.read(key: SessionStorageKeys.refreshToken);
+
+      // Require both tokens for a valid session. If only one is present the
+      // pair is incomplete and cannot recover from a 401, so clear it out.
       if (token != null && token.isNotEmpty) {
+        if (refreshToken == null || refreshToken.isEmpty) {
+          await SessionStorageKeys.clear(_storage);
+          state = const SessionState(status: AuthStatus.unauthenticated);
+          return;
+        }
+
         final userId = await _storage.read(key: SessionStorageKeys.userId);
         final displayName =
             await _storage.read(key: SessionStorageKeys.displayName);
@@ -31,11 +43,15 @@ class SessionStore extends Notifier<SessionState> {
           displayName: displayName,
         );
         await _hydrateAuthenticatedSession(
-          accessToken: token,
           fallbackUserId: userId,
           fallbackDisplayName: displayName,
         );
         return;
+      }
+
+      // Only refresh token present — incomplete pair.
+      if (refreshToken != null && refreshToken.isNotEmpty) {
+        await SessionStorageKeys.clear(_storage);
       }
     } catch (_) {
       // Storage read failure — fall through to unauthenticated.
@@ -47,11 +63,15 @@ class SessionStore extends Notifier<SessionState> {
     final repo = ref.read(authRepositoryProvider);
     final result = await repo.login(email: email, password: password);
 
+    state = state.copyWith(
+      status: AuthStatus.authenticated,
+      token: result.accessToken,
+    );
     await _storage.write(
       key: SessionStorageKeys.refreshToken,
       value: result.refreshToken,
     );
-    await _hydrateAuthenticatedSession(accessToken: result.accessToken);
+    await _hydrateAuthenticatedSession();
   }
 
   Future<void> register({
@@ -66,12 +86,15 @@ class SessionStore extends Notifier<SessionState> {
       name: displayName,
     );
 
+    state = state.copyWith(
+      status: AuthStatus.authenticated,
+      token: result.accessToken,
+    );
     await _storage.write(
       key: SessionStorageKeys.refreshToken,
       value: result.refreshToken,
     );
     await _hydrateAuthenticatedSession(
-      accessToken: result.accessToken,
       fallbackDisplayName: displayName,
     );
   }
@@ -145,31 +168,37 @@ class SessionStore extends Notifier<SessionState> {
   }
 
   Future<void> _hydrateAuthenticatedSession({
-    required String accessToken,
     String? fallbackUserId,
     String? fallbackDisplayName,
   }) async {
-    state = state.copyWith(
-      status: AuthStatus.authenticated,
-      token: accessToken,
-      userId: fallbackUserId,
-      displayName: fallbackDisplayName,
-    );
+    try {
+      final user = await _loadCurrentUser();
 
-    final user = await _loadCurrentUser();
-    state = SessionState(
-      status: AuthStatus.authenticated,
-      token: accessToken,
-      userId: user?.id ?? fallbackUserId,
-      displayName: user?.name ?? fallbackDisplayName,
-      emailVerified: user?.emailVerified,
-    );
-    await _persistSession();
+      // Use state.token — it may have been refreshed by updateTokens()
+      // during the getMe() call (Dio interceptor 401 retry). Never use a
+      // stale parameter value that could clobber a fresh token.
+      state = SessionState(
+        status: AuthStatus.authenticated,
+        token: state.token,
+        userId: user?.id ?? fallbackUserId,
+        displayName: user?.name ?? fallbackDisplayName,
+        emailVerified: user?.emailVerified,
+      );
+      await _persistSession();
+    } on UnauthorizedFailure {
+      await logout();
+    } on ForbiddenFailure {
+      await logout();
+    }
   }
 
   Future<AuthUser?> _loadCurrentUser() async {
     try {
       return await ref.read(authRepositoryProvider).getMe();
+    } on UnauthorizedFailure {
+      rethrow;
+    } on ForbiddenFailure {
+      rethrow;
     } catch (e, st) {
       ref.read(crashReporterProvider).captureException(e, stackTrace: st);
       return null;

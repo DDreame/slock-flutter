@@ -117,6 +117,7 @@ void main() {
   group('SplashController', () {
     test('restores session and server selection when authenticated', () async {
       fakeStorage._store[SessionStorageKeys.token] = 'saved-token';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'saved-refresh';
       fakeStorage._store[SessionStorageKeys.userId] = 'user-1';
       fakeStorage._store[ServerSelectionStorageKeys.selectedServerId] =
           'server-1';
@@ -156,6 +157,7 @@ void main() {
 
     test('sets appReady to true after authenticated bootstrap', () async {
       fakeStorage._store[SessionStorageKeys.token] = 'saved-token';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'saved-refresh';
       fakeStorage._store[SessionStorageKeys.userId] = 'user-1';
       fakeStorage._store[ServerSelectionStorageKeys.selectedServerId] =
           'server-1';
@@ -201,6 +203,7 @@ void main() {
 
     test('notification init completes after authenticated bootstrap', () async {
       fakeStorage._store[SessionStorageKeys.token] = 'saved-token';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'saved-refresh';
       fakeStorage._store[SessionStorageKeys.userId] = 'user-1';
 
       await container.read(splashControllerProvider.future);

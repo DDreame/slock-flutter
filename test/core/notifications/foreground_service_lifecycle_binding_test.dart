@@ -196,6 +196,10 @@ void main() {
         value: 'saved-token',
       );
       await storage.write(
+        key: 'session_refresh_token',
+        value: 'saved-refresh',
+      );
+      await storage.write(
         key: 'session_userId',
         value: 'uid',
       );
@@ -247,6 +251,10 @@ void main() {
       await storage.write(
         key: 'session_token',
         value: 'saved-token',
+      );
+      await storage.write(
+        key: 'session_refresh_token',
+        value: 'saved-refresh',
       );
       await storage.write(
         key: 'session_userId',
