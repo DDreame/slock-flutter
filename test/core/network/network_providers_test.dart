@@ -76,6 +76,50 @@ void main() {
   });
 
   test(
+    'requestHeadersBuilderProvider includes X-Server-Id when server is selected',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.example.com'),
+          ),
+          authTokenProvider.overrideWithValue(() async => 'token-123'),
+          selectedServerIdProvider.overrideWithValue('server-456'),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(headers['Authorization'], 'Bearer token-123');
+      expect(headers['X-Server-Id'], 'server-456');
+    },
+  );
+
+  test(
+    'requestHeadersBuilderProvider omits X-Server-Id when no server is selected',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.example.com'),
+          ),
+          authTokenProvider.overrideWithValue(() async => 'token-123'),
+          selectedServerIdProvider.overrideWithValue(null),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(headers['Authorization'], 'Bearer token-123');
+      expect(headers.containsKey('X-Server-Id'), isFalse);
+    },
+  );
+
+  test(
     'tokenRefreshCoordinatorProvider uses the injected refresh seam',
     () async {
       var refreshCalls = 0;

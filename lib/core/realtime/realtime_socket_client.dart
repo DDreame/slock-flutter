@@ -48,6 +48,7 @@ class RealtimeSocketOptions {
     this.resumeEventName = 'sync:resume',
     this.heartbeatEventNames = const <String>{'heartbeat', 'pong'},
     this.extraHeaders = const <String, String>{},
+    this.auth,
   });
 
   final String uri;
@@ -56,6 +57,7 @@ class RealtimeSocketOptions {
   final String resumeEventName;
   final Set<String> heartbeatEventNames;
   final Map<String, String> extraHeaders;
+  final Map<String, dynamic>? auth;
 }
 
 class SocketIoRealtimeSocketClient implements RealtimeSocketClient {
@@ -63,12 +65,17 @@ class SocketIoRealtimeSocketClient implements RealtimeSocketClient {
       : _options = options,
         _socket = io.io(
           options.uri,
-          io.OptionBuilder()
-              .disableAutoConnect()
-              .setPath(options.path)
-              .setTransports(options.transports)
-              .setExtraHeaders(options.extraHeaders)
-              .build(),
+          () {
+            final builder = io.OptionBuilder()
+                .disableAutoConnect()
+                .setPath(options.path)
+                .setTransports(options.transports)
+                .setExtraHeaders(options.extraHeaders);
+            if (options.auth != null) {
+              builder.setAuth(options.auth!);
+            }
+            return builder.build();
+          }(),
         ) {
     _socket.onConnect((_) {
       _signalsController.add(const RealtimeSocketConnected());
@@ -106,6 +113,9 @@ class SocketIoRealtimeSocketClient implements RealtimeSocketClient {
   Future<void> connect() async {
     if (!_socket.connected) {
       _socket.io.options?['extraHeaders'] = _options.extraHeaders;
+      if (_options.auth != null) {
+        _socket.io.options?['auth'] = _options.auth;
+      }
       _socket.connect();
     }
   }
