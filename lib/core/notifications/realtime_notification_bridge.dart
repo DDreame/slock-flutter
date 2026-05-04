@@ -45,6 +45,8 @@ class _ResolvedTarget {
     this.target,
     required this.serverId,
     required this.surfaceName,
+    this.parentChannelId,
+    this.parentMessageId,
   });
 
   final NotificationTarget? target;
@@ -53,6 +55,14 @@ class _ResolvedTarget {
   /// Human-readable surface name for the notification payload
   /// (`'channel'`, `'dm'`, `'thread'`, or `'unknown'`).
   final String surfaceName;
+
+  /// For threads: the parent channel ID used in deep link routing.
+  /// Null for non-thread targets.
+  final String? parentChannelId;
+
+  /// For threads: the parent message ID used in deep link routing.
+  /// Null for non-thread targets.
+  final String? parentMessageId;
 }
 
 /// Resolves a [NotificationTarget] from the home list state by
@@ -61,7 +71,7 @@ class _ResolvedTarget {
 /// Returns a [_ResolvedTarget] with `target == null` when the
 /// channelId is not found in any loaded list — the caller should
 /// still deliver the notification but log `targetResolved=false`.
-_ResolvedTarget _resolveTarget(Ref ref, String channelId, {String? threadId}) {
+_ResolvedTarget _resolveTarget(Ref ref, String channelId) {
   final homeState = ref.read(homeListStoreProvider);
   final serverId = homeState.serverScopeId?.value;
 
@@ -144,20 +154,40 @@ _ResolvedTarget _resolveTarget(Ref ref, String channelId, {String? threadId}) {
     }
   }
 
-  // Check known thread channel IDs.
+  // Check known thread channel IDs. When a match is found, resolve
+  // the parent channel/message identity from threadItems so that
+  // the NotificationTarget uses the same identity as visible thread
+  // targets (parentChannelId + parentMessageId) — not the raw
+  // threadChannelId from the event.
   if (serverId != null) {
     final knownThreadIds = ref.read(knownThreadChannelIdsProvider);
     final qualifiedId = threadChannelKey(serverId, channelId);
     if (knownThreadIds.contains(qualifiedId)) {
+      // Look up full thread route metadata from the home thread
+      // inbox so we can build a correct thread target.
+      for (final item in homeState.threadItems) {
+        if (item.routeTarget.threadChannelId == channelId) {
+          return _ResolvedTarget(
+            serverId: serverId,
+            surfaceName: 'thread',
+            target: NotificationTarget(
+              serverId: serverId,
+              surface: NotificationSurface.thread,
+              channelId: item.routeTarget.parentChannelId,
+              threadId: item.routeTarget.parentMessageId,
+            ),
+            parentChannelId: item.routeTarget.parentChannelId,
+            parentMessageId: item.routeTarget.parentMessageId,
+          );
+        }
+      }
+      // Known thread channel but no route metadata available
+      // (thread not in inbox). Fall back to unknown rather than
+      // emitting a malformed thread target.
       return _ResolvedTarget(
         serverId: serverId,
-        surfaceName: 'thread',
-        target: NotificationTarget(
-          serverId: serverId,
-          surface: NotificationSurface.thread,
-          channelId: channelId,
-          threadId: threadId,
-        ),
+        surfaceName: 'unknown',
+        target: null,
       );
     }
   }
@@ -209,7 +239,6 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
     final channelId = map['channelId'] as String?;
     final content = map['content'] as String? ?? '';
     final senderName = map['senderName'] as String?;
-    final threadId = map['threadId'] as String?;
     final messageId = map['id'] as String?;
 
     if (channelId == null) return;
@@ -241,7 +270,7 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
     }
 
     // Resolve notification target from app state.
-    final resolved = _resolveTarget(ref, channelId, threadId: threadId);
+    final resolved = _resolveTarget(ref, channelId);
 
     if (preference == NotificationPreference.mentionsOnly) {
       // When target could not be resolved, we cannot confirm it's a
@@ -276,14 +305,16 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
     }
 
     // Build local notification payload with resolved routing
-    // metadata for deep link resolution.
+    // metadata for deep link resolution. For threads, use the
+    // parent channel/message identity (not the threadChannelId).
     final notificationPayload = <String, dynamic>{
       'title': senderName ?? 'New message',
       'body': content,
-      'channelId': channelId,
+      'channelId': resolved.parentChannelId ?? channelId,
       if (resolved.serverId != null) 'serverId': resolved.serverId,
       'type': resolved.surfaceName,
-      if (threadId != null) 'threadId': threadId,
+      if (resolved.parentMessageId != null)
+        'threadId': resolved.parentMessageId,
       if (messageId != null) 'messageId': messageId,
       'slock.source': 'realtime',
     };

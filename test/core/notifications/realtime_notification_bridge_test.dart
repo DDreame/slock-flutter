@@ -16,6 +16,8 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -226,9 +228,26 @@ void main() {
     });
 
     test(
-        'thread channelId resolves type=thread via '
-        'knownThreadChannelIdsProvider', () async {
+        'thread channelId resolves type=thread with parent identity '
+        'via threadItems', () async {
       container = buildContainer(
+        homeState: HomeListState(
+          serverScopeId: _testServerScope,
+          status: HomeListStatus.success,
+          threadItems: [
+            ThreadInboxItem(
+              routeTarget: ThreadRouteTarget(
+                serverId: _testServerId,
+                parentChannelId: 'parent-ch-1',
+                parentMessageId: 'parent-msg-1',
+                threadChannelId: 'thread-ch-1',
+              ),
+              replyCount: 5,
+              unreadCount: 1,
+              participantIds: const ['other-user'],
+            ),
+          ],
+        ),
         knownThreadIds: {threadChannelKey(_testServerId, 'thread-ch-1')},
       );
       container.read(realtimeNotificationBridgeProvider);
@@ -239,7 +258,6 @@ void main() {
         senderId: 'other-user',
         senderName: 'Dave',
         content: 'Thread reply',
-        threadId: 'thread-parent-1',
       ));
 
       await Future<void>.delayed(Duration.zero);
@@ -247,7 +265,9 @@ void main() {
       expect(showSink.shown, hasLength(1));
       final payload = showSink.shown.first;
       expect(payload['type'], 'thread');
-      expect(payload['threadId'], 'thread-parent-1');
+      // Deep link uses parent identity, not threadChannelId:
+      expect(payload['channelId'], 'parent-ch-1');
+      expect(payload['threadId'], 'parent-msg-1');
       expect(payload['serverId'], _testServerId);
     });
 
@@ -446,16 +466,59 @@ void main() {
 
     test('thread message with visible thread target is suppressed', () async {
       container = buildContainer(
+        homeState: HomeListState(
+          serverScopeId: _testServerScope,
+          status: HomeListStatus.success,
+          threadItems: [
+            ThreadInboxItem(
+              routeTarget: ThreadRouteTarget(
+                serverId: _testServerId,
+                parentChannelId: 'parent-ch-1',
+                parentMessageId: 'parent-msg-1',
+                threadChannelId: 'thread-ch-1',
+              ),
+              replyCount: 5,
+              unreadCount: 1,
+              participantIds: const ['other-user'],
+            ),
+          ],
+        ),
         knownThreadIds: {threadChannelKey(_testServerId, 'thread-ch-1')},
         notificationState: const NotificationState(
           lifecycleStatus: AppLifecycleStatus.resumed,
+          // Visible target uses parent identity — same as
+          // notification_visible_target_binding.dart produces.
           visibleTarget: VisibleTarget(
             serverId: _testServerId,
             surface: NotificationSurface.thread,
-            channelId: 'thread-ch-1',
-            threadId: 'thread-parent-1',
+            channelId: 'parent-ch-1',
+            threadId: 'parent-msg-1',
           ),
         ),
+      );
+      container.read(realtimeNotificationBridgeProvider);
+
+      // Event channelId is threadChannelId (the raw event channel).
+      ingress.accept(_messageNewEvent(
+        channelId: 'thread-ch-1',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        content: 'Thread reply',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, isEmpty);
+    });
+
+    test(
+        'known thread without threadItems metadata falls back '
+        'to unknown delivery', () async {
+      // knownThreadChannelIdsProvider has the ID but threadItems
+      // does not contain route metadata — the bridge should fall
+      // back to unknown rather than emit a malformed thread target.
+      container = buildContainer(
+        knownThreadIds: {threadChannelKey(_testServerId, 'thread-ch-1')},
       );
       container.read(realtimeNotificationBridgeProvider);
 
@@ -463,13 +526,18 @@ void main() {
         channelId: 'thread-ch-1',
         messageId: 'msg-1',
         senderId: 'other-user',
+        senderName: 'Eve',
         content: 'Thread reply',
-        threadId: 'thread-parent-1',
       ));
 
       await Future<void>.delayed(Duration.zero);
 
-      expect(showSink.shown, isEmpty);
+      expect(showSink.shown, hasLength(1));
+      final payload = showSink.shown.first;
+      // Falls back to unknown — no malformed thread target.
+      expect(payload['type'], 'unknown');
+      expect(payload['channelId'], 'thread-ch-1');
+      expect(payload.containsKey('threadId'), isFalse);
     });
 
     test(
