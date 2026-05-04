@@ -1,5 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/errors/app_failure.dart';
+import 'package:slock_app/core/network/auth_token_provider.dart';
+import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
@@ -77,6 +80,23 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> resendVerification() async {}
 }
 
+/// A [FakeAuthRepository] whose [getMe] can be configured with a callback,
+/// allowing tests to inject side-effects (e.g. simulating the Dio interceptor
+/// calling [SessionStore.updateTokens] during a 401-retry).
+class _ConfigurableAuthRepository extends FakeAuthRepository {
+  _ConfigurableAuthRepository({this.getMeHandler});
+
+  final Future<AuthUser> Function()? getMeHandler;
+
+  @override
+  Future<AuthUser> getMe() async {
+    if (getMeHandler != null) {
+      return getMeHandler!();
+    }
+    return super.getMe();
+  }
+}
+
 void main() {
   late ProviderContainer container;
   late FakeSecureStorage fakeStorage;
@@ -99,6 +119,7 @@ void main() {
     test('restoreSession with stored token transitions to authenticated',
         () async {
       fakeStorage._store[SessionStorageKeys.token] = 'saved-token';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'saved-refresh';
       fakeStorage._store[SessionStorageKeys.userId] = 'saved-uid';
       fakeStorage._store[SessionStorageKeys.displayName] = 'Alice';
 
@@ -318,6 +339,481 @@ void main() {
       expect(
         fakeStorage.snapshot[ServerSelectionStorageKeys.selectedServerId],
         isNull,
+      );
+    });
+  });
+
+  group('Session restore requires both tokens (#378)', () {
+    test(
+        'restoreSession with access token only (no refresh) clears and goes '
+        'unauthenticated', () async {
+      // Seed ONLY access token — no refresh token.
+      fakeStorage._store[SessionStorageKeys.token] = 'orphan-access';
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.unauthenticated);
+      expect(state.token, isNull);
+      // Storage should be cleaned up.
+      expect(fakeStorage.snapshot[SessionStorageKeys.token], isNull);
+    });
+
+    test(
+        'restoreSession with refresh token only (no access) goes '
+        'unauthenticated', () async {
+      // Seed ONLY refresh token — no access token.
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'orphan-refresh';
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.unauthenticated);
+      expect(state.token, isNull);
+      // Orphan refresh token should be cleaned up.
+      expect(fakeStorage.snapshot[SessionStorageKeys.refreshToken], isNull);
+    });
+
+    test('restoreSession with both tokens transitions to authenticated',
+        () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'access-1';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'refresh-1';
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.authenticated);
+      expect(state.token, 'access-1');
+    });
+  });
+
+  group('Stale-token clobber prevention (#378)', () {
+    test(
+        'restore path: token refresh during getMe keeps fresh token, '
+        'not stale stored token', () async {
+      // Simulate: storage has stale-token, interceptor refreshes mid-getMe.
+      fakeStorage._store[SessionStorageKeys.token] = 'stale-token';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'stored-refresh';
+
+      late SessionStore sessionStore;
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          // Simulate Dio interceptor refreshing token during the getMe call.
+          await sessionStore.updateTokens(
+            accessToken: 'fresh-token',
+            refreshToken: 'fresh-refresh',
+          );
+          return const AuthUser(
+            id: 'user-1',
+            name: 'Alice',
+            emailVerified: true,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      sessionStore = container.read(sessionStoreProvider.notifier);
+
+      await sessionStore.restoreSession();
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.authenticated);
+      // CRITICAL: must use fresh token, not stale-token.
+      expect(state.token, 'fresh-token');
+      expect(state.userId, 'user-1');
+      expect(state.displayName, 'Alice');
+      // Storage must reflect fresh token.
+      expect(fakeStorage.snapshot[SessionStorageKeys.token], 'fresh-token');
+      expect(
+        fakeStorage.snapshot[SessionStorageKeys.refreshToken],
+        'fresh-refresh',
+      );
+    });
+
+    test(
+        'login path: token refresh during getMe keeps fresh token, '
+        'not original access token', () async {
+      late SessionStore sessionStore;
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          // Simulate interceptor refreshing token during the getMe call
+          // that is triggered inside _hydrateAuthenticatedSession.
+          await sessionStore.updateTokens(
+            accessToken: 'refreshed-access',
+            refreshToken: 'refreshed-refresh',
+          );
+          return const AuthUser(
+            id: 'user-1',
+            name: 'Alice',
+            emailVerified: true,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      sessionStore = container.read(sessionStoreProvider.notifier);
+
+      await sessionStore.login(email: 'a@b.com', password: 'pass');
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.authenticated);
+      // Must use refreshed token, not original 'fake-access-token'.
+      expect(state.token, 'refreshed-access');
+      expect(
+          fakeStorage.snapshot[SessionStorageKeys.token], 'refreshed-access');
+    });
+
+    test(
+        'register path: token refresh during getMe keeps fresh token, '
+        'not original access token', () async {
+      late SessionStore sessionStore;
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          await sessionStore.updateTokens(
+            accessToken: 'refreshed-access',
+            refreshToken: 'refreshed-refresh',
+          );
+          return const AuthUser(
+            id: 'user-1',
+            name: 'Alice',
+            emailVerified: true,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      sessionStore = container.read(sessionStoreProvider.notifier);
+
+      await sessionStore.register(
+        email: 'a@b.com',
+        password: 'pass',
+        displayName: 'Test',
+      );
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.authenticated);
+      expect(state.token, 'refreshed-access');
+      expect(
+          fakeStorage.snapshot[SessionStorageKeys.token], 'refreshed-access');
+    });
+  });
+
+  group('Auth failure during hydration clears session (#378)', () {
+    test('getMe 401 during restore clears session', () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'expired-token';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'expired-refresh';
+      fakeStorage._store[SessionStorageKeys.userId] = 'saved-uid';
+
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          throw const UnauthorizedFailure(
+            message: 'Token expired',
+            statusCode: 401,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.unauthenticated);
+      expect(state.token, isNull);
+      // Storage must be cleared.
+      expect(fakeStorage.snapshot[SessionStorageKeys.token], isNull);
+      expect(fakeStorage.snapshot[SessionStorageKeys.refreshToken], isNull);
+    });
+
+    test('getMe 403 during restore clears session', () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'banned-token';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'banned-refresh';
+
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          throw const ForbiddenFailure(
+            message: 'Forbidden',
+            statusCode: 403,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.unauthenticated);
+      expect(state.token, isNull);
+    });
+
+    test('getMe 401 during login clears session', () async {
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          throw const UnauthorizedFailure(
+            message: 'Token expired immediately',
+            statusCode: 401,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pass');
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.unauthenticated);
+      expect(state.token, isNull);
+      expect(fakeStorage.snapshot[SessionStorageKeys.token], isNull);
+      expect(fakeStorage.snapshot[SessionStorageKeys.refreshToken], isNull);
+    });
+
+    test('getMe 401 during register clears session', () async {
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          throw const UnauthorizedFailure(
+            message: 'Token expired immediately',
+            statusCode: 401,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+
+      await container.read(sessionStoreProvider.notifier).register(
+            email: 'a@b.com',
+            password: 'pass',
+            displayName: 'Test',
+          );
+      final state = container.read(sessionStoreProvider);
+
+      expect(state.status, AuthStatus.unauthenticated);
+      expect(state.token, isNull);
+      expect(fakeStorage.snapshot[SessionStorageKeys.token], isNull);
+    });
+
+    test(
+        'getMe network failure during restore does NOT clear session '
+        '(only auth failures clear)', () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'good-token';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'good-refresh';
+      fakeStorage._store[SessionStorageKeys.userId] = 'saved-uid';
+      fakeStorage._store[SessionStorageKeys.displayName] = 'Alice';
+
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          throw const NetworkFailure(message: 'No internet');
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+      final state = container.read(sessionStoreProvider);
+
+      // Network failure should NOT clear the session — keep fallback data.
+      expect(state.status, AuthStatus.authenticated);
+      expect(state.token, 'good-token');
+      expect(state.userId, 'saved-uid');
+      expect(state.displayName, 'Alice');
+    });
+  });
+
+  group('Post-login auth header transport (#378)', () {
+    test(
+        'login path: requestHeadersBuilderProvider returns correct '
+        'Authorization after login', () async {
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.test'),
+          ),
+        ],
+      );
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pass');
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(
+        headers['Authorization'],
+        'Bearer fake-access-token',
+        reason: 'next request after login must carry the returned access token',
+      );
+    });
+
+    test(
+        'login path with mid-getMe refresh: requestHeadersBuilderProvider '
+        'returns refreshed token, not original', () async {
+      late SessionStore sessionStore;
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          // Simulate Dio interceptor refreshing token during the getMe call.
+          await sessionStore.updateTokens(
+            accessToken: 'refreshed-access',
+            refreshToken: 'refreshed-refresh',
+          );
+          return const AuthUser(
+            id: 'user-1',
+            name: 'Alice',
+            emailVerified: true,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.test'),
+          ),
+        ],
+      );
+      sessionStore = container.read(sessionStoreProvider.notifier);
+
+      await sessionStore.login(email: 'a@b.com', password: 'pass');
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(
+        headers['Authorization'],
+        'Bearer refreshed-access',
+        reason: 'next request after login+refresh must carry the '
+            'fresh token, not the original access token',
+      );
+    });
+
+    test(
+        'restore path: requestHeadersBuilderProvider returns correct '
+        'Authorization after restoreSession', () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'stored-access';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'stored-refresh';
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.test'),
+          ),
+        ],
+      );
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(
+        headers['Authorization'],
+        'Bearer stored-access',
+        reason: 'next request after restore must carry the stored access token',
+      );
+    });
+
+    test(
+        'restore path with mid-getMe refresh: requestHeadersBuilderProvider '
+        'returns refreshed token', () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'stale-access';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'stored-refresh';
+
+      late SessionStore sessionStore;
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          await sessionStore.updateTokens(
+            accessToken: 'fresh-access',
+            refreshToken: 'fresh-refresh',
+          );
+          return const AuthUser(
+            id: 'user-1',
+            name: 'Alice',
+            emailVerified: true,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.test'),
+          ),
+        ],
+      );
+      sessionStore = container.read(sessionStoreProvider.notifier);
+
+      await sessionStore.restoreSession();
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(
+        headers['Authorization'],
+        'Bearer fresh-access',
+        reason: 'next request after restore+refresh must carry the '
+            'fresh token, not the stale stored token',
       );
     });
   });
