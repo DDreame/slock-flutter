@@ -34,11 +34,17 @@ void main() {
           sessionStoreProvider.overrideWith(
             () => _FakeSessionStore(token: 'token-123'),
           ),
+          selectedServerIdProvider.overrideWithValue('server-789'),
           realtimeSocketOptionsProvider.overrideWith((ref) {
             final token = ref.watch(
               sessionStoreProvider.select((sessionState) => sessionState.token),
             );
-            return buildRealtimeSocketOptions(uri: runtimeUrl, token: token);
+            final selectedServerId = ref.watch(selectedServerIdProvider);
+            return buildRealtimeSocketOptions(
+              uri: runtimeUrl,
+              token: token,
+              serverId: selectedServerId,
+            );
           }),
         ],
       );
@@ -48,6 +54,9 @@ void main() {
 
       expect(options.uri, runtimeUrl);
       expect(options.extraHeaders['Authorization'], 'Bearer token-123');
+      expect(options.auth, isNotNull);
+      expect(options.auth!['token'], 'token-123');
+      expect(options.auth!['serverId'], 'server-789');
     },
   );
 
