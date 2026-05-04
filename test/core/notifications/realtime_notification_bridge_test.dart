@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/notifications/realtime_notification_bridge.dart';
@@ -10,7 +11,11 @@ import 'package:slock_app/core/realtime/realtime_reduction_ingress.dart';
 import 'package:slock_app/core/realtime/providers.dart'
     show realtimeReductionIngressProvider;
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
+import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -39,15 +44,28 @@ class _FakeSessionStore extends SessionStore {
       );
 }
 
-/// Build a minimal `message:new` realtime event envelope.
+/// HomeListStore override that returns a pre-built state.
+class _FakeHomeListStore extends HomeListStore {
+  _FakeHomeListStore(this._state);
+
+  final HomeListState _state;
+
+  @override
+  HomeListState build() => _state;
+}
+
+/// Server scope ID constant used across tests.
+const _testServerId = 'srv-1';
+final _testServerScope = ServerScopeId(_testServerId);
+
+/// Build a lean `message:new` realtime event envelope matching the
+/// actual production payload shape — no `serverId` or `type` fields.
 RealtimeEventEnvelope _messageNewEvent({
   required String channelId,
   required String messageId,
   String? senderId,
   String? senderName,
   String content = 'hello',
-  String? serverId,
-  String? type,
   String? threadId,
 }) {
   return RealtimeEventEnvelope(
@@ -63,12 +81,34 @@ RealtimeEventEnvelope _messageNewEvent({
       'messageType': 'message',
       if (senderId != null) 'senderId': senderId,
       if (senderName != null) 'senderName': senderName,
-      if (serverId != null) 'serverId': serverId,
-      if (type != null) 'type': type,
       if (threadId != null) 'threadId': threadId,
     },
   );
 }
+
+/// Default home list state with one channel and one DM.
+HomeListState _defaultHomeState() => HomeListState(
+      serverScopeId: _testServerScope,
+      status: HomeListStatus.success,
+      channels: [
+        HomeChannelSummary(
+          scopeId: ChannelScopeId(
+            serverId: _testServerScope,
+            value: 'ch-1',
+          ),
+          name: '#general',
+        ),
+      ],
+      directMessages: [
+        HomeDirectMessageSummary(
+          scopeId: DirectMessageScopeId(
+            serverId: _testServerScope,
+            value: 'dm-1',
+          ),
+          title: 'Alice',
+        ),
+      ],
+    );
 
 void main() {
   late RealtimeReductionIngress ingress;
@@ -90,7 +130,10 @@ void main() {
   ProviderContainer buildContainer({
     NotificationState? notificationState,
     String? currentUserId,
+    HomeListState? homeState,
+    Set<String> knownThreadIds = const {},
   }) {
+    final homeListState = homeState ?? _defaultHomeState();
     final c = ProviderContainer(
       overrides: [
         realtimeReductionIngressProvider.overrideWithValue(ingress),
@@ -100,6 +143,10 @@ void main() {
         sessionStoreProvider.overrideWith(
           () => _FakeSessionStore(userId: currentUserId ?? 'current-user'),
         ),
+        homeListStoreProvider.overrideWith(
+          () => _FakeHomeListStore(homeListState),
+        ),
+        knownThreadChannelIdsProvider.overrideWith((ref) => knownThreadIds),
         if (notificationState != null)
           notificationStoreProvider.overrideWith(
             () => _OverriddenNotificationStore(notificationState),
@@ -109,8 +156,10 @@ void main() {
     return c;
   }
 
-  group('RealtimeNotificationBridge', () {
-    test('message:new triggers showLocalNotification', () async {
+  group('RealtimeNotificationBridge — lean payload', () {
+    test(
+        'channel message triggers showLocalNotification with resolved '
+        'serverId and type', () async {
       container = buildContainer();
       container.read(realtimeNotificationBridgeProvider);
 
@@ -120,17 +169,86 @@ void main() {
         senderId: 'other-user',
         senderName: 'Alice',
         content: 'Hello world',
-        serverId: 'srv-1',
-        type: 'channel',
       ));
 
       await Future<void>.delayed(Duration.zero);
 
       expect(showSink.shown, hasLength(1));
-      expect(showSink.shown.first['title'], isNotNull);
-      expect(showSink.shown.first['body'], 'Hello world');
-      expect(showSink.shown.first['channelId'], 'ch-1');
-      expect(showSink.shown.first['serverId'], 'srv-1');
+      final payload = showSink.shown.first;
+      expect(payload['title'], 'Alice');
+      expect(payload['body'], 'Hello world');
+      expect(payload['channelId'], 'ch-1');
+      // Resolved from home list state, not from raw payload:
+      expect(payload['serverId'], _testServerId);
+      expect(payload['type'], 'channel');
+    });
+
+    test('DM message resolves type=dm from home list', () async {
+      container = buildContainer();
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'dm-1',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        senderName: 'Bob',
+        content: 'DM hello',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, hasLength(1));
+      final payload = showSink.shown.first;
+      expect(payload['type'], 'dm');
+      expect(payload['serverId'], _testServerId);
+    });
+
+    test(
+        'unknown channelId still delivers notification with '
+        'type=unknown', () async {
+      container = buildContainer();
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'unknown-ch',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        senderName: 'Carol',
+        content: 'Hello from unknown',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, hasLength(1));
+      final payload = showSink.shown.first;
+      expect(payload['type'], 'unknown');
+      expect(payload['body'], 'Hello from unknown');
+    });
+
+    test(
+        'thread channelId resolves type=thread via '
+        'knownThreadChannelIdsProvider', () async {
+      container = buildContainer(
+        knownThreadIds: {threadChannelKey(_testServerId, 'thread-ch-1')},
+      );
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'thread-ch-1',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        senderName: 'Dave',
+        content: 'Thread reply',
+        threadId: 'thread-parent-1',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, hasLength(1));
+      final payload = showSink.shown.first;
+      expect(payload['type'], 'thread');
+      expect(payload['threadId'], 'thread-parent-1');
+      expect(payload['serverId'], _testServerId);
     });
 
     test('self-message is suppressed', () async {
@@ -149,12 +267,12 @@ void main() {
       expect(showSink.shown, isEmpty);
     });
 
-    test('visible target match suppresses notification', () async {
+    test('visible target match suppresses channel notification', () async {
       container = buildContainer(
         notificationState: const NotificationState(
           lifecycleStatus: AppLifecycleStatus.resumed,
           visibleTarget: VisibleTarget(
-            serverId: 'srv-1',
+            serverId: _testServerId,
             surface: NotificationSurface.channel,
             channelId: 'ch-1',
           ),
@@ -167,8 +285,6 @@ void main() {
         messageId: 'msg-1',
         senderId: 'other-user',
         content: 'Hello',
-        serverId: 'srv-1',
-        type: 'channel',
       ));
 
       await Future<void>.delayed(Duration.zero);
@@ -181,7 +297,7 @@ void main() {
         notificationState: const NotificationState(
           lifecycleStatus: AppLifecycleStatus.resumed,
           visibleTarget: VisibleTarget(
-            serverId: 'srv-1',
+            serverId: _testServerId,
             surface: NotificationSurface.channel,
             channelId: 'ch-other',
           ),
@@ -194,8 +310,6 @@ void main() {
         messageId: 'msg-1',
         senderId: 'other-user',
         content: 'Hello',
-        serverId: 'srv-1',
-        type: 'channel',
       ));
 
       await Future<void>.delayed(Duration.zero);
@@ -236,8 +350,6 @@ void main() {
         messageId: 'msg-1',
         senderId: 'other-user',
         content: 'Hello',
-        serverId: 'srv-1',
-        type: 'channel',
       ));
 
       await Future<void>.delayed(Duration.zero);
@@ -259,13 +371,32 @@ void main() {
         senderId: 'other-user',
         senderName: 'Bob',
         content: 'DM hello',
-        serverId: 'srv-1',
-        type: 'dm',
       ));
 
       await Future<void>.delayed(Duration.zero);
 
       expect(showSink.shown, hasLength(1));
+    });
+
+    test('mentionsOnly suppresses unknown channelId (cannot confirm DM)',
+        () async {
+      container = buildContainer(
+        notificationState: const NotificationState(
+          notificationPreference: NotificationPreference.mentionsOnly,
+        ),
+      );
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'unknown-ch',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        content: 'Hello',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, isEmpty);
     });
 
     test('non-message events are ignored', () async {
@@ -288,7 +419,91 @@ void main() {
       expect(showSink.shown, isEmpty);
     });
 
-    test('diagnostics logged for delivered notification', () async {
+    test('visible DM target suppresses DM notification', () async {
+      container = buildContainer(
+        notificationState: const NotificationState(
+          lifecycleStatus: AppLifecycleStatus.resumed,
+          visibleTarget: VisibleTarget(
+            serverId: _testServerId,
+            surface: NotificationSurface.dm,
+            channelId: 'dm-1',
+          ),
+        ),
+      );
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'dm-1',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        content: 'DM hello',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, isEmpty);
+    });
+
+    test('thread message with visible thread target is suppressed', () async {
+      container = buildContainer(
+        knownThreadIds: {threadChannelKey(_testServerId, 'thread-ch-1')},
+        notificationState: const NotificationState(
+          lifecycleStatus: AppLifecycleStatus.resumed,
+          visibleTarget: VisibleTarget(
+            serverId: _testServerId,
+            surface: NotificationSurface.thread,
+            channelId: 'thread-ch-1',
+            threadId: 'thread-parent-1',
+          ),
+        ),
+      );
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'thread-ch-1',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        content: 'Thread reply',
+        threadId: 'thread-parent-1',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, isEmpty);
+    });
+
+    test(
+        'unknown channelId skips visible-target suppression '
+        '(no target to compare)', () async {
+      container = buildContainer(
+        notificationState: const NotificationState(
+          lifecycleStatus: AppLifecycleStatus.resumed,
+          visibleTarget: VisibleTarget(
+            serverId: _testServerId,
+            surface: NotificationSurface.channel,
+            channelId: 'ch-1',
+          ),
+        ),
+      );
+      container.read(realtimeNotificationBridgeProvider);
+
+      // Message for unknown channel — visible target suppression
+      // should not fire because we cannot resolve the target.
+      ingress.accept(_messageNewEvent(
+        channelId: 'unknown-ch',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        content: 'Hello',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, hasLength(1));
+    });
+  });
+
+  group('RealtimeNotificationBridge — diagnostics', () {
+    test('logs targetResolved=true for delivered known channel', () async {
       container = buildContainer();
       container.read(realtimeNotificationBridgeProvider);
 
@@ -307,9 +522,31 @@ void main() {
       expect(entries, isNotEmpty);
       expect(entries.last.message, contains('source=realtime'));
       expect(entries.last.message, contains('delivered'));
+      expect(entries.last.message, contains('targetResolved=true'));
     });
 
-    test('diagnostics logged for suppressed notification', () async {
+    test('logs targetResolved=false for delivered unknown channel', () async {
+      container = buildContainer();
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'unknown-ch',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        content: 'Hello',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      final entries = diagnostics.entries
+          .where((e) => e.tag == 'notification-bridge')
+          .toList();
+      expect(entries, isNotEmpty);
+      expect(entries.last.message, contains('delivered'));
+      expect(entries.last.message, contains('targetResolved=false'));
+    });
+
+    test('logs suppressed=muted', () async {
       container = buildContainer(
         notificationState: const NotificationState(
           notificationPreference: NotificationPreference.mute,
@@ -334,60 +571,126 @@ void main() {
       expect(entries.last.message, contains('muted'));
     });
 
-    test('thread message with visible thread target is suppressed', () async {
+    test('mentionsOnly logs targetResolved for unknown channel', () async {
       container = buildContainer(
         notificationState: const NotificationState(
-          lifecycleStatus: AppLifecycleStatus.resumed,
-          visibleTarget: VisibleTarget(
-            serverId: 'srv-1',
-            surface: NotificationSurface.thread,
-            channelId: 'ch-1',
-            threadId: 'thread-1',
-          ),
+          notificationPreference: NotificationPreference.mentionsOnly,
         ),
       );
       container.read(realtimeNotificationBridgeProvider);
 
       ingress.accept(_messageNewEvent(
-        channelId: 'ch-1',
+        channelId: 'unknown-ch',
         messageId: 'msg-1',
         senderId: 'other-user',
-        content: 'Thread reply',
-        serverId: 'srv-1',
-        type: 'thread',
-        threadId: 'thread-1',
+        content: 'Hello',
       ));
 
       await Future<void>.delayed(Duration.zero);
 
-      expect(showSink.shown, isEmpty);
+      final entries = diagnostics.entries
+          .where((e) => e.tag == 'notification-bridge')
+          .toList();
+      expect(entries, isNotEmpty);
+      expect(entries.last.message, contains('suppressed=mentionsOnly'));
+      expect(entries.last.message, contains('targetResolved=false'));
     });
 
-    test('DM message with visible DM target is suppressed', () async {
+    test('pinned channel resolves correctly', () async {
       container = buildContainer(
-        notificationState: const NotificationState(
-          lifecycleStatus: AppLifecycleStatus.resumed,
-          visibleTarget: VisibleTarget(
-            serverId: 'srv-1',
-            surface: NotificationSurface.dm,
-            channelId: 'dm-1',
-          ),
+        homeState: HomeListState(
+          serverScopeId: _testServerScope,
+          status: HomeListStatus.success,
+          pinnedChannels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: _testServerScope,
+                value: 'pinned-ch',
+              ),
+              name: '#pinned',
+            ),
+          ],
         ),
       );
       container.read(realtimeNotificationBridgeProvider);
 
       ingress.accept(_messageNewEvent(
-        channelId: 'dm-1',
+        channelId: 'pinned-ch',
         messageId: 'msg-1',
         senderId: 'other-user',
-        content: 'DM hello',
-        serverId: 'srv-1',
-        type: 'dm',
+        senderName: 'Alice',
+        content: 'Pinned message',
       ));
 
       await Future<void>.delayed(Duration.zero);
 
-      expect(showSink.shown, isEmpty);
+      expect(showSink.shown, hasLength(1));
+      expect(showSink.shown.first['type'], 'channel');
+      expect(showSink.shown.first['serverId'], _testServerId);
+    });
+
+    test('hidden DM resolves as dm', () async {
+      container = buildContainer(
+        homeState: HomeListState(
+          serverScopeId: _testServerScope,
+          status: HomeListStatus.success,
+          hiddenDirectMessages: [
+            HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: _testServerScope,
+                value: 'hidden-dm',
+              ),
+              title: 'Hidden User',
+            ),
+          ],
+        ),
+      );
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'hidden-dm',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        senderName: 'Eve',
+        content: 'Hidden DM',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, hasLength(1));
+      expect(showSink.shown.first['type'], 'dm');
+    });
+
+    test('pinned DM resolves as dm', () async {
+      container = buildContainer(
+        homeState: HomeListState(
+          serverScopeId: _testServerScope,
+          status: HomeListStatus.success,
+          pinnedDirectMessages: [
+            HomeDirectMessageSummary(
+              scopeId: DirectMessageScopeId(
+                serverId: _testServerScope,
+                value: 'pinned-dm',
+              ),
+              title: 'Pinned User',
+            ),
+          ],
+        ),
+      );
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'pinned-dm',
+        messageId: 'msg-1',
+        senderId: 'other-user',
+        senderName: 'Frank',
+        content: 'Pinned DM',
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, hasLength(1));
+      expect(showSink.shown.first['type'], 'dm');
     });
   });
 }
