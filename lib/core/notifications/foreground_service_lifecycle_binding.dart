@@ -7,8 +7,8 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 /// Binds the foreground service lifecycle to the session state.
 ///
-/// **Start condition**: user is authenticated AND app bootstrap is
-/// complete AND the service is not already running.
+/// **Start condition**: user is authenticated AND has a non-empty token
+/// AND app bootstrap is complete AND the service is not already running.
 ///
 /// **Stop condition**: user is explicitly unauthenticated (not just
 /// unknown/bootstrapping). The auth flag is always cleared on
@@ -41,11 +41,15 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
     final manager = ref.read(foregroundServiceManagerProvider);
     final running = await manager.isRunning;
 
-    final shouldStart = session.isAuthenticated && appReady && !running;
+    final shouldStart = session.isAuthenticated &&
+        session.token?.isNotEmpty == true &&
+        appReady &&
+        !running;
 
     diagnostics.info(
       'foreground-service',
       'sync: authenticated=${session.isAuthenticated}, '
+          'hasToken=${session.token?.isNotEmpty == true}, '
           'appReady=$appReady, running=$running, '
           'shouldStart=$shouldStart',
     );

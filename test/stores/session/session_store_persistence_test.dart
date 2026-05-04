@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
+import 'package:slock_app/core/network/auth_token_provider.dart';
+import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/server_selection_storage_keys.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
@@ -664,6 +666,155 @@ void main() {
       expect(state.token, 'good-token');
       expect(state.userId, 'saved-uid');
       expect(state.displayName, 'Alice');
+    });
+  });
+
+  group('Post-login auth header transport (#378)', () {
+    test(
+        'login path: requestHeadersBuilderProvider returns correct '
+        'Authorization after login', () async {
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.test'),
+          ),
+        ],
+      );
+
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pass');
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(
+        headers['Authorization'],
+        'Bearer fake-access-token',
+        reason: 'next request after login must carry the returned access token',
+      );
+    });
+
+    test(
+        'login path with mid-getMe refresh: requestHeadersBuilderProvider '
+        'returns refreshed token, not original', () async {
+      late SessionStore sessionStore;
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          // Simulate Dio interceptor refreshing token during the getMe call.
+          await sessionStore.updateTokens(
+            accessToken: 'refreshed-access',
+            refreshToken: 'refreshed-refresh',
+          );
+          return const AuthUser(
+            id: 'user-1',
+            name: 'Alice',
+            emailVerified: true,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.test'),
+          ),
+        ],
+      );
+      sessionStore = container.read(sessionStoreProvider.notifier);
+
+      await sessionStore.login(email: 'a@b.com', password: 'pass');
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(
+        headers['Authorization'],
+        'Bearer refreshed-access',
+        reason: 'next request after login+refresh must carry the '
+            'fresh token, not the original access token',
+      );
+    });
+
+    test(
+        'restore path: requestHeadersBuilderProvider returns correct '
+        'Authorization after restoreSession', () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'stored-access';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'stored-refresh';
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.test'),
+          ),
+        ],
+      );
+
+      await container.read(sessionStoreProvider.notifier).restoreSession();
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(
+        headers['Authorization'],
+        'Bearer stored-access',
+        reason: 'next request after restore must carry the stored access token',
+      );
+    });
+
+    test(
+        'restore path with mid-getMe refresh: requestHeadersBuilderProvider '
+        'returns refreshed token', () async {
+      fakeStorage._store[SessionStorageKeys.token] = 'stale-access';
+      fakeStorage._store[SessionStorageKeys.refreshToken] = 'stored-refresh';
+
+      late SessionStore sessionStore;
+      final repo = _ConfigurableAuthRepository(
+        getMeHandler: () async {
+          await sessionStore.updateTokens(
+            accessToken: 'fresh-access',
+            refreshToken: 'fresh-refresh',
+          );
+          return const AuthUser(
+            id: 'user-1',
+            name: 'Alice',
+            emailVerified: true,
+          );
+        },
+      );
+
+      container.dispose();
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(fakeStorage),
+          authRepositoryProvider.overrideWithValue(repo),
+          networkConfigProvider.overrideWithValue(
+            const NetworkConfig(baseUrl: 'https://api.test'),
+          ),
+        ],
+      );
+      sessionStore = container.read(sessionStoreProvider.notifier);
+
+      await sessionStore.restoreSession();
+
+      final buildHeaders = container.read(requestHeadersBuilderProvider);
+      final headers = await buildHeaders();
+
+      expect(
+        headers['Authorization'],
+        'Bearer fresh-access',
+        reason: 'next request after restore+refresh must carry the '
+            'fresh token, not the stale stored token',
+      );
     });
   });
 }

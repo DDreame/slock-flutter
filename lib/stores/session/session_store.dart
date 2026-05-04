@@ -185,9 +185,23 @@ class SessionStore extends Notifier<SessionState> {
         emailVerified: user?.emailVerified,
       );
       await _persistSession();
+
+      ref.read(crashReporterProvider).addBreadcrumb(Breadcrumb(
+            category: 'session',
+            message: 'hydrate: hasToken=${state.token?.isNotEmpty == true}, '
+                'hasUser=${user != null}',
+          ));
     } on UnauthorizedFailure {
+      ref.read(crashReporterProvider).addBreadcrumb(Breadcrumb(
+            category: 'session',
+            message: 'hydrate: auth failure (401) — clearing session',
+          ));
       await logout();
     } on ForbiddenFailure {
+      ref.read(crashReporterProvider).addBreadcrumb(Breadcrumb(
+            category: 'session',
+            message: 'hydrate: auth failure (403) — clearing session',
+          ));
       await logout();
     }
   }

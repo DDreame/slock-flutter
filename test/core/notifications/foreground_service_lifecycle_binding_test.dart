@@ -6,6 +6,7 @@ import 'package:slock_app/core/notifications/foreground_service_lifecycle_bindin
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 import '../../stores/session/session_store_persistence_test.dart'
@@ -336,6 +337,30 @@ void main() {
           reason: 'should not call stop when service '
               'is not running');
     });
+
+    test(
+        'does not start service when authenticated with null token '
+        '(corrupted state guard)', () async {
+      // Simulate a corrupted authenticated state where token is null.
+      // This should not happen after #378 but the guard is defensive.
+      final corruptedContainer = ProviderContainer(
+        overrides: [
+          foregroundServiceManagerProvider.overrideWithValue(fakeManager),
+          secureStorageProvider.overrideWithValue(storage),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          sessionStoreProvider.overrideWith(() => _CorruptedSessionStore()),
+        ],
+      );
+      addTearDown(corruptedContainer.dispose);
+
+      corruptedContainer.read(foregroundServiceLifecycleBindingProvider);
+      corruptedContainer.read(appReadyProvider.notifier).state = true;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeManager.startCalls, 0,
+          reason: 'must not start when token is null '
+              'even though session is authenticated');
+    });
   });
 
   group('ForegroundServiceLifecycleBinding diagnostics', () {
@@ -438,4 +463,16 @@ void main() {
       expect(errors.first.message, contains('sync error'));
     });
   });
+}
+
+/// A [SessionStore] override that returns an authenticated state
+/// with a null token — simulating a corrupted state that should
+/// not start the foreground service.
+class _CorruptedSessionStore extends SessionStore {
+  @override
+  SessionState build() => const SessionState(
+        status: AuthStatus.authenticated,
+        token: null,
+        userId: 'user-1',
+      );
 }
