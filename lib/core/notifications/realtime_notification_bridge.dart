@@ -4,12 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
-import 'package:slock_app/core/realtime/realtime_event_envelope.dart';
 import 'package:slock_app/core/realtime/realtime_reduction_ingress.dart';
 import 'package:slock_app/core/realtime/providers.dart'
     show realtimeReductionIngressProvider;
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
-import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';

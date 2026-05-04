@@ -1,16 +1,7 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
-import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/notifications/realtime_notification_bridge.dart';
-import 'package:slock_app/core/realtime/realtime_event_envelope.dart';
-import 'package:slock_app/core/realtime/realtime_reduction_ingress.dart';
-import 'package:slock_app/core/realtime/providers.dart'
-    show realtimeReductionIngressProvider;
-import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -58,7 +49,7 @@ class _FakeHomeListStore extends HomeListStore {
 
 /// Server scope ID constant used across tests.
 const _testServerId = 'srv-1';
-final _testServerScope = ServerScopeId(_testServerId);
+const _testServerScope = ServerScopeId(_testServerId);
 
 /// Build a lean `message:new` realtime event envelope matching the
 /// actual production payload shape — no `serverId` or `type` fields.
@@ -89,7 +80,7 @@ RealtimeEventEnvelope _messageNewEvent({
 }
 
 /// Default home list state with one channel and one DM.
-HomeListState _defaultHomeState() => HomeListState(
+HomeListState _defaultHomeState() => const HomeListState(
       serverScopeId: _testServerScope,
       status: HomeListStatus.success,
       channels: [
@@ -231,7 +222,7 @@ void main() {
         'thread channelId resolves type=thread with parent identity '
         'via threadItems', () async {
       container = buildContainer(
-        homeState: HomeListState(
+        homeState: const HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           threadItems: [
@@ -244,7 +235,7 @@ void main() {
               ),
               replyCount: 5,
               unreadCount: 1,
-              participantIds: const ['other-user'],
+              participantIds: ['other-user'],
             ),
           ],
         ),
@@ -427,7 +418,7 @@ void main() {
         eventType: 'message:updated',
         scopeKey: 'ch-1',
         receivedAt: DateTime.now(),
-        payload: <String, dynamic>{
+        payload: const <String, dynamic>{
           'channelId': 'ch-1',
           'id': 'msg-1',
           'content': 'edited',
@@ -466,7 +457,7 @@ void main() {
 
     test('thread message with visible thread target is suppressed', () async {
       container = buildContainer(
-        homeState: HomeListState(
+        homeState: const HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           threadItems: [
@@ -479,7 +470,7 @@ void main() {
               ),
               replyCount: 5,
               unreadCount: 1,
-              participantIds: const ['other-user'],
+              participantIds: ['other-user'],
             ),
           ],
         ),
@@ -666,7 +657,7 @@ void main() {
 
     test('pinned channel resolves correctly', () async {
       container = buildContainer(
-        homeState: HomeListState(
+        homeState: const HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           pinnedChannels: [
@@ -699,7 +690,7 @@ void main() {
 
     test('hidden DM resolves as dm', () async {
       container = buildContainer(
-        homeState: HomeListState(
+        homeState: const HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           hiddenDirectMessages: [
@@ -731,7 +722,7 @@ void main() {
 
     test('pinned DM resolves as dm', () async {
       container = buildContainer(
-        homeState: HomeListState(
+        homeState: const HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           pinnedDirectMessages: [
