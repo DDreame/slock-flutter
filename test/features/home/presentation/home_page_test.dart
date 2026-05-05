@@ -32,9 +32,6 @@ import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
-import 'package:slock_app/features/unread/data/channel_unread_repository.dart';
-import 'package:slock_app/features/unread/data/channel_unread_repository_provider.dart';
-
 void main() {
   // -----------------------------------------------------------------------
   // Summary cards
@@ -1427,8 +1424,17 @@ void main() {
             threadRepositoryProvider.overrideWithValue(
               const _FakeThreadRepository(),
             ),
-            channelUnreadRepositoryProvider.overrideWithValue(
-              _NoOpChannelUnreadRepository(),
+            inboxRepositoryProvider.overrideWithValue(
+              const _ConfigurableInboxRepository(
+                items: [
+                  InboxItem(
+                    kind: InboxItemKind.channel,
+                    channelId: 'general',
+                    channelName: 'general',
+                    unreadCount: 3,
+                  ),
+                ],
+              ),
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
@@ -1447,17 +1453,6 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
-
-        // Inject channel unread for 'general'.
-        container
-            .read(channelUnreadStoreProvider.notifier)
-            .hydrateChannelUnreads({
-          const ChannelScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'general',
-          ): 3,
-        });
         await tester.pumpAndSettle();
 
         // Verify unread row is present.
@@ -1519,8 +1514,17 @@ void main() {
             threadRepositoryProvider.overrideWithValue(
               const _FakeThreadRepository(),
             ),
-            channelUnreadRepositoryProvider.overrideWithValue(
-              _NoOpChannelUnreadRepository(),
+            inboxRepositoryProvider.overrideWithValue(
+              const _ConfigurableInboxRepository(
+                items: [
+                  InboxItem(
+                    kind: InboxItemKind.dm,
+                    channelId: 'dm-alice',
+                    channelName: 'Alice',
+                    unreadCount: 4,
+                  ),
+                ],
+              ),
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
@@ -1539,15 +1543,6 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
-
-        // Inject DM unread for 'dm-alice'.
-        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
-          const DirectMessageScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'dm-alice',
-          ): 4,
-        });
         await tester.pumpAndSettle();
 
         // Verify DM unread row is present.
@@ -1639,6 +1634,18 @@ void main() {
             threadRepositoryProvider.overrideWithValue(
               const _FakeThreadRepository(),
             ),
+            inboxRepositoryProvider.overrideWithValue(
+              const _ConfigurableInboxRepository(
+                items: [
+                  InboxItem(
+                    kind: InboxItemKind.dm,
+                    channelId: 'pinned-dm',
+                    channelName: 'Pinned Friend',
+                    unreadCount: 4,
+                  ),
+                ],
+              ),
+            ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
@@ -1656,15 +1663,6 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
-
-        // Inject DM unreads for the pinned DM
-        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
-          const DirectMessageScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'pinned-dm',
-          ): 4,
-        });
         await tester.pumpAndSettle();
 
         // Pinned DM with unreads should appear
@@ -1692,23 +1690,6 @@ void main() {
       'unread section mark all read clears thread items too',
       (tester) async {
         final router = _buildRouter();
-        final now = DateTime(2026, 1, 1, 12);
-
-        final threads = [
-          ThreadInboxItem(
-            routeTarget: const ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'general',
-              parentMessageId: 'msg-1',
-            ),
-            title: '#general',
-            preview: 'unread thread',
-            replyCount: 5,
-            unreadCount: 3,
-            lastReplyAt: now.subtract(const Duration(minutes: 5)),
-            participantIds: const ['u1'],
-          ),
-        ];
 
         final container = ProviderContainer(
           overrides: [
@@ -1731,12 +1712,27 @@ void main() {
               const _FakeTasksRepository(),
             ),
             threadRepositoryProvider.overrideWithValue(
-              _FakeThreadRepository(threads: threads),
+              const _FakeThreadRepository(),
+            ),
+            inboxRepositoryProvider.overrideWithValue(
+              const _ConfigurableInboxRepository(
+                items: [
+                  InboxItem(
+                    kind: InboxItemKind.thread,
+                    channelId: 'msg-1',
+                    threadChannelId: 'msg-1',
+                    parentChannelId: 'general',
+                    parentMessageId: 'msg-1',
+                    channelName: 'general',
+                    threadTitle: 'unread thread',
+                    unreadCount: 3,
+                  ),
+                ],
+              ),
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
-            homeNowProvider.overrideWithValue(now),
           ],
         );
 
@@ -1770,7 +1766,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Thread should be gone (local clear via HomeListStore)
+        // Thread should be gone (mark-all-read zeroes unreadCount,
+        // widget filters out items with unreadCount == 0)
         expect(
           find.byKey(
             const ValueKey('unread-item-thread:msg-1'),
@@ -1828,32 +1825,29 @@ void main() {
         final router = _buildRouter();
         final now = DateTime(2026, 1, 1, 12);
 
-        final threads = [
-          ThreadInboxItem(
-            routeTarget: const ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'general',
-              parentMessageId: 'old-msg',
-            ),
-            title: 'Old thread',
-            replyCount: 1,
+        // Inbox API returns items already sorted by lastActivityAt desc.
+        final inboxItems = [
+          InboxItem(
+            kind: InboxItemKind.thread,
+            channelId: 'new-msg',
+            threadChannelId: 'new-msg',
+            parentChannelId: 'random',
+            parentMessageId: 'new-msg',
+            channelName: 'random',
+            threadTitle: 'New thread',
             unreadCount: 1,
-            lastReplyAt: now.subtract(const Duration(hours: 5)),
-            participantIds: const ['u1'],
+            lastActivityAt: now.subtract(const Duration(minutes: 10)),
           ),
-          ThreadInboxItem(
-            routeTarget: const ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'random',
-              parentMessageId: 'new-msg',
-            ),
-            title: 'New thread',
-            replyCount: 1,
+          InboxItem(
+            kind: InboxItemKind.thread,
+            channelId: 'old-msg',
+            threadChannelId: 'old-msg',
+            parentChannelId: 'general',
+            parentMessageId: 'old-msg',
+            channelName: 'general',
+            threadTitle: 'Old thread',
             unreadCount: 1,
-            lastReplyAt: now.subtract(
-              const Duration(minutes: 10),
-            ),
-            participantIds: const ['u2'],
+            lastActivityAt: now.subtract(const Duration(hours: 5)),
           ),
         ];
 
@@ -1864,8 +1858,8 @@ void main() {
             homeRepository: const _FakeHomeRepository(
               _sampleSnapshot,
             ),
-            threadRepository: _FakeThreadRepository(
-              threads: threads,
+            inboxRepository: _ConfigurableInboxRepository(
+              items: inboxItems,
             ),
           ),
         );
@@ -1903,18 +1897,17 @@ void main() {
             homeRepository: const _FakeHomeRepository(
               _sampleSnapshot,
             ),
-            threadRepository: const _FakeThreadRepository(
-              threads: [
-                ThreadInboxItem(
-                  routeTarget: ThreadRouteTarget(
-                    serverId: 'server-1',
-                    parentChannelId: 'general',
-                    parentMessageId: 'thread-msg',
-                  ),
-                  title: 'A thread',
-                  replyCount: 1,
+            inboxRepository: const _ConfigurableInboxRepository(
+              items: [
+                InboxItem(
+                  kind: InboxItemKind.thread,
+                  channelId: 'thread-msg',
+                  threadChannelId: 'thread-msg',
+                  parentChannelId: 'general',
+                  parentMessageId: 'thread-msg',
+                  channelName: 'general',
+                  threadTitle: 'A thread',
                   unreadCount: 1,
-                  participantIds: ['u1'],
                 ),
               ],
             ),
@@ -1960,18 +1953,17 @@ void main() {
             homeRepository: const _FakeHomeRepository(
               _sampleSnapshot,
             ),
-            threadRepository: const _FakeThreadRepository(
-              threads: [
-                ThreadInboxItem(
-                  routeTarget: ThreadRouteTarget(
-                    serverId: 'server-1',
-                    parentChannelId: 'general',
-                    parentMessageId: 'badge-msg',
-                  ),
-                  title: 'Badge thread',
-                  replyCount: 1,
+            inboxRepository: const _ConfigurableInboxRepository(
+              items: [
+                InboxItem(
+                  kind: InboxItemKind.thread,
+                  channelId: 'badge-msg',
+                  threadChannelId: 'badge-msg',
+                  parentChannelId: 'general',
+                  parentMessageId: 'badge-msg',
+                  channelName: 'general',
+                  threadTitle: 'Badge thread',
                   unreadCount: 5,
-                  participantIds: ['u1'],
                 ),
               ],
             ),
@@ -2004,19 +1996,18 @@ void main() {
             homeRepository: const _FakeHomeRepository(
               _unreadSnapshot,
             ),
-            threadRepository: const _FakeThreadRepository(
-              threads: [
-                ThreadInboxItem(
-                  routeTarget: ThreadRouteTarget(
-                    serverId: 'server-1',
-                    parentChannelId: 'general',
-                    parentMessageId: 'src-msg',
-                  ),
-                  title: 'Bug discussion',
+            inboxRepository: const _ConfigurableInboxRepository(
+              items: [
+                InboxItem(
+                  kind: InboxItemKind.thread,
+                  channelId: 'src-msg',
+                  threadChannelId: 'src-msg',
+                  parentChannelId: 'general',
+                  parentMessageId: 'src-msg',
+                  channelName: 'general',
+                  threadTitle: 'Bug discussion',
                   preview: 'Latest reply',
-                  replyCount: 3,
                   unreadCount: 2,
-                  participantIds: ['u1'],
                 ),
               ],
             ),
@@ -2069,6 +2060,18 @@ void main() {
             threadRepositoryProvider.overrideWithValue(
               const _FakeThreadRepository(),
             ),
+            inboxRepositoryProvider.overrideWithValue(
+              const _ConfigurableInboxRepository(
+                items: [
+                  InboxItem(
+                    kind: InboxItemKind.channel,
+                    channelId: 'general',
+                    channelName: 'general',
+                    unreadCount: 3,
+                  ),
+                ],
+              ),
+            ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
@@ -2086,17 +2089,6 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
-
-        // Inject channel unread for 'general'
-        container
-            .read(channelUnreadStoreProvider.notifier)
-            .hydrateChannelUnreads({
-          const ChannelScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'general',
-          ): 3,
-        });
         await tester.pumpAndSettle();
 
         final row = find.byKey(
@@ -2144,6 +2136,18 @@ void main() {
             threadRepositoryProvider.overrideWithValue(
               const _FakeThreadRepository(),
             ),
+            inboxRepositoryProvider.overrideWithValue(
+              const _ConfigurableInboxRepository(
+                items: [
+                  InboxItem(
+                    kind: InboxItemKind.dm,
+                    channelId: 'dm-alice',
+                    channelName: 'Alice',
+                    unreadCount: 2,
+                  ),
+                ],
+              ),
+            ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
@@ -2161,15 +2165,6 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
-
-        // Inject DM unread for 'dm-alice'
-        container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
-          const DirectMessageScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'dm-alice',
-          ): 2,
-        });
         await tester.pumpAndSettle();
 
         final row = find.byKey(
@@ -2214,19 +2209,18 @@ void main() {
       (tester) async {
         final router = _buildRouter();
 
-        // Create 7 threads with unread > 0
-        final threads = List.generate(
+        // Create 7 inbox thread items with unread > 0
+        final inboxItems = List.generate(
           7,
-          (i) => ThreadInboxItem(
-            routeTarget: ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'general',
-              parentMessageId: 'ov-msg-$i',
-            ),
-            title: 'Thread $i',
-            replyCount: 1,
+          (i) => InboxItem(
+            kind: InboxItemKind.thread,
+            channelId: 'ov-msg-$i',
+            threadChannelId: 'ov-msg-$i',
+            parentChannelId: 'general',
+            parentMessageId: 'ov-msg-$i',
+            channelName: 'general',
+            threadTitle: 'Thread $i',
             unreadCount: 1,
-            participantIds: const ['u1'],
           ),
         );
 
@@ -2236,8 +2230,8 @@ void main() {
             homeRepository: const _FakeHomeRepository(
               _sampleSnapshot,
             ),
-            threadRepository: _FakeThreadRepository(
-              threads: threads,
+            inboxRepository: _ConfigurableInboxRepository(
+              items: inboxItems,
             ),
           ),
         );
@@ -3094,26 +3088,6 @@ class _FakeSecureStorage implements SecureStorage {
   Future<void> delete({required String key}) async {
     _store.remove(key);
   }
-}
-
-class _NoOpChannelUnreadRepository implements ChannelUnreadRepository {
-  @override
-  Future<Map<String, int>> fetchUnreadCounts(
-    ServerScopeId serverId,
-  ) async {
-    return {};
-  }
-
-  @override
-  Future<void> markChannelRead(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {}
-
-  @override
-  Future<void> markAllInboxRead(
-    ServerScopeId serverId,
-  ) async {}
 }
 
 /// Returns an empty inbox — used as the default for tests that don't
