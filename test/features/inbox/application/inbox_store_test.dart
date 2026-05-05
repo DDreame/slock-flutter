@@ -9,17 +9,16 @@ import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 
 void main() {
-  const serverId = ServerScopeId('server-1');
-
   ProviderContainer createContainer({
     required FakeInboxRepository repository,
-    ServerScopeId? activeServerId,
+    ServerScopeId? activeServerId = const ServerScopeId('server-1'),
+    bool noActiveServer = false,
   }) {
     return ProviderContainer(
       overrides: [
         inboxRepositoryProvider.overrideWithValue(repository),
         activeServerScopeIdProvider
-            .overrideWithValue(activeServerId ?? serverId),
+            .overrideWithValue(noActiveServer ? null : activeServerId),
       ],
     );
   }
@@ -133,7 +132,7 @@ void main() {
       );
       final container = createContainer(
         repository: repo,
-        activeServerId: null,
+        noActiveServer: true,
       );
       addTearDown(container.dispose);
 
