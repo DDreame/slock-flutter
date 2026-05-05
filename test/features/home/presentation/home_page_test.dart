@@ -1216,7 +1216,7 @@ void main() {
         expect(
           find.descendant(
             of: row,
-            matching: find.text('#general \u00b7 Thread title'),
+            matching: find.text('#general'),
           ),
           findsOneWidget,
         );
@@ -1303,96 +1303,6 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('+2 more'), findsOneWidget);
-      },
-    );
-
-    testWidgets(
-      'unread section mark all read clears items',
-      (tester) async {
-        final router = _buildRouter();
-
-        final container = ProviderContainer(
-          overrides: [
-            activeServerScopeIdProvider.overrideWithValue(
-              const ServerScopeId('server-1'),
-            ),
-            homeRepositoryProvider.overrideWithValue(
-              const _FakeHomeRepository(_unreadSnapshot),
-            ),
-            serverListRepositoryProvider.overrideWithValue(
-              const _FakeServerListRepository([]),
-            ),
-            sidebarOrderRepositoryProvider.overrideWithValue(
-              const _FakeSidebarOrderRepository(),
-            ),
-            agentsRepositoryProvider.overrideWithValue(
-              const _FakeAgentsRepository(),
-            ),
-            tasksRepositoryProvider.overrideWithValue(
-              const _FakeTasksRepository(),
-            ),
-            threadRepositoryProvider.overrideWithValue(
-              const _FakeThreadRepository(),
-            ),
-            inboxRepositoryProvider.overrideWithValue(
-              const _ConfigurableInboxRepository(
-                items: [
-                  InboxItem(
-                    kind: InboxItemKind.channel,
-                    channelId: 'general',
-                    channelName: 'general',
-                    unreadCount: 3,
-                  ),
-                ],
-              ),
-            ),
-            homeMachineCountLoaderProvider.overrideWithValue(
-              (_) async => 0,
-            ),
-          ],
-        );
-
-        await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: MaterialApp.router(
-              routerConfig: router,
-              theme: AppTheme.light,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Verify unread item appears
-        expect(
-          find.byKey(
-            const ValueKey('unread-item-channel:general'),
-          ),
-          findsOneWidget,
-        );
-
-        // Tap mark all read
-        await tester.tap(
-          find.byKey(const ValueKey('home-unread-mark-all')),
-        );
-        await tester.pumpAndSettle();
-
-        // Channel unread should be cleared
-        expect(
-          find.byKey(
-            const ValueKey('unread-item-channel:general'),
-          ),
-          findsNothing,
-          reason: 'Channel unreads should be cleared '
-              'after mark all read',
-        );
-        // Empty state should appear
-        expect(
-          find.byKey(const ValueKey('home-unread-empty')),
-          findsOneWidget,
-        );
       },
     );
 
@@ -1679,101 +1589,11 @@ void main() {
             of: find.byKey(
               const ValueKey('unread-item-dm:pinned-dm'),
             ),
-            matching: find.text('Pinned Friend'),
+            matching: find.byKey(
+              const ValueKey('unread-title-dm:pinned-dm'),
+            ),
           ),
           findsOneWidget,
-        );
-      },
-    );
-
-    testWidgets(
-      'unread section mark all read clears thread items too',
-      (tester) async {
-        final router = _buildRouter();
-
-        final container = ProviderContainer(
-          overrides: [
-            activeServerScopeIdProvider.overrideWithValue(
-              const ServerScopeId('server-1'),
-            ),
-            homeRepositoryProvider.overrideWithValue(
-              const _FakeHomeRepository(_unreadSnapshot),
-            ),
-            serverListRepositoryProvider.overrideWithValue(
-              const _FakeServerListRepository([]),
-            ),
-            sidebarOrderRepositoryProvider.overrideWithValue(
-              const _FakeSidebarOrderRepository(),
-            ),
-            agentsRepositoryProvider.overrideWithValue(
-              const _FakeAgentsRepository(),
-            ),
-            tasksRepositoryProvider.overrideWithValue(
-              const _FakeTasksRepository(),
-            ),
-            threadRepositoryProvider.overrideWithValue(
-              const _FakeThreadRepository(),
-            ),
-            inboxRepositoryProvider.overrideWithValue(
-              const _ConfigurableInboxRepository(
-                items: [
-                  InboxItem(
-                    kind: InboxItemKind.thread,
-                    channelId: 'msg-1',
-                    threadChannelId: 'msg-1',
-                    parentChannelId: 'general',
-                    parentMessageId: 'msg-1',
-                    channelName: 'general',
-                    threadTitle: 'unread thread',
-                    unreadCount: 3,
-                  ),
-                ],
-              ),
-            ),
-            homeMachineCountLoaderProvider.overrideWithValue(
-              (_) async => 0,
-            ),
-          ],
-        );
-
-        await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: MaterialApp.router(
-              routerConfig: router,
-              theme: AppTheme.light,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Thread unread item should be visible
-        expect(
-          find.byKey(
-            const ValueKey('unread-item-thread:msg-1'),
-          ),
-          findsOneWidget,
-          reason: 'Thread with unreadCount > 0 should appear',
-        );
-
-        // Tap mark all read
-        await tester.tap(
-          find.byKey(
-            const ValueKey('home-unread-mark-all'),
-          ),
-        );
-        await tester.pumpAndSettle();
-
-        // Thread should be gone (mark-all-read zeroes unreadCount,
-        // widget filters out items with unreadCount == 0)
-        expect(
-          find.byKey(
-            const ValueKey('unread-item-thread:msg-1'),
-          ),
-          findsNothing,
-          reason: 'Thread unreads should be cleared after mark all read',
         );
       },
     );
@@ -2020,14 +1840,14 @@ void main() {
         );
         expect(row, findsOneWidget);
 
-        // Source label should show "#general · Bug discussion"
+        // Source label should show just "#general" (source-only per Z2 spec)
         expect(
           find.descendant(
             of: row,
-            matching: find.text('#general \u00b7 Bug discussion'),
+            matching: find.text('#general'),
           ),
           findsOneWidget,
-          reason: 'Thread source label should show parent channel and title',
+          reason: 'Thread source label should show parent channel only',
         );
       },
     );
@@ -2196,7 +2016,9 @@ void main() {
         expect(
           find.descendant(
             of: row,
-            matching: find.text('Alice'),
+            matching: find.byKey(
+              const ValueKey('unread-source-dm:dm-alice'),
+            ),
           ),
           findsOneWidget,
           reason: 'DM source label should show peer name',

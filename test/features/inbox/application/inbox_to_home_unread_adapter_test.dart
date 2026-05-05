@@ -142,7 +142,7 @@ void main() {
       expect(result.title, 'ch-no-name');
     });
 
-    test('sourceLabel for thread includes parent channel name', () {
+    test('sourceLabel for thread includes parent channel name only', () {
       const item = InboxItem(
         kind: InboxItemKind.thread,
         channelId: 'thread-ch-1',
@@ -155,7 +155,7 @@ void main() {
 
       final result = inboxItemToHomeUnreadItem(item, serverId: serverId);
 
-      expect(result.sourceLabel, '#general \u00b7 My Thread');
+      expect(result.sourceLabel, '#general');
     });
 
     test('sourceLabel for channel includes hash prefix', () {
