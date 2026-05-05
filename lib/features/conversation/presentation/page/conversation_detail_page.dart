@@ -16,6 +16,7 @@ import 'package:slock_app/features/conversation/application/current_open_convers
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -1467,7 +1468,8 @@ class _AttachmentSection extends StatelessWidget {
   ) {
     final mimeType = attachment.type.toLowerCase();
 
-    if (_imageTypes.contains(mimeType) && attachment.url != null) {
+    if (_imageTypes.contains(mimeType) &&
+        (attachment.thumbnailUrl != null || attachment.url != null)) {
       return _ImageAttachmentPreview(attachment: attachment);
     }
 
@@ -1501,7 +1503,7 @@ class _ImageAttachmentPreview extends StatelessWidget {
                 maxWidth: 280,
               ),
               child: Image.network(
-                attachment.url!,
+                attachment.thumbnailUrl ?? attachment.url!,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -1571,29 +1573,96 @@ class _ImageAttachmentPreview extends StatelessWidget {
   }
 }
 
-class _FullScreenImageViewer extends StatelessWidget {
+class _FullScreenImageViewer extends ConsumerStatefulWidget {
   const _FullScreenImageViewer({required this.attachment});
 
   final MessageAttachment attachment;
 
   @override
+  ConsumerState<_FullScreenImageViewer> createState() =>
+      _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState
+    extends ConsumerState<_FullScreenImageViewer> {
+  String? _signedUrl;
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSignedUrl();
+  }
+
+  Future<void> _loadSignedUrl() async {
+    final att = widget.attachment;
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
+    // If no id, fall back to direct url (legacy attachment).
+    if (att.id == null || att.id!.isEmpty) {
+      diagnostics.info(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=missing, '
+            'mimeType=${att.type}, fallback=directUrl',
+      );
+      setState(() => _signedUrl = att.url);
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final repo = ref.read(attachmentRepositoryProvider);
+      final serverId = _extractServerIdFromContext();
+      final url = await repo.getSignedUrl(
+        serverId,
+        attachmentId: att.id!,
+      );
+      if (mounted) {
+        setState(() {
+          _signedUrl = url;
+          _loading = false;
+        });
+      }
+    } on AppFailure catch (e) {
+      diagnostics.error(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=${att.id}, '
+            'mimeType=${att.type}, failureType=${e.runtimeType}',
+      );
+      if (mounted) {
+        setState(() {
+          _signedUrl = att.url;
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  ServerScopeId _extractServerIdFromContext() {
+    // Best-effort extraction from open conversation target.
+    final target = ref.read(currentOpenConversationTargetProvider);
+    if (target != null) return target.serverId;
+    // Fallback: use a default — signed URLs require server scope.
+    return const ServerScopeId('');
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final displayUrl = _signedUrl ?? widget.attachment.url;
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         title: Text(
-          attachment.name,
+          widget.attachment.name,
           style: const TextStyle(fontSize: 14),
         ),
         actions: [
-          if (attachment.url != null)
+          if (displayUrl != null)
             IconButton(
               key: const ValueKey('image-viewer-open-external'),
               icon: const Icon(Icons.open_in_new),
               onPressed: () => launchUrl(
-                Uri.parse(attachment.url!),
+                Uri.parse(displayUrl),
                 mode: LaunchMode.externalApplication,
               ),
               tooltip: context.l10n.attachmentOpenInBrowser,
@@ -1601,56 +1670,72 @@ class _FullScreenImageViewer extends StatelessWidget {
         ],
       ),
       body: Center(
-        child: InteractiveViewer(
-          key: const ValueKey('image-viewer-interactive'),
-          minScale: 0.5,
-          maxScale: 4.0,
-          child: Image.network(
-            attachment.url!,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stack) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.broken_image_outlined,
-                    color: Colors.white54,
-                    size: 48,
+        child: _loading
+            ? const CircularProgressIndicator(color: Colors.white70)
+            : displayUrl != null
+                ? InteractiveViewer(
+                    key: const ValueKey('image-viewer-interactive'),
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      displayUrl,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stack) {
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.broken_image_outlined,
+                              color: Colors.white54,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              context.l10n.attachmentUnableToLoadImage,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(color: Colors.white54),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        context.l10n.attachmentUnableToLoadImage,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: Colors.white54),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    context.l10n.attachmentUnableToLoadImage,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.copyWith(color: Colors.white54),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
       ),
     );
   }
 }
 
-class _HtmlAttachmentRow extends StatelessWidget {
+class _HtmlAttachmentRow extends ConsumerWidget {
   const _HtmlAttachmentRow({required this.attachment});
 
   final MessageAttachment attachment;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return InkWell(
       key: ValueKey('html-attachment-${attachment.id ?? attachment.name}'),
-      onTap: attachment.url != null
-          ? () => launchUrl(
-                Uri.parse(attachment.url!),
-                mode: LaunchMode.externalApplication,
-              )
-          : null,
+      onTap: () => _openHtmlPreview(context, ref),
       borderRadius: BorderRadius.circular(4),
       child: Container(
         padding: const EdgeInsets.symmetric(
@@ -1679,12 +1764,8 @@ class _HtmlAttachmentRow extends StatelessWidget {
                   Text(
                     attachment.name,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: attachment.url != null
-                          ? theme.colorScheme.primary
-                          : null,
-                      decoration: attachment.url != null
-                          ? TextDecoration.underline
-                          : null,
+                      color: theme.colorScheme.primary,
+                      decoration: TextDecoration.underline,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1701,38 +1782,74 @@ class _HtmlAttachmentRow extends StatelessWidget {
                 ],
               ),
             ),
-            if (attachment.url != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 4),
-                child: Icon(
-                  Icons.open_in_new,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Icon(
+                Icons.open_in_new,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
+            ),
           ],
         ),
       ),
     );
   }
+
+  Future<void> _openHtmlPreview(BuildContext context, WidgetRef ref) async {
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
+    // If we have an attachment id, use the html-preview-url endpoint.
+    if (attachment.id != null && attachment.id!.isNotEmpty) {
+      try {
+        final target = ref.read(currentOpenConversationTargetProvider);
+        if (target == null) return;
+        final repo = ref.read(attachmentRepositoryProvider);
+        final previewUrl = await repo.getHtmlPreviewUrl(
+          target.serverId,
+          attachmentId: attachment.id!,
+        );
+        await launchUrl(
+          Uri.parse(previewUrl),
+          mode: LaunchMode.externalApplication,
+        );
+        return;
+      } on AppFailure catch (e) {
+        diagnostics.error(
+          'attachment-preview',
+          'source=htmlPreview, attachmentId=${attachment.id}, '
+              'mimeType=${attachment.type}, failureType=${e.runtimeType}',
+        );
+        // Fall through to direct URL if available.
+      }
+    } else {
+      diagnostics.info(
+        'attachment-preview',
+        'source=htmlPreview, attachmentId=missing, '
+            'mimeType=${attachment.type}, fallback=directUrl',
+      );
+    }
+    // Fallback: use direct url if present.
+    if (attachment.url != null) {
+      await launchUrl(
+        Uri.parse(attachment.url!),
+        mode: LaunchMode.externalApplication,
+      );
+    }
+  }
 }
 
-class _GenericFileAttachmentRow extends StatelessWidget {
+class _GenericFileAttachmentRow extends ConsumerWidget {
   const _GenericFileAttachmentRow({required this.attachment});
 
   final MessageAttachment attachment;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final hasTapTarget = attachment.url != null || attachment.id != null;
     return InkWell(
       key: ValueKey('file-attachment-${attachment.id ?? attachment.name}'),
-      onTap: attachment.url != null
-          ? () => launchUrl(
-                Uri.parse(attachment.url!),
-                mode: LaunchMode.externalApplication,
-              )
-          : null,
+      onTap: hasTapTarget ? () => _openFile(context, ref) : null,
       borderRadius: BorderRadius.circular(4),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1747,10 +1864,8 @@ class _GenericFileAttachmentRow extends StatelessWidget {
             child: Text(
               attachment.name,
               style: theme.textTheme.bodySmall?.copyWith(
-                color:
-                    attachment.url != null ? theme.colorScheme.primary : null,
-                decoration:
-                    attachment.url != null ? TextDecoration.underline : null,
+                color: hasTapTarget ? theme.colorScheme.primary : null,
+                decoration: hasTapTarget ? TextDecoration.underline : null,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -1768,5 +1883,46 @@ class _GenericFileAttachmentRow extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _openFile(BuildContext context, WidgetRef ref) async {
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
+    // If we have an attachment id, fetch a signed URL for download.
+    if (attachment.id != null && attachment.id!.isNotEmpty) {
+      try {
+        final target = ref.read(currentOpenConversationTargetProvider);
+        if (target == null) return;
+        final repo = ref.read(attachmentRepositoryProvider);
+        final signedUrl = await repo.getSignedUrl(
+          target.serverId,
+          attachmentId: attachment.id!,
+        );
+        await launchUrl(
+          Uri.parse(signedUrl),
+          mode: LaunchMode.externalApplication,
+        );
+        return;
+      } on AppFailure catch (e) {
+        diagnostics.error(
+          'attachment-preview',
+          'source=signedUrl, attachmentId=${attachment.id}, '
+              'mimeType=${attachment.type}, failureType=${e.runtimeType}',
+        );
+        // Fall through to direct URL if available.
+      }
+    } else {
+      diagnostics.info(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=missing, '
+            'mimeType=${attachment.type}, fallback=directUrl',
+      );
+    }
+    // Fallback: use direct url if present.
+    if (attachment.url != null) {
+      await launchUrl(
+        Uri.parse(attachment.url!),
+        mode: LaunchMode.externalApplication,
+      );
+    }
   }
 }
