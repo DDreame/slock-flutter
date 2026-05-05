@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_unread_item.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
@@ -42,11 +43,14 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
     final inboxState = ref.watch(inboxStoreProvider);
+    final serverId = ref.watch(activeServerScopeIdProvider);
 
-    final items = inboxState.items
-        .where((item) => item.unreadCount > 0)
-        .map(inboxItemToHomeUnreadItem)
-        .toList(growable: false);
+    final items = serverId != null
+        ? inboxState.items
+            .where((item) => item.unreadCount > 0)
+            .map((item) => inboxItemToHomeUnreadItem(item, serverId: serverId))
+            .toList(growable: false)
+        : <HomeUnreadItem>[];
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -290,26 +294,17 @@ class _UnreadListRow extends StatelessWidget {
   }
 
   void _navigateTo(BuildContext context) {
-    // Navigate based on item kind — use channelId from the
-    // sourceLabel to build the route since we no longer have
-    // typed ScopeIds from the fragmented aggregation.
-    // The router resolves the appropriate conversation page.
-    final id = item.id;
-    if (id.startsWith('channel:')) {
-      final channelId = id.substring('channel:'.length);
-      final segments = GoRouterState.of(context).uri.pathSegments;
-      final sid = segments.length >= 2 ? segments[1] : '';
-      context.push('/servers/$sid/channels/$channelId');
-    } else if (id.startsWith('dm:')) {
-      final dmId = id.substring('dm:'.length);
-      final segments = GoRouterState.of(context).uri.pathSegments;
-      final sid = segments.length >= 2 ? segments[1] : '';
+    // Use typed navigation fields populated by the adapter.
+    if (item.threadRouteTarget != null) {
+      context.push(item.threadRouteTarget!.toLocation());
+    } else if (item.channelScopeId != null) {
+      final sid = item.channelScopeId!.serverId.value;
+      final cid = item.channelScopeId!.value;
+      context.push('/servers/$sid/channels/$cid');
+    } else if (item.dmScopeId != null) {
+      final sid = item.dmScopeId!.serverId.value;
+      final dmId = item.dmScopeId!.value;
       context.push('/servers/$sid/dms/$dmId');
-    } else if (id.startsWith('thread:')) {
-      final threadChannelId = id.substring('thread:'.length);
-      final segments = GoRouterState.of(context).uri.pathSegments;
-      final sid = segments.length >= 2 ? segments[1] : '';
-      context.push('/servers/$sid/threads/$threadChannelId');
     }
   }
 }

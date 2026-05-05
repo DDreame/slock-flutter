@@ -868,12 +868,15 @@ class _InboxUnreadSectionState extends ConsumerState<_InboxUnreadSection> {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
     final inboxState = ref.watch(inboxStoreProvider);
+    final serverId = ref.watch(activeServerScopeIdProvider);
 
     // Convert inbox items to HomeUnreadItem for consistent rendering.
-    final unreadItems = inboxState.items
-        .where((item) => item.unreadCount > 0)
-        .map(inboxItemToHomeUnreadItem)
-        .toList(growable: false);
+    final unreadItems = serverId != null
+        ? inboxState.items
+            .where((item) => item.unreadCount > 0)
+            .map((item) => inboxItemToHomeUnreadItem(item, serverId: serverId))
+            .toList(growable: false)
+        : <HomeUnreadItem>[];
 
     return _SummaryCardBase(
       accentColor: colors.error,
