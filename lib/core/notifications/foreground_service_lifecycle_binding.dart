@@ -80,6 +80,18 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
       return;
     }
 
+    // When the service is already running (e.g. OS restored it after
+    // a process restart), push the current foreground-active state so
+    // the worker doesn't post duplicate notifications while the app
+    // is in the foreground.
+    if (running && session.isAuthenticated) {
+      final lifecycleStatus = ref.read(
+        notificationStoreProvider.select((s) => s.lifecycleStatus),
+      );
+      final isResumed = lifecycleStatus == AppLifecycleStatus.resumed;
+      await manager.setWorkerForegroundActive(isResumed);
+    }
+
     // Always clear the auth flag on explicit unauthentication so
     // native boot/restart never restores a stale `true` flag.
     // Only stop the service when it is actually running.

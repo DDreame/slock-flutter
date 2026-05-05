@@ -402,6 +402,34 @@ void main() {
       expect(fakeManager.lastWorkerForegroundActive, isTrue,
           reason: 'should push initial resumed state to worker on start');
     });
+
+    test(
+        'pushes initial foreground-active state to already-running worker '
+        'when Dart binding initializes after process restart', () async {
+      // Simulate: OS restored the foreground service (already running)
+      // before the Dart binding initializes after a process restart.
+      fakeManager.simulateRunning = true;
+
+      container.read(
+        foregroundServiceLifecycleBindingProvider,
+      );
+
+      // Authenticate + appReady triggers sync, but shouldStart == false
+      // because service is already running.
+      container.read(appReadyProvider.notifier).state = true;
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pw');
+      await Future<void>.delayed(Duration.zero);
+
+      // Service was not re-started (already running).
+      expect(fakeManager.startCalls, 0);
+      // But the binding must still push the current foreground-active
+      // state to the already-running worker.
+      expect(fakeManager.lastWorkerForegroundActive, isTrue,
+          reason: 'should push initial resumed state to already-running '
+              'worker after process restart');
+    });
   });
 
   group('ForegroundServiceLifecycleBinding diagnostics', () {
