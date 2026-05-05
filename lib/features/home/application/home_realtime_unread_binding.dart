@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
+import 'package:slock_app/features/threads/application/current_open_thread_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
@@ -161,15 +162,25 @@ void _handleMessageNew(
       incoming.conversationId,
     );
     if (knownThreadIds.contains(qualifiedId)) {
+      // Determine if the thread is currently open via thread target provider.
+      final openThread = ref.read(currentOpenThreadTargetProvider);
+      final isThreadOpen = openThread != null &&
+          openThread.serverId == homeState.serverScopeId!.value &&
+          openThread.threadChannelId == incoming.conversationId;
+
       // Update thread inbox item with new message metadata.
       final senderName = _extractSenderName(event.payload);
-      notifier.updateThreadInboxItem(
+      final updated = notifier.updateThreadInboxItem(
         threadChannelId: incoming.conversationId,
         preview: preview,
         senderName: senderName,
         lastReplyAt: incoming.message.createdAt,
-        incrementUnread: !isSelfMessage && !isOpen,
+        incrementUnread: !isSelfMessage && !isThreadOpen,
       );
+      if (!updated) {
+        // Thread row not loaded yet — schedule a full reload to pick it up.
+        notifier.load();
+      }
       return;
     }
     if (isSelfMessage || isOpen) {

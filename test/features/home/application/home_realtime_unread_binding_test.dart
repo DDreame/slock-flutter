@@ -13,6 +13,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/threads/application/current_open_thread_target_provider.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
@@ -345,7 +346,8 @@ void main() {
             ),
           ),
         );
-    await Future<void>.delayed(Duration.zero);
+    // Allow time for async load() triggered by missing thread row.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
 
     final homeState = container.read(homeListStoreProvider);
     expect(
@@ -383,7 +385,8 @@ void main() {
             ),
           ),
         );
-    await Future<void>.delayed(Duration.zero);
+    // Allow time for async load() triggered by missing thread row.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
 
     final unreadState = container.read(channelUnreadStoreProvider);
     expect(unreadState.totalUnreadCount, 0);
@@ -420,7 +423,8 @@ void main() {
         ),
       );
     }
-    await Future<void>.delayed(Duration.zero);
+    // Allow time for async load() triggered by missing thread row.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
 
     final homeState = container.read(homeListStoreProvider);
     // Only the original "general" channel should be in the list
@@ -623,10 +627,13 @@ void main() {
         'server-1/$threadChannelId',
       };
 
-      // Mark thread as open.
-      container.read(currentOpenConversationTargetProvider.notifier).state =
-          ConversationDetailTarget.channel(
-        const ChannelScopeId(serverId: serverId, value: threadChannelId),
+      // Mark thread as open via the production thread target provider.
+      container.read(currentOpenThreadTargetProvider.notifier).state =
+          const ThreadRouteTarget(
+        serverId: 'server-1',
+        parentChannelId: parentChannelId,
+        parentMessageId: parentMessageId,
+        threadChannelId: threadChannelId,
       );
 
       container.read(realtimeReductionIngressProvider).accept(
@@ -655,6 +662,78 @@ void main() {
       expect(updatedItem.unreadCount, 0);
       expect(updatedItem.preview, 'New thread reply');
       expect(updatedItem.replyCount, 6);
+    });
+
+    test('triggers reload when known thread channel has no loaded row',
+        () async {
+      // Container with threadChannelIds known but NO ThreadInboxItem loaded.
+      var loadCount = 0;
+      final ingress = RealtimeReductionIngress();
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository(
+            SidebarOrder(),
+          )),
+          homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
+            (scopeId) async {
+              loadCount++;
+              return HomeWorkspaceSnapshot(
+                serverId: scopeId,
+                channels: const [
+                  HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+                ],
+                directMessages: const [],
+                // Thread channel is known but ThreadRepository won't return it.
+                threadChannelIds: {threadChannelId},
+              );
+            },
+          ),
+          // Provide empty thread list so the row is missing.
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository([])),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      container.read(homeRealtimeUnreadBindingProvider);
+      await container.read(homeListStoreProvider.notifier).load();
+      final initialLoadCount = loadCount;
+
+      container.read(knownThreadChannelIdsProvider.notifier).state = {
+        'server-1/$threadChannelId',
+      };
+
+      // Emit event for thread whose row is not loaded.
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: realtimeMessageCreatedEventType,
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 1,
+          payload: _messagePayload(
+            channelId: threadChannelId,
+            senderId: 'other-user',
+            senderName: 'Bob',
+            content: 'Thread reply',
+          ),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Should have triggered a reload since updateThreadInboxItem
+      // returned false (row missing).
+      expect(loadCount, greaterThan(initialLoadCount));
     });
   });
 

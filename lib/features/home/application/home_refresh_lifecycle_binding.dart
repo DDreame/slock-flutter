@@ -5,7 +5,6 @@ import 'package:slock_app/core/notifications/foreground_notification_policy.dart
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
 import 'package:slock_app/core/realtime/providers.dart'
     show realtimeServiceProvider;
-import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 
@@ -35,19 +34,16 @@ final homeRefreshRealtimeStateProvider =
 ///
 /// Both signals are debounced through a shared timer so
 /// simultaneous events result in a single load() call.
+/// When Home is not yet in success state, load() is still
+/// triggered — its completion will transition status to success,
+/// which drains the pending-event queue in the realtime binding.
 final homeRefreshLifecycleBindingProvider = Provider<void>((ref) {
   Timer? debounceTimer;
 
   void scheduleRefresh() {
-    final homeState = ref.read(homeListStoreProvider);
-    if (homeState.status != HomeListStatus.success) return;
-
     debounceTimer?.cancel();
     debounceTimer = Timer(homeRefreshDebounceDuration, () {
-      final currentState = ref.read(homeListStoreProvider);
-      if (currentState.status == HomeListStatus.success) {
-        ref.read(homeListStoreProvider.notifier).load();
-      }
+      ref.read(homeListStoreProvider.notifier).load();
     });
   }
 

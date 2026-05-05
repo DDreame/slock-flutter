@@ -922,18 +922,20 @@ class HomeListStore extends Notifier<HomeListState> {
   /// Incrementally updates a single [ThreadInboxItem] matched by
   /// [threadChannelId]. Used by the realtime unread binding to
   /// reflect new messages without a full reload.
-  void updateThreadInboxItem({
+  /// Updates an existing [ThreadInboxItem] in-place. Returns `true`
+  /// if the item was found and updated, `false` if not found.
+  bool updateThreadInboxItem({
     required String threadChannelId,
     String? preview,
     String? senderName,
     DateTime? lastReplyAt,
     bool incrementUnread = false,
   }) {
-    if (state.status != HomeListStatus.success) return;
+    if (state.status != HomeListStatus.success) return false;
     final index = _threadItems.indexWhere(
       (item) => item.routeTarget.threadChannelId == threadChannelId,
     );
-    if (index == -1) return;
+    if (index == -1) return false;
     final items = List<ThreadInboxItem>.of(_threadItems);
     items[index] = items[index].copyWith(
       preview: preview,
@@ -946,6 +948,7 @@ class HomeListStore extends Notifier<HomeListState> {
     );
     _threadItems = items;
     _emitPersonalizedState();
+    return true;
   }
 
   List<String> _orderedChannelIds() {

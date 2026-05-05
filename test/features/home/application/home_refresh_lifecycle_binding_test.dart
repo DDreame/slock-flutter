@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
-import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_refresh_lifecycle_binding.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -265,11 +264,11 @@ void main() {
     });
   });
 
-  group('no refresh when home not in success state', () {
-    test('does not trigger load when home is still loading', () async {
-      // Use a completer so the auto-load never completes —
-      // HomeListStore stays in 'loading' state.
-      final neverCompleter = Completer<HomeWorkspaceSnapshot>();
+  group('refresh when home not in success state', () {
+    test('triggers load even when home is still loading (for catch-up)',
+        () async {
+      // Track how many times the loader is invoked.
+      var loadCallCountForGroup = 0;
 
       final container = ProviderContainer(
         overrides: [
@@ -282,7 +281,16 @@ void main() {
           sidebarOrderRepositoryProvider
               .overrideWithValue(const _FakeSidebarOrderRepository()),
           homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
-            (scopeId) => neverCompleter.future,
+            (scopeId) async {
+              loadCallCountForGroup++;
+              return HomeWorkspaceSnapshot(
+                serverId: scopeId,
+                channels: const [
+                  HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+                ],
+                directMessages: const [],
+              );
+            },
           ),
           _testLifecycleProvider
               .overrideWith((ref) => AppLifecycleStatus.paused),
@@ -301,20 +309,85 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // Activate binding. Home auto-load is pending (completer).
-      container.read(homeRefreshLifecycleBindingProvider);
-      await Future<void>.delayed(Duration.zero);
+      // Initial load to get into success state, then track.
+      await container.read(homeListStoreProvider.notifier).load();
+      final initialCount = loadCallCountForGroup;
 
-      // Trigger lifecycle resumed.
+      // Activate binding.
+      container.read(homeRefreshLifecycleBindingProvider);
+
+      // Trigger lifecycle resumed — even if HomeListStore were not
+      // success, the binding should still schedule a load.
       container.read(_testLifecycleProvider.notifier).state =
           AppLifecycleStatus.resumed;
 
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
-      // Home is still loading (completer not resolved). The
-      // binding's scheduleRefresh should have been a no-op.
-      final homeState = container.read(homeListStoreProvider);
-      expect(homeState.status, isNot(HomeListStatus.success));
+      // The binding should have triggered load() (catches up
+      // pending events on next success transition).
+      expect(loadCallCountForGroup, greaterThan(initialCount));
+    });
+
+    test('resume triggers load when home is loading (drains queue on success)',
+        () async {
+      var loadCallCountForGroup = 0;
+      final firstLoadCompleter = Completer<HomeWorkspaceSnapshot>();
+
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
+            (scopeId) {
+              loadCallCountForGroup++;
+              if (loadCallCountForGroup == 1) {
+                return firstLoadCompleter.future;
+              }
+              return Future.value(HomeWorkspaceSnapshot(
+                serverId: scopeId,
+                channels: const [
+                  HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+                ],
+                directMessages: const [],
+              ));
+            },
+          ),
+          _testLifecycleProvider
+              .overrideWith((ref) => AppLifecycleStatus.paused),
+          _testRealtimeProvider.overrideWith(
+            (ref) => const RealtimeConnectionState(
+              status: RealtimeConnectionStatus.connected,
+            ),
+          ),
+          homeRefreshLifecycleStatusProvider.overrideWith(
+            (ref) => ref.watch(_testLifecycleProvider),
+          ),
+          homeRefreshRealtimeStateProvider.overrideWith(
+            (ref) => ref.watch(_testRealtimeProvider),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Activate binding. Home auto-load awaits completer (loading).
+      container.read(homeRefreshLifecycleBindingProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      final afterAutoLoad = loadCallCountForGroup; // 1 (auto-load pending)
+
+      // Resume while home is still loading.
+      container.read(_testLifecycleProvider.notifier).state =
+          AppLifecycleStatus.resumed;
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+
+      // Binding should have triggered a second load() call.
+      expect(loadCallCountForGroup, greaterThan(afterAutoLoad));
     });
   });
 }
