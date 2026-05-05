@@ -4,37 +4,49 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_unread_item.dart';
-import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
+import 'package:slock_app/features/inbox/application/inbox_state.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/application/inbox_to_home_unread_adapter.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/l10n/l10n.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 /// Full-screen unread list page.
 ///
-/// Shows all unread items (no cap at 5) backed by the same
-/// [HomeUnreadItem] aggregation as the Home card.
-class UnreadListPage extends ConsumerWidget {
+/// Shows all unread items backed by the canonical [InboxStore].
+/// Supports pull-to-refresh, pagination (load more), and filter
+/// switching (all / unread only).
+class UnreadListPage extends ConsumerStatefulWidget {
   const UnreadListPage({super.key, required this.serverId});
 
   final String serverId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<UnreadListPage> createState() => _UnreadListPageState();
+}
+
+class _UnreadListPageState extends ConsumerState<UnreadListPage> {
+  @override
+  void initState() {
+    super.initState();
+    final state = ref.read(inboxStoreProvider);
+    if (state.status == InboxStatus.initial) {
+      Future.microtask(
+        () => ref.read(inboxStoreProvider.notifier).load(),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    final state = ref.watch(homeListStoreProvider);
-    final unreadState = ref.watch(channelUnreadStoreProvider);
+    final inboxState = ref.watch(inboxStoreProvider);
 
-    final items = buildUnreadItems(
-      threadItems: state.threadItems,
-      channels: [...state.pinnedChannels, ...state.channels],
-      directMessages: [
-        ...state.pinnedDirectMessages,
-        ...state.directMessages,
-      ],
-      unreadState: unreadState,
-    );
+    final items = inboxState.items
+        .where((item) => item.unreadCount > 0)
+        .map(inboxItemToHomeUnreadItem)
+        .toList(growable: false);
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -43,46 +55,137 @@ class UnreadListPage extends ConsumerWidget {
         backgroundColor: colors.surface,
         foregroundColor: colors.text,
         elevation: 0,
+        actions: [
+          _FilterChip(
+            key: const ValueKey('unread-filter-chip'),
+            currentFilter: inboxState.filter,
+            onChanged: (filter) {
+              ref.read(inboxStoreProvider.notifier).setFilter(filter);
+            },
+          ),
+        ],
       ),
-      body: items.isEmpty
-          ? Center(
-              key: const ValueKey('unread-list-empty'),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.mark_email_read_outlined,
-                    size: 48,
-                    color: colors.textTertiary,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l10n.homeCardUnreadEmpty,
-                    style: AppTypography.body.copyWith(
-                      color: colors.textTertiary,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              key: const ValueKey('unread-list-view'),
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final item = items[index];
-                return _UnreadListRow(
-                  key: ValueKey('unread-list-item-${item.id}'),
-                  item: item,
-                  colors: colors,
-                );
-              },
+      body: _buildBody(colors, l10n, inboxState, items),
+    );
+  }
+
+  Widget _buildBody(
+    AppColors colors,
+    AppLocalizations l10n,
+    InboxState inboxState,
+    List<HomeUnreadItem> items,
+  ) {
+    if (inboxState.status == InboxStatus.loading && items.isEmpty) {
+      return const Center(
+        key: ValueKey('unread-list-loading'),
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (items.isEmpty) {
+      return Center(
+        key: const ValueKey('unread-list-empty'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.mark_email_read_outlined,
+              size: 48,
+              color: colors.textTertiary,
             ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              l10n.homeCardUnreadEmpty,
+              style: AppTypography.body.copyWith(
+                color: colors.textTertiary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => ref.read(inboxStoreProvider.notifier).refresh(),
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollEndNotification &&
+              notification.metrics.extentAfter < 200 &&
+              inboxState.hasMore) {
+            ref.read(inboxStoreProvider.notifier).loadMore();
+          }
+          return false;
+        },
+        child: ListView.builder(
+          key: const ValueKey('unread-list-view'),
+          padding: const EdgeInsets.all(AppSpacing.md),
+          itemCount: items.length + (inboxState.hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index >= items.length) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(AppSpacing.md),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              );
+            }
+            final item = items[index];
+            return _UnreadListRow(
+              key: ValueKey('unread-list-item-${item.id}'),
+              item: item,
+              colors: colors,
+            );
+          },
+        ),
+      ),
     );
   }
 }
 
-class _UnreadListRow extends ConsumerWidget {
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    super.key,
+    required this.currentFilter,
+    required this.onChanged,
+  });
+
+  final InboxFilter currentFilter;
+  final ValueChanged<InboxFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final isUnreadOnly = currentFilter == InboxFilter.unread;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.sm),
+      child: GestureDetector(
+        key: const ValueKey('unread-filter-toggle'),
+        onTap: () {
+          onChanged(
+            isUnreadOnly ? InboxFilter.all : InboxFilter.unread,
+          );
+        },
+        child: Chip(
+          label: Text(
+            isUnreadOnly ? 'Unread' : 'All',
+            style: AppTypography.caption.copyWith(
+              color: isUnreadOnly ? colors.primary : colors.textSecondary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          backgroundColor:
+              isUnreadOnly ? colors.primary.withValues(alpha: 0.1) : null,
+          side: BorderSide(
+            color: isUnreadOnly ? colors.primary : colors.border,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UnreadListRow extends StatelessWidget {
   const _UnreadListRow({
     super.key,
     required this.item,
@@ -104,12 +207,12 @@ class _UnreadListRow extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final (glyph, colorFn) = _kindBadge;
     final badgeColor = colorFn(colors);
 
     return GestureDetector(
-      onTap: () => _navigateTo(context, ref),
+      onTap: () => _navigateTo(context),
       behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
@@ -186,28 +289,27 @@ class _UnreadListRow extends ConsumerWidget {
     );
   }
 
-  void _navigateTo(BuildContext context, WidgetRef ref) {
-    switch (item.kind) {
-      case HomeUnreadKind.thread:
-        if (item.threadRouteTarget != null) {
-          context.push(item.threadRouteTarget!.toLocation());
-        }
-      case HomeUnreadKind.channel:
-        if (item.channelScopeId != null) {
-          ref.read(markChannelReadUseCaseProvider)(
-            item.channelScopeId!,
-          );
-          final sid = item.channelScopeId!.serverId.routeParam;
-          final cid = item.channelScopeId!.routeParam;
-          context.push('/servers/$sid/channels/$cid');
-        }
-      case HomeUnreadKind.directMessage:
-        if (item.dmScopeId != null) {
-          ref.read(markDmReadUseCaseProvider)(item.dmScopeId!);
-          final sid = item.dmScopeId!.serverId.routeParam;
-          final did = item.dmScopeId!.routeParam;
-          context.push('/servers/$sid/dms/$did');
-        }
+  void _navigateTo(BuildContext context) {
+    // Navigate based on item kind — use channelId from the
+    // sourceLabel to build the route since we no longer have
+    // typed ScopeIds from the fragmented aggregation.
+    // The router resolves the appropriate conversation page.
+    final id = item.id;
+    if (id.startsWith('channel:')) {
+      final channelId = id.substring('channel:'.length);
+      final segments = GoRouterState.of(context).uri.pathSegments;
+      final sid = segments.length >= 2 ? segments[1] : '';
+      context.push('/servers/$sid/channels/$channelId');
+    } else if (id.startsWith('dm:')) {
+      final dmId = id.substring('dm:'.length);
+      final segments = GoRouterState.of(context).uri.pathSegments;
+      final sid = segments.length >= 2 ? segments[1] : '';
+      context.push('/servers/$sid/dms/$dmId');
+    } else if (id.startsWith('thread:')) {
+      final threadChannelId = id.substring('thread:'.length);
+      final segments = GoRouterState.of(context).uri.pathSegments;
+      final sid = segments.length >= 2 ? segments[1] : '';
+      context.push('/servers/$sid/threads/$threadChannelId');
     }
   }
 }

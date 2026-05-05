@@ -15,16 +15,15 @@ import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/application/home_tasks_realtime_binding.dart';
 import 'package:slock_app/features/home/application/home_unread_item.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/inbox/application/inbox_state.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/application/inbox_to_home_unread_adapter.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
-import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
-import 'package:slock_app/features/unread/data/channel_unread_repository_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -40,7 +39,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     ref.watch(homeTasksRealtimeBindingProvider);
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
-    final unreadState = ref.watch(channelUnreadStoreProvider);
     final l10n = context.l10n;
 
     return Scaffold(
@@ -89,18 +87,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                   onViewAll: () => _pushServerRoute('tasks'),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                _HomeUnreadSection(
+                _InboxUnreadSection(
                   key: const ValueKey('home-card-unread'),
-                  threadItems: state.threadItems,
-                  channels: [
-                    ...state.pinnedChannels,
-                    ...state.channels,
-                  ],
-                  directMessages: [
-                    ...state.pinnedDirectMessages,
-                    ...state.directMessages,
-                  ],
-                  unreadState: unreadState,
                   onViewAll: () => _pushServerRoute('unread'),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -851,57 +839,66 @@ class _TaskStatusChip extends StatelessWidget {
 
 const _maxVisibleUnreads = 5;
 
-class _HomeUnreadSection extends StatelessWidget {
-  const _HomeUnreadSection({
-    super.key,
-    required this.threadItems,
-    required this.channels,
-    required this.directMessages,
-    required this.unreadState,
-    this.onViewAll,
-  });
+/// Inbox-backed unread section that consumes canonical [InboxStore].
+class _InboxUnreadSection extends ConsumerStatefulWidget {
+  const _InboxUnreadSection({super.key, this.onViewAll});
 
-  final List<ThreadInboxItem> threadItems;
-  final List<HomeChannelSummary> channels;
-  final List<HomeDirectMessageSummary> directMessages;
-  final ChannelUnreadState unreadState;
   final VoidCallback? onViewAll;
+
+  @override
+  ConsumerState<_InboxUnreadSection> createState() =>
+      _InboxUnreadSectionState();
+}
+
+class _InboxUnreadSectionState extends ConsumerState<_InboxUnreadSection> {
+  @override
+  void initState() {
+    super.initState();
+    // Trigger initial load if inbox hasn't been loaded yet.
+    final state = ref.read(inboxStoreProvider);
+    if (state.status == InboxStatus.initial) {
+      Future.microtask(
+        () => ref.read(inboxStoreProvider.notifier).load(),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
+    final inboxState = ref.watch(inboxStoreProvider);
 
-    final unreadItems = _buildUnreadItems();
+    // Convert inbox items to HomeUnreadItem for consistent rendering.
+    final unreadItems = inboxState.items
+        .where((item) => item.unreadCount > 0)
+        .map(inboxItemToHomeUnreadItem)
+        .toList(growable: false);
 
     return _SummaryCardBase(
       accentColor: colors.error,
       title: l10n.homeCardUnread,
-      onViewAll: onViewAll,
-      child: unreadItems.isEmpty
-          ? const _UnreadEmptyState(
-              key: ValueKey('home-unread-empty'),
-            )
-          : _UnreadListContent(
-              key: const ValueKey('home-unread-list'),
-              unreadItems: unreadItems,
-              onViewAll: onViewAll,
-            ),
-    );
-  }
-
-  List<HomeUnreadItem> _buildUnreadItems() {
-    return buildUnreadItems(
-      threadItems: threadItems,
-      channels: channels,
-      directMessages: directMessages,
-      unreadState: unreadState,
+      onViewAll: widget.onViewAll,
+      child:
+          inboxState.status == InboxStatus.loading && inboxState.items.isEmpty
+              ? const _UnreadEmptyState(
+                  key: ValueKey('home-unread-loading'),
+                )
+              : unreadItems.isEmpty
+                  ? const _UnreadEmptyState(
+                      key: ValueKey('home-unread-empty'),
+                    )
+                  : _InboxUnreadListContent(
+                      key: const ValueKey('home-unread-list'),
+                      unreadItems: unreadItems,
+                      onViewAll: widget.onViewAll,
+                    ),
     );
   }
 }
 
-class _UnreadListContent extends ConsumerWidget {
-  const _UnreadListContent({
+class _InboxUnreadListContent extends ConsumerWidget {
+  const _InboxUnreadListContent({
     super.key,
     required this.unreadItems,
     this.onViewAll,
@@ -969,39 +966,7 @@ class _UnreadListContent extends ConsumerWidget {
   }
 
   void _markAllRead(WidgetRef ref) {
-    final markChannel = ref.read(markChannelReadUseCaseProvider);
-    final markDm = ref.read(markDmReadUseCaseProvider);
-
-    for (final item in unreadItems) {
-      switch (item.kind) {
-        case HomeUnreadKind.channel:
-          if (item.channelScopeId != null) {
-            markChannel(item.channelScopeId!);
-          }
-        case HomeUnreadKind.directMessage:
-          if (item.dmScopeId != null) {
-            markDm(item.dmScopeId!);
-          }
-        case HomeUnreadKind.thread:
-          break; // Handled below via HomeListStore.
-      }
-    }
-
-    // Clear thread unreads locally so threads also disappear.
-    if (unreadItems.any((i) => i.kind == HomeUnreadKind.thread)) {
-      ref.read(homeListStoreProvider.notifier).clearThreadUnreads();
-    }
-
-    // Fire-and-forget server-side bulk read.
-    final serverId = ref.read(activeServerScopeIdProvider);
-    if (serverId != null) {
-      unawaited(
-        ref
-            .read(channelUnreadRepositoryProvider)
-            .markAllInboxRead(serverId)
-            .catchError((_) {}),
-      );
-    }
+    ref.read(inboxStoreProvider.notifier).markAllRead();
   }
 }
 
