@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -11,7 +13,11 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/threads/application/current_open_thread_target_provider.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -340,7 +346,8 @@ void main() {
             ),
           ),
         );
-    await Future<void>.delayed(Duration.zero);
+    // Allow time for async load() triggered by missing thread row.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
 
     final homeState = container.read(homeListStoreProvider);
     expect(
@@ -378,7 +385,8 @@ void main() {
             ),
           ),
         );
-    await Future<void>.delayed(Duration.zero);
+    // Allow time for async load() triggered by missing thread row.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
 
     final unreadState = container.read(channelUnreadStoreProvider);
     expect(unreadState.totalUnreadCount, 0);
@@ -415,7 +423,8 @@ void main() {
         ),
       );
     }
-    await Future<void>.delayed(Duration.zero);
+    // Allow time for async load() triggered by missing thread row.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
 
     final homeState = container.read(homeListStoreProvider);
     // Only the original "general" channel should be in the list
@@ -470,17 +479,465 @@ void main() {
       reason: 'Hidden DM should not create a duplicate visible entry',
     );
   });
+
+  group('thread inbox incremental update', () {
+    const threadChannelId = 'thread-ch-1';
+    const parentChannelId = 'general';
+    const parentMessageId = 'msg-001';
+
+    ProviderContainer createThreadContainer() {
+      final threadItem = ThreadInboxItem(
+        routeTarget: const ThreadRouteTarget(
+          serverId: 'server-1',
+          parentChannelId: parentChannelId,
+          parentMessageId: parentMessageId,
+          threadChannelId: threadChannelId,
+        ),
+        replyCount: 5,
+        unreadCount: 0,
+        participantIds: const ['user-a', 'user-b'],
+        preview: 'Old preview',
+        senderName: 'Alice',
+        lastReplyAt: DateTime(2026, 4, 19),
+      );
+
+      final ingress = RealtimeReductionIngress();
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository(
+            SidebarOrder(),
+          )),
+          homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
+            (scopeId) async => HomeWorkspaceSnapshot(
+              serverId: scopeId,
+              channels: const [
+                HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+              ],
+              directMessages: const [],
+              threadChannelIds: {threadChannelId},
+            ),
+          ),
+          threadRepositoryProvider
+              .overrideWithValue(_FakeThreadRepository([threadItem])),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await ingress.dispose();
+      });
+      return container;
+    }
+
+    test('updates ThreadInboxItem unread/preview/sender on thread message:new',
+        () async {
+      final container = createThreadContainer();
+
+      container.read(homeRealtimeUnreadBindingProvider);
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Register thread channel ID.
+      container.read(knownThreadChannelIdsProvider.notifier).state = {
+        'server-1/$threadChannelId',
+      };
+
+      container.read(realtimeReductionIngressProvider).accept(
+            RealtimeEventEnvelope(
+              eventType: realtimeMessageCreatedEventType,
+              scopeKey: RealtimeEventEnvelope.globalScopeKey,
+              receivedAt: DateTime(2026, 4, 20),
+              seq: 1,
+              payload: _messagePayload(
+                channelId: threadChannelId,
+                senderId: 'other-user',
+                senderName: 'Bob',
+                content: 'New thread reply',
+              ),
+            ),
+          );
+      await Future<void>.delayed(Duration.zero);
+
+      final homeState = container.read(homeListStoreProvider);
+      final updatedItem = homeState.threadItems.firstWhere(
+        (item) => item.routeTarget.threadChannelId == threadChannelId,
+      );
+
+      expect(updatedItem.unreadCount, 1);
+      expect(updatedItem.preview, 'New thread reply');
+      expect(updatedItem.senderName, 'Bob');
+      expect(updatedItem.replyCount, 6);
+    });
+
+    test('does not increment thread unread for self-message', () async {
+      final container = createThreadContainer();
+
+      container.read(homeRealtimeUnreadBindingProvider);
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'test@example.com', password: 'password');
+      await container.read(homeListStoreProvider.notifier).load();
+
+      container.read(knownThreadChannelIdsProvider.notifier).state = {
+        'server-1/$threadChannelId',
+      };
+
+      container.read(realtimeReductionIngressProvider).accept(
+            RealtimeEventEnvelope(
+              eventType: realtimeMessageCreatedEventType,
+              scopeKey: RealtimeEventEnvelope.globalScopeKey,
+              receivedAt: DateTime(2026, 4, 20),
+              seq: 1,
+              payload: _messagePayload(
+                channelId: threadChannelId,
+                senderId: 'fake-uid',
+                senderName: 'Me',
+                content: 'My thread reply',
+              ),
+            ),
+          );
+      await Future<void>.delayed(Duration.zero);
+
+      final homeState = container.read(homeListStoreProvider);
+      final updatedItem = homeState.threadItems.firstWhere(
+        (item) => item.routeTarget.threadChannelId == threadChannelId,
+      );
+
+      // Self-message: unread should NOT increment, but
+      // preview/sender/replyCount still update.
+      expect(updatedItem.unreadCount, 0);
+      expect(updatedItem.preview, 'My thread reply');
+      expect(updatedItem.senderName, 'Me');
+      expect(updatedItem.replyCount, 6);
+    });
+
+    test('does not increment thread unread for open target', () async {
+      final container = createThreadContainer();
+
+      container.read(homeRealtimeUnreadBindingProvider);
+      await container.read(homeListStoreProvider.notifier).load();
+
+      container.read(knownThreadChannelIdsProvider.notifier).state = {
+        'server-1/$threadChannelId',
+      };
+
+      // Mark thread as open via the production thread target provider.
+      container.read(currentOpenThreadTargetProvider.notifier).state =
+          const ThreadRouteTarget(
+        serverId: 'server-1',
+        parentChannelId: parentChannelId,
+        parentMessageId: parentMessageId,
+        threadChannelId: threadChannelId,
+      );
+
+      container.read(realtimeReductionIngressProvider).accept(
+            RealtimeEventEnvelope(
+              eventType: realtimeMessageCreatedEventType,
+              scopeKey: RealtimeEventEnvelope.globalScopeKey,
+              receivedAt: DateTime(2026, 4, 20),
+              seq: 1,
+              payload: _messagePayload(
+                channelId: threadChannelId,
+                senderId: 'other-user',
+                senderName: 'Bob',
+                content: 'New thread reply',
+              ),
+            ),
+          );
+      await Future<void>.delayed(Duration.zero);
+
+      final homeState = container.read(homeListStoreProvider);
+      final updatedItem = homeState.threadItems.firstWhere(
+        (item) => item.routeTarget.threadChannelId == threadChannelId,
+      );
+
+      // Open target: unread should NOT increment, but
+      // preview/sender/replyCount still update.
+      expect(updatedItem.unreadCount, 0);
+      expect(updatedItem.preview, 'New thread reply');
+      expect(updatedItem.replyCount, 6);
+    });
+
+    test('triggers reload when known thread channel has no loaded row',
+        () async {
+      // Container with threadChannelIds known but NO ThreadInboxItem loaded.
+      var loadCount = 0;
+      final ingress = RealtimeReductionIngress();
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository(
+            SidebarOrder(),
+          )),
+          homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
+            (scopeId) async {
+              loadCount++;
+              return HomeWorkspaceSnapshot(
+                serverId: scopeId,
+                channels: const [
+                  HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+                ],
+                directMessages: const [],
+                // Thread channel is known but ThreadRepository won't return it.
+                threadChannelIds: {threadChannelId},
+              );
+            },
+          ),
+          // Provide empty thread list so the row is missing.
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository([])),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      container.read(homeRealtimeUnreadBindingProvider);
+      await container.read(homeListStoreProvider.notifier).load();
+      final initialLoadCount = loadCount;
+
+      container.read(knownThreadChannelIdsProvider.notifier).state = {
+        'server-1/$threadChannelId',
+      };
+
+      // Emit event for thread whose row is not loaded.
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: realtimeMessageCreatedEventType,
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 1,
+          payload: _messagePayload(
+            channelId: threadChannelId,
+            senderId: 'other-user',
+            senderName: 'Bob',
+            content: 'Thread reply',
+          ),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Should have triggered a reload since updateThreadInboxItem
+      // returned false (row missing).
+      expect(loadCount, greaterThan(initialLoadCount));
+    });
+  });
+
+  group('events before Home success (catch-up)', () {
+    test('events before success are queued and replayed after load()',
+        () async {
+      final loadCompleter = Completer<HomeWorkspaceSnapshot>();
+      var loadCount = 0;
+
+      final ingress = RealtimeReductionIngress();
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository(
+            SidebarOrder(),
+          )),
+          homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
+            (scopeId) {
+              loadCount++;
+              if (loadCount == 1) {
+                // First load (auto-load) is delayed.
+                return loadCompleter.future;
+              }
+              return Future.value(HomeWorkspaceSnapshot(
+                serverId: scopeId,
+                channels: const [
+                  HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+                ],
+                directMessages: const [
+                  HomeDirectMessageSummary(
+                    scopeId: directMessageScopeId,
+                    title: 'Alice',
+                  ),
+                ],
+              ));
+            },
+          ),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      // Activate binding — triggers HomeListStore auto-load which
+      // awaits the completer. Status stays 'loading'.
+      container.read(homeRealtimeUnreadBindingProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      // Emit events while Home is still loading.
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: realtimeMessageCreatedEventType,
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 1,
+          payload: _messagePayload(channelId: channelScopeId.value),
+        ),
+      );
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: realtimeMessageCreatedEventType,
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 2,
+          payload: _messagePayload(channelId: directMessageScopeId.value),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      // Verify no unread increments yet (home still loading).
+      expect(
+        container
+            .read(channelUnreadStoreProvider)
+            .channelUnreadCount(channelScopeId),
+        0,
+      );
+
+      // Complete the initial load — status → success → queue drains.
+      loadCompleter.complete(const HomeWorkspaceSnapshot(
+        serverId: serverId,
+        channels: [
+          HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+        ],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: directMessageScopeId,
+            title: 'Alice',
+          ),
+        ],
+      ));
+      // Allow time for Future.wait (network stubs) + listener drain.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(
+        container
+            .read(channelUnreadStoreProvider)
+            .channelUnreadCount(channelScopeId),
+        1,
+      );
+      expect(
+        container
+            .read(channelUnreadStoreProvider)
+            .dmUnreadCount(directMessageScopeId),
+        1,
+      );
+    });
+
+    test('queued events are limited to prevent unbounded memory growth',
+        () async {
+      final loadCompleter = Completer<HomeWorkspaceSnapshot>();
+      var loadCount = 0;
+
+      final ingress = RealtimeReductionIngress();
+      final container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(FakeSecureStorage()),
+          authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository(
+            SidebarOrder(),
+          )),
+          homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
+            (scopeId) {
+              loadCount++;
+              if (loadCount == 1) {
+                return loadCompleter.future;
+              }
+              return Future.value(HomeWorkspaceSnapshot(
+                serverId: scopeId,
+                channels: const [
+                  HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+                ],
+                directMessages: const [],
+              ));
+            },
+          ),
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      container.read(homeRealtimeUnreadBindingProvider);
+      await Future<void>.delayed(Duration.zero);
+
+      // Send 200 events before success (exceeds buffer of 100).
+      for (var i = 0; i < 200; i++) {
+        ingress.accept(
+          RealtimeEventEnvelope(
+            eventType: realtimeMessageCreatedEventType,
+            scopeKey: RealtimeEventEnvelope.globalScopeKey,
+            receivedAt: DateTime(2026, 4, 20),
+            seq: i + 1,
+            payload: _messagePayload(channelId: channelScopeId.value),
+          ),
+        );
+      }
+      await Future<void>.delayed(Duration.zero);
+
+      // Complete the load → drain queue.
+      loadCompleter.complete(const HomeWorkspaceSnapshot(
+        serverId: serverId,
+        channels: [
+          HomeChannelSummary(scopeId: channelScopeId, name: 'general'),
+        ],
+        directMessages: [],
+      ));
+      // Allow time for Future.wait (network stubs) + listener drain.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Buffer is capped at 100 — unread count should be exactly 100.
+      final count = container
+          .read(channelUnreadStoreProvider)
+          .channelUnreadCount(channelScopeId);
+      expect(count, greaterThan(0));
+      expect(count, lessThanOrEqualTo(100));
+    });
+  });
 }
 
 Map<String, Object?> _messagePayload({
   required String channelId,
   String senderId = 'other-user',
   String? senderName,
+  String content = 'Realtime hello',
 }) {
   return {
     'id': 'message-$channelId',
     'channelId': channelId,
-    'content': 'Realtime hello',
+    'content': content,
     'createdAt': '2026-04-20T01:00:00Z',
     'senderId': senderId,
     if (senderName != null) 'senderName': senderName,
@@ -504,5 +961,37 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
   Future<void> updateSidebarOrder(
     ServerScopeId serverId, {
     required Map<String, Object> patch,
+  }) async {}
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository(this._items);
+
+  final List<ThreadInboxItem> _items;
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+      ServerScopeId serverId) async {
+    return _items;
+  }
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
   }) async {}
 }
