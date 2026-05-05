@@ -673,6 +673,8 @@ LocalMessageUpsert _messageToLocalUpsert(
                 'id': attachment.id,
                 if (attachment.sizeBytes != null)
                   'sizeBytes': attachment.sizeBytes,
+                if (attachment.thumbnailUrl != null)
+                  'thumbnailUrl': attachment.thumbnailUrl,
               })
           .toList(growable: false),
     ),
@@ -789,17 +791,22 @@ List<MessageAttachment>? _decodeAttachments(String? payload) {
     }
     final map =
         item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item);
-    final name = _readOptionalString(map['name']);
-    final type = _readOptionalString(map['type']);
+    // Normalize: old fields take precedence; fall back to new fields.
+    final name = _readOptionalString(map['name']) ??
+        _readOptionalString(map['filename']);
+    final type = _readOptionalString(map['type']) ??
+        _readOptionalString(map['mimeType']);
     if (name == null || type == null) {
       continue;
     }
+    final thumbnailUrl = _readOptionalString(map['thumbnailUrl']);
     attachments.add(MessageAttachment(
       name: name,
       type: type,
-      url: _readOptionalString(map['url']),
+      url: _readOptionalString(map['url']) ?? thumbnailUrl,
       id: _readOptionalString(map['id']),
       sizeBytes: _readOptionalInt(map['sizeBytes']),
+      thumbnailUrl: thumbnailUrl,
     ));
   }
   return attachments.isEmpty ? null : attachments;

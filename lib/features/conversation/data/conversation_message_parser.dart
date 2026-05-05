@@ -66,7 +66,7 @@ ConversationMessageSummary parseConversationMessageSummary(
     senderId: readOptionalConversationPayloadString(item['senderId']),
     senderName: resolveConversationSenderName(item),
     seq: readOptionalConversationPayloadInt(item['seq']),
-    attachments: _parseAttachments(item['attachments']),
+    attachments: parseAttachments(item['attachments']),
     threadId: readOptionalConversationPayloadString(item['threadId']),
     replyCount: readOptionalConversationPayloadInt(item['replyCount']),
     linkedTaskId: readOptionalConversationPayloadString(item['linkedTaskId']) ??
@@ -247,7 +247,12 @@ String describeConversationPayloadType(Object? value) {
   return value?.runtimeType.toString() ?? 'Null';
 }
 
-List<MessageAttachment>? _parseAttachments(Object? value) {
+/// Parses attachment list from API/realtime JSON payload.
+///
+/// Supports both old-style payload (`name`/`type`/`url`) and new-style
+/// payload (`filename`/`mimeType`/`thumbnailUrl`). Old fields take
+/// priority when both are present.
+List<MessageAttachment>? parseAttachments(Object? value) {
   if (value is! List || value.isEmpty) {
     return null;
   }
@@ -256,15 +261,22 @@ List<MessageAttachment>? _parseAttachments(Object? value) {
     if (item is! Map) continue;
     final map =
         item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item);
-    final name = readOptionalConversationPayloadString(map['name']);
-    final type = readOptionalConversationPayloadString(map['type']);
+    // Normalize: old fields (name/type/url) take precedence; fall back to
+    // new fields (filename/mimeType/thumbnailUrl).
+    final name = readOptionalConversationPayloadString(map['name']) ??
+        readOptionalConversationPayloadString(map['filename']);
+    final type = readOptionalConversationPayloadString(map['type']) ??
+        readOptionalConversationPayloadString(map['mimeType']);
     if (name == null || type == null) continue;
+    final thumbnailUrl =
+        readOptionalConversationPayloadString(map['thumbnailUrl']);
     results.add(MessageAttachment(
       name: name,
       type: type,
-      url: readOptionalConversationPayloadString(map['url']),
+      url: readOptionalConversationPayloadString(map['url']) ?? thumbnailUrl,
       id: readOptionalConversationPayloadString(map['id']),
       sizeBytes: readOptionalConversationPayloadInt(map['sizeBytes']),
+      thumbnailUrl: thumbnailUrl,
     ));
   }
   return results.isEmpty ? null : results;
