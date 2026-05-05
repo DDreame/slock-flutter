@@ -30,9 +30,28 @@ final homeRealtimeUnreadBindingProvider = Provider<void>((ref) {
   /// in success state. Drained once load() completes.
   final pendingQueue = Queue<RealtimeEventEnvelope>();
 
+  /// Guard flag: prevents multiple concurrent catch-up load()
+  /// calls from rapid thread events with missing rows.
+  var catchUpLoadScheduled = false;
+
   final subscription = ingress.acceptedEvents.listen((event) {
     if (event.eventType == realtimeMessageCreatedEventType) {
-      _handleMessageNew(ref, event, pendingQueue: pendingQueue);
+      _handleMessageNew(
+        ref,
+        event,
+        pendingQueue: pendingQueue,
+        onMissingThreadRow: () {
+          if (!catchUpLoadScheduled) {
+            catchUpLoadScheduled = true;
+            unawaited(
+              ref
+                  .read(homeListStoreProvider.notifier)
+                  .load()
+                  .catchError((_) {}),
+            );
+          }
+        },
+      );
     } else if (event.eventType == realtimeMessageUpdatedEventType) {
       _handleMessageUpdated(ref, event);
     }
@@ -43,8 +62,12 @@ final homeRealtimeUnreadBindingProvider = Provider<void>((ref) {
   ref.listen<HomeListStatus>(
     homeListStoreProvider.select((s) => s.status),
     (previous, next) {
-      if (next == HomeListStatus.success && pendingQueue.isNotEmpty) {
-        _drainPendingQueue(ref, pendingQueue);
+      if (next == HomeListStatus.success) {
+        // Reset catch-up flag — the load completed successfully.
+        catchUpLoadScheduled = false;
+        if (pendingQueue.isNotEmpty) {
+          _drainPendingQueue(ref, pendingQueue);
+        }
       }
     },
   );
@@ -71,6 +94,7 @@ void _handleMessageNew(
   Ref ref,
   RealtimeEventEnvelope event, {
   Queue<RealtimeEventEnvelope>? pendingQueue,
+  void Function()? onMissingThreadRow,
 }) {
   final incoming = tryParseConversationIncomingMessage(
     event.payload,
@@ -179,7 +203,7 @@ void _handleMessageNew(
       );
       if (!updated) {
         // Thread row not loaded yet — schedule a full reload to pick it up.
-        notifier.load();
+        onMissingThreadRow?.call();
       }
       return;
     }
