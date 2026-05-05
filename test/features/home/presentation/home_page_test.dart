@@ -17,6 +17,9 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -1181,6 +1184,21 @@ void main() {
                 ),
               ],
             ),
+            inboxRepository: const _ConfigurableInboxRepository(
+              items: [
+                InboxItem(
+                  kind: InboxItemKind.thread,
+                  channelId: 'msg-1',
+                  threadChannelId: 'msg-1',
+                  parentChannelId: 'general',
+                  parentMessageId: 'msg-1',
+                  channelName: 'general',
+                  threadTitle: 'Thread title',
+                  preview: 'Thread preview text',
+                  unreadCount: 2,
+                ),
+              ],
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -1236,6 +1254,20 @@ void main() {
           ),
         );
 
+        final inboxItems = List.generate(
+          7,
+          (i) => InboxItem(
+            kind: InboxItemKind.thread,
+            channelId: 'msg-$i',
+            threadChannelId: 'msg-$i',
+            parentChannelId: 'general',
+            parentMessageId: 'msg-$i',
+            channelName: 'general',
+            threadTitle: 'Thread $i',
+            unreadCount: 1,
+          ),
+        );
+
         await tester.pumpWidget(
           _buildApp(
             router: router,
@@ -1244,6 +1276,9 @@ void main() {
             ),
             threadRepository: _FakeThreadRepository(
               threads: threads,
+            ),
+            inboxRepository: _ConfigurableInboxRepository(
+              items: inboxItems,
             ),
           ),
         );
@@ -1302,6 +1337,18 @@ void main() {
             threadRepositoryProvider.overrideWithValue(
               const _FakeThreadRepository(),
             ),
+            inboxRepositoryProvider.overrideWithValue(
+              const _ConfigurableInboxRepository(
+                items: [
+                  InboxItem(
+                    kind: InboxItemKind.channel,
+                    channelId: 'general',
+                    channelName: 'general',
+                    unreadCount: 3,
+                  ),
+                ],
+              ),
+            ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
@@ -1319,17 +1366,6 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
-
-        // Inject channel unreads
-        container
-            .read(channelUnreadStoreProvider.notifier)
-            .hydrateChannelUnreads({
-          const ChannelScopeId(
-            serverId: ServerScopeId('server-1'),
-            value: 'general',
-          ): 3,
-        });
         await tester.pumpAndSettle();
 
         // Verify unread item appears
@@ -2703,6 +2739,7 @@ Widget _buildApp({
   ThreadRepository threadRepository = const _FakeThreadRepository(),
   SidebarOrderRepository sidebarOrderRepository =
       const _FakeSidebarOrderRepository(),
+  InboxRepository inboxRepository = const _EmptyInboxRepository(),
   DateTime? now,
 }) {
   return ProviderScope(
@@ -2720,6 +2757,7 @@ Widget _buildApp({
       agentsRepositoryProvider.overrideWithValue(agentsRepository),
       tasksRepositoryProvider.overrideWithValue(tasksRepository),
       threadRepositoryProvider.overrideWithValue(threadRepository),
+      inboxRepositoryProvider.overrideWithValue(inboxRepository),
       homeMachineCountLoaderProvider.overrideWithValue(
         (_) async => 0,
       ),
@@ -3076,4 +3114,78 @@ class _NoOpChannelUnreadRepository implements ChannelUnreadRepository {
   Future<void> markAllInboxRead(
     ServerScopeId serverId,
   ) async {}
+}
+
+/// Returns an empty inbox — used as the default for tests that don't
+/// exercise the unread section.
+class _EmptyInboxRepository implements InboxRepository {
+  const _EmptyInboxRepository();
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    return const InboxResponse(
+      items: [],
+      totalCount: 0,
+      totalUnreadCount: 0,
+      hasMore: false,
+    );
+  }
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
+}
+
+/// Configurable inbox fake for unread-section tests.
+class _ConfigurableInboxRepository implements InboxRepository {
+  const _ConfigurableInboxRepository({this.items = const []});
+
+  final List<InboxItem> items;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    final totalUnread = items.fold<int>(0, (s, i) => s + i.unreadCount);
+    return InboxResponse(
+      items: items,
+      totalCount: items.length,
+      totalUnreadCount: totalUnread,
+      hasMore: false,
+    );
+  }
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
 }
