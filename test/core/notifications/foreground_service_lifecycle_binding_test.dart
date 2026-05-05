@@ -17,6 +17,8 @@ class FakeForegroundServiceManager implements ForegroundServiceManager {
   int stopCalls = 0;
   bool _running = false;
   bool? lastAuthFlag;
+  int refreshWorkerAuthCalls = 0;
+  bool? lastWorkerForegroundActive;
 
   /// Simulate an already-running service (e.g. OS restored it
   /// after a process restart).
@@ -41,6 +43,16 @@ class FakeForegroundServiceManager implements ForegroundServiceManager {
   Future<void> setAuthFlag(bool authenticated) async {
     lastAuthFlag = authenticated;
   }
+
+  @override
+  Future<void> refreshWorkerAuth() async {
+    refreshWorkerAuthCalls++;
+  }
+
+  @override
+  Future<void> setWorkerForegroundActive(bool active) async {
+    lastWorkerForegroundActive = active;
+  }
 }
 
 class _ThrowingForegroundServiceManager implements ForegroundServiceManager {
@@ -59,6 +71,12 @@ class _ThrowingForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<void> setAuthFlag(bool authenticated) async {}
+
+  @override
+  Future<void> refreshWorkerAuth() async {}
+
+  @override
+  Future<void> setWorkerForegroundActive(bool active) async {}
 }
 
 void main() {

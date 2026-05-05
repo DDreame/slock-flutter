@@ -67,6 +67,11 @@ class BackgroundWorkerDiagnostics {
 
 const _attachmentFallbackPreview = '[Attachment]';
 
+/// Callback that provides fresh auth credentials for reconnection.
+/// Used to reload credentials from SharedPreferences after token
+/// refresh or server switch.
+typedef BackgroundAuthRefresher = Future<BackgroundAuthProvider> Function();
+
 /// Background notification worker that runs inside the Android
 /// foreground service's headless FlutterEngine.
 ///
@@ -77,24 +82,36 @@ const _attachmentFallbackPreview = '[Attachment]';
 /// Self-authored messages are suppressed. The worker handles
 /// reconnection on network changes and gracefully handles
 /// notification permission denial.
+///
+/// Foreground-active suppression: when [setForegroundActive] is set
+/// to true, notifications are suppressed to avoid duplicates while
+/// the main app is visible.
 class BackgroundNotificationWorker {
   BackgroundNotificationWorker({
     required BackgroundSocketConnection socket,
     required BackgroundNotificationSink notificationSink,
     required BackgroundAuthProvider authProvider,
+    BackgroundAuthRefresher? authRefresher,
   })  : _socket = socket,
         _notificationSink = notificationSink,
-        _authProvider = authProvider;
+        _authProvider = authProvider,
+        _authRefresher = authRefresher;
 
   final BackgroundSocketConnection _socket;
   final BackgroundNotificationSink _notificationSink;
-  final BackgroundAuthProvider _authProvider;
+  BackgroundAuthProvider _authProvider;
+  final BackgroundAuthRefresher? _authRefresher;
 
   StreamSubscription<Map<String, dynamic>>? _eventSubscription;
   StreamSubscription<BackgroundSocketStatus>? _statusSubscription;
 
   bool _active = false;
   bool _disposed = false;
+
+  /// Whether the app foreground is active (main isolate is visible).
+  /// When true, notifications are suppressed to avoid duplicates
+  /// with the main isolate's notification bridge.
+  bool foregroundActive = false;
 
   DateTime? _lastEventTime;
   DateTime? _lastNotificationAttempt;
@@ -111,6 +128,30 @@ class BackgroundNotificationWorker {
       lastEventTime: _lastEventTime,
       lastNotificationAttempt: _lastNotificationAttempt,
       lastPermissionFailure: _lastPermissionFailure,
+    );
+  }
+
+  /// Refresh auth credentials from the provider and reconnect.
+  /// Called when the main isolate signals a token refresh or server
+  /// switch has occurred.
+  Future<void> refreshAuth() async {
+    if (_disposed) return;
+
+    final refresher = _authRefresher;
+    if (refresher == null) return;
+
+    final newAuth = await refresher();
+    _authProvider = newAuth;
+
+    // Reconnect with fresh credentials.
+    final token = newAuth.token;
+    if (token == null || token.isEmpty) return;
+
+    _socket.disconnect();
+    await _socket.connect(
+      uri: newAuth.realtimeUrl,
+      token: token,
+      serverId: newAuth.serverId,
     );
   }
 
@@ -169,11 +210,36 @@ class BackgroundNotificationWorker {
   void _scheduleReconnect() {
     if (_disposed || !_active) return;
 
+    // If an auth refresher is provided, reload credentials before
+    // reconnecting so we always use the latest token/server.
+    if (_authRefresher != null) {
+      unawaited(_refreshAndReconnect());
+    } else {
+      final token = _authProvider.token;
+      if (token == null || token.isEmpty) return;
+
+      _socket.connect(
+        uri: _authProvider.realtimeUrl,
+        token: token,
+        serverId: _authProvider.serverId,
+      );
+    }
+  }
+
+  Future<void> _refreshAndReconnect() async {
+    if (_disposed || !_active) return;
+
+    try {
+      final newAuth = await _authRefresher!();
+      _authProvider = newAuth;
+    } catch (_) {
+      // Fall through and use existing auth.
+    }
+
     final token = _authProvider.token;
     if (token == null || token.isEmpty) return;
 
-    // Reconnect immediately (the socket impl may handle backoff).
-    _socket.connect(
+    await _socket.connect(
       uri: _authProvider.realtimeUrl,
       token: token,
       serverId: _authProvider.serverId,
@@ -196,6 +262,12 @@ class BackgroundNotificationWorker {
     // Suppress self-authored messages.
     final currentUserId = _authProvider.userId;
     if (currentUserId != null && senderId == currentUserId) {
+      return;
+    }
+
+    // Suppress notifications when the app foreground is active
+    // (main isolate handles notifications via its own bridge).
+    if (foregroundActive) {
       return;
     }
 

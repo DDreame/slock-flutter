@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/notifications/background_notification_entrypoint.dart';
 import 'package:slock_app/core/network/auth_token_provider.dart'
     show selectedServerIdProvider;
+import 'package:slock_app/core/notifications/foreground_service_manager.dart';
 import 'package:slock_app/core/realtime/providers.dart'
     show realtimeSocketOptionsProvider;
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
@@ -10,6 +11,9 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// Persists auth credentials to SharedPreferences whenever the
 /// session changes, so the background notification worker (running
 /// in a separate Dart isolate) can read them on startup or refresh.
+///
+/// After persisting, signals the running headless worker to reload
+/// credentials via [ForegroundServiceManager.refreshWorkerAuth].
 ///
 /// On logout, clears the persisted credentials.
 final backgroundWorkerAuthBindingProvider = Provider<void>((ref) {
@@ -32,6 +36,18 @@ final backgroundWorkerAuthBindingProvider = Provider<void>((ref) {
           'background-worker-auth',
           'Persisted credentials for background worker',
         );
+
+        // Signal the running headless worker to reload credentials
+        // and reconnect with the fresh token/server.
+        final manager = ref.read(foregroundServiceManagerProvider);
+        final running = await manager.isRunning;
+        if (running) {
+          await manager.refreshWorkerAuth();
+          diagnostics.info(
+            'background-worker-auth',
+            'Signalled background worker to refresh auth',
+          );
+        }
       } else if (next.isUnauthenticated) {
         await BackgroundWorkerAuthPersistence.clear();
         diagnostics.info(

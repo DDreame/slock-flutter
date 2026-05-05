@@ -39,6 +39,23 @@ class SlockForegroundService : Service() {
         @Volatile
         var isRunning: Boolean = false
             private set
+
+        /** Reference to the running service instance for static access. */
+        @Volatile
+        private var instance: SlockForegroundService? = null
+
+        /** Signal the headless Dart worker to reload auth and reconnect. */
+        fun refreshWorkerAuth() {
+            instance?.workerMethodChannel?.invokeMethod("refreshAuth", null)
+        }
+
+        /** Signal the headless Dart worker about foreground-active state. */
+        fun setWorkerForegroundActive(active: Boolean) {
+            instance?.workerMethodChannel?.invokeMethod(
+                "setForegroundActive",
+                active,
+            )
+        }
     }
 
     private var flutterEngine: FlutterEngine? = null
@@ -96,6 +113,7 @@ class SlockForegroundService : Service() {
                 startForeground(notificationId, notification)
             }
             isRunning = true
+            instance = this
         } catch (e: Exception) {
             Log.e(tag, "Failed to start foreground service", e)
             stopSelf()
@@ -110,6 +128,7 @@ class SlockForegroundService : Service() {
 
     override fun onDestroy() {
         isRunning = false
+        instance = null
         stopDartWorker()
         super.onDestroy()
     }
@@ -138,8 +157,12 @@ class SlockForegroundService : Service() {
                 "showNotification" -> {
                     @Suppress("UNCHECKED_CAST")
                     val payload = call.arguments as? Map<String, Any?> ?: emptyMap()
-                    showBackgroundNotification(payload)
-                    result.success(null)
+                    val error = showBackgroundNotification(payload)
+                    if (error != null) {
+                        result.error(error.first, error.second, null)
+                    } else {
+                        result.success(null)
+                    }
                 }
                 else -> result.notImplemented()
             }
@@ -166,7 +189,14 @@ class SlockForegroundService : Service() {
 
     // -- Background notification posting --------------------------------------
 
-    private fun showBackgroundNotification(payload: Map<String, Any?>) {
+    /**
+     * Posts a local notification from the headless Dart worker.
+     * Returns null on success, or a Pair(code, message) on error
+     * that should be sent back via result.error().
+     */
+    private fun showBackgroundNotification(
+        payload: Map<String, Any?>,
+    ): Pair<String, String>? {
         val title = payload["title"] as? String ?: "Slock"
         val body = payload["body"] as? String ?: ""
 
@@ -210,13 +240,19 @@ class SlockForegroundService : Service() {
                     notificationManager.notify(id, notification)
                 } else {
                     Log.w(tag, "Missing POST_NOTIFICATIONS permission")
+                    return Pair(
+                        "PERMISSION_DENIED",
+                        "POST_NOTIFICATIONS permission not granted",
+                    )
                 }
             } else {
                 notificationManager.notify(id, notification)
             }
         } catch (e: SecurityException) {
             Log.w(tag, "Notification security exception", e)
+            return Pair("PERMISSION_DENIED", e.message ?: "SecurityException")
         }
+        return null
     }
 
     // -- Service prefs -------------------------------------------------

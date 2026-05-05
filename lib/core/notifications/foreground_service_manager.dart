@@ -20,6 +20,15 @@ abstract class ForegroundServiceManager {
   /// START_STICKY restart path can determine whether to restore the
   /// service without reading flutter_secure_storage keys directly.
   Future<void> setAuthFlag(bool authenticated);
+
+  /// Signal the background worker to reload auth credentials from
+  /// SharedPreferences and reconnect with fresh token/server.
+  Future<void> refreshWorkerAuth();
+
+  /// Signal the background worker whether the app foreground is active.
+  /// When active, the worker suppresses notifications to avoid
+  /// duplicates with the main isolate's notification bridge.
+  Future<void> setWorkerForegroundActive(bool active);
 }
 
 class NoOpForegroundServiceManager implements ForegroundServiceManager {
@@ -36,6 +45,12 @@ class NoOpForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<void> setAuthFlag(bool authenticated) async {}
+
+  @override
+  Future<void> refreshWorkerAuth() async {}
+
+  @override
+  Future<void> setWorkerForegroundActive(bool active) async {}
 }
 
 final foregroundServiceManagerProvider =

@@ -47,6 +47,7 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
     socket: socket,
     notificationSink: sink,
     authProvider: authProvider,
+    authRefresher: () => _SharedPrefsAuthProvider.load(),
   );
 
   await worker.start();
@@ -68,15 +69,13 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
               diag.lastPermissionFailure?.toIso8601String(),
         };
       case 'refreshAuth':
-        // Reload auth from shared prefs and reconnect.
-        worker.dispose();
-        final newAuth = await _SharedPrefsAuthProvider.load();
-        final newWorker = BackgroundNotificationWorker(
-          socket: SocketIoBackgroundConnection(),
-          notificationSink: sink,
-          authProvider: newAuth,
-        );
-        await newWorker.start();
+        // Reload auth from shared prefs and reconnect with fresh
+        // credentials (called after token refresh or server switch).
+        await worker.refreshAuth();
+      case 'setForegroundActive':
+        // Toggle foreground-active suppression flag.
+        final active = call.arguments as bool? ?? false;
+        worker.foregroundActive = active;
     }
     return null;
   });

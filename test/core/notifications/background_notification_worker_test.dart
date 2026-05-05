@@ -338,6 +338,121 @@ void main() {
         expect(fakeSocket.isConnected, isFalse);
       });
     });
+
+    group('auth refresh', () {
+      test('refreshAuth reloads credentials and reconnects', () async {
+        final refreshedAuth = FakeBackgroundAuthProvider(
+          token: 'refreshed-token',
+          userId: 'user-123',
+          serverId: 'server-2',
+        );
+
+        worker = BackgroundNotificationWorker(
+          socket: fakeSocket,
+          notificationSink: fakeSink,
+          authProvider: fakeAuth,
+          authRefresher: () async => refreshedAuth,
+        );
+        await worker.start();
+
+        final connectCountBefore = fakeSocket.connectCallCount;
+        await worker.refreshAuth();
+
+        // Should have reconnected with fresh credentials.
+        expect(fakeSocket.connectCallCount, greaterThan(connectCountBefore));
+        expect(fakeSocket.lastConnectToken, 'refreshed-token');
+        expect(fakeSocket.lastConnectServerId, 'server-2');
+      });
+
+      test('reconnect uses refreshed auth when authRefresher provided',
+          () async {
+        final refreshedAuth = FakeBackgroundAuthProvider(
+          token: 'new-token-after-refresh',
+          userId: 'user-123',
+          serverId: 'server-new',
+        );
+
+        worker = BackgroundNotificationWorker(
+          socket: fakeSocket,
+          notificationSink: fakeSink,
+          authProvider: fakeAuth,
+          authRefresher: () async => refreshedAuth,
+        );
+        await worker.start();
+
+        // Simulate disconnect — should trigger reconnect with refreshed auth.
+        fakeSocket.simulateDisconnect();
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(fakeSocket.lastConnectToken, 'new-token-after-refresh');
+        expect(fakeSocket.lastConnectServerId, 'server-new');
+      });
+    });
+
+    group('foreground active suppression', () {
+      test('suppresses notification when foreground is active', () async {
+        createWorker();
+        await worker.start();
+
+        worker.foregroundActive = true;
+
+        fakeSocket.emitEvent({
+          'id': 'msg-fg',
+          'channelId': 'channel-abc',
+          'content': 'Should be suppressed',
+          'senderId': 'other-user',
+          'senderName': 'Alice',
+          'senderType': 'human',
+          'messageType': 'message',
+          'createdAt': '2026-05-05T01:00:00Z',
+          'seq': 1,
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(fakeSink.notifications, isEmpty);
+      });
+
+      test('delivers notification when foreground becomes inactive', () async {
+        createWorker();
+        await worker.start();
+
+        // Start in foreground-active mode.
+        worker.foregroundActive = true;
+
+        fakeSocket.emitEvent({
+          'id': 'msg-fg-1',
+          'channelId': 'channel-abc',
+          'content': 'Suppressed',
+          'senderId': 'other-user',
+          'senderName': 'Alice',
+          'senderType': 'human',
+          'messageType': 'message',
+          'createdAt': '2026-05-05T01:00:00Z',
+          'seq': 1,
+        });
+        await Future<void>.delayed(Duration.zero);
+        expect(fakeSink.notifications, isEmpty);
+
+        // App goes to background.
+        worker.foregroundActive = false;
+
+        fakeSocket.emitEvent({
+          'id': 'msg-bg-1',
+          'channelId': 'channel-abc',
+          'content': 'Should deliver',
+          'senderId': 'other-user',
+          'senderName': 'Bob',
+          'senderType': 'human',
+          'messageType': 'message',
+          'createdAt': '2026-05-05T01:01:00Z',
+          'seq': 2,
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(fakeSink.notifications, hasLength(1));
+        expect(fakeSink.notifications.first['body'], 'Should deliver');
+      });
+    });
   });
 }
 
@@ -349,8 +464,12 @@ class FakeBackgroundSocketConnection implements BackgroundSocketConnection {
       StreamController<BackgroundSocketStatus>.broadcast();
   bool _connected = false;
   int _connectCallCount = 0;
+  String? _lastConnectToken;
+  String? _lastConnectServerId;
 
   int get connectCallCount => _connectCallCount;
+  String? get lastConnectToken => _lastConnectToken;
+  String? get lastConnectServerId => _lastConnectServerId;
 
   @override
   bool get isConnected => _connected;
@@ -368,6 +487,8 @@ class FakeBackgroundSocketConnection implements BackgroundSocketConnection {
     String? serverId,
   }) async {
     _connectCallCount++;
+    _lastConnectToken = token;
+    _lastConnectServerId = serverId;
     _connected = true;
     _statusController.add(BackgroundSocketStatus.connected);
   }

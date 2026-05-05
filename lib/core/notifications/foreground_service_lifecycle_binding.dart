@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
+import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/foreground_service_manager.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -27,6 +29,10 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// local boolean, so it correctly handles process restarts where
 /// the OS-level service may still be alive while Dart state has
 /// been reset.
+///
+/// Also watches app lifecycle state and signals the background worker
+/// to suppress notifications while the app is in the foreground (via
+/// [ForegroundServiceManager.setWorkerForegroundActive]).
 final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
   // Serialize sync calls so concurrent state changes don't race
   // (e.g. _hydrateAuthenticatedSession sets state twice in quick
@@ -94,6 +100,19 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
   ref.listen<bool>(appReadyProvider, (_, __) {
     scheduleSync();
   });
+
+  // Watch app lifecycle and signal the background worker to
+  // suppress/resume notifications based on foreground visibility.
+  ref.listen(
+    notificationStoreProvider.select((s) => s.lifecycleStatus),
+    (previous, next) {
+      final manager = ref.read(foregroundServiceManagerProvider);
+      final isResumed = next == AppLifecycleStatus.resumed;
+      // Fire-and-forget — if service isn't running, native side
+      // will ignore the call gracefully.
+      manager.setWorkerForegroundActive(isResumed).catchError((_) {});
+    },
+  );
 
   scheduleSync();
 });

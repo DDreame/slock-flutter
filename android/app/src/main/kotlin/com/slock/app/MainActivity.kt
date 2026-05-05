@@ -138,6 +138,15 @@ class MainActivity : FlutterActivity() {
                     prefs.edit().putBoolean("is_authenticated", authenticated).apply()
                     result.success(null)
                 }
+                "refreshWorkerAuth" -> {
+                    SlockForegroundService.refreshWorkerAuth()
+                    result.success(null)
+                }
+                "setWorkerForegroundActive" -> {
+                    val active = call.arguments as? Boolean ?: false
+                    SlockForegroundService.setWorkerForegroundActive(active)
+                    result.success(null)
+                }
                 else -> result.notImplemented()
             }
         }
