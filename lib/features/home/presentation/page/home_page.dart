@@ -988,14 +988,15 @@ class _UnreadItemRow extends ConsumerWidget {
   final DateTime now;
 
   /// Z2-style type glyph and theme-safe badge color per kind.
+  /// Colors: THREAD=purple(primary), CHANNEL=teal, DM=blue.
   (String glyph, Color Function(AppColors) colorFn) get _kindBadge {
     switch (item.kind) {
       case HomeUnreadKind.thread:
         return ('\u21a9', (c) => c.primary);
       case HomeUnreadKind.channel:
-        return ('#', (c) => c.success);
+        return ('#', (_) => const Color(0xFF14B8A6));
       case HomeUnreadKind.directMessage:
-        return ('\u2709', (c) => c.primary);
+        return ('\u2709', (_) => const Color(0xFF2196F3));
     }
   }
 

@@ -31,14 +31,15 @@ class HomeUnreadItem {
   /// Build from a [ThreadInboxItem] with unreadCount > 0.
   ///
   /// Pass [parentChannelName] to include the parent channel
-  /// in the [sourceLabel] (e.g. "#general · Thread title").
+  /// in the [sourceLabel] (e.g. "#general"). The thread destination
+  /// title is shown on line 2.
   factory HomeUnreadItem.fromThread(
     ThreadInboxItem thread, {
     String? parentChannelName,
   }) {
     final title = thread.resolvedTitle;
-    final label =
-        parentChannelName != null ? '#$parentChannelName \u00b7 $title' : title;
+    // Source label is just the parent channel; title (line 2) is the destination.
+    final label = parentChannelName != null ? '#$parentChannelName' : null;
     return HomeUnreadItem(
       kind: HomeUnreadKind.thread,
       id: 'thread:${thread.routeTarget.parentMessageId}',
@@ -92,7 +93,7 @@ class HomeUnreadItem {
 
   /// Formatted display label for the unread source.
   ///
-  /// Thread: "#channelName · threadTitle"
+  /// Thread: "#parentChannelName"
   /// Channel: "#channelName"
   /// DM: "peerName"
   final String? sourceLabel;

@@ -62,11 +62,9 @@ String _buildTitle(InboxItem item) {
 String? _buildSourceLabel(InboxItem item) {
   switch (item.kind) {
     case InboxItemKind.thread:
+      // Source is the parent channel; title (line 2) is the thread destination.
       final parentName = item.channelName;
-      final threadTitle = item.threadTitle ?? item.channelId;
-      return parentName != null
-          ? '#$parentName \u00b7 $threadTitle'
-          : threadTitle;
+      return parentName != null ? '#$parentName' : null;
     case InboxItemKind.channel:
       return item.channelName != null ? '#${item.channelName}' : null;
     case InboxItemKind.dm:

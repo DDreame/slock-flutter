@@ -99,7 +99,7 @@ void main() {
       expect(result.senderName, isNull);
     });
 
-    test('thread kind maps senderName and sourceLabel', () {
+    test('thread kind maps senderName and sourceLabel (parent only)', () {
       const item = InboxItem(
         kind: InboxItemKind.thread,
         channelId: 'thread-1',
@@ -120,8 +120,108 @@ void main() {
 
       expect(result.senderName, 'Carol');
       expect(result.kind, HomeUnreadKind.thread);
-      expect(result.sourceLabel, contains('#general'));
+      // Source is just parent channel, NOT "parent · title" (title goes on line 2)
+      expect(result.sourceLabel, '#general');
       expect(result.title, 'Design review');
+    });
+
+    test('adapter maps unreadCount correctly', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'general',
+        channelName: 'general',
+        unreadCount: 42,
+      );
+
+      final result = inboxItemToHomeUnreadItem(
+        item,
+        serverId: const ServerScopeId('server-1'),
+      );
+
+      expect(result.unreadCount, 42);
+    });
+
+    test('adapter maps lastActivityAt correctly', () {
+      final now = DateTime(2026, 5, 5, 10, 30);
+      final item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'general',
+        channelName: 'general',
+        unreadCount: 1,
+        lastActivityAt: now,
+      );
+
+      final result = inboxItemToHomeUnreadItem(
+        item,
+        serverId: const ServerScopeId('server-1'),
+      );
+
+      expect(result.lastActivityAt, now);
+    });
+
+    test('adapter maps channelScopeId for channel kind', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-abc',
+        channelName: 'general',
+        unreadCount: 1,
+      );
+
+      final result = inboxItemToHomeUnreadItem(
+        item,
+        serverId: const ServerScopeId('server-1'),
+      );
+
+      expect(result.channelScopeId, isNotNull);
+      expect(result.channelScopeId!.value, 'ch-abc');
+      expect(result.channelScopeId!.serverId.value, 'server-1');
+      expect(result.dmScopeId, isNull);
+      expect(result.threadRouteTarget, isNull);
+    });
+
+    test('adapter maps dmScopeId for DM kind', () {
+      const item = InboxItem(
+        kind: InboxItemKind.dm,
+        channelId: 'dm-xyz',
+        channelName: 'Eve',
+        unreadCount: 3,
+      );
+
+      final result = inboxItemToHomeUnreadItem(
+        item,
+        serverId: const ServerScopeId('server-1'),
+      );
+
+      expect(result.dmScopeId, isNotNull);
+      expect(result.dmScopeId!.value, 'dm-xyz');
+      expect(result.dmScopeId!.serverId.value, 'server-1');
+      expect(result.channelScopeId, isNull);
+      expect(result.threadRouteTarget, isNull);
+    });
+
+    test('adapter maps threadRouteTarget for thread kind', () {
+      const item = InboxItem(
+        kind: InboxItemKind.thread,
+        channelId: 'th-1',
+        threadChannelId: 'th-chan-1',
+        parentChannelId: 'parent-ch',
+        parentMessageId: 'parent-msg',
+        channelName: 'general',
+        threadTitle: 'My thread',
+        unreadCount: 1,
+      );
+
+      final result = inboxItemToHomeUnreadItem(
+        item,
+        serverId: const ServerScopeId('server-1'),
+      );
+
+      expect(result.threadRouteTarget, isNotNull);
+      expect(result.threadRouteTarget!.parentChannelId, 'parent-ch');
+      expect(result.threadRouteTarget!.parentMessageId, 'parent-msg');
+      expect(result.threadRouteTarget!.threadChannelId, 'th-chan-1');
+      expect(result.channelScopeId, isNull);
+      expect(result.dmScopeId, isNull);
     });
   });
 
@@ -380,6 +480,175 @@ void main() {
         findsOneWidget,
         reason: 'DM glyph badge should be present',
       );
+    });
+
+    testWidgets('thread pill/badge uses purple (primary) color',
+        (tester) async {
+      await _pumpHomeWithInboxItems(
+        tester,
+        items: const [
+          InboxItem(
+            kind: InboxItemKind.thread,
+            channelId: 'th-color',
+            threadChannelId: 'th-color',
+            parentChannelId: 'general',
+            parentMessageId: 'msg-c',
+            channelName: 'general',
+            threadTitle: 'Color test',
+            unreadCount: 1,
+          ),
+        ],
+      );
+
+      // Thread pill color should be purple (AppColors.light.primary = 0xFF6366F1)
+      final pillFinder =
+          find.byKey(const ValueKey('unread-pill-thread:th-color'));
+      final pillContainer = tester.widget<Container>(pillFinder);
+      final pillDecoration = pillContainer.decoration! as BoxDecoration;
+      // The pill background uses primary.withValues(alpha: 0.12)
+      expect(
+        pillDecoration.color!.r,
+        closeTo(const Color(0xFF6366F1).r, 0.01),
+        reason: 'Thread pill should use primary (purple) color channel',
+      );
+
+      // Kind badge
+      final badgeFinder = find.byKey(const ValueKey('unread-kind-thread'));
+      final badgeContainer = tester.widget<Container>(badgeFinder);
+      final badgeDecoration = badgeContainer.decoration! as BoxDecoration;
+      expect(
+        badgeDecoration.color!.r,
+        closeTo(const Color(0xFF6366F1).r, 0.01),
+        reason: 'Thread badge should use primary (purple)',
+      );
+    });
+
+    testWidgets('channel pill/badge uses teal color', (tester) async {
+      await _pumpHomeWithInboxItems(
+        tester,
+        items: const [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-color',
+            channelName: 'teal-test',
+            unreadCount: 1,
+          ),
+        ],
+      );
+
+      // Channel pill color should be teal (0xFF14B8A6)
+      const teal = Color(0xFF14B8A6);
+      final pillFinder =
+          find.byKey(const ValueKey('unread-pill-channel:ch-color'));
+      final pillContainer = tester.widget<Container>(pillFinder);
+      final pillDecoration = pillContainer.decoration! as BoxDecoration;
+      expect(
+        pillDecoration.color!.g,
+        closeTo(teal.g, 0.01),
+        reason: 'Channel pill should use teal color channel',
+      );
+
+      // Kind badge
+      final badgeFinder = find.byKey(const ValueKey('unread-kind-channel'));
+      final badgeContainer = tester.widget<Container>(badgeFinder);
+      final badgeDecoration = badgeContainer.decoration! as BoxDecoration;
+      expect(
+        badgeDecoration.color!.g,
+        closeTo(teal.g, 0.01),
+        reason: 'Channel badge should use teal',
+      );
+    });
+
+    testWidgets('DM pill/badge uses blue color', (tester) async {
+      await _pumpHomeWithInboxItems(
+        tester,
+        items: const [
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-color',
+            channelName: 'Blue Test',
+            unreadCount: 1,
+          ),
+        ],
+      );
+
+      // DM pill color should be blue (0xFF2196F3)
+      const blue = Color(0xFF2196F3);
+      final pillFinder = find.byKey(const ValueKey('unread-pill-dm:dm-color'));
+      final pillContainer = tester.widget<Container>(pillFinder);
+      final pillDecoration = pillContainer.decoration! as BoxDecoration;
+      expect(
+        pillDecoration.color!.b,
+        closeTo(blue.b, 0.01),
+        reason: 'DM pill should use blue color channel',
+      );
+
+      // Kind badge
+      final badgeFinder =
+          find.byKey(const ValueKey('unread-kind-directMessage'));
+      final badgeContainer = tester.widget<Container>(badgeFinder);
+      final badgeDecoration = badgeContainer.decoration! as BoxDecoration;
+      expect(
+        badgeDecoration.color!.b,
+        closeTo(blue.b, 0.01),
+        reason: 'DM badge should use blue',
+      );
+    });
+
+    testWidgets('View all → header is present and links to unread page',
+        (tester) async {
+      await _pumpHomeWithInboxItems(
+        tester,
+        items: const [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'general',
+            channelName: 'general',
+            unreadCount: 1,
+          ),
+        ],
+      );
+
+      // The card's View all → is rendered by _SummaryCardBase
+      // with key 'card-view-all-${title.toLowerCase()}'
+      final viewAllFinder = find.textContaining('→');
+      expect(viewAllFinder, findsWidgets,
+          reason: 'View all → link should be present in unread card');
+    });
+
+    testWidgets(
+        'thread source label does NOT duplicate title on line 1 and line 2',
+        (tester) async {
+      await _pumpHomeWithInboxItems(
+        tester,
+        items: const [
+          InboxItem(
+            kind: InboxItemKind.thread,
+            channelId: 'th-dup',
+            threadChannelId: 'th-dup',
+            parentChannelId: 'general',
+            parentMessageId: 'msg-d',
+            channelName: 'general',
+            threadTitle: 'My Thread Title',
+            unreadCount: 1,
+          ),
+        ],
+      );
+
+      // Source label (line 1) should be just "#general" (source only)
+      final sourceWidget = tester.widget<Text>(
+        find.byKey(const ValueKey('unread-source-thread:th-dup')),
+      );
+      expect(sourceWidget.data, '#general',
+          reason: 'Thread source should be just parent channel name');
+      expect(sourceWidget.data, isNot(contains('My Thread Title')),
+          reason: 'Thread source should NOT contain the thread title');
+
+      // Title (line 2) should be the thread title
+      final titleWidget = tester.widget<Text>(
+        find.byKey(const ValueKey('unread-title-thread:th-dup')),
+      );
+      expect(titleWidget.data, 'My Thread Title');
     });
   });
 }
