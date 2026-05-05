@@ -63,9 +63,19 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
     if (shouldStart) {
       await manager.setAuthFlag(true);
       await manager.startService();
+
+      // Push the current foreground-active state to the worker
+      // immediately after start, so it doesn't post duplicates
+      // if the app is already in the foreground when the service boots.
+      final lifecycleStatus = ref.read(
+        notificationStoreProvider.select((s) => s.lifecycleStatus),
+      );
+      final isResumed = lifecycleStatus == AppLifecycleStatus.resumed;
+      await manager.setWorkerForegroundActive(isResumed);
+
       diagnostics.info(
         'foreground-service',
-        'Started foreground service',
+        'Started foreground service (foregroundActive=$isResumed)',
       );
       return;
     }

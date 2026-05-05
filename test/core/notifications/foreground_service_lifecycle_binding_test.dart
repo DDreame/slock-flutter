@@ -379,6 +379,29 @@ void main() {
           reason: 'must not start when token is null '
               'even though session is authenticated');
     });
+
+    test(
+        'pushes initial foreground-active state to worker '
+        'when service starts while app is already resumed', () async {
+      container.read(
+        foregroundServiceLifecycleBindingProvider,
+      );
+
+      // App lifecycle defaults to resumed (NotificationState initial).
+      // Start conditions met: authenticate + appReady.
+      container.read(appReadyProvider.notifier).state = true;
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pw');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeManager.startCalls, 1);
+      // The binding must push the current foreground-active state
+      // (resumed = true) immediately after starting the service,
+      // so the worker doesn't post duplicate notifications.
+      expect(fakeManager.lastWorkerForegroundActive, isTrue,
+          reason: 'should push initial resumed state to worker on start');
+    });
   });
 
   group('ForegroundServiceLifecycleBinding diagnostics', () {
