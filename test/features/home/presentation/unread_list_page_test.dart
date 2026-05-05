@@ -254,11 +254,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Thread source label should include parent channel name
+        // Thread source label should be parent channel only (Z2 spec)
         expect(
-          find.text('#general \u00b7 Thread topic'),
+          find.text('#general'),
           findsOneWidget,
-          reason: 'UnreadListPage should show source labels '
+          reason: 'UnreadListPage should show source-only label '
               'from inbox adapter',
         );
       },

@@ -1216,7 +1216,7 @@ void main() {
         expect(
           find.descendant(
             of: row,
-            matching: find.text('#general \u00b7 Thread title'),
+            matching: find.text('#general'),
           ),
           findsOneWidget,
         );
@@ -1589,7 +1589,9 @@ void main() {
             of: find.byKey(
               const ValueKey('unread-item-dm:pinned-dm'),
             ),
-            matching: find.text('Pinned Friend'),
+            matching: find.byKey(
+              const ValueKey('unread-title-dm:pinned-dm'),
+            ),
           ),
           findsOneWidget,
         );
@@ -1838,14 +1840,14 @@ void main() {
         );
         expect(row, findsOneWidget);
 
-        // Source label should show "#general · Bug discussion"
+        // Source label should show just "#general" (source-only per Z2 spec)
         expect(
           find.descendant(
             of: row,
-            matching: find.text('#general \u00b7 Bug discussion'),
+            matching: find.text('#general'),
           ),
           findsOneWidget,
-          reason: 'Thread source label should show parent channel and title',
+          reason: 'Thread source label should show parent channel only',
         );
       },
     );
@@ -2014,7 +2016,9 @@ void main() {
         expect(
           find.descendant(
             of: row,
-            matching: find.text('Alice'),
+            matching: find.byKey(
+              const ValueKey('unread-source-dm:dm-alice'),
+            ),
           ),
           findsOneWidget,
           reason: 'DM source label should show peer name',
