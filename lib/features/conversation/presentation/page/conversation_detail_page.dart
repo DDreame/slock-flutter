@@ -1608,11 +1608,12 @@ class _FullScreenImageViewerState
         serverId,
         attachmentId: att.id!,
       );
-      if (mounted)
+      if (mounted) {
         setState(() {
           _signedUrl = url;
           _loading = false;
         });
+      }
     } on AppFailure {
       if (mounted) {
         setState(() {
