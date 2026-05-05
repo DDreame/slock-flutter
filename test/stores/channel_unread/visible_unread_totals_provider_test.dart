@@ -176,7 +176,7 @@ void main() {
       expect(state.dmUnreadCount(dm2ScopeId), 3);
     });
 
-    test('hidden DM unread contributes to DM tab badge', () async {
+    test('hidden DM unread does NOT contribute to DM tab badge', () async {
       final container = createContainer(
         sidebarOrder: const SidebarOrder(hiddenDmIds: ['dm-bob']),
       );
@@ -184,11 +184,11 @@ void main() {
 
       container.read(channelUnreadStoreProvider.notifier).hydrateDmUnreads({
         dmScopeId: 2,
-        dm2ScopeId: 4, // Bob is hidden but should still count.
+        dm2ScopeId: 4, // Bob is hidden — should NOT count.
       });
 
       final total = container.read(visibleDmUnreadTotalProvider);
-      expect(total, 6);
+      expect(total, 2);
     });
   });
 }

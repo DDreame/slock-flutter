@@ -23,11 +23,11 @@ final visibleChannelUnreadTotalProvider = Provider<int>((ref) {
 });
 
 /// Computes the total unread count for the DMs tab badge by
-/// summing only counts for DM IDs that are visible (or hidden)
-/// in the home list.
+/// summing only counts for DM IDs that are visible in the
+/// home list (pinned + regular direct messages).
 ///
-/// Hidden DMs are included because their unread count contributes
-/// to the aggregate DM badge — the hidden section shows a summary.
+/// Hidden DMs are excluded — their unread display is deferred
+/// to the Inbox API parity work (#386).
 final visibleDmUnreadTotalProvider = Provider<int>((ref) {
   final homeState = ref.watch(homeListStoreProvider);
   final unreadState = ref.watch(channelUnreadStoreProvider);
@@ -36,9 +36,6 @@ final visibleDmUnreadTotalProvider = Provider<int>((ref) {
     total += unreadState.dmUnreadCount(dm.scopeId);
   }
   for (final dm in homeState.directMessages) {
-    total += unreadState.dmUnreadCount(dm.scopeId);
-  }
-  for (final dm in homeState.hiddenDirectMessages) {
     total += unreadState.dmUnreadCount(dm.scopeId);
   }
   return total;
