@@ -17,6 +17,8 @@ class FakeForegroundServiceManager implements ForegroundServiceManager {
   int stopCalls = 0;
   bool _running = false;
   bool? lastAuthFlag;
+  int refreshWorkerAuthCalls = 0;
+  bool? lastWorkerForegroundActive;
 
   /// Simulate an already-running service (e.g. OS restored it
   /// after a process restart).
@@ -41,6 +43,27 @@ class FakeForegroundServiceManager implements ForegroundServiceManager {
   Future<void> setAuthFlag(bool authenticated) async {
     lastAuthFlag = authenticated;
   }
+
+  @override
+  Future<void> refreshWorkerAuth() async {
+    refreshWorkerAuthCalls++;
+  }
+
+  @override
+  Future<void> setWorkerForegroundActive(bool active) async {
+    lastWorkerForegroundActive = active;
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getWorkerDiagnostics() async {
+    return <String, dynamic>{
+      'isServiceAlive': _running,
+      'socketStatus': 'connected',
+      'lastEventTime': null,
+      'lastNotificationAttempt': null,
+      'lastPermissionFailure': null,
+    };
+  }
 }
 
 class _ThrowingForegroundServiceManager implements ForegroundServiceManager {
@@ -59,6 +82,15 @@ class _ThrowingForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<void> setAuthFlag(bool authenticated) async {}
+
+  @override
+  Future<void> refreshWorkerAuth() async {}
+
+  @override
+  Future<void> setWorkerForegroundActive(bool active) async {}
+
+  @override
+  Future<Map<String, dynamic>?> getWorkerDiagnostics() async => null;
 }
 
 void main() {
@@ -361,6 +393,57 @@ void main() {
           reason: 'must not start when token is null '
               'even though session is authenticated');
     });
+
+    test(
+        'pushes initial foreground-active state to worker '
+        'when service starts while app is already resumed', () async {
+      container.read(
+        foregroundServiceLifecycleBindingProvider,
+      );
+
+      // App lifecycle defaults to resumed (NotificationState initial).
+      // Start conditions met: authenticate + appReady.
+      container.read(appReadyProvider.notifier).state = true;
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pw');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeManager.startCalls, 1);
+      // The binding must push the current foreground-active state
+      // (resumed = true) immediately after starting the service,
+      // so the worker doesn't post duplicate notifications.
+      expect(fakeManager.lastWorkerForegroundActive, isTrue,
+          reason: 'should push initial resumed state to worker on start');
+    });
+
+    test(
+        'pushes initial foreground-active state to already-running worker '
+        'when Dart binding initializes after process restart', () async {
+      // Simulate: OS restored the foreground service (already running)
+      // before the Dart binding initializes after a process restart.
+      fakeManager.simulateRunning = true;
+
+      container.read(
+        foregroundServiceLifecycleBindingProvider,
+      );
+
+      // Authenticate + appReady triggers sync, but shouldStart == false
+      // because service is already running.
+      container.read(appReadyProvider.notifier).state = true;
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pw');
+      await Future<void>.delayed(Duration.zero);
+
+      // Service was not re-started (already running).
+      expect(fakeManager.startCalls, 0);
+      // But the binding must still push the current foreground-active
+      // state to the already-running worker.
+      expect(fakeManager.lastWorkerForegroundActive, isTrue,
+          reason: 'should push initial resumed state to already-running '
+              'worker after process restart');
+    });
   });
 
   group('ForegroundServiceLifecycleBinding diagnostics', () {
@@ -461,6 +544,24 @@ void main() {
           .toList();
       expect(errors, isNotEmpty);
       expect(errors.first.message, contains('sync error'));
+    });
+
+    test('logs background worker diagnostics after service start', () async {
+      container.read(foregroundServiceLifecycleBindingProvider);
+
+      container.read(appReadyProvider.notifier).state = true;
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pw');
+      // Allow sync + diagnostics future to complete.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final diagEntries = diagnostics.entries
+          .where((e) => e.tag == 'background-worker-diagnostics')
+          .toList();
+      expect(diagEntries, hasLength(1));
+      expect(diagEntries.first.message, contains('socketStatus=connected'));
+      expect(diagEntries.first.message, contains('isServiceAlive=true'));
     });
   });
 }

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
+import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/foreground_service_manager.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -27,6 +29,10 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// local boolean, so it correctly handles process restarts where
 /// the OS-level service may still be alive while Dart state has
 /// been reset.
+///
+/// Also watches app lifecycle state and signals the background worker
+/// to suppress notifications while the app is in the foreground (via
+/// [ForegroundServiceManager.setWorkerForegroundActive]).
 final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
   // Serialize sync calls so concurrent state changes don't race
   // (e.g. _hydrateAuthenticatedSession sets state twice in quick
@@ -57,11 +63,36 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
     if (shouldStart) {
       await manager.setAuthFlag(true);
       await manager.startService();
+
+      // Push the current foreground-active state to the worker
+      // immediately after start, so it doesn't post duplicates
+      // if the app is already in the foreground when the service boots.
+      final lifecycleStatus = ref.read(
+        notificationStoreProvider.select((s) => s.lifecycleStatus),
+      );
+      final isResumed = lifecycleStatus == AppLifecycleStatus.resumed;
+      await manager.setWorkerForegroundActive(isResumed);
+
+      // Log initial worker diagnostics after service start.
+      _logWorkerDiagnostics(manager, diagnostics);
+
       diagnostics.info(
         'foreground-service',
-        'Started foreground service',
+        'Started foreground service (foregroundActive=$isResumed)',
       );
       return;
+    }
+
+    // When the service is already running (e.g. OS restored it after
+    // a process restart), push the current foreground-active state so
+    // the worker doesn't post duplicate notifications while the app
+    // is in the foreground.
+    if (running && session.isAuthenticated) {
+      final lifecycleStatus = ref.read(
+        notificationStoreProvider.select((s) => s.lifecycleStatus),
+      );
+      final isResumed = lifecycleStatus == AppLifecycleStatus.resumed;
+      await manager.setWorkerForegroundActive(isResumed);
     }
 
     // Always clear the auth flag on explicit unauthentication so
@@ -95,5 +126,50 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
     scheduleSync();
   });
 
+  // Watch app lifecycle and signal the background worker to
+  // suppress/resume notifications based on foreground visibility.
+  ref.listen(
+    notificationStoreProvider.select((s) => s.lifecycleStatus),
+    (previous, next) {
+      final manager = ref.read(foregroundServiceManagerProvider);
+      final isResumed = next == AppLifecycleStatus.resumed;
+      // Fire-and-forget — if service isn't running, native side
+      // will ignore the call gracefully.
+      manager.setWorkerForegroundActive(isResumed).catchError((_) {});
+    },
+  );
+
   scheduleSync();
+});
+
+/// Log worker diagnostics into the diagnostics collector.
+/// Fire-and-forget — called after service start or when diagnostics
+/// are requested for the telemetry page.
+void _logWorkerDiagnostics(
+  ForegroundServiceManager manager,
+  DiagnosticsCollector diagnostics,
+) {
+  manager.getWorkerDiagnostics().then((snapshot) {
+    if (snapshot != null) {
+      diagnostics.info(
+        'background-worker-diagnostics',
+        'socketStatus=${snapshot['socketStatus']}, '
+            'isServiceAlive=${snapshot['isServiceAlive']}, '
+            'lastEventTime=${snapshot['lastEventTime']}, '
+            'lastNotificationAttempt=${snapshot['lastNotificationAttempt']}, '
+            'lastPermissionFailure=${snapshot['lastPermissionFailure']}',
+      );
+    }
+  }).catchError((_) {});
+}
+
+/// Provider for on-demand access to background worker diagnostics.
+/// Returns null when the service is not running or on non-Android
+/// platforms. Used by the diagnostics/telemetry page.
+final backgroundWorkerDiagnosticsProvider =
+    FutureProvider<Map<String, dynamic>?>((ref) async {
+  final manager = ref.read(foregroundServiceManagerProvider);
+  final running = await manager.isRunning;
+  if (!running) return null;
+  return manager.getWorkerDiagnostics();
 });
