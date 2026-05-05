@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/l10n/l10n.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
+import 'package:slock_app/stores/channel_unread/visible_unread_totals_provider.dart';
 
 const _hiddenBottomNavPaths = {
   '/login',
@@ -36,15 +36,8 @@ class AppShell extends ConsumerWidget {
     final showBottomNavigation = _showBottomNavigation(context);
     final l10n = context.l10n;
 
-    final unreadState = ref.watch(channelUnreadStoreProvider);
-    final channelUnreadTotal = unreadState.channelUnreadCounts.values.fold(
-      0,
-      (sum, c) => sum + c,
-    );
-    final dmUnreadTotal = unreadState.dmUnreadCounts.values.fold(
-      0,
-      (sum, c) => sum + c,
-    );
+    final channelUnreadTotal = ref.watch(visibleChannelUnreadTotalProvider);
+    final dmUnreadTotal = ref.watch(visibleDmUnreadTotalProvider);
     final homeUnreadTotal = channelUnreadTotal + dmUnreadTotal;
 
     return Scaffold(

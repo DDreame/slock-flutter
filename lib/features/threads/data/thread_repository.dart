@@ -45,16 +45,20 @@ class ThreadInboxItem {
   String get resolvedTitle => title ?? 'Thread';
 
   ThreadInboxItem copyWith({
+    String? preview,
+    String? senderName,
+    int? replyCount,
     int? unreadCount,
+    DateTime? lastReplyAt,
   }) {
     return ThreadInboxItem(
       routeTarget: routeTarget,
       title: title,
-      preview: preview,
-      senderName: senderName,
-      replyCount: replyCount,
+      preview: preview ?? this.preview,
+      senderName: senderName ?? this.senderName,
+      replyCount: replyCount ?? this.replyCount,
       unreadCount: unreadCount ?? this.unreadCount,
-      lastReplyAt: lastReplyAt,
+      lastReplyAt: lastReplyAt ?? this.lastReplyAt,
       participantIds: participantIds,
     );
   }
