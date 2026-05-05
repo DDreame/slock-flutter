@@ -12,6 +12,7 @@ abstract class AndroidForegroundServicePlatformBridge {
   Future<void> setAuthFlag(bool authenticated);
   Future<void> refreshWorkerAuth();
   Future<void> setWorkerForegroundActive(bool active);
+  Future<Map<String, dynamic>?> getWorkerDiagnostics();
 }
 
 class MethodChannelForegroundServiceBridge
@@ -57,6 +58,13 @@ class MethodChannelForegroundServiceBridge
   Future<void> setWorkerForegroundActive(bool active) async {
     await _channel.invokeMethod<void>('setWorkerForegroundActive', active);
   }
+
+  @override
+  Future<Map<String, dynamic>?> getWorkerDiagnostics() async {
+    final result =
+        await _channel.invokeMapMethod<String, dynamic>('getWorkerDiagnostics');
+    return result;
+  }
 }
 
 class AndroidForegroundServiceManager implements ForegroundServiceManager {
@@ -86,4 +94,8 @@ class AndroidForegroundServiceManager implements ForegroundServiceManager {
   @override
   Future<void> setWorkerForegroundActive(bool active) =>
       _bridge.setWorkerForegroundActive(active);
+
+  @override
+  Future<Map<String, dynamic>?> getWorkerDiagnostics() =>
+      _bridge.getWorkerDiagnostics();
 }

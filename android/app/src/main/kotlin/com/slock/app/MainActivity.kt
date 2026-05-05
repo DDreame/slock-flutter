@@ -147,6 +147,9 @@ class MainActivity : FlutterActivity() {
                     SlockForegroundService.setWorkerForegroundActive(active)
                     result.success(null)
                 }
+                "getWorkerDiagnostics" -> {
+                    SlockForegroundService.getWorkerDiagnostics(result)
+                }
                 else -> result.notImplemented()
             }
         }

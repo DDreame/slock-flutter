@@ -56,6 +56,36 @@ class SlockForegroundService : Service() {
                 active,
             )
         }
+
+        /** Request diagnostics from the headless Dart worker. */
+        fun getWorkerDiagnostics(result: MethodChannel.Result) {
+            val channel = instance?.workerMethodChannel
+            if (channel == null) {
+                result.success(null)
+                return
+            }
+            channel.invokeMethod(
+                "getDiagnostics",
+                null,
+                object : MethodChannel.Result {
+                    override fun success(data: Any?) {
+                        result.success(data)
+                    }
+
+                    override fun error(
+                        code: String,
+                        message: String?,
+                        details: Any?,
+                    ) {
+                        result.success(null)
+                    }
+
+                    override fun notImplemented() {
+                        result.success(null)
+                    }
+                },
+            )
+        }
     }
 
     private var flutterEngine: FlutterEngine? = null
@@ -145,6 +175,10 @@ class SlockForegroundService : Service() {
 
         Log.d(tag, "Starting headless Dart worker")
         val engine = FlutterEngine(this, null, false)
+
+        // Register plugins so SharedPreferences and other platform
+        // channels are available in the headless engine context.
+        io.flutter.plugins.GeneratedPluginRegistrant.registerWith(engine)
 
         // Set up the method channel BEFORE executing the Dart entrypoint
         // so the Dart code can use it immediately.

@@ -73,6 +73,9 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
       final isResumed = lifecycleStatus == AppLifecycleStatus.resumed;
       await manager.setWorkerForegroundActive(isResumed);
 
+      // Log initial worker diagnostics after service start.
+      _logWorkerDiagnostics(manager, diagnostics);
+
       diagnostics.info(
         'foreground-service',
         'Started foreground service (foregroundActive=$isResumed)',
@@ -137,4 +140,36 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
   );
 
   scheduleSync();
+});
+
+/// Log worker diagnostics into the diagnostics collector.
+/// Fire-and-forget — called after service start or when diagnostics
+/// are requested for the telemetry page.
+void _logWorkerDiagnostics(
+  ForegroundServiceManager manager,
+  DiagnosticsCollector diagnostics,
+) {
+  manager.getWorkerDiagnostics().then((snapshot) {
+    if (snapshot != null) {
+      diagnostics.info(
+        'background-worker-diagnostics',
+        'socketStatus=${snapshot['socketStatus']}, '
+            'isServiceAlive=${snapshot['isServiceAlive']}, '
+            'lastEventTime=${snapshot['lastEventTime']}, '
+            'lastNotificationAttempt=${snapshot['lastNotificationAttempt']}, '
+            'lastPermissionFailure=${snapshot['lastPermissionFailure']}',
+      );
+    }
+  }).catchError((_) {});
+}
+
+/// Provider for on-demand access to background worker diagnostics.
+/// Returns null when the service is not running or on non-Android
+/// platforms. Used by the diagnostics/telemetry page.
+final backgroundWorkerDiagnosticsProvider =
+    FutureProvider<Map<String, dynamic>?>((ref) async {
+  final manager = ref.read(foregroundServiceManagerProvider);
+  final running = await manager.isRunning;
+  if (!running) return null;
+  return manager.getWorkerDiagnostics();
 });

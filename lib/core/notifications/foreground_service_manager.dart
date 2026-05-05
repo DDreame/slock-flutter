@@ -29,6 +29,11 @@ abstract class ForegroundServiceManager {
   /// When active, the worker suppresses notifications to avoid
   /// duplicates with the main isolate's notification bridge.
   Future<void> setWorkerForegroundActive(bool active);
+
+  /// Retrieve the background worker's diagnostic snapshot.
+  /// Returns null when the service is not running or diagnostics
+  /// are unavailable (e.g. on non-Android platforms).
+  Future<Map<String, dynamic>?> getWorkerDiagnostics();
 }
 
 class NoOpForegroundServiceManager implements ForegroundServiceManager {
@@ -51,6 +56,9 @@ class NoOpForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<void> setWorkerForegroundActive(bool active) async {}
+
+  @override
+  Future<Map<String, dynamic>?> getWorkerDiagnostics() async => null;
 }
 
 final foregroundServiceManagerProvider =

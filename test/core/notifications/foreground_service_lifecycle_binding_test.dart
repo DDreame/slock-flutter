@@ -53,6 +53,17 @@ class FakeForegroundServiceManager implements ForegroundServiceManager {
   Future<void> setWorkerForegroundActive(bool active) async {
     lastWorkerForegroundActive = active;
   }
+
+  @override
+  Future<Map<String, dynamic>?> getWorkerDiagnostics() async {
+    return <String, dynamic>{
+      'isServiceAlive': _running,
+      'socketStatus': 'connected',
+      'lastEventTime': null,
+      'lastNotificationAttempt': null,
+      'lastPermissionFailure': null,
+    };
+  }
 }
 
 class _ThrowingForegroundServiceManager implements ForegroundServiceManager {
@@ -77,6 +88,9 @@ class _ThrowingForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<void> setWorkerForegroundActive(bool active) async {}
+
+  @override
+  Future<Map<String, dynamic>?> getWorkerDiagnostics() async => null;
 }
 
 void main() {
@@ -530,6 +544,24 @@ void main() {
           .toList();
       expect(errors, isNotEmpty);
       expect(errors.first.message, contains('sync error'));
+    });
+
+    test('logs background worker diagnostics after service start', () async {
+      container.read(foregroundServiceLifecycleBindingProvider);
+
+      container.read(appReadyProvider.notifier).state = true;
+      await container
+          .read(sessionStoreProvider.notifier)
+          .login(email: 'a@b.com', password: 'pw');
+      // Allow sync + diagnostics future to complete.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final diagEntries = diagnostics.entries
+          .where((e) => e.tag == 'background-worker-diagnostics')
+          .toList();
+      expect(diagEntries, hasLength(1));
+      expect(diagEntries.first.message, contains('socketStatus=connected'));
+      expect(diagEntries.first.message, contains('isServiceAlive=true'));
     });
   });
 }
