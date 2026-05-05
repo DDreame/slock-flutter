@@ -2,11 +2,15 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/unread/data/channel_unread_repository_provider.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 /// Combines local [ChannelUnreadStore] clear with a server-side
 /// `POST /channels/{id}/read` call.
+///
+/// Also updates the canonical [InboxStore] so inbox-derived badges
+/// reflect the change immediately.
 ///
 /// Usage from widgets:
 /// ```dart
@@ -19,6 +23,10 @@ final markChannelReadUseCaseProvider =
     ref.read(channelUnreadStoreProvider.notifier).markChannelRead(
           scopeId,
         );
+    // Update canonical inbox state (optimistic).
+    unawaited(
+      ref.read(inboxStoreProvider.notifier).markRead(channelId: scopeId.value),
+    );
     // Fire-and-forget server sync.
     unawaited(
       ref
@@ -34,6 +42,9 @@ final markChannelReadUseCaseProvider =
 
 /// Combines local [ChannelUnreadStore] clear with a server-side
 /// `POST /channels/{id}/read` call for direct messages.
+///
+/// Also updates the canonical [InboxStore] so inbox-derived badges
+/// reflect the change immediately.
 final markDmReadUseCaseProvider =
     Provider<void Function(DirectMessageScopeId)>((ref) {
   return (DirectMessageScopeId scopeId) {
@@ -41,6 +52,10 @@ final markDmReadUseCaseProvider =
     ref.read(channelUnreadStoreProvider.notifier).markDmRead(
           scopeId,
         );
+    // Update canonical inbox state (optimistic).
+    unawaited(
+      ref.read(inboxStoreProvider.notifier).markRead(channelId: scopeId.value),
+    );
     // Fire-and-forget server sync — DMs are also channels.
     unawaited(
       ref
