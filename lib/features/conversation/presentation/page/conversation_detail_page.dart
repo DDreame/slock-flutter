@@ -1468,7 +1468,8 @@ class _AttachmentSection extends StatelessWidget {
   ) {
     final mimeType = attachment.type.toLowerCase();
 
-    if (_imageTypes.contains(mimeType) && attachment.url != null) {
+    if (_imageTypes.contains(mimeType) &&
+        (attachment.thumbnailUrl != null || attachment.url != null)) {
       return _ImageAttachmentPreview(attachment: attachment);
     }
 
@@ -1502,7 +1503,7 @@ class _ImageAttachmentPreview extends StatelessWidget {
                 maxWidth: 280,
               ),
               child: Image.network(
-                attachment.url!,
+                attachment.thumbnailUrl ?? attachment.url!,
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
@@ -1595,8 +1596,14 @@ class _FullScreenImageViewerState
 
   Future<void> _loadSignedUrl() async {
     final att = widget.attachment;
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
     // If no id, fall back to direct url (legacy attachment).
     if (att.id == null || att.id!.isEmpty) {
+      diagnostics.info(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=missing, '
+            'mimeType=${att.type}, fallback=directUrl',
+      );
       setState(() => _signedUrl = att.url);
       return;
     }
@@ -1614,7 +1621,12 @@ class _FullScreenImageViewerState
           _loading = false;
         });
       }
-    } on AppFailure {
+    } on AppFailure catch (e) {
+      diagnostics.error(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=${att.id}, '
+            'mimeType=${att.type}, failureType=${e.runtimeType}',
+      );
       if (mounted) {
         setState(() {
           _signedUrl = att.url;
@@ -1785,6 +1797,7 @@ class _HtmlAttachmentRow extends ConsumerWidget {
   }
 
   Future<void> _openHtmlPreview(BuildContext context, WidgetRef ref) async {
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
     // If we have an attachment id, use the html-preview-url endpoint.
     if (attachment.id != null && attachment.id!.isNotEmpty) {
       try {
@@ -1800,9 +1813,20 @@ class _HtmlAttachmentRow extends ConsumerWidget {
           mode: LaunchMode.externalApplication,
         );
         return;
-      } on AppFailure {
+      } on AppFailure catch (e) {
+        diagnostics.error(
+          'attachment-preview',
+          'source=htmlPreview, attachmentId=${attachment.id}, '
+              'mimeType=${attachment.type}, failureType=${e.runtimeType}',
+        );
         // Fall through to direct URL if available.
       }
+    } else {
+      diagnostics.info(
+        'attachment-preview',
+        'source=htmlPreview, attachmentId=missing, '
+            'mimeType=${attachment.type}, fallback=directUrl',
+      );
     }
     // Fallback: use direct url if present.
     if (attachment.url != null) {
@@ -1862,6 +1886,7 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
   }
 
   Future<void> _openFile(BuildContext context, WidgetRef ref) async {
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
     // If we have an attachment id, fetch a signed URL for download.
     if (attachment.id != null && attachment.id!.isNotEmpty) {
       try {
@@ -1877,9 +1902,20 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
           mode: LaunchMode.externalApplication,
         );
         return;
-      } on AppFailure {
+      } on AppFailure catch (e) {
+        diagnostics.error(
+          'attachment-preview',
+          'source=signedUrl, attachmentId=${attachment.id}, '
+              'mimeType=${attachment.type}, failureType=${e.runtimeType}',
+        );
         // Fall through to direct URL if available.
       }
+    } else {
+      diagnostics.info(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=missing, '
+            'mimeType=${attachment.type}, fallback=directUrl',
+      );
     }
     // Fallback: use direct url if present.
     if (attachment.url != null) {
