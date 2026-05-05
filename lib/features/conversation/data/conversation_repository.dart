@@ -154,6 +154,7 @@ class MessageAttachment {
     this.url,
     this.id,
     this.sizeBytes,
+    this.thumbnailUrl,
   });
 
   final String name;
@@ -161,6 +162,10 @@ class MessageAttachment {
   final String? url;
   final String? id;
   final int? sizeBytes;
+
+  /// Thumbnail/preview URL from the new API payload (`thumbnailUrl` field).
+  /// Used for inline image previews before fetching a full signed URL.
+  final String? thumbnailUrl;
 
   /// Formats [sizeBytes] into a human-readable string (e.g. "2.4 MB").
   /// Returns `null` when [sizeBytes] is absent.
@@ -183,11 +188,12 @@ class MessageAttachment {
             type == other.type &&
             url == other.url &&
             id == other.id &&
-            sizeBytes == other.sizeBytes;
+            sizeBytes == other.sizeBytes &&
+            thumbnailUrl == other.thumbnailUrl;
   }
 
   @override
-  int get hashCode => Object.hash(name, type, url, id, sizeBytes);
+  int get hashCode => Object.hash(name, type, url, id, sizeBytes, thumbnailUrl);
 }
 
 @immutable
