@@ -2,11 +2,12 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/unread/data/channel_unread_repository_provider.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
-/// Combines local [ChannelUnreadStore] clear with a server-side
-/// `POST /channels/{id}/read` call.
+/// Marks a channel as read: clears local badge immediately and
+/// fires the canonical `POST /channels/{id}/read-all` via
+/// [InboxStore.markRead].
 ///
 /// Usage from widgets:
 /// ```dart
@@ -15,41 +16,30 @@ import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 final markChannelReadUseCaseProvider =
     Provider<void Function(ChannelScopeId)>((ref) {
   return (ChannelScopeId scopeId) {
-    // Clear local badge immediately for instant UI feedback.
+    // Clear legacy local badge for any UI still reading the old store.
     ref.read(channelUnreadStoreProvider.notifier).markChannelRead(
           scopeId,
         );
-    // Fire-and-forget server sync.
+    // Canonical path: optimistic inbox update + POST /channels/{id}/read-all.
     unawaited(
-      ref
-          .read(channelUnreadRepositoryProvider)
-          .markChannelRead(
-            scopeId.serverId,
-            channelId: scopeId.value,
-          )
-          .catchError((_) {}),
+      ref.read(inboxStoreProvider.notifier).markRead(channelId: scopeId.value),
     );
   };
 });
 
-/// Combines local [ChannelUnreadStore] clear with a server-side
-/// `POST /channels/{id}/read` call for direct messages.
+/// Marks a DM as read: clears local badge immediately and
+/// fires the canonical `POST /channels/{id}/read-all` via
+/// [InboxStore.markRead].
 final markDmReadUseCaseProvider =
     Provider<void Function(DirectMessageScopeId)>((ref) {
   return (DirectMessageScopeId scopeId) {
-    // Clear local badge immediately for instant UI feedback.
+    // Clear legacy local badge for any UI still reading the old store.
     ref.read(channelUnreadStoreProvider.notifier).markDmRead(
           scopeId,
         );
-    // Fire-and-forget server sync — DMs are also channels.
+    // Canonical path: optimistic inbox update + POST /channels/{id}/read-all.
     unawaited(
-      ref
-          .read(channelUnreadRepositoryProvider)
-          .markChannelRead(
-            scopeId.serverId,
-            channelId: scopeId.value,
-          )
-          .catchError((_) {}),
+      ref.read(inboxStoreProvider.notifier).markRead(channelId: scopeId.value),
     );
   };
 });

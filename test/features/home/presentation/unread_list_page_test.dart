@@ -14,6 +14,9 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/unread_list_page.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -29,19 +32,18 @@ void main() {
     testWidgets(
       'shows all items without 5-item cap',
       (tester) async {
-        // Create 8 threads with unread > 0 (exceeds the home card limit)
-        final threads = List.generate(
+        // Create 8 thread inbox items with unread > 0
+        final items = List.generate(
           8,
-          (i) => ThreadInboxItem(
-            routeTarget: ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'general',
-              parentMessageId: 'ulp-msg-$i',
-            ),
-            title: 'Thread $i',
-            replyCount: 1,
+          (i) => InboxItem(
+            kind: InboxItemKind.thread,
+            channelId: 'ulp-msg-$i',
+            threadChannelId: 'ulp-msg-$i',
+            parentChannelId: 'general',
+            parentMessageId: 'ulp-msg-$i',
+            channelName: 'general',
+            threadTitle: 'Thread $i',
             unreadCount: 1,
-            participantIds: const ['u1'],
           ),
         );
 
@@ -63,6 +65,9 @@ void main() {
               activeServerScopeIdProvider.overrideWithValue(
                 const ServerScopeId('server-1'),
               ),
+              inboxRepositoryProvider.overrideWithValue(
+                _ConfigurableInboxRepository(items: items),
+              ),
               homeRepositoryProvider.overrideWithValue(
                 const _FakeHomeRepository(_snapshot),
               ),
@@ -79,7 +84,7 @@ void main() {
                 const _FakeTasksRepository(),
               ),
               threadRepositoryProvider.overrideWithValue(
-                _FakeThreadRepository(threads: threads),
+                const _FakeThreadRepository(),
               ),
               homeMachineCountLoaderProvider.overrideWithValue(
                 (_) async => 0,
@@ -136,6 +141,9 @@ void main() {
               activeServerScopeIdProvider.overrideWithValue(
                 const ServerScopeId('server-1'),
               ),
+              inboxRepositoryProvider.overrideWithValue(
+                const _EmptyInboxRepository(),
+              ),
               homeRepositoryProvider.overrideWithValue(
                 const _FakeHomeRepository(_snapshot),
               ),
@@ -178,19 +186,18 @@ void main() {
     );
 
     testWidgets(
-      'uses shared buildUnreadItems aggregation with source labels',
+      'uses inbox adapter with source labels',
       (tester) async {
-        final threads = [
-          const ThreadInboxItem(
-            routeTarget: ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'general',
-              parentMessageId: 'agg-msg',
-            ),
-            title: 'Thread topic',
-            replyCount: 1,
+        final items = [
+          const InboxItem(
+            kind: InboxItemKind.thread,
+            channelId: 'agg-msg',
+            threadChannelId: 'agg-msg',
+            parentChannelId: 'general',
+            parentMessageId: 'agg-msg',
+            channelName: 'general',
+            threadTitle: 'Thread topic',
             unreadCount: 3,
-            participantIds: ['u1'],
           ),
         ];
 
@@ -212,6 +219,9 @@ void main() {
               activeServerScopeIdProvider.overrideWithValue(
                 const ServerScopeId('server-1'),
               ),
+              inboxRepositoryProvider.overrideWithValue(
+                _ConfigurableInboxRepository(items: items),
+              ),
               homeRepositoryProvider.overrideWithValue(
                 const _FakeHomeRepository(_snapshot),
               ),
@@ -228,7 +238,7 @@ void main() {
                 const _FakeTasksRepository(),
               ),
               threadRepositoryProvider.overrideWithValue(
-                _FakeThreadRepository(threads: threads),
+                const _FakeThreadRepository(),
               ),
               homeMachineCountLoaderProvider.overrideWithValue(
                 (_) async => 0,
@@ -249,7 +259,7 @@ void main() {
           find.text('#general \u00b7 Thread topic'),
           findsOneWidget,
           reason: 'UnreadListPage should show source labels '
-              'from shared buildUnreadItems',
+              'from inbox adapter',
         );
       },
     );
@@ -275,8 +285,79 @@ const _snapshot = HomeWorkspaceSnapshot(
 );
 
 // -------------------------------------------------------------------------
-// Fakes (minimal, same pattern as home_page_test.dart)
+// Fakes
 // -------------------------------------------------------------------------
+
+class _EmptyInboxRepository implements InboxRepository {
+  const _EmptyInboxRepository();
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    return const InboxResponse(
+      items: [],
+      totalCount: 0,
+      totalUnreadCount: 0,
+      hasMore: false,
+    );
+  }
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
+}
+
+class _ConfigurableInboxRepository implements InboxRepository {
+  const _ConfigurableInboxRepository({this.items = const []});
+
+  final List<InboxItem> items;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    final totalUnread = items.fold<int>(0, (s, i) => s + i.unreadCount);
+    return InboxResponse(
+      items: items,
+      totalCount: items.length,
+      totalUnreadCount: totalUnread,
+      hasMore: false,
+    );
+  }
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
+}
 
 class _FakeHomeRepository implements HomeRepository {
   const _FakeHomeRepository(this.snapshot);
@@ -412,15 +493,13 @@ class _FakeTasksRepository implements TasksRepository {
 }
 
 class _FakeThreadRepository implements ThreadRepository {
-  const _FakeThreadRepository({this.threads = const []});
-
-  final List<ThreadInboxItem> threads;
+  const _FakeThreadRepository();
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(
     ServerScopeId serverId,
   ) async {
-    return threads;
+    return const [];
   }
 
   @override
