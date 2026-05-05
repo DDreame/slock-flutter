@@ -20,6 +20,7 @@ class HomeUnreadItem {
     required this.title,
     required this.unreadCount,
     this.sourceLabel,
+    this.senderName,
     this.preview,
     this.lastActivityAt,
     this.threadRouteTarget,
@@ -95,6 +96,9 @@ class HomeUnreadItem {
   /// Channel: "#channelName"
   /// DM: "peerName"
   final String? sourceLabel;
+
+  /// Display name of the last message sender (from InboxItem.senderName).
+  final String? senderName;
   final String? preview;
   final DateTime? lastActivityAt;
 

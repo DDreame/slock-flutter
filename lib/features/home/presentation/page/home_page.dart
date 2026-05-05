@@ -922,25 +922,6 @@ class _InboxUnreadListContent extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: GestureDetector(
-            key: const ValueKey('home-unread-mark-all'),
-            onTap: () => _markAllRead(ref),
-            child: Padding(
-              padding: const EdgeInsets.only(
-                bottom: AppSpacing.xs,
-              ),
-              child: Text(
-                l10n.homeCardUnreadMarkAllRead,
-                style: AppTypography.caption.copyWith(
-                  color: colors.primary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-        ),
         for (final item in visible)
           _UnreadItemRow(
             key: ValueKey('unread-item-${item.id}'),
@@ -966,10 +947,6 @@ class _InboxUnreadListContent extends ConsumerWidget {
           ),
       ],
     );
-  }
-
-  void _markAllRead(WidgetRef ref) {
-    ref.read(inboxStoreProvider.notifier).markAllRead();
   }
 }
 
@@ -1018,7 +995,19 @@ class _UnreadItemRow extends ConsumerWidget {
       case HomeUnreadKind.channel:
         return ('#', (c) => c.success);
       case HomeUnreadKind.directMessage:
-        return ('\u2709', (c) => c.warning);
+        return ('\u2709', (c) => c.primary);
+    }
+  }
+
+  /// Z2 type pill label per kind.
+  String get _typePillLabel {
+    switch (item.kind) {
+      case HomeUnreadKind.thread:
+        return 'THREAD';
+      case HomeUnreadKind.channel:
+        return 'CHANNEL';
+      case HomeUnreadKind.directMessage:
+        return 'DM';
     }
   }
 
@@ -1028,6 +1017,9 @@ class _UnreadItemRow extends ConsumerWidget {
     final (glyph, colorFn) = _kindBadge;
     final badgeColor = colorFn(colors);
 
+    // Build line 3: "senderName: preview"
+    final line3Text = _buildPreviewLine();
+
     return GestureDetector(
       onTap: () => _navigateTo(context, ref),
       behavior: HitTestBehavior.opaque,
@@ -1036,57 +1028,107 @@ class _UnreadItemRow extends ConsumerWidget {
           vertical: AppSpacing.xs,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              key: ValueKey('unread-kind-${item.kind.name}'),
-              width: 22,
-              height: 22,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: badgeColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                glyph,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: badgeColor,
-                  fontWeight: FontWeight.w700,
-                  height: 1,
+            // Left icon: kind glyph badge
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Container(
+                key: ValueKey('unread-kind-${item.kind.name}'),
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-                semanticsLabel: item.kind.name,
+                child: Text(
+                  glyph,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: badgeColor,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
+                  semanticsLabel: item.kind.name,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
+            // Three-line content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (item.sourceLabel != null)
-                    Text(
-                      item.sourceLabel!,
-                      key: ValueKey('unread-source-${item.id}'),
-                      style: AppTypography.body.copyWith(
-                        color: colors.text,
-                        fontWeight: FontWeight.w500,
+                  // Line 1: Type pill + source + time
+                  Row(
+                    children: [
+                      // Type pill
+                      Container(
+                        key: ValueKey('unread-pill-${item.id}'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: badgeColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                        child: Text(
+                          _typePillLabel,
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: badgeColor,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
+                            height: 1.3,
+                          ),
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    )
-                  else
-                    Text(
-                      item.title,
-                      style: AppTypography.body.copyWith(
-                        color: colors.text,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      const SizedBox(width: 4),
+                      // Source label
+                      if (item.sourceLabel != null)
+                        Expanded(
+                          child: Text(
+                            item.sourceLabel!,
+                            key: ValueKey('unread-source-${item.id}'),
+                            style: AppTypography.caption.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      // Time
+                      if (item.lastActivityAt != null) ...[
+                        const SizedBox(width: 4),
+                        _TimeAgoLabel(
+                          time: item.lastActivityAt!,
+                          now: now,
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  // Line 2: Destination title (bold)
+                  Text(
+                    item.title,
+                    key: ValueKey('unread-title-${item.id}'),
+                    style: AppTypography.body.copyWith(
+                      color: colors.text,
+                      fontWeight: FontWeight.w600,
                     ),
-                  if (item.preview != null) ...[
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  // Line 3: senderName: preview
+                  if (line3Text != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      item.preview!,
+                      line3Text,
+                      key: ValueKey('unread-preview-${item.id}'),
                       style: AppTypography.caption.copyWith(
                         color: colors.textTertiary,
                       ),
@@ -1097,18 +1139,27 @@ class _UnreadItemRow extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            if (item.lastActivityAt != null)
-              _TimeAgoLabel(
-                time: item.lastActivityAt!,
-                now: now,
-              ),
             const SizedBox(width: AppSpacing.xs),
-            _UnreadBadge(count: item.unreadCount),
+            // Unread badge
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: _UnreadBadge(count: item.unreadCount),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Build "senderName: preview" for line 3.
+  /// If senderName is missing, just show preview.
+  /// If both are missing, returns null.
+  String? _buildPreviewLine() {
+    if (item.senderName != null && item.preview != null) {
+      return '${item.senderName}: ${item.preview}';
+    }
+    if (item.senderName != null) return item.senderName;
+    return item.preview;
   }
 
   void _navigateTo(BuildContext context, WidgetRef ref) {

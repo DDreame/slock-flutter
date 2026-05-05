@@ -19,6 +19,7 @@ HomeUnreadItem inboxItemToHomeUnreadItem(
     title: _buildTitle(item),
     unreadCount: item.unreadCount,
     sourceLabel: _buildSourceLabel(item),
+    senderName: item.senderName,
     preview: item.preview,
     lastActivityAt: item.lastActivityAt,
     channelScopeId: _buildChannelScopeId(item, serverId),
