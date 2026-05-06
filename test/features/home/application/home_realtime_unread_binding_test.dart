@@ -582,7 +582,11 @@ void main() {
       await container
           .read(sessionStoreProvider.notifier)
           .login(email: 'test@example.com', password: 'password');
+      // Flush microtasks from login (persistSession, hydrate) before load.
+      await Future<void>.delayed(Duration.zero);
       await container.read(homeListStoreProvider.notifier).load();
+      // Flush microtasks from load (status listener drain, fire-and-forget).
+      await Future<void>.delayed(Duration.zero);
 
       container.read(knownThreadChannelIdsProvider.notifier).state = {
         'server-1/$threadChannelId',
