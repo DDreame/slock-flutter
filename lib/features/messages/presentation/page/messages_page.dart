@@ -6,11 +6,13 @@ import 'package:slock_app/features/conversation/presentation/page/conversation_d
 class MessagesPage extends StatelessWidget {
   final String serverId;
   final String channelId;
+  final String? highlightMessageId;
 
   const MessagesPage({
     super.key,
     required this.serverId,
     required this.channelId,
+    this.highlightMessageId,
   });
 
   @override
@@ -21,6 +23,7 @@ class MessagesPage extends StatelessWidget {
     );
     return ConversationDetailPage(
       target: ConversationDetailTarget.directMessage(scopeId),
+      highlightMessageId: highlightMessageId,
     );
   }
 }

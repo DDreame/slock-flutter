@@ -263,6 +263,31 @@ class ConversationLocalDao extends DatabaseAccessor<AppDatabase>
   }
 
   @override
+  Future<List<LocalIdentityUpsert>> searchIdentities(
+    String serverId,
+    String query, {
+    int limit = 20,
+  }) async {
+    final pattern = '%$query%';
+    final rows = await (select(identities)
+          ..where(
+            (table) =>
+                table.serverId.equals(serverId) &
+                table.displayName.like(pattern),
+          )
+          ..limit(limit))
+        .get();
+    return rows
+        .map((row) => LocalIdentityUpsert(
+              serverId: row.serverId,
+              identityId: row.identityId,
+              displayName: row.displayName,
+              avatarUrl: row.avatarUrl,
+            ))
+        .toList(growable: false);
+  }
+
+  @override
   Future<void> removeConversationSummariesNotIn({
     required String serverId,
     required String surface,

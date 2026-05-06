@@ -38,12 +38,17 @@ class ConversationDetailPage extends StatelessWidget {
     this.titleOverride,
     this.appBarActionsBuilder,
     this.registerOpenTarget = true,
+    this.highlightMessageId,
   }) : _target = target;
 
   final ConversationDetailTarget _target;
   final String? titleOverride;
   final ConversationAppBarActionsBuilder? appBarActionsBuilder;
   final bool registerOpenTarget;
+
+  /// When set, the page will scroll to (and optionally highlight) this message
+  /// once the message list is loaded.
+  final String? highlightMessageId;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +60,7 @@ class ConversationDetailPage extends StatelessWidget {
         titleOverride: titleOverride,
         appBarActionsBuilder: appBarActionsBuilder,
         registerOpenTarget: registerOpenTarget,
+        highlightMessageId: highlightMessageId,
       ),
     );
   }
@@ -65,11 +71,13 @@ class _ConversationDetailScreen extends ConsumerStatefulWidget {
     this.titleOverride,
     this.appBarActionsBuilder,
     required this.registerOpenTarget,
+    this.highlightMessageId,
   });
 
   final String? titleOverride;
   final ConversationAppBarActionsBuilder? appBarActionsBuilder;
   final bool registerOpenTarget;
+  final String? highlightMessageId;
 
   @override
   ConsumerState<_ConversationDetailScreen> createState() =>
@@ -310,11 +318,16 @@ class _ConversationDetailScreenState
         next.status == ConversationDetailStatus.success &&
         next.messages.isNotEmpty) {
       _didApplyInitialLanding = true;
+      final targetMsgId = widget.highlightMessageId;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_scrollController.hasClients) {
           return;
         }
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        if (targetMsgId != null) {
+          _scrollToMessageId(targetMsgId, next.messages);
+        } else {
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        }
       });
     }
 
@@ -337,6 +350,27 @@ class _ConversationDetailScreenState
         _scrollController.jumpTo(anchorOffset + maxExtentDelta);
       });
     }
+  }
+
+  /// Scroll to a specific message by ID.
+  ///
+  /// Uses proportional offset estimation: if the target is at index N out of
+  /// total messages, scroll to N/total * maxScrollExtent.
+  void _scrollToMessageId(
+    String messageId,
+    List<ConversationMessageSummary> messages,
+  ) {
+    final idx = messages.indexWhere((m) => m.id == messageId);
+    if (idx < 0) {
+      // Message not loaded — fall back to bottom.
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      return;
+    }
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    // +1 accounts for the header at index 0 in the list view.
+    final estimatedOffset =
+        messages.isEmpty ? 0.0 : (idx + 1) / (messages.length + 1) * maxExtent;
+    _scrollController.jumpTo(estimatedOffset.clamp(0.0, maxExtent));
   }
 }
 

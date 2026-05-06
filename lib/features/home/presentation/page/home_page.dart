@@ -48,6 +48,16 @@ class _HomePageState extends ConsumerState<HomePage> {
         ),
         actions: [
           IconButton(
+            key: const ValueKey('home-search-button'),
+            icon: const Icon(Icons.search),
+            tooltip: 'Search',
+            onPressed: () {
+              final serverId =
+                  ref.read(activeServerScopeIdProvider)?.value ?? '';
+              context.push('/servers/$serverId/search');
+            },
+          ),
+          IconButton(
             key: const ValueKey('home-settings-button'),
             icon: const Icon(Icons.settings_outlined),
             tooltip: l10n.settingsTooltip,

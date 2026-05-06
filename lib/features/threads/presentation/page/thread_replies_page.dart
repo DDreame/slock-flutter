@@ -86,6 +86,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
       target: state.conversationTarget!,
       titleOverride: 'Thread replies',
       registerOpenTarget: false,
+      highlightMessageId: routeTarget.highlightMessageId,
       appBarActionsBuilder: (context, ref, _) => _buildThreadActions(
         context,
         ref,

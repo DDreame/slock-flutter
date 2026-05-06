@@ -210,6 +210,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ChannelPage(
           serverId: state.pathParameters['serverId']!,
           channelId: state.pathParameters['channelId']!,
+          highlightMessageId: state.uri.queryParameters['messageId'],
         ),
       ),
       GoRoute(
@@ -226,6 +227,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => MessagesPage(
           serverId: state.pathParameters['serverId']!,
           channelId: state.pathParameters['channelId']!,
+          highlightMessageId: state.uri.queryParameters['messageId'],
         ),
       ),
       GoRoute(
