@@ -325,14 +325,66 @@ import BackgroundTasks
     UNUserNotificationCenter.current().add(request)
   }
 
+  /// Normalize a raw APNs userInfo dictionary into the flat format Dart expects.
+  ///
+  /// Standard APNs structure:
+  /// ```
+  /// { "aps": { "alert": { "title": "...", "body": "..." } },
+  ///   "type": "channel", "serverId": "...", "channelId": "...", ... }
+  /// ```
+  ///
+  /// Output: flat `[String: Any]` with `title`, `body`, `type`, `serverId`,
+  /// `channelId`, `threadId`, `messageId`, `senderId`, etc.
   private func notificationPayload(from userInfo: [AnyHashable: Any]?) -> [String: Any]? {
     guard let userInfo, !userInfo.isEmpty else {
       return nil
     }
 
-    return userInfo.reduce(into: [String: Any]()) { result, entry in
-      result[String(describing: entry.key)] = entry.value
+    var result = [String: Any]()
+
+    // Extract title/body from aps.alert (string or dict form)
+    if let aps = userInfo["aps"] as? [String: Any],
+       let alert = aps["alert"] {
+      if let alertDict = alert as? [String: Any] {
+        if let title = alertDict["title"] as? String {
+          result["title"] = title
+        }
+        if let body = alertDict["body"] as? String {
+          result["body"] = body
+        }
+      } else if let alertString = alert as? String {
+        // aps.alert can be a plain string (body only)
+        result["body"] = alertString
+      }
     }
+
+    // Flatten all non-aps top-level keys as custom data
+    for (key, value) in userInfo {
+      let keyString = String(describing: key)
+      // Skip the aps envelope and local repost marker
+      if keyString == "aps" || keyString == "slock.localRepost" {
+        continue
+      }
+      // Only include string-coercible values at the top level
+      result[keyString] = value
+    }
+
+    // For local reposts (which already have flat title/body),
+    // preserve title/body from the top-level payload if not
+    // already set from aps.alert
+    if result["title"] == nil, let title = userInfo["title"] as? String {
+      result["title"] = title
+    }
+    if result["body"] == nil, let body = userInfo["body"] as? String {
+      result["body"] = body
+    }
+
+    // Require at minimum a type field to be a valid notification
+    guard result["type"] is String else {
+      return nil
+    }
+
+    return result
   }
 
   // MARK: - Background Sync
