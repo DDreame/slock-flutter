@@ -258,6 +258,23 @@ class FakeConversationLocalStore implements ConversationLocalStore {
   }
 
   @override
+  Future<List<LocalIdentityUpsert>> searchIdentities(
+    String serverId,
+    String query, {
+    int limit = 20,
+  }) async {
+    final lowerQuery = query.toLowerCase();
+    final rows = _identities.values
+        .where(
+          (row) =>
+              row.serverId == serverId &&
+              row.displayName.toLowerCase().contains(lowerQuery),
+        )
+        .toList(growable: false);
+    return rows.take(limit).toList(growable: false);
+  }
+
+  @override
   Future<void> removeConversationSummariesNotIn({
     required String serverId,
     required String surface,

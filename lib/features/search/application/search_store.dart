@@ -33,7 +33,8 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     state = state.copyWith(query: query);
 
     if (query.trim().isEmpty) {
-      state = const SearchState();
+      final currentScope = state.scope;
+      state = SearchState(scope: currentScope);
       return;
     }
 
@@ -43,6 +44,11 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
   void clear() {
     _debounce?.cancel();
     state = const SearchState();
+  }
+
+  /// Switch the active scope tab.
+  void setScope(SearchScope scope) {
+    state = state.copyWith(scope: scope);
   }
 
   Future<void> retry() => search();
@@ -58,30 +64,27 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
       clearFailure: true,
     );
 
+    // --- Local search: messages ---
     final localStore = ref.read(conversationLocalStoreProvider);
     final localMessages = await localStore.searchMessages(
       serverId.value,
       query,
     );
+
+    // --- Local search: conversation summaries (channels + DMs) ---
     final localSummaries = await localStore.searchConversationSummaries(
       serverId.value,
       query,
     );
 
+    // --- Local search: identities (contacts) ---
+    final localIdentities = await localStore.searchIdentities(
+      serverId.value,
+      query,
+    );
+
+    // Build message results from local messages.
     final localResults = <SearchResultMessage>[
-      for (final summary in localSummaries)
-        SearchResultMessage(
-          message: ConversationMessageSummary(
-            id: 'summary-${summary.conversationId}',
-            content: summary.lastMessagePreview ?? '',
-            createdAt: summary.lastActivityAt ?? DateTime(2000),
-            senderType: 'system',
-            messageType: 'system',
-          ),
-          channelId: summary.conversationId,
-          channelName: summary.title,
-          surface: summary.surface,
-        ),
       for (final message in localMessages)
         SearchResultMessage(
           message: ConversationMessageSummary(
@@ -97,12 +100,37 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         ),
     ];
 
+    // Build channel results from conversation summaries.
+    final channelResults = <SearchChannelResult>[
+      for (final summary in localSummaries)
+        SearchChannelResult(
+          channelId: summary.conversationId,
+          channelName: summary.title,
+          surface: summary.surface,
+          lastMessagePreview: summary.lastMessagePreview,
+          lastActivityAt: summary.lastActivityAt,
+        ),
+    ];
+
+    // Build contact results from identities.
+    final contactResults = <SearchContactResult>[
+      for (final identity in localIdentities)
+        SearchContactResult(
+          identityId: identity.identityId,
+          displayName: identity.displayName,
+          avatarUrl: identity.avatarUrl,
+        ),
+    ];
+
     if (state.query.trim() != query) return;
     state = state.copyWith(
       localResults: localResults,
+      channelResults: channelResults,
+      contactResults: contactResults,
       status: SearchStatus.searching,
     );
 
+    // --- Remote search: messages ---
     try {
       final repo = ref.read(searchRepositoryProvider);
       final page = await repo.searchMessages(serverId, query);
@@ -118,7 +146,9 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
       if (state.query.trim() != query) return;
       state = state.copyWith(
         isRemoteSearching: false,
-        status: localResults.isNotEmpty
+        status: localResults.isNotEmpty ||
+                channelResults.isNotEmpty ||
+                contactResults.isNotEmpty
             ? SearchStatus.success
             : SearchStatus.failure,
         failure: failure,

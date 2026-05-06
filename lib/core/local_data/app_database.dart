@@ -203,6 +203,13 @@ abstract class ConversationLocalStore {
     String query,
   );
 
+  /// Search identities (contacts) by display name.
+  Future<List<LocalIdentityUpsert>> searchIdentities(
+    String serverId,
+    String query, {
+    int limit = 20,
+  });
+
   /// Removes conversation summaries for [serverId] and [surface] whose
   /// `conversationId` is **not** in [retainedConversationIds].
   ///
