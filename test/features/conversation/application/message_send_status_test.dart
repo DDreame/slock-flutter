@@ -560,6 +560,40 @@ void main() {
       final restored = entry.toState(target);
       expect(restored.pendingMessages, isEmpty);
     });
+
+    test('dispose before sentIndicatorDuration does not throw', () async {
+      final container = createContainer();
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+
+      store.updateDraft('Disposing soon');
+      repo.sendCompleter = Completer<ConversationMessageSummary>();
+      final sendFuture = store.send();
+      await Future<void>.delayed(Duration.zero);
+
+      // Complete send (schedules the 2s sent-removal timer)
+      repo.sendCompleter!
+          .complete(_fakeMessage('msg-dispose', 'Disposing soon'));
+      await sendFuture;
+
+      // Verify timer is scheduled (pending in 'sent' state)
+      final sentState = container.read(conversationDetailStoreProvider);
+      expect(sentState.pendingMessages, hasLength(1));
+      expect(sentState.pendingMessages.first.status, MessageSendStatus.sent);
+
+      // Dispose BEFORE the 2s timer fires — must not throw
+      container.dispose();
+
+      // Wait past the timer duration to confirm no late callback fires
+      await Future<void>.delayed(
+        ConversationDetailStore.sentIndicatorDuration +
+            const Duration(milliseconds: 100),
+      );
+
+      // If we reach here without 'Bad state: Tried to read a provider from a
+      // ProviderContainer that was already disposed', the test passes.
+    });
   });
 }
 

@@ -34,6 +34,7 @@ class ConversationDetailStore
     extends AutoDisposeNotifier<ConversationDetailState> {
   int _requestEpoch = 0;
   int _localIdCounter = 0;
+  final Set<Timer> _sentRemovalTimers = {};
 
   @override
   ConversationDetailState build() {
@@ -65,6 +66,10 @@ class ConversationDetailStore
     });
     ref.onDispose(() {
       unawaited(subscription.cancel());
+      for (final timer in _sentRemovalTimers) {
+        timer.cancel();
+      }
+      _sentRemovalTimers.clear();
     });
     final initialState = cachedSession?.toState(target) ??
         ConversationDetailState(target: target);
@@ -861,21 +866,22 @@ class ConversationDetailStore
     ConversationDetailTarget target, {
     ConversationMessageSummary? confirmedMessage,
   }) {
-    unawaited(
-      Future<void>.delayed(sentIndicatorDuration).then((_) {
-        if (ref.read(currentConversationDetailTargetProvider) != target) {
-          return;
-        }
-        state = state.copyWith(
-          messages: confirmedMessage != null
-              ? _appendDedupedMessage(state.messages, confirmedMessage)
-              : state.messages,
-          pendingMessages:
-              state.pendingMessages.where((m) => m.localId != localId).toList(),
-        );
-        _persistSession();
-      }),
-    );
+    late final Timer timer;
+    timer = Timer(sentIndicatorDuration, () {
+      _sentRemovalTimers.remove(timer);
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      state = state.copyWith(
+        messages: confirmedMessage != null
+            ? _appendDedupedMessage(state.messages, confirmedMessage)
+            : state.messages,
+        pendingMessages:
+            state.pendingMessages.where((m) => m.localId != localId).toList(),
+      );
+      _persistSession();
+    });
+    _sentRemovalTimers.add(timer);
   }
 
   void _persistSession() {

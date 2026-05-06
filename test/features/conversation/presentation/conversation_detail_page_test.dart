@@ -409,6 +409,10 @@ void main() {
           ?.text,
       isEmpty,
     );
+
+    // Advance past sent-removal timer to avoid pending timer at teardown
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('send failure shows failed status on pending message card', (
@@ -543,6 +547,10 @@ void main() {
       ),
       findsOneWidget,
     );
+
+    // Advance past sent-removal timer to avoid pending timer at teardown
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('page registers and clears current open target on dispose', (
