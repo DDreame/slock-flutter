@@ -208,9 +208,12 @@ void main() {
       store.updateDraft('Compressed');
       await store.send();
 
+      // Compression was invoked
       expect(compressor.compressCallCount, 1);
+      // Upload used compressed path, not original
       expect(
           repo.lastUploadedPaths, contains('/tmp/large-photo-compressed.jpg'));
+      expect(repo.lastUploadedPaths, isNot(contains('/tmp/large-photo.jpg')));
     });
 
     test('skips compression for small images', () async {

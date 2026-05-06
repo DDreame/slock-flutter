@@ -236,6 +236,9 @@ class _ConversationDetailScreenState
               onRemoveAttachment: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .removePendingAttachment,
+              onCancelUpload: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .cancelUpload,
             ),
         ],
       ),
@@ -636,6 +639,7 @@ class _ConversationComposer extends StatelessWidget {
     required this.onSend,
     required this.onPickAttachment,
     required this.onRemoveAttachment,
+    required this.onCancelUpload,
   });
 
   final TextEditingController controller;
@@ -645,6 +649,7 @@ class _ConversationComposer extends StatelessWidget {
   final Future<void> Function() onSend;
   final ValueChanged<PendingAttachment> onPickAttachment;
   final ValueChanged<int> onRemoveAttachment;
+  final ValueChanged<int> onCancelUpload;
 
   @override
   Widget build(BuildContext context) {
@@ -687,6 +692,23 @@ class _ConversationComposer extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       onDeleted: () => onRemoveAttachment(i),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+            if (state.uploadProgress.isNotEmpty) ...[
+              Wrap(
+                key: const ValueKey('composer-upload-progress'),
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  for (final entry in state.uploadProgress.entries)
+                    _UploadProgressChip(
+                      key: ValueKey('upload-progress-${entry.key}'),
+                      index: entry.key,
+                      progress: entry.value,
+                      onCancel: () => onCancelUpload(entry.key),
                     ),
                 ],
               ),
@@ -806,7 +828,7 @@ class _ConversationComposer extends StatelessWidget {
       case _AttachOption.gallery:
         await _pickGallery();
       case _AttachOption.camera:
-        await _pickCamera();
+        await _pickCamera(context);
       case _AttachOption.file:
         await _pickFile();
     }
@@ -826,18 +848,28 @@ class _ConversationComposer extends StatelessWidget {
     ));
   }
 
-  Future<void> _pickCamera() async {
-    final picker = ImagePicker();
-    final photo = await picker.pickImage(source: ImageSource.camera);
-    if (photo == null) return;
-    final name = photo.name;
-    final ext = name.split('.').last;
-    final mimeType = _mimeFromExtension(ext);
-    onPickAttachment(PendingAttachment(
-      path: photo.path,
-      name: name,
-      mimeType: mimeType,
-    ));
+  Future<void> _pickCamera(BuildContext context) async {
+    try {
+      final picker = ImagePicker();
+      final photo = await picker.pickImage(source: ImageSource.camera);
+      if (photo == null) return;
+      final name = photo.name;
+      final ext = name.split('.').last;
+      final mimeType = _mimeFromExtension(ext);
+      onPickAttachment(PendingAttachment(
+        path: photo.path,
+        name: name,
+        mimeType: mimeType,
+      ));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          key: ValueKey('camera-error-snackbar'),
+          content: Text('Camera unavailable. Please check permissions.'),
+        ),
+      );
+    }
   }
 
   Future<void> _pickFile() async {
@@ -873,6 +905,42 @@ class _ConversationComposer extends StatelessWidget {
 }
 
 enum _AttachOption { gallery, camera, file }
+
+class _UploadProgressChip extends StatelessWidget {
+  const _UploadProgressChip({
+    super.key,
+    required this.index,
+    required this.progress,
+    required this.onCancel,
+  });
+
+  final int index;
+  final double progress;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final percent = (progress * 100).round();
+    return Chip(
+      avatar: SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(
+          value: progress,
+          strokeWidth: 2,
+          color: colors.primary,
+        ),
+      ),
+      label: Text(
+        'Uploading $percent%',
+        overflow: TextOverflow.ellipsis,
+      ),
+      deleteIcon: const Icon(Icons.close, size: 16),
+      onDeleted: onCancel,
+    );
+  }
+}
 
 enum _ConversationMessageVisualKind { self, other, system, agent }
 

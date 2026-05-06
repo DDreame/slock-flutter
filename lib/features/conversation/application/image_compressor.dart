@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 /// Abstraction for image compression before upload.
 ///
@@ -18,9 +20,7 @@ abstract class ImageCompressor {
   bool isCompressibleImage(String mimeType);
 }
 
-/// Default implementation using dart:io for file size and a no-op
-/// compression that returns the original (real compression requires
-/// a native plugin like flutter_image_compress).
+/// Default implementation using flutter_image_compress for real compression.
 class DefaultImageCompressor implements ImageCompressor {
   const DefaultImageCompressor();
 
@@ -41,9 +41,22 @@ class DefaultImageCompressor implements ImageCompressor {
 
   @override
   Future<String> compress(String path, {int quality = 80}) async {
-    // TODO: Integrate flutter_image_compress or similar native plugin.
-    // For now, returns the original path (no-op compression).
-    return path;
+    final dir = p.dirname(path);
+    final ext = p.extension(path);
+    final baseName = p.basenameWithoutExtension(path);
+    final outputPath = p.join(dir, '${baseName}_compressed$ext');
+
+    final result = await FlutterImageCompress.compressAndGetFile(
+      path,
+      outputPath,
+      quality: quality,
+      minWidth: 1920,
+      minHeight: 1920,
+    );
+    if (result == null) {
+      throw Exception('Compression returned null');
+    }
+    return result.path;
   }
 
   @override

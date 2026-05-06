@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
@@ -175,6 +176,59 @@ void main() {
     );
     expect(repository.uploadedAttachments, hasLength(1));
     expect(repository.lastSentAttachmentIds, ['upload-1']);
+  });
+
+  testWidgets('camera unavailable shows error snackbar', (tester) async {
+    // Mock the image_picker method channel to throw PlatformException
+    // simulating camera unavailable / permission denied.
+    const channel = MethodChannel('plugins.flutter.io/image_picker');
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      throw PlatformException(
+        code: 'camera_access_denied',
+        message: 'Camera access denied',
+      );
+    });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(buildApp(repository));
+    await tester.pumpAndSettle();
+
+    // Tap attach button to show bottom sheet
+    await tester.tap(find.byKey(const ValueKey('composer-attach')));
+    await tester.pumpAndSettle();
+
+    // Tap "Camera" — will throw PlatformException from mocked channel,
+    // which exercises the try-catch error path.
+    await tester.tap(find.text('Camera'));
+    await tester.pumpAndSettle();
+
+    // Snackbar should be displayed with the error message
+    expect(
+      find.byKey(const ValueKey('camera-error-snackbar')),
+      findsOneWidget,
+    );
+    expect(find.text('Camera unavailable. Please check permissions.'),
+        findsOneWidget);
+
+    // No attachment should have been added
+    expect(
+      find.byKey(const ValueKey('composer-pending-attachments')),
+      findsNothing,
+    );
   });
 }
 
