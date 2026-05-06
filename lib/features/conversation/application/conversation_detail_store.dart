@@ -307,6 +307,18 @@ class ConversationDetailStore
         }
       }
 
+      // Update pending with uploaded attachment IDs so retry preserves them
+      if (attachmentIds != null && attachmentIds.isNotEmpty) {
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(attachmentIds: attachmentIds);
+            }
+            return m;
+          }).toList(),
+        );
+      }
+
       final message = await repo.sendMessage(
         target,
         content,
@@ -316,14 +328,22 @@ class ConversationDetailStore
         return;
       }
 
-      // Success: remove pending message, append confirmed message
+      // Success: transition to sent, append confirmed message
       state = state.copyWith(
         messages: _appendDedupedMessage(state.messages, message),
-        pendingMessages:
-            state.pendingMessages.where((m) => m.localId != localId).toList(),
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+                status: MessageSendStatus.sent, clearFailure: true);
+          }
+          return m;
+        }).toList(),
         clearSendFailure: true,
       );
       _persistSession();
+
+      // Remove the sent indicator after a brief delay
+      _scheduleSentRemoval(localId, target);
     } on AppFailure catch (failure) {
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
@@ -340,6 +360,7 @@ class ConversationDetailStore
           return m;
         }).toList(),
       );
+      _persistSession();
     }
   }
 
@@ -376,13 +397,21 @@ class ConversationDetailStore
         return;
       }
 
-      // Success: remove pending, append confirmed
+      // Success: transition to sent, append confirmed message
       state = state.copyWith(
         messages: _appendDedupedMessage(state.messages, message),
-        pendingMessages:
-            state.pendingMessages.where((m) => m.localId != localId).toList(),
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+                status: MessageSendStatus.sent, clearFailure: true);
+          }
+          return m;
+        }).toList(),
       );
       _persistSession();
+
+      // Remove the sent indicator after a brief delay
+      _scheduleSentRemoval(localId, target);
     } on AppFailure catch (failure) {
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
@@ -823,6 +852,23 @@ class ConversationDetailStore
       return existing;
     }
     return [...existing, ...dedupedNewer];
+  }
+
+  /// Duration the "sent" indicator remains visible before removal.
+  static const sentIndicatorDuration = Duration(seconds: 2);
+
+  void _scheduleSentRemoval(String localId, ConversationDetailTarget target) {
+    unawaited(
+      Future<void>.delayed(sentIndicatorDuration).then((_) {
+        if (ref.read(currentConversationDetailTargetProvider) != target) {
+          return;
+        }
+        state = state.copyWith(
+          pendingMessages:
+              state.pendingMessages.where((m) => m.localId != localId).toList(),
+        );
+      }),
+    );
   }
 
   void _persistSession() {

@@ -52,13 +52,14 @@ class PendingMessage {
   /// Create a copy with updated fields.
   PendingMessage copyWith({
     MessageSendStatus? status,
+    List<String>? attachmentIds,
     AppFailure? failure,
     bool clearFailure = false,
   }) {
     return PendingMessage(
       localId: localId,
       content: content,
-      attachmentIds: attachmentIds,
+      attachmentIds: attachmentIds ?? this.attachmentIds,
       createdAt: createdAt,
       status: status ?? this.status,
       failure: clearFailure ? null : (failure ?? this.failure),

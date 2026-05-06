@@ -490,6 +490,7 @@ class _PendingMessageCard extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final isFailed = pending.status == MessageSendStatus.failed;
     final isSending = pending.status == MessageSendStatus.sending;
+    final isSent = pending.status == MessageSendStatus.sent;
 
     final bodyStyle = AppTypography.body.copyWith(
       color: colors.primaryForeground,
@@ -537,6 +538,22 @@ class _PendingMessageCard extends ConsumerWidget {
               'Sending...',
               style: AppTypography.caption.copyWith(
                 color: colors.textSecondary,
+              ),
+            ),
+          ],
+          if (isSent) ...[
+            Icon(
+              Icons.check_circle_outline,
+              key: const ValueKey('pending-sent-icon'),
+              size: 14,
+              color: colors.success,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Sent',
+              key: const ValueKey('pending-sent-label'),
+              style: AppTypography.caption.copyWith(
+                color: colors.success,
               ),
             ),
           ],

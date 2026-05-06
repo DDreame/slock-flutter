@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -187,7 +188,12 @@ void main() {
       await sendFuture;
 
       final afterState = container.read(conversationDetailStoreProvider);
-      expect(afterState.pendingMessages, isEmpty);
+      // Pending transitions to 'sent' (visible briefly before removal)
+      expect(afterState.pendingMessages, hasLength(1));
+      expect(
+        afterState.pendingMessages.first.status,
+        MessageSendStatus.sent,
+      );
       expect(afterState.messages.last.id, 'msg-1');
     });
 
@@ -257,7 +263,12 @@ void main() {
       await retryFuture;
 
       final doneState = container.read(conversationDetailStoreProvider);
-      expect(doneState.pendingMessages, isEmpty);
+      // Pending transitions to 'sent' (visible briefly before removal)
+      expect(doneState.pendingMessages, hasLength(1));
+      expect(
+        doneState.pendingMessages.first.status,
+        MessageSendStatus.sent,
+      );
       expect(doneState.messages.last.id, 'msg-retry');
     });
 
@@ -354,6 +365,154 @@ void main() {
       expect(state.pendingMessages[0].content, 'First');
       expect(state.pendingMessages[1].content, 'Second');
     });
+
+    test('failed messages are persisted in session entry', () async {
+      final container = createContainer();
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+
+      // Send and fail
+      store.updateDraft('Persist me');
+      repo.sendCompleter = Completer<ConversationMessageSummary>();
+      final sendFuture = store.send();
+      await Future<void>.delayed(Duration.zero);
+      repo.sendCompleter!.completeError(
+        const UnknownFailure(message: 'fail', causeType: 'x'),
+      );
+      await sendFuture;
+
+      // Check session entry persists failed messages
+      final sessionState = container.read(conversationDetailStoreProvider);
+      final entry = ConversationDetailSessionEntry.fromState(
+        sessionState,
+        scrollOffset: 0,
+      );
+      expect(entry.failedPendingMessages, hasLength(1));
+      expect(entry.failedPendingMessages.first.content, 'Persist me');
+      expect(
+        entry.failedPendingMessages.first.status,
+        MessageSendStatus.failed,
+      );
+
+      // Verify round-trip via toState
+      final restored = entry.toState(target);
+      expect(restored.pendingMessages, hasLength(1));
+      expect(restored.pendingMessages.first.content, 'Persist me');
+      expect(
+        restored.pendingMessages.first.status,
+        MessageSendStatus.failed,
+      );
+    });
+
+    test('session entry excludes sending/sent pending messages', () async {
+      final container = createContainer();
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+
+      // Send without completing (stays in sending)
+      store.updateDraft('Still sending');
+      repo.sendCompleter = Completer<ConversationMessageSummary>();
+      store.send();
+      await Future<void>.delayed(Duration.zero);
+
+      final sessionState = container.read(conversationDetailStoreProvider);
+      final entry = ConversationDetailSessionEntry.fromState(
+        sessionState,
+        scrollOffset: 0,
+      );
+      // sending messages are not persisted
+      expect(entry.failedPendingMessages, isEmpty);
+
+      // Clean up
+      repo.sendCompleter!.complete(_fakeMessage('msg-z', 'Still sending'));
+    });
+
+    test('retry preserves attachmentIds after upload', () async {
+      final container = createContainer();
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+
+      // Send with attachment - the repo's uploadAttachment returns 'att-fake-id'
+      store.updateDraft('With file');
+      store.addPendingAttachment(const PendingAttachment(
+        path: '/tmp/test.png',
+        name: 'test.png',
+        mimeType: 'image/png',
+      ));
+      repo.sendCompleter = Completer<ConversationMessageSummary>();
+      final sendFuture = store.send();
+      await Future<void>.delayed(Duration.zero);
+
+      // Fail the send (upload succeeds, sendMessage fails)
+      repo.sendCompleter!.completeError(
+        const UnknownFailure(message: 'send fail', causeType: 'x'),
+      );
+      await sendFuture;
+
+      final failedState = container.read(conversationDetailStoreProvider);
+      expect(failedState.pendingMessages, hasLength(1));
+      expect(
+        failedState.pendingMessages.first.status,
+        MessageSendStatus.failed,
+      );
+      // attachmentIds should be preserved from successful upload
+      expect(
+        failedState.pendingMessages.first.attachmentIds,
+        contains('att-fake-id'),
+      );
+
+      // Retry should include attachmentIds
+      final localId = failedState.pendingMessages.first.localId;
+      repo.sendCompleter = Completer<ConversationMessageSummary>();
+      final retryFuture = store.retrySend(localId);
+      await Future<void>.delayed(Duration.zero);
+
+      // Verify the repo received attachmentIds on retry
+      expect(repo.lastSendAttachmentIds, contains('att-fake-id'));
+
+      // Complete retry
+      repo.sendCompleter!.complete(_fakeMessage('msg-att', 'With file'));
+      await retryFuture;
+    });
+
+    test('sent indicator is removed after delay', () async {
+      final container = createContainer();
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+
+      store.updateDraft('Fading');
+      repo.sendCompleter = Completer<ConversationMessageSummary>();
+      final sendFuture = store.send();
+      await Future<void>.delayed(Duration.zero);
+
+      repo.sendCompleter!.complete(_fakeMessage('msg-fade', 'Fading'));
+      await sendFuture;
+
+      // Immediately after send, pending is in 'sent' state
+      final sentState = container.read(conversationDetailStoreProvider);
+      expect(sentState.pendingMessages, hasLength(1));
+      expect(
+        sentState.pendingMessages.first.status,
+        MessageSendStatus.sent,
+      );
+
+      // After the sent indicator duration, pending is removed
+      await Future<void>.delayed(
+        ConversationDetailStore.sentIndicatorDuration +
+            const Duration(milliseconds: 100),
+      );
+
+      final removedState = container.read(conversationDetailStoreProvider);
+      expect(removedState.pendingMessages, isEmpty);
+    });
   });
 }
 
@@ -373,6 +532,7 @@ ConversationMessageSummary _fakeMessage(String id, String content) {
 
 class _ControllableConversationRepository implements ConversationRepository {
   Completer<ConversationMessageSummary>? sendCompleter;
+  List<String>? lastSendAttachmentIds;
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -417,6 +577,7 @@ class _ControllableConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
   }) {
+    lastSendAttachmentIds = attachmentIds;
     if (sendCompleter != null) {
       return sendCompleter!.future;
     }
