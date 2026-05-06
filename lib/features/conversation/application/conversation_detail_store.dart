@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
+import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -32,6 +33,7 @@ const _realtimeMessageUnpinnedEventType = 'message:unpinned';
 class ConversationDetailStore
     extends AutoDisposeNotifier<ConversationDetailState> {
   int _requestEpoch = 0;
+  int _localIdCounter = 0;
 
   @override
   ConversationDetailState build() {
@@ -262,13 +264,24 @@ class ConversationDetailStore
     final pendingFiles =
         state.pendingAttachments.isNotEmpty ? state.pendingAttachments : null;
     if (state.status != ConversationDetailStatus.success ||
-        state.isSending ||
         (content.isEmpty && (pendingFiles == null || pendingFiles.isEmpty))) {
       return;
     }
 
+    // Generate local ID and create pending message for optimistic insert
+    final localId =
+        'pending-${++_localIdCounter}-${DateTime.now().millisecondsSinceEpoch}';
+    final pending = PendingMessage(
+      localId: localId,
+      content: content,
+      createdAt: DateTime.now(),
+    );
+
+    // Optimistic insert: show message immediately, clear draft
     state = state.copyWith(
-      isSending: true,
+      pendingMessages: [...state.pendingMessages, pending],
+      draft: '',
+      pendingAttachments: const [],
       clearSendFailure: true,
     );
 
@@ -276,19 +289,16 @@ class ConversationDetailStore
       final repo = ref.read(conversationRepositoryProvider);
 
       List<String>? attachmentIds;
-      List<PendingAttachment> failedUploads = const [];
       if (pendingFiles != null) {
         attachmentIds = <String>[];
-        final failed = <PendingAttachment>[];
         for (final file in pendingFiles) {
           try {
             final id = await repo.uploadAttachment(target, file);
             attachmentIds.add(id);
           } on AppFailure {
-            failed.add(file);
+            // Skip failed uploads
           }
         }
-        failedUploads = failed;
         if (attachmentIds.isEmpty && content.isEmpty) {
           throw const UnknownFailure(
             message: 'All attachment uploads failed.',
@@ -305,11 +315,12 @@ class ConversationDetailStore
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
+
+      // Success: remove pending message, append confirmed message
       state = state.copyWith(
         messages: _appendDedupedMessage(state.messages, message),
-        draft: '',
-        pendingAttachments: failedUploads,
-        isSending: false,
+        pendingMessages:
+            state.pendingMessages.where((m) => m.localId != localId).toList(),
         clearSendFailure: true,
       );
       _persistSession();
@@ -317,11 +328,85 @@ class ConversationDetailStore
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
+      // Failure: update pending message status to failed
       state = state.copyWith(
-        isSending: false,
-        sendFailure: failure,
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+              status: MessageSendStatus.failed,
+              failure: failure,
+            );
+          }
+          return m;
+        }).toList(),
       );
     }
+  }
+
+  /// Retry sending a previously failed pending message.
+  Future<void> retrySend(String localId) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final pending =
+        state.pendingMessages.where((m) => m.localId == localId).firstOrNull;
+    if (pending == null || pending.status != MessageSendStatus.failed) {
+      return;
+    }
+
+    // Transition to sending
+    state = state.copyWith(
+      pendingMessages: state.pendingMessages.map((m) {
+        if (m.localId == localId) {
+          return m.copyWith(
+            status: MessageSendStatus.sending,
+            clearFailure: true,
+          );
+        }
+        return m;
+      }).toList(),
+    );
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      final message = await repo.sendMessage(
+        target,
+        pending.content,
+        attachmentIds: pending.attachmentIds,
+      );
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+
+      // Success: remove pending, append confirmed
+      state = state.copyWith(
+        messages: _appendDedupedMessage(state.messages, message),
+        pendingMessages:
+            state.pendingMessages.where((m) => m.localId != localId).toList(),
+      );
+      _persistSession();
+    } on AppFailure catch (failure) {
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+              status: MessageSendStatus.failed,
+              failure: failure,
+            );
+          }
+          return m;
+        }).toList(),
+      );
+    }
+  }
+
+  /// Remove a failed pending message without retrying.
+  void dismissPendingMessage(String localId) {
+    state = state.copyWith(
+      pendingMessages:
+          state.pendingMessages.where((m) => m.localId != localId).toList(),
+    );
   }
 
   void updateViewportOffset(double offset) {

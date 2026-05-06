@@ -16,6 +16,7 @@ import 'package:slock_app/features/conversation/application/current_open_convers
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -399,21 +400,34 @@ class _ConversationMessageList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pendingCount = state.pendingMessages.length;
+    final totalCount = state.messages.length + pendingCount + 1;
+
     return ListView.separated(
       key: const ValueKey('conversation-success'),
       controller: controller,
       padding: const EdgeInsets.all(16),
-      itemCount: state.messages.length + 1,
+      itemCount: totalCount,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         if (index == 0) {
           return _ConversationHistoryHeader(state: state);
         }
-        final message = state.messages[index - 1];
-        return _ConversationMessageCard(
-          target: state.target,
-          message: message,
-          highlightQuery: state.searchQuery,
+        final messageIndex = index - 1;
+        if (messageIndex < state.messages.length) {
+          final message = state.messages[messageIndex];
+          return _ConversationMessageCard(
+            target: state.target,
+            message: message,
+            highlightQuery: state.searchQuery,
+          );
+        }
+        // Pending messages
+        final pendingIndex = messageIndex - state.messages.length;
+        final pending = state.pendingMessages[pendingIndex];
+        return _PendingMessageCard(
+          key: ValueKey('pending-${pending.localId}'),
+          pending: pending,
         );
       },
     );
@@ -463,6 +477,135 @@ class _ConversationHistoryHeader extends StatelessWidget {
 
     return const SizedBox.shrink(
         key: ValueKey('conversation-history-complete'));
+  }
+}
+
+class _PendingMessageCard extends ConsumerWidget {
+  const _PendingMessageCard({super.key, required this.pending});
+
+  final PendingMessage pending;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final isFailed = pending.status == MessageSendStatus.failed;
+    final isSending = pending.status == MessageSendStatus.sending;
+
+    final bodyStyle = AppTypography.body.copyWith(
+      color: colors.primaryForeground,
+    );
+    const borderRadius = BorderRadius.only(
+      topLeft: Radius.circular(BubbleTokens.radiusLarge),
+      topRight: Radius.circular(BubbleTokens.radiusSmall),
+      bottomLeft: Radius.circular(BubbleTokens.radiusLarge),
+      bottomRight: Radius.circular(BubbleTokens.radiusLarge),
+    );
+
+    final bubble = Container(
+      key: ValueKey('pending-bubble-${pending.localId}'),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color:
+            isFailed ? colors.primary.withValues(alpha: 0.6) : colors.primary,
+        borderRadius: borderRadius,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(pending.content, style: bodyStyle),
+        ],
+      ),
+    );
+
+    final statusRow = Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (isSending) ...[
+            SizedBox(
+              key: const ValueKey('pending-sending-indicator'),
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(
+                strokeWidth: 1.5,
+                color: colors.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Sending...',
+              style: AppTypography.caption.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+          ],
+          if (isFailed) ...[
+            Icon(
+              Icons.error_outline,
+              key: const ValueKey('pending-failed-icon'),
+              size: 14,
+              color: colors.error,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Failed to send',
+              key: const ValueKey('pending-failed-label'),
+              style: AppTypography.caption.copyWith(
+                color: colors.error,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              key: const ValueKey('pending-retry-button'),
+              onTap: () => ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .retrySend(pending.localId),
+              child: Text(
+                'Retry',
+                style: AppTypography.caption.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              key: const ValueKey('pending-dismiss-button'),
+              onTap: () => ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .dismissPendingMessage(pending.localId),
+              child: Text(
+                'Dismiss',
+                style: AppTypography.caption.copyWith(
+                  color: colors.textTertiary,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxBubbleWidth = constraints.maxWidth * _bubbleMaxWidthFraction;
+        return Align(
+          alignment: Alignment.centerRight,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                bubble,
+                statusRow,
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
