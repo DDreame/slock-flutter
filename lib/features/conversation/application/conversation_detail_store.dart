@@ -328,9 +328,8 @@ class ConversationDetailStore
         return;
       }
 
-      // Success: transition to sent, append confirmed message
+      // Success: transition to sent (do NOT add canonical to messages yet)
       state = state.copyWith(
-        messages: _appendDedupedMessage(state.messages, message),
         pendingMessages: state.pendingMessages.map((m) {
           if (m.localId == localId) {
             return m.copyWith(
@@ -342,8 +341,8 @@ class ConversationDetailStore
       );
       _persistSession();
 
-      // Remove the sent indicator after a brief delay
-      _scheduleSentRemoval(localId, target);
+      // After delay, remove sent indicator and add canonical message
+      _scheduleSentRemoval(localId, target, confirmedMessage: message);
     } on AppFailure catch (failure) {
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
@@ -397,9 +396,8 @@ class ConversationDetailStore
         return;
       }
 
-      // Success: transition to sent, append confirmed message
+      // Success: transition to sent (do NOT add canonical to messages yet)
       state = state.copyWith(
-        messages: _appendDedupedMessage(state.messages, message),
         pendingMessages: state.pendingMessages.map((m) {
           if (m.localId == localId) {
             return m.copyWith(
@@ -410,8 +408,8 @@ class ConversationDetailStore
       );
       _persistSession();
 
-      // Remove the sent indicator after a brief delay
-      _scheduleSentRemoval(localId, target);
+      // After delay, remove sent indicator and add canonical message
+      _scheduleSentRemoval(localId, target, confirmedMessage: message);
     } on AppFailure catch (failure) {
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
@@ -436,6 +434,7 @@ class ConversationDetailStore
       pendingMessages:
           state.pendingMessages.where((m) => m.localId != localId).toList(),
     );
+    _persistSession();
   }
 
   void updateViewportOffset(double offset) {
@@ -857,16 +856,24 @@ class ConversationDetailStore
   /// Duration the "sent" indicator remains visible before removal.
   static const sentIndicatorDuration = Duration(seconds: 2);
 
-  void _scheduleSentRemoval(String localId, ConversationDetailTarget target) {
+  void _scheduleSentRemoval(
+    String localId,
+    ConversationDetailTarget target, {
+    ConversationMessageSummary? confirmedMessage,
+  }) {
     unawaited(
       Future<void>.delayed(sentIndicatorDuration).then((_) {
         if (ref.read(currentConversationDetailTargetProvider) != target) {
           return;
         }
         state = state.copyWith(
+          messages: confirmedMessage != null
+              ? _appendDedupedMessage(state.messages, confirmedMessage)
+              : state.messages,
           pendingMessages:
               state.pendingMessages.where((m) => m.localId != localId).toList(),
         );
+        _persistSession();
       }),
     );
   }

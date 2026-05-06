@@ -57,7 +57,9 @@ class ConversationDetailState {
   final Set<String> savedMessageIds;
 
   bool get isEmpty =>
-      status == ConversationDetailStatus.success && messages.isEmpty;
+      status == ConversationDetailStatus.success &&
+      messages.isEmpty &&
+      pendingMessages.isEmpty;
 
   String get resolvedTitle => title ?? target.defaultTitle;
 

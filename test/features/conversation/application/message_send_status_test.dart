@@ -194,7 +194,8 @@ void main() {
         afterState.pendingMessages.first.status,
         MessageSendStatus.sent,
       );
-      expect(afterState.messages.last.id, 'msg-1');
+      // Canonical message not added yet (deferred until sent indicator removed)
+      expect(afterState.messages, isEmpty);
     });
 
     test('send transitions to failed on error', () async {
@@ -269,7 +270,8 @@ void main() {
         doneState.pendingMessages.first.status,
         MessageSendStatus.sent,
       );
-      expect(doneState.messages.last.id, 'msg-retry');
+      // Canonical message deferred until sent indicator removed
+      expect(doneState.messages, isEmpty);
     });
 
     test('pending messages appear separate from confirmed messages', () async {
@@ -481,7 +483,7 @@ void main() {
       await retryFuture;
     });
 
-    test('sent indicator is removed after delay', () async {
+    test('sent indicator is removed after delay and canonical added', () async {
       final container = createContainer();
       addTearDown(container.dispose);
 
@@ -496,15 +498,16 @@ void main() {
       repo.sendCompleter!.complete(_fakeMessage('msg-fade', 'Fading'));
       await sendFuture;
 
-      // Immediately after send, pending is in 'sent' state
+      // Immediately after send, pending is in 'sent' state, no canonical yet
       final sentState = container.read(conversationDetailStoreProvider);
       expect(sentState.pendingMessages, hasLength(1));
       expect(
         sentState.pendingMessages.first.status,
         MessageSendStatus.sent,
       );
+      expect(sentState.messages, isEmpty);
 
-      // After the sent indicator duration, pending is removed
+      // After the sent indicator duration, pending removed + canonical added
       await Future<void>.delayed(
         ConversationDetailStore.sentIndicatorDuration +
             const Duration(milliseconds: 100),
@@ -512,6 +515,48 @@ void main() {
 
       final removedState = container.read(conversationDetailStoreProvider);
       expect(removedState.pendingMessages, isEmpty);
+      expect(removedState.messages, hasLength(1));
+      expect(removedState.messages.last.id, 'msg-fade');
+    });
+
+    test('dismissed message does not resurrect on restore', () async {
+      final container = createContainer();
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+
+      // Send and fail
+      store.updateDraft('Gone forever');
+      repo.sendCompleter = Completer<ConversationMessageSummary>();
+      final sendFuture = store.send();
+      await Future<void>.delayed(Duration.zero);
+      repo.sendCompleter!.completeError(
+        const UnknownFailure(message: 'fail', causeType: 'x'),
+      );
+      await sendFuture;
+
+      final localId = container
+          .read(conversationDetailStoreProvider)
+          .pendingMessages
+          .first
+          .localId;
+
+      // Dismiss
+      store.dismissPendingMessage(localId);
+
+      final afterDismiss = container.read(conversationDetailStoreProvider);
+      expect(afterDismiss.pendingMessages, isEmpty);
+
+      // Serialize and restore — dismissed message should NOT reappear
+      final entry = ConversationDetailSessionEntry.fromState(
+        afterDismiss,
+        scrollOffset: 0,
+      );
+      expect(entry.failedPendingMessages, isEmpty);
+
+      final restored = entry.toState(target);
+      expect(restored.pendingMessages, isEmpty);
     });
   });
 }
