@@ -369,6 +369,20 @@ import BackgroundTasks
       result[keyString] = value
     }
 
+    // Thread parent identity remapping:
+    // Backend sends parentChannelId + parentMessageId for thread payloads.
+    // Dart routing expects flat channelId + threadId.
+    if result["type"] as? String == "thread" {
+      if let parentChannelId = result["parentChannelId"] as? String {
+        result["channelId"] = parentChannelId
+        result.removeValue(forKey: "parentChannelId")
+      }
+      if let parentMessageId = result["parentMessageId"] as? String {
+        result["threadId"] = parentMessageId
+        result.removeValue(forKey: "parentMessageId")
+      }
+    }
+
     // For local reposts (which already have flat title/body),
     // preserve title/body from the top-level payload if not
     // already set from aps.alert
