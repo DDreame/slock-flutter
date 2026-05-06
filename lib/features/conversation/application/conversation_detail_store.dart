@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
+import 'package:slock_app/features/conversation/application/image_compressor.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -35,6 +37,7 @@ class ConversationDetailStore
   int _requestEpoch = 0;
   int _localIdCounter = 0;
   final Set<Timer> _sentRemovalTimers = {};
+  final Map<int, CancelToken> _uploadCancelTokens = {};
 
   @override
   ConversationDetailState build() {
@@ -263,6 +266,14 @@ class ConversationDetailStore
     state = state.copyWith(pendingAttachments: updated);
   }
 
+  /// Cancel an in-flight upload by attachment index.
+  void cancelUpload(int index) {
+    final token = _uploadCancelTokens[index];
+    if (token != null && !token.isCancelled) {
+      token.cancel('User cancelled upload');
+    }
+  }
+
   Future<void> send() async {
     final target = ref.read(currentConversationDetailTargetProvider);
     final content = state.draft.trim();
@@ -282,11 +293,11 @@ class ConversationDetailStore
       createdAt: DateTime.now(),
     );
 
-    // Optimistic insert: show message immediately, clear draft
+    // Optimistic insert: show message immediately, clear draft.
+    // Keep pendingAttachments visible during upload so UI can overlay progress.
     state = state.copyWith(
       pendingMessages: [...state.pendingMessages, pending],
       draft: '',
-      pendingAttachments: const [],
       clearSendFailure: true,
     );
 
@@ -296,14 +307,72 @@ class ConversationDetailStore
       List<String>? attachmentIds;
       if (pendingFiles != null) {
         attachmentIds = <String>[];
-        for (final file in pendingFiles) {
+        final compressor = ref.read(imageCompressorProvider);
+
+        for (var i = 0; i < pendingFiles.length; i++) {
+          final file = pendingFiles[i];
+          final cancelToken = CancelToken();
+          _uploadCancelTokens[i] = cancelToken;
+
           try {
-            final id = await repo.uploadAttachment(target, file);
+            // Compress image if applicable and large
+            var uploadFile = file;
+            if (compressor.isCompressibleImage(file.mimeType)) {
+              try {
+                final size = await compressor.getFileSize(file.path);
+                if (size > DefaultImageCompressor.compressionThresholdBytes) {
+                  final compressed = await compressor.compress(file.path);
+                  uploadFile = PendingAttachment(
+                    path: compressed,
+                    name: file.name,
+                    mimeType: file.mimeType,
+                  );
+                }
+              } catch (_) {
+                // Fall back to original on compression failure
+              }
+            }
+
+            // Update progress state
+            state = state.copyWith(
+              uploadProgress: {...state.uploadProgress, i: 0.0},
+            );
+
+            final id = await repo.uploadAttachment(
+              target,
+              uploadFile,
+              onSendProgress: (sent, total) {
+                if (total > 0) {
+                  state = state.copyWith(
+                    uploadProgress: {
+                      ...state.uploadProgress,
+                      i: sent / total,
+                    },
+                  );
+                }
+              },
+              cancelToken: cancelToken,
+            );
             attachmentIds.add(id);
+          } on DioException catch (e) {
+            if (e.type == DioExceptionType.cancel) {
+              // Cancelled by user — skip this attachment
+            } else {
+              // Other Dio error — skip
+            }
           } on AppFailure {
             // Skip failed uploads
+          } finally {
+            _uploadCancelTokens.remove(i);
           }
         }
+
+        // Clear upload progress and pending attachments after all uploads
+        state = state.copyWith(
+          uploadProgress: const {},
+          pendingAttachments: const [],
+        );
+
         if (attachmentIds.isEmpty && content.isEmpty) {
           throw const UnknownFailure(
             message: 'All attachment uploads failed.',

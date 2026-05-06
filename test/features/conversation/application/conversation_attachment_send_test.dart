@@ -1,8 +1,10 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/image_compressor.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -24,6 +26,7 @@ void main() {
       realtimeReductionIngressProvider.overrideWithValue(
         RealtimeReductionIngress(),
       ),
+      imageCompressorProvider.overrideWithValue(const _NoOpImageCompressor()),
     ]);
   });
 
@@ -300,8 +303,10 @@ class _FakeConversationRepository implements ConversationRepository {
   @override
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
-    PendingAttachment attachment,
-  ) async {
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
     final index = _uploadCallIndex++;
     if (shouldFailUpload || failUploadIndices.contains(index)) {
       throw const UnknownFailure(
@@ -378,4 +383,17 @@ class _FakeConversationRepository implements ConversationRepository {
   }) async {
     throw UnimplementedError();
   }
+}
+
+class _NoOpImageCompressor implements ImageCompressor {
+  const _NoOpImageCompressor();
+
+  @override
+  Future<int> getFileSize(String path) async => 0;
+
+  @override
+  Future<String> compress(String path, {int quality = 80}) async => path;
+
+  @override
+  bool isCompressibleImage(String mimeType) => false;
 }

@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
@@ -235,6 +236,9 @@ class _ConversationDetailScreenState
               onRemoveAttachment: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .removePendingAttachment,
+              onCancelUpload: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .cancelUpload,
             ),
         ],
       ),
@@ -635,6 +639,7 @@ class _ConversationComposer extends StatelessWidget {
     required this.onSend,
     required this.onPickAttachment,
     required this.onRemoveAttachment,
+    required this.onCancelUpload,
   });
 
   final TextEditingController controller;
@@ -644,6 +649,7 @@ class _ConversationComposer extends StatelessWidget {
   final Future<void> Function() onSend;
   final ValueChanged<PendingAttachment> onPickAttachment;
   final ValueChanged<int> onRemoveAttachment;
+  final ValueChanged<int> onCancelUpload;
 
   @override
   Widget build(BuildContext context) {
@@ -678,14 +684,16 @@ class _ConversationComposer extends StatelessWidget {
                 runSpacing: AppSpacing.xs,
                 children: [
                   for (var i = 0; i < state.pendingAttachments.length; i++)
-                    Chip(
+                    _AttachmentChip(
                       key: ValueKey('pending-attachment-$i'),
-                      avatar: const Icon(Icons.attach_file, size: 16),
-                      label: Text(
-                        state.pendingAttachments[i].name,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      onDeleted: () => onRemoveAttachment(i),
+                      name: state.pendingAttachments[i].name,
+                      progress: state.uploadProgress[i],
+                      onDelete: state.uploadProgress.containsKey(i)
+                          ? null
+                          : () => onRemoveAttachment(i),
+                      onCancel: state.uploadProgress.containsKey(i)
+                          ? () => onCancelUpload(i)
+                          : null,
                     ),
                 ],
               ),
@@ -704,8 +712,9 @@ class _ConversationComposer extends StatelessWidget {
                   child: IconButton(
                     icon: const Icon(Icons.attach_file, size: 20),
                     padding: EdgeInsets.zero,
-                    onPressed:
-                        state.isSending ? null : () => _pickFile(context),
+                    onPressed: state.isSending
+                        ? null
+                        : () => _showAttachOptions(context),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -771,15 +780,88 @@ class _ConversationComposer extends StatelessWidget {
     );
   }
 
-  Future<void> _pickFile(BuildContext context) async {
-    final result = await FilePicker.platform.pickFiles();
-    if (result == null || result.files.isEmpty) {
-      return;
+  Future<void> _showAttachOptions(BuildContext context) async {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final option = await showModalBottomSheet<_AttachOption>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.photo_library, color: colors.text),
+              title: const Text('Photo & Video'),
+              onTap: () => Navigator.pop(ctx, _AttachOption.gallery),
+            ),
+            ListTile(
+              key: const ValueKey('attach-camera'),
+              leading: Icon(Icons.camera_alt, color: colors.text),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(ctx, _AttachOption.camera),
+            ),
+            ListTile(
+              leading: Icon(Icons.insert_drive_file, color: colors.text),
+              title: const Text('File'),
+              onTap: () => Navigator.pop(ctx, _AttachOption.file),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (option == null || !context.mounted) return;
+    switch (option) {
+      case _AttachOption.gallery:
+        await _pickGallery();
+      case _AttachOption.camera:
+        await _pickCamera(context);
+      case _AttachOption.file:
+        await _pickFile();
     }
+  }
+
+  Future<void> _pickGallery() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.media);
+    if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
-    if (file.path == null) {
-      return;
+    if (file.path == null) return;
+    final extension = file.extension ?? '';
+    final mimeType = _mimeFromExtension(extension);
+    onPickAttachment(PendingAttachment(
+      path: file.path!,
+      name: file.name,
+      mimeType: mimeType,
+    ));
+  }
+
+  Future<void> _pickCamera(BuildContext context) async {
+    try {
+      final picker = ImagePicker();
+      final photo = await picker.pickImage(source: ImageSource.camera);
+      if (photo == null) return;
+      final name = photo.name;
+      final ext = name.split('.').last;
+      final mimeType = _mimeFromExtension(ext);
+      onPickAttachment(PendingAttachment(
+        path: photo.path,
+        name: name,
+        mimeType: mimeType,
+      ));
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          key: ValueKey('camera-error-snackbar'),
+          content: Text('Camera unavailable. Please check permissions.'),
+        ),
+      );
     }
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles();
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.path == null) return;
     final extension = file.extension ?? '';
     final mimeType = _mimeFromExtension(extension);
     onPickAttachment(PendingAttachment(
@@ -804,6 +886,58 @@ class _ConversationComposer extends StatelessWidget {
       'mp3' => 'audio/mpeg',
       _ => 'application/octet-stream',
     };
+  }
+}
+
+enum _AttachOption { gallery, camera, file }
+
+/// A chip that shows the attachment filename. When an upload is in progress,
+/// overlays a progress indicator and replaces the delete button with cancel.
+class _AttachmentChip extends StatelessWidget {
+  const _AttachmentChip({
+    super.key,
+    required this.name,
+    this.progress,
+    this.onDelete,
+    this.onCancel,
+  });
+
+  final String name;
+
+  /// Null when not uploading; 0.0-1.0 during upload.
+  final double? progress;
+  final VoidCallback? onDelete;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final isUploading = progress != null;
+    final percent = isUploading ? (progress! * 100).round() : 0;
+
+    return Chip(
+      avatar: isUploading
+          ? SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                key: const ValueKey('attachment-upload-indicator'),
+                value: progress,
+                strokeWidth: 2,
+                color: colors.primary,
+              ),
+            )
+          : const Icon(Icons.attach_file, size: 16),
+      label: Text(
+        isUploading ? '$name · $percent%' : name,
+        overflow: TextOverflow.ellipsis,
+      ),
+      deleteIcon: Icon(
+        isUploading ? Icons.close : Icons.cancel,
+        size: 16,
+      ),
+      onDeleted: isUploading ? onCancel : onDelete,
+    );
   }
 }
 

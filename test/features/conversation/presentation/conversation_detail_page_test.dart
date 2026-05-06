@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -1352,8 +1353,10 @@ class _FakeConversationRepository implements ConversationRepository {
   @override
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
-    PendingAttachment attachment,
-  ) async {
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
     return 'test-attachment-id';
   }
 
@@ -1499,8 +1502,10 @@ class _QueueConversationRepository implements ConversationRepository {
   @override
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
-    PendingAttachment attachment,
-  ) async {
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
     return 'test-attachment-id';
   }
 

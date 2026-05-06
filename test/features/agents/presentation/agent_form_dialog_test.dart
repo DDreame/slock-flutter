@@ -72,6 +72,7 @@ class _FakeDioClient extends AppDioClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
   }) async {
     if (path.contains('/machines')) {
       return Response<T>(

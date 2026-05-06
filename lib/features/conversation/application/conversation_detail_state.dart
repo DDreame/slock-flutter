@@ -20,6 +20,7 @@ class ConversationDetailState {
     this.hasNewer = false,
     this.draft = '',
     this.pendingAttachments = const [],
+    this.uploadProgress = const {},
     this.isSending = false,
     this.isLoadingOlder = false,
     this.isLoadingNewer = false,
@@ -45,6 +46,10 @@ class ConversationDetailState {
   final bool hasNewer;
   final String draft;
   final List<PendingAttachment> pendingAttachments;
+
+  /// Per-attachment upload progress. Key is attachment index, value is 0.0–1.0.
+  /// Cleared after all uploads complete (success or cancel).
+  final Map<int, double> uploadProgress;
   final bool isSending;
   final bool isLoadingOlder;
   final bool isLoadingNewer;
@@ -79,6 +84,7 @@ class ConversationDetailState {
     bool? hasNewer,
     String? draft,
     List<PendingAttachment>? pendingAttachments,
+    Map<int, double>? uploadProgress,
     bool? isSending,
     bool? isLoadingOlder,
     bool? isLoadingNewer,
@@ -104,6 +110,7 @@ class ConversationDetailState {
       hasNewer: hasNewer ?? this.hasNewer,
       draft: draft ?? this.draft,
       pendingAttachments: pendingAttachments ?? this.pendingAttachments,
+      uploadProgress: uploadProgress ?? this.uploadProgress,
       isSending: isSending ?? this.isSending,
       isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
       isLoadingNewer: isLoadingNewer ?? this.isLoadingNewer,
@@ -134,6 +141,7 @@ class ConversationDetailState {
             hasNewer == other.hasNewer &&
             draft == other.draft &&
             listEquals(pendingAttachments, other.pendingAttachments) &&
+            mapEquals(uploadProgress, other.uploadProgress) &&
             isSending == other.isSending &&
             isLoadingOlder == other.isLoadingOlder &&
             isLoadingNewer == other.isLoadingNewer &&
@@ -159,14 +167,15 @@ class ConversationDetailState {
         hasNewer,
         draft,
         Object.hashAll(pendingAttachments),
+        Object.hashAll(uploadProgress.entries),
         isSending,
         isLoadingOlder,
         isLoadingNewer,
         failure,
         sendFailure,
-        isSearchActive,
-        searchQuery,
         Object.hash(
+          isSearchActive,
+          searchQuery,
           Object.hashAll(searchMatchIds),
           currentSearchMatchIndex,
           Object.hashAll(savedMessageIds),
