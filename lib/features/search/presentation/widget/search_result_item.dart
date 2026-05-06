@@ -36,7 +36,9 @@ class SearchResultItem extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(
-                  '#${result.channelName}',
+                  result.surface == 'direct_message'
+                      ? result.channelName!
+                      : '#${result.channelName}',
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.primary,
                   ),

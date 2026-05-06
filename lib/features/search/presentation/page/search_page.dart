@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
 import 'package:slock_app/features/search/application/search_store.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
@@ -202,7 +203,7 @@ class _SearchAllResultsList extends StatelessWidget {
               child: SearchContactResultItem(
                 result: contact,
                 query: query,
-                onTap: () {},
+                onTap: () => _navigateToContact(context, contact),
               ),
             ),
           if (contactResults.length > 3)
@@ -251,16 +252,74 @@ class _SearchAllResultsList extends StatelessWidget {
     context.push('/servers/$serverId/$segment/${channel.channelId}');
   }
 
+  void _navigateToContact(BuildContext context, SearchContactResult contact) {
+    _openContactDm(context, contact);
+  }
+
   void _navigateToConversation(
     BuildContext context,
     SearchResultMessage result,
   ) {
-    if (result.channelId == null) return;
-    final serverId = ProviderScope.containerOf(context)
-        .read(currentSearchServerIdProvider)
-        .value;
-    final segment = result.surface == 'direct_message' ? 'dms' : 'channels';
-    context.push('/servers/$serverId/$segment/${result.channelId}');
+    _pushMessageInContext(context, result);
+  }
+}
+
+/// Navigate to a message in its conversation context.
+///
+/// If the message started a thread, navigates to the thread replies page.
+/// Otherwise, navigates to the channel/DM with a `messageId` query parameter
+/// so the conversation page can scroll to the matched message.
+void _pushMessageInContext(BuildContext context, SearchResultMessage result) {
+  if (result.channelId == null) return;
+  final serverId = ProviderScope.containerOf(context)
+      .read(currentSearchServerIdProvider)
+      .value;
+
+  final message = result.message;
+
+  // If the message started a thread, navigate to thread replies.
+  if (message.threadId != null && message.threadId!.isNotEmpty) {
+    final threadUri = Uri(
+      path: '/servers/$serverId/threads/${message.id}/replies',
+      queryParameters: {
+        'channelId': result.channelId!,
+        'threadChannelId': message.threadId!,
+      },
+    );
+    context.push(threadUri.toString());
+    return;
+  }
+
+  // Navigate to channel/DM with messageId for scroll-to-message context.
+  final segment = result.surface == 'direct_message' ? 'dms' : 'channels';
+  final uri = Uri(
+    path: '/servers/$serverId/$segment/${result.channelId}',
+    queryParameters: {'messageId': message.id},
+  );
+  context.push(uri.toString());
+}
+
+/// Open or create a DM with a contact and navigate to it.
+Future<void> _openContactDm(
+  BuildContext context,
+  SearchContactResult contact,
+) async {
+  final container = ProviderScope.containerOf(context);
+  final serverId = container.read(currentSearchServerIdProvider);
+  final memberRepo = container.read(memberRepositoryProvider);
+
+  try {
+    final channelId = await memberRepo.openDirectMessage(
+      serverId,
+      userId: contact.identityId,
+    );
+    if (!context.mounted) return;
+    context.push('/servers/${serverId.value}/dms/$channelId');
+  } on AppFailure {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Could not open conversation.')),
+    );
   }
 }
 
@@ -312,12 +371,7 @@ class _SearchMessageResultsList extends StatelessWidget {
     BuildContext context,
     SearchResultMessage result,
   ) {
-    if (result.channelId == null) return;
-    final serverId = ProviderScope.containerOf(context)
-        .read(currentSearchServerIdProvider)
-        .value;
-    final segment = result.surface == 'direct_message' ? 'dms' : 'channels';
-    context.push('/servers/$serverId/$segment/${result.channelId}');
+    _pushMessageInContext(context, result);
   }
 }
 
@@ -388,7 +442,7 @@ class _SearchContactResultsList extends StatelessWidget {
         return SearchContactResultItem(
           result: contact,
           query: query,
-          onTap: () {},
+          onTap: () => _openContactDm(context, contact),
         );
       },
     );
