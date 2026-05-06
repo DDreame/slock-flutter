@@ -411,7 +411,7 @@ void main() {
     );
   });
 
-  testWidgets('composer preserves draft and shows inline send failure', (
+  testWidgets('send failure shows failed status on pending message card', (
     tester,
   ) async {
     final target = ConversationDetailTarget.channel(
@@ -451,19 +451,22 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('composer-send')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('composer-send-error')), findsOneWidget);
-    expect(find.text('Send failed.'), findsOneWidget);
+    // Failed message shows error indicator on pending card
+    expect(find.byKey(const ValueKey('pending-failed-icon')), findsOneWidget);
+    expect(find.text('Failed to send'), findsOneWidget);
+    // Draft consumed into pending message; composer is empty
     expect(
       tester
           .widget<TextField>(find.byKey(const ValueKey('composer-input')))
           .controller
           ?.text,
-      'Keep me',
+      isEmpty,
     );
+    // Message content visible in pending card
+    expect(find.text('Keep me'), findsOneWidget);
   });
 
-  testWidgets(
-      'send button is disabled and shows Sending... while send is in flight', (
+  testWidgets('send button is disabled after optimistic insert clears draft', (
     tester,
   ) async {
     final target = ConversationDetailTarget.channel(
@@ -509,6 +512,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('composer-send')));
     await tester.pump();
 
+    // After optimistic insert, draft is cleared so canSend is false
     final button = tester.widget<IconButton>(
       find.descendant(
         of: find.byKey(const ValueKey('composer-send')),
@@ -516,18 +520,15 @@ void main() {
       ),
     );
     expect(button.onPressed, isNull);
-    // In-flight state shows hourglass icon instead of send icon
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('composer-send')),
-        matching: find.byIcon(Icons.hourglass_top),
-      ),
-      findsOneWidget,
-    );
+
+    // Pending message visible with sending indicator
+    expect(find.byKey(const ValueKey('pending-sending-indicator')),
+        findsOneWidget);
 
     sendCompleter.complete(repository.sentMessage!);
     await tester.pumpAndSettle();
 
+    // After completion, send button still disabled (no text in composer)
     final resolvedButton = tester.widget<IconButton>(
       find.descendant(
         of: find.byKey(const ValueKey('composer-send')),
@@ -535,7 +536,6 @@ void main() {
       ),
     );
     expect(resolvedButton.onPressed, isNull);
-    // After completion, reverts to send icon
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('composer-send')),

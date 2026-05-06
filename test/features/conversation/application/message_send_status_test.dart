@@ -156,6 +156,8 @@ void main() {
           conversationRepositoryProvider.overrideWithValue(repo),
         ],
       );
+      // Keep the autoDispose provider alive across async gaps
+      container.listen(conversationDetailStoreProvider, (_, __) {});
       return container;
     }
 
