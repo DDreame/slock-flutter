@@ -684,31 +684,16 @@ class _ConversationComposer extends StatelessWidget {
                 runSpacing: AppSpacing.xs,
                 children: [
                   for (var i = 0; i < state.pendingAttachments.length; i++)
-                    Chip(
+                    _AttachmentChip(
                       key: ValueKey('pending-attachment-$i'),
-                      avatar: const Icon(Icons.attach_file, size: 16),
-                      label: Text(
-                        state.pendingAttachments[i].name,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      onDeleted: () => onRemoveAttachment(i),
-                    ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-            if (state.uploadProgress.isNotEmpty) ...[
-              Wrap(
-                key: const ValueKey('composer-upload-progress'),
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.xs,
-                children: [
-                  for (final entry in state.uploadProgress.entries)
-                    _UploadProgressChip(
-                      key: ValueKey('upload-progress-${entry.key}'),
-                      index: entry.key,
-                      progress: entry.value,
-                      onCancel: () => onCancelUpload(entry.key),
+                      name: state.pendingAttachments[i].name,
+                      progress: state.uploadProgress[i],
+                      onDelete: state.uploadProgress.containsKey(i)
+                          ? null
+                          : () => onRemoveAttachment(i),
+                      onCancel: state.uploadProgress.containsKey(i)
+                          ? () => onCancelUpload(i)
+                          : null,
                     ),
                 ],
               ),
@@ -906,38 +891,52 @@ class _ConversationComposer extends StatelessWidget {
 
 enum _AttachOption { gallery, camera, file }
 
-class _UploadProgressChip extends StatelessWidget {
-  const _UploadProgressChip({
+/// A chip that shows the attachment filename. When an upload is in progress,
+/// overlays a progress indicator and replaces the delete button with cancel.
+class _AttachmentChip extends StatelessWidget {
+  const _AttachmentChip({
     super.key,
-    required this.index,
-    required this.progress,
-    required this.onCancel,
+    required this.name,
+    this.progress,
+    this.onDelete,
+    this.onCancel,
   });
 
-  final int index;
-  final double progress;
-  final VoidCallback onCancel;
+  final String name;
+
+  /// Null when not uploading; 0.0-1.0 during upload.
+  final double? progress;
+  final VoidCallback? onDelete;
+  final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final percent = (progress * 100).round();
+    final isUploading = progress != null;
+    final percent = isUploading ? (progress! * 100).round() : 0;
+
     return Chip(
-      avatar: SizedBox(
-        width: 16,
-        height: 16,
-        child: CircularProgressIndicator(
-          value: progress,
-          strokeWidth: 2,
-          color: colors.primary,
-        ),
-      ),
+      avatar: isUploading
+          ? SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                key: const ValueKey('attachment-upload-indicator'),
+                value: progress,
+                strokeWidth: 2,
+                color: colors.primary,
+              ),
+            )
+          : const Icon(Icons.attach_file, size: 16),
       label: Text(
-        'Uploading $percent%',
+        isUploading ? '$name · $percent%' : name,
         overflow: TextOverflow.ellipsis,
       ),
-      deleteIcon: const Icon(Icons.close, size: 16),
-      onDeleted: onCancel,
+      deleteIcon: Icon(
+        isUploading ? Icons.close : Icons.cancel,
+        size: 16,
+      ),
+      onDeleted: isUploading ? onCancel : onDelete,
     );
   }
 }

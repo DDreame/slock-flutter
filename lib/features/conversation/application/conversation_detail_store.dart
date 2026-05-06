@@ -293,11 +293,11 @@ class ConversationDetailStore
       createdAt: DateTime.now(),
     );
 
-    // Optimistic insert: show message immediately, clear draft
+    // Optimistic insert: show message immediately, clear draft.
+    // Keep pendingAttachments visible during upload so UI can overlay progress.
     state = state.copyWith(
       pendingMessages: [...state.pendingMessages, pending],
       draft: '',
-      pendingAttachments: const [],
       clearSendFailure: true,
     );
 
@@ -367,8 +367,11 @@ class ConversationDetailStore
           }
         }
 
-        // Clear upload progress
-        state = state.copyWith(uploadProgress: const {});
+        // Clear upload progress and pending attachments after all uploads
+        state = state.copyWith(
+          uploadProgress: const {},
+          pendingAttachments: const [],
+        );
 
         if (attachmentIds.isEmpty && content.isEmpty) {
           throw const UnknownFailure(
