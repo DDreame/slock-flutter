@@ -20,6 +20,7 @@ class AppDioClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
   }) async {
     try {
       final requestOptions =
@@ -30,6 +31,7 @@ class AppDioClient {
         queryParameters: queryParameters,
         options: requestOptions,
         cancelToken: cancelToken,
+        onSendProgress: onSendProgress,
       );
     } on DioException catch (error) {
       throw _failureMapper.map(error);
@@ -59,6 +61,7 @@ class AppDioClient {
     Map<String, dynamic>? queryParameters,
     CancelToken? cancelToken,
     Options? options,
+    void Function(int, int)? onSendProgress,
   }) {
     return request<T>(
       path,
@@ -67,6 +70,7 @@ class AppDioClient {
       queryParameters: queryParameters,
       cancelToken: cancelToken,
       options: options,
+      onSendProgress: onSendProgress,
     );
   }
 

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -71,6 +72,8 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('composer-attach')));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('File'));
+    await tester.pumpAndSettle();
 
     expect(
       find.byKey(const ValueKey('composer-pending-attachments')),
@@ -102,11 +105,15 @@ void main() {
     ]);
     await tester.tap(find.byKey(const ValueKey('composer-attach')));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('File'));
+    await tester.pumpAndSettle();
 
     fakeFilePicker.result = FilePickerResult([
       PlatformFile(name: 'b.png', size: 200, path: '/tmp/b.png'),
     ]);
     await tester.tap(find.byKey(const ValueKey('composer-attach')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('File'));
     await tester.pumpAndSettle();
 
     expect(find.text('a.pdf'), findsOneWidget);
@@ -150,6 +157,8 @@ void main() {
       PlatformFile(name: 'test.pdf', size: 1024, path: '/tmp/test.pdf'),
     ]);
     await tester.tap(find.byKey(const ValueKey('composer-attach')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('File'));
     await tester.pumpAndSettle();
 
     expect(
@@ -236,8 +245,10 @@ class _FakeConversationRepository implements ConversationRepository {
   @override
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
-    PendingAttachment attachment,
-  ) async {
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
     uploadedAttachments.add(attachment);
     return 'upload-${uploadedAttachments.length}';
   }

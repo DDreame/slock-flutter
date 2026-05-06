@@ -233,6 +233,7 @@ class _FakeAppDioClient extends AppDioClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
   }) async {
     requests.add(_CapturedRequest(method: method, path: path, data: data));
 

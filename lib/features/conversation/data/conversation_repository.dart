@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -70,8 +71,10 @@ abstract class ConversationRepository {
 
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
-    PendingAttachment attachment,
-  );
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  });
 
   Future<ConversationMessageSummary> sendMessage(
     ConversationDetailTarget target,

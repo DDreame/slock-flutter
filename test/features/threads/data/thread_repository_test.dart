@@ -182,6 +182,7 @@ class _FakeAppDioClient extends AppDioClient {
     Map<String, dynamic>? queryParameters,
     CancelToken? cancelToken,
     Options? options,
+    void Function(int, int)? onSendProgress,
   }) async {
     final headers = Map<String, Object?>.from(options?.headers ?? const {});
     requests.add(

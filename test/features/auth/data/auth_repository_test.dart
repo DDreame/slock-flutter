@@ -272,6 +272,7 @@ class _FakeDioClient implements AppDioClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
   }) async {
     lastPath = path;
     lastMethod = method;
@@ -297,6 +298,7 @@ class _FakeDioClient implements AppDioClient {
     Map<String, dynamic>? queryParameters,
     CancelToken? cancelToken,
     Options? options,
+    void Function(int, int)? onSendProgress,
   }) async {
     return request<T>(path, method: 'POST', data: data);
   }

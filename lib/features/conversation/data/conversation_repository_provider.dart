@@ -231,8 +231,10 @@ class _ApiConversationRepository implements ConversationRepository {
   @override
   Future<String> uploadAttachment(
     ConversationDetailTarget target,
-    PendingAttachment attachment,
-  ) async {
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
     try {
       final formData = FormData()
         ..fields.add(MapEntry('channelId', target.conversationId))
@@ -252,6 +254,8 @@ class _ApiConversationRepository implements ConversationRepository {
         options: _serverScopedOptions(target.serverId).copyWith(
           sendTimeout: const Duration(minutes: 2),
         ),
+        onSendProgress: onSendProgress,
+        cancelToken: cancelToken,
       );
       final map = requireConversationPayloadMap(
         response.data,

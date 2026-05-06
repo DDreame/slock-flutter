@@ -1094,6 +1094,7 @@ class _FakeAppDioClient extends AppDioClient {
     Map<String, dynamic>? queryParameters,
     Options? options,
     CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
   }) async {
     final key = (method, path);
     if (!_responses.containsKey(key)) {
