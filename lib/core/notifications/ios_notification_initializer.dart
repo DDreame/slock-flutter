@@ -6,6 +6,7 @@ const _notificationMethodChannelName = 'slock/notifications/methods';
 const _notificationTapEventChannelName = 'slock/notifications/taps';
 const _notificationForegroundEventChannelName =
     'slock/notifications/foreground';
+const _notificationTokenEventChannelName = 'slock/notifications/token';
 
 abstract class IosNotificationPlatformBridge {
   Future<void> init();
@@ -15,6 +16,7 @@ abstract class IosNotificationPlatformBridge {
   Future<Map<String, dynamic>?> getInitialNotification();
   Stream<Map<String, dynamic>> get onNotificationTapped;
   Stream<Map<String, dynamic>> get onForegroundMessage;
+  Stream<String> get onTokenChanged;
   Future<void> showLocalNotification(Map<String, dynamic> payload);
 }
 
@@ -53,6 +55,9 @@ class IosNotificationInitializer implements NotificationInitializer {
       _bridge.onForegroundMessage;
 
   @override
+  Stream<String> get onTokenChanged => _bridge.onTokenChanged;
+
+  @override
   Future<void> showLocalNotification(Map<String, dynamic> payload) =>
       _bridge.showLocalNotification(payload);
 }
@@ -69,6 +74,9 @@ class MethodChannelIosNotificationPlatformBridge
   );
   static const EventChannel _foregroundEventChannel = EventChannel(
     _notificationForegroundEventChannelName,
+  );
+  static const EventChannel _tokenEventChannel = EventChannel(
+    _notificationTokenEventChannelName,
   );
 
   @override
@@ -117,6 +125,12 @@ class MethodChannelIosNotificationPlatformBridge
           .map(coerceIosNotificationPayload)
           .where((payload) => payload != null)
           .cast<Map<String, dynamic>>();
+
+  @override
+  Stream<String> get onTokenChanged => _tokenEventChannel
+      .receiveBroadcastStream()
+      .where((event) => event is String && event.isNotEmpty)
+      .cast<String>();
 
   @override
   Future<void> showLocalNotification(Map<String, dynamic> payload) =>

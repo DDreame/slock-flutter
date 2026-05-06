@@ -40,6 +40,9 @@ class _FakeNotificationInitializer implements NotificationInitializer {
       foregroundController.stream;
 
   @override
+  Stream<String> get onTokenChanged => const Stream.empty();
+
+  @override
   Future<void> showLocalNotification(Map<String, dynamic> payload) async {
     displayedPayloads.add(payload);
   }

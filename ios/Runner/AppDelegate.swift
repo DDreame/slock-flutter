@@ -8,6 +8,7 @@ import BackgroundTasks
   private let notificationMethodChannelName = "slock/notifications/methods"
   private let notificationTapEventChannelName = "slock/notifications/taps"
   private let notificationForegroundEventChannelName = "slock/notifications/foreground"
+  private let notificationTokenEventChannelName = "slock/notifications/token"
   private let backgroundSyncChannelName = "slock/notifications/background_sync"
   private let apnsTokenDefaultsKey = "slock.notifications.apnsToken"
 
@@ -21,6 +22,7 @@ import BackgroundTasks
 
   private var tapEventSink: FlutterEventSink?
   private var foregroundEventSink: FlutterEventSink?
+  private var tokenEventSink: FlutterEventSink?
   private var pendingTapPayload: [String: Any]?
   private var initialNotificationPayload: [String: Any]?
   private var didConsumeInitialNotification = false
@@ -29,6 +31,7 @@ import BackgroundTasks
 
   private let tapStreamHandler = StreamHandler()
   private let foregroundStreamHandler = StreamHandler()
+  private let tokenStreamHandler = StreamHandler()
 
   override func application(
     _ application: UIApplication,
@@ -114,6 +117,22 @@ import BackgroundTasks
     }
     foregroundEventChannel.setStreamHandler(foregroundStreamHandler)
 
+    let tokenEventChannel = FlutterEventChannel(
+      name: notificationTokenEventChannelName,
+      binaryMessenger: messenger
+    )
+    tokenStreamHandler.onSinkReady = { [weak self] sink in
+      self?.tokenEventSink = sink
+      // Deliver cached token immediately if available when Dart subscribes.
+      if let token = self?.cachedApnsToken {
+        sink(token)
+      }
+    }
+    tokenStreamHandler.onSinkRemoved = { [weak self] in
+      self?.tokenEventSink = nil
+    }
+    tokenEventChannel.setStreamHandler(tokenStreamHandler)
+
     // Background sync MethodChannel
     let bgSyncChannel = FlutterMethodChannel(
       name: backgroundSyncChannelName,
@@ -149,8 +168,11 @@ import BackgroundTasks
     _ application: UIApplication,
     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
   ) {
-    cachedApnsToken = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-    UserDefaults.standard.set(cachedApnsToken, forKey: apnsTokenDefaultsKey)
+    let token = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+    cachedApnsToken = token
+    UserDefaults.standard.set(token, forKey: apnsTokenDefaultsKey)
+    // Push token to Dart via EventChannel for real-time delivery.
+    tokenEventSink?(token)
     super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
   }
 

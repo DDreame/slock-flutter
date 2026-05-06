@@ -24,7 +24,21 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
     if (preference == NotificationPreference.mute) {
       diagnostics.info(
         _tag,
-        'source=nativePush, suppressed=muted, '
+        'source=iosRemotePush, suppressed=muted, '
+        'channelId=$channelId',
+      );
+      return;
+    }
+
+    // Self-sender suppression: don't show notifications for own messages
+    final senderId = payload['senderId'] as String?;
+    final currentUserId = notificationState.currentUserId;
+    if (senderId != null &&
+        currentUserId != null &&
+        senderId == currentUserId) {
+      diagnostics.info(
+        _tag,
+        'source=iosRemotePush, suppressed=self, '
         'channelId=$channelId',
       );
       return;
@@ -35,7 +49,7 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
       if (target == null || target.surface != NotificationSurface.dm) {
         diagnostics.info(
           _tag,
-          'source=nativePush, suppressed=mentionsOnly, '
+          'source=iosRemotePush, suppressed=mentionsOnly, '
           'channelId=$channelId',
         );
         return;
@@ -53,7 +67,7 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
       if (suppress) {
         diagnostics.info(
           _tag,
-          'source=nativePush, suppressed=visibleTarget, '
+          'source=iosRemotePush, suppressed=visibleTarget, '
           'channelId=$channelId',
         );
         return;
@@ -62,7 +76,7 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
 
     diagnostics.info(
       _tag,
-      'source=nativePush, delivered, '
+      'source=iosForegroundRepost, delivered, '
       'channelId=$channelId',
     );
 

@@ -13,6 +13,7 @@ class NotificationState {
   final DateTime? pushTokenUpdatedAt;
   final NotificationPermissionStatus permissionStatus;
   final NotificationPreference notificationPreference;
+  final String? currentUserId;
 
   const NotificationState({
     this.lifecycleStatus = AppLifecycleStatus.resumed,
@@ -22,6 +23,7 @@ class NotificationState {
     this.pushTokenUpdatedAt,
     this.permissionStatus = NotificationPermissionStatus.unknown,
     this.notificationPreference = NotificationPreference.all,
+    this.currentUserId,
   });
 
   NotificationState copyWith({
@@ -32,10 +34,12 @@ class NotificationState {
     DateTime? pushTokenUpdatedAt,
     NotificationPermissionStatus? permissionStatus,
     NotificationPreference? notificationPreference,
+    String? currentUserId,
     bool clearVisibleTarget = false,
     bool clearPushToken = false,
     bool clearPushTokenPlatform = false,
     bool clearPushTokenUpdatedAt = false,
+    bool clearCurrentUserId = false,
   }) {
     return NotificationState(
       lifecycleStatus: lifecycleStatus ?? this.lifecycleStatus,
@@ -51,6 +55,8 @@ class NotificationState {
       permissionStatus: permissionStatus ?? this.permissionStatus,
       notificationPreference:
           notificationPreference ?? this.notificationPreference,
+      currentUserId:
+          clearCurrentUserId ? null : (currentUserId ?? this.currentUserId),
     );
   }
 
@@ -65,7 +71,8 @@ class NotificationState {
           pushTokenPlatform == other.pushTokenPlatform &&
           pushTokenUpdatedAt == other.pushTokenUpdatedAt &&
           permissionStatus == other.permissionStatus &&
-          notificationPreference == other.notificationPreference;
+          notificationPreference == other.notificationPreference &&
+          currentUserId == other.currentUserId;
 
   @override
   int get hashCode => Object.hash(
@@ -76,5 +83,6 @@ class NotificationState {
         pushTokenUpdatedAt,
         permissionStatus,
         notificationPreference,
+        currentUserId,
       );
 }
