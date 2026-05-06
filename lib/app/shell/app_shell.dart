@@ -136,12 +136,16 @@ class AppShell extends ConsumerWidget {
                   icon: Badge(
                     key: const ValueKey('inbox-unread-badge'),
                     isLabelVisible: homeUnreadTotal > 0,
-                    label: Text('$homeUnreadTotal'),
+                    label: Text(
+                      homeUnreadTotal > 99 ? '99+' : '$homeUnreadTotal',
+                    ),
                     child: const Icon(Icons.inbox_outlined),
                   ),
                   selectedIcon: Badge(
                     isLabelVisible: homeUnreadTotal > 0,
-                    label: Text('$homeUnreadTotal'),
+                    label: Text(
+                      homeUnreadTotal > 99 ? '99+' : '$homeUnreadTotal',
+                    ),
                     child: const Icon(Icons.inbox),
                   ),
                   label: 'Inbox',

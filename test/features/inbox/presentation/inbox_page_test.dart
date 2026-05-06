@@ -114,10 +114,10 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      // Swipe startToEnd (left-to-right in LTR layout) = mark done
+      // Swipe endToStart (right-to-left in LTR layout) = mark done
       await tester.drag(
         find.byKey(const ValueKey('inbox-dismiss-ch-1')),
-        const Offset(500, 0),
+        const Offset(-500, 0),
       );
       await tester.pumpAndSettle();
 
@@ -132,10 +132,10 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      // Swipe endToStart (right-to-left in LTR layout) = mark read
+      // Swipe startToEnd (left-to-right in LTR layout) = mark read
       await tester.drag(
         find.byKey(const ValueKey('inbox-dismiss-ch-1')),
-        const Offset(-500, 0),
+        const Offset(500, 0),
       );
       await tester.pumpAndSettle();
 

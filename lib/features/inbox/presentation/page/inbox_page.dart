@@ -14,7 +14,7 @@ import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 /// Full-screen inbox page.
 ///
 /// Shows all inbox items with filter tabs (All / Unread), swipe gestures
-/// (left = mark done, right = mark read), pagination, pull-to-refresh,
+/// (right = mark read, left = mark done), pagination, pull-to-refresh,
 /// mark-all-read action, and an empty state.
 class InboxPage extends ConsumerStatefulWidget {
   const InboxPage({super.key});
@@ -310,26 +310,26 @@ class _InboxListTile extends StatelessWidget {
       background: _swipeBackground(
         colors: colors,
         alignment: Alignment.centerLeft,
-        icon: Icons.done,
-        color: colors.success,
-        label: 'Done',
-      ),
-      secondaryBackground: _swipeBackground(
-        colors: colors,
-        alignment: Alignment.centerRight,
         icon: Icons.mark_email_read,
         color: colors.primary,
         label: 'Read',
       ),
+      secondaryBackground: _swipeBackground(
+        colors: colors,
+        alignment: Alignment.centerRight,
+        icon: Icons.done,
+        color: colors.success,
+        label: 'Done',
+      ),
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
-          onMarkDone();
-        } else {
           onMarkRead();
+        } else {
+          onMarkDone();
         }
         // Return true only for mark-done (removes from list).
         // Mark-read keeps the item visible.
-        return direction == DismissDirection.startToEnd;
+        return direction == DismissDirection.endToStart;
       },
       child: GestureDetector(
         onTap: onTap,

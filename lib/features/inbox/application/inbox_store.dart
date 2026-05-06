@@ -131,8 +131,15 @@ class InboxStore extends Notifier<InboxState> {
             .where((i) => i.channelId == channelId)
             .fold<int>(0, (sum, i) => sum + i.unreadCount));
 
+    // In unread filter mode, remove items that are now read.
+    final filteredItems = state.filter == InboxFilter.unread
+        ? updatedItems
+            .where((i) => i.channelId != channelId)
+            .toList(growable: false)
+        : updatedItems;
+
     state = state.copyWith(
-      items: updatedItems,
+      items: filteredItems,
       totalUnreadCount: decreasedUnread < 0 ? 0 : decreasedUnread,
     );
 
@@ -199,8 +206,12 @@ class InboxStore extends Notifier<InboxState> {
       return item;
     }).toList(growable: false);
 
+    // In unread filter mode, all items become read → empty the list.
+    final filteredItems =
+        state.filter == InboxFilter.unread ? <InboxItem>[] : updatedItems;
+
     state = state.copyWith(
-      items: updatedItems,
+      items: filteredItems,
       totalUnreadCount: 0,
     );
 
