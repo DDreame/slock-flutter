@@ -8,6 +8,7 @@ import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 const _tag = 'notification-bridge';
 
@@ -30,9 +31,12 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
       return;
     }
 
-    // Self-sender suppression: don't show notifications for own messages
+    // Self-sender suppression: don't show notifications for own messages.
+    // Read userId from session store (production path) with fallback to
+    // notification state (test injection path).
     final senderId = payload['senderId'] as String?;
-    final currentUserId = notificationState.currentUserId;
+    final currentUserId = ref.read(sessionStoreProvider).userId ??
+        notificationState.currentUserId;
     if (senderId != null &&
         currentUserId != null &&
         senderId == currentUserId) {

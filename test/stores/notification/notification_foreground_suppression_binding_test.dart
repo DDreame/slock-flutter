@@ -9,6 +9,8 @@ import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 class _FakeNotificationInitializer implements NotificationInitializer {
   final StreamController<Map<String, dynamic>> foregroundController =
@@ -346,6 +348,138 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(fakeInitializer.displayedPayloads, hasLength(2));
+    });
+  });
+
+  group('self-sender suppression via session store (production path)', () {
+    test('suppresses notification from authenticated user', () async {
+      final fakeInit = _FakeNotificationInitializer();
+      final c = ProviderContainer(
+        overrides: [
+          notificationInitializerProvider.overrideWithValue(fakeInit),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      // Simulate authenticated session with userId
+      c.read(sessionStoreProvider.notifier).state = const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'user-me',
+        token: 'token',
+      );
+
+      c.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInit.foregroundController.add({
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+        'senderId': 'user-me',
+        'title': 'My own message',
+        'body': 'Hello',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      // Should be suppressed — payload senderId matches session userId
+      expect(fakeInit.displayedPayloads, isEmpty);
+    });
+
+    test('does not suppress notification from others when authenticated',
+        () async {
+      final fakeInit = _FakeNotificationInitializer();
+      final c = ProviderContainer(
+        overrides: [
+          notificationInitializerProvider.overrideWithValue(fakeInit),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      c.read(sessionStoreProvider.notifier).state = const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'user-me',
+        token: 'token',
+      );
+
+      c.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInit.foregroundController.add({
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+        'senderId': 'user-other',
+        'title': 'Someone else',
+        'body': 'Hello',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeInit.displayedPayloads, hasLength(1));
+    });
+
+    test('does not suppress after logout (stale userId cleared)', () async {
+      final fakeInit = _FakeNotificationInitializer();
+      final c = ProviderContainer(
+        overrides: [
+          notificationInitializerProvider.overrideWithValue(fakeInit),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      // Start authenticated
+      c.read(sessionStoreProvider.notifier).state = const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'user-me',
+        token: 'token',
+      );
+
+      c.read(notificationForegroundSuppressionBindingProvider);
+
+      // Logout — userId becomes null
+      c.read(sessionStoreProvider.notifier).state = const SessionState(
+        status: AuthStatus.unauthenticated,
+      );
+
+      fakeInit.foregroundController.add({
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+        'senderId': 'user-me',
+        'title': 'From old user',
+        'body': 'Hello',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      // Should NOT be suppressed — session has no userId after logout
+      expect(fakeInit.displayedPayloads, hasLength(1));
+    });
+
+    test('does not suppress when unauthenticated (no session)', () async {
+      final fakeInit = _FakeNotificationInitializer();
+      final c = ProviderContainer(
+        overrides: [
+          notificationInitializerProvider.overrideWithValue(fakeInit),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        ],
+      );
+      addTearDown(c.dispose);
+
+      // No session state set — default is unknown/null userId
+      c.read(notificationForegroundSuppressionBindingProvider);
+
+      fakeInit.foregroundController.add({
+        'type': 'channel',
+        'serverId': 's1',
+        'channelId': 'c1',
+        'senderId': 'user-me',
+        'title': 'Message',
+        'body': 'Hello',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      // Fail-open: no userId to compare → not suppressed
+      expect(fakeInit.displayedPayloads, hasLength(1));
     });
   });
 }
