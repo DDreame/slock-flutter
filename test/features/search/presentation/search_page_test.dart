@@ -9,6 +9,8 @@ import 'package:slock_app/features/search/data/search_repository.dart';
 import 'package:slock_app/features/search/data/search_repository_provider.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
 
+import 'package:slock_app/features/threads/application/thread_route.dart';
+
 import '../../../core/local_data/fake_conversation_local_store.dart';
 
 void main() {
@@ -296,6 +298,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('search-results')), findsOneWidget);
+  });
+
+  test('tryParseThreadRouteTarget extracts highlightMessageId from URI', () {
+    final uri = Uri.parse(
+      '/servers/srv-1/threads/parent-msg/replies?channelId=ch-1&threadChannelId=thread-ch&messageId=highlight-msg',
+    );
+    final target = tryParseThreadRouteTarget(uri);
+    expect(target, isNotNull);
+    expect(target!.serverId, 'srv-1');
+    expect(target.parentMessageId, 'parent-msg');
+    expect(target.parentChannelId, 'ch-1');
+    expect(target.threadChannelId, 'thread-ch');
+    expect(target.highlightMessageId, 'highlight-msg');
   });
 }
 

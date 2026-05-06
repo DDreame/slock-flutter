@@ -1283,6 +1283,97 @@ void main() {
     final contentFinder = find.byKey(const ValueKey('message-content'));
     expect(contentFinder, findsOneWidget);
   });
+
+  testWidgets('ChannelPage passes highlightMessageId to ConversationDetailPage',
+      (
+    tester,
+  ) async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'target-msg',
+            content: 'Target message',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: true,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: const ChannelPage(
+          serverId: 'server-1',
+          channelId: 'general',
+          highlightMessageId: 'target-msg',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify the ConversationDetailPage in the tree has highlightMessageId.
+    final detailPage = tester
+        .widget<ConversationDetailPage>(find.byType(ConversationDetailPage));
+    expect(detailPage.highlightMessageId, 'target-msg');
+  });
+
+  testWidgets(
+      'MessagesPage passes highlightMessageId to ConversationDetailPage', (
+    tester,
+  ) async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: ConversationDetailTarget.directMessage(
+          const DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'dm-1',
+          ),
+        ),
+        title: 'Alice',
+        messages: [
+          ConversationMessageSummary(
+            id: 'dm-target-msg',
+            content: 'DM target',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: true,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: const MessagesPage(
+          serverId: 'server-1',
+          channelId: 'dm-1',
+          highlightMessageId: 'dm-target-msg',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final detailPage = tester
+        .widget<ConversationDetailPage>(find.byType(ConversationDetailPage));
+    expect(detailPage.highlightMessageId, 'dm-target-msg');
+  });
 }
 
 Widget _buildApp({

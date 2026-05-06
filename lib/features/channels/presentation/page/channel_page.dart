@@ -9,11 +9,13 @@ import 'package:slock_app/features/conversation/presentation/page/conversation_d
 class ChannelPage extends ConsumerWidget {
   final String serverId;
   final String channelId;
+  final String? highlightMessageId;
 
   const ChannelPage({
     super.key,
     required this.serverId,
     required this.channelId,
+    this.highlightMessageId,
   });
 
   @override
@@ -26,6 +28,7 @@ class ChannelPage extends ConsumerWidget {
     ref.watch(channelPageRealtimeBindingProvider(target));
     return ConversationDetailPage(
       target: target,
+      highlightMessageId: highlightMessageId,
       appBarActionsBuilder: (context, ref, state) => [
         IconButton(
           icon: const Icon(Icons.group),

@@ -8,6 +8,7 @@ class ThreadRouteTarget {
     required this.parentMessageId,
     this.threadChannelId,
     this.isFollowed = false,
+    this.highlightMessageId,
   });
 
   final String serverId;
@@ -15,6 +16,9 @@ class ThreadRouteTarget {
   final String parentMessageId;
   final String? threadChannelId;
   final bool isFollowed;
+
+  /// When set, the thread replies page will scroll to this message.
+  final String? highlightMessageId;
 
   Uri toUri() {
     return Uri(
@@ -24,6 +28,8 @@ class ThreadRouteTarget {
         if (threadChannelId != null && threadChannelId!.isNotEmpty)
           'threadChannelId': threadChannelId!,
         if (isFollowed) 'followed': '1',
+        if (highlightMessageId != null && highlightMessageId!.isNotEmpty)
+          'messageId': highlightMessageId!,
       },
     );
   }
@@ -33,6 +39,7 @@ class ThreadRouteTarget {
   ThreadRouteTarget copyWith({
     String? threadChannelId,
     bool? isFollowed,
+    String? highlightMessageId,
   }) {
     return ThreadRouteTarget(
       serverId: serverId,
@@ -40,6 +47,7 @@ class ThreadRouteTarget {
       parentMessageId: parentMessageId,
       threadChannelId: threadChannelId ?? this.threadChannelId,
       isFollowed: isFollowed ?? this.isFollowed,
+      highlightMessageId: highlightMessageId ?? this.highlightMessageId,
     );
   }
 
@@ -52,7 +60,8 @@ class ThreadRouteTarget {
             parentChannelId == other.parentChannelId &&
             parentMessageId == other.parentMessageId &&
             threadChannelId == other.threadChannelId &&
-            isFollowed == other.isFollowed;
+            isFollowed == other.isFollowed &&
+            highlightMessageId == other.highlightMessageId;
   }
 
   @override
@@ -62,6 +71,7 @@ class ThreadRouteTarget {
         parentMessageId,
         threadChannelId,
         isFollowed,
+        highlightMessageId,
       );
 }
 
@@ -91,5 +101,6 @@ ThreadRouteTarget? tryParseThreadRouteTarget(Uri uri) {
     parentMessageId: parentMessageId,
     threadChannelId: uri.queryParameters['threadChannelId'],
     isFollowed: followedValue == '1' || followedValue == 'true',
+    highlightMessageId: uri.queryParameters['messageId'],
   );
 }
