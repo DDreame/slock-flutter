@@ -17,6 +17,7 @@ import 'package:slock_app/features/channels/presentation/page/channels_tab_page.
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/home/presentation/page/unread_list_page.dart';
+import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
 import 'package:slock_app/features/members/presentation/page/members_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
@@ -192,6 +193,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/agents',
             builder: (context, state) => const AgentsPage(),
+          ),
+          GoRoute(
+            path: '/inbox',
+            builder: (context, state) => const InboxPage(),
           ),
         ],
       ),
