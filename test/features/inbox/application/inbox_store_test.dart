@@ -486,6 +486,129 @@ void main() {
     });
   });
 
+  group('pagination cursor after optimistic removal', () {
+    test('markDone decrements offset so loadMore fetches correct page',
+        () async {
+      final repo = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+                kind: InboxItemKind.channel, channelId: 'ch-1', unreadCount: 2),
+            InboxItem(
+                kind: InboxItemKind.channel, channelId: 'ch-2', unreadCount: 1),
+            InboxItem(
+                kind: InboxItemKind.channel, channelId: 'ch-3', unreadCount: 3),
+          ],
+          totalCount: 5,
+          totalUnreadCount: 6,
+          hasMore: true,
+        ),
+      );
+      final container = createContainer(repository: repo);
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+      expect(container.read(inboxStoreProvider).offset, 3);
+
+      // Remove ch-2 via markDone — offset should drop to 2.
+      await container
+          .read(inboxStoreProvider.notifier)
+          .markDone(channelId: 'ch-2');
+      expect(container.read(inboxStoreProvider).offset, 2);
+      expect(container.read(inboxStoreProvider).items, hasLength(2));
+
+      // Next loadMore should use offset=2 (not stale 3).
+      repo.fetchResponse = const InboxResponse(
+        items: [
+          InboxItem(
+              kind: InboxItemKind.channel, channelId: 'ch-4', unreadCount: 1),
+        ],
+        totalCount: 4,
+        totalUnreadCount: 4,
+        hasMore: false,
+      );
+
+      await container.read(inboxStoreProvider.notifier).loadMore();
+      expect(repo.lastFetchOffset, 2);
+      expect(container.read(inboxStoreProvider).items, hasLength(3));
+    });
+
+    test('markRead in unread filter decrements offset so loadMore is correct',
+        () async {
+      final repo = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+                kind: InboxItemKind.channel, channelId: 'ch-1', unreadCount: 5),
+            InboxItem(
+                kind: InboxItemKind.channel, channelId: 'ch-2', unreadCount: 3),
+          ],
+          totalCount: 4,
+          totalUnreadCount: 8,
+          hasMore: true,
+        ),
+      );
+      final container = createContainer(repository: repo);
+      addTearDown(container.dispose);
+
+      // Load in unread filter mode.
+      await container
+          .read(inboxStoreProvider.notifier)
+          .load(filter: InboxFilter.unread);
+      expect(container.read(inboxStoreProvider).offset, 2);
+
+      // Mark ch-1 read — in unread mode it gets removed.
+      await container
+          .read(inboxStoreProvider.notifier)
+          .markRead(channelId: 'ch-1');
+      expect(container.read(inboxStoreProvider).offset, 1);
+      expect(container.read(inboxStoreProvider).items, hasLength(1));
+
+      // loadMore should use offset=1 (not stale 2).
+      repo.fetchResponse = const InboxResponse(
+        items: [
+          InboxItem(
+              kind: InboxItemKind.channel, channelId: 'ch-3', unreadCount: 2),
+        ],
+        totalCount: 3,
+        totalUnreadCount: 5,
+        hasMore: false,
+      );
+
+      await container.read(inboxStoreProvider.notifier).loadMore();
+      expect(repo.lastFetchOffset, 1);
+    });
+
+    test('markAllRead in unread filter resets offset to 0', () async {
+      final repo = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+                kind: InboxItemKind.channel, channelId: 'ch-1', unreadCount: 2),
+            InboxItem(
+                kind: InboxItemKind.channel, channelId: 'ch-2', unreadCount: 4),
+          ],
+          totalCount: 4,
+          totalUnreadCount: 6,
+          hasMore: true,
+        ),
+      );
+      final container = createContainer(repository: repo);
+      addTearDown(container.dispose);
+
+      await container
+          .read(inboxStoreProvider.notifier)
+          .load(filter: InboxFilter.unread);
+      expect(container.read(inboxStoreProvider).offset, 2);
+
+      // Mark all read — in unread mode removes all items.
+      await container.read(inboxStoreProvider.notifier).markAllRead();
+      expect(container.read(inboxStoreProvider).offset, 0);
+      expect(container.read(inboxStoreProvider).items, isEmpty);
+      expect(container.read(inboxStoreProvider).totalCount, 2);
+    });
+  });
+
   group('InboxStore.refresh', () {
     test('reloads first page preserving current filter', () async {
       final repo = FakeInboxRepository(

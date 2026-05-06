@@ -22,6 +22,7 @@ class AppShell extends ConsumerWidget {
     if (location.startsWith('/channels')) return 1;
     if (location.startsWith('/dms')) return 2;
     if (location.startsWith('/agents')) return 3;
+    if (location.startsWith('/inbox')) return 4;
     return 0;
   }
 
@@ -56,6 +57,8 @@ class AppShell extends ConsumerWidget {
                     context.go('/dms');
                   case 3:
                     context.go('/agents');
+                  case 4:
+                    context.go('/inbox');
                 }
               },
               destinations: [
@@ -127,6 +130,25 @@ class AppShell extends ConsumerWidget {
                     Icons.smart_toy,
                   ),
                   label: l10n.navAgents,
+                ),
+                NavigationDestination(
+                  key: const ValueKey('nav-inbox'),
+                  icon: Badge(
+                    key: const ValueKey('inbox-unread-badge'),
+                    isLabelVisible: homeUnreadTotal > 0,
+                    label: Text(
+                      homeUnreadTotal > 99 ? '99+' : '$homeUnreadTotal',
+                    ),
+                    child: const Icon(Icons.inbox_outlined),
+                  ),
+                  selectedIcon: Badge(
+                    isLabelVisible: homeUnreadTotal > 0,
+                    label: Text(
+                      homeUnreadTotal > 99 ? '99+' : '$homeUnreadTotal',
+                    ),
+                    child: const Icon(Icons.inbox),
+                  ),
+                  label: 'Inbox',
                 ),
               ],
             )

@@ -1,0 +1,332 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
+import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+
+void main() {
+  late _FakeInboxRepository repo;
+
+  setUp(() {
+    repo = _FakeInboxRepository();
+  });
+
+  Widget buildApp({
+    List<Override> extraOverrides = const [],
+  }) {
+    return ProviderScope(
+      overrides: [
+        inboxRepositoryProvider.overrideWithValue(repo),
+        activeServerScopeIdProvider
+            .overrideWith((_) => const ServerScopeId('server-1')),
+        ...extraOverrides,
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light,
+        home: const InboxPage(),
+      ),
+    );
+  }
+
+  group('InboxPage', () {
+    testWidgets('shows loading state initially', (tester) async {
+      repo.delayResponse = true;
+      await tester.pumpWidget(buildApp());
+      await tester.pump(); // trigger microtask load
+      await tester.pump(); // allow state transition
+
+      expect(find.byKey(const ValueKey('inbox-loading')), findsOneWidget);
+    });
+
+    testWidgets('shows items after load', (tester) async {
+      repo.items = [
+        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 3),
+        _makeItem(
+            channelId: 'dm-1',
+            channelName: 'Alice',
+            kind: InboxItemKind.dm,
+            unread: 1),
+      ];
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('inbox-page')), findsOneWidget);
+      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('inbox-item-dm-1')), findsOneWidget);
+      expect(find.text('#general'), findsOneWidget);
+      expect(find.text('Alice'), findsOneWidget);
+    });
+
+    testWidgets('shows empty state when no items', (tester) async {
+      repo.items = [];
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('inbox-empty')), findsOneWidget);
+      expect(find.text('All caught up!'), findsOneWidget);
+    });
+
+    testWidgets('shows error state with retry on failure', (tester) async {
+      repo.shouldFail = true;
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('inbox-error')), findsOneWidget);
+      expect(find.text('Retry'), findsOneWidget);
+    });
+
+    testWidgets('filter tabs switch between All and Unread', (tester) async {
+      repo.items = [
+        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 2),
+        _makeItem(channelId: 'ch-2', channelName: '#random', unread: 0),
+      ];
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Both items visible in All filter
+      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('inbox-item-ch-2')), findsOneWidget);
+
+      // Tap Unread filter
+      await tester.tap(find.byKey(const ValueKey('inbox-filter-unread')));
+      await tester.pumpAndSettle();
+
+      // repo.lastFilter should be 'unread'
+      expect(repo.lastFilter, InboxFilter.unread);
+    });
+
+    testWidgets('swipe left on item calls markDone', (tester) async {
+      repo.items = [
+        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 1),
+      ];
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Swipe endToStart (right-to-left in LTR layout) = mark done
+      await tester.drag(
+        find.byKey(const ValueKey('inbox-dismiss-ch-1')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.markedDoneIds, contains('ch-1'));
+    });
+
+    testWidgets('swipe right on item calls markRead', (tester) async {
+      repo.items = [
+        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 5),
+      ];
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Swipe startToEnd (left-to-right in LTR layout) = mark read
+      await tester.drag(
+        find.byKey(const ValueKey('inbox-dismiss-ch-1')),
+        const Offset(500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repo.markedReadIds, contains('ch-1'));
+    });
+
+    testWidgets('mark all read button visible when unread items exist',
+        (tester) async {
+      repo.items = [
+        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 3),
+      ];
+      repo.totalUnreadCount = 3;
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('inbox-mark-all-read')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('inbox-mark-all-read')));
+      await tester.pumpAndSettle();
+
+      expect(repo.markAllReadCalled, isTrue);
+    });
+
+    testWidgets('mark all read button hidden when no unread', (tester) async {
+      repo.items = [
+        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 0),
+      ];
+      repo.totalUnreadCount = 0;
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('inbox-mark-all-read')), findsNothing);
+    });
+
+    testWidgets('unread badge shows count on item', (tester) async {
+      repo.items = [
+        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 42),
+      ];
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('inbox-unread-badge-ch-1')),
+          findsOneWidget);
+      expect(find.text('42'), findsOneWidget);
+    });
+
+    testWidgets('unread badge shows 99+ for large counts', (tester) async {
+      repo.items = [
+        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 150),
+      ];
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.text('99+'), findsOneWidget);
+    });
+
+    testWidgets('shows sender name and preview', (tester) async {
+      repo.items = [
+        _makeItem(
+          channelId: 'ch-1',
+          channelName: '#general',
+          unread: 1,
+          senderName: 'Bob',
+          preview: 'Hey, check this out!',
+        ),
+      ];
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bob: '), findsOneWidget);
+      expect(find.text('Hey, check this out!'), findsOneWidget);
+    });
+
+    testWidgets('pagination loads more on scroll to bottom', (tester) async {
+      repo.items = List.generate(
+        10,
+        (i) =>
+            _makeItem(channelId: 'ch-$i', channelName: 'Channel $i', unread: i),
+      );
+      repo.hasMore = true;
+
+      await tester.pumpWidget(buildApp());
+      // Use pump() — pumpAndSettle won't complete because of the loading
+      // spinner at the bottom (CircularProgressIndicator animates forever).
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('inbox-list-view')), findsOneWidget);
+
+      // Scroll to bottom
+      await tester.drag(
+        find.byKey(const ValueKey('inbox-list-view')),
+        const Offset(0, -2000),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(repo.loadMoreCalled, isTrue);
+    });
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+InboxItem _makeItem({
+  required String channelId,
+  required String channelName,
+  int unread = 0,
+  InboxItemKind kind = InboxItemKind.channel,
+  String? senderName,
+  String? preview,
+}) {
+  return InboxItem(
+    kind: kind,
+    channelId: channelId,
+    channelName: channelName,
+    unreadCount: unread,
+    senderName: senderName,
+    preview: preview,
+    lastActivityAt: DateTime.now().subtract(const Duration(minutes: 5)),
+  );
+}
+
+class _FakeInboxRepository implements InboxRepository {
+  List<InboxItem> items = [];
+  bool shouldFail = false;
+  bool delayResponse = false;
+  bool hasMore = false;
+  int totalUnreadCount = 0;
+  InboxFilter? lastFilter;
+  List<String> markedDoneIds = [];
+  List<String> markedReadIds = [];
+  bool markAllReadCalled = false;
+  bool loadMoreCalled = false;
+  int _fetchCount = 0;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    lastFilter = filter;
+    if (delayResponse && _fetchCount == 0) {
+      _fetchCount++;
+      // Never complete — simulates a hanging request for loading state test
+      return Completer<InboxResponse>().future;
+    }
+    if (shouldFail) {
+      throw const UnknownFailure(message: 'Network error');
+    }
+    if (offset > 0) {
+      loadMoreCalled = true;
+      return InboxResponse(
+        items: const [],
+        totalCount: items.length,
+        totalUnreadCount: totalUnreadCount,
+        hasMore: false,
+      );
+    }
+    _fetchCount++;
+    return InboxResponse(
+      items: items,
+      totalCount: items.length,
+      totalUnreadCount: totalUnreadCount > 0 ? totalUnreadCount : _calcUnread(),
+      hasMore: hasMore,
+    );
+  }
+
+  @override
+  Future<void> markItemDone(ServerScopeId serverId,
+      {required String channelId}) async {
+    markedDoneIds.add(channelId);
+  }
+
+  @override
+  Future<void> markItemRead(ServerScopeId serverId,
+      {required String channelId}) async {
+    markedReadIds.add(channelId);
+  }
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {
+    markAllReadCalled = true;
+  }
+
+  int _calcUnread() => items.fold(0, (sum, item) => sum + item.unreadCount);
+}
