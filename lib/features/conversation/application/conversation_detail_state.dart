@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 
@@ -13,6 +14,7 @@ class ConversationDetailState {
     this.title,
     this.memberCount,
     this.messages = const [],
+    this.pendingMessages = const [],
     this.historyLimited = false,
     this.hasOlder = false,
     this.hasNewer = false,
@@ -35,6 +37,9 @@ class ConversationDetailState {
   final String? title;
   final int? memberCount;
   final List<ConversationMessageSummary> messages;
+
+  /// Messages that have been optimistically inserted but not yet confirmed.
+  final List<PendingMessage> pendingMessages;
   final bool historyLimited;
   final bool hasOlder;
   final bool hasNewer;
@@ -52,14 +57,15 @@ class ConversationDetailState {
   final Set<String> savedMessageIds;
 
   bool get isEmpty =>
-      status == ConversationDetailStatus.success && messages.isEmpty;
+      status == ConversationDetailStatus.success &&
+      messages.isEmpty &&
+      pendingMessages.isEmpty;
 
   String get resolvedTitle => title ?? target.defaultTitle;
 
   bool get canSend =>
       status == ConversationDetailStatus.success &&
-      (draft.trim().isNotEmpty || pendingAttachments.isNotEmpty) &&
-      !isSending;
+      (draft.trim().isNotEmpty || pendingAttachments.isNotEmpty);
 
   ConversationDetailState copyWith({
     ConversationDetailTarget? target,
@@ -67,6 +73,7 @@ class ConversationDetailState {
     String? title,
     int? memberCount,
     List<ConversationMessageSummary>? messages,
+    List<PendingMessage>? pendingMessages,
     bool? historyLimited,
     bool? hasOlder,
     bool? hasNewer,
@@ -91,6 +98,7 @@ class ConversationDetailState {
       title: title ?? this.title,
       memberCount: memberCount ?? this.memberCount,
       messages: messages ?? this.messages,
+      pendingMessages: pendingMessages ?? this.pendingMessages,
       historyLimited: historyLimited ?? this.historyLimited,
       hasOlder: hasOlder ?? this.hasOlder,
       hasNewer: hasNewer ?? this.hasNewer,
@@ -120,6 +128,7 @@ class ConversationDetailState {
             title == other.title &&
             memberCount == other.memberCount &&
             listEquals(messages, other.messages) &&
+            listEquals(pendingMessages, other.pendingMessages) &&
             historyLimited == other.historyLimited &&
             hasOlder == other.hasOlder &&
             hasNewer == other.hasNewer &&
@@ -144,6 +153,7 @@ class ConversationDetailState {
         title,
         memberCount,
         Object.hashAll(messages),
+        Object.hashAll(pendingMessages),
         historyLimited,
         hasOlder,
         hasNewer,
@@ -156,8 +166,10 @@ class ConversationDetailState {
         sendFailure,
         isSearchActive,
         searchQuery,
-        Object.hashAll(searchMatchIds),
-        currentSearchMatchIndex,
-        Object.hashAll(savedMessageIds),
+        Object.hash(
+          Object.hashAll(searchMatchIds),
+          currentSearchMatchIndex,
+          Object.hashAll(savedMessageIds),
+        ),
       );
 }

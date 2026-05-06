@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
+import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -32,6 +33,8 @@ const _realtimeMessageUnpinnedEventType = 'message:unpinned';
 class ConversationDetailStore
     extends AutoDisposeNotifier<ConversationDetailState> {
   int _requestEpoch = 0;
+  int _localIdCounter = 0;
+  final Set<Timer> _sentRemovalTimers = {};
 
   @override
   ConversationDetailState build() {
@@ -63,6 +66,10 @@ class ConversationDetailStore
     });
     ref.onDispose(() {
       unawaited(subscription.cancel());
+      for (final timer in _sentRemovalTimers) {
+        timer.cancel();
+      }
+      _sentRemovalTimers.clear();
     });
     final initialState = cachedSession?.toState(target) ??
         ConversationDetailState(target: target);
@@ -262,13 +269,24 @@ class ConversationDetailStore
     final pendingFiles =
         state.pendingAttachments.isNotEmpty ? state.pendingAttachments : null;
     if (state.status != ConversationDetailStatus.success ||
-        state.isSending ||
         (content.isEmpty && (pendingFiles == null || pendingFiles.isEmpty))) {
       return;
     }
 
+    // Generate local ID and create pending message for optimistic insert
+    final localId =
+        'pending-${++_localIdCounter}-${DateTime.now().millisecondsSinceEpoch}';
+    final pending = PendingMessage(
+      localId: localId,
+      content: content,
+      createdAt: DateTime.now(),
+    );
+
+    // Optimistic insert: show message immediately, clear draft
     state = state.copyWith(
-      isSending: true,
+      pendingMessages: [...state.pendingMessages, pending],
+      draft: '',
+      pendingAttachments: const [],
       clearSendFailure: true,
     );
 
@@ -276,25 +294,34 @@ class ConversationDetailStore
       final repo = ref.read(conversationRepositoryProvider);
 
       List<String>? attachmentIds;
-      List<PendingAttachment> failedUploads = const [];
       if (pendingFiles != null) {
         attachmentIds = <String>[];
-        final failed = <PendingAttachment>[];
         for (final file in pendingFiles) {
           try {
             final id = await repo.uploadAttachment(target, file);
             attachmentIds.add(id);
           } on AppFailure {
-            failed.add(file);
+            // Skip failed uploads
           }
         }
-        failedUploads = failed;
         if (attachmentIds.isEmpty && content.isEmpty) {
           throw const UnknownFailure(
             message: 'All attachment uploads failed.',
             causeType: 'uploadFailure',
           );
         }
+      }
+
+      // Update pending with uploaded attachment IDs so retry preserves them
+      if (attachmentIds != null && attachmentIds.isNotEmpty) {
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(attachmentIds: attachmentIds);
+            }
+            return m;
+          }).toList(),
+        );
       }
 
       final message = await repo.sendMessage(
@@ -305,23 +332,114 @@ class ConversationDetailStore
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
+
+      // Success: transition to sent (do NOT add canonical to messages yet)
       state = state.copyWith(
-        messages: _appendDedupedMessage(state.messages, message),
-        draft: '',
-        pendingAttachments: failedUploads,
-        isSending: false,
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+                status: MessageSendStatus.sent, clearFailure: true);
+          }
+          return m;
+        }).toList(),
         clearSendFailure: true,
       );
       _persistSession();
+
+      // After delay, remove sent indicator and add canonical message
+      _scheduleSentRemoval(localId, target, confirmedMessage: message);
+    } on AppFailure catch (failure) {
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      // Failure: update pending message status to failed
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+              status: MessageSendStatus.failed,
+              failure: failure,
+            );
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+    }
+  }
+
+  /// Retry sending a previously failed pending message.
+  Future<void> retrySend(String localId) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final pending =
+        state.pendingMessages.where((m) => m.localId == localId).firstOrNull;
+    if (pending == null || pending.status != MessageSendStatus.failed) {
+      return;
+    }
+
+    // Transition to sending
+    state = state.copyWith(
+      pendingMessages: state.pendingMessages.map((m) {
+        if (m.localId == localId) {
+          return m.copyWith(
+            status: MessageSendStatus.sending,
+            clearFailure: true,
+          );
+        }
+        return m;
+      }).toList(),
+    );
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      final message = await repo.sendMessage(
+        target,
+        pending.content,
+        attachmentIds: pending.attachmentIds,
+      );
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+
+      // Success: transition to sent (do NOT add canonical to messages yet)
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+                status: MessageSendStatus.sent, clearFailure: true);
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+
+      // After delay, remove sent indicator and add canonical message
+      _scheduleSentRemoval(localId, target, confirmedMessage: message);
     } on AppFailure catch (failure) {
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
       state = state.copyWith(
-        isSending: false,
-        sendFailure: failure,
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+              status: MessageSendStatus.failed,
+              failure: failure,
+            );
+          }
+          return m;
+        }).toList(),
       );
     }
+  }
+
+  /// Remove a failed pending message without retrying.
+  void dismissPendingMessage(String localId) {
+    state = state.copyWith(
+      pendingMessages:
+          state.pendingMessages.where((m) => m.localId != localId).toList(),
+    );
+    _persistSession();
   }
 
   void updateViewportOffset(double offset) {
@@ -738,6 +856,32 @@ class ConversationDetailStore
       return existing;
     }
     return [...existing, ...dedupedNewer];
+  }
+
+  /// Duration the "sent" indicator remains visible before removal.
+  static const sentIndicatorDuration = Duration(seconds: 2);
+
+  void _scheduleSentRemoval(
+    String localId,
+    ConversationDetailTarget target, {
+    ConversationMessageSummary? confirmedMessage,
+  }) {
+    late final Timer timer;
+    timer = Timer(sentIndicatorDuration, () {
+      _sentRemovalTimers.remove(timer);
+      if (ref.read(currentConversationDetailTargetProvider) != target) {
+        return;
+      }
+      state = state.copyWith(
+        messages: confirmedMessage != null
+            ? _appendDedupedMessage(state.messages, confirmedMessage)
+            : state.messages,
+        pendingMessages:
+            state.pendingMessages.where((m) => m.localId != localId).toList(),
+      );
+      _persistSession();
+    });
+    _sentRemovalTimers.add(timer);
   }
 
   void _persistSession() {

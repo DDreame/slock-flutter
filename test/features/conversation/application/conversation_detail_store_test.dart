@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
@@ -126,8 +127,10 @@ void main() {
     expect(state.isSending, isFalse);
     expect(state.draft, isEmpty);
     expect(state.sendFailure, isNull);
-    expect(state.messages.map((message) => message.id),
-        ['message-1', 'message-2']);
+    // Canonical message deferred until sent indicator removed (2s);
+    // pending message transitions to 'sent' immediately.
+    expect(state.pendingMessages, hasLength(1));
+    expect(state.pendingMessages.first.status, MessageSendStatus.sent);
     expect(repository.sentContents, ['New message']);
   });
 
@@ -162,8 +165,13 @@ void main() {
 
     final state = container.read(conversationDetailStoreProvider);
     expect(state.isSending, isFalse);
-    expect(state.draft, 'Retry me');
-    expect(state.sendFailure, failure);
+    // Draft cleared optimistically; content preserved in pending message
+    expect(state.draft, isEmpty);
+    // Failure stored on pending message, not state.sendFailure
+    expect(state.pendingMessages, hasLength(1));
+    expect(state.pendingMessages.first.status, MessageSendStatus.failed);
+    expect(state.pendingMessages.first.content, 'Retry me');
+    expect(state.pendingMessages.first.failure, failure);
     expect(state.messages, isEmpty);
   });
 
@@ -203,7 +211,11 @@ void main() {
     final first = notifier.send();
     final second = notifier.send();
 
-    expect(container.read(conversationDetailStoreProvider).isSending, isTrue);
+    // Draft cleared by first send; second is a no-op (empty draft)
+    expect(
+      container.read(conversationDetailStoreProvider).pendingMessages,
+      hasLength(1),
+    );
 
     sendCompleter.complete(repository.sentMessage!);
     await first;

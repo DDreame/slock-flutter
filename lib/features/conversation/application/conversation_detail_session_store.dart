@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
+import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 final conversationDetailSessionStoreProvider = NotifierProvider<
@@ -17,6 +18,7 @@ class ConversationDetailSessionEntry {
     required this.historyLimited,
     required this.hasOlder,
     required this.scrollOffset,
+    this.failedPendingMessages = const [],
   });
 
   final String? title;
@@ -25,12 +27,16 @@ class ConversationDetailSessionEntry {
   final bool hasOlder;
   final double scrollOffset;
 
+  /// Failed pending messages preserved across session restore.
+  final List<PendingMessage> failedPendingMessages;
+
   ConversationDetailState toState(ConversationDetailTarget target) {
     return ConversationDetailState(
       target: target,
       status: ConversationDetailStatus.success,
       title: title,
       messages: messages,
+      pendingMessages: failedPendingMessages,
       historyLimited: historyLimited,
       hasOlder: hasOlder,
     );
@@ -42,6 +48,7 @@ class ConversationDetailSessionEntry {
     bool? historyLimited,
     bool? hasOlder,
     double? scrollOffset,
+    List<PendingMessage>? failedPendingMessages,
   }) {
     return ConversationDetailSessionEntry(
       title: title ?? this.title,
@@ -49,6 +56,8 @@ class ConversationDetailSessionEntry {
       historyLimited: historyLimited ?? this.historyLimited,
       hasOlder: hasOlder ?? this.hasOlder,
       scrollOffset: scrollOffset ?? this.scrollOffset,
+      failedPendingMessages:
+          failedPendingMessages ?? this.failedPendingMessages,
     );
   }
 
@@ -62,6 +71,9 @@ class ConversationDetailSessionEntry {
       historyLimited: state.historyLimited,
       hasOlder: state.hasOlder,
       scrollOffset: scrollOffset,
+      failedPendingMessages: state.pendingMessages
+          .where((m) => m.status == MessageSendStatus.failed)
+          .toList(growable: false),
     );
   }
 }

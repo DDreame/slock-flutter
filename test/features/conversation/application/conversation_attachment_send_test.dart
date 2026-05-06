@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -143,8 +144,9 @@ void main() {
       await store().send();
       expect(state().pendingAttachments, isEmpty);
       expect(state().draft, isEmpty);
-      expect(state().messages, hasLength(1));
-      expect(state().messages.first.attachments, isNotNull);
+      // Canonical message deferred; pending in 'sent' state
+      expect(state().pendingMessages, hasLength(1));
+      expect(state().pendingMessages.first.status, MessageSendStatus.sent);
       expect(fakeRepo.uploadedAttachments, [a]);
       expect(fakeRepo.lastSentAttachmentIds, ['att-1']);
     });
@@ -170,12 +172,15 @@ void main() {
 
       await store().send();
       expect(state().pendingAttachments, isEmpty);
-      expect(state().messages, hasLength(1));
+      // Canonical message deferred; pending in 'sent' state
+      expect(state().pendingMessages, hasLength(1));
+      expect(state().pendingMessages.first.status, MessageSendStatus.sent);
       expect(fakeRepo.uploadedAttachments, [a]);
       expect(fakeRepo.lastSentAttachmentIds, ['att-1']);
     });
 
-    test('send failure preserves pending attachments', () async {
+    test('send failure preserves attachments on pending message for retry',
+        () async {
       await loadConversation();
       const a = PendingAttachment(
         path: '/tmp/test.pdf',
@@ -187,8 +192,12 @@ void main() {
       fakeRepo.shouldFail = true;
 
       await store().send();
-      expect(state().pendingAttachments, [a]);
-      expect(state().sendFailure, isNotNull);
+      // pendingAttachments cleared optimistically; failure on pending message
+      expect(state().pendingAttachments, isEmpty);
+      expect(state().pendingMessages, hasLength(1));
+      expect(state().pendingMessages.first.status, MessageSendStatus.failed);
+      // Uploaded attachment IDs preserved for retry
+      expect(state().pendingMessages.first.attachmentIds, ['att-1']);
     });
 
     test('partial upload failure sends with successful ids', () async {
@@ -219,9 +228,11 @@ void main() {
       );
 
       await store().send();
-      expect(state().pendingAttachments, [a]);
-      expect(state().messages, hasLength(1));
-      expect(fakeRepo.uploadedAttachments, [b]);
+      // pendingAttachments cleared optimistically
+      expect(state().pendingAttachments, isEmpty);
+      // Canonical deferred; pending in 'sent' state
+      expect(state().pendingMessages, hasLength(1));
+      expect(state().pendingMessages.first.status, MessageSendStatus.sent);
       expect(fakeRepo.lastSentAttachmentIds, ['att-1']);
     });
 
@@ -236,8 +247,10 @@ void main() {
       fakeRepo.failUploadIndices = {0};
 
       await store().send();
-      expect(state().pendingAttachments, [a]);
-      expect(state().sendFailure, isNotNull);
+      // pendingAttachments cleared optimistically; failure on pending message
+      expect(state().pendingAttachments, isEmpty);
+      expect(state().pendingMessages, hasLength(1));
+      expect(state().pendingMessages.first.status, MessageSendStatus.failed);
     });
   });
 }
