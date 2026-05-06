@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:typed_data' as typed_data;
 
-import 'package:cross_file/cross_file.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/application/image_compressor.dart';
