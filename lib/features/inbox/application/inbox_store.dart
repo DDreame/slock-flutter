@@ -138,9 +138,14 @@ class InboxStore extends Notifier<InboxState> {
             .toList(growable: false)
         : updatedItems;
 
+    // Adjust pagination cursor by number of removed items.
+    final removed = state.items.length - filteredItems.length;
+
     state = state.copyWith(
       items: filteredItems,
       totalUnreadCount: decreasedUnread < 0 ? 0 : decreasedUnread,
+      totalCount: state.totalCount - removed,
+      offset: (state.offset - removed).clamp(0, state.offset),
     );
 
     try {
@@ -161,14 +166,16 @@ class InboxStore extends Notifier<InboxState> {
     final removedItem = state.items.where((i) => i.channelId == channelId);
     final removedUnread =
         removedItem.fold<int>(0, (sum, i) => sum + i.unreadCount);
+    final removedCount = removedItem.length;
 
     state = state.copyWith(
       items: state.items
           .where((i) => i.channelId != channelId)
           .toList(growable: false),
-      totalCount: state.totalCount - removedItem.length,
+      totalCount: state.totalCount - removedCount,
       totalUnreadCount: (state.totalUnreadCount - removedUnread)
           .clamp(0, state.totalUnreadCount),
+      offset: (state.offset - removedCount).clamp(0, state.offset),
     );
 
     try {
@@ -210,9 +217,14 @@ class InboxStore extends Notifier<InboxState> {
     final filteredItems =
         state.filter == InboxFilter.unread ? <InboxItem>[] : updatedItems;
 
+    // Adjust pagination cursor by number of removed items.
+    final removed = state.items.length - filteredItems.length;
+
     state = state.copyWith(
       items: filteredItems,
       totalUnreadCount: 0,
+      totalCount: state.totalCount - removed,
+      offset: (state.offset - removed).clamp(0, state.offset),
     );
 
     try {
