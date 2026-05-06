@@ -159,7 +159,7 @@ void main() {
 
     test('scopedResults returns all results when scope is all', () async {
       await fakeLocalStore.upsertConversationSummaries([
-        LocalConversationSummaryUpsert(
+        const LocalConversationSummaryUpsert(
           serverId: 'server-1',
           conversationId: 'ch-general',
           surface: 'channel',

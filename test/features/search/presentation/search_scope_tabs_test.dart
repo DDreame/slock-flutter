@@ -135,7 +135,7 @@ void main() {
     testWidgets('messages scope shows only message results', (tester) async {
       // Add both channel and message data
       await fakeLocalStore.upsertConversationSummaries([
-        LocalConversationSummaryUpsert(
+        const LocalConversationSummaryUpsert(
           serverId: 'server-1',
           conversationId: 'ch-design',
           surface: 'channel',
@@ -189,7 +189,7 @@ void main() {
 
     testWidgets('scope tabs show result counts after search', (tester) async {
       await fakeLocalStore.upsertConversationSummaries([
-        LocalConversationSummaryUpsert(
+        const LocalConversationSummaryUpsert(
           serverId: 'server-1',
           conversationId: 'ch-general',
           surface: 'channel',
