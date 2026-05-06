@@ -8,6 +8,7 @@ import BackgroundTasks
   private let notificationMethodChannelName = "slock/notifications/methods"
   private let notificationTapEventChannelName = "slock/notifications/taps"
   private let notificationForegroundEventChannelName = "slock/notifications/foreground"
+  private let notificationTokenEventChannelName = "slock/notifications/token"
   private let backgroundSyncChannelName = "slock/notifications/background_sync"
   private let apnsTokenDefaultsKey = "slock.notifications.apnsToken"
 
@@ -21,6 +22,7 @@ import BackgroundTasks
 
   private var tapEventSink: FlutterEventSink?
   private var foregroundEventSink: FlutterEventSink?
+  private var tokenEventSink: FlutterEventSink?
   private var pendingTapPayload: [String: Any]?
   private var initialNotificationPayload: [String: Any]?
   private var didConsumeInitialNotification = false
@@ -29,6 +31,7 @@ import BackgroundTasks
 
   private let tapStreamHandler = StreamHandler()
   private let foregroundStreamHandler = StreamHandler()
+  private let tokenStreamHandler = StreamHandler()
 
   override func application(
     _ application: UIApplication,
@@ -114,6 +117,22 @@ import BackgroundTasks
     }
     foregroundEventChannel.setStreamHandler(foregroundStreamHandler)
 
+    let tokenEventChannel = FlutterEventChannel(
+      name: notificationTokenEventChannelName,
+      binaryMessenger: messenger
+    )
+    tokenStreamHandler.onSinkReady = { [weak self] sink in
+      self?.tokenEventSink = sink
+      // Deliver cached token immediately if available when Dart subscribes.
+      if let token = self?.cachedApnsToken {
+        sink(token)
+      }
+    }
+    tokenStreamHandler.onSinkRemoved = { [weak self] in
+      self?.tokenEventSink = nil
+    }
+    tokenEventChannel.setStreamHandler(tokenStreamHandler)
+
     // Background sync MethodChannel
     let bgSyncChannel = FlutterMethodChannel(
       name: backgroundSyncChannelName,
@@ -149,8 +168,11 @@ import BackgroundTasks
     _ application: UIApplication,
     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
   ) {
-    cachedApnsToken = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
-    UserDefaults.standard.set(cachedApnsToken, forKey: apnsTokenDefaultsKey)
+    let token = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+    cachedApnsToken = token
+    UserDefaults.standard.set(token, forKey: apnsTokenDefaultsKey)
+    // Push token to Dart via EventChannel for real-time delivery.
+    tokenEventSink?(token)
     super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
   }
 
@@ -303,14 +325,80 @@ import BackgroundTasks
     UNUserNotificationCenter.current().add(request)
   }
 
+  /// Normalize a raw APNs userInfo dictionary into the flat format Dart expects.
+  ///
+  /// Standard APNs structure:
+  /// ```
+  /// { "aps": { "alert": { "title": "...", "body": "..." } },
+  ///   "type": "channel", "serverId": "...", "channelId": "...", ... }
+  /// ```
+  ///
+  /// Output: flat `[String: Any]` with `title`, `body`, `type`, `serverId`,
+  /// `channelId`, `threadId`, `messageId`, `senderId`, etc.
   private func notificationPayload(from userInfo: [AnyHashable: Any]?) -> [String: Any]? {
     guard let userInfo, !userInfo.isEmpty else {
       return nil
     }
 
-    return userInfo.reduce(into: [String: Any]()) { result, entry in
-      result[String(describing: entry.key)] = entry.value
+    var result = [String: Any]()
+
+    // Extract title/body from aps.alert (string or dict form)
+    if let aps = userInfo["aps"] as? [String: Any],
+       let alert = aps["alert"] {
+      if let alertDict = alert as? [String: Any] {
+        if let title = alertDict["title"] as? String {
+          result["title"] = title
+        }
+        if let body = alertDict["body"] as? String {
+          result["body"] = body
+        }
+      } else if let alertString = alert as? String {
+        // aps.alert can be a plain string (body only)
+        result["body"] = alertString
+      }
     }
+
+    // Flatten all non-aps top-level keys as custom data
+    for (key, value) in userInfo {
+      let keyString = String(describing: key)
+      // Skip the aps envelope and local repost marker
+      if keyString == "aps" || keyString == "slock.localRepost" {
+        continue
+      }
+      // Only include string-coercible values at the top level
+      result[keyString] = value
+    }
+
+    // Thread parent identity remapping:
+    // Backend sends parentChannelId + parentMessageId for thread payloads.
+    // Dart routing expects flat channelId + threadId.
+    if result["type"] as? String == "thread" {
+      if let parentChannelId = result["parentChannelId"] as? String {
+        result["channelId"] = parentChannelId
+        result.removeValue(forKey: "parentChannelId")
+      }
+      if let parentMessageId = result["parentMessageId"] as? String {
+        result["threadId"] = parentMessageId
+        result.removeValue(forKey: "parentMessageId")
+      }
+    }
+
+    // For local reposts (which already have flat title/body),
+    // preserve title/body from the top-level payload if not
+    // already set from aps.alert
+    if result["title"] == nil, let title = userInfo["title"] as? String {
+      result["title"] = title
+    }
+    if result["body"] == nil, let body = userInfo["body"] as? String {
+      result["body"] = body
+    }
+
+    // Require at minimum a type field to be a valid notification
+    guard result["type"] is String else {
+      return nil
+    }
+
+    return result
   }
 
   // MARK: - Background Sync

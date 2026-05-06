@@ -53,6 +53,9 @@ class AndroidNotificationInitializer implements NotificationInitializer {
       _bridge.onForegroundMessage;
 
   @override
+  Stream<String> get onTokenChanged => const Stream.empty();
+
+  @override
   Future<void> showLocalNotification(Map<String, dynamic> payload) =>
       _bridge.showLocalNotification(payload);
 }

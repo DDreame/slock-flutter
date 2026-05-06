@@ -10,6 +10,15 @@ abstract class NotificationInitializer {
   Future<Map<String, dynamic>?> getInitialNotification();
   Stream<Map<String, dynamic>> get onNotificationTapped;
   Stream<Map<String, dynamic>> get onForegroundMessage;
+
+  /// Push-based token delivery from native platform.
+  ///
+  /// Emits the device token string whenever the native platform receives
+  /// a new/refreshed push token (e.g. APNs `didRegisterForRemoteNotificationsWithDeviceToken`
+  /// or FCM `onNewToken`). Solves the race where [getToken] returns null
+  /// because the native callback has not yet fired.
+  Stream<String> get onTokenChanged;
+
   Future<void> showLocalNotification(Map<String, dynamic> payload);
 }
 
@@ -36,6 +45,9 @@ class NoOpNotificationInitializer implements NotificationInitializer {
 
   @override
   Stream<Map<String, dynamic>> get onForegroundMessage => const Stream.empty();
+
+  @override
+  Stream<String> get onTokenChanged => const Stream.empty();
 
   @override
   Future<void> showLocalNotification(Map<String, dynamic> payload) async {}

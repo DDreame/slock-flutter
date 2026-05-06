@@ -21,12 +21,15 @@ final notificationStoreProvider =
 class NotificationStore extends Notifier<NotificationState> {
   bool _initialized = false;
   StreamSubscription<Map<String, dynamic>>? _tapSubscription;
+  StreamSubscription<String>? _tokenSubscription;
 
   @override
   NotificationState build() {
     ref.onDispose(() {
       _tapSubscription?.cancel();
       _tapSubscription = null;
+      _tokenSubscription?.cancel();
+      _tokenSubscription = null;
       _initialized = false;
     });
     return const NotificationState();
@@ -54,10 +57,13 @@ class NotificationStore extends Notifier<NotificationState> {
       }
       _tapSubscription =
           _initializer.onNotificationTapped.listen(handleNotificationTap);
+      _tokenSubscription = _initializer.onTokenChanged.listen(_handleTokenPush);
       _initialized = true;
     } catch (_) {
       _tapSubscription?.cancel();
       _tapSubscription = null;
+      _tokenSubscription?.cancel();
+      _tokenSubscription = null;
       rethrow;
     }
     // Auto-refresh push token when permission is already granted.
@@ -179,6 +185,14 @@ class NotificationStore extends Notifier<NotificationState> {
     }
   }
 
+  void setCurrentUserId(String? userId) {
+    if (userId == null) {
+      state = state.copyWith(clearCurrentUserId: true);
+    } else {
+      state = state.copyWith(currentUserId: userId);
+    }
+  }
+
   Future<void> clearPushToken() async {
     state = state.copyWith(
       clearPushToken: true,
@@ -186,6 +200,32 @@ class NotificationStore extends Notifier<NotificationState> {
       clearPushTokenUpdatedAt: true,
     );
     await NotificationStorageKeys.clear(_storage);
+  }
+
+  /// Handle push-based token delivery from native platform.
+  ///
+  /// This fires when the native APNs callback delivers a new/refreshed
+  /// token via the EventChannel, solving the race where [getToken]
+  /// returns null at init time.
+  void _handleTokenPush(String token) {
+    final platform = Platform.operatingSystem;
+    final now = DateTime.now();
+    final tokenChanged = token != state.pushToken;
+    state = state.copyWith(
+      pushToken: token,
+      pushTokenPlatform: platform,
+      pushTokenUpdatedAt: now,
+    );
+    unawaited(_persistPushToken(token, now, platform: platform));
+    if (tokenChanged) {
+      _diagnostics.add(DiagnosticsEntry(
+        timestamp: now,
+        level: DiagnosticsLevel.info,
+        tag: 'notification',
+        message: 'Push token updated, source=iosToken',
+        metadata: {'platform': platform},
+      ));
+    }
   }
 
   Future<void> _autoRefreshTokenIfPermitted() async {

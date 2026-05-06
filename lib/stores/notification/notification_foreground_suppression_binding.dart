@@ -8,6 +8,7 @@ import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 const _tag = 'notification-bridge';
 
@@ -24,7 +25,24 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
     if (preference == NotificationPreference.mute) {
       diagnostics.info(
         _tag,
-        'source=nativePush, suppressed=muted, '
+        'source=iosRemotePush, suppressed=muted, '
+        'channelId=$channelId',
+      );
+      return;
+    }
+
+    // Self-sender suppression: don't show notifications for own messages.
+    // Read userId from session store (production path) with fallback to
+    // notification state (test injection path).
+    final senderId = payload['senderId'] as String?;
+    final currentUserId = ref.read(sessionStoreProvider).userId ??
+        notificationState.currentUserId;
+    if (senderId != null &&
+        currentUserId != null &&
+        senderId == currentUserId) {
+      diagnostics.info(
+        _tag,
+        'source=iosRemotePush, suppressed=self, '
         'channelId=$channelId',
       );
       return;
@@ -35,7 +53,7 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
       if (target == null || target.surface != NotificationSurface.dm) {
         diagnostics.info(
           _tag,
-          'source=nativePush, suppressed=mentionsOnly, '
+          'source=iosRemotePush, suppressed=mentionsOnly, '
           'channelId=$channelId',
         );
         return;
@@ -53,7 +71,7 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
       if (suppress) {
         diagnostics.info(
           _tag,
-          'source=nativePush, suppressed=visibleTarget, '
+          'source=iosRemotePush, suppressed=visibleTarget, '
           'channelId=$channelId',
         );
         return;
@@ -62,7 +80,7 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
 
     diagnostics.info(
       _tag,
-      'source=nativePush, delivered, '
+      'source=iosForegroundRepost, delivered, '
       'channelId=$channelId',
     );
 
