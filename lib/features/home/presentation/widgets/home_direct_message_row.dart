@@ -16,6 +16,7 @@ class HomeDirectMessageRow extends StatelessWidget {
     this.unreadCount = 0,
     this.isPinned = false,
     this.isOnline = false,
+    this.isAgent = false,
     this.onTogglePin,
     this.onHide,
     this.onMoveUp,
@@ -27,6 +28,7 @@ class HomeDirectMessageRow extends StatelessWidget {
   final int unreadCount;
   final bool isPinned;
   final bool isOnline;
+  final bool isAgent;
   final VoidCallback? onTogglePin;
   final VoidCallback? onHide;
   final VoidCallback? onMoveUp;
@@ -101,15 +103,55 @@ class HomeDirectMessageRow extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      directMessage.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.body.copyWith(
-                        color: colors.text,
-                        fontWeight:
-                            hasUnread ? FontWeight.w600 : FontWeight.w400,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            directMessage.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.body.copyWith(
+                              color: colors.text,
+                              fontWeight:
+                                  hasUnread ? FontWeight.w600 : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                        if (isAgent) ...[
+                          const SizedBox(width: 4),
+                          Container(
+                            key: const ValueKey('dm-agent-badge'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: colors.primaryLight,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.smart_toy_outlined,
+                                  size: 12,
+                                  color: colors.primary,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  'AGENT',
+                                  style: AppTypography.caption.copyWith(
+                                    color: colors.primary,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     if (directMessage.lastMessagePreview != null) ...[
                       const SizedBox(height: 2),

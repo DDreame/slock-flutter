@@ -7,6 +7,7 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/persisted_agent_names.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
@@ -185,6 +186,16 @@ class HomeListStore extends Notifier<HomeListState> {
       _threadCount = threadItems.length;
       _threadItems = List.of(threadItems);
       _sidebarOrder = sidebarOrder;
+
+      // Persist agent names so the AGENT badge survives cached/offline loads.
+      if (agents.isNotEmpty) {
+        try {
+          final agentNames = <String>{for (final a in agents) a.label};
+          ref.read(persistedAgentNamesProvider.notifier).update(agentNames);
+        } catch (_) {
+          // SharedPreferences may not be available in tests or early boot.
+        }
+      }
 
       // Populate known thread channel IDs from the initial load
       // so the realtime unread binding can suppress phantom DM

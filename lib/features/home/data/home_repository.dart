@@ -245,6 +245,7 @@ class HomeDirectMessageSummary {
     this.lastMessageId,
     this.lastMessagePreview,
     this.lastActivityAt,
+    this.isAgent = false,
   });
 
   final DirectMessageScopeId scopeId;
@@ -252,11 +253,13 @@ class HomeDirectMessageSummary {
   final String? lastMessageId;
   final String? lastMessagePreview;
   final DateTime? lastActivityAt;
+  final bool isAgent;
 
   HomeDirectMessageSummary copyWith({
     String? lastMessageId,
     String? lastMessagePreview,
     DateTime? lastActivityAt,
+    bool? isAgent,
   }) {
     return HomeDirectMessageSummary(
       scopeId: scopeId,
@@ -264,6 +267,7 @@ class HomeDirectMessageSummary {
       lastMessageId: lastMessageId ?? this.lastMessageId,
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
       lastActivityAt: lastActivityAt ?? this.lastActivityAt,
+      isAgent: isAgent ?? this.isAgent,
     );
   }
 
@@ -276,7 +280,8 @@ class HomeDirectMessageSummary {
             title == other.title &&
             lastMessageId == other.lastMessageId &&
             lastMessagePreview == other.lastMessagePreview &&
-            lastActivityAt == other.lastActivityAt;
+            lastActivityAt == other.lastActivityAt &&
+            isAgent == other.isAgent;
   }
 
   @override
@@ -286,5 +291,6 @@ class HomeDirectMessageSummary {
         lastMessageId,
         lastMessagePreview,
         lastActivityAt,
+        isAgent,
       );
 }

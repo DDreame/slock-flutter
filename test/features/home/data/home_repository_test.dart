@@ -610,6 +610,58 @@ void main() {
         );
       },
     );
+
+    test(
+      'loadWorkspace maps peerType agent to '
+      'isAgent on DM summaries',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            '/channels': <Object?>[],
+            '/channels/dm': [
+              {
+                'id': 'dm-agent',
+                'participant': {'displayName': 'BotAlpha'},
+                'peerType': 'agent',
+              },
+              {
+                'id': 'dm-human',
+                'participant': {'displayName': 'Alice'},
+                'peerType': 'human',
+              },
+              {
+                'id': 'dm-unspecified',
+                'participant': {'displayName': 'Bob'},
+              },
+            ],
+          },
+        );
+        final container = _createContainer(appDioClient);
+        addTearDown(container.dispose);
+
+        final repository = container.read(homeRepositoryProvider);
+        final snapshot = await repository.loadWorkspace(
+          const ServerScopeId('server-1'),
+        );
+
+        expect(snapshot.directMessages[0].title, 'BotAlpha');
+        expect(
+          snapshot.directMessages[0].isAgent,
+          true,
+          reason: 'peerType == agent should set isAgent true',
+        );
+        expect(
+          snapshot.directMessages[1].isAgent,
+          false,
+          reason: 'peerType == human should not set isAgent',
+        );
+        expect(
+          snapshot.directMessages[2].isAgent,
+          false,
+          reason: 'missing peerType should default isAgent to false',
+        );
+      },
+    );
   });
 
   test(

@@ -208,6 +208,13 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
       surface: _directMessageSurface,
     );
 
+    // Build a lookup for isAgent from the parsed DMs so we can
+    // carry the flag through the store round-trip (store schema does
+    // not persist isAgent).
+    final parsedAgentFlags = <String, bool>{
+      for (final dm in directMessageSummaries) dm.scopeId.value: dm.isAgent,
+    };
+
     return HomeWorkspaceSnapshot(
       serverId: serverId,
       channels: storedChannels
@@ -232,6 +239,7 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
                 lastMessageId: row.lastMessageId,
                 lastMessagePreview: row.lastMessagePreview,
                 lastActivityAt: row.lastActivityAt,
+                isAgent: parsedAgentFlags[row.conversationId] ?? false,
               ))
           .toList(growable: false),
       channelUnreadCounts: channelUnreadCounts,
@@ -382,12 +390,14 @@ List<HomeDirectMessageSummary> _parseDirectMessageSummaries(
       ),
     );
     final lastMessage = _parseLastMessage(item['lastMessage']);
+    final peerType = item['peerType'];
     return HomeDirectMessageSummary(
       scopeId: scopeId,
       title: resolveDirectMessageTitle(item) ?? scopeId.value,
       lastMessageId: lastMessage?.id,
       lastMessagePreview: lastMessage?.content,
       lastActivityAt: lastMessage?.createdAt,
+      isAgent: peerType == 'agent',
     );
   }, growable: false);
 }
