@@ -26,9 +26,10 @@ void main() {
 
   // Suppress overflow errors in tests (bottom sheet may overflow in small viewport)
   final overflowErrors = <FlutterErrorDetails>[];
+  void Function(FlutterErrorDetails)? originalOnError;
   setUp(() {
     overflowErrors.clear();
-    final originalOnError = FlutterError.onError!;
+    originalOnError = FlutterError.onError;
     FlutterError.onError = (details) {
       final exception = details.exception;
       if (exception is FlutterError &&
@@ -36,12 +37,12 @@ void main() {
         overflowErrors.add(details);
         return;
       }
-      originalOnError(details);
+      originalOnError?.call(details);
     };
   });
 
   tearDown(() {
-    FlutterError.onError = FlutterError.dumpErrorToConsole;
+    FlutterError.onError = originalOnError;
   });
 
   testWidgets('long-press menu shows Reply action', (tester) async {
