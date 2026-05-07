@@ -4,7 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/persisted_agent_names.dart';
+import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
+
+import '../../../core/storage/fake_secure_storage.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -112,5 +115,65 @@ void main() {
         {'AgentOnServer2'},
       );
     });
+
+    test(
+      'live server switch within same container re-scopes '
+      'without leaking names',
+      () async {
+        // Seed names for both servers into SharedPreferences.
+        final seedContainer = createContainer(
+          serverId: const ServerScopeId('server-a'),
+        );
+        seedContainer.read(persistedAgentNamesProvider.notifier).update(
+          {'AgentA'},
+        );
+        seedContainer.dispose();
+
+        final seedContainer2 = createContainer(
+          serverId: const ServerScopeId('server-b'),
+        );
+        seedContainer2.read(persistedAgentNamesProvider.notifier).update(
+          {'AgentB'},
+        );
+        seedContainer2.dispose();
+
+        // Create a container that uses the live serverSelectionStore
+        // (not a fixed override) so we can drive a server switch.
+        final storage = FakeSecureStorage();
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            secureStorageProvider.overrideWithValue(storage),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Select server-a and read persisted names.
+        await container
+            .read(serverSelectionStoreProvider.notifier)
+            .selectServer('server-a');
+
+        // Keep the provider alive so we can observe invalidation.
+        container.listen(persistedAgentNamesProvider, (_, __) {});
+
+        expect(
+          container.read(persistedAgentNamesProvider),
+          {'AgentA'},
+          reason: 'Should read server-a names when server-a is selected',
+        );
+
+        // Switch to server-b within the same container.
+        await container
+            .read(serverSelectionStoreProvider.notifier)
+            .selectServer('server-b');
+
+        expect(
+          container.read(persistedAgentNamesProvider),
+          {'AgentB'},
+          reason: 'After switching to server-b, persisted names must '
+              're-scope to server-b (no server-a leak)',
+        );
+      },
+    );
   });
 }
