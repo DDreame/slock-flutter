@@ -78,11 +78,22 @@ void main() {
       expect(ids[0], isNot(ids[1]));
     });
 
-    test('duplicate content can be enqueued (not deduplicated)', () {
+    test('duplicate content is deduplicated (only one entry)', () {
       final notifier = container.read(outboxStoreProvider.notifier);
 
       notifier.enqueue(target, 'Same message');
       notifier.enqueue(target, 'Same message');
+
+      final state = container.read(outboxStoreProvider);
+      final targetKey = outboxTargetKey(target);
+      expect(state.items[targetKey], hasLength(1));
+    });
+
+    test('duplicate content with different replyToId is not deduplicated', () {
+      final notifier = container.read(outboxStoreProvider.notifier);
+
+      notifier.enqueue(target, 'Same message', replyToId: 'msg-1');
+      notifier.enqueue(target, 'Same message', replyToId: 'msg-2');
 
       final state = container.read(outboxStoreProvider);
       final targetKey = outboxTargetKey(target);
@@ -97,6 +108,34 @@ void main() {
       final state = container.read(outboxStoreProvider);
       final targetKey = outboxTargetKey(target);
       expect(state.items[targetKey]!.first.replyToId, 'msg-123');
+    });
+
+    test('enqueue with custom localId uses it', () {
+      final notifier = container.read(outboxStoreProvider.notifier);
+
+      notifier.enqueue(target, 'Custom ID', localId: 'pending-custom-1');
+
+      final state = container.read(outboxStoreProvider);
+      final targetKey = outboxTargetKey(target);
+      expect(state.items[targetKey]!.first.localId, 'pending-custom-1');
+    });
+
+    test('outboxTargetKey includes surface type', () {
+      final channelTarget = ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('s1'),
+          value: 'general',
+        ),
+      );
+      final dmTarget = ConversationDetailTarget.directMessage(
+        const DirectMessageScopeId(
+          serverId: ServerScopeId('s1'),
+          value: 'dm-123',
+        ),
+      );
+
+      expect(outboxTargetKey(channelTarget), 'channel/s1/general');
+      expect(outboxTargetKey(dmTarget), 'directMessage/s1/dm-123');
     });
   });
 
@@ -193,6 +232,61 @@ void main() {
       // Only first message attempted — drain stops on network failure
       expect(repository.sentContents, ['First']);
     });
+
+    test('drain invokes registered callback on success', () async {
+      final sentMessage = ConversationMessageSummary(
+        id: 'server-1',
+        content: 'Queued',
+        createdAt: DateTime.parse('2026-05-07T12:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      );
+      repository.sentMessage = sentMessage;
+
+      final notifier = container.read(outboxStoreProvider.notifier);
+      notifier.enqueue(target, 'Queued', localId: 'pending-1');
+
+      ConversationMessageSummary? callbackMessage;
+      String? callbackLocalId;
+      notifier.registerDrainCallback(
+        outboxTargetKey(target),
+        (t, localId, msg, failure) {
+          callbackLocalId = localId;
+          callbackMessage = msg;
+        },
+      );
+
+      await notifier.drain(target);
+
+      expect(callbackLocalId, 'pending-1');
+      expect(callbackMessage?.id, 'server-1');
+    });
+
+    test('drain invokes registered callback on non-retryable failure',
+        () async {
+      repository.sendFailure = const NotFoundFailure(
+        message: 'Not found',
+      );
+
+      final notifier = container.read(outboxStoreProvider.notifier);
+      notifier.enqueue(target, 'Will fail', localId: 'pending-2');
+
+      AppFailure? callbackFailure;
+      String? callbackLocalId;
+      notifier.registerDrainCallback(
+        outboxTargetKey(target),
+        (t, localId, msg, failure) {
+          callbackLocalId = localId;
+          callbackFailure = failure;
+        },
+      );
+
+      await notifier.drain(target);
+
+      expect(callbackLocalId, 'pending-2');
+      expect(callbackFailure, isA<NotFoundFailure>());
+    });
   });
 
   group('OutboxStore connectivity', () {
@@ -262,6 +356,44 @@ void main() {
       final state = newContainer.read(outboxStoreProvider);
       expect(state.items[targetKey], hasLength(1));
       expect(state.items[targetKey]!.first.content, 'Restored message');
+    });
+
+    test('persisted DM targets are restored as DM (not channel)', () async {
+      final dmTarget = ConversationDetailTarget.directMessage(
+        const DirectMessageScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'dm-abc',
+        ),
+      );
+      final dmKey = outboxTargetKey(dmTarget);
+
+      final prefs = container.read(sharedPreferencesProvider);
+      final queueJson = jsonEncode({
+        dmKey: [
+          {
+            'localId': 'dm-1',
+            'content': 'DM message',
+            'status': 'pending',
+            'createdAt': '2026-05-07T12:00:00.000Z',
+          },
+        ],
+      });
+      await prefs.setString('outbox_queue', queueJson);
+
+      // Create a new container to simulate app restart
+      final newContainer = ProviderContainer(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(connectivityService),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(newContainer.dispose);
+
+      final state = newContainer.read(outboxStoreProvider);
+      expect(state.items[dmKey], hasLength(1));
+      // Verify the key format includes surface
+      expect(dmKey, 'directMessage/server-1/dm-abc');
     });
   });
 

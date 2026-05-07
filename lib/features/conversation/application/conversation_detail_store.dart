@@ -82,7 +82,19 @@ class ConversationDetailStore
         timer.cancel();
       }
       _sentRemovalTimers.clear();
+      // Unregister outbox drain callback for this conversation.
+      final outbox = ref.read(outboxStoreProvider.notifier);
+      outbox.unregisterDrainCallback(outboxTargetKey(target));
     });
+
+    // Register outbox drain callback so drain results reconcile pending
+    // messages back into the conversation state.
+    final outbox = ref.read(outboxStoreProvider.notifier);
+    outbox.registerDrainCallback(
+      outboxTargetKey(target),
+      _onOutboxDrain,
+    );
+
     final initialState = cachedSession?.toState(target) ??
         ConversationDetailState(target: target);
     if (cachedSession != null) {
@@ -323,11 +335,14 @@ class ConversationDetailStore
         clearSendFailure: true,
       );
 
-      // Enqueue in the outbox for later drain
+      // Enqueue in the outbox for later drain.
+      // Use the same localId so the drain callback can find the
+      // pending message and reconcile the conversation state.
       ref.read(outboxStoreProvider.notifier).enqueue(
             target,
             content,
             replyToId: replyToId,
+            localId: localId,
           );
       _persistSession();
       return;
@@ -474,19 +489,33 @@ class ConversationDetailStore
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
-      // Failure: update pending message status to failed
-      state = state.copyWith(
-        pendingMessages: state.pendingMessages.map((m) {
-          if (m.localId == localId) {
-            return m.copyWith(
-              status: MessageSendStatus.failed,
-              failure: failure,
+
+      if (failure.isRetryable &&
+          (pendingFiles == null || pendingFiles.isEmpty)) {
+        // Retryable failure on text-only message: hand off to the outbox
+        // for automatic retry on reconnect.
+        ref.read(outboxStoreProvider.notifier).enqueue(
+              target,
+              content,
+              replyToId: replyToId,
+              localId: localId,
             );
-          }
-          return m;
-        }).toList(),
-      );
-      _persistSession();
+        _persistSession();
+      } else {
+        // Non-retryable or has attachments: mark as failed for manual retry.
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(
+                status: MessageSendStatus.failed,
+                failure: failure,
+              );
+            }
+            return m;
+          }).toList(),
+        );
+        _persistSession();
+      }
     }
   }
 
@@ -1071,6 +1100,53 @@ class ConversationDetailStore
       _persistSession();
     });
     _sentRemovalTimers.add(timer);
+  }
+
+  /// Callback invoked by the [OutboxStore] when a queued message is
+  /// successfully sent or fails with a non-retryable error.
+  ///
+  /// Reconciles the optimistic pending message in the conversation state.
+  void _onOutboxDrain(
+    ConversationDetailTarget target,
+    String localId,
+    ConversationMessageSummary? serverMessage,
+    AppFailure? failure,
+  ) {
+    // Only reconcile if this store is still active for the same target.
+    final currentTarget = ref.read(currentConversationDetailTargetProvider);
+    if (currentTarget != target) return;
+
+    final hasPending = state.pendingMessages.any((m) => m.localId == localId);
+    if (!hasPending) return;
+
+    if (serverMessage != null) {
+      // Success: transition to sent, then schedule removal + canonical insert.
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+                status: MessageSendStatus.sent, clearFailure: true);
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+      _scheduleSentRemoval(localId, target, confirmedMessage: serverMessage);
+    } else if (failure != null) {
+      // Non-retryable failure: mark as failed for user retry.
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+              status: MessageSendStatus.failed,
+              failure: failure,
+            );
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+    }
   }
 
   Future<void> addReaction(String messageId, String emoji) async {

@@ -99,11 +99,52 @@ class OutboxState {
 }
 
 /// Generate a stable key for a [ConversationDetailTarget].
+///
+/// Includes the surface type so DM and channel targets are distinguished
+/// and can be reconstructed correctly from persistence.
 String outboxTargetKey(ConversationDetailTarget target) {
-  return '${target.serverId.value}/${target.conversationId}';
+  return '${target.surface.name}/${target.serverId.value}/${target.conversationId}';
+}
+
+/// Reconstruct a [ConversationDetailTarget] from a persisted target key.
+ConversationDetailTarget? _targetFromKey(String key) {
+  final parts = key.split('/');
+  if (parts.length < 3) return null;
+  final surface = parts[0];
+  final serverId = parts[1];
+  final conversationId = parts.sublist(2).join('/');
+  switch (surface) {
+    case 'channel':
+      return ConversationDetailTarget.channel(
+        ChannelScopeId(
+          serverId: ServerScopeId(serverId),
+          value: conversationId,
+        ),
+      );
+    case 'directMessage':
+      return ConversationDetailTarget.directMessage(
+        DirectMessageScopeId(
+          serverId: ServerScopeId(serverId),
+          value: conversationId,
+        ),
+      );
+    default:
+      return null;
+  }
 }
 
 const _prefsKey = 'outbox_queue';
+
+/// Callback type for notifying conversation stores about drain results.
+///
+/// Called after a successful send with the outbox local ID and server message,
+/// or after a non-retryable failure with the local ID and failure.
+typedef OutboxDrainCallback = void Function(
+  ConversationDetailTarget target,
+  String localId,
+  ConversationMessageSummary? message,
+  AppFailure? failure,
+);
 
 /// App-scoped store that manages the offline message outbox.
 ///
@@ -113,6 +154,7 @@ const _prefsKey = 'outbox_queue';
 class OutboxStore extends Notifier<OutboxState> {
   int _localIdCounter = 0;
   StreamSubscription<ConnectivityStatus>? _connectivitySub;
+  final Map<String, OutboxDrainCallback> _drainCallbacks = {};
 
   @override
   OutboxState build() {
@@ -122,14 +164,48 @@ class OutboxStore extends Notifier<OutboxState> {
     return state;
   }
 
+  /// Register a callback for drain results on a specific target.
+  ///
+  /// The conversation detail store uses this to reconcile optimistic
+  /// messages back into the conversation state.
+  void registerDrainCallback(
+    String targetKey,
+    OutboxDrainCallback callback,
+  ) {
+    _drainCallbacks[targetKey] = callback;
+  }
+
+  /// Unregister the drain callback for a specific target.
+  void unregisterDrainCallback(String targetKey) {
+    _drainCallbacks.remove(targetKey);
+  }
+
   /// Enqueue a message for later sending.
+  ///
+  /// If [localId] is provided, it is used as the outbox entry's local ID
+  /// (allowing the caller to share the same ID with its optimistic message).
+  ///
+  /// Deduplicates: if the target already has a pending message with the
+  /// same content and replyToId, the enqueue is a no-op.
   void enqueue(
     ConversationDetailTarget target,
     String content, {
     String? replyToId,
+    String? localId,
   }) {
     final targetKey = outboxTargetKey(target);
-    final localId =
+
+    // Deduplicate: skip if same content + replyToId already pending.
+    final existing = state.items[targetKey] ?? [];
+    final isDuplicate = existing.any(
+      (m) =>
+          m.status == OutboxMessageStatus.pending &&
+          m.content == content &&
+          m.replyToId == replyToId,
+    );
+    if (isDuplicate) return;
+
+    localId ??=
         'outbox-${++_localIdCounter}-${DateTime.now().millisecondsSinceEpoch}';
     final message = OutboxMessage(
       localId: localId,
@@ -160,7 +236,7 @@ class OutboxStore extends Notifier<OutboxState> {
   ///
   /// Sends messages FIFO. On retryable failure, stops draining (will retry
   /// on next connectivity event). On non-retryable failure, marks the item
-  /// as failed and continues.
+  /// as failed, notifies the callback, and continues.
   Future<void> drain(ConversationDetailTarget target) async {
     final targetKey = outboxTargetKey(target);
     final repo = ref.read(conversationRepositoryProvider);
@@ -168,25 +244,28 @@ class OutboxStore extends Notifier<OutboxState> {
 
     for (final item in pending) {
       try {
-        await repo.sendMessage(
+        final serverMessage = await repo.sendMessage(
           target,
           item.content,
           replyToId: item.replyToId,
         );
-        // Success — remove from queue.
+        // Success — remove from queue and notify callback.
         _removeItem(targetKey, item.localId);
+        _drainCallbacks[targetKey]
+            ?.call(target, item.localId, serverMessage, null);
       } on AppFailure catch (e) {
         if (e.isRetryable) {
           // Network/timeout — stop draining, will retry later.
           return;
         }
-        // Non-retryable — mark as failed.
+        // Non-retryable — mark as failed and notify callback.
         _updateItemStatus(
           targetKey,
           item.localId,
           OutboxMessageStatus.failed,
           failureMessage: e.message,
         );
+        _drainCallbacks[targetKey]?.call(target, item.localId, null, e);
       }
     }
   }
@@ -196,14 +275,8 @@ class OutboxStore extends Notifier<OutboxState> {
     // Snapshot keys before iterating (state may mutate).
     final keys = state.items.keys.toList();
     for (final key in keys) {
-      final parts = key.split('/');
-      if (parts.length < 2) continue;
-      final target = ConversationDetailTarget.channel(
-        ChannelScopeId(
-          serverId: ServerScopeId(parts[0]),
-          value: parts.sublist(1).join('/'),
-        ),
-      );
+      final target = _targetFromKey(key);
+      if (target == null) continue;
       await drain(target);
     }
   }

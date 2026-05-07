@@ -25,12 +25,16 @@ class ConnectivityService {
   }
 
   /// Production constructor that uses the `connectivity_plus` plugin.
-  factory ConnectivityService.fromPlugin() {
+  ///
+  /// Queries the plugin for the current connectivity state so cold starts
+  /// while offline correctly reflect the offline state immediately.
+  static Future<ConnectivityService> fromPlugin() async {
     final connectivity = Connectivity();
+    final current = await connectivity.checkConnectivity();
+    final initialStatus = _mapResults(current);
     final source = connectivity.onConnectivityChanged.map(_mapResults);
-    // Initial status will be updated by the first stream event.
     return ConnectivityService._(
-      initialStatus: ConnectivityStatus.online,
+      initialStatus: initialStatus,
       source: source,
     );
   }
@@ -78,7 +82,26 @@ class ConnectivityService {
 ///
 /// Override in tests with [ConnectivityService.withInitialStatus].
 final connectivityServiceProvider = Provider<ConnectivityService>((ref) {
-  final service = ConnectivityService.fromPlugin();
-  ref.onDispose(service.dispose);
+  // The provider creates a synchronous placeholder that will be replaced
+  // by the async initializer in main.dart. In production, main.dart should
+  // call `ConnectivityService.fromPlugin()` and override this provider.
+  // Fallback: assume online (matches previous behavior).
+  final controller = StreamController<ConnectivityStatus>.broadcast();
+  final service = ConnectivityService.withInitialStatus(
+    ConnectivityStatus.online,
+    controller: controller,
+  );
+  ref.onDispose(() {
+    service.dispose();
+    controller.close();
+  });
   return service;
 });
+
+/// Create and provide the connectivity service asynchronously.
+///
+/// Call in `main.dart` before `runApp()` and pass the result as a
+/// provider override to `ProviderScope`.
+Future<ConnectivityService> initConnectivityService() async {
+  return ConnectivityService.fromPlugin();
+}

@@ -29,6 +29,9 @@ import 'package:slock_app/core/notifications/background_worker_auth_binding.dart
 import 'package:slock_app/core/notifications/realtime_notification_bridge.dart';
 import 'package:slock_app/features/home/application/home_refresh_lifecycle_binding.dart';
 import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
+import 'package:slock_app/core/core.dart' show connectivityServiceProvider;
+import 'package:slock_app/core/network/connectivity_service.dart'
+    show initConnectivityService;
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() async {
@@ -53,6 +56,10 @@ void main() async {
     storage: FlutterSecureStorageImpl(),
   );
 
+  // Initialize connectivity service with actual device state before
+  // building the provider tree so cold-start offline is detected.
+  final connectivityService = await initConnectivityService();
+
   installErrorHandlers(
     bootstrap.reporter,
     diagnostics: bootstrap.diagnostics,
@@ -66,6 +73,7 @@ void main() async {
           ...bootstrap.overrides,
           crashMarkerServiceProvider.overrideWithValue(crashMarker),
           sharedPreferencesProvider.overrideWithValue(prefs),
+          connectivityServiceProvider.overrideWithValue(connectivityService),
         ],
       );
 

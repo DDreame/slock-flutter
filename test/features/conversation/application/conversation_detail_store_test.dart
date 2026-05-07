@@ -2121,6 +2121,143 @@ void main() {
       final targetKey = outboxTargetKey(target);
       expect(outbox.items[targetKey]!.first.replyToId, 'msg-to-reply');
     });
+
+    test('offline send shares localId between pending and outbox', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final connectivityController =
+          StreamController<ConnectivityStatus>.broadcast();
+      final connectivity = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: connectivityController,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(connectivity),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(() async {
+        await Future<void>.delayed(Duration.zero);
+        container.dispose();
+        await connectivityController.close();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.updateDraft('Shared ID test');
+      await notifier.send();
+
+      final pendingId = container
+          .read(conversationDetailStoreProvider)
+          .pendingMessages
+          .first
+          .localId;
+      final outbox = container.read(outboxStoreProvider);
+      final targetKey = outboxTargetKey(target);
+      final outboxId = outbox.items[targetKey]!.first.localId;
+
+      // Both share the same localId for reconciliation
+      expect(pendingId, outboxId);
+    });
+
+    test('retryable failure on direct send enqueues to outbox', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final connectivityController =
+          StreamController<ConnectivityStatus>.broadcast();
+      final connectivity = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.online,
+        controller: connectivityController,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sendFailure: const NetworkFailure(
+          message: 'Connection lost',
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(connectivity),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(() async {
+        await Future<void>.delayed(Duration.zero);
+        container.dispose();
+        await connectivityController.close();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.updateDraft('Will retry');
+      await notifier.send();
+
+      // Pending message stays in sending (not failed) — outbox handles retry
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.pendingMessages, hasLength(1));
+      expect(state.pendingMessages.first.content, 'Will retry');
+      // Message was handed off to outbox
+      final outbox = container.read(outboxStoreProvider);
+      final targetKey = outboxTargetKey(target);
+      expect(outbox.items[targetKey], hasLength(1));
+    });
+
+    test('non-retryable failure on direct send marks failed (not outbox)',
+        () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sendFailure: const NotFoundFailure(
+          message: 'Not found',
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.updateDraft('Will fail');
+      await notifier.send();
+
+      // Pending message marked as failed
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.pendingMessages, hasLength(1));
+      expect(state.pendingMessages.first.status, MessageSendStatus.failed);
+    });
   });
 }
 
