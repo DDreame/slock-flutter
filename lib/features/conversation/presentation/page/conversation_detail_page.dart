@@ -23,6 +23,7 @@ import 'package:slock_app/features/conversation/data/attachment_repository_provi
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -1972,6 +1973,10 @@ class _AttachmentSection extends StatelessWidget {
     'text/html',
   };
 
+  static const _pdfTypes = {
+    'application/pdf',
+  };
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -2005,7 +2010,65 @@ class _AttachmentSection extends StatelessWidget {
       return _HtmlAttachmentRow(attachment: attachment);
     }
 
+    if (_pdfTypes.contains(mimeType)) {
+      return _PdfAttachmentRow(attachment: attachment);
+    }
+
     return _GenericFileAttachmentRow(attachment: attachment);
+  }
+}
+
+class _PdfAttachmentRow extends StatelessWidget {
+  const _PdfAttachmentRow({required this.attachment});
+
+  final MessageAttachment attachment;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      key: ValueKey('pdf-attachment-${attachment.id ?? attachment.name}'),
+      onTap: () => _openPdfPreview(context),
+      borderRadius: BorderRadius.circular(4),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.picture_as_pdf_outlined,
+                size: 18, color: theme.colorScheme.error),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                attachment.name,
+                style: AppTypography.label.copyWith(
+                  color: theme.colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (attachment.formattedSize != null) ...[
+              const SizedBox(width: 6),
+              Text(
+                attachment.formattedSize!,
+                style: AppTypography.caption.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openPdfPreview(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => FilePreviewPage(attachment: attachment),
+      ),
+    );
   }
 }
 
@@ -2095,7 +2158,7 @@ class _ImageAttachmentPreview extends StatelessWidget {
   void _openFullScreen(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => _FullScreenImageViewer(attachment: attachment),
+        builder: (context) => FilePreviewPage(attachment: attachment),
       ),
     );
   }
@@ -2414,44 +2477,11 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
   }
 
   Future<void> _openFile(BuildContext context, WidgetRef ref) async {
-    final diagnostics = ref.read(diagnosticsCollectorProvider);
-    // If we have an attachment id, fetch a signed URL for download.
-    if (attachment.id != null && attachment.id!.isNotEmpty) {
-      try {
-        final target = ref.read(currentOpenConversationTargetProvider);
-        if (target == null) return;
-        final repo = ref.read(attachmentRepositoryProvider);
-        final signedUrl = await repo.getSignedUrl(
-          target.serverId,
-          attachmentId: attachment.id!,
-        );
-        await launchUrl(
-          Uri.parse(signedUrl),
-          mode: LaunchMode.externalApplication,
-        );
-        return;
-      } on AppFailure catch (e) {
-        diagnostics.error(
-          'attachment-preview',
-          'source=signedUrl, attachmentId=${attachment.id}, '
-              'mimeType=${attachment.type}, failureType=${e.runtimeType}',
-        );
-        // Fall through to direct URL if available.
-      }
-    } else {
-      diagnostics.info(
-        'attachment-preview',
-        'source=signedUrl, attachmentId=missing, '
-            'mimeType=${attachment.type}, fallback=directUrl',
-      );
-    }
-    // Fallback: use direct url if present.
-    if (attachment.url != null) {
-      await launchUrl(
-        Uri.parse(attachment.url!),
-        mode: LaunchMode.externalApplication,
-      );
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => FilePreviewPage(attachment: attachment),
+      ),
+    );
   }
 }
 
