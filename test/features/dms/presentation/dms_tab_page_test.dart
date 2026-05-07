@@ -24,7 +24,6 @@ import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
-import 'package:slock_app/features/home/application/persisted_agent_names.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
