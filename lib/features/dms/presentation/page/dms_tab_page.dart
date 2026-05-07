@@ -9,6 +9,7 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/persisted_agent_names.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -100,9 +101,14 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     };
 
     // Build all-agent name lookup for AGENT badge.
+    // Combines live agents from state with persisted agent names (from
+    // SharedPreferences) so the badge survives cached/offline loads even
+    // when the agents API call hasn't completed or failed.
+    final persistedNames = ref.watch(persistedAgentNamesProvider);
     final allAgentNames = <String>{
       for (final agent in state.agents) agent.label,
       for (final agent in state.pinnedAgents) agent.label,
+      ...persistedNames,
     };
 
     // Combine pinned + unpinned DMs.

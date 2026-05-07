@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
@@ -23,9 +24,18 @@ import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
+import 'package:slock_app/features/home/application/persisted_agent_names.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   const serverId = ServerScopeId('server-1');
 
   const dmAlice = HomeDirectMessageSummary(
@@ -50,6 +60,15 @@ void main() {
       value: 'dm-charlie',
     ),
     title: 'Charlie',
+  );
+
+  const dmAgentBot = HomeDirectMessageSummary(
+    scopeId: DirectMessageScopeId(
+      serverId: serverId,
+      value: 'dm-bot',
+    ),
+    title: 'BotAlpha',
+    isAgent: true,
   );
 
   const sampleSnapshot = HomeWorkspaceSnapshot(
@@ -101,6 +120,7 @@ void main() {
       overrides: [
         activeServerScopeIdProvider.overrideWithValue(activeServerId),
         homeRepositoryProvider.overrideWithValue(homeRepository),
+        sharedPreferencesProvider.overrideWithValue(prefs),
         sidebarOrderRepositoryProvider.overrideWithValue(
           const _FakeSidebarOrderRepository(),
         ),
@@ -395,6 +415,47 @@ void main() {
 
     // After pop, DmsTabPage calls go('/servers/server-1/dms/dm-new-123')
     expect(find.text('dm:server-1/dm-new-123'), findsOneWidget);
+  });
+
+  testWidgets('shows agent badge for DM with isAgent: true', (tester) async {
+    const agentSnapshot = HomeWorkspaceSnapshot(
+      serverId: serverId,
+      channels: [],
+      directMessages: [dmAlice, dmAgentBot],
+    );
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(agentSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The agent DM row should render the badge.
+    expect(
+      find.byKey(const ValueKey('dm-agent-badge')),
+      findsOneWidget,
+    );
+    // Verify the agent row is present.
+    expect(
+      find.byKey(const ValueKey('dms-tab-dm-bot')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('does not show agent badge for human DM rows', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Neither Alice nor Bob is an agent — no badge should appear.
+    expect(
+      find.byKey(const ValueKey('dm-agent-badge')),
+      findsNothing,
+    );
   });
 }
 
