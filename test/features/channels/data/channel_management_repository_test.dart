@@ -88,7 +88,7 @@ void main() {
       });
     });
 
-    test('createChannel returns null when success payload omits id', () async {
+    test('createChannel throws when success payload omits id', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {
           ('POST', '/channels'): {'name': 'support'},
@@ -100,12 +100,18 @@ void main() {
       addTearDown(container.dispose);
 
       final repository = container.read(channelManagementRepositoryProvider);
-      final channelId = await repository.createChannel(
-        const ServerScopeId('server-1'),
-        name: 'support',
-      );
 
-      expect(channelId, isNull);
+      expect(
+        () => repository.createChannel(
+          const ServerScopeId('server-1'),
+          name: 'support',
+        ),
+        throwsA(isA<UnknownFailure>().having(
+          (f) => f.message,
+          'message',
+          'Server did not return a channel ID.',
+        )),
+      );
     });
 
     test('update/delete/leave use the expected channel endpoints', () async {

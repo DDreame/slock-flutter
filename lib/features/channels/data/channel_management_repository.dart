@@ -1,7 +1,7 @@
 import 'package:slock_app/core/core.dart';
 
 abstract class ChannelManagementRepository {
-  Future<String?> createChannel(
+  Future<String> createChannel(
     ServerScopeId serverId, {
     required String name,
     String? description,

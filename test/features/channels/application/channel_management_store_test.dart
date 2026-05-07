@@ -140,16 +140,16 @@ class _FakeHomeRepository implements HomeRepository {
 }
 
 class _FakeChannelManagementRepository implements ChannelManagementRepository {
-  _FakeChannelManagementRepository({this.createdChannelId});
+  _FakeChannelManagementRepository({this.createdChannelId = 'new-channel-id'});
 
-  final String? createdChannelId;
+  final String createdChannelId;
   final List<String> createdNames = [];
   final List<(String, String)> updatedChannels = [];
   final List<String> deletedChannelIds = [];
   final List<String> leftChannelIds = [];
 
   @override
-  Future<String?> createChannel(
+  Future<String> createChannel(
     ServerScopeId serverId, {
     required String name,
     String? description,

@@ -156,7 +156,7 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   bool shouldFail = false;
 
   @override
-  Future<String?> createChannel(
+  Future<String> createChannel(
     ServerScopeId serverId, {
     required String name,
     String? description,

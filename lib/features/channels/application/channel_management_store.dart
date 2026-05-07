@@ -15,7 +15,7 @@ class ChannelManagementStore
   @override
   ChannelManagementState build() => const ChannelManagementState();
 
-  Future<String?> createChannel(
+  Future<String> createChannel(
     String name, {
     String? description,
     bool? isPrivate,
