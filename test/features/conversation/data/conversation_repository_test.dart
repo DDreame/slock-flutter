@@ -976,6 +976,146 @@ void main() {
     expect(decoded.attachments![0].formattedSize, '2.4 MB');
     expect(decoded.attachments![1].sizeBytes, isNull);
   });
+  test('editMessage sends PATCH with correct path, body, and server header',
+      () async {
+    final localStore = FakeConversationLocalStore();
+    // Seed a message so local store update can find it
+    await localStore.upsertMessages([
+      LocalMessageUpsert(
+        serverId: 'server-1',
+        conversationId: 'general',
+        messageId: 'message-1',
+        content: 'Original',
+        createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      ),
+    ]);
+    final appDioClient = _FakeAppDioClient(
+      responses: {'/messages/message-1': null},
+    );
+    final container = _createContainer(appDioClient, localStore: localStore);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    await repository.editMessage(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      messageId: 'message-1',
+      content: 'Updated content',
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/messages/message-1');
+    expect(request.serverIdHeader, 'server-1');
+    expect(request.data, {'content': 'Updated content'});
+
+    // Verify local store was updated
+    final stored = localStore.messages.single;
+    expect(stored.content, 'Updated content');
+  });
+
+  test('deleteMessage sends DELETE with correct path and server header',
+      () async {
+    final localStore = FakeConversationLocalStore();
+    await localStore.upsertMessages([
+      LocalMessageUpsert(
+        serverId: 'server-1',
+        conversationId: 'general',
+        messageId: 'message-1',
+        content: 'To be deleted',
+        createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      ),
+    ]);
+    final appDioClient = _FakeAppDioClient(
+      responses: {'/messages/message-1': null},
+    );
+    final container = _createContainer(appDioClient, localStore: localStore);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    await repository.deleteMessage(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      messageId: 'message-1',
+    );
+
+    final request = appDioClient.requests.single;
+    expect(request.method, 'DELETE');
+    expect(request.path, '/messages/message-1');
+    expect(request.serverIdHeader, 'server-1');
+
+    // Verify local store removed the message
+    expect(localStore.messages, isEmpty);
+  });
+
+  test('editMessage rethrows AppFailure from transport', () async {
+    const failure = ServerFailure(
+      message: 'Forbidden.',
+      statusCode: 403,
+    );
+    final appDioClient = _FakeAppDioClient(
+      failures: {'/messages/message-1': failure},
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    await expectLater(
+      repository.editMessage(
+        ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+        messageId: 'message-1',
+        content: 'Will fail',
+      ),
+      throwsA(same(failure)),
+    );
+  });
+
+  test('deleteMessage rethrows AppFailure from transport', () async {
+    const failure = ServerFailure(
+      message: 'Not Found.',
+      statusCode: 404,
+    );
+    final appDioClient = _FakeAppDioClient(
+      failures: {'/messages/message-1': failure},
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    await expectLater(
+      repository.deleteMessage(
+        ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+        messageId: 'message-1',
+      ),
+      throwsA(same(failure)),
+    );
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {
@@ -1038,6 +1178,84 @@ class _FakeAppDioClient extends AppDioClient {
     requests.add(
       _CapturedRequest(
         method: 'POST',
+        path: path,
+        headers: headers,
+        queryParameters: queryParameters ?? const {},
+        data: data,
+      ),
+    );
+
+    final failure = _failures[path];
+    if (failure != null) {
+      throw failure;
+    }
+
+    if (!_responses.containsKey(path)) {
+      throw StateError('Missing fake response for $path');
+    }
+
+    return Response<T>(
+      requestOptions: RequestOptions(
+        path: path,
+        headers: headers,
+        queryParameters: queryParameters,
+        data: data,
+      ),
+      data: _responses[path] as T,
+    );
+  }
+
+  @override
+  Future<Response<T>> patch<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    final headers = Map<String, Object?>.from(options?.headers ?? const {});
+    requests.add(
+      _CapturedRequest(
+        method: 'PATCH',
+        path: path,
+        headers: headers,
+        queryParameters: queryParameters ?? const {},
+        data: data,
+      ),
+    );
+
+    final failure = _failures[path];
+    if (failure != null) {
+      throw failure;
+    }
+
+    if (!_responses.containsKey(path)) {
+      throw StateError('Missing fake response for $path');
+    }
+
+    return Response<T>(
+      requestOptions: RequestOptions(
+        path: path,
+        headers: headers,
+        queryParameters: queryParameters,
+        data: data,
+      ),
+      data: _responses[path] as T,
+    );
+  }
+
+  @override
+  Future<Response<T>> delete<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    final headers = Map<String, Object?>.from(options?.headers ?? const {});
+    requests.add(
+      _CapturedRequest(
+        method: 'DELETE',
         path: path,
         headers: headers,
         queryParameters: queryParameters ?? const {},

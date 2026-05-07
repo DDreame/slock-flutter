@@ -1320,7 +1320,9 @@ void main() {
           .deleteMessage('message-1');
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.map((m) => m.id), ['message-2']);
+      expect(state.messages.length, 2);
+      expect(state.messages.first.isDeleted, isTrue);
+      expect(state.messages.last.isDeleted, isFalse);
       expect(repository.deletedMessageIds, ['message-1']);
     });
 
@@ -1357,12 +1359,17 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(conversationDetailStoreProvider.notifier).load();
-      await container
-          .read(conversationDetailStoreProvider.notifier)
-          .deleteMessage('message-1');
+
+      await expectLater(
+        container
+            .read(conversationDetailStoreProvider.notifier)
+            .deleteMessage('message-1'),
+        throwsA(isA<ServerFailure>()),
+      );
 
       final state = container.read(conversationDetailStoreProvider);
       expect(state.messages.map((m) => m.id), ['message-1']);
+      expect(state.messages.first.isDeleted, isFalse);
     });
 
     test('message:deleted realtime event removes message from state', () async {
@@ -1428,7 +1435,9 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.map((m) => m.id), ['message-2']);
+      expect(state.messages.length, 2);
+      expect(state.messages.first.isDeleted, isTrue);
+      expect(state.messages.last.isDeleted, isFalse);
       expect(repository.removedStoredMessageIds, ['message-1']);
     });
   });
@@ -1822,6 +1831,13 @@ class _FakeConversationRepository implements ConversationRepository {
     }
     yield* persistedMessages;
   }
+
+  @override
+  Future<void> editMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {}
 
   @override
   Future<void> deleteMessage(

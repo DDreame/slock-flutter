@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1012,6 +1013,27 @@ class _ConversationMessageCard extends ConsumerWidget {
     final timestamp = formatRelativeTime(message.createdAt);
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
+
+    // Deleted messages render as a greyed placeholder with no interactions.
+    if (message.isDeleted) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        child: Align(
+          alignment: Alignment.center,
+          child: Text(
+            '[Message deleted]',
+            style: AppTypography.body.copyWith(
+              color: colors.textSecondary,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      );
+    }
+
     final savedIds = ref.watch(
       conversationDetailStoreProvider.select((s) => s.savedMessageIds),
     );
@@ -1298,7 +1320,7 @@ class _ConversationMessageCard extends ConsumerWidget {
     return _TapFeedbackWrapper(
       enableFeedback: enableTapToThread,
       onTap: enableTapToThread ? () => _navigateToThread(context) : null,
-      onLongPress: () => _showMessageActions(context, ref, isSaved),
+      onLongPress: () => _showMessageActions(context, ref, isSaved, visualKind),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final maxBubbleWidth = constraints.maxWidth * _bubbleMaxWidthFraction;
@@ -1339,13 +1361,39 @@ class _ConversationMessageCard extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     bool isSaved,
+    _ConversationMessageVisualKind visualKind,
   ) {
+    final isOwn = visualKind == _ConversationMessageVisualKind.self;
+
     showModalBottomSheet<void>(
       context: context,
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isOwn)
+              ListTile(
+                key: const ValueKey('message-action-edit'),
+                leading: const Icon(Icons.edit_outlined),
+                title: const Text('Edit message'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showEditDialog(context, ref);
+                },
+              ),
+            ListTile(
+              key: const ValueKey('message-action-copy'),
+              leading: const Icon(Icons.copy_outlined),
+              title: const Text('Copy text'),
+              onTap: () {
+                Navigator.of(context).pop();
+                Clipboard.setData(ClipboardData(text: message.content));
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                      const SnackBar(content: Text('Copied to clipboard.')));
+              },
+            ),
             ListTile(
               key: const ValueKey('message-action-save'),
               leading:
@@ -1401,17 +1449,32 @@ class _ConversationMessageCard extends ConsumerWidget {
                   _convertMessageToTask(context, ref);
                 },
               ),
-            ListTile(
-              key: const ValueKey('message-action-delete'),
-              leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete message'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _confirmAndDeleteMessage(context, ref);
-              },
-            ),
+            if (isOwn)
+              ListTile(
+                key: const ValueKey('message-action-delete'),
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Delete message'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _confirmAndDeleteMessage(context, ref);
+                },
+              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _showEditDialog(BuildContext context, WidgetRef ref) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _EditMessageDialog(
+        initialContent: message.content,
+        onSave: (newContent) async {
+          await ref
+              .read(conversationDetailStoreProvider.notifier)
+              .editMessage(message.id, newContent);
+        },
       ),
     );
   }
@@ -2255,5 +2318,95 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
         mode: LaunchMode.externalApplication,
       );
     }
+  }
+}
+
+class _EditMessageDialog extends StatefulWidget {
+  const _EditMessageDialog({
+    required this.initialContent,
+    required this.onSave,
+  });
+
+  final String initialContent;
+  final Future<void> Function(String newContent) onSave;
+
+  @override
+  State<_EditMessageDialog> createState() => _EditMessageDialogState();
+}
+
+class _EditMessageDialogState extends State<_EditMessageDialog> {
+  late final TextEditingController _controller;
+  bool _hasChanged = false;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialContent);
+    _controller.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final changed = _controller.text.trim() != widget.initialContent &&
+        _controller.text.trim().isNotEmpty;
+    if (changed != _hasChanged) {
+      setState(() => _hasChanged = changed);
+    }
+  }
+
+  Future<void> _onSave() async {
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(_controller.text.trim());
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Message edited.')));
+    } on AppFailure catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Failed to edit message.'),
+          ),
+        );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      key: const ValueKey('edit-message-dialog'),
+      title: const Text('Edit message'),
+      content: TextField(
+        key: const ValueKey('edit-message-field'),
+        controller: _controller,
+        autofocus: true,
+        maxLines: null,
+        textInputAction: TextInputAction.newline,
+        enabled: !_saving,
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('edit-message-cancel'),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          key: const ValueKey('edit-message-save'),
+          onPressed: _hasChanged && !_saving ? _onSave : null,
+          child: const Text('Save'),
+        ),
+      ],
+    );
   }
 }

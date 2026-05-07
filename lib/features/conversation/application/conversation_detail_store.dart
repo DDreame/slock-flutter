@@ -618,16 +618,40 @@ class ConversationDetailStore
     }
   }
 
+  Future<void> editMessage(String messageId, String newContent) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final previousMessages = state.messages;
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = messages[index].copyWith(content: newContent);
+    state = state.copyWith(messages: messages);
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      await repo.editMessage(target, messageId: messageId, content: newContent);
+      _persistSession();
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(messages: previousMessages);
+      rethrow;
+    }
+  }
+
   Future<void> deleteMessage(String messageId) async {
     final target = ref.read(currentConversationDetailTargetProvider);
     if (state.status != ConversationDetailStatus.success) return;
 
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
     final previousMessages = state.messages;
-    state = state.copyWith(
-      messages: previousMessages
-          .where((m) => m.id != messageId)
-          .toList(growable: false),
-    );
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = messages[index].copyWith(isDeleted: true);
+    state = state.copyWith(messages: messages);
 
     try {
       final repo = ref.read(conversationRepositoryProvider);
@@ -636,6 +660,7 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(messages: previousMessages);
+      rethrow;
     }
   }
 
@@ -837,10 +862,11 @@ class ConversationDetailStore
       return;
     }
 
-    final filtered =
-        state.messages.where((m) => m.id != deleted.id).toList(growable: false);
-    if (filtered.length != state.messages.length) {
-      state = state.copyWith(messages: filtered);
+    final index = state.messages.indexWhere((m) => m.id == deleted.id);
+    if (index != -1 && !state.messages[index].isDeleted) {
+      final messages = List<ConversationMessageSummary>.of(state.messages);
+      messages[index] = messages[index].copyWith(isDeleted: true);
+      state = state.copyWith(messages: messages);
       _persistSession();
       unawaited(
         ref.read(conversationRepositoryProvider).removeStoredMessage(

@@ -698,6 +698,13 @@ class _ControllableConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<void> editMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {}
+
+  @override
   Future<void> deleteMessage(
     ConversationDetailTarget target, {
     required String messageId,
