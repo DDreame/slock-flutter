@@ -335,12 +335,14 @@ void main() {
       await tester.tap(
         find.byKey(const ValueKey('file-attachment-report.pdf')),
       );
-      await tester.pumpAndSettle();
+      // Use pump() instead of pumpAndSettle() because the tap navigates
+      // to FilePreviewPage which has never-completing futures (PDF download).
+      await tester.pump();
+      await tester.pump();
 
       // Should NOT have navigated to thread — attachment InkWell
-      // absorbs the tap.
+      // absorbs the tap and opens the file preview instead.
       expect(find.text('thread-page-msg-attach'), findsNothing);
-      expect(find.text('See attachment'), findsOneWidget);
     });
 
     testWidgets('thread indicator tap still navigates independently',
