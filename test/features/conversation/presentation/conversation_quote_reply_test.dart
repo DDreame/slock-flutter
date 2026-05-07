@@ -74,8 +74,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Long-press a message to open actions
-    await tester.longPress(find.byKey(const ValueKey('message-message-1')));
+    // Long-press a message to open actions (use shell key to avoid
+    // SelectableText gesture conflict from MarkdownBody selectable: true)
+    await tester
+        .longPress(find.byKey(const ValueKey('message-shell-message-1')));
     await tester.pumpAndSettle();
 
     // Reply action should be visible
@@ -123,8 +125,10 @@ void main() {
       findsNothing,
     );
 
-    // Long-press message and tap Reply
-    await tester.longPress(find.byKey(const ValueKey('message-message-1')));
+    // Long-press message card (use shell key to avoid SelectableText gesture
+    // conflict from MarkdownBody selectable: true)
+    await tester
+        .longPress(find.byKey(const ValueKey('message-shell-message-1')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('message-action-reply')));
     await tester.pumpAndSettle();
@@ -169,8 +173,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Set reply
-    await tester.longPress(find.byKey(const ValueKey('message-message-1')));
+    // Set reply (use shell key to avoid SelectableText gesture conflict)
+    await tester
+        .longPress(find.byKey(const ValueKey('message-shell-message-1')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('message-action-reply')));
     await tester.pumpAndSettle();
