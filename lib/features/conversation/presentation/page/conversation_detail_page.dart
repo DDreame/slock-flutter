@@ -23,6 +23,7 @@ import 'package:slock_app/features/conversation/data/attachment_repository_provi
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -2095,7 +2096,7 @@ class _ImageAttachmentPreview extends StatelessWidget {
   void _openFullScreen(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => _FullScreenImageViewer(attachment: attachment),
+        builder: (context) => FilePreviewPage(attachment: attachment),
       ),
     );
   }
@@ -2414,44 +2415,11 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
   }
 
   Future<void> _openFile(BuildContext context, WidgetRef ref) async {
-    final diagnostics = ref.read(diagnosticsCollectorProvider);
-    // If we have an attachment id, fetch a signed URL for download.
-    if (attachment.id != null && attachment.id!.isNotEmpty) {
-      try {
-        final target = ref.read(currentOpenConversationTargetProvider);
-        if (target == null) return;
-        final repo = ref.read(attachmentRepositoryProvider);
-        final signedUrl = await repo.getSignedUrl(
-          target.serverId,
-          attachmentId: attachment.id!,
-        );
-        await launchUrl(
-          Uri.parse(signedUrl),
-          mode: LaunchMode.externalApplication,
-        );
-        return;
-      } on AppFailure catch (e) {
-        diagnostics.error(
-          'attachment-preview',
-          'source=signedUrl, attachmentId=${attachment.id}, '
-              'mimeType=${attachment.type}, failureType=${e.runtimeType}',
-        );
-        // Fall through to direct URL if available.
-      }
-    } else {
-      diagnostics.info(
-        'attachment-preview',
-        'source=signedUrl, attachmentId=missing, '
-            'mimeType=${attachment.type}, fallback=directUrl',
-      );
-    }
-    // Fallback: use direct url if present.
-    if (attachment.url != null) {
-      await launchUrl(
-        Uri.parse(attachment.url!),
-        mode: LaunchMode.externalApplication,
-      );
-    }
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => FilePreviewPage(attachment: attachment),
+      ),
+    );
   }
 }
 

@@ -176,7 +176,8 @@ void main() {
 
       // Tap the image preview
       await tester.tap(find.byKey(const ValueKey('image-preview-att-img')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
       // Full-screen viewer should be pushed and should call getSignedUrl
       expect(attachmentRepo.signedUrlCalls, contains('att-img'));
@@ -384,7 +385,10 @@ void main() {
 
       // Tap generic file row
       await tester.tap(find.byKey(const ValueKey('file-attachment-att-pdf')));
-      await tester.pumpAndSettle();
+      // Use pump() instead of pumpAndSettle() because the tap navigates
+      // to FilePreviewPage which has never-completing futures (PDF download).
+      await tester.pump();
+      await tester.pump();
 
       // Verify getSignedUrl was called
       expect(attachmentRepo.signedUrlCalls, contains('att-pdf'));
@@ -432,7 +436,10 @@ void main() {
 
       // Tap generic file row
       await tester.tap(find.byKey(const ValueKey('file-attachment-doc.pdf')));
-      await tester.pumpAndSettle();
+      // Use pump() instead of pumpAndSettle() because the tap navigates
+      // to FilePreviewPage which may have ongoing futures.
+      await tester.pump();
+      await tester.pump();
 
       // Should NOT call getSignedUrl because id is null
       expect(
@@ -486,7 +493,8 @@ void main() {
 
       // Tap the image preview (key uses name since no id)
       await tester.tap(find.byKey(const ValueKey('image-preview-old.png')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
       // Should NOT call getSignedUrl because id is null — falls back to
       // direct url
@@ -547,7 +555,8 @@ void main() {
 
       // Tap the image preview
       await tester.tap(find.byKey(const ValueKey('image-preview-att-fail')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
       // getSignedUrl was called but failed — should fall back to direct url
       expect(attachmentRepo.signedUrlCalls, contains('att-fail'));
@@ -608,7 +617,8 @@ void main() {
 
       // Tap image to open full-screen (triggers getSignedUrl)
       await tester.tap(find.byKey(const ValueKey('image-preview-att-diag')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
       // No diagnostics from the widget directly for success since the
       // repository level handles success recording.
@@ -660,7 +670,8 @@ void main() {
 
       // Tap image to open full-screen (no id → fallback path)
       await tester.tap(find.byKey(const ValueKey('image-preview-legacy.png')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
       // Should log a diagnostic about missing id / fallback
       final entries = diagnostics.entries
@@ -731,7 +742,8 @@ void main() {
 
       // Tap image to trigger signed URL fetch (will fail)
       await tester.tap(find.byKey(const ValueKey('image-preview-att-err')));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
       // Should log an error diagnostic
       final errors = diagnostics.entries

@@ -30,6 +30,7 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_markdown: ^0.7.7+1
   markdown: ^7.3.1
+  flutter_pdfview: ^1.4.4
 
 dev_dependencies:
   build_runner: ^2.4.9
