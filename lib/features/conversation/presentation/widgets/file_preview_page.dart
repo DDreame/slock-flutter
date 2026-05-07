@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
@@ -45,6 +47,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
   int _currentPage = 0;
   int _totalPages = 0;
   bool _sharing = false;
+  final List<String> _tempFiles = [];
 
   bool get _isPdf => widget.attachment.type.toLowerCase() == 'application/pdf';
 
@@ -55,6 +58,24 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
   void initState() {
     super.initState();
     _loadAttachment();
+  }
+
+  @override
+  void dispose() {
+    _cleanupTempFiles();
+    super.dispose();
+  }
+
+  void _cleanupTempFiles() {
+    for (final path in _tempFiles) {
+      try {
+        final file = File(path);
+        if (file.existsSync()) file.deleteSync();
+      } catch (_) {
+        // Best-effort cleanup; ignore failures.
+      }
+    }
+    _tempFiles.clear();
   }
 
   Future<void> _loadAttachment() async {
@@ -88,19 +109,40 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       } else {
         if (mounted) setState(() => _loading = false);
       }
-    } on AppFailure catch (e) {
+    } on AppFailure {
+      // Fall back to direct URL if available (preserves old behavior).
       if (mounted) {
-        setState(() {
-          _error = e.message ?? 'Failed to load attachment.';
-          _loading = false;
-        });
+        if (att.url != null) {
+          setState(() {
+            _signedUrl = att.url;
+            _loading = false;
+          });
+          if (_isPdf) {
+            await _downloadPdf(att.url!);
+          }
+        } else {
+          setState(() {
+            _error = 'Failed to load attachment.';
+            _loading = false;
+          });
+        }
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
-        setState(() {
-          _error = 'Failed to load attachment.';
-          _loading = false;
-        });
+        if (att.url != null) {
+          setState(() {
+            _signedUrl = att.url;
+            _loading = false;
+          });
+          if (_isPdf) {
+            await _downloadPdf(att.url!);
+          }
+        } else {
+          setState(() {
+            _error = 'Failed to load attachment.';
+            _loading = false;
+          });
+        }
       }
     }
   }
@@ -113,6 +155,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
           : 'preview.pdf';
       final filePath = '${tempDir.path}/$fileName';
       await Dio().download(url, filePath);
+      _tempFiles.add(filePath);
       if (mounted) {
         setState(() {
           _localFilePath = filePath;
@@ -160,6 +203,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
           : 'attachment';
       final filePath = '${tempDir.path}/$fileName';
       await Dio().download(url, filePath);
+      _tempFiles.add(filePath);
       await Share.shareXFiles([XFile(filePath)]);
     } catch (_) {
       if (mounted) {

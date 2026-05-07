@@ -263,6 +263,31 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('falls back to direct url when signed URL fails', (
+      tester,
+    ) async {
+      final attachment = const MessageAttachment(
+        name: 'photo.png',
+        type: 'image/png',
+        id: 'att-fallback',
+        url: 'https://direct.example.com/photo.png',
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          attachment: attachment,
+          fakeRepo: _FakeAttachmentRepository(shouldFail: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Should fall back to direct URL and show image viewer
+      expect(
+        find.byKey(const ValueKey('image-viewer-interactive')),
+        findsOneWidget,
+      );
+    });
   });
 
   group('FilePreviewPage page structure', () {
