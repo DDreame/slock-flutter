@@ -1695,6 +1695,218 @@ void main() {
       expect(state.messages[0].isPinned, isFalse);
     });
   });
+
+  group('quote reply', () {
+    final replyTarget = ConversationMessageSummary(
+      id: 'message-1',
+      content: 'Original message',
+      createdAt: DateTime.parse('2026-05-01T10:00:00Z'),
+      senderType: 'human',
+      messageType: 'message',
+      senderName: 'Alice',
+      seq: 1,
+    );
+
+    test('setReplyTo sets replyToMessage in state', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [replyTarget],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      expect(
+        container.read(conversationDetailStoreProvider).replyToMessage,
+        isNull,
+      );
+
+      container
+          .read(conversationDetailStoreProvider.notifier)
+          .setReplyTo(replyTarget);
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.replyToMessage, replyTarget);
+    });
+
+    test('clearReplyTo nulls replyToMessage in state', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [replyTarget],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.setReplyTo(replyTarget);
+      expect(
+        container.read(conversationDetailStoreProvider).replyToMessage,
+        isNotNull,
+      );
+
+      notifier.clearReplyTo();
+
+      expect(
+        container.read(conversationDetailStoreProvider).replyToMessage,
+        isNull,
+      );
+    });
+
+    test('send passes replyToId and clears replyToMessage', () async {
+      final sentMessage = ConversationMessageSummary(
+        id: 'message-2',
+        content: 'Reply text',
+        createdAt: DateTime.parse('2026-05-01T10:05:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 2,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [replyTarget],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sentMessage: sentMessage,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.setReplyTo(replyTarget);
+      notifier.updateDraft('Reply text');
+      await notifier.send();
+
+      final state = container.read(conversationDetailStoreProvider);
+      // replyToMessage cleared after send
+      expect(state.replyToMessage, isNull);
+      // replyToId passed to repository
+      expect(repository.sentReplyToIds, ['message-1']);
+      // pending message carries replyToId for retry
+      expect(state.pendingMessages.first.replyToId, 'message-1');
+    });
+
+    test('send without reply passes null replyToId', () async {
+      final sentMessage = ConversationMessageSummary(
+        id: 'message-2',
+        content: 'No reply',
+        createdAt: DateTime.parse('2026-05-01T10:05:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 2,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [replyTarget],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sentMessage: sentMessage,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.updateDraft('No reply');
+      await notifier.send();
+
+      expect(repository.sentReplyToIds, [null]);
+      expect(
+        container
+            .read(conversationDetailStoreProvider)
+            .pendingMessages
+            .first
+            .replyToId,
+        isNull,
+      );
+    });
+
+    test('retrySend preserves replyToId from pending message', () async {
+      const failure = ServerFailure(
+        message: 'Send failed.',
+        statusCode: 500,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [replyTarget],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sendFailure: failure,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      // Set reply, send (will fail)
+      notifier.setReplyTo(replyTarget);
+      notifier.updateDraft('Retry reply');
+      await notifier.send();
+
+      final failedState = container.read(conversationDetailStoreProvider);
+      expect(
+          failedState.pendingMessages.first.status, MessageSendStatus.failed);
+      expect(failedState.pendingMessages.first.replyToId, 'message-1');
+
+      // Clear the send failure and retry
+      repository.sentContents.clear();
+      repository.sentReplyToIds.clear();
+
+      // Retry: still passes original replyToId
+      await notifier.retrySend(failedState.pendingMessages.first.localId);
+
+      expect(repository.sentReplyToIds, ['message-1']);
+    });
+  });
 }
 
 class _FakeConversationRepository implements ConversationRepository {
@@ -1725,6 +1937,7 @@ class _FakeConversationRepository implements ConversationRepository {
   final List<int> olderRequests = [];
   final List<int> newerRequests = [];
   final List<String> sentContents = [];
+  final List<String?> sentReplyToIds = [];
   final List<ConversationMessageSummary> persistedMessages = [];
   final Map<String, String> updatedContents = {};
   final List<String> deletedMessageIds = [];
@@ -1774,8 +1987,10 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
     String content, {
     List<String>? attachmentIds,
+    String? replyToId,
   }) async {
     sentContents.add(content);
+    sentReplyToIds.add(replyToId);
     if (sendFailure != null) {
       throw sendFailure!;
     }

@@ -1618,6 +1618,7 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
     String content, {
     List<String>? attachmentIds,
+    String? replyToId,
   }) async {
     sentContents.add(content);
     if (sendFailure != null) {
@@ -1781,6 +1782,7 @@ class _QueueConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
     String content, {
     List<String>? attachmentIds,
+    String? replyToId,
   }) {
     throw UnimplementedError();
   }

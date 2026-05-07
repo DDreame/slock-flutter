@@ -261,6 +261,7 @@ class _ConversationDetailScreenState
               ConversationDetailStatus.success => _ConversationMessageList(
                   controller: _scrollController,
                   state: state,
+                  onScrollToMessage: _scrollToMessageId,
                 ),
             },
           ),
@@ -282,6 +283,9 @@ class _ConversationDetailScreenState
               onCancelUpload: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .cancelUpload,
+              onClearReply: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .clearReplyTo,
             ),
         ],
       ),
@@ -466,10 +470,14 @@ class _ConversationMessageList extends StatelessWidget {
   const _ConversationMessageList({
     required this.controller,
     required this.state,
+    this.onScrollToMessage,
   });
 
   final ScrollController controller;
   final ConversationDetailState state;
+  final void Function(
+          String messageId, List<ConversationMessageSummary> messages)?
+      onScrollToMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -493,6 +501,9 @@ class _ConversationMessageList extends StatelessWidget {
             target: state.target,
             message: message,
             highlightQuery: state.searchQuery,
+            onScrollToMessage: onScrollToMessage != null
+                ? (messageId) => onScrollToMessage!(messageId, state.messages)
+                : null,
           );
         }
         // Pending messages
@@ -709,6 +720,7 @@ class _ConversationComposer extends StatelessWidget {
     required this.onPickAttachment,
     required this.onRemoveAttachment,
     required this.onCancelUpload,
+    required this.onClearReply,
   });
 
   final TextEditingController controller;
@@ -719,6 +731,7 @@ class _ConversationComposer extends StatelessWidget {
   final ValueChanged<PendingAttachment> onPickAttachment;
   final ValueChanged<int> onRemoveAttachment;
   final ValueChanged<int> onCancelUpload;
+  final VoidCallback onClearReply;
 
   @override
   Widget build(BuildContext context) {
@@ -736,6 +749,14 @@ class _ConversationComposer extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (state.replyToMessage != null) ...[
+              _ReplyPreviewBanner(
+                key: const ValueKey('composer-reply-preview'),
+                message: state.replyToMessage!,
+                onDismiss: onClearReply,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
             if (state.sendFailure != null) ...[
               Text(
                 state.sendFailure?.message ?? 'Failed to send message.',
@@ -1036,11 +1057,13 @@ class _ConversationMessageCard extends ConsumerWidget {
     required this.target,
     required this.message,
     this.highlightQuery = '',
+    this.onScrollToMessage,
   });
 
   final ConversationDetailTarget target;
   final ConversationMessageSummary message;
   final String highlightQuery;
+  final ValueChanged<String>? onScrollToMessage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1157,6 +1180,15 @@ class _ConversationMessageCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (message.replyTo != null)
+            _QuotedMessageBlock(
+              key: ValueKey('quoted-${message.id}'),
+              replyTo: message.replyTo!,
+              isSelf: visualKind == _ConversationMessageVisualKind.self,
+              onTap: onScrollToMessage != null
+                  ? () => onScrollToMessage!(message.replyTo!.id)
+                  : null,
+            ),
           if (visualKind == _ConversationMessageVisualKind.self)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -1426,6 +1458,17 @@ class _ConversationMessageCard extends ConsumerWidget {
                     _showEditDialog(context, ref);
                   },
                 ),
+              ListTile(
+                key: const ValueKey('message-action-reply'),
+                leading: const Icon(Icons.reply_outlined),
+                title: const Text('Reply'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  ref
+                      .read(conversationDetailStoreProvider.notifier)
+                      .setReplyTo(message);
+                },
+              ),
               ListTile(
                 key: const ValueKey('message-action-react'),
                 leading: const Icon(Icons.emoji_emotions_outlined),
@@ -2673,6 +2716,141 @@ class _ReactionChip extends StatelessWidget {
               style: AppTypography.caption.copyWith(
                 color: isOwn ? colors.primary : colors.textSecondary,
                 fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Banner shown above the composer when replying to a message.
+class _ReplyPreviewBanner extends StatelessWidget {
+  const _ReplyPreviewBanner({
+    super.key,
+    required this.message,
+    required this.onDismiss,
+  });
+
+  final ConversationMessageSummary message;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: colors.primary, width: 3),
+        ),
+        color: colors.surfaceAlt,
+        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.senderLabel,
+                  style: AppTypography.label.copyWith(
+                    color: colors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message.content,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          GestureDetector(
+            key: const ValueKey('reply-preview-dismiss'),
+            onTap: onDismiss,
+            child: Icon(
+              Icons.close,
+              size: 20,
+              color: colors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Quoted message block rendered inside a message bubble.
+class _QuotedMessageBlock extends StatelessWidget {
+  const _QuotedMessageBlock({
+    super.key,
+    required this.replyTo,
+    required this.isSelf,
+    this.onTap,
+  });
+
+  final ReplyToSummary replyTo;
+  final bool isSelf;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final accentColor = isSelf
+        ? colors.primaryForeground.withValues(alpha: 0.7)
+        : colors.primary;
+    final bgColor = isSelf
+        ? colors.primaryForeground.withValues(alpha: 0.12)
+        : colors.primary.withValues(alpha: 0.08);
+    final labelColor = accentColor;
+    final bodyColor = isSelf
+        ? colors.primaryForeground.withValues(alpha: 0.85)
+        : colors.textSecondary;
+
+    return GestureDetector(
+      key: const ValueKey('quoted-message-tap'),
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(color: accentColor, width: 3),
+          ),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              replyTo.senderLabel,
+              style: AppTypography.label.copyWith(
+                color: labelColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              replyTo.content.isEmpty ? '[Message]' : replyTo.content,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.caption.copyWith(
+                color: bodyColor,
               ),
             ),
           ],

@@ -391,6 +391,7 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
     String content, {
     List<String>? attachmentIds,
+    String? replyToId,
   }) async {
     throw UnimplementedError();
   }

@@ -258,6 +258,14 @@ class ConversationDetailStore
     );
   }
 
+  void setReplyTo(ConversationMessageSummary message) {
+    state = state.copyWith(replyToMessage: message);
+  }
+
+  void clearReplyTo() {
+    state = state.copyWith(clearReplyToMessage: true);
+  }
+
   void addPendingAttachment(PendingAttachment attachment) {
     state = state.copyWith(
       pendingAttachments: [...state.pendingAttachments, attachment],
@@ -285,6 +293,7 @@ class ConversationDetailStore
   Future<void> send() async {
     final target = ref.read(currentConversationDetailTargetProvider);
     final content = state.draft.trim();
+    final replyToId = state.replyToMessage?.id;
     final pendingFiles =
         state.pendingAttachments.isNotEmpty ? state.pendingAttachments : null;
     if (state.status != ConversationDetailStatus.success ||
@@ -299,14 +308,16 @@ class ConversationDetailStore
       localId: localId,
       content: content,
       createdAt: DateTime.now(),
+      replyToId: replyToId,
     );
 
-    // Optimistic insert: show message immediately, clear draft.
+    // Optimistic insert: show message immediately, clear draft and reply.
     // Keep pendingAttachments visible during upload so UI can overlay progress.
     state = state.copyWith(
       pendingMessages: [...state.pendingMessages, pending],
       draft: '',
       clearSendFailure: true,
+      clearReplyToMessage: true,
     );
 
     try {
@@ -405,6 +416,7 @@ class ConversationDetailStore
         target,
         content,
         attachmentIds: attachmentIds,
+        replyToId: replyToId,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
@@ -473,6 +485,7 @@ class ConversationDetailStore
         target,
         pending.content,
         attachmentIds: pending.attachmentIds,
+        replyToId: pending.replyToId,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;

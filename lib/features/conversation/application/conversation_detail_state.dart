@@ -31,6 +31,7 @@ class ConversationDetailState {
     this.searchMatchIds = const [],
     this.currentSearchMatchIndex = -1,
     this.savedMessageIds = const {},
+    this.replyToMessage,
   });
 
   final ConversationDetailTarget target;
@@ -60,6 +61,10 @@ class ConversationDetailState {
   final List<String> searchMatchIds;
   final int currentSearchMatchIndex;
   final Set<String> savedMessageIds;
+
+  /// When non-null, the composer shows a quote preview and the next send
+  /// includes `replyToId` in the payload.
+  final ConversationMessageSummary? replyToMessage;
 
   bool get isEmpty =>
       status == ConversationDetailStatus.success &&
@@ -97,6 +102,8 @@ class ConversationDetailState {
     List<String>? searchMatchIds,
     int? currentSearchMatchIndex,
     Set<String>? savedMessageIds,
+    ConversationMessageSummary? replyToMessage,
+    bool clearReplyToMessage = false,
   }) {
     return ConversationDetailState(
       target: target ?? this.target,
@@ -122,6 +129,8 @@ class ConversationDetailState {
       currentSearchMatchIndex:
           currentSearchMatchIndex ?? this.currentSearchMatchIndex,
       savedMessageIds: savedMessageIds ?? this.savedMessageIds,
+      replyToMessage:
+          clearReplyToMessage ? null : (replyToMessage ?? this.replyToMessage),
     );
   }
 
@@ -151,7 +160,8 @@ class ConversationDetailState {
             searchQuery == other.searchQuery &&
             listEquals(searchMatchIds, other.searchMatchIds) &&
             currentSearchMatchIndex == other.currentSearchMatchIndex &&
-            setEquals(savedMessageIds, other.savedMessageIds);
+            setEquals(savedMessageIds, other.savedMessageIds) &&
+            replyToMessage == other.replyToMessage;
   }
 
   @override
@@ -179,6 +189,7 @@ class ConversationDetailState {
           Object.hashAll(searchMatchIds),
           currentSearchMatchIndex,
           Object.hashAll(savedMessageIds),
+          replyToMessage,
         ),
       );
 }

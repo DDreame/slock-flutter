@@ -76,6 +76,7 @@ ConversationMessageSummary parseConversationMessageSummary(
     isDeleted: item['isDeleted'] == true ||
         readOptionalConversationPayloadString(item['deletedAt']) != null,
     reactions: parseReactions(item['reactions']),
+    replyTo: _parseReplyTo(item['replyTo']),
   );
 }
 
@@ -302,6 +303,25 @@ ConversationLinkedTaskSummary? _parseLinkedTask(Object? value) {
     taskNumber: taskNumber,
     status: status,
     claimedByName: readOptionalConversationPayloadString(map['claimedByName']),
+  );
+}
+
+ReplyToSummary? _parseReplyTo(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+  final map =
+      value is Map<String, dynamic> ? value : Map<String, dynamic>.from(value);
+  final id = readOptionalConversationPayloadString(map['id']);
+  if (id == null) {
+    return null;
+  }
+  return ReplyToSummary(
+    id: id,
+    content: readOptionalConversationPayloadString(map['content']) ?? '',
+    senderName: readOptionalConversationPayloadString(map['senderName']) ??
+        resolveConversationSenderName(map),
+    senderType: readOptionalConversationPayloadString(map['senderType']),
   );
 }
 
