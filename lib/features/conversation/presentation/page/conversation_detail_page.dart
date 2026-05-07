@@ -182,13 +182,15 @@ class _ConversationDetailScreenState
                   .read(conversationDetailStoreProvider.notifier)
                   .toggleSearch,
             ),
-          if (state.status == ConversationDetailStatus.success)
+          if (state.status == ConversationDetailStatus.success &&
+              ref.read(currentConversationDetailTargetProvider).surface ==
+                  ConversationSurface.channel)
             IconButton(
               key: const ValueKey('conversation-pinned-messages'),
               icon: const Icon(Icons.push_pin_outlined),
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
+              onPressed: () async {
+                final messageId = await Navigator.of(context).push<String>(
+                  MaterialPageRoute<String>(
                     builder: (_) => ProviderScope(
                       overrides: [
                         currentConversationDetailTargetProvider
@@ -197,13 +199,20 @@ class _ConversationDetailScreenState
                         ),
                       ],
                       child: PinnedMessagesPage(
-                        onMessageTap: (messageId) {
-                          Navigator.of(context).pop();
+                        onMessageTap: (id) {
+                          Navigator.of(context).pop(id);
                         },
                       ),
                     ),
                   ),
                 );
+                if (messageId != null && mounted) {
+                  final currentState =
+                      ref.read(conversationDetailStoreProvider);
+                  if (currentState.status == ConversationDetailStatus.success) {
+                    _scrollToMessageId(messageId, currentState.messages);
+                  }
+                }
               },
             ),
           if (state.status == ConversationDetailStatus.success)
