@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
-import 'package:slock_app/features/home/presentation/widgets/new_dm_dialog.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
@@ -342,9 +342,10 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     if (serverId == null) return;
     final pageContext = context;
 
-    final channelId = await showDialog<String>(
-      context: pageContext,
-      builder: (_) => NewDmDialog(serverId: serverId),
+    final channelId = await Navigator.of(pageContext).push<String>(
+      MaterialPageRoute(
+        builder: (_) => NewDmPage(serverId: serverId),
+      ),
     );
 
     if (channelId != null && mounted && pageContext.mounted) {

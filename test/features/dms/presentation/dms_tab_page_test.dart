@@ -9,6 +9,9 @@ import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/members/data/member_repository.dart';
+import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
@@ -71,6 +74,7 @@ void main() {
     required HomeRepository homeRepository,
     ServerScopeId? activeServerId = serverId,
     GoRouter? router,
+    MemberRepository? memberRepository,
   }) {
     final effectiveRouter = router ??
         GoRouter(
@@ -112,6 +116,8 @@ void main() {
         homeMachineCountLoaderProvider.overrideWithValue(
           (_) async => 0,
         ),
+        if (memberRepository != null)
+          memberRepositoryProvider.overrideWithValue(memberRepository),
       ],
       child: MaterialApp.router(
         routerConfig: effectiveRouter,
@@ -360,6 +366,36 @@ void main() {
 
     expect(repo.loadCount, greaterThan(1));
   });
+
+  testWidgets('new DM navigates to DM route after selecting a member', (
+    tester,
+  ) async {
+    final memberRepo = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'u1', displayName: 'Alice'),
+      ],
+      dmChannelId: 'dm-new-123',
+    );
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        memberRepository: memberRepo,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the "+" new message button
+    await tester.tap(find.byKey(const ValueKey('dms-tab-create-button')));
+    await tester.pumpAndSettle();
+
+    // Select Alice from the member list
+    await tester.tap(find.byKey(const ValueKey('dm-member-u1')));
+    await tester.pumpAndSettle();
+
+    // After pop, DmsTabPage calls go('/servers/server-1/dms/dm-new-123')
+    expect(find.text('dm:server-1/dm-new-123'), findsOneWidget);
+  });
 }
 
 // ----  Fakes  ----
@@ -573,4 +609,53 @@ class _FakeThreadRepository implements ThreadRepository {
     ServerScopeId serverId, {
     required String threadChannelId,
   }) async {}
+}
+
+class _FakeMemberRepository implements MemberRepository {
+  _FakeMemberRepository({
+    this.members = const [],
+    this.dmChannelId = 'dm-channel-1',
+  });
+
+  final List<MemberProfile> members;
+  final String dmChannelId;
+
+  @override
+  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
+    return members;
+  }
+
+  @override
+  Future<String> createInvite(ServerScopeId serverId) async {
+    return 'invite-code';
+  }
+
+  @override
+  Future<void> updateMemberRole(
+    ServerScopeId serverId, {
+    required String userId,
+    required String role,
+  }) async {}
+
+  @override
+  Future<void> removeMember(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {}
+
+  @override
+  Future<String> openDirectMessage(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {
+    return dmChannelId;
+  }
+
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async {
+    return dmChannelId;
+  }
 }

@@ -19,20 +19,36 @@ class _ApiChannelManagementRepository implements ChannelManagementRepository {
   final AppDioClient _appDioClient;
 
   @override
-  Future<String?> createChannel(
+  Future<String> createChannel(
     ServerScopeId serverId, {
     required String name,
+    String? description,
+    bool? isPrivate,
   }) async {
     try {
+      final data = <String, Object>{
+        'name': name,
+        'type': 'text',
+      };
+      if (description != null && description.isNotEmpty) {
+        data['description'] = description;
+      }
+      if (isPrivate != null) {
+        data['isPrivate'] = isPrivate;
+      }
       final response = await _appDioClient.post<Object?>(
         _channelsPath,
-        data: {
-          'name': name,
-          'type': 'text',
-        },
+        data: data,
         options: _serverScopedOptions(serverId),
       );
-      return _readOptionalChannelId(response.data);
+      final channelId = _readOptionalChannelId(response.data);
+      if (channelId == null) {
+        throw const UnknownFailure(
+          message: 'Server did not return a channel ID.',
+          causeType: 'missing_channel_id',
+        );
+      }
+      return channelId;
     } on AppFailure {
       rethrow;
     } catch (error) {

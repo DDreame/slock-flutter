@@ -15,7 +15,11 @@ class ChannelManagementStore
   @override
   ChannelManagementState build() => const ChannelManagementState();
 
-  Future<String?> createChannel(String name) async {
+  Future<String> createChannel(
+    String name, {
+    String? description,
+    bool? isPrivate,
+  }) async {
     final serverId = _requireServerId();
     state = state.copyWith(
       activeAction: ChannelManagementAction.create,
@@ -24,9 +28,13 @@ class ChannelManagementStore
     );
 
     try {
-      final channelId = await ref
-          .read(channelManagementRepositoryProvider)
-          .createChannel(serverId, name: name);
+      final channelId =
+          await ref.read(channelManagementRepositoryProvider).createChannel(
+                serverId,
+                name: name,
+                description: description,
+                isPrivate: isPrivate,
+              );
       await _refreshHomeList();
       state = state.copyWith(clearAction: true, clearFailure: true);
       return channelId;

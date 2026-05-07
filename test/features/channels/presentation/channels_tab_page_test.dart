@@ -328,7 +328,7 @@ void main() {
     expect(find.text('channel:server-1/general'), findsOneWidget);
   });
 
-  testWidgets('create button opens create channel dialog', (
+  testWidgets('create button opens create channel page', (
     tester,
   ) async {
     final channelMgmt = _FakeChannelManagementRepository();
@@ -347,9 +347,43 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('create-channel-dialog')),
+      find.byKey(const ValueKey('create-channel-name')),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'create channel navigates to new channel route after successful create', (
+    tester,
+  ) async {
+    final channelMgmt = _FakeChannelManagementRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        channelManagementRepository: channelMgmt,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Open create channel page
+    await tester.tap(
+      find.byKey(const ValueKey('channels-tab-create-button')),
+    );
+    await tester.pumpAndSettle();
+
+    // Fill name and submit
+    await tester.enterText(
+      find.byKey(const ValueKey('create-channel-name')),
+      'design',
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('create-channel-submit')));
+    await tester.pumpAndSettle();
+
+    // After pop, ChannelsTabPage calls go('/servers/server-1/channels/new-channel-id')
+    expect(find.text('channel:server-1/new-channel-id'), findsOneWidget);
   });
 
   testWidgets('shows search field', (tester) async {
@@ -609,12 +643,14 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   final List<String> createdNames = [];
 
   @override
-  Future<String?> createChannel(
+  Future<String> createChannel(
     ServerScopeId serverId, {
     required String name,
+    String? description,
+    bool? isPrivate,
   }) async {
     createdNames.add(name);
-    return null;
+    return 'new-channel-id';
   }
 
   @override
