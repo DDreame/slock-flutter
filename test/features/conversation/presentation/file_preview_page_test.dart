@@ -37,7 +37,7 @@ void main() {
     testWidgets('PDF attachment shows loading state initially', (
       tester,
     ) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'report.pdf',
         type: 'application/pdf',
         id: 'att-1',
@@ -62,7 +62,7 @@ void main() {
     testWidgets('image attachment shows loading then image viewer', (
       tester,
     ) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'photo.jpg',
         type: 'image/jpeg',
         id: 'att-2',
@@ -96,7 +96,7 @@ void main() {
     testWidgets('generic attachment shows loading then file info', (
       tester,
     ) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'data.csv',
         type: 'text/csv',
         id: 'att-3',
@@ -133,7 +133,7 @@ void main() {
     testWidgets('toolbar shows filename and open-external button', (
       tester,
     ) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'doc.txt',
         type: 'text/plain',
         id: 'att-4',
@@ -166,7 +166,7 @@ void main() {
     testWidgets('share button appears after signed URL is loaded', (
       tester,
     ) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'notes.txt',
         type: 'text/plain',
         id: 'att-5',
@@ -192,7 +192,7 @@ void main() {
 
   group('FilePreviewPage error states', () {
     testWidgets('shows error state when signed URL fails', (tester) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'report.pdf',
         type: 'application/pdf',
         id: 'att-6',
@@ -221,7 +221,7 @@ void main() {
     testWidgets('shows error when attachment has no id and no url', (
       tester,
     ) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'orphan.bin',
         type: 'application/octet-stream',
       );
@@ -243,7 +243,7 @@ void main() {
     });
 
     testWidgets('fallback to direct url when no id', (tester) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'legacy.jpg',
         type: 'image/jpeg',
         url: 'https://direct.example.com/legacy.jpg',
@@ -267,7 +267,7 @@ void main() {
     testWidgets('falls back to direct url when signed URL fails', (
       tester,
     ) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'photo.png',
         type: 'image/png',
         id: 'att-fallback',
@@ -292,7 +292,7 @@ void main() {
     testWidgets(
       'PDF falls back to direct url without flashing error when signed URL fails',
       (tester) async {
-        final attachment = const MessageAttachment(
+        const attachment = MessageAttachment(
           name: 'report.pdf',
           type: 'application/pdf',
           id: 'att-pdf-fallback',
@@ -327,7 +327,7 @@ void main() {
 
   group('FilePreviewPage page structure', () {
     testWidgets('page has correct key', (tester) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'test.txt',
         type: 'text/plain',
         url: 'https://example.com/test.txt',
@@ -348,7 +348,7 @@ void main() {
     });
 
     testWidgets('generic file shows formatted size', (tester) async {
-      final attachment = const MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'data.zip',
         type: 'application/zip',
         url: 'https://example.com/data.zip',
