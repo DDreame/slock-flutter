@@ -66,6 +66,7 @@ void main() {
 
     const expectedRoutes = [
       '/splash',
+      '/biometric-lock',
       '/login',
       '/register',
       '/forgot-password',

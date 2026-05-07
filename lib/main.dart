@@ -33,6 +33,9 @@ import 'package:slock_app/core/core.dart' show connectivityServiceProvider;
 import 'package:slock_app/core/network/connectivity_service.dart'
     show initConnectivityService;
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
+import 'package:slock_app/stores/biometric/biometric_store.dart';
+import 'package:slock_app/stores/biometric/biometric_lock_lifecycle_binding.dart';
+import 'package:slock_app/features/settings/data/biometric_preference.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -82,6 +85,19 @@ void main() async {
       final themeRepo = container.read(themePreferenceRepositoryProvider);
       container.read(themeModeStoreProvider.notifier).restoreFrom(themeRepo);
 
+      // Restore biometric preference synchronously so the lock screen
+      // appears before the first authenticated frame if enabled.
+      final biometricRepo =
+          container.read(biometricPreferenceRepositoryProvider);
+      container
+          .read(biometricStoreProvider.notifier)
+          .restoreFrom(biometricRepo);
+
+      // Check biometric hardware availability (async, non-blocking).
+      unawaited(
+        container.read(biometricStoreProvider.notifier).checkAvailability(),
+      );
+
       runApp(UncontrolledProviderScope(
         container: container,
         child: const SlockApp(),
@@ -116,6 +132,7 @@ class SlockApp extends ConsumerWidget {
     ref.watch(channelUnreadHydrationBindingProvider);
     ref.watch(inboxRealtimeRefreshBindingProvider);
     ref.watch(backgroundWorkerAuthBindingProvider);
+    ref.watch(biometricLockLifecycleBindingProvider);
     final themeState = ref.watch(themeModeStoreProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(

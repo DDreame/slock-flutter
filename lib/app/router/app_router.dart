@@ -10,6 +10,7 @@ import 'package:slock_app/features/auth/presentation/page/login_page.dart';
 import 'package:slock_app/features/auth/presentation/page/register_page.dart';
 import 'package:slock_app/features/auth/presentation/page/reset_password_page.dart';
 import 'package:slock_app/features/auth/presentation/page/verify_email_page.dart';
+import 'package:slock_app/features/biometric/presentation/page/biometric_lock_page.dart';
 import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_members_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
@@ -41,6 +42,7 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/biometric/biometric_store.dart';
 
 const _authRoutes = {
   '/login',
@@ -134,6 +136,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
+      // Biometric lock: redirect to lock page when authenticated but locked.
+      final biometric = ref.read(biometricStoreProvider);
+      if (session.isAuthenticated &&
+          biometric.isLocked &&
+          path != '/biometric-lock') {
+        return '/biometric-lock';
+      }
+      // If unlocked but on the lock page, redirect to home.
+      if (path == '/biometric-lock' && !biometric.isLocked) {
+        return '/home';
+      }
+
       final redirect = authRedirect(session, path);
 
       if (redirect == '/home') {
@@ -159,6 +173,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/biometric-lock',
+        builder: (context, state) => const BiometricLockPage(),
+      ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
         path: '/register',
@@ -390,6 +408,9 @@ class _SessionRouterNotifier extends ChangeNotifier {
       notifyListeners();
     });
     _ref.listen<bool>(appReadyProvider, (_, __) {
+      notifyListeners();
+    });
+    _ref.listen<BiometricState>(biometricStoreProvider, (_, __) {
       notifyListeners();
     });
   }

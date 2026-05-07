@@ -14,6 +14,7 @@ import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
+import 'package:slock_app/stores/biometric/biometric_store.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -30,6 +31,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final session = ref.watch(sessionStoreProvider);
     final notificationState = ref.watch(notificationStoreProvider);
     final themeState = ref.watch(themeModeStoreProvider);
+    final biometricState = ref.watch(biometricStoreProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
@@ -167,6 +169,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
           const SizedBox(height: AppSpacing.sectionGap),
+
+          // --- Security section (only shown when biometric hardware available) ---
+          if (biometricState.availability ==
+              BiometricAvailability.available) ...[
+            Text(
+              'Security',
+              key: const ValueKey('settings-section-security'),
+              style: AppTypography.title.copyWith(color: colors.text),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsTile(
+                key: const ValueKey('settings-biometric-toggle'),
+                icon: Icons.fingerprint,
+                iconColor: colors.primary,
+                title: 'Biometric Lock',
+                subtitle: biometricState.enabled
+                    ? 'Enabled — unlock with biometrics after inactivity'
+                    : 'Disabled — no biometric lock on app access',
+                colors: colors,
+                trailing: Switch.adaptive(
+                  key: const ValueKey('settings-biometric-switch'),
+                  value: biometricState.enabled,
+                  onChanged: (enabled) {
+                    ref
+                        .read(biometricStoreProvider.notifier)
+                        .setEnabled(enabled);
+                  },
+                ),
+                onTap: null,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sectionGap),
+          ],
 
           // --- Server section ---
           Text(

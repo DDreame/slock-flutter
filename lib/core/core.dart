@@ -2,6 +2,7 @@
 // Subdirectories: auth, config, errors, logging, network,
 // notifications, realtime, storage, telemetry, utils.
 
+export 'auth/auth.dart';
 export 'errors/errors.dart';
 export 'local_data/local_data.dart';
 export 'network/network.dart';
