@@ -311,13 +311,13 @@ class ConversationDetailStore
       replyToId: replyToId,
     );
 
-    // Optimistic insert: show message immediately, clear draft and reply.
+    // Optimistic insert: show message immediately, clear draft.
     // Keep pendingAttachments visible during upload so UI can overlay progress.
+    // Keep replyToMessage until send succeeds — failure should preserve it.
     state = state.copyWith(
       pendingMessages: [...state.pendingMessages, pending],
       draft: '',
       clearSendFailure: true,
-      clearReplyToMessage: true,
     );
 
     try {
@@ -422,7 +422,7 @@ class ConversationDetailStore
         return;
       }
 
-      // Success: transition to sent (do NOT add canonical to messages yet)
+      // Success: transition to sent, clear reply preview.
       state = state.copyWith(
         pendingMessages: state.pendingMessages.map((m) {
           if (m.localId == localId) {
@@ -432,6 +432,7 @@ class ConversationDetailStore
           return m;
         }).toList(),
         clearSendFailure: true,
+        clearReplyToMessage: true,
       );
       _persistSession();
 

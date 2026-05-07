@@ -1906,6 +1906,44 @@ void main() {
 
       expect(repository.sentReplyToIds, ['message-1']);
     });
+
+    test('failed quoted send preserves replyToMessage in state', () async {
+      const failure = ServerFailure(
+        message: 'Send failed.',
+        statusCode: 500,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [replyTarget],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sendFailure: failure,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.setReplyTo(replyTarget);
+      notifier.updateDraft('Will fail');
+      await notifier.send();
+
+      final state = container.read(conversationDetailStoreProvider);
+      // Reply preview must survive the failure
+      expect(state.replyToMessage, replyTarget);
+      // Pending message still carries the replyToId
+      expect(state.pendingMessages.first.status, MessageSendStatus.failed);
+      expect(state.pendingMessages.first.replyToId, 'message-1');
+    });
   });
 }
 
