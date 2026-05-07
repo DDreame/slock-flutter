@@ -52,7 +52,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _SectionLabel(label: 'CHANNEL NAME'),
+            const _SectionLabel(label: 'CHANNEL NAME'),
             const SizedBox(height: 8),
             TextField(
               key: const ValueKey('create-channel-name'),
@@ -73,7 +73,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
-            _SectionLabel(label: 'DESCRIPTION (OPTIONAL)'),
+            const _SectionLabel(label: 'DESCRIPTION (OPTIONAL)'),
             const SizedBox(height: 8),
             TextField(
               key: const ValueKey('create-channel-description'),
@@ -88,7 +88,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
               ),
             ),
             const SizedBox(height: 24),
-            _SectionLabel(label: 'VISIBILITY'),
+            const _SectionLabel(label: 'VISIBILITY'),
             const SizedBox(height: 8),
             _VisibilitySelector(
               isPrivate: _isPrivate,
