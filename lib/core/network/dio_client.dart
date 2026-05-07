@@ -90,4 +90,21 @@ class AppDioClient {
       options: options,
     );
   }
+
+  Future<Response<T>> patch<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) {
+    return request<T>(
+      path,
+      method: 'PATCH',
+      data: data,
+      queryParameters: queryParameters,
+      cancelToken: cancelToken,
+      options: options,
+    );
+  }
 }

@@ -618,6 +618,28 @@ class ConversationDetailStore
     }
   }
 
+  Future<void> editMessage(String messageId, String newContent) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final previousMessages = state.messages;
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = messages[index].copyWith(content: newContent);
+    state = state.copyWith(messages: messages);
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      await repo.editMessage(target, messageId: messageId, content: newContent);
+      _persistSession();
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(messages: previousMessages);
+    }
+  }
+
   Future<void> deleteMessage(String messageId) async {
     final target = ref.read(currentConversationDetailTargetProvider);
     if (state.status != ConversationDetailStatus.success) return;

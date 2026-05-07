@@ -94,6 +94,12 @@ abstract class ConversationRepository {
     required String content,
   });
 
+  Future<void> editMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  });
+
   Future<void> deleteMessage(
     ConversationDetailTarget target, {
     required String messageId,

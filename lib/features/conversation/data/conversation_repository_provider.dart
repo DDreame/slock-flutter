@@ -393,6 +393,34 @@ class _ApiConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<void> editMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    try {
+      await _appDioClient.patch<Object?>(
+        '$_sendMessagePath/$messageId',
+        data: {'content': content},
+        options: _serverScopedOptions(target.serverId),
+      );
+      await _localStore.updateMessageContent(
+        serverId: target.serverId.value,
+        conversationId: target.conversationId,
+        messageId: messageId,
+        content: content,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to edit message.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
   Future<void> deleteMessage(
     ConversationDetailTarget target, {
     required String messageId,
