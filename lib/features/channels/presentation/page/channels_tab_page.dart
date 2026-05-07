@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
+import 'package:slock_app/features/channels/presentation/page/create_channel_page.dart';
 import 'package:slock_app/features/channels/presentation/widgets/channel_management_dialogs.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
@@ -237,41 +238,18 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     if (serverId == null) return;
     final pageContext = context;
 
-    await showDialog<void>(
-      context: pageContext,
-      builder: (dialogContext) {
-        return Consumer(
-          builder: (_, ref, __) {
-            final state = ref.watch(channelManagementStoreProvider);
-            final store = ref.read(channelManagementStoreProvider.notifier);
-            return CreateChannelDialog(
-              isSubmitting: state.isRunning(ChannelManagementAction.create),
-              onCancel: () => Navigator.of(dialogContext).pop(),
-              onCreate: (name) async {
-                try {
-                  final channelId = await store.createChannel(name);
-                  if (!mounted || !pageContext.mounted) return;
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  _showSnackBar(l10n.homeChannelCreated);
-                  if (channelId != null) {
-                    pageContext.go(
-                      '/servers/${serverId.routeParam}/channels/$channelId',
-                    );
-                  }
-                } on AppFailure catch (failure) {
-                  if (!mounted) return;
-                  _showSnackBar(
-                    failure.message ?? l10n.homeChannelCreateFailed,
-                  );
-                }
-              },
-            );
-          },
-        );
-      },
+    final channelId = await Navigator.of(pageContext).push<String>(
+      MaterialPageRoute(
+        builder: (_) => const CreateChannelPage(),
+      ),
     );
+
+    if (channelId != null && mounted && pageContext.mounted) {
+      _showSnackBar(l10n.homeChannelCreated);
+      pageContext.go(
+        '/servers/${serverId.routeParam}/channels/$channelId',
+      );
+    }
   }
 
   Future<void> _showEditChannelDialog(

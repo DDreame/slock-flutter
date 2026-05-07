@@ -328,7 +328,7 @@ void main() {
     expect(find.text('channel:server-1/general'), findsOneWidget);
   });
 
-  testWidgets('create button opens create channel dialog', (
+  testWidgets('create button opens create channel page', (
     tester,
   ) async {
     final channelMgmt = _FakeChannelManagementRepository();
@@ -347,7 +347,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('create-channel-dialog')),
+      find.byKey(const ValueKey('create-channel-name')),
       findsOneWidget,
     );
   });
@@ -612,6 +612,8 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   Future<String?> createChannel(
     ServerScopeId serverId, {
     required String name,
+    String? description,
+    bool? isPrivate,
   }) async {
     createdNames.add(name);
     return null;

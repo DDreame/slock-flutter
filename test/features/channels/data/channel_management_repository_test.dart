@@ -35,6 +35,59 @@ void main() {
       });
     });
 
+    test('createChannel sends description and visibility when provided',
+        () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('POST', '/channels'): {'id': 'channel-3'},
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(channelManagementRepositoryProvider);
+      final channelId = await repository.createChannel(
+        const ServerScopeId('server-1'),
+        name: 'design',
+        description: 'Design discussions',
+        isPrivate: true,
+      );
+
+      expect(channelId, 'channel-3');
+      expect(appDioClient.requests.single.data, {
+        'name': 'design',
+        'type': 'text',
+        'description': 'Design discussions',
+        'isPrivate': true,
+      });
+    });
+
+    test('createChannel omits description/isPrivate when not provided',
+        () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('POST', '/channels'): {'id': 'channel-4'},
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(channelManagementRepositoryProvider);
+      await repository.createChannel(
+        const ServerScopeId('server-1'),
+        name: 'general',
+      );
+
+      expect(appDioClient.requests.single.data, {
+        'name': 'general',
+        'type': 'text',
+      });
+    });
+
     test('createChannel returns null when success payload omits id', () async {
       final appDioClient = _FakeAppDioClient(
         responses: {

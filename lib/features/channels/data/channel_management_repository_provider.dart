@@ -22,14 +22,23 @@ class _ApiChannelManagementRepository implements ChannelManagementRepository {
   Future<String?> createChannel(
     ServerScopeId serverId, {
     required String name,
+    String? description,
+    bool? isPrivate,
   }) async {
     try {
+      final data = <String, Object>{
+        'name': name,
+        'type': 'text',
+      };
+      if (description != null && description.isNotEmpty) {
+        data['description'] = description;
+      }
+      if (isPrivate != null) {
+        data['isPrivate'] = isPrivate;
+      }
       final response = await _appDioClient.post<Object?>(
         _channelsPath,
-        data: {
-          'name': name,
-          'type': 'text',
-        },
+        data: data,
         options: _serverScopedOptions(serverId),
       );
       return _readOptionalChannelId(response.data);

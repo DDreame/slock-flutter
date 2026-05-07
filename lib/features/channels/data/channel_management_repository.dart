@@ -4,6 +4,8 @@ abstract class ChannelManagementRepository {
   Future<String?> createChannel(
     ServerScopeId serverId, {
     required String name,
+    String? description,
+    bool? isPrivate,
   });
 
   Future<void> updateChannel(

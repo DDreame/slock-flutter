@@ -152,6 +152,8 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   Future<String?> createChannel(
     ServerScopeId serverId, {
     required String name,
+    String? description,
+    bool? isPrivate,
   }) async {
     createdNames.add(name);
     return createdChannelId;

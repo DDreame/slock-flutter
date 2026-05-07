@@ -1,0 +1,265 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/application/channel_management_state.dart';
+import 'package:slock_app/features/channels/application/channel_management_store.dart';
+
+/// Full-page form for creating a new channel.
+///
+/// Fields: name (required), description (optional), visibility (public/private).
+class CreateChannelPage extends ConsumerStatefulWidget {
+  const CreateChannelPage({super.key});
+
+  @override
+  ConsumerState<CreateChannelPage> createState() => _CreateChannelPageState();
+}
+
+class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _descriptionController;
+  bool _isPrivate = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _descriptionController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(channelManagementStoreProvider);
+    final colors = Theme.of(context).extension<AppColors>();
+    final isSubmitting = state.isRunning(ChannelManagementAction.create);
+    final name = _nameController.text.trim();
+    final canSubmit = name.isNotEmpty && !isSubmitting;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('New Channel'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _SectionLabel(label: 'CHANNEL NAME'),
+            const SizedBox(height: 8),
+            TextField(
+              key: const ValueKey('create-channel-name'),
+              controller: _nameController,
+              enabled: !isSubmitting,
+              autofocus: true,
+              decoration: InputDecoration(
+                prefixText: '# ',
+                prefixStyle: AppTypography.body.copyWith(
+                  color: colors?.textTertiary ??
+                      Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                hintText: 'channel-name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 24),
+            _SectionLabel(label: 'DESCRIPTION (OPTIONAL)'),
+            const SizedBox(height: 8),
+            TextField(
+              key: const ValueKey('create-channel-description'),
+              controller: _descriptionController,
+              enabled: !isSubmitting,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'What is this channel about?',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            _SectionLabel(label: 'VISIBILITY'),
+            const SizedBox(height: 8),
+            _VisibilitySelector(
+              isPrivate: _isPrivate,
+              enabled: !isSubmitting,
+              onChanged: (value) => setState(() => _isPrivate = value),
+            ),
+            const Spacer(),
+            FilledButton(
+              key: const ValueKey('create-channel-submit'),
+              onPressed: canSubmit ? _handleSubmit : null,
+              child: Text(isSubmitting ? 'Creating...' : 'Create Channel'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleSubmit() async {
+    final name = _nameController.text.trim();
+    final description = _descriptionController.text.trim();
+    final store = ref.read(channelManagementStoreProvider.notifier);
+
+    try {
+      final channelId = await store.createChannel(
+        name,
+        description: description.isEmpty ? null : description,
+        isPrivate: _isPrivate,
+      );
+      if (!mounted) return;
+      // Pop back, returning the channel ID for navigation.
+      Navigator.of(context).pop(channelId);
+    } on AppFailure catch (failure) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to create channel.'),
+          ),
+        );
+    }
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>();
+    return Text(
+      label,
+      style: AppTypography.caption.copyWith(
+        color: colors?.textSecondary ??
+            Theme.of(context).colorScheme.onSurfaceVariant,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+}
+
+class _VisibilitySelector extends StatelessWidget {
+  const _VisibilitySelector({
+    required this.isPrivate,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final bool isPrivate;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>();
+    final accent = colors?.primary ?? Theme.of(context).colorScheme.primary;
+    final surface = colors?.surface ?? Theme.of(context).colorScheme.surface;
+    final border =
+        colors?.border ?? Theme.of(context).colorScheme.outlineVariant;
+
+    return Row(
+      children: [
+        Expanded(
+          child: _VisibilityOption(
+            key: const ValueKey('create-channel-visibility-public'),
+            label: 'Public',
+            sublabel: 'Visible to all',
+            isSelected: !isPrivate,
+            accent: accent,
+            surface: surface,
+            border: border,
+            onTap: enabled ? () => onChanged(false) : null,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _VisibilityOption(
+            key: const ValueKey('create-channel-visibility-private'),
+            label: 'Private',
+            sublabel: 'Invite only',
+            isSelected: isPrivate,
+            accent: accent,
+            surface: surface,
+            border: border,
+            onTap: enabled ? () => onChanged(true) : null,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VisibilityOption extends StatelessWidget {
+  const _VisibilityOption({
+    super.key,
+    required this.label,
+    required this.sublabel,
+    required this.isSelected,
+    required this.accent,
+    required this.surface,
+    required this.border,
+    required this.onTap,
+  });
+
+  final String label;
+  final String sublabel;
+  final bool isSelected;
+  final Color accent;
+  final Color surface;
+  final Color border;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? accent.withAlpha(20) : surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? accent : border,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: AppTypography.label.copyWith(
+                color: isSelected ? accent : null,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              sublabel,
+              style: AppTypography.caption.copyWith(
+                color: Theme.of(context).extension<AppColors>()?.textTertiary ??
+                    Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
