@@ -27,6 +27,7 @@ class PendingMessage {
     required this.content,
     required this.createdAt,
     this.attachmentIds,
+    this.replyToId,
     this.status = MessageSendStatus.sending,
     this.failure,
   });
@@ -39,6 +40,9 @@ class PendingMessage {
 
   /// Attachment IDs already uploaded (ready to associate with message).
   final List<String>? attachmentIds;
+
+  /// The ID of the message being replied to, if any.
+  final String? replyToId;
 
   /// Current delivery status.
   final MessageSendStatus status;
@@ -60,6 +64,7 @@ class PendingMessage {
       localId: localId,
       content: content,
       attachmentIds: attachmentIds ?? this.attachmentIds,
+      replyToId: replyToId,
       createdAt: createdAt,
       status: status ?? this.status,
       failure: clearFailure ? null : (failure ?? this.failure),

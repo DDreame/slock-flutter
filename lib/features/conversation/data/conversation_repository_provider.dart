@@ -284,6 +284,7 @@ class _ApiConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
     String content, {
     List<String>? attachmentIds,
+    String? replyToId,
   }) async {
     try {
       final data = <String, dynamic>{
@@ -292,6 +293,9 @@ class _ApiConversationRepository implements ConversationRepository {
       };
       if (attachmentIds != null && attachmentIds.isNotEmpty) {
         data['attachmentIds'] = attachmentIds;
+      }
+      if (replyToId != null) {
+        data['replyToId'] = replyToId;
       }
       final response = await _appDioClient.post<Object?>(
         _sendMessagePath,

@@ -80,6 +80,7 @@ abstract class ConversationRepository {
     ConversationDetailTarget target,
     String content, {
     List<String>? attachmentIds,
+    String? replyToId,
   });
 
   Future<ConversationMessageSummary> persistMessage(
@@ -288,6 +289,43 @@ class MessageReaction {
 }
 
 @immutable
+class ReplyToSummary {
+  const ReplyToSummary({
+    required this.id,
+    required this.content,
+    this.senderName,
+    this.senderType,
+  });
+
+  final String id;
+  final String content;
+  final String? senderName;
+  final String? senderType;
+
+  String get senderLabel =>
+      senderName ??
+      switch (senderType) {
+        'agent' => 'Agent',
+        'human' || 'member' || 'user' => 'Member',
+        _ => 'System',
+      };
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ReplyToSummary &&
+            runtimeType == other.runtimeType &&
+            id == other.id &&
+            content == other.content &&
+            senderName == other.senderName &&
+            senderType == other.senderType;
+  }
+
+  @override
+  int get hashCode => Object.hash(id, content, senderName, senderType);
+}
+
+@immutable
 class ConversationMessageSummary {
   const ConversationMessageSummary({
     required this.id,
@@ -306,6 +344,7 @@ class ConversationMessageSummary {
     this.isPinned = false,
     this.isDeleted = false,
     this.reactions = const [],
+    this.replyTo,
   });
 
   final String id;
@@ -324,6 +363,7 @@ class ConversationMessageSummary {
   final bool isPinned;
   final bool isDeleted;
   final List<MessageReaction> reactions;
+  final ReplyToSummary? replyTo;
 
   bool get isSystem => messageType == 'system';
 
@@ -345,6 +385,7 @@ class ConversationMessageSummary {
     bool? isPinned,
     bool? isDeleted,
     List<MessageReaction>? reactions,
+    ReplyToSummary? replyTo,
   }) {
     return ConversationMessageSummary(
       id: id,
@@ -363,6 +404,7 @@ class ConversationMessageSummary {
       isPinned: isPinned ?? this.isPinned,
       isDeleted: isDeleted ?? this.isDeleted,
       reactions: reactions ?? this.reactions,
+      replyTo: replyTo ?? this.replyTo,
     );
   }
 
@@ -386,7 +428,8 @@ class ConversationMessageSummary {
             linkedTask == other.linkedTask &&
             isPinned == other.isPinned &&
             isDeleted == other.isDeleted &&
-            _listEquals(reactions, other.reactions);
+            _listEquals(reactions, other.reactions) &&
+            replyTo == other.replyTo;
   }
 
   @override
@@ -407,6 +450,7 @@ class ConversationMessageSummary {
         isPinned,
         isDeleted,
         Object.hashAll(reactions),
+        replyTo,
       );
 
   static bool _listEquals<T>(List<T>? a, List<T>? b) {

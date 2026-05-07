@@ -661,6 +661,7 @@ class _ControllableConversationRepository implements ConversationRepository {
     ConversationDetailTarget target,
     String content, {
     List<String>? attachmentIds,
+    String? replyToId,
   }) {
     lastSendAttachmentIds = attachmentIds;
     if (sendCompleter != null) {

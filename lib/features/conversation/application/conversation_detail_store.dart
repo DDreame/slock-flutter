@@ -258,6 +258,14 @@ class ConversationDetailStore
     );
   }
 
+  void setReplyTo(ConversationMessageSummary message) {
+    state = state.copyWith(replyToMessage: message);
+  }
+
+  void clearReplyTo() {
+    state = state.copyWith(clearReplyToMessage: true);
+  }
+
   void addPendingAttachment(PendingAttachment attachment) {
     state = state.copyWith(
       pendingAttachments: [...state.pendingAttachments, attachment],
@@ -285,6 +293,7 @@ class ConversationDetailStore
   Future<void> send() async {
     final target = ref.read(currentConversationDetailTargetProvider);
     final content = state.draft.trim();
+    final replyToId = state.replyToMessage?.id;
     final pendingFiles =
         state.pendingAttachments.isNotEmpty ? state.pendingAttachments : null;
     if (state.status != ConversationDetailStatus.success ||
@@ -299,10 +308,12 @@ class ConversationDetailStore
       localId: localId,
       content: content,
       createdAt: DateTime.now(),
+      replyToId: replyToId,
     );
 
     // Optimistic insert: show message immediately, clear draft.
     // Keep pendingAttachments visible during upload so UI can overlay progress.
+    // Keep replyToMessage until send succeeds — failure should preserve it.
     state = state.copyWith(
       pendingMessages: [...state.pendingMessages, pending],
       draft: '',
@@ -405,12 +416,13 @@ class ConversationDetailStore
         target,
         content,
         attachmentIds: attachmentIds,
+        replyToId: replyToId,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
 
-      // Success: transition to sent (do NOT add canonical to messages yet)
+      // Success: transition to sent, clear reply preview.
       state = state.copyWith(
         pendingMessages: state.pendingMessages.map((m) {
           if (m.localId == localId) {
@@ -420,6 +432,7 @@ class ConversationDetailStore
           return m;
         }).toList(),
         clearSendFailure: true,
+        clearReplyToMessage: true,
       );
       _persistSession();
 
@@ -473,6 +486,7 @@ class ConversationDetailStore
         target,
         pending.content,
         attachmentIds: pending.attachmentIds,
+        replyToId: pending.replyToId,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
