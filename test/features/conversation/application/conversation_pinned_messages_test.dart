@@ -421,6 +421,215 @@ void main() {
       expect(state.messages, isEmpty);
     });
   });
+
+  group('pinned list sync from conversation store', () {
+    test('pinMessage adds to pinned list when store is alive', () async {
+      final pinnedMessages = <ConversationMessageSummary>[];
+      final repository = _FakeConversationRepository(
+        snapshot: baseSnapshot(),
+        pinnedMessages: pinnedMessages,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Load conversation
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      // Load pinned list (makes store alive)
+      await container.read(pinnedMessagesStoreProvider.notifier).load();
+
+      // Pin message-1
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .pinMessage('message-1');
+
+      final pinnedState = container.read(pinnedMessagesStoreProvider);
+      expect(pinnedState.messages.any((m) => m.id == 'message-1'), isTrue);
+    });
+
+    test('unpinMessage removes from pinned list when store is alive', () async {
+      final pinnedMessages = [
+        ConversationMessageSummary(
+          id: 'message-2',
+          content: 'Pinned already',
+          createdAt: DateTime.parse('2026-05-07T10:01:00Z'),
+          senderType: 'human',
+          senderId: 'user-2',
+          messageType: 'message',
+          seq: 2,
+          isPinned: true,
+        ),
+      ];
+      final repository = _FakeConversationRepository(
+        snapshot: baseSnapshot(),
+        pinnedMessages: pinnedMessages,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container.read(pinnedMessagesStoreProvider.notifier).load();
+
+      // Unpin message-2
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .unpinMessage('message-2');
+
+      final pinnedState = container.read(pinnedMessagesStoreProvider);
+      expect(pinnedState.messages.any((m) => m.id == 'message-2'), isFalse);
+    });
+
+    test('pinMessage reverts pinned list on API failure', () async {
+      const failure = ServerFailure(
+        message: 'Forbidden.',
+        statusCode: 403,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: baseSnapshot(),
+        pinFailure: failure,
+        pinnedMessages: [],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container.read(pinnedMessagesStoreProvider.notifier).load();
+
+      await expectLater(
+        container
+            .read(conversationDetailStoreProvider.notifier)
+            .pinMessage('message-1'),
+        throwsA(isA<ServerFailure>()),
+      );
+
+      final pinnedState = container.read(pinnedMessagesStoreProvider);
+      expect(pinnedState.messages.any((m) => m.id == 'message-1'), isFalse);
+    });
+
+    test('realtime pin event syncs to pinned list', () async {
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: baseSnapshot(),
+        pinnedMessages: [],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container.read(pinnedMessagesStoreProvider.notifier).load();
+
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: 'message:pinned',
+        scopeKey: 'general',
+        seq: 10,
+        receivedAt: DateTime.now(),
+        payload: const {
+          'messageId': 'message-1',
+          'channelId': 'general',
+        },
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      final pinnedState = container.read(pinnedMessagesStoreProvider);
+      expect(pinnedState.messages.any((m) => m.id == 'message-1'), isTrue);
+    });
+
+    test('realtime unpin event syncs to pinned list', () async {
+      final ingress = RealtimeReductionIngress();
+      final pinnedMessages = [
+        ConversationMessageSummary(
+          id: 'message-2',
+          content: 'Pinned already',
+          createdAt: DateTime.parse('2026-05-07T10:01:00Z'),
+          senderType: 'human',
+          senderId: 'user-2',
+          messageType: 'message',
+          seq: 2,
+          isPinned: true,
+        ),
+      ];
+      final repository = _FakeConversationRepository(
+        snapshot: baseSnapshot(),
+        pinnedMessages: pinnedMessages,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container.read(pinnedMessagesStoreProvider.notifier).load();
+
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: 'message:unpinned',
+        scopeKey: 'general',
+        seq: 11,
+        receivedAt: DateTime.now(),
+        payload: const {
+          'messageId': 'message-2',
+          'channelId': 'general',
+        },
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      final pinnedState = container.read(pinnedMessagesStoreProvider);
+      expect(pinnedState.messages.any((m) => m.id == 'message-2'), isFalse);
+    });
+  });
 }
 
 class _FakeSessionStore extends SessionStore {
