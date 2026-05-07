@@ -16,6 +16,32 @@ class MentionSyntax extends md.InlineSyntax {
   MentionSyntax() : super(r'@([\w][\w.\-]*)');
 
   @override
+  bool tryMatch(md.InlineParser parser, [int? startMatchPos]) {
+    final start = startMatchPos ?? parser.pos;
+    // Mention must be at start of string or preceded by whitespace/punctuation
+    // (not a word character or dot, which would indicate email or mid-word).
+    if (start > 0) {
+      final preceding = parser.source.codeUnitAt(start - 1);
+      // Allow if preceded by whitespace or common punctuation
+      // Reject if preceded by word char (a-z, A-Z, 0-9, _) or dot
+      if (_isWordCharOrDot(preceding)) {
+        return false;
+      }
+    }
+    return super.tryMatch(parser, startMatchPos);
+  }
+
+  /// Returns true if the code unit is a word character [a-zA-Z0-9_] or dot.
+  static bool _isWordCharOrDot(int codeUnit) {
+    // 0-9: 48-57, A-Z: 65-90, _: 95, a-z: 97-122, .: 46
+    return (codeUnit >= 48 && codeUnit <= 57) ||
+        (codeUnit >= 65 && codeUnit <= 90) ||
+        codeUnit == 95 ||
+        (codeUnit >= 97 && codeUnit <= 122) ||
+        codeUnit == 46;
+  }
+
+  @override
   bool onMatch(md.InlineParser parser, Match match) {
     final mentionName = match.group(1)!;
     final element = md.Element.text('mention', '@$mentionName');
@@ -81,7 +107,7 @@ TextSpan buildMentionAwareSpan({
   String highlightQuery = '',
   Color? highlightColor,
 }) {
-  final mentionRegex = RegExp(r'@([\w][\w.\-]*)');
+  final mentionRegex = RegExp(r'(?<![\w.])@([\w][\w.\-]*)');
   final matches = mentionRegex.allMatches(text).toList();
 
   if (matches.isEmpty) {
@@ -115,14 +141,30 @@ TextSpan buildMentionAwareSpan({
     final isSelf =
         currentUserName != null && name.toLowerCase() == currentUserName.toLowerCase();
 
-    spans.add(TextSpan(
-      text: '@$name',
-      style: (baseStyle ?? const TextStyle()).copyWith(
-        color: isSelf ? selfMentionColor : mentionColor,
-        fontWeight: FontWeight.w600,
-        backgroundColor: isSelf ? selfMentionBackground : mentionBackground,
-      ),
-    ));
+    final mentionStyle = (baseStyle ?? const TextStyle()).copyWith(
+      color: isSelf ? selfMentionColor : mentionColor,
+      fontWeight: FontWeight.w600,
+      backgroundColor: isSelf ? selfMentionBackground : mentionBackground,
+    );
+
+    // Apply highlight overlay inside the mention when search query matches.
+    if (highlightQuery.isNotEmpty && highlightColor != null) {
+      final mentionText = '@$name';
+      final highlightedMention = _buildHighlightedSpan(
+        mentionText,
+        highlightQuery,
+        mentionStyle,
+        highlightColor,
+      );
+      if (highlightedMention.children != null &&
+          highlightedMention.children!.isNotEmpty) {
+        spans.addAll(highlightedMention.children!);
+      } else {
+        spans.add(TextSpan(text: mentionText, style: mentionStyle));
+      }
+    } else {
+      spans.add(TextSpan(text: '@$name', style: mentionStyle));
+    }
 
     lastEnd = match.end;
   }

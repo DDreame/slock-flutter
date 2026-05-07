@@ -54,6 +54,25 @@ void main() {
       expect(mentions, isEmpty);
     });
 
+    test('does not match @mention inside email address', () {
+      final nodes = document.parseInline('test@example.com');
+      final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
+      expect(mentions, isEmpty);
+    });
+
+    test('does not match @mention mid-word after dot', () {
+      final nodes = document.parseInline('foo.@bar');
+      final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
+      expect(mentions, isEmpty);
+    });
+
+    test('matches @mention after punctuation like paren', () {
+      final nodes = document.parseInline('(@alice)');
+      final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
+      expect(mentions.length, 1);
+      expect(mentions.first.attributes['name'], 'alice');
+    });
+
     test('handles @mention at end of text', () {
       final nodes = document.parseInline('Hey @charlie');
       final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
@@ -172,6 +191,43 @@ void main() {
       // The mention "@alice" should be styled as mention.
       final children = span.children!;
       expect(children.length, greaterThan(2));
+    });
+
+    test('does not match email addresses as mentions', () {
+      final span = buildMentionAwareSpan(
+        text: 'Contact test@example.com for help',
+        baseStyle: baseStyle,
+        mentionColor: mentionColor,
+        mentionBackground: mentionBg,
+        selfMentionColor: selfMentionColor,
+        selfMentionBackground: selfMentionBg,
+      );
+      // Should be plain text, no mention children
+      expect(span.text, 'Contact test@example.com for help');
+      expect(span.children, isNull);
+    });
+
+    test('highlights search query inside mention text', () {
+      final span = buildMentionAwareSpan(
+        text: 'Hey @alice check',
+        baseStyle: baseStyle,
+        mentionColor: mentionColor,
+        mentionBackground: mentionBg,
+        selfMentionColor: selfMentionColor,
+        selfMentionBackground: selfMentionBg,
+        highlightQuery: 'alice',
+        highlightColor: Colors.yellow,
+      );
+      expect(span.children, isNotNull);
+      // Find the children that form the mention — they should contain
+      // a highlighted "alice" portion with backgroundColor = yellow.
+      final allSpans = span.children!.cast<TextSpan>();
+      final highlightedInMention = allSpans.where((s) =>
+          s.text != null &&
+          s.text!.contains('alice') &&
+          s.style?.backgroundColor == Colors.yellow);
+      expect(highlightedInMention, isNotEmpty,
+          reason: 'Search query inside mention should be highlighted');
     });
   });
 
