@@ -140,8 +140,8 @@ void main() {
       expect(navigatedPath, contains('messageId=msg-123'));
     });
 
-    testWidgets('thread-saved message navigates to thread route with highlight',
-        (
+    testWidgets(
+        'thread-reply navigates to thread route with parentMessageId in path', (
       tester,
     ) async {
       String? navigatedPath;
@@ -179,10 +179,12 @@ void main() {
                         createdAt: DateTime(2026, 4, 21),
                         senderType: 'human',
                         messageType: 'message',
+                        threadId: 'thread-ch-abc',
                       ),
                       channelId: 'general',
                       channelName: 'general',
-                      threadId: 'parent-msg-789',
+                      // parentMessageId = the root message that started the thread
+                      parentMessageId: 'root-msg-789',
                     ),
                   ],
                   hasMore: false,
@@ -202,9 +204,85 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('saved-message-reply-456')));
       await tester.pumpAndSettle();
 
-      expect(navigatedPath, contains('threads/parent-msg-789/replies'));
-      expect(navigatedPath, contains('messageId=reply-456'));
+      // Path uses parentMessageId (root message), not message.id
+      expect(navigatedPath, contains('threads/root-msg-789/replies'));
+      // Query has channelId, threadChannelId, and messageId for highlight
       expect(navigatedPath, contains('channelId=general'));
+      expect(navigatedPath, contains('threadChannelId=thread-ch-abc'));
+      expect(navigatedPath, contains('messageId=reply-456'));
+    });
+
+    testWidgets(
+        'thread-starter navigates to thread route using message.id as parent', (
+      tester,
+    ) async {
+      String? navigatedPath;
+      final router = GoRouter(
+        initialLocation: '/servers/server-1/saved',
+        routes: [
+          GoRoute(
+            path: '/servers/:serverId/saved',
+            builder: (context, state) =>
+                SavedMessagesPage(serverId: state.pathParameters['serverId']!),
+          ),
+          GoRoute(
+            path: '/servers/:serverId/threads/:threadId/replies',
+            builder: (context, state) {
+              navigatedPath = state.uri.toString();
+              return Scaffold(
+                body: Text('thread: ${state.uri}'),
+              );
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            savedMessagesRepositoryProvider.overrideWithValue(
+              _FakeSavedMessagesRepository(
+                saved_data.SavedMessagesPage(
+                  items: [
+                    saved_data.SavedMessageItem(
+                      message: ConversationMessageSummary(
+                        id: 'starter-msg-001',
+                        content: 'I started a thread',
+                        createdAt: DateTime(2026, 4, 21),
+                        senderType: 'human',
+                        messageType: 'message',
+                        // threadId = thread channel ID (message is the starter)
+                        threadId: 'thread-ch-xyz',
+                      ),
+                      channelId: 'general',
+                      channelName: 'general',
+                      // No parentMessageId — this IS the root
+                    ),
+                  ],
+                  hasMore: false,
+                ),
+              ),
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester
+          .tap(find.byKey(const ValueKey('saved-message-starter-msg-001')));
+      await tester.pumpAndSettle();
+
+      // Path uses message.id as the parent (it IS the thread root)
+      expect(navigatedPath, contains('threads/starter-msg-001/replies'));
+      expect(navigatedPath, contains('channelId=general'));
+      expect(navigatedPath, contains('threadChannelId=thread-ch-xyz'));
+      // No messageId highlight since message IS the root
+      expect(navigatedPath, isNot(contains('messageId=')));
     });
 
     testWidgets('DM surface shows DM label instead of channel name', (

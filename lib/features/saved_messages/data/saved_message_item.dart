@@ -9,7 +9,7 @@ class SavedMessageItem {
     this.channelName,
     this.surface,
     this.savedAt,
-    this.threadId,
+    this.parentMessageId,
   });
 
   final ConversationMessageSummary message;
@@ -18,9 +18,36 @@ class SavedMessageItem {
   final String? surface;
   final DateTime? savedAt;
 
-  /// The parent message ID when this saved message is a thread reply.
-  /// When non-null, navigation should land in the thread context.
-  final String? threadId;
+  /// The root/parent message ID when this saved message is a thread reply.
+  /// Used for navigation: `/threads/$parentMessageId/replies`.
+  final String? parentMessageId;
+
+  /// Whether this message belongs to a thread context.
+  ///
+  /// True when either:
+  /// - The message is a thread-starter (has `message.threadId` = thread channel)
+  /// - The message is a thread-reply (has `parentMessageId`)
+  bool get isThreadMessage =>
+      parentMessageId != null ||
+      (message.threadId != null && message.threadId!.isNotEmpty);
+
+  /// The route parent message ID for thread navigation.
+  ///
+  /// For thread replies: `parentMessageId` (the root message that started
+  /// the thread).
+  /// For thread starters: `message.id` (the message itself IS the root).
+  String? get threadRouteParentId {
+    if (parentMessageId != null) return parentMessageId;
+    if (message.threadId != null && message.threadId!.isNotEmpty) {
+      return message.id;
+    }
+    return null;
+  }
+
+  /// The thread channel ID for thread navigation query param.
+  ///
+  /// Comes from `message.threadId` on the embedded message summary.
+  String? get threadChannelId => message.threadId;
 
   @override
   bool operator ==(Object other) {
@@ -32,12 +59,12 @@ class SavedMessageItem {
             channelName == other.channelName &&
             surface == other.surface &&
             savedAt == other.savedAt &&
-            threadId == other.threadId;
+            parentMessageId == other.parentMessageId;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(message, channelId, channelName, surface, savedAt, threadId);
+  int get hashCode => Object.hash(
+      message, channelId, channelName, surface, savedAt, parentMessageId);
 }
 
 @immutable

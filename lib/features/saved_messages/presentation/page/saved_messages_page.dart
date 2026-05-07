@@ -8,7 +8,6 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_state.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_store.dart';
 import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
-import 'package:slock_app/features/threads/application/thread_route.dart';
 
 class SavedMessagesPage extends StatelessWidget {
   const SavedMessagesPage({super.key, required this.serverId});
@@ -193,15 +192,24 @@ class _SavedMessagesList extends ConsumerWidget {
       context,
     ).read(currentSavedMessagesServerIdProvider).value;
 
-    // Thread replies navigate to the thread context.
-    if (item.threadId != null && item.threadId!.isNotEmpty) {
-      final target = ThreadRouteTarget(
-        serverId: serverId,
-        parentChannelId: item.channelId,
-        parentMessageId: item.threadId!,
-        highlightMessageId: item.message.id,
+    // Thread messages navigate to the thread replies page.
+    // Mirrors the search page contract (search_page.dart:280-287):
+    //   path: /threads/${parentMessageId}/replies
+    //   query: channelId, threadChannelId, messageId
+    if (item.isThreadMessage) {
+      final parentId = item.threadRouteParentId!;
+      final queryParams = <String, String>{
+        'channelId': item.channelId,
+        if (item.threadChannelId != null && item.threadChannelId!.isNotEmpty)
+          'threadChannelId': item.threadChannelId!,
+        // Highlight the exact saved message within the thread.
+        if (item.message.id != parentId) 'messageId': item.message.id,
+      };
+      final uri = Uri(
+        path: '/servers/$serverId/threads/$parentId/replies',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
-      context.push(target.toLocation());
+      context.push(uri.toString());
       return;
     }
 
