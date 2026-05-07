@@ -243,6 +243,7 @@ class _ConversationDetailScreenState
                   .read(conversationDetailStoreProvider.notifier)
                   .toggleSearch,
             ),
+          const _OfflineBanner(),
           Expanded(
             child: switch (state.status) {
               ConversationDetailStatus.initial ||
@@ -2824,6 +2825,51 @@ class _QuotedMessageBlock extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Banner shown at the top of the conversation when the device is offline.
+///
+/// Watches the [ConnectivityService] status stream and only renders when
+/// the device is currently offline. Collapses to zero height when online.
+class _OfflineBanner extends ConsumerWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connectivity = ref.watch(connectivityServiceProvider);
+    return StreamBuilder<ConnectivityStatus>(
+      stream: connectivity.statusStream,
+      initialData: connectivity.status,
+      builder: (context, snapshot) {
+        final isOnline = (snapshot.data ?? ConnectivityStatus.online) ==
+            ConnectivityStatus.online;
+        if (isOnline) return const SizedBox.shrink();
+
+        final colors = Theme.of(context).extension<AppColors>()!;
+        return Container(
+          key: const ValueKey('offline-banner'),
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          color: colors.warning.withValues(alpha: 0.15),
+          child: Row(
+            children: [
+              Icon(Icons.cloud_off, size: 16, color: colors.warning),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'You are offline. Messages will be sent when you reconnect.',
+                  style: AppTypography.caption.copyWith(color: colors.warning),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

@@ -7,6 +7,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/image_compressor.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
+import 'package:slock_app/features/conversation/application/outbox_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -75,13 +76,25 @@ class ConversationDetailStore
         _handleReactionRemoved(event.payload!, target);
       }
     });
+
+    // Register outbox drain callback so drain results reconcile pending
+    // messages back into the conversation state.
+    // Capture the notifier reference now — reading providers inside
+    // ref.onDispose is unsafe (container may already be disposed).
+    final outbox = ref.read(outboxStoreProvider.notifier);
+    final targetKey = outboxTargetKey(target);
+    outbox.registerDrainCallback(targetKey, _onOutboxDrain);
+
     ref.onDispose(() {
       unawaited(subscription.cancel());
       for (final timer in _sentRemovalTimers) {
         timer.cancel();
       }
       _sentRemovalTimers.clear();
+      // Unregister outbox drain callback using captured reference.
+      outbox.unregisterDrainCallback(targetKey);
     });
+
     final initialState = cachedSession?.toState(target) ??
         ConversationDetailState(target: target);
     if (cachedSession != null) {
@@ -301,6 +314,40 @@ class ConversationDetailStore
       return;
     }
 
+    // Offline path: queue text-only messages in the outbox for later sending.
+    // Attachment uploads are not supported offline.
+    final connectivity = ref.read(connectivityServiceProvider);
+    if (!connectivity.isOnline &&
+        (pendingFiles == null || pendingFiles.isEmpty)) {
+      final localId =
+          'pending-${++_localIdCounter}-${DateTime.now().millisecondsSinceEpoch}';
+      final pending = PendingMessage(
+        localId: localId,
+        content: content,
+        createdAt: DateTime.now(),
+        replyToId: replyToId,
+      );
+
+      // Optimistic insert with sending status
+      state = state.copyWith(
+        pendingMessages: [...state.pendingMessages, pending],
+        draft: '',
+        clearSendFailure: true,
+      );
+
+      // Enqueue in the outbox for later drain.
+      // Use the same localId so the drain callback can find the
+      // pending message and reconcile the conversation state.
+      ref.read(outboxStoreProvider.notifier).enqueue(
+            target,
+            content,
+            replyToId: replyToId,
+            localId: localId,
+          );
+      _persistSession();
+      return;
+    }
+
     // Generate local ID and create pending message for optimistic insert
     final localId =
         'pending-${++_localIdCounter}-${DateTime.now().millisecondsSinceEpoch}';
@@ -442,19 +489,33 @@ class ConversationDetailStore
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
-      // Failure: update pending message status to failed
-      state = state.copyWith(
-        pendingMessages: state.pendingMessages.map((m) {
-          if (m.localId == localId) {
-            return m.copyWith(
-              status: MessageSendStatus.failed,
-              failure: failure,
+
+      if (failure.isRetryable &&
+          (pendingFiles == null || pendingFiles.isEmpty)) {
+        // Retryable failure on text-only message: hand off to the outbox
+        // for automatic retry on reconnect.
+        ref.read(outboxStoreProvider.notifier).enqueue(
+              target,
+              content,
+              replyToId: replyToId,
+              localId: localId,
             );
-          }
-          return m;
-        }).toList(),
-      );
-      _persistSession();
+        _persistSession();
+      } else {
+        // Non-retryable or has attachments: mark as failed for manual retry.
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(
+                status: MessageSendStatus.failed,
+                failure: failure,
+              );
+            }
+            return m;
+          }).toList(),
+        );
+        _persistSession();
+      }
     }
   }
 
@@ -1039,6 +1100,53 @@ class ConversationDetailStore
       _persistSession();
     });
     _sentRemovalTimers.add(timer);
+  }
+
+  /// Callback invoked by the [OutboxStore] when a queued message is
+  /// successfully sent or fails with a non-retryable error.
+  ///
+  /// Reconciles the optimistic pending message in the conversation state.
+  void _onOutboxDrain(
+    ConversationDetailTarget target,
+    String localId,
+    ConversationMessageSummary? serverMessage,
+    AppFailure? failure,
+  ) {
+    // Only reconcile if this store is still active for the same target.
+    final currentTarget = ref.read(currentConversationDetailTargetProvider);
+    if (currentTarget != target) return;
+
+    final hasPending = state.pendingMessages.any((m) => m.localId == localId);
+    if (!hasPending) return;
+
+    if (serverMessage != null) {
+      // Success: transition to sent, then schedule removal + canonical insert.
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+                status: MessageSendStatus.sent, clearFailure: true);
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+      _scheduleSentRemoval(localId, target, confirmedMessage: serverMessage);
+    } else if (failure != null) {
+      // Non-retryable failure: mark as failed for user retry.
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(
+              status: MessageSendStatus.failed,
+              failure: failure,
+            );
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+    }
   }
 
   Future<void> addReaction(String messageId, String emoji) async {

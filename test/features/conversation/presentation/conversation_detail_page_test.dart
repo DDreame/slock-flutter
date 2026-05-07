@@ -433,9 +433,8 @@ void main() {
         historyLimited: false,
         hasOlder: false,
       ),
-      sendFailure: const ServerFailure(
+      sendFailure: const NotFoundFailure(
         message: 'Send failed.',
-        statusCode: 500,
       ),
     );
 
