@@ -1466,32 +1466,17 @@ class _ConversationMessageCard extends ConsumerWidget {
   }
 
   Future<void> _showEditDialog(BuildContext context, WidgetRef ref) async {
-    final newContent = await showDialog<String>(
+    await showDialog<void>(
       context: context,
       builder: (_) => _EditMessageDialog(
         initialContent: message.content,
+        onSave: (newContent) async {
+          await ref
+              .read(conversationDetailStoreProvider.notifier)
+              .editMessage(message.id, newContent);
+        },
       ),
     );
-    if (newContent == null || !context.mounted) return;
-
-    try {
-      await ref
-          .read(conversationDetailStoreProvider.notifier)
-          .editMessage(message.id, newContent);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Message edited.')));
-    } on AppFailure catch (failure) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(failure.message ?? 'Failed to edit message.'),
-          ),
-        );
-    }
   }
 
   void _navigateToThread(BuildContext context) {
@@ -2339,9 +2324,11 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
 class _EditMessageDialog extends StatefulWidget {
   const _EditMessageDialog({
     required this.initialContent,
+    required this.onSave,
   });
 
   final String initialContent;
+  final Future<void> Function(String newContent) onSave;
 
   @override
   State<_EditMessageDialog> createState() => _EditMessageDialogState();
@@ -2350,6 +2337,7 @@ class _EditMessageDialog extends StatefulWidget {
 class _EditMessageDialogState extends State<_EditMessageDialog> {
   late final TextEditingController _controller;
   bool _hasChanged = false;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -2363,6 +2351,28 @@ class _EditMessageDialogState extends State<_EditMessageDialog> {
         _controller.text.trim().isNotEmpty;
     if (changed != _hasChanged) {
       setState(() => _hasChanged = changed);
+    }
+  }
+
+  Future<void> _onSave() async {
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(_controller.text.trim());
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Message edited.')));
+    } on AppFailure catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'Failed to edit message.'),
+          ),
+        );
     }
   }
 
@@ -2383,20 +2393,17 @@ class _EditMessageDialogState extends State<_EditMessageDialog> {
         autofocus: true,
         maxLines: null,
         textInputAction: TextInputAction.newline,
+        enabled: !_saving,
       ),
       actions: [
         TextButton(
           key: const ValueKey('edit-message-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         TextButton(
           key: const ValueKey('edit-message-save'),
-          onPressed: _hasChanged
-              ? () {
-                  Navigator.of(context).pop(_controller.text.trim());
-                }
-              : null,
+          onPressed: _hasChanged && !_saving ? _onSave : null,
           child: const Text('Save'),
         ),
       ],

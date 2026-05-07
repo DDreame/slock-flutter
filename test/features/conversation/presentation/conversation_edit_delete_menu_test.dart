@@ -354,7 +354,7 @@ void main() {
       expect(saveButton.onPressed, isNull);
     });
 
-    testWidgets('Edit failure shows error snackbar, not success', (
+    testWidgets('Edit failure shows error snackbar and keeps dialog open', (
       tester,
     ) async {
       final repository = _FakeConversationRepository(
@@ -406,8 +406,9 @@ void main() {
       // Should show failure snackbar (not success)
       expect(find.text('Forbidden.'), findsOneWidget);
       expect(find.text('Message edited.'), findsNothing);
-      // Content reverted to original
-      expect(find.text('Original text'), findsOneWidget);
+      // Dialog stays open — user's text preserved
+      expect(find.byKey(const ValueKey('edit-message-dialog')), findsOneWidget);
+      expect(find.byKey(const ValueKey('edit-message-field')), findsOneWidget);
     });
   });
 
