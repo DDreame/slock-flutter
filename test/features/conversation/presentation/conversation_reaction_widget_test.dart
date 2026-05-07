@@ -135,7 +135,8 @@ void main() {
       expect(find.text('Forbidden.'), findsOneWidget);
     });
 
-    testWidgets('toggleReaction failure shows error snackbar', (tester) async {
+    testWidgets('toggleReaction remove failure shows error snackbar',
+        (tester) async {
       final repository = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
           target: target,
@@ -150,14 +151,15 @@ void main() {
               messageType: 'message',
               seq: 1,
               reactions: const [
-                MessageReaction(emoji: '👍', count: 1, userIds: ['other-user']),
+                MessageReaction(
+                    emoji: '👍', count: 1, userIds: ['current-user']),
               ],
             ),
           ],
           historyLimited: false,
           hasOlder: false,
         ),
-        addReactionFailure: const ServerFailure(
+        removeReactionFailure: const ServerFailure(
           message: 'Rate limited.',
           statusCode: 429,
         ),
@@ -172,7 +174,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap the existing reaction chip to toggle (add own reaction)
+      // Tap the existing reaction chip to toggle (remove own reaction)
       await tester.tap(find.byKey(const ValueKey('reaction-👍')));
       await tester.pumpAndSettle();
 
@@ -216,10 +218,12 @@ class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({
     required this.snapshot,
     this.addReactionFailure,
+    this.removeReactionFailure,
   });
 
   final ConversationDetailSnapshot snapshot;
   final AppFailure? addReactionFailure;
+  final AppFailure? removeReactionFailure;
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -330,7 +334,11 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
     required String emoji,
-  }) async {}
+  }) async {
+    if (removeReactionFailure != null) {
+      throw removeReactionFailure!;
+    }
+  }
 
   @override
   Future<void> removeStoredMessage(
