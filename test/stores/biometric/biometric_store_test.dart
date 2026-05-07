@@ -86,6 +86,35 @@ void main() {
 
       expect(readState().availability, BiometricAvailability.unavailable);
     });
+
+    test('auto-disables and unlocks when unavailable but enabled', () async {
+      // Simulate: user enabled biometric on a device with hardware,
+      // then moved to a device without hardware.
+      await readStore().setEnabled(true);
+      expect(readState().isLocked, isTrue);
+
+      fakeService.availableResult = false;
+      await readStore().checkAvailability();
+
+      final state = readState();
+      expect(state.availability, BiometricAvailability.unavailable);
+      expect(state.enabled, isFalse);
+      expect(state.lockStatus, BiometricLockStatus.unlocked);
+      expect(state.isLocked, isFalse);
+      // Also verify the preference was persisted as disabled.
+      expect(prefs.getBool('biometric_lock_enabled'), isFalse);
+    });
+
+    test('does not auto-disable when unavailable and already disabled',
+        () async {
+      fakeService.availableResult = false;
+      await readStore().checkAvailability();
+
+      final state = readState();
+      expect(state.availability, BiometricAvailability.unavailable);
+      expect(state.enabled, isFalse);
+      expect(state.isLocked, isFalse);
+    });
   });
 
   group('setEnabled', () {

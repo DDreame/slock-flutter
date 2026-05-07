@@ -92,14 +92,29 @@ class BiometricStore extends Notifier<BiometricState> {
   }
 
   /// Check hardware availability and update state.
+  ///
+  /// When biometrics are unavailable but the preference is enabled
+  /// (e.g. device migration or hardware removal), auto-disables the
+  /// preference and unlocks to prevent a dead-end lock screen.
   Future<void> checkAvailability() async {
     final service = ref.read(biometricServiceProvider);
     final available = await service.isAvailable();
-    state = state.copyWith(
-      availability: available
-          ? BiometricAvailability.available
-          : BiometricAvailability.unavailable,
-    );
+    if (!available && state.enabled) {
+      // Hardware gone — clear preference and unlock to avoid dead-end.
+      final repo = ref.read(biometricPreferenceRepositoryProvider);
+      await repo.setEnabled(false);
+      state = state.copyWith(
+        availability: BiometricAvailability.unavailable,
+        enabled: false,
+        lockStatus: BiometricLockStatus.unlocked,
+      );
+    } else {
+      state = state.copyWith(
+        availability: available
+            ? BiometricAvailability.available
+            : BiometricAvailability.unavailable,
+      );
+    }
   }
 
   /// Enable or disable biometric lock.
