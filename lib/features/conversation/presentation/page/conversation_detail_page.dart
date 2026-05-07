@@ -22,6 +22,7 @@ import 'package:slock_app/features/conversation/application/message_send_status.
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -180,6 +181,30 @@ class _ConversationDetailScreenState
               onPressed: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .toggleSearch,
+            ),
+          if (state.status == ConversationDetailStatus.success)
+            IconButton(
+              key: const ValueKey('conversation-pinned-messages'),
+              icon: const Icon(Icons.push_pin_outlined),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ProviderScope(
+                      overrides: [
+                        currentConversationDetailTargetProvider
+                            .overrideWithValue(
+                          ref.read(currentConversationDetailTargetProvider),
+                        ),
+                      ],
+                      child: PinnedMessagesPage(
+                        onMessageTap: (messageId) {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           if (state.status == ConversationDetailStatus.success)
             IconButton(
@@ -1432,14 +1457,26 @@ class _ConversationMessageCard extends ConsumerWidget {
                     ? Icons.push_pin
                     : Icons.push_pin_outlined),
                 title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
-                onTap: () {
+                onTap: () async {
                   Navigator.of(context).pop();
                   final notifier =
                       ref.read(conversationDetailStoreProvider.notifier);
-                  if (message.isPinned) {
-                    notifier.unpinMessage(message.id);
-                  } else {
-                    notifier.pinMessage(message.id);
+                  try {
+                    if (message.isPinned) {
+                      await notifier.unpinMessage(message.id);
+                    } else {
+                      await notifier.pinMessage(message.id);
+                    }
+                  } on AppFailure catch (failure) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context)
+                      ..hideCurrentSnackBar()
+                      ..showSnackBar(
+                        SnackBar(
+                          content: Text(failure.message ??
+                              'Failed to ${message.isPinned ? 'unpin' : 'pin'} message.'),
+                        ),
+                      );
                   }
                 },
               ),

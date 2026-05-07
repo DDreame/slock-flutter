@@ -486,6 +486,37 @@ class _ApiConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        '$_channelsPath/${target.conversationId}/pins',
+        options: _serverScopedOptions(target.serverId),
+      );
+      final items = requireConversationPayloadList(
+        response.data,
+        payloadName: 'pinned messages',
+      );
+      return items
+          .map(
+            (item) => parseConversationMessageSummary(
+              item,
+              payloadName: 'pinned message',
+            ),
+          )
+          .toList();
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load pinned messages.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
   Future<void> addReaction(
     ConversationDetailTarget target, {
     required String messageId,

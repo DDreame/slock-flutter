@@ -115,6 +115,10 @@ abstract class ConversationRepository {
     required String messageId,
   });
 
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  );
+
   Future<void> addReaction(
     ConversationDetailTarget target, {
     required String messageId,

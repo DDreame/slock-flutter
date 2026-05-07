@@ -816,6 +816,13 @@ class _FakeConversationRepository implements ConversationRepository {
   }) async {}
 
   @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async {
+    return const [];
+  }
+
+  @override
   Future<void> removeStoredMessage(
     ConversationDetailTarget target, {
     required String messageId,

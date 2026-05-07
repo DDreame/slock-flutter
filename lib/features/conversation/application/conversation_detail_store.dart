@@ -676,6 +676,7 @@ class ConversationDetailStore
     if (state.status != ConversationDetailStatus.success) return;
 
     _togglePinLocally(messageId, isPinned: true);
+    _persistSession();
 
     try {
       await ref
@@ -684,6 +685,8 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       _togglePinLocally(messageId, isPinned: false);
+      _persistSession();
+      rethrow;
     }
   }
 
@@ -692,6 +695,7 @@ class ConversationDetailStore
     if (state.status != ConversationDetailStatus.success) return;
 
     _togglePinLocally(messageId, isPinned: false);
+    _persistSession();
 
     try {
       await ref
@@ -700,6 +704,8 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       _togglePinLocally(messageId, isPinned: true);
+      _persistSession();
+      rethrow;
     }
   }
 
@@ -899,6 +905,7 @@ class ConversationDetailStore
     }
 
     _togglePinLocally(pinned.id, isPinned: pinned.isPinned);
+    _persistSession();
   }
 
   Future<void> _refreshFromCache(ConversationDetailTarget target) async {

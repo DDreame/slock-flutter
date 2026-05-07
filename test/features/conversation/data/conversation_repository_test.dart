@@ -1237,6 +1237,69 @@ void main() {
       throwsA(same(failure)),
     );
   });
+
+  test('loadPinnedMessages sends GET to /channels/{id}/pins', () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/channels/general/pins': [
+          {
+            'id': 'message-1',
+            'content': 'Pinned!',
+            'createdAt': '2026-05-07T10:00:00Z',
+            'senderType': 'human',
+            'messageType': 'message',
+            'isPinned': true,
+          },
+        ],
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    final messages = await repository.loadPinnedMessages(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+    );
+
+    expect(messages.length, 1);
+    expect(messages.first.id, 'message-1');
+    expect(messages.first.content, 'Pinned!');
+    expect(messages.first.isPinned, isTrue);
+
+    final request = appDioClient.requests.last;
+    expect(request.path, '/channels/general/pins');
+    expect(request.serverIdHeader, 'server-1');
+  });
+
+  test('loadPinnedMessages rethrows AppFailure from transport', () async {
+    const failure = ServerFailure(
+      message: 'Not found.',
+      statusCode: 404,
+    );
+    final appDioClient = _FakeAppDioClient(
+      failures: {'/channels/general/pins': failure},
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+    await expectLater(
+      repository.loadPinnedMessages(
+        ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+      ),
+      throwsA(same(failure)),
+    );
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {
