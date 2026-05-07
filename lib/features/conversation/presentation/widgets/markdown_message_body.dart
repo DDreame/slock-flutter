@@ -179,7 +179,8 @@ class MarkdownMessageBody extends StatelessWidget {
 
     // Link colors
     final linkColor = isSelf ? colors.primaryForeground : colors.primary;
-    final linkDecoration = isSelf ? TextDecoration.underline : TextDecoration.none;
+    final linkDecoration =
+        isSelf ? TextDecoration.underline : TextDecoration.none;
 
     // Blockquote
     final blockquoteBorderColor = isSelf

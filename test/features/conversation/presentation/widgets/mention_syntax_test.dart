@@ -50,32 +50,37 @@ void main() {
 
     test('does not match bare @ without name', () {
       final nodes = document.parseInline('email@ someone');
-      final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
+      final mentions =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
       expect(mentions, isEmpty);
     });
 
     test('does not match @mention inside email address', () {
       final nodes = document.parseInline('test@example.com');
-      final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
+      final mentions =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
       expect(mentions, isEmpty);
     });
 
     test('does not match @mention mid-word after dot', () {
       final nodes = document.parseInline('foo.@bar');
-      final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
+      final mentions =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
       expect(mentions, isEmpty);
     });
 
     test('matches @mention after punctuation like paren', () {
       final nodes = document.parseInline('(@alice)');
-      final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
+      final mentions =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
       expect(mentions.length, 1);
       expect(mentions.first.attributes['name'], 'alice');
     });
 
     test('handles @mention at end of text', () {
       final nodes = document.parseInline('Hey @charlie');
-      final mentions = nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
+      final mentions =
+          nodes.whereType<md.Element>().where((e) => e.tag == 'mention');
       expect(mentions.length, 1);
       expect(mentions.first.attributes['name'], 'charlie');
     });

@@ -84,7 +84,8 @@ class _ConversationDetailScreen extends ConsumerStatefulWidget {
       _ConversationDetailScreenState();
 }
 
-class _ConversationDetailScreenState extends ConsumerState<_ConversationDetailScreen> {
+class _ConversationDetailScreenState
+    extends ConsumerState<_ConversationDetailScreen> {
   late final TextEditingController _composerController;
   late final FocusNode _composerFocusNode;
   late final ScrollController _scrollController;
@@ -98,7 +99,8 @@ class _ConversationDetailScreenState extends ConsumerState<_ConversationDetailSc
   void initState() {
     super.initState();
     final target = ref.read(currentConversationDetailTargetProvider);
-    final cachedSession = ref.read(conversationDetailSessionStoreProvider)[target];
+    final cachedSession =
+        ref.read(conversationDetailSessionStoreProvider)[target];
     _composerController = TextEditingController();
     _composerFocusNode = FocusNode();
     _restoredFromSession = cachedSession != null;
@@ -161,7 +163,8 @@ class _ConversationDetailScreenState extends ConsumerState<_ConversationDetailSc
                 '${state.memberCount == 1 ? 'member' : 'members'}',
                 key: const ValueKey('conversation-member-count'),
                 style: AppTypography.caption.copyWith(
-                  color: Theme.of(context).extension<AppColors>()!.textSecondary,
+                  color:
+                      Theme.of(context).extension<AppColors>()!.textSecondary,
                 ),
               ),
           ],
@@ -173,7 +176,9 @@ class _ConversationDetailScreenState extends ConsumerState<_ConversationDetailSc
               icon: Icon(
                 state.isSearchActive ? Icons.search_off : Icons.search,
               ),
-              onPressed: ref.read(conversationDetailStoreProvider.notifier).toggleSearch,
+              onPressed: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .toggleSearch,
             ),
           if (state.status == ConversationDetailStatus.success)
             IconButton(
@@ -189,12 +194,18 @@ class _ConversationDetailScreenState extends ConsumerState<_ConversationDetailSc
           if (state.isSearchActive)
             _ConversationSearchBar(
               state: state,
-              onChanged:
-                  ref.read(conversationDetailStoreProvider.notifier).updateSearchQuery,
-              onNext: ref.read(conversationDetailStoreProvider.notifier).nextSearchResult,
-              onPrevious:
-                  ref.read(conversationDetailStoreProvider.notifier).previousSearchResult,
-              onClose: ref.read(conversationDetailStoreProvider.notifier).toggleSearch,
+              onChanged: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .updateSearchQuery,
+              onNext: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .nextSearchResult,
+              onPrevious: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .previousSearchResult,
+              onClose: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .toggleSearch,
             ),
           Expanded(
             child: switch (state.status) {
@@ -206,8 +217,9 @@ class _ConversationDetailScreenState extends ConsumerState<_ConversationDetailSc
                 ),
               ConversationDetailStatus.failure => _ConversationFailureView(
                   state: state,
-                  onRetry: () =>
-                      ref.read(conversationDetailStoreProvider.notifier).retry(),
+                  onRetry: () => ref
+                      .read(conversationDetailStoreProvider.notifier)
+                      .retry(),
                 ),
               ConversationDetailStatus.success when state.isEmpty =>
                 _ConversationEmptyView(title: state.resolvedTitle),
@@ -222,15 +234,19 @@ class _ConversationDetailScreenState extends ConsumerState<_ConversationDetailSc
               controller: _composerController,
               focusNode: _composerFocusNode,
               state: state,
-              onChanged: ref.read(conversationDetailStoreProvider.notifier).updateDraft,
+              onChanged: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .updateDraft,
               onSend: _handleSend,
-              onPickAttachment:
-                  ref.read(conversationDetailStoreProvider.notifier).addPendingAttachment,
+              onPickAttachment: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .addPendingAttachment,
               onRemoveAttachment: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .removePendingAttachment,
-              onCancelUpload:
-                  ref.read(conversationDetailStoreProvider.notifier).cancelUpload,
+              onCancelUpload: ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .cancelUpload,
             ),
         ],
       ),
@@ -497,7 +513,8 @@ class _ConversationHistoryHeader extends StatelessWidget {
       );
     }
 
-    return const SizedBox.shrink(key: ValueKey('conversation-history-complete'));
+    return const SizedBox.shrink(
+        key: ValueKey('conversation-history-complete'));
   }
 }
 
@@ -527,7 +544,8 @@ class _PendingMessageCard extends ConsumerWidget {
       key: ValueKey('pending-bubble-${pending.localId}'),
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: isFailed ? colors.primary.withValues(alpha: 0.6) : colors.primary,
+        color:
+            isFailed ? colors.primary.withValues(alpha: 0.6) : colors.primary,
         borderRadius: borderRadius,
       ),
       child: Column(
@@ -728,7 +746,9 @@ class _ConversationComposer extends StatelessWidget {
                   child: IconButton(
                     icon: const Icon(Icons.attach_file, size: 20),
                     padding: EdgeInsets.zero,
-                    onPressed: state.isSending ? null : () => _showAttachOptions(context),
+                    onPressed: state.isSending
+                        ? null
+                        : () => _showAttachOptions(context),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -744,15 +764,19 @@ class _ConversationComposer extends StatelessWidget {
                     decoration: InputDecoration(
                       hintText: 'Write a message',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusFull),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusFull),
                         borderSide: BorderSide(color: colors.border),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-                        borderSide: BorderSide(color: colors.primary, width: 1.5),
+                        borderRadius:
+                            BorderRadius.circular(AppSpacing.radiusFull),
+                        borderSide:
+                            BorderSide(color: colors.primary, width: 1.5),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg,
@@ -774,8 +798,9 @@ class _ConversationComposer extends StatelessWidget {
                     icon: Icon(
                       state.isSending ? Icons.hourglass_top : Icons.send,
                       size: 20,
-                      color:
-                          state.canSend ? colors.primaryForeground : colors.textTertiary,
+                      color: state.canSend
+                          ? colors.primaryForeground
+                          : colors.textTertiary,
                     ),
                     padding: EdgeInsets.zero,
                     onPressed: state.canSend ? onSend : null,
@@ -888,7 +913,8 @@ class _ConversationComposer extends StatelessWidget {
       'webp' => 'image/webp',
       'pdf' => 'application/pdf',
       'doc' => 'application/msword',
-      'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'docx' =>
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'txt' => 'text/plain',
       'mp4' => 'video/mp4',
       'mp3' => 'audio/mpeg',
@@ -991,10 +1017,11 @@ class _ConversationMessageCard extends ConsumerWidget {
     );
     final currentUserId =
         ref.watch(sessionStoreProvider.select((session) => session.userId));
-    final currentUserName =
-        ref.watch(sessionStoreProvider.select((session) => session.displayName));
+    final currentUserName = ref
+        .watch(sessionStoreProvider.select((session) => session.displayName));
     final isSaved = savedIds.contains(message.id);
-    final visualKind = _resolveConversationMessageVisualKind(message, currentUserId);
+    final visualKind =
+        _resolveConversationMessageVisualKind(message, currentUserId);
     final senderLabel = switch (visualKind) {
       _ConversationMessageVisualKind.self => 'You',
       _ => message.senderLabel,
@@ -1037,8 +1064,9 @@ class _ConversationMessageCard extends ConsumerWidget {
     };
 
     // Sender name label style
-    final showSenderLabel = visualKind == _ConversationMessageVisualKind.other ||
-        visualKind == _ConversationMessageVisualKind.agent;
+    final showSenderLabel =
+        visualKind == _ConversationMessageVisualKind.other ||
+            visualKind == _ConversationMessageVisualKind.agent;
 
     final senderStyle = AppTypography.label.copyWith(
       color: visualKind == _ConversationMessageVisualKind.agent
@@ -1051,8 +1079,9 @@ class _ConversationMessageCard extends ConsumerWidget {
     );
     final bodyStyle = AppTypography.body.copyWith(
       color: foregroundColor,
-      fontStyle:
-          visualKind == _ConversationMessageVisualKind.system ? FontStyle.italic : null,
+      fontStyle: visualKind == _ConversationMessageVisualKind.system
+          ? FontStyle.italic
+          : null,
     );
 
     final bubble = Container(
@@ -1174,7 +1203,8 @@ class _ConversationMessageCard extends ConsumerWidget {
             highlightQuery: highlightQuery,
             baseStyle: bodyStyle,
             highlightColor: colors.primaryLight,
-            onLinkTap: (text, href, title) => _confirmAndLaunchUrl(context, href),
+            onLinkTap: (text, href, title) =>
+                _confirmAndLaunchUrl(context, href),
             currentUserName: currentUserName,
           ),
           if (message.attachments != null && message.attachments!.isNotEmpty)
@@ -1287,9 +1317,10 @@ class _ConversationMessageCard extends ConsumerWidget {
                   constraints: BoxConstraints(maxWidth: maxBubbleWidth),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: visualKind == _ConversationMessageVisualKind.self
-                        ? CrossAxisAlignment.end
-                        : CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        visualKind == _ConversationMessageVisualKind.self
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
                     children: [
                       senderLabelWidget,
                       bubble,
@@ -1317,7 +1348,8 @@ class _ConversationMessageCard extends ConsumerWidget {
           children: [
             ListTile(
               key: const ValueKey('message-action-save'),
-              leading: Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
+              leading:
+                  Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
               title: Text(isSaved ? 'Unsave message' : 'Save message'),
               onTap: () {
                 Navigator.of(context).pop();
@@ -1328,11 +1360,13 @@ class _ConversationMessageCard extends ConsumerWidget {
             ),
             ListTile(
               key: const ValueKey('message-action-pin'),
-              leading: Icon(message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
+              leading: Icon(
+                  message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
               title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
               onTap: () {
                 Navigator.of(context).pop();
-                final notifier = ref.read(conversationDetailStoreProvider.notifier);
+                final notifier =
+                    ref.read(conversationDetailStoreProvider.notifier);
                 if (message.isPinned) {
                   notifier.unpinMessage(message.id);
                 } else {
@@ -1419,7 +1453,9 @@ class _ConversationMessageCard extends ConsumerWidget {
     if (!confirmed) return;
 
     try {
-      await ref.read(conversationDetailStoreProvider.notifier).deleteMessage(message.id);
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .deleteMessage(message.id);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -1874,10 +1910,12 @@ class _FullScreenImageViewer extends ConsumerStatefulWidget {
   final MessageAttachment attachment;
 
   @override
-  ConsumerState<_FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+  ConsumerState<_FullScreenImageViewer> createState() =>
+      _FullScreenImageViewerState();
 }
 
-class _FullScreenImageViewerState extends ConsumerState<_FullScreenImageViewer> {
+class _FullScreenImageViewerState
+    extends ConsumerState<_FullScreenImageViewer> {
   String? _signedUrl;
   bool _loading = false;
 
@@ -2065,7 +2103,8 @@ class _HtmlAttachmentRow extends ConsumerWidget {
                   Text(
                     [
                       context.l10n.attachmentHtmlOpensInBrowser,
-                      if (attachment.formattedSize != null) attachment.formattedSize!,
+                      if (attachment.formattedSize != null)
+                        attachment.formattedSize!,
                     ].join(' · '),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,

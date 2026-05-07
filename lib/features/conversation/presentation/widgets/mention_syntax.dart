@@ -75,14 +75,16 @@ class MentionBuilder extends MarkdownElementBuilder {
     _colors ??= Theme.of(context).extension<AppColors>();
     final colors = _colors!;
     final name = element.attributes['name'] ?? '';
-    final isSelfMention =
-        currentUserName != null && name.toLowerCase() == currentUserName!.toLowerCase();
+    final isSelfMention = currentUserName != null &&
+        name.toLowerCase() == currentUserName!.toLowerCase();
 
-    final style = (preferredStyle ?? parentStyle ?? AppTypography.body).copyWith(
+    final style =
+        (preferredStyle ?? parentStyle ?? AppTypography.body).copyWith(
       color: isSelfMention ? colors.primaryForeground : colors.primary,
       fontWeight: FontWeight.w600,
-      backgroundColor:
-          isSelfMention ? colors.primary : colors.primary.withValues(alpha: 0.1),
+      backgroundColor: isSelfMention
+          ? colors.primary
+          : colors.primary.withValues(alpha: 0.1),
     );
 
     return Text.rich(
@@ -113,7 +115,8 @@ TextSpan buildMentionAwareSpan({
   if (matches.isEmpty) {
     // No mentions — fall through to simple highlight or plain text.
     if (highlightQuery.isNotEmpty && highlightColor != null) {
-      return _buildHighlightedSpan(text, highlightQuery, baseStyle, highlightColor);
+      return _buildHighlightedSpan(
+          text, highlightQuery, baseStyle, highlightColor);
     }
     return TextSpan(text: text, style: baseStyle);
   }
@@ -127,7 +130,8 @@ TextSpan buildMentionAwareSpan({
       final before = text.substring(lastEnd, match.start);
       if (highlightQuery.isNotEmpty && highlightColor != null) {
         spans.addAll(
-          _buildHighlightedSpan(before, highlightQuery, baseStyle, highlightColor)
+          _buildHighlightedSpan(
+                      before, highlightQuery, baseStyle, highlightColor)
                   .children ??
               [TextSpan(text: before, style: baseStyle)],
         );
@@ -138,8 +142,8 @@ TextSpan buildMentionAwareSpan({
 
     // The mention itself.
     final name = match.group(1)!;
-    final isSelf =
-        currentUserName != null && name.toLowerCase() == currentUserName.toLowerCase();
+    final isSelf = currentUserName != null &&
+        name.toLowerCase() == currentUserName.toLowerCase();
 
     final mentionStyle = (baseStyle ?? const TextStyle()).copyWith(
       color: isSelf ? selfMentionColor : mentionColor,
@@ -174,7 +178,8 @@ TextSpan buildMentionAwareSpan({
     final remaining = text.substring(lastEnd);
     if (highlightQuery.isNotEmpty && highlightColor != null) {
       spans.addAll(
-        _buildHighlightedSpan(remaining, highlightQuery, baseStyle, highlightColor)
+        _buildHighlightedSpan(
+                    remaining, highlightQuery, baseStyle, highlightColor)
                 .children ??
             [TextSpan(text: remaining, style: baseStyle)],
       );
@@ -206,7 +211,8 @@ TextSpan _buildHighlightedSpan(
   var index = lowerText.indexOf(lowerQuery);
   while (index != -1) {
     if (index > lastEnd) {
-      spans.add(TextSpan(text: text.substring(lastEnd, index), style: baseStyle));
+      spans.add(
+          TextSpan(text: text.substring(lastEnd, index), style: baseStyle));
     }
     spans.add(TextSpan(
       text: text.substring(index, index + query.length),
