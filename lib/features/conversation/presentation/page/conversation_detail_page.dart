@@ -1498,17 +1498,27 @@ class _ConversationMessageCard extends ConsumerWidget {
     );
   }
 
-  void _showEmojiPicker(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet<String>(
+  Future<void> _showEmojiPicker(BuildContext context, WidgetRef ref) async {
+    final emoji = await showModalBottomSheet<String>(
       context: context,
       builder: (_) => const _EmojiPickerSheet(),
-    ).then((emoji) {
-      if (emoji != null) {
-        ref
-            .read(conversationDetailStoreProvider.notifier)
-            .addReaction(message.id, emoji);
-      }
-    });
+    );
+    if (emoji == null || !context.mounted) return;
+
+    try {
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .addReaction(message.id, emoji);
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to add reaction.'),
+          ),
+        );
+    }
   }
 
   void _navigateToThread(BuildContext context) {
@@ -2544,10 +2554,22 @@ class _ReactionRow extends ConsumerWidget {
             count: reaction.count,
             isOwn: isOwn,
             colors: colors,
-            onTap: () {
-              ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .toggleReaction(messageId, reaction.emoji);
+            onTap: () async {
+              try {
+                await ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .toggleReaction(messageId, reaction.emoji);
+              } on AppFailure catch (failure) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content:
+                          Text(failure.message ?? 'Failed to update reaction.'),
+                    ),
+                  );
+              }
             },
           );
         }).toList(growable: false),
@@ -2596,16 +2618,14 @@ class _ReactionChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(emoji, style: const TextStyle(fontSize: 16)),
-            if (count > 1) ...[
-              const SizedBox(width: 4),
-              Text(
-                '$count',
-                style: AppTypography.caption.copyWith(
-                  color: isOwn ? colors.primary : colors.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
+            const SizedBox(width: 4),
+            Text(
+              '$count',
+              style: AppTypography.caption.copyWith(
+                color: isOwn ? colors.primary : colors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
-            ],
+            ),
           ],
         ),
       ),

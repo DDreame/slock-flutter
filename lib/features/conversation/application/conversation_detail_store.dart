@@ -1004,6 +1004,7 @@ class ConversationDetailStore
       userId: currentUserId,
     );
     state = state.copyWith(messages: messages);
+    _persistSession();
 
     try {
       final repo = ref.read(conversationRepositoryProvider);
@@ -1011,6 +1012,7 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(messages: previousMessages);
+      _persistSession();
       rethrow;
     }
   }
@@ -1033,6 +1035,7 @@ class ConversationDetailStore
       userId: currentUserId,
     );
     state = state.copyWith(messages: messages);
+    _persistSession();
 
     try {
       final repo = ref.read(conversationRepositoryProvider);
@@ -1040,6 +1043,7 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(messages: previousMessages);
+      _persistSession();
       rethrow;
     }
   }
@@ -1088,6 +1092,7 @@ class ConversationDetailStore
       userId: event.userId,
     );
     state = state.copyWith(messages: messages);
+    _persistSession();
   }
 
   void _handleReactionRemoved(
@@ -1113,6 +1118,7 @@ class ConversationDetailStore
       userId: event.userId,
     );
     state = state.copyWith(messages: messages);
+    _persistSession();
   }
 
   ConversationMessageSummary _addReactionToMessage(
