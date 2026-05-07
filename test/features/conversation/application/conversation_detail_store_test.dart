@@ -3,14 +3,27 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
+import 'package:slock_app/features/conversation/application/outbox_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
+
+/// Creates an always-online [ConnectivityService] for tests.
+ConnectivityService _onlineConnectivity() {
+  final c = StreamController<ConnectivityStatus>.broadcast();
+  return ConnectivityService.withInitialStatus(
+    ConnectivityStatus.online,
+    controller: c,
+  );
+}
 
 void main() {
   final target = ConversationDetailTarget.channel(
@@ -114,6 +127,7 @@ void main() {
       overrides: [
         currentConversationDetailTargetProvider.overrideWithValue(target),
         conversationRepositoryProvider.overrideWithValue(repository),
+        connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
       ],
     );
     addTearDown(container.dispose);
@@ -154,6 +168,7 @@ void main() {
       overrides: [
         currentConversationDetailTargetProvider.overrideWithValue(target),
         conversationRepositoryProvider.overrideWithValue(repository),
+        connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
       ],
     );
     addTearDown(container.dispose);
@@ -200,6 +215,7 @@ void main() {
       overrides: [
         currentConversationDetailTargetProvider.overrideWithValue(target),
         conversationRepositoryProvider.overrideWithValue(repository),
+        connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
       ],
     );
     addTearDown(container.dispose);
@@ -251,6 +267,7 @@ void main() {
         currentConversationDetailTargetProvider.overrideWithValue(target),
         conversationRepositoryProvider.overrideWithValue(repository),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
+        connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
       ],
     );
     final subscription = container.listen(
@@ -440,6 +457,7 @@ void main() {
         currentConversationDetailTargetProvider.overrideWithValue(target),
         conversationRepositoryProvider.overrideWithValue(repository),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
+        connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
       ],
     );
     final subscription = container.listen(
@@ -1797,6 +1815,7 @@ void main() {
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
         ],
       );
       addTearDown(container.dispose);
@@ -1840,6 +1859,7 @@ void main() {
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
         ],
       );
       addTearDown(container.dispose);
@@ -1880,6 +1900,7 @@ void main() {
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
         ],
       );
       addTearDown(container.dispose);
@@ -1926,6 +1947,7 @@ void main() {
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
         ],
       );
       addTearDown(container.dispose);
@@ -1943,6 +1965,161 @@ void main() {
       // Pending message still carries the replyToId
       expect(state.pendingMessages.first.status, MessageSendStatus.failed);
       expect(state.pendingMessages.first.replyToId, 'message-1');
+    });
+  });
+
+  group('offline send', () {
+    test('send when offline enqueues to outbox and adds pending message',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final connectivityController =
+          StreamController<ConnectivityStatus>.broadcast();
+      final connectivity = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: connectivityController,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(connectivity),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(() async {
+        await Future<void>.delayed(Duration.zero);
+        container.dispose();
+        await connectivityController.close();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.updateDraft('Offline message');
+      await notifier.send();
+
+      final state = container.read(conversationDetailStoreProvider);
+      // Draft is cleared
+      expect(state.draft, isEmpty);
+      // Pending message added with sending status
+      expect(state.pendingMessages, hasLength(1));
+      expect(state.pendingMessages.first.content, 'Offline message');
+      // Repository was NOT called (message queued, not sent)
+      expect(repository.sentContents, isEmpty);
+      // Outbox has the queued message
+      final outbox = container.read(outboxStoreProvider);
+      final targetKey = outboxTargetKey(target);
+      expect(outbox.items[targetKey], hasLength(1));
+      expect(outbox.items[targetKey]!.first.content, 'Offline message');
+    });
+
+    test('send when online bypasses outbox and sends directly', () async {
+      final sentMessage = ConversationMessageSummary(
+        id: 'message-1',
+        content: 'Online message',
+        createdAt: DateTime.parse('2026-05-07T12:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sentMessage: sentMessage,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.updateDraft('Online message');
+      await notifier.send();
+
+      // Repository was called directly
+      expect(repository.sentContents, ['Online message']);
+      // Pending message transitions to sent (online path)
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.pendingMessages, hasLength(1));
+      expect(state.pendingMessages.first.status, MessageSendStatus.sent);
+    });
+
+    test('offline send with replyToId stores it in outbox', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final connectivityController =
+          StreamController<ConnectivityStatus>.broadcast();
+      final connectivity = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: connectivityController,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-to-reply',
+              content: 'Original',
+              createdAt: DateTime.parse('2026-05-07T11:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(connectivity),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(() async {
+        await Future<void>.delayed(Duration.zero);
+        container.dispose();
+        await connectivityController.close();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      // Set reply target, then send offline
+      final replyMsg =
+          container.read(conversationDetailStoreProvider).messages.first;
+      notifier.setReplyTo(replyMsg);
+      notifier.updateDraft('Offline reply');
+      await notifier.send();
+
+      // Outbox stores the replyToId
+      final outbox = container.read(outboxStoreProvider);
+      final targetKey = outboxTargetKey(target);
+      expect(outbox.items[targetKey]!.first.replyToId, 'msg-to-reply');
     });
   });
 }

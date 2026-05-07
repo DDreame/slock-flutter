@@ -7,6 +7,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/image_compressor.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
+import 'package:slock_app/features/conversation/application/outbox_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -298,6 +299,37 @@ class ConversationDetailStore
         state.pendingAttachments.isNotEmpty ? state.pendingAttachments : null;
     if (state.status != ConversationDetailStatus.success ||
         (content.isEmpty && (pendingFiles == null || pendingFiles.isEmpty))) {
+      return;
+    }
+
+    // Offline path: queue text-only messages in the outbox for later sending.
+    // Attachment uploads are not supported offline.
+    final connectivity = ref.read(connectivityServiceProvider);
+    if (!connectivity.isOnline &&
+        (pendingFiles == null || pendingFiles.isEmpty)) {
+      final localId =
+          'pending-${++_localIdCounter}-${DateTime.now().millisecondsSinceEpoch}';
+      final pending = PendingMessage(
+        localId: localId,
+        content: content,
+        createdAt: DateTime.now(),
+        replyToId: replyToId,
+      );
+
+      // Optimistic insert with sending status
+      state = state.copyWith(
+        pendingMessages: [...state.pendingMessages, pending],
+        draft: '',
+        clearSendFailure: true,
+      );
+
+      // Enqueue in the outbox for later drain
+      ref.read(outboxStoreProvider.notifier).enqueue(
+            target,
+            content,
+            replyToId: replyToId,
+          );
+      _persistSession();
       return;
     }
 
