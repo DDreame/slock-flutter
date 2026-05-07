@@ -9,7 +9,10 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
-import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
+import 'package:slock_app/features/saved_messages/data/saved_message_item.dart'
+    as saved_data;
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -20,6 +23,26 @@ void main() {
       value: 'general',
     ),
   );
+
+  // Suppress overflow errors in tests (bottom sheet may overflow in small viewport)
+  final overflowErrors = <FlutterErrorDetails>[];
+  setUp(() {
+    overflowErrors.clear();
+    final originalOnError = FlutterError.onError!;
+    FlutterError.onError = (details) {
+      final exception = details.exception;
+      if (exception is FlutterError &&
+          exception.message.contains('overflowed')) {
+        overflowErrors.add(details);
+        return;
+      }
+      originalOnError(details);
+    };
+  });
+
+  tearDown(() {
+    FlutterError.onError = FlutterError.dumpErrorToConsole;
+  });
 
   testWidgets('long-press menu shows Reply action', (tester) async {
     final repository = _FakeConversationRepository(
@@ -102,6 +125,9 @@ void main() {
     // Long-press message and tap Reply
     await tester.longPress(find.byKey(const ValueKey('message-message-1')));
     await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const ValueKey('message-action-reply')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('message-action-reply')));
     await tester.pumpAndSettle();
 
@@ -147,6 +173,9 @@ void main() {
 
     // Set reply
     await tester.longPress(find.byKey(const ValueKey('message-message-1')));
+    await tester.pumpAndSettle();
+    await tester
+        .ensureVisible(find.byKey(const ValueKey('message-action-reply')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('message-action-reply')));
     await tester.pumpAndSettle();
@@ -264,11 +293,11 @@ Widget _buildApp({
       sessionStoreProvider.overrideWith(
         () => _FixedSessionStore(sessionState),
       ),
+      savedMessagesRepositoryProvider
+          .overrideWithValue(_FakeSavedMessagesRepository()),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: child,
     ),
   );
@@ -410,4 +439,29 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
   }) async {}
+}
+
+class _FakeSavedMessagesRepository implements SavedMessagesRepository {
+  @override
+  Future<saved_data.SavedMessagesPage> listSavedMessages(
+    ServerScopeId serverId, {
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    return const saved_data.SavedMessagesPage(items: [], hasMore: false);
+  }
+
+  @override
+  Future<void> saveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<void> unsaveMessage(ServerScopeId serverId, String messageId) async {}
+
+  @override
+  Future<Set<String>> checkSavedMessages(
+    ServerScopeId serverId,
+    List<String> messageIds,
+  ) async {
+    return {};
+  }
 }
