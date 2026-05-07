@@ -301,7 +301,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             MembersPage(serverId: state.pathParameters['serverId']!),
       ),
       GoRoute(
-        path: '/servers/:serverId/saved-messages',
+        path: '/servers/:serverId/saved',
         redirect: syncServerSelection,
         builder: (context, state) =>
             SavedMessagesPage(serverId: state.pathParameters['serverId']!),

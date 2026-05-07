@@ -143,6 +143,8 @@ class _ApiSavedMessagesRepository implements SavedMessagesRepository {
             readOptionalConversationPayloadString(itemMap['channelName']),
         surface: readOptionalConversationPayloadString(itemMap['surface']),
         savedAt: _tryParseDateTime(itemMap['savedAt']),
+        parentMessageId:
+            readOptionalConversationPayloadString(itemMap['parentMessageId']),
       ));
     }
 

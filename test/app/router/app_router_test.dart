@@ -89,7 +89,7 @@ void main() {
       '/servers/:serverId/search',
       '/servers/:serverId/settings',
       '/servers/:serverId/members',
-      '/servers/:serverId/saved-messages',
+      '/servers/:serverId/saved',
       '/profile',
       '/profile/:userId',
       '/servers/:serverId/profile/:userId',
