@@ -126,9 +126,6 @@ void main() {
     // Long-press message and tap Reply
     await tester.longPress(find.byKey(const ValueKey('message-message-1')));
     await tester.pumpAndSettle();
-    await tester
-        .ensureVisible(find.byKey(const ValueKey('message-action-reply')));
-    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('message-action-reply')));
     await tester.pumpAndSettle();
 
@@ -174,9 +171,6 @@ void main() {
 
     // Set reply
     await tester.longPress(find.byKey(const ValueKey('message-message-1')));
-    await tester.pumpAndSettle();
-    await tester
-        .ensureVisible(find.byKey(const ValueKey('message-action-reply')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('message-action-reply')));
     await tester.pumpAndSettle();
