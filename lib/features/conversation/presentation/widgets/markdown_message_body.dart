@@ -4,6 +4,7 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/mention_syntax.dart';
 
 // -- Layout constants --
 const double _kH3FontSize = 14.0;
@@ -95,6 +96,7 @@ class MarkdownMessageBody extends StatelessWidget {
     this.kind = MessageBubbleKind.other,
     this.baseStyle,
     this.onLinkTap,
+    this.currentUserName,
   });
 
   /// The raw message content to render as Markdown.
@@ -108,6 +110,11 @@ class MarkdownMessageBody extends StatelessWidget {
 
   /// Called when a user taps a link. If null, links are not interactive.
   final void Function(String text, String? href, String title)? onLinkTap;
+
+  /// The current user's display name for self-mention highlighting.
+  /// When a `@mention` matches this name (case-insensitive), it gets
+  /// extra emphasis styling.
+  final String? currentUserName;
 
   @override
   Widget build(BuildContext context) {
@@ -126,12 +133,14 @@ class MarkdownMessageBody extends StatelessWidget {
           codeStyle: styleSheet.code!,
           padding: styleSheet.codeblockPadding!,
         ),
+        'mention': MentionBuilder(currentUserName: currentUserName),
       },
       // Only allow supported inline syntax + block elements.
       // Use ExtensionSet.gitHubFlavored for strikethrough support.
       extensionSet: md.ExtensionSet(
         md.ExtensionSet.gitHubFlavored.blockSyntaxes,
         [
+          MentionSyntax(),
           md.StrikethroughSyntax(),
           ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes
               .where((s) => s is! md.AutolinkExtensionSyntax),
@@ -170,8 +179,7 @@ class MarkdownMessageBody extends StatelessWidget {
 
     // Link colors
     final linkColor = isSelf ? colors.primaryForeground : colors.primary;
-    final linkDecoration =
-        isSelf ? TextDecoration.underline : TextDecoration.none;
+    final linkDecoration = isSelf ? TextDecoration.underline : TextDecoration.none;
 
     // Blockquote
     final blockquoteBorderColor = isSelf
