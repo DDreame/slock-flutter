@@ -76,24 +76,24 @@ class ConversationDetailStore
         _handleReactionRemoved(event.payload!, target);
       }
     });
+
+    // Register outbox drain callback so drain results reconcile pending
+    // messages back into the conversation state.
+    // Capture the notifier reference now — reading providers inside
+    // ref.onDispose is unsafe (container may already be disposed).
+    final outbox = ref.read(outboxStoreProvider.notifier);
+    final targetKey = outboxTargetKey(target);
+    outbox.registerDrainCallback(targetKey, _onOutboxDrain);
+
     ref.onDispose(() {
       unawaited(subscription.cancel());
       for (final timer in _sentRemovalTimers) {
         timer.cancel();
       }
       _sentRemovalTimers.clear();
-      // Unregister outbox drain callback for this conversation.
-      final outbox = ref.read(outboxStoreProvider.notifier);
-      outbox.unregisterDrainCallback(outboxTargetKey(target));
+      // Unregister outbox drain callback using captured reference.
+      outbox.unregisterDrainCallback(targetKey);
     });
-
-    // Register outbox drain callback so drain results reconcile pending
-    // messages back into the conversation state.
-    final outbox = ref.read(outboxStoreProvider.notifier);
-    outbox.registerDrainCallback(
-      outboxTargetKey(target),
-      _onOutboxDrain,
-    );
 
     final initialState = cachedSession?.toState(target) ??
         ConversationDetailState(target: target);
