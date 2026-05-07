@@ -1378,107 +1378,110 @@ class _ConversationMessageCard extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isOwn)
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isOwn)
+                ListTile(
+                  key: const ValueKey('message-action-edit'),
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Edit message'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showEditDialog(context, ref);
+                  },
+                ),
               ListTile(
-                key: const ValueKey('message-action-edit'),
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit message'),
+                key: const ValueKey('message-action-react'),
+                leading: const Icon(Icons.emoji_emotions_outlined),
+                title: const Text('React'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _showEditDialog(context, ref);
+                  _showEmojiPicker(context, ref);
                 },
               ),
-            ListTile(
-              key: const ValueKey('message-action-react'),
-              leading: const Icon(Icons.emoji_emotions_outlined),
-              title: const Text('React'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _showEmojiPicker(context, ref);
-              },
-            ),
-            ListTile(
-              key: const ValueKey('message-action-copy'),
-              leading: const Icon(Icons.copy_outlined),
-              title: const Text('Copy text'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Clipboard.setData(ClipboardData(text: message.content));
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                      const SnackBar(content: Text('Copied to clipboard.')));
-              },
-            ),
-            ListTile(
-              key: const ValueKey('message-action-save'),
-              leading:
-                  Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
-              title: Text(isSaved ? 'Unsave message' : 'Save message'),
-              onTap: () {
-                Navigator.of(context).pop();
-                ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .toggleSaveMessage(message.id);
-              },
-            ),
-            ListTile(
-              key: const ValueKey('message-action-pin'),
-              leading: Icon(
-                  message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
-              title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
-              onTap: () {
-                Navigator.of(context).pop();
-                final notifier =
-                    ref.read(conversationDetailStoreProvider.notifier);
-                if (message.isPinned) {
-                  notifier.unpinMessage(message.id);
-                } else {
-                  notifier.pinMessage(message.id);
-                }
-              },
-            ),
-            if (target.surface == ConversationSurface.channel)
               ListTile(
-                key: const ValueKey('message-action-reply-thread'),
-                leading: const Icon(Icons.forum_outlined),
-                title: const Text('Reply in thread'),
+                key: const ValueKey('message-action-copy'),
+                leading: const Icon(Icons.copy_outlined),
+                title: const Text('Copy text'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  context.push(
-                    ThreadRouteTarget(
-                      serverId: target.serverId.value,
-                      parentChannelId: target.conversationId,
-                      parentMessageId: message.id,
-                      threadChannelId: message.threadId,
-                    ).toLocation(),
-                  );
+                  Clipboard.setData(ClipboardData(text: message.content));
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                        const SnackBar(content: Text('Copied to clipboard.')));
                 },
               ),
-            if (target.surface == ConversationSurface.channel)
               ListTile(
-                key: const ValueKey('message-action-create-task'),
-                leading: const Icon(Icons.task_alt),
-                title: const Text('Create task'),
+                key: const ValueKey('message-action-save'),
+                leading:
+                    Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
+                title: Text(isSaved ? 'Unsave message' : 'Save message'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _convertMessageToTask(context, ref);
+                  ref
+                      .read(conversationDetailStoreProvider.notifier)
+                      .toggleSaveMessage(message.id);
                 },
               ),
-            if (isOwn)
               ListTile(
-                key: const ValueKey('message-action-delete'),
-                leading: const Icon(Icons.delete_outline),
-                title: const Text('Delete message'),
+                key: const ValueKey('message-action-pin'),
+                leading: Icon(message.isPinned
+                    ? Icons.push_pin
+                    : Icons.push_pin_outlined),
+                title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _confirmAndDeleteMessage(context, ref);
+                  final notifier =
+                      ref.read(conversationDetailStoreProvider.notifier);
+                  if (message.isPinned) {
+                    notifier.unpinMessage(message.id);
+                  } else {
+                    notifier.pinMessage(message.id);
+                  }
                 },
               ),
-          ],
+              if (target.surface == ConversationSurface.channel)
+                ListTile(
+                  key: const ValueKey('message-action-reply-thread'),
+                  leading: const Icon(Icons.forum_outlined),
+                  title: const Text('Reply in thread'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    context.push(
+                      ThreadRouteTarget(
+                        serverId: target.serverId.value,
+                        parentChannelId: target.conversationId,
+                        parentMessageId: message.id,
+                        threadChannelId: message.threadId,
+                      ).toLocation(),
+                    );
+                  },
+                ),
+              if (target.surface == ConversationSurface.channel)
+                ListTile(
+                  key: const ValueKey('message-action-create-task'),
+                  leading: const Icon(Icons.task_alt),
+                  title: const Text('Create task'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _convertMessageToTask(context, ref);
+                  },
+                ),
+              if (isOwn)
+                ListTile(
+                  key: const ValueKey('message-action-delete'),
+                  leading: const Icon(Icons.delete_outline),
+                  title: const Text('Delete message'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmAndDeleteMessage(context, ref);
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );
