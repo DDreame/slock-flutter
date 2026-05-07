@@ -1374,6 +1374,154 @@ void main() {
         .widget<ConversationDetailPage>(find.byType(ConversationDetailPage));
     expect(detailPage.highlightMessageId, 'dm-target-msg');
   });
+
+  testWidgets('pin button is absent on DM surface', (tester) async {
+    final target = ConversationDetailTarget.directMessage(
+      const DirectMessageScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'dm-1',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: 'Alice',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Hello',
+            createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('conversation-pinned-messages')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('pin button is present on channel surface', (tester) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Hello',
+            createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('conversation-pinned-messages')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'tapping pinned message pops page and returns messageId for scroll',
+      (tester) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final pinnedMessage = ConversationMessageSummary(
+      id: 'message-2',
+      content: 'Important pinned content',
+      createdAt: DateTime.parse('2026-05-07T10:01:00Z'),
+      senderType: 'human',
+      senderId: 'user-2',
+      senderName: 'Alice',
+      messageType: 'message',
+      seq: 2,
+      isPinned: true,
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Hello',
+            createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+          pinnedMessage,
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+      pinnedMessages: [pinnedMessage],
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap pin icon to open pinned messages page
+    await tester.tap(
+      find.byKey(const ValueKey('conversation-pinned-messages')),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify pinned messages page is shown
+    expect(find.text('Pinned messages'), findsOneWidget);
+    expect(find.byKey(const ValueKey('pinned-msg-message-2')), findsOneWidget);
+
+    // Tap the pinned message row
+    await tester.tap(find.byKey(const ValueKey('pinned-msg-message-2')));
+    await tester.pumpAndSettle();
+
+    // Should have popped back to conversation detail page
+    expect(find.text('Pinned messages'), findsNothing);
+    expect(find.byKey(const ValueKey('message-message-1')), findsOneWidget);
+  });
 }
 
 Widget _buildApp({
@@ -1413,6 +1561,7 @@ class _FakeConversationRepository implements ConversationRepository {
     this.sentMessage,
     this.sendFailure,
     this.sendCompleter,
+    this.pinnedMessages = const [],
   });
 
   final ConversationDetailSnapshot snapshot;
@@ -1420,6 +1569,7 @@ class _FakeConversationRepository implements ConversationRepository {
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
   final Completer<ConversationMessageSummary>? sendCompleter;
+  final List<ConversationMessageSummary> pinnedMessages;
   final List<ConversationDetailTarget> requestedTargets = [];
   final List<int> olderRequests = [];
   final List<String> sentContents = [];
@@ -1439,6 +1589,18 @@ class _FakeConversationRepository implements ConversationRepository {
   }) async {
     olderRequests.add(beforeSeq);
     return olderPages[beforeSeq]!;
+  }
+
+  @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+    );
   }
 
   @override
@@ -1486,18 +1648,6 @@ class _FakeConversationRepository implements ConversationRepository {
   }
 
   @override
-  Future<ConversationMessagePage> loadNewerMessages(
-    ConversationDetailTarget target, {
-    required int afterSeq,
-  }) async {
-    return const ConversationMessagePage(
-      messages: [],
-      historyLimited: false,
-      hasOlder: false,
-    );
-  }
-
-  @override
   Future<void> editMessage(
     ConversationDetailTarget target, {
     required String messageId,
@@ -1508,9 +1658,7 @@ class _FakeConversationRepository implements ConversationRepository {
   Future<void> deleteMessage(
     ConversationDetailTarget target, {
     required String messageId,
-  }) async {
-    throw UnimplementedError();
-  }
+  }) async {}
 
   @override
   Future<void> pinMessage(
@@ -1541,6 +1689,13 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
     required String emoji,
   }) async {}
+
+  @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async {
+    return pinnedMessages;
+  }
 
   @override
   Future<void> removeStoredMessage(
@@ -1692,6 +1847,13 @@ class _QueueConversationRepository implements ConversationRepository {
     required String messageId,
     required String emoji,
   }) async {}
+
+  @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async {
+    return const [];
+  }
 
   @override
   Future<void> removeStoredMessage(

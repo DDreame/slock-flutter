@@ -11,6 +11,7 @@ import 'package:slock_app/features/conversation/data/conversation_message_parser
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/conversation/application/pinned_messages_store.dart';
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -676,6 +677,8 @@ class ConversationDetailStore
     if (state.status != ConversationDetailStatus.success) return;
 
     _togglePinLocally(messageId, isPinned: true);
+    _persistSession();
+    _syncPinnedListAdd(messageId);
 
     try {
       await ref
@@ -684,6 +687,9 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       _togglePinLocally(messageId, isPinned: false);
+      _persistSession();
+      _syncPinnedListRemove(messageId);
+      rethrow;
     }
   }
 
@@ -692,6 +698,8 @@ class ConversationDetailStore
     if (state.status != ConversationDetailStatus.success) return;
 
     _togglePinLocally(messageId, isPinned: false);
+    _persistSession();
+    _syncPinnedListRemove(messageId);
 
     try {
       await ref
@@ -700,6 +708,9 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       _togglePinLocally(messageId, isPinned: true);
+      _persistSession();
+      _syncPinnedListAdd(messageId);
+      rethrow;
     }
   }
 
@@ -709,6 +720,28 @@ class ConversationDetailStore
     final messages = List<ConversationMessageSummary>.of(state.messages);
     messages[index] = messages[index].copyWith(isPinned: isPinned);
     state = state.copyWith(messages: messages);
+  }
+
+  /// Sync a pinned message addition to the [PinnedMessagesStore] if alive.
+  void _syncPinnedListAdd(String messageId) {
+    try {
+      final pinnedStore = ref.read(pinnedMessagesStoreProvider.notifier);
+      final msg = state.messages.where((m) => m.id == messageId).firstOrNull;
+      if (msg != null) {
+        pinnedStore.addMessage(msg.copyWith(isPinned: true));
+      }
+    } on StateError {
+      // PinnedMessagesStore not alive (page closed) — nothing to sync.
+    }
+  }
+
+  /// Sync a pinned message removal from the [PinnedMessagesStore] if alive.
+  void _syncPinnedListRemove(String messageId) {
+    try {
+      ref.read(pinnedMessagesStoreProvider.notifier).removeMessage(messageId);
+    } on StateError {
+      // PinnedMessagesStore not alive (page closed) — nothing to sync.
+    }
   }
 
   bool _isCurrentRequest(
@@ -899,6 +932,12 @@ class ConversationDetailStore
     }
 
     _togglePinLocally(pinned.id, isPinned: pinned.isPinned);
+    _persistSession();
+    if (pinned.isPinned) {
+      _syncPinnedListAdd(pinned.id);
+    } else {
+      _syncPinnedListRemove(pinned.id);
+    }
   }
 
   Future<void> _refreshFromCache(ConversationDetailTarget target) async {

@@ -1518,9 +1518,13 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(conversationDetailStoreProvider.notifier).load();
-      await container
-          .read(conversationDetailStoreProvider.notifier)
-          .pinMessage('message-1');
+
+      await expectLater(
+        container
+            .read(conversationDetailStoreProvider.notifier)
+            .pinMessage('message-1'),
+        throwsA(isA<ServerFailure>()),
+      );
 
       final state = container.read(conversationDetailStoreProvider);
       expect(state.messages[0].isPinned, isFalse);
@@ -1885,6 +1889,13 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
     required String emoji,
   }) async {}
+
+  @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async {
+    return const [];
+  }
 
   @override
   Future<void> removeStoredMessage(
