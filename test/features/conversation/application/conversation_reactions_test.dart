@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -465,6 +467,68 @@ void main() {
       expect(state.messages[1].reactions, isEmpty);
     });
   });
+
+  group('reaction cache persistence', () {
+    test('reactions survive cache restore after leaving and reopening',
+        () async {
+      final repository = _FakeConversationRepository(
+        snapshot: twoMessageSnapshot(),
+        newerPages: {
+          2: const ConversationMessagePage(
+            messages: [],
+            historyLimited: false,
+            hasOlder: false,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // First subscription — load and add reaction
+      final sub1 = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .addReaction('message-1', '🔥');
+
+      // Verify reaction applied
+      final stateBeforeClose = container.read(conversationDetailStoreProvider);
+      expect(stateBeforeClose.messages.first.reactions.length, 1);
+      expect(stateBeforeClose.messages.first.reactions.first.emoji, '🔥');
+
+      // Close subscription (simulate leaving conversation)
+      sub1.close();
+      await Future<void>.delayed(Duration.zero);
+
+      // Reopen — create new subscription
+      container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+
+      // Restored state should have the reaction from cache
+      final restoredState = container.read(conversationDetailStoreProvider);
+      expect(restoredState.status, ConversationDetailStatus.success);
+      expect(restoredState.messages.first.reactions.length, 1);
+      expect(restoredState.messages.first.reactions.first.emoji, '🔥');
+      expect(restoredState.messages.first.reactions.first.count, 1);
+      expect(restoredState.messages.first.reactions.first.userIds, ['user-1']);
+    });
+  });
 }
 
 class _FakeSessionStore extends SessionStore {
@@ -484,11 +548,13 @@ class _FakeConversationRepository implements ConversationRepository {
     required this.snapshot,
     this.addReactionFailure,
     this.removeReactionFailure,
+    this.newerPages = const {},
   });
 
   final ConversationDetailSnapshot snapshot;
   final AppFailure? addReactionFailure;
   final AppFailure? removeReactionFailure;
+  final Map<int, ConversationMessagePage> newerPages;
   final List<(String, String)> addedReactions = [];
   final List<(String, String)> removedReactions = [];
 
@@ -516,11 +582,12 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required int afterSeq,
   }) async {
-    return const ConversationMessagePage(
-      messages: [],
-      historyLimited: false,
-      hasOlder: false,
-    );
+    return newerPages[afterSeq] ??
+        const ConversationMessagePage(
+          messages: [],
+          historyLimited: false,
+          hasOlder: false,
+        );
   }
 
   @override
