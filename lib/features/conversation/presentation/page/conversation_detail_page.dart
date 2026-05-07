@@ -1017,6 +1017,8 @@ class _ConversationMessageCard extends ConsumerWidget {
     );
     final currentUserId =
         ref.watch(sessionStoreProvider.select((session) => session.userId));
+    final currentUserName = ref
+        .watch(sessionStoreProvider.select((session) => session.displayName));
     final isSaved = savedIds.contains(message.id);
     final visualKind =
         _resolveConversationMessageVisualKind(message, currentUserId);
@@ -1203,6 +1205,7 @@ class _ConversationMessageCard extends ConsumerWidget {
             highlightColor: colors.primaryLight,
             onLinkTap: (text, href, title) =>
                 _confirmAndLaunchUrl(context, href),
+            currentUserName: currentUserName,
           ),
           if (message.attachments != null && message.attachments!.isNotEmpty)
             _AttachmentSection(attachments: message.attachments!),

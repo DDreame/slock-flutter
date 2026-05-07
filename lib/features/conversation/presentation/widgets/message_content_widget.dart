@@ -3,6 +3,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/mention_syntax.dart';
 
 /// Public widget that renders message content, routing between
 /// Markdown rendering for non-system messages and plain italic
@@ -20,6 +21,7 @@ class MessageContentWidget extends StatelessWidget {
     this.baseStyle,
     this.highlightColor,
     this.onLinkTap,
+    this.currentUserName,
   });
 
   final ConversationMessageSummary message;
@@ -29,6 +31,9 @@ class MessageContentWidget extends StatelessWidget {
   final TextStyle? baseStyle;
   final Color? highlightColor;
   final void Function(String text, String? href, String title)? onLinkTap;
+
+  /// The current user's display name for self-mention highlighting.
+  final String? currentUserName;
 
   @override
   Widget build(BuildContext context) {
@@ -47,19 +52,31 @@ class MessageContentWidget extends StatelessWidget {
     if (isSystem) {
       if (highlightQuery.isNotEmpty) {
         return Text.rich(
-          _buildHighlightedSpan(
-            message.content,
-            highlightQuery,
-            effectiveBaseStyle,
-            highlightColor ?? colors.primaryLight,
+          buildMentionAwareSpan(
+            text: message.content,
+            baseStyle: effectiveBaseStyle,
+            mentionColor: colors.primary,
+            mentionBackground: colors.primary.withValues(alpha: 0.1),
+            selfMentionColor: colors.primaryForeground,
+            selfMentionBackground: colors.primary,
+            currentUserName: currentUserName,
+            highlightQuery: highlightQuery,
+            highlightColor: highlightColor ?? colors.primaryLight,
           ),
           key: const ValueKey('message-content'),
         );
       }
-      return Text(
-        message.content,
+      return Text.rich(
+        buildMentionAwareSpan(
+          text: message.content,
+          baseStyle: effectiveBaseStyle,
+          mentionColor: colors.primary,
+          mentionBackground: colors.primary.withValues(alpha: 0.1),
+          selfMentionColor: colors.primaryForeground,
+          selfMentionBackground: colors.primary,
+          currentUserName: currentUserName,
+        ),
         key: const ValueKey('message-content'),
-        style: effectiveBaseStyle,
       );
     }
 
@@ -68,11 +85,16 @@ class MessageContentWidget extends StatelessWidget {
     // (Markdown + highlight is not trivially composable).
     if (highlightQuery.isNotEmpty) {
       return Text.rich(
-        _buildHighlightedSpan(
-          message.content,
-          highlightQuery,
-          effectiveBaseStyle,
-          highlightColor ?? colors.primaryLight,
+        buildMentionAwareSpan(
+          text: message.content,
+          baseStyle: effectiveBaseStyle,
+          mentionColor: colors.primary,
+          mentionBackground: colors.primary.withValues(alpha: 0.1),
+          selfMentionColor: colors.primaryForeground,
+          selfMentionBackground: colors.primary,
+          currentUserName: currentUserName,
+          highlightQuery: highlightQuery,
+          highlightColor: highlightColor ?? colors.primaryLight,
         ),
         key: const ValueKey('message-content'),
       );
@@ -84,48 +106,7 @@ class MessageContentWidget extends StatelessWidget {
       kind: kind,
       baseStyle: effectiveBaseStyle,
       onLinkTap: onLinkTap,
+      currentUserName: currentUserName,
     );
   }
-}
-
-TextSpan _buildHighlightedSpan(
-  String text,
-  String query,
-  TextStyle? baseStyle,
-  Color highlightColor,
-) {
-  if (query.isEmpty) {
-    return TextSpan(text: text, style: baseStyle);
-  }
-
-  final lowerText = text.toLowerCase();
-  final lowerQuery = query.toLowerCase();
-  final spans = <InlineSpan>[];
-  var lastEnd = 0;
-
-  var index = lowerText.indexOf(lowerQuery);
-  while (index != -1) {
-    if (index > lastEnd) {
-      spans.add(
-          TextSpan(text: text.substring(lastEnd, index), style: baseStyle));
-    }
-    spans.add(TextSpan(
-      text: text.substring(index, index + query.length),
-      style: (baseStyle ?? const TextStyle()).copyWith(
-        backgroundColor: highlightColor,
-        fontWeight: FontWeight.bold,
-      ),
-    ));
-    lastEnd = index + query.length;
-    index = lowerText.indexOf(lowerQuery, lastEnd);
-  }
-
-  if (lastEnd < text.length) {
-    spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
-  }
-
-  if (spans.isEmpty) {
-    return TextSpan(text: text, style: baseStyle);
-  }
-  return TextSpan(children: spans);
 }
