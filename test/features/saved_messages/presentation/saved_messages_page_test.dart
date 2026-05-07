@@ -81,10 +81,10 @@ void main() {
     ) async {
       String? navigatedPath;
       final router = GoRouter(
-        initialLocation: '/servers/server-1/saved-messages',
+        initialLocation: '/servers/server-1/saved',
         routes: [
           GoRoute(
-            path: '/servers/:serverId/saved-messages',
+            path: '/servers/:serverId/saved',
             builder: (context, state) =>
                 SavedMessagesPage(serverId: state.pathParameters['serverId']!),
           ),
@@ -138,6 +138,73 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(navigatedPath, contains('messageId=msg-123'));
+    });
+
+    testWidgets('thread-saved message navigates to thread route with highlight',
+        (
+      tester,
+    ) async {
+      String? navigatedPath;
+      final router = GoRouter(
+        initialLocation: '/servers/server-1/saved',
+        routes: [
+          GoRoute(
+            path: '/servers/:serverId/saved',
+            builder: (context, state) =>
+                SavedMessagesPage(serverId: state.pathParameters['serverId']!),
+          ),
+          GoRoute(
+            path: '/servers/:serverId/threads/:threadId/replies',
+            builder: (context, state) {
+              navigatedPath = state.uri.toString();
+              return Scaffold(
+                body: Text('thread: ${state.uri}'),
+              );
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            savedMessagesRepositoryProvider.overrideWithValue(
+              _FakeSavedMessagesRepository(
+                saved_data.SavedMessagesPage(
+                  items: [
+                    saved_data.SavedMessageItem(
+                      message: ConversationMessageSummary(
+                        id: 'reply-456',
+                        content: 'Thread reply content',
+                        createdAt: DateTime(2026, 4, 21),
+                        senderType: 'human',
+                        messageType: 'message',
+                      ),
+                      channelId: 'general',
+                      channelName: 'general',
+                      threadId: 'parent-msg-789',
+                    ),
+                  ],
+                  hasMore: false,
+                ),
+              ),
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: AppTheme.light,
+            routerConfig: router,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('saved-message-reply-456')));
+      await tester.pumpAndSettle();
+
+      expect(navigatedPath, contains('threads/parent-msg-789/replies'));
+      expect(navigatedPath, contains('messageId=reply-456'));
+      expect(navigatedPath, contains('channelId=general'));
     });
 
     testWidgets('DM surface shows DM label instead of channel name', (

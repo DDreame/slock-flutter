@@ -8,6 +8,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_state.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_store.dart';
 import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
 
 class SavedMessagesPage extends StatelessWidget {
   const SavedMessagesPage({super.key, required this.serverId});
@@ -191,6 +192,20 @@ class _SavedMessagesList extends ConsumerWidget {
     final serverId = ProviderScope.containerOf(
       context,
     ).read(currentSavedMessagesServerIdProvider).value;
+
+    // Thread replies navigate to the thread context.
+    if (item.threadId != null && item.threadId!.isNotEmpty) {
+      final target = ThreadRouteTarget(
+        serverId: serverId,
+        parentChannelId: item.channelId,
+        parentMessageId: item.threadId!,
+        highlightMessageId: item.message.id,
+      );
+      context.push(target.toLocation());
+      return;
+    }
+
+    // Channel/DM messages navigate to the conversation with highlight.
     final segment = item.surface == 'direct_message' ? 'dms' : 'channels';
     context.push(
       '/servers/$serverId/$segment/${item.channelId}'

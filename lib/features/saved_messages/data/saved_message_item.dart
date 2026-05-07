@@ -9,6 +9,7 @@ class SavedMessageItem {
     this.channelName,
     this.surface,
     this.savedAt,
+    this.threadId,
   });
 
   final ConversationMessageSummary message;
@@ -16,6 +17,10 @@ class SavedMessageItem {
   final String? channelName;
   final String? surface;
   final DateTime? savedAt;
+
+  /// The parent message ID when this saved message is a thread reply.
+  /// When non-null, navigation should land in the thread context.
+  final String? threadId;
 
   @override
   bool operator ==(Object other) {
@@ -26,12 +31,13 @@ class SavedMessageItem {
             channelId == other.channelId &&
             channelName == other.channelName &&
             surface == other.surface &&
-            savedAt == other.savedAt;
+            savedAt == other.savedAt &&
+            threadId == other.threadId;
   }
 
   @override
   int get hashCode =>
-      Object.hash(message, channelId, channelName, surface, savedAt);
+      Object.hash(message, channelId, channelName, surface, savedAt, threadId);
 }
 
 @immutable
