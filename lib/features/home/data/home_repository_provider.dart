@@ -382,12 +382,14 @@ List<HomeDirectMessageSummary> _parseDirectMessageSummaries(
       ),
     );
     final lastMessage = _parseLastMessage(item['lastMessage']);
+    final peerType = item['peerType'];
     return HomeDirectMessageSummary(
       scopeId: scopeId,
       title: resolveDirectMessageTitle(item) ?? scopeId.value,
       lastMessageId: lastMessage?.id,
       lastMessagePreview: lastMessage?.content,
       lastActivityAt: lastMessage?.createdAt,
+      isAgent: peerType == 'agent',
     );
   }, growable: false);
 }

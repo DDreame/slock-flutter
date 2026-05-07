@@ -99,6 +99,12 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
         if (agent.isActive) agent.label,
     };
 
+    // Build all-agent name lookup for AGENT badge.
+    final allAgentNames = <String>{
+      for (final agent in state.agents) agent.label,
+      for (final agent in state.pinnedAgents) agent.label,
+    };
+
     // Combine pinned + unpinned DMs.
     final allDms = [
       ...state.pinnedDirectMessages,
@@ -184,6 +190,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             dm: dm,
             isPinned: pinnedIds.contains(dm.scopeId.value),
             isOnline: onlineAgentNames.contains(dm.title),
+            isAgent: dm.isAgent || allAgentNames.contains(dm.title),
             homeStore: homeStore,
             unreadState: unreadState,
             unreadStore: unreadStore,
@@ -230,6 +237,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     required HomeDirectMessageSummary dm,
     required bool isPinned,
     required bool isOnline,
+    required bool isAgent,
     required HomeListStore homeStore,
     required ChannelUnreadState unreadState,
     required ChannelUnreadStore unreadStore,
@@ -242,6 +250,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       unreadCount: unreadState.dmUnreadCount(dm.scopeId),
       isPinned: isPinned,
       isOnline: isOnline,
+      isAgent: isAgent,
       onTap: () {
         ref.read(markDmReadUseCaseProvider)(dm.scopeId);
         context.push(homeStore.directMessageRoutePath(dm.scopeId));
