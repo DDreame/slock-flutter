@@ -251,6 +251,7 @@ class ConversationMessageSummary {
     this.linkedTaskId,
     this.linkedTask,
     this.isPinned = false,
+    this.isDeleted = false,
   });
 
   final String id;
@@ -267,6 +268,7 @@ class ConversationMessageSummary {
   final String? linkedTaskId;
   final ConversationLinkedTaskSummary? linkedTask;
   final bool isPinned;
+  final bool isDeleted;
 
   bool get isSystem => messageType == 'system';
 
@@ -286,6 +288,7 @@ class ConversationMessageSummary {
     String? linkedTaskId,
     ConversationLinkedTaskSummary? linkedTask,
     bool? isPinned,
+    bool? isDeleted,
   }) {
     return ConversationMessageSummary(
       id: id,
@@ -302,6 +305,7 @@ class ConversationMessageSummary {
       linkedTaskId: linkedTaskId ?? this.linkedTaskId,
       linkedTask: linkedTask ?? this.linkedTask,
       isPinned: isPinned ?? this.isPinned,
+      isDeleted: isDeleted ?? this.isDeleted,
     );
   }
 
@@ -323,7 +327,8 @@ class ConversationMessageSummary {
             replyCount == other.replyCount &&
             linkedTaskId == other.linkedTaskId &&
             linkedTask == other.linkedTask &&
-            isPinned == other.isPinned;
+            isPinned == other.isPinned &&
+            isDeleted == other.isDeleted;
   }
 
   @override
@@ -342,6 +347,7 @@ class ConversationMessageSummary {
         linkedTaskId,
         linkedTask,
         isPinned,
+        isDeleted,
       );
 
   static bool _listEquals<T>(List<T>? a, List<T>? b) {

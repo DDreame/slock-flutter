@@ -1013,6 +1013,27 @@ class _ConversationMessageCard extends ConsumerWidget {
     final timestamp = formatRelativeTime(message.createdAt);
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
+
+    // Deleted messages render as a greyed placeholder with no interactions.
+    if (message.isDeleted) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        child: Align(
+          alignment: Alignment.center,
+          child: Text(
+            '[Message deleted]',
+            style: AppTypography.body.copyWith(
+              color: colors.textSecondary,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ),
+      );
+    }
+
     final savedIds = ref.watch(
       conversationDetailStoreProvider.select((s) => s.savedMessageIds),
     );

@@ -397,7 +397,9 @@ void main() {
           find.byKey(const ValueKey('delete-message-confirm')), findsOneWidget);
     });
 
-    testWidgets('Confirming delete removes message', (tester) async {
+    testWidgets(
+        'Confirming delete marks message as deleted and shows placeholder',
+        (tester) async {
       final repository = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
           target: target,
@@ -437,6 +439,109 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(repository.deletedMessageIds, ['msg-1']);
+      // Message row replaced with placeholder
+      expect(find.text('[Message deleted]'), findsOneWidget);
+      // Success snackbar shown
+      expect(find.text('Message deleted.'), findsOneWidget);
+    });
+
+    testWidgets('Delete failure shows error snackbar, not success', (
+      tester,
+    ) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: 'Alice',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'Cannot delete this',
+              createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+              senderType: 'human',
+              senderId: 'current-user',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        deleteFailure: const ServerFailure(
+          message: 'Forbidden.',
+          statusCode: 403,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          sessionState: const SessionState(userId: 'current-user'),
+          child: ConversationDetailPage(target: target),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('message-action-delete')));
+      await tester.pumpAndSettle();
+
+      // Confirm deletion
+      await tester.tap(find.byKey(const ValueKey('delete-message-confirm')));
+      await tester.pumpAndSettle();
+
+      // Should show failure snackbar (not success)
+      expect(find.text('Forbidden.'), findsOneWidget);
+      expect(find.text('Message deleted.'), findsNothing);
+      // Message content is still visible (reverted)
+      expect(find.text('Cannot delete this'), findsOneWidget);
+      expect(find.text('[Message deleted]'), findsNothing);
+    });
+
+    testWidgets('Deleted message shows no context menu on long press', (
+      tester,
+    ) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: 'Alice',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'Deleted already',
+              createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+              senderType: 'human',
+              senderId: 'current-user',
+              messageType: 'message',
+              seq: 1,
+              isDeleted: true,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          sessionState: const SessionState(userId: 'current-user'),
+          child: ConversationDetailPage(target: target),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Deleted message renders as placeholder
+      expect(find.text('[Message deleted]'), findsOneWidget);
+      expect(find.text('Deleted already'), findsNothing);
+
+      // Long-pressing the placeholder should NOT open context menu
+      await tester.longPress(find.text('[Message deleted]'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('message-action-edit')), findsNothing);
+      expect(find.byKey(const ValueKey('message-action-delete')), findsNothing);
+      expect(find.byKey(const ValueKey('message-action-copy')), findsNothing);
     });
 
     testWidgets('Cancelling delete keeps message', (tester) async {
@@ -518,10 +623,12 @@ class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({
     required this.snapshot,
     this.editFailure,
+    this.deleteFailure,
   });
 
   final ConversationDetailSnapshot snapshot;
   final AppFailure? editFailure;
+  final AppFailure? deleteFailure;
   final Map<String, String> editedMessages = {};
   final List<String> deletedMessageIds = [];
 
@@ -611,6 +718,9 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
   }) async {
     deletedMessageIds.add(messageId);
+    if (deleteFailure != null) {
+      throw deleteFailure!;
+    }
   }
 
   @override

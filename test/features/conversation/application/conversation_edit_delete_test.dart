@@ -70,7 +70,7 @@ void main() {
       expect(repository.editedMessages, {'message-1': 'Updated content'});
     });
 
-    test('reverts content on API failure', () async {
+    test('reverts content on API failure and rethrows', () async {
       const failure = ServerFailure(
         message: 'Forbidden.',
         statusCode: 403,
@@ -88,9 +88,13 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(conversationDetailStoreProvider.notifier).load();
-      await container
-          .read(conversationDetailStoreProvider.notifier)
-          .editMessage('message-1', 'Will revert');
+
+      await expectLater(
+        container
+            .read(conversationDetailStoreProvider.notifier)
+            .editMessage('message-1', 'Will revert'),
+        throwsA(isA<ServerFailure>()),
+      );
 
       final state = container.read(conversationDetailStoreProvider);
       expect(state.messages.first.content, 'Original content');
@@ -230,7 +234,7 @@ void main() {
   });
 
   group('deleteMessage', () {
-    test('removes message from state and calls repo', () async {
+    test('marks message as deleted and calls repo', () async {
       final repository = _FakeConversationRepository(
         snapshot: _twoMessageSnapshot(),
       );
@@ -248,11 +252,13 @@ void main() {
           .deleteMessage('message-1');
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.map((m) => m.id), ['message-2']);
+      expect(state.messages.length, 2);
+      expect(state.messages.first.isDeleted, isTrue);
+      expect(state.messages.last.isDeleted, isFalse);
       expect(repository.deletedMessageIds, ['message-1']);
     });
 
-    test('reverts on failure', () async {
+    test('reverts on failure and rethrows', () async {
       const failure = ServerFailure(
         message: 'Forbidden.',
         statusCode: 403,
@@ -270,15 +276,20 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(conversationDetailStoreProvider.notifier).load();
-      await container
-          .read(conversationDetailStoreProvider.notifier)
-          .deleteMessage('message-1');
+
+      await expectLater(
+        container
+            .read(conversationDetailStoreProvider.notifier)
+            .deleteMessage('message-1'),
+        throwsA(isA<ServerFailure>()),
+      );
 
       final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages.first.isDeleted, isFalse);
       expect(state.messages.map((m) => m.id), ['message-1', 'message-2']);
     });
 
-    test('message:deleted realtime event removes message', () async {
+    test('message:deleted realtime event marks message as deleted', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
         snapshot: _twoMessageSnapshot(),
@@ -317,7 +328,9 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.map((m) => m.id), ['message-2']);
+      expect(state.messages.length, 2);
+      expect(state.messages.first.isDeleted, isTrue);
+      expect(state.messages.last.isDeleted, isFalse);
     });
   });
 }

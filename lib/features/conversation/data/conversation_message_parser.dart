@@ -73,6 +73,8 @@ ConversationMessageSummary parseConversationMessageSummary(
         linkedTask?.id,
     linkedTask: linkedTask,
     isPinned: item['isPinned'] == true,
+    isDeleted: item['isDeleted'] == true ||
+        readOptionalConversationPayloadString(item['deletedAt']) != null,
   );
 }
 
