@@ -113,12 +113,13 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       // Fall back to direct URL if available (preserves old behavior).
       if (mounted) {
         if (att.url != null) {
-          setState(() {
-            _signedUrl = att.url;
-            _loading = false;
-          });
+          setState(() => _signedUrl = att.url);
           if (_isPdf) {
+            // Keep _loading true so the spinner stays visible while
+            // the fallback PDF download completes.
             await _downloadPdf(att.url!);
+          } else {
+            setState(() => _loading = false);
           }
         } else {
           setState(() {
@@ -130,12 +131,11 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
     } catch (_) {
       if (mounted) {
         if (att.url != null) {
-          setState(() {
-            _signedUrl = att.url;
-            _loading = false;
-          });
+          setState(() => _signedUrl = att.url);
           if (_isPdf) {
             await _downloadPdf(att.url!);
+          } else {
+            setState(() => _loading = false);
           }
         } else {
           setState(() {

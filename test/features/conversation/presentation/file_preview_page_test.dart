@@ -288,6 +288,41 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      'PDF falls back to direct url without flashing error when signed URL fails',
+      (tester) async {
+        final attachment = const MessageAttachment(
+          name: 'report.pdf',
+          type: 'application/pdf',
+          id: 'att-pdf-fallback',
+          url: 'https://direct.example.com/report.pdf',
+        );
+
+        await tester.pumpWidget(
+          _buildApp(
+            attachment: attachment,
+            fakeRepo: _FakeAttachmentRepository(shouldFail: true),
+          ),
+        );
+
+        // After one pump the signed-URL failure fires and the fallback
+        // branch starts _downloadPdf. _loading must still be true so
+        // the spinner keeps showing — NOT the "PDF file not available."
+        // error that appeared when _loading was set false too early.
+        await tester.pump();
+
+        expect(
+          find.text('PDF file not available.'),
+          findsNothing,
+        );
+        // Should still be in a loading or download-attempt state
+        expect(
+          find.byKey(const ValueKey('file-preview-loading')),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('FilePreviewPage page structure', () {
