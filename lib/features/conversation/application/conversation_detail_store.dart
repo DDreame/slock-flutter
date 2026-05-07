@@ -931,6 +931,8 @@ class ConversationDetailStore
       _persistSession();
     } on AppFailure {
       // Fail-soft: keep cached window as-is.
+    } on StateError {
+      // Provider container was disposed while refresh was pending.
     }
   }
 

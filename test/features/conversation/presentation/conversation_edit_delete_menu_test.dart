@@ -442,6 +442,9 @@ void main() {
 
       await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
       await tester.pumpAndSettle();
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('message-action-delete')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('message-action-delete')));
       await tester.pumpAndSettle();
 
@@ -484,6 +487,9 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await tester.pumpAndSettle();
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('message-action-delete')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('message-action-delete')));
       await tester.pumpAndSettle();
@@ -536,6 +542,9 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await tester.pumpAndSettle();
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('message-action-delete')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('message-action-delete')));
       await tester.pumpAndSettle();
@@ -629,6 +638,9 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await tester.pumpAndSettle();
+      await tester
+          .ensureVisible(find.byKey(const ValueKey('message-action-delete')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('message-action-delete')));
       await tester.pumpAndSettle();
