@@ -21,6 +21,11 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
+import 'package:slock_app/core/auth/biometric_service.dart';
+import 'package:slock_app/stores/biometric/biometric_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 import '../../stores/session/session_store_persistence_test.dart'
     show FakeAuthRepository;
@@ -66,6 +71,7 @@ void main() {
 
     const expectedRoutes = [
       '/splash',
+      '/biometric-lock',
       '/login',
       '/register',
       '/forgot-password',
@@ -1690,6 +1696,185 @@ void main() {
       );
     });
   });
+
+  group('biometric lock redirect', () {
+    late SharedPreferences biometricPrefs;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      biometricPrefs = await SharedPreferences.getInstance();
+    });
+
+    testWidgets(
+      'authenticated + biometric locked redirects to /biometric-lock',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            biometricServiceProvider.overrideWithValue(
+              _FakeBiometricService(),
+            ),
+            sharedPreferencesProvider.overrideWithValue(biometricPrefs),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(appReadyProvider.notifier).state = true;
+
+        // Enable biometric — this also locks.
+        await container.read(biometricStoreProvider.notifier).setEnabled(true);
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          '/biometric-lock',
+        );
+      },
+    );
+
+    testWidgets(
+      'authenticated + biometric not locked does not redirect',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            biometricServiceProvider.overrideWithValue(
+              _FakeBiometricService(),
+            ),
+            sharedPreferencesProvider.overrideWithValue(biometricPrefs),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(appReadyProvider.notifier).state = true;
+
+        // Biometric is disabled (default) — should not lock.
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(router.routeInformationProvider.value.uri.path, '/home');
+      },
+    );
+
+    testWidgets(
+      'unlocking biometric redirects from /biometric-lock to /home',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            biometricServiceProvider.overrideWithValue(
+              _FakeBiometricService(),
+            ),
+            sharedPreferencesProvider.overrideWithValue(biometricPrefs),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        container.read(appReadyProvider.notifier).state = true;
+
+        // Enable and lock.
+        await container.read(biometricStoreProvider.notifier).setEnabled(true);
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          '/biometric-lock',
+        );
+
+        // Simulate successful biometric auth — unlock.
+        container.read(biometricStoreProvider.notifier).unlock();
+        await tester.pumpAndSettle();
+
+        expect(router.routeInformationProvider.value.uri.path, '/home');
+      },
+    );
+
+    testWidgets(
+      'biometric lock does not interfere with unauthenticated flow',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            biometricServiceProvider.overrideWithValue(
+              _FakeBiometricService(),
+            ),
+            sharedPreferencesProvider.overrideWithValue(biometricPrefs),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(sessionStoreProvider.notifier).restoreSession();
+        container.read(appReadyProvider.notifier).state = true;
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Unauthenticated should go to login, not biometric-lock.
+        expect(router.routeInformationProvider.value.uri.path, '/login');
+      },
+    );
+  });
 }
 
 class _StallingSplashController extends SplashController {
@@ -1723,4 +1908,18 @@ class _FakeServerListRepository implements ServerListRepository {
 
   @override
   Future<List<ServerSummary>> loadServers() async => _servers;
+}
+
+class _FakeBiometricService implements BiometricService {
+  BiometricAuthResult authResult = BiometricAuthResult.cancelled;
+
+  @override
+  Future<bool> isAvailable() async => true;
+
+  @override
+  Future<BiometricAuthResult> authenticate({
+    required String localizedReason,
+  }) async {
+    return authResult;
+  }
 }
