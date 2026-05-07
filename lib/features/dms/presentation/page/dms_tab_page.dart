@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
@@ -248,23 +249,32 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     required ChannelUnreadState unreadState,
     required ChannelUnreadStore unreadStore,
   }) {
+    final unreadCount = unreadState.dmUnreadCount(dm.scopeId);
+
     // Move actions are suppressed in this tab because the unread-first
     // merged view does not match the persisted sidebar order.
-    return HomeDirectMessageRow(
-      key: ValueKey('dms-tab-${dm.scopeId.routeParam}'),
-      directMessage: dm,
-      unreadCount: unreadState.dmUnreadCount(dm.scopeId),
-      isPinned: isPinned,
-      isOnline: isOnline,
-      isAgent: isAgent,
-      onTap: () {
+    return SwipeToMarkRead(
+      itemKey: dm.scopeId.routeParam,
+      enabled: unreadCount > 0,
+      onMarkRead: () {
         ref.read(markDmReadUseCaseProvider)(dm.scopeId);
-        context.push(homeStore.directMessageRoutePath(dm.scopeId));
       },
-      onTogglePin: () => isPinned
-          ? homeStore.unpinDirectMessage(dm.scopeId)
-          : homeStore.pinDirectMessage(dm.scopeId),
-      onHide: () => homeStore.hideDm(dm.scopeId),
+      child: HomeDirectMessageRow(
+        key: ValueKey('dms-tab-${dm.scopeId.routeParam}'),
+        directMessage: dm,
+        unreadCount: unreadCount,
+        isPinned: isPinned,
+        isOnline: isOnline,
+        isAgent: isAgent,
+        onTap: () {
+          ref.read(markDmReadUseCaseProvider)(dm.scopeId);
+          context.push(homeStore.directMessageRoutePath(dm.scopeId));
+        },
+        onTogglePin: () => isPinned
+            ? homeStore.unpinDirectMessage(dm.scopeId)
+            : homeStore.pinDirectMessage(dm.scopeId),
+        onHide: () => homeStore.hideDm(dm.scopeId),
+      ),
     );
   }
 

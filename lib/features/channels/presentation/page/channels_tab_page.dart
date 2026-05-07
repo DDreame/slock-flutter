@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
@@ -210,25 +211,34 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     required ChannelUnreadStore unreadStore,
     required ChannelManagementState managementState,
   }) {
+    final unreadCount = unreadState.channelUnreadCount(channel.scopeId);
+
     // Move actions are suppressed in this tab because the unread-first
     // merged view does not match the persisted sidebar order that
     // moveChannel() / movePinnedConversation() operate on.
-    return HomeChannelRow(
-      key: ValueKey('channels-tab-${channel.scopeId.routeParam}'),
-      channel: channel,
-      unreadCount: unreadState.channelUnreadCount(channel.scopeId),
-      isPinned: isPinned,
-      isMutating: managementState.isBusy,
-      onTap: () {
+    return SwipeToMarkRead(
+      itemKey: channel.scopeId.routeParam,
+      enabled: unreadCount > 0,
+      onMarkRead: () {
         ref.read(markChannelReadUseCaseProvider)(channel.scopeId);
-        context.push(homeStore.channelRoutePath(channel.scopeId));
       },
-      onEdit: () => _showEditChannelDialog(channel),
-      onDelete: () => _showDeleteChannelDialog(channel),
-      onLeave: () => _showLeaveChannelDialog(channel),
-      onTogglePin: () => isPinned
-          ? homeStore.unpinChannel(channel.scopeId)
-          : homeStore.pinChannel(channel.scopeId),
+      child: HomeChannelRow(
+        key: ValueKey('channels-tab-${channel.scopeId.routeParam}'),
+        channel: channel,
+        unreadCount: unreadCount,
+        isPinned: isPinned,
+        isMutating: managementState.isBusy,
+        onTap: () {
+          ref.read(markChannelReadUseCaseProvider)(channel.scopeId);
+          context.push(homeStore.channelRoutePath(channel.scopeId));
+        },
+        onEdit: () => _showEditChannelDialog(channel),
+        onDelete: () => _showDeleteChannelDialog(channel),
+        onLeave: () => _showLeaveChannelDialog(channel),
+        onTogglePin: () => isPinned
+            ? homeStore.unpinChannel(channel.scopeId)
+            : homeStore.pinChannel(channel.scopeId),
+      ),
     );
   }
 
