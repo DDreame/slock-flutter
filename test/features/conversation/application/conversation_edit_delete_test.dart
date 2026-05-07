@@ -1,10 +1,7 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -18,7 +15,7 @@ void main() {
     ),
   );
 
-  ConversationDetailSnapshot _twoMessageSnapshot() {
+  ConversationDetailSnapshot twoMessageSnapshot() {
     return ConversationDetailSnapshot(
       target: target,
       title: '#general',
@@ -50,7 +47,7 @@ void main() {
   group('editMessage', () {
     test('optimistically updates message content and calls API', () async {
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
       );
       final container = ProviderContainer(
         overrides: [
@@ -76,7 +73,7 @@ void main() {
         statusCode: 403,
       );
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
         editFailure: failure,
       );
       final container = ProviderContainer(
@@ -102,7 +99,7 @@ void main() {
 
     test('does nothing when state is not success', () async {
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
       );
       final container = ProviderContainer(
         overrides: [
@@ -122,7 +119,7 @@ void main() {
 
     test('does nothing when message id not found', () async {
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
       );
       final container = ProviderContainer(
         overrides: [
@@ -145,7 +142,7 @@ void main() {
     test('updates message content from realtime event', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
       );
       final container = ProviderContainer(
         overrides: [
@@ -173,7 +170,7 @@ void main() {
         scopeKey: 'general',
         seq: 10,
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'id': 'message-1',
           'channelId': 'general',
           'content': 'Remotely edited',
@@ -191,7 +188,7 @@ void main() {
     test('ignores event for different channel', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
       );
       final container = ProviderContainer(
         overrides: [
@@ -218,7 +215,7 @@ void main() {
         scopeKey: 'other-channel',
         seq: 10,
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'id': 'message-1',
           'channelId': 'other-channel',
           'content': 'Should not apply',
@@ -236,7 +233,7 @@ void main() {
   group('deleteMessage', () {
     test('marks message as deleted and calls repo', () async {
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
       );
       final container = ProviderContainer(
         overrides: [
@@ -264,7 +261,7 @@ void main() {
         statusCode: 403,
       );
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
         deleteFailure: failure,
       );
       final container = ProviderContainer(
@@ -292,7 +289,7 @@ void main() {
     test('message:deleted realtime event marks message as deleted', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
-        snapshot: _twoMessageSnapshot(),
+        snapshot: twoMessageSnapshot(),
       );
       final container = ProviderContainer(
         overrides: [
@@ -319,7 +316,7 @@ void main() {
         scopeKey: 'general',
         seq: 10,
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'id': 'message-1',
           'channelId': 'general',
         },

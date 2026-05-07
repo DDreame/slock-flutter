@@ -323,4 +323,15 @@ class _FakeDioClient implements AppDioClient {
   }) async {
     return request<T>(path, method: 'DELETE', data: data);
   }
+
+  @override
+  Future<Response<T>> patch<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
+    Options? options,
+  }) async {
+    return request<T>(path, method: 'PATCH', data: data);
+  }
 }

@@ -634,7 +634,7 @@ class ConversationDetailStore
       final repo = ref.read(conversationRepositoryProvider);
       await repo.editMessage(target, messageId: messageId, content: newContent);
       _persistSession();
-    } on AppFailure catch (e) {
+    } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(messages: previousMessages);
       rethrow;
