@@ -1116,6 +1116,127 @@ void main() {
       throwsA(same(failure)),
     );
   });
+
+  test('addReaction sends POST with correct path, body, and server header',
+      () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/channels/general/messages/message-1/reactions': null,
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    await repository.addReaction(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      messageId: 'message-1',
+      emoji: '👍',
+    );
+
+    expect(appDioClient.requests.length, 1);
+    final request = appDioClient.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/channels/general/messages/message-1/reactions');
+    expect(request.data, {'emoji': '👍'});
+    expect(request.serverIdHeader, 'server-1');
+  });
+
+  test('removeReaction sends DELETE with correct path and server header',
+      () async {
+    final appDioClient = _FakeAppDioClient(
+      responses: {
+        '/channels/general/messages/message-1/reactions/👍': null,
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    await repository.removeReaction(
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'general',
+        ),
+      ),
+      messageId: 'message-1',
+      emoji: '👍',
+    );
+
+    expect(appDioClient.requests.length, 1);
+    final request = appDioClient.requests.single;
+    expect(request.method, 'DELETE');
+    expect(request.path, '/channels/general/messages/message-1/reactions/👍');
+    expect(request.serverIdHeader, 'server-1');
+  });
+
+  test('addReaction rethrows AppFailure from transport', () async {
+    const failure = ServerFailure(
+      message: 'Not Found.',
+      statusCode: 404,
+    );
+    final appDioClient = _FakeAppDioClient(
+      failures: {
+        '/channels/general/messages/message-1/reactions': failure,
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    await expectLater(
+      repository.addReaction(
+        ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+        messageId: 'message-1',
+        emoji: '👍',
+      ),
+      throwsA(same(failure)),
+    );
+  });
+
+  test('removeReaction rethrows AppFailure from transport', () async {
+    const failure = ServerFailure(
+      message: 'Not Found.',
+      statusCode: 404,
+    );
+    final appDioClient = _FakeAppDioClient(
+      failures: {
+        '/channels/general/messages/message-1/reactions/👍': failure,
+      },
+    );
+    final container = _createContainer(appDioClient);
+    addTearDown(container.dispose);
+
+    final repository = container.read(conversationRepositoryProvider);
+
+    await expectLater(
+      repository.removeReaction(
+        ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
+          ),
+        ),
+        messageId: 'message-1',
+        emoji: '👍',
+      ),
+      throwsA(same(failure)),
+    );
+  });
 }
 
 class _FakeAppDioClient extends AppDioClient {

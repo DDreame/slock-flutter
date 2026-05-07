@@ -1332,6 +1332,11 @@ class _ConversationMessageCard extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(width: double.infinity, child: bubble),
+                    _ReactionRow(
+                      reactions: message.reactions,
+                      messageId: message.id,
+                      currentUserId: ref.watch(sessionStoreProvider).userId,
+                    ),
                     threadIndicator,
                   ],
                 ),
@@ -1346,6 +1351,11 @@ class _ConversationMessageCard extends ConsumerWidget {
                     children: [
                       senderLabelWidget,
                       bubble,
+                      _ReactionRow(
+                        reactions: message.reactions,
+                        messageId: message.id,
+                        currentUserId: ref.watch(sessionStoreProvider).userId,
+                      ),
                       threadIndicator,
                     ],
                   ),
@@ -1368,98 +1378,110 @@ class _ConversationMessageCard extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isOwn)
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isOwn)
+                ListTile(
+                  key: const ValueKey('message-action-edit'),
+                  leading: const Icon(Icons.edit_outlined),
+                  title: const Text('Edit message'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _showEditDialog(context, ref);
+                  },
+                ),
               ListTile(
-                key: const ValueKey('message-action-edit'),
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit message'),
+                key: const ValueKey('message-action-react'),
+                leading: const Icon(Icons.emoji_emotions_outlined),
+                title: const Text('React'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _showEditDialog(context, ref);
+                  _showEmojiPicker(context, ref);
                 },
               ),
-            ListTile(
-              key: const ValueKey('message-action-copy'),
-              leading: const Icon(Icons.copy_outlined),
-              title: const Text('Copy text'),
-              onTap: () {
-                Navigator.of(context).pop();
-                Clipboard.setData(ClipboardData(text: message.content));
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                      const SnackBar(content: Text('Copied to clipboard.')));
-              },
-            ),
-            ListTile(
-              key: const ValueKey('message-action-save'),
-              leading:
-                  Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
-              title: Text(isSaved ? 'Unsave message' : 'Save message'),
-              onTap: () {
-                Navigator.of(context).pop();
-                ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .toggleSaveMessage(message.id);
-              },
-            ),
-            ListTile(
-              key: const ValueKey('message-action-pin'),
-              leading: Icon(
-                  message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
-              title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
-              onTap: () {
-                Navigator.of(context).pop();
-                final notifier =
-                    ref.read(conversationDetailStoreProvider.notifier);
-                if (message.isPinned) {
-                  notifier.unpinMessage(message.id);
-                } else {
-                  notifier.pinMessage(message.id);
-                }
-              },
-            ),
-            if (target.surface == ConversationSurface.channel)
               ListTile(
-                key: const ValueKey('message-action-reply-thread'),
-                leading: const Icon(Icons.forum_outlined),
-                title: const Text('Reply in thread'),
+                key: const ValueKey('message-action-copy'),
+                leading: const Icon(Icons.copy_outlined),
+                title: const Text('Copy text'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  context.push(
-                    ThreadRouteTarget(
-                      serverId: target.serverId.value,
-                      parentChannelId: target.conversationId,
-                      parentMessageId: message.id,
-                      threadChannelId: message.threadId,
-                    ).toLocation(),
-                  );
+                  Clipboard.setData(ClipboardData(text: message.content));
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                        const SnackBar(content: Text('Copied to clipboard.')));
                 },
               ),
-            if (target.surface == ConversationSurface.channel)
               ListTile(
-                key: const ValueKey('message-action-create-task'),
-                leading: const Icon(Icons.task_alt),
-                title: const Text('Create task'),
+                key: const ValueKey('message-action-save'),
+                leading:
+                    Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
+                title: Text(isSaved ? 'Unsave message' : 'Save message'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _convertMessageToTask(context, ref);
+                  ref
+                      .read(conversationDetailStoreProvider.notifier)
+                      .toggleSaveMessage(message.id);
                 },
               ),
-            if (isOwn)
               ListTile(
-                key: const ValueKey('message-action-delete'),
-                leading: const Icon(Icons.delete_outline),
-                title: const Text('Delete message'),
+                key: const ValueKey('message-action-pin'),
+                leading: Icon(message.isPinned
+                    ? Icons.push_pin
+                    : Icons.push_pin_outlined),
+                title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _confirmAndDeleteMessage(context, ref);
+                  final notifier =
+                      ref.read(conversationDetailStoreProvider.notifier);
+                  if (message.isPinned) {
+                    notifier.unpinMessage(message.id);
+                  } else {
+                    notifier.pinMessage(message.id);
+                  }
                 },
               ),
-          ],
+              if (target.surface == ConversationSurface.channel)
+                ListTile(
+                  key: const ValueKey('message-action-reply-thread'),
+                  leading: const Icon(Icons.forum_outlined),
+                  title: const Text('Reply in thread'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    context.push(
+                      ThreadRouteTarget(
+                        serverId: target.serverId.value,
+                        parentChannelId: target.conversationId,
+                        parentMessageId: message.id,
+                        threadChannelId: message.threadId,
+                      ).toLocation(),
+                    );
+                  },
+                ),
+              if (target.surface == ConversationSurface.channel)
+                ListTile(
+                  key: const ValueKey('message-action-create-task'),
+                  leading: const Icon(Icons.task_alt),
+                  title: const Text('Create task'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _convertMessageToTask(context, ref);
+                  },
+                ),
+              if (isOwn)
+                ListTile(
+                  key: const ValueKey('message-action-delete'),
+                  leading: const Icon(Icons.delete_outline),
+                  title: const Text('Delete message'),
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    _confirmAndDeleteMessage(context, ref);
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1477,6 +1499,29 @@ class _ConversationMessageCard extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _showEmojiPicker(BuildContext context, WidgetRef ref) async {
+    final emoji = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => const _EmojiPickerSheet(),
+    );
+    if (emoji == null || !context.mounted) return;
+
+    try {
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .addReaction(message.id, emoji);
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to add reaction.'),
+          ),
+        );
+    }
   }
 
   void _navigateToThread(BuildContext context) {
@@ -2407,6 +2452,186 @@ class _EditMessageDialogState extends State<_EditMessageDialog> {
           child: const Text('Save'),
         ),
       ],
+    );
+  }
+}
+
+/// Curated set of common reaction emojis.
+const _reactionEmojis = [
+  '👍',
+  '❤️',
+  '😂',
+  '😮',
+  '😢',
+  '🎉',
+  '🔥',
+  '👀',
+  '🙏',
+  '💯',
+  '✅',
+  '❌',
+  '👏',
+  '🤔',
+  '😍',
+  '🚀',
+  '💪',
+  '⭐',
+  '🤝',
+  '💡',
+];
+
+class _EmojiPickerSheet extends StatelessWidget {
+  const _EmojiPickerSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Text(
+                'React with emoji',
+                style: AppTypography.title,
+              ),
+            ),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: _reactionEmojis.map((emoji) {
+                return InkWell(
+                  key: ValueKey('emoji-$emoji'),
+                  onTap: () => Navigator.of(context).pop(emoji),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    child: Text(
+                      emoji,
+                      style: const TextStyle(fontSize: 28),
+                    ),
+                  ),
+                );
+              }).toList(growable: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReactionRow extends ConsumerWidget {
+  const _ReactionRow({
+    required this.reactions,
+    required this.messageId,
+    required this.currentUserId,
+  });
+
+  final List<MessageReaction> reactions;
+  final String messageId;
+  final String? currentUserId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (reactions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Wrap(
+        spacing: AppSpacing.xs,
+        runSpacing: AppSpacing.xs,
+        children: reactions.map((reaction) {
+          final isOwn =
+              currentUserId != null && reaction.reactedByUser(currentUserId!);
+          return _ReactionChip(
+            key: ValueKey('reaction-${reaction.emoji}'),
+            emoji: reaction.emoji,
+            count: reaction.count,
+            isOwn: isOwn,
+            colors: colors,
+            onTap: () async {
+              try {
+                await ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .toggleReaction(messageId, reaction.emoji);
+              } on AppFailure catch (failure) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content:
+                          Text(failure.message ?? 'Failed to update reaction.'),
+                    ),
+                  );
+              }
+            },
+          );
+        }).toList(growable: false),
+      ),
+    );
+  }
+}
+
+class _ReactionChip extends StatelessWidget {
+  const _ReactionChip({
+    super.key,
+    required this.emoji,
+    required this.count,
+    required this.isOwn,
+    required this.colors,
+    required this.onTap,
+  });
+
+  final String emoji;
+  final int count;
+  final bool isOwn;
+  final AppColors colors;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: isOwn
+              ? colors.primary.withValues(alpha: 0.15)
+              : colors.surfaceAlt,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          border: Border.all(
+            color: isOwn ? colors.primary : colors.border,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 4),
+            Text(
+              '$count',
+              style: AppTypography.caption.copyWith(
+                color: isOwn ? colors.primary : colors.textSecondary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

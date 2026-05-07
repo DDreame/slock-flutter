@@ -75,6 +75,7 @@ ConversationMessageSummary parseConversationMessageSummary(
     isPinned: item['isPinned'] == true,
     isDeleted: item['isDeleted'] == true ||
         readOptionalConversationPayloadString(item['deletedAt']) != null,
+    reactions: parseReactions(item['reactions']),
   );
 }
 
@@ -301,5 +302,78 @@ ConversationLinkedTaskSummary? _parseLinkedTask(Object? value) {
     taskNumber: taskNumber,
     status: status,
     claimedByName: readOptionalConversationPayloadString(map['claimedByName']),
+  );
+}
+
+/// Parses a list of reaction aggregates from the API payload.
+///
+/// Expected format: `[{"emoji": "👍", "count": 3, "userIds": ["u1", "u2", "u3"]}]`
+List<MessageReaction> parseReactions(Object? value) {
+  if (value is! List || value.isEmpty) {
+    return const [];
+  }
+  final results = <MessageReaction>[];
+  for (final item in value) {
+    if (item is! Map) continue;
+    final map =
+        item is Map<String, dynamic> ? item : Map<String, dynamic>.from(item);
+    final emoji = readOptionalConversationPayloadString(map['emoji']);
+    if (emoji == null) continue;
+    final count = readOptionalConversationPayloadInt(map['count']) ?? 1;
+    final rawUserIds = map['userIds'];
+    final userIds = <String>[];
+    if (rawUserIds is List) {
+      for (final uid in rawUserIds) {
+        final parsed = readOptionalConversationPayloadString(uid);
+        if (parsed != null) {
+          userIds.add(parsed);
+        }
+      }
+    }
+    results.add(MessageReaction(
+      emoji: emoji,
+      count: count,
+      userIds: userIds,
+    ));
+  }
+  return results;
+}
+
+class MessageReactionEventPayload {
+  const MessageReactionEventPayload({
+    required this.messageId,
+    required this.channelId,
+    required this.emoji,
+    required this.userId,
+  });
+
+  final String messageId;
+  final String channelId;
+  final String emoji;
+  final String userId;
+}
+
+MessageReactionEventPayload? tryParseReactionEventPayload(Object? payload) {
+  if (payload is! Map) {
+    return null;
+  }
+  final map = payload is Map<String, dynamic>
+      ? payload
+      : Map<String, dynamic>.from(payload);
+  final messageId = readOptionalConversationPayloadString(map['messageId']);
+  final channelId = readOptionalConversationPayloadString(map['channelId']);
+  final emoji = readOptionalConversationPayloadString(map['emoji']);
+  final userId = readOptionalConversationPayloadString(map['userId']);
+  if (messageId == null ||
+      channelId == null ||
+      emoji == null ||
+      userId == null) {
+    return null;
+  }
+  return MessageReactionEventPayload(
+    messageId: messageId,
+    channelId: channelId,
+    emoji: emoji,
+    userId: userId,
   );
 }

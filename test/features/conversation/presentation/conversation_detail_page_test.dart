@@ -1529,6 +1529,20 @@ class _FakeConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<void> addReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
   Future<void> removeStoredMessage(
     ConversationDetailTarget target, {
     required String messageId,
@@ -1664,6 +1678,20 @@ class _QueueConversationRepository implements ConversationRepository {
   }) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> addReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
 
   @override
   Future<void> removeStoredMessage(

@@ -115,6 +115,18 @@ abstract class ConversationRepository {
     required String messageId,
   });
 
+  Future<void> addReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  });
+
+  Future<void> removeReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  });
+
   Future<void> removeStoredMessage(
     ConversationDetailTarget target, {
     required String messageId,
@@ -235,6 +247,43 @@ class ConversationLinkedTaskSummary {
 }
 
 @immutable
+class MessageReaction {
+  const MessageReaction({
+    required this.emoji,
+    required this.count,
+    required this.userIds,
+  });
+
+  final String emoji;
+  final int count;
+  final List<String> userIds;
+
+  bool reactedByUser(String userId) => userIds.contains(userId);
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is MessageReaction &&
+            runtimeType == other.runtimeType &&
+            emoji == other.emoji &&
+            count == other.count &&
+            _listEquals(userIds, other.userIds);
+  }
+
+  @override
+  int get hashCode => Object.hash(emoji, count, Object.hashAll(userIds));
+
+  static bool _listEquals<T>(List<T> a, List<T> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+}
+
+@immutable
 class ConversationMessageSummary {
   const ConversationMessageSummary({
     required this.id,
@@ -252,6 +301,7 @@ class ConversationMessageSummary {
     this.linkedTask,
     this.isPinned = false,
     this.isDeleted = false,
+    this.reactions = const [],
   });
 
   final String id;
@@ -269,6 +319,7 @@ class ConversationMessageSummary {
   final ConversationLinkedTaskSummary? linkedTask;
   final bool isPinned;
   final bool isDeleted;
+  final List<MessageReaction> reactions;
 
   bool get isSystem => messageType == 'system';
 
@@ -289,6 +340,7 @@ class ConversationMessageSummary {
     ConversationLinkedTaskSummary? linkedTask,
     bool? isPinned,
     bool? isDeleted,
+    List<MessageReaction>? reactions,
   }) {
     return ConversationMessageSummary(
       id: id,
@@ -306,6 +358,7 @@ class ConversationMessageSummary {
       linkedTask: linkedTask ?? this.linkedTask,
       isPinned: isPinned ?? this.isPinned,
       isDeleted: isDeleted ?? this.isDeleted,
+      reactions: reactions ?? this.reactions,
     );
   }
 
@@ -328,7 +381,8 @@ class ConversationMessageSummary {
             linkedTaskId == other.linkedTaskId &&
             linkedTask == other.linkedTask &&
             isPinned == other.isPinned &&
-            isDeleted == other.isDeleted;
+            isDeleted == other.isDeleted &&
+            _listEquals(reactions, other.reactions);
   }
 
   @override
@@ -348,6 +402,7 @@ class ConversationMessageSummary {
         linkedTask,
         isPinned,
         isDeleted,
+        Object.hashAll(reactions),
       );
 
   static bool _listEquals<T>(List<T>? a, List<T>? b) {
