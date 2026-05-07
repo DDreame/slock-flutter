@@ -1332,6 +1332,11 @@ class _ConversationMessageCard extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     SizedBox(width: double.infinity, child: bubble),
+                    _ReactionRow(
+                      reactions: message.reactions,
+                      messageId: message.id,
+                      currentUserId: ref.watch(sessionStoreProvider).userId,
+                    ),
                     threadIndicator,
                   ],
                 ),
@@ -1346,6 +1351,11 @@ class _ConversationMessageCard extends ConsumerWidget {
                     children: [
                       senderLabelWidget,
                       bubble,
+                      _ReactionRow(
+                        reactions: message.reactions,
+                        messageId: message.id,
+                        currentUserId: ref.watch(sessionStoreProvider).userId,
+                      ),
                       threadIndicator,
                     ],
                   ),
@@ -1381,6 +1391,15 @@ class _ConversationMessageCard extends ConsumerWidget {
                   _showEditDialog(context, ref);
                 },
               ),
+            ListTile(
+              key: const ValueKey('message-action-react'),
+              leading: const Icon(Icons.emoji_emotions_outlined),
+              title: const Text('React'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showEmojiPicker(context, ref);
+              },
+            ),
             ListTile(
               key: const ValueKey('message-action-copy'),
               leading: const Icon(Icons.copy_outlined),
@@ -1477,6 +1496,19 @@ class _ConversationMessageCard extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  void _showEmojiPicker(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => const _EmojiPickerSheet(),
+    ).then((emoji) {
+      if (emoji != null) {
+        ref
+            .read(conversationDetailStoreProvider.notifier)
+            .addReaction(message.id, emoji);
+      }
+    });
   }
 
   void _navigateToThread(BuildContext context) {
@@ -2407,6 +2439,176 @@ class _EditMessageDialogState extends State<_EditMessageDialog> {
           child: const Text('Save'),
         ),
       ],
+    );
+  }
+}
+
+/// Curated set of common reaction emojis.
+const _reactionEmojis = [
+  '👍',
+  '❤️',
+  '😂',
+  '😮',
+  '😢',
+  '🎉',
+  '🔥',
+  '👀',
+  '🙏',
+  '💯',
+  '✅',
+  '❌',
+  '👏',
+  '🤔',
+  '😍',
+  '🚀',
+  '💪',
+  '⭐',
+  '🤝',
+  '💡',
+];
+
+class _EmojiPickerSheet extends StatelessWidget {
+  const _EmojiPickerSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Text(
+                'React with emoji',
+                style: AppTypography.title,
+              ),
+            ),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: _reactionEmojis.map((emoji) {
+                return InkWell(
+                  key: ValueKey('emoji-$emoji'),
+                  onTap: () => Navigator.of(context).pop(emoji),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    child: Text(
+                      emoji,
+                      style: const TextStyle(fontSize: 28),
+                    ),
+                  ),
+                );
+              }).toList(growable: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReactionRow extends ConsumerWidget {
+  const _ReactionRow({
+    required this.reactions,
+    required this.messageId,
+    required this.currentUserId,
+  });
+
+  final List<MessageReaction> reactions;
+  final String messageId;
+  final String? currentUserId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (reactions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
+      child: Wrap(
+        spacing: AppSpacing.xs,
+        runSpacing: AppSpacing.xs,
+        children: reactions.map((reaction) {
+          final isOwn =
+              currentUserId != null && reaction.reactedByUser(currentUserId!);
+          return _ReactionChip(
+            key: ValueKey('reaction-${reaction.emoji}'),
+            emoji: reaction.emoji,
+            count: reaction.count,
+            isOwn: isOwn,
+            colors: colors,
+            onTap: () {
+              ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .toggleReaction(messageId, reaction.emoji);
+            },
+          );
+        }).toList(growable: false),
+      ),
+    );
+  }
+}
+
+class _ReactionChip extends StatelessWidget {
+  const _ReactionChip({
+    super.key,
+    required this.emoji,
+    required this.count,
+    required this.isOwn,
+    required this.colors,
+    required this.onTap,
+  });
+
+  final String emoji;
+  final int count;
+  final bool isOwn;
+  final AppColors colors;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: isOwn
+              ? colors.primary.withValues(alpha: 0.15)
+              : colors.surfaceAlt,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+          border: Border.all(
+            color: isOwn ? colors.primary : colors.border,
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            if (count > 1) ...[
+              const SizedBox(width: 4),
+              Text(
+                '$count',
+                style: AppTypography.caption.copyWith(
+                  color: isOwn ? colors.primary : colors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

@@ -486,6 +486,49 @@ class _ApiConversationRepository implements ConversationRepository {
   }
 
   @override
+  Future<void> addReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_channelsPath/${target.conversationId}$_sendMessagePath/$messageId/reactions',
+        data: {'emoji': emoji},
+        options: _serverScopedOptions(target.serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to add reaction.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> removeReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {
+    try {
+      await _appDioClient.delete<Object?>(
+        '$_channelsPath/${target.conversationId}$_sendMessagePath/$messageId/reactions/$emoji',
+        options: _serverScopedOptions(target.serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to remove reaction.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
   Future<void> removeStoredMessage(
     ConversationDetailTarget target, {
     required String messageId,

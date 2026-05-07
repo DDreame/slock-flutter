@@ -6,6 +6,8 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   final target = ConversationDetailTarget.channel(
@@ -22,7 +24,7 @@ void main() {
       messages: [
         ConversationMessageSummary(
           id: 'message-1',
-          content: 'Original content',
+          content: 'Hello',
           createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
           senderType: 'human',
           senderId: 'user-1',
@@ -31,12 +33,15 @@ void main() {
         ),
         ConversationMessageSummary(
           id: 'message-2',
-          content: 'Second message',
+          content: 'World',
           createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
           senderType: 'human',
           senderId: 'user-2',
           messageType: 'message',
           seq: 2,
+          reactions: const [
+            MessageReaction(emoji: '👍', count: 1, userIds: ['user-2']),
+          ],
         ),
       ],
       historyLimited: false,
@@ -44,8 +49,8 @@ void main() {
     );
   }
 
-  group('editMessage', () {
-    test('optimistically updates message content and calls API', () async {
+  group('addReaction', () {
+    test('optimistically adds reaction and calls API', () async {
       final repository = _FakeConversationRepository(
         snapshot: twoMessageSnapshot(),
       );
@@ -53,6 +58,8 @@ void main() {
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
       addTearDown(container.dispose);
@@ -60,26 +67,58 @@ void main() {
       await container.read(conversationDetailStoreProvider.notifier).load();
       await container
           .read(conversationDetailStoreProvider.notifier)
-          .editMessage('message-1', 'Updated content');
+          .addReaction('message-1', '👍');
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.first.content, 'Updated content');
-      expect(repository.editedMessages, {'message-1': 'Updated content'});
+      expect(state.messages.first.reactions.length, 1);
+      expect(state.messages.first.reactions.first.emoji, '👍');
+      expect(state.messages.first.reactions.first.count, 1);
+      expect(state.messages.first.reactions.first.userIds, ['user-1']);
+      expect(repository.addedReactions, [('message-1', '👍')]);
     });
 
-    test('reverts content on API failure and rethrows', () async {
+    test('increments existing reaction count', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: twoMessageSnapshot(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      // message-2 already has 👍 from user-2
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .addReaction('message-2', '👍');
+
+      final state = container.read(conversationDetailStoreProvider);
+      final reaction = state.messages[1].reactions.first;
+      expect(reaction.emoji, '👍');
+      expect(reaction.count, 2);
+      expect(reaction.userIds, ['user-2', 'user-1']);
+    });
+
+    test('reverts on API failure and rethrows', () async {
       const failure = ServerFailure(
         message: 'Forbidden.',
         statusCode: 403,
       );
       final repository = _FakeConversationRepository(
         snapshot: twoMessageSnapshot(),
-        editFailure: failure,
+        addReactionFailure: failure,
       );
       final container = ProviderContainer(
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
       addTearDown(container.dispose);
@@ -89,12 +128,12 @@ void main() {
       await expectLater(
         container
             .read(conversationDetailStoreProvider.notifier)
-            .editMessage('message-1', 'Will revert'),
+            .addReaction('message-1', '👍'),
         throwsA(isA<ServerFailure>()),
       );
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.first.content, 'Original content');
+      expect(state.messages.first.reactions, isEmpty);
     });
 
     test('does nothing when state is not success', () async {
@@ -105,19 +144,23 @@ void main() {
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
       addTearDown(container.dispose);
 
-      // Don't call load(), so state is still initial
+      // Don't call load()
       await container
           .read(conversationDetailStoreProvider.notifier)
-          .editMessage('message-1', 'Ignored');
+          .addReaction('message-1', '👍');
 
-      expect(repository.editedMessages, isEmpty);
+      expect(repository.addedReactions, isEmpty);
     });
+  });
 
-    test('does nothing when message id not found', () async {
+  group('removeReaction', () {
+    test('optimistically removes reaction and calls API', () async {
       final repository = _FakeConversationRepository(
         snapshot: twoMessageSnapshot(),
       );
@@ -125,6 +168,55 @@ void main() {
         overrides: [
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-2')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      // message-2 has 👍 from user-2
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .removeReaction('message-2', '👍');
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[1].reactions, isEmpty);
+      expect(repository.removedReactions, [('message-2', '👍')]);
+    });
+
+    test('decrements count when multiple users reacted', () async {
+      final snapshot = ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Hello',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            senderId: 'user-1',
+            messageType: 'message',
+            seq: 1,
+            reactions: const [
+              MessageReaction(
+                emoji: '👍',
+                count: 3,
+                userIds: ['user-1', 'user-2', 'user-3'],
+              ),
+            ],
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      );
+      final repository = _FakeConversationRepository(snapshot: snapshot);
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-2')),
         ],
       );
       addTearDown(container.dispose);
@@ -132,14 +224,104 @@ void main() {
       await container.read(conversationDetailStoreProvider.notifier).load();
       await container
           .read(conversationDetailStoreProvider.notifier)
-          .editMessage('nonexistent', 'Ignored');
+          .removeReaction('message-1', '👍');
 
-      expect(repository.editedMessages, isEmpty);
+      final state = container.read(conversationDetailStoreProvider);
+      final reaction = state.messages.first.reactions.first;
+      expect(reaction.count, 2);
+      expect(reaction.userIds, ['user-1', 'user-3']);
+    });
+
+    test('reverts on API failure and rethrows', () async {
+      const failure = ServerFailure(
+        message: 'Forbidden.',
+        statusCode: 403,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: twoMessageSnapshot(),
+        removeReactionFailure: failure,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-2')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+
+      await expectLater(
+        container
+            .read(conversationDetailStoreProvider.notifier)
+            .removeReaction('message-2', '👍'),
+        throwsA(isA<ServerFailure>()),
+      );
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[1].reactions.first.count, 1);
+      expect(state.messages[1].reactions.first.userIds, ['user-2']);
     });
   });
 
-  group('message:updated realtime event', () {
-    test('updates message content from realtime event', () async {
+  group('toggleReaction', () {
+    test('adds reaction when user has not reacted', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: twoMessageSnapshot(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .toggleReaction('message-1', '❤️');
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages.first.reactions.length, 1);
+      expect(state.messages.first.reactions.first.emoji, '❤️');
+      expect(repository.addedReactions, [('message-1', '❤️')]);
+      expect(repository.removedReactions, isEmpty);
+    });
+
+    test('removes reaction when user already reacted', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: twoMessageSnapshot(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-2')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      // message-2 already has 👍 from user-2
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .toggleReaction('message-2', '👍');
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[1].reactions, isEmpty);
+      expect(repository.removedReactions, [('message-2', '👍')]);
+      expect(repository.addedReactions, isEmpty);
+    });
+  });
+
+  group('message:reaction_added realtime event', () {
+    test('adds reaction from realtime event', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
         snapshot: twoMessageSnapshot(),
@@ -149,6 +331,8 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           realtimeReductionIngressProvider.overrideWithValue(ingress),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
       final subscription = container.listen(
@@ -164,25 +348,26 @@ void main() {
 
       await container.read(conversationDetailStoreProvider.notifier).load();
 
-      // Emit a message:updated event
       ingress.accept(RealtimeEventEnvelope(
-        eventType: 'message:updated',
+        eventType: 'message:reaction_added',
         scopeKey: 'general',
         seq: 10,
         receivedAt: DateTime.now(),
         payload: const {
-          'id': 'message-1',
+          'messageId': 'message-1',
           'channelId': 'general',
-          'content': 'Remotely edited',
+          'emoji': '🎉',
+          'userId': 'user-3',
         },
       ));
 
-      // Wait for the async handler to process
-      await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.first.content, 'Remotely edited');
+      expect(state.messages.first.reactions.length, 1);
+      expect(state.messages.first.reactions.first.emoji, '🎉');
+      expect(state.messages.first.reactions.first.count, 1);
+      expect(state.messages.first.reactions.first.userIds, ['user-3']);
     });
 
     test('ignores event for different channel', () async {
@@ -195,6 +380,8 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           realtimeReductionIngressProvider.overrideWithValue(ingress),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
       final subscription = container.listen(
@@ -211,82 +398,27 @@ void main() {
       await container.read(conversationDetailStoreProvider.notifier).load();
 
       ingress.accept(RealtimeEventEnvelope(
-        eventType: 'message:updated',
+        eventType: 'message:reaction_added',
         scopeKey: 'other-channel',
         seq: 10,
         receivedAt: DateTime.now(),
         payload: const {
-          'id': 'message-1',
+          'messageId': 'message-1',
           'channelId': 'other-channel',
-          'content': 'Should not apply',
+          'emoji': '🎉',
+          'userId': 'user-3',
         },
       ));
 
       await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.first.content, 'Original content');
+      expect(state.messages.first.reactions, isEmpty);
     });
   });
 
-  group('deleteMessage', () {
-    test('marks message as deleted and calls repo', () async {
-      final repository = _FakeConversationRepository(
-        snapshot: twoMessageSnapshot(),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          currentConversationDetailTargetProvider.overrideWithValue(target),
-          conversationRepositoryProvider.overrideWithValue(repository),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      await container.read(conversationDetailStoreProvider.notifier).load();
-      await container
-          .read(conversationDetailStoreProvider.notifier)
-          .deleteMessage('message-1');
-
-      final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.length, 2);
-      expect(state.messages.first.isDeleted, isTrue);
-      expect(state.messages.last.isDeleted, isFalse);
-      expect(repository.deletedMessageIds, ['message-1']);
-    });
-
-    test('reverts on failure and rethrows', () async {
-      const failure = ServerFailure(
-        message: 'Forbidden.',
-        statusCode: 403,
-      );
-      final repository = _FakeConversationRepository(
-        snapshot: twoMessageSnapshot(),
-        deleteFailure: failure,
-      );
-      final container = ProviderContainer(
-        overrides: [
-          currentConversationDetailTargetProvider.overrideWithValue(target),
-          conversationRepositoryProvider.overrideWithValue(repository),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      await container.read(conversationDetailStoreProvider.notifier).load();
-
-      await expectLater(
-        container
-            .read(conversationDetailStoreProvider.notifier)
-            .deleteMessage('message-1'),
-        throwsA(isA<ServerFailure>()),
-      );
-
-      final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.first.isDeleted, isFalse);
-      expect(state.messages.map((m) => m.id), ['message-1', 'message-2']);
-    });
-
-    test('message:deleted realtime event marks message as deleted', () async {
+  group('message:reaction_removed realtime event', () {
+    test('removes reaction from realtime event', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
         snapshot: twoMessageSnapshot(),
@@ -296,6 +428,8 @@ void main() {
           currentConversationDetailTargetProvider.overrideWithValue(target),
           conversationRepositoryProvider.overrideWithValue(repository),
           realtimeReductionIngressProvider.overrideWithValue(ingress),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
       final subscription = container.listen(
@@ -311,39 +445,52 @@ void main() {
 
       await container.read(conversationDetailStoreProvider.notifier).load();
 
+      // message-2 has 👍 from user-2
       ingress.accept(RealtimeEventEnvelope(
-        eventType: 'message:deleted',
+        eventType: 'message:reaction_removed',
         scopeKey: 'general',
-        seq: 10,
+        seq: 11,
         receivedAt: DateTime.now(),
         payload: const {
-          'id': 'message-1',
+          'messageId': 'message-2',
           'channelId': 'general',
+          'emoji': '👍',
+          'userId': 'user-2',
         },
       ));
 
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(conversationDetailStoreProvider);
-      expect(state.messages.length, 2);
-      expect(state.messages.first.isDeleted, isTrue);
-      expect(state.messages.last.isDeleted, isFalse);
+      expect(state.messages[1].reactions, isEmpty);
     });
   });
+}
+
+class _FakeSessionStore extends SessionStore {
+  _FakeSessionStore({this.userId});
+
+  final String? userId;
+
+  @override
+  SessionState build() => SessionState(
+        status: AuthStatus.authenticated,
+        userId: userId,
+      );
 }
 
 class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({
     required this.snapshot,
-    this.editFailure,
-    this.deleteFailure,
+    this.addReactionFailure,
+    this.removeReactionFailure,
   });
 
   final ConversationDetailSnapshot snapshot;
-  final AppFailure? editFailure;
-  final AppFailure? deleteFailure;
-  final Map<String, String> editedMessages = {};
-  final List<String> deletedMessageIds = [];
+  final AppFailure? addReactionFailure;
+  final AppFailure? removeReactionFailure;
+  final List<(String, String)> addedReactions = [];
+  final List<(String, String)> removedReactions = [];
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -410,12 +557,6 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
     required String content,
   }) async {
-    // Simulate the local store update
-    for (final msg in snapshot.messages) {
-      if (msg.id == messageId) {
-        return msg.copyWith(content: content);
-      }
-    }
     return null;
   }
 
@@ -424,23 +565,13 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
     required String content,
-  }) async {
-    editedMessages[messageId] = content;
-    if (editFailure != null) {
-      throw editFailure!;
-    }
-  }
+  }) async {}
 
   @override
   Future<void> deleteMessage(
     ConversationDetailTarget target, {
     required String messageId,
-  }) async {
-    deletedMessageIds.add(messageId);
-    if (deleteFailure != null) {
-      throw deleteFailure!;
-    }
-  }
+  }) async {}
 
   @override
   Future<void> pinMessage(
@@ -459,14 +590,24 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
     required String emoji,
-  }) async {}
+  }) async {
+    addedReactions.add((messageId, emoji));
+    if (addReactionFailure != null) {
+      throw addReactionFailure!;
+    }
+  }
 
   @override
   Future<void> removeReaction(
     ConversationDetailTarget target, {
     required String messageId,
     required String emoji,
-  }) async {}
+  }) async {
+    removedReactions.add((messageId, emoji));
+    if (removeReactionFailure != null) {
+      throw removeReactionFailure!;
+    }
+  }
 
   @override
   Future<void> removeStoredMessage(

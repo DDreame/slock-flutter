@@ -12,6 +12,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 final currentConversationDetailTargetProvider =
     Provider<ConversationDetailTarget>((ref) {
@@ -31,6 +32,8 @@ const _realtimeMessageUpdatedEventType = 'message:updated';
 const _realtimeMessageDeletedEventType = 'message:deleted';
 const _realtimeMessagePinnedEventType = 'message:pinned';
 const _realtimeMessageUnpinnedEventType = 'message:unpinned';
+const _realtimeReactionAddedEventType = 'message:reaction_added';
+const _realtimeReactionRemovedEventType = 'message:reaction_removed';
 
 class ConversationDetailStore
     extends AutoDisposeNotifier<ConversationDetailState> {
@@ -65,6 +68,10 @@ class ConversationDetailStore
         _handleMessagePinToggled(event.payload!, target, isPinned: true);
       } else if (event.eventType == _realtimeMessageUnpinnedEventType) {
         _handleMessagePinToggled(event.payload!, target, isPinned: false);
+      } else if (event.eventType == _realtimeReactionAddedEventType) {
+        _handleReactionAdded(event.payload!, target);
+      } else if (event.eventType == _realtimeReactionRemovedEventType) {
+        _handleReactionRemoved(event.payload!, target);
       }
     });
     ref.onDispose(() {
@@ -977,6 +984,182 @@ class ConversationDetailStore
       _persistSession();
     });
     _sentRemovalTimers.add(timer);
+  }
+
+  Future<void> addReaction(String messageId, String emoji) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final currentUserId = ref.read(sessionStoreProvider).userId;
+    if (currentUserId == null) return;
+
+    final previousMessages = state.messages;
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = _addReactionToMessage(
+      messages[index],
+      emoji: emoji,
+      userId: currentUserId,
+    );
+    state = state.copyWith(messages: messages);
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      await repo.addReaction(target, messageId: messageId, emoji: emoji);
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(messages: previousMessages);
+      rethrow;
+    }
+  }
+
+  Future<void> removeReaction(String messageId, String emoji) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final currentUserId = ref.read(sessionStoreProvider).userId;
+    if (currentUserId == null) return;
+
+    final previousMessages = state.messages;
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = _removeReactionFromMessage(
+      messages[index],
+      emoji: emoji,
+      userId: currentUserId,
+    );
+    state = state.copyWith(messages: messages);
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      await repo.removeReaction(target, messageId: messageId, emoji: emoji);
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(messages: previousMessages);
+      rethrow;
+    }
+  }
+
+  /// Toggles a reaction for the current user — adds if not yet reacted,
+  /// removes if already reacted.
+  Future<void> toggleReaction(String messageId, String emoji) async {
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final currentUserId = ref.read(sessionStoreProvider).userId;
+    if (currentUserId == null) return;
+
+    final message = state.messages[index];
+    final existingReaction =
+        message.reactions.where((r) => r.emoji == emoji).firstOrNull;
+    final alreadyReacted = existingReaction != null &&
+        existingReaction.reactedByUser(currentUserId);
+
+    if (alreadyReacted) {
+      await removeReaction(messageId, emoji);
+    } else {
+      await addReaction(messageId, emoji);
+    }
+  }
+
+  void _handleReactionAdded(Object payload, ConversationDetailTarget target) {
+    final event = tryParseReactionEventPayload(payload);
+    if (event == null || event.channelId != target.conversationId) {
+      return;
+    }
+
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    final index = state.messages.indexWhere((m) => m.id == event.messageId);
+    if (index == -1) return;
+
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = _addReactionToMessage(
+      messages[index],
+      emoji: event.emoji,
+      userId: event.userId,
+    );
+    state = state.copyWith(messages: messages);
+  }
+
+  void _handleReactionRemoved(
+    Object payload,
+    ConversationDetailTarget target,
+  ) {
+    final event = tryParseReactionEventPayload(payload);
+    if (event == null || event.channelId != target.conversationId) {
+      return;
+    }
+
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    final index = state.messages.indexWhere((m) => m.id == event.messageId);
+    if (index == -1) return;
+
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = _removeReactionFromMessage(
+      messages[index],
+      emoji: event.emoji,
+      userId: event.userId,
+    );
+    state = state.copyWith(messages: messages);
+  }
+
+  ConversationMessageSummary _addReactionToMessage(
+    ConversationMessageSummary message, {
+    required String emoji,
+    required String userId,
+  }) {
+    final reactions = List<MessageReaction>.of(message.reactions);
+    final existingIndex = reactions.indexWhere((r) => r.emoji == emoji);
+    if (existingIndex != -1) {
+      final existing = reactions[existingIndex];
+      if (existing.userIds.contains(userId)) return message;
+      reactions[existingIndex] = MessageReaction(
+        emoji: emoji,
+        count: existing.count + 1,
+        userIds: [...existing.userIds, userId],
+      );
+    } else {
+      reactions.add(MessageReaction(
+        emoji: emoji,
+        count: 1,
+        userIds: [userId],
+      ));
+    }
+    return message.copyWith(reactions: reactions);
+  }
+
+  ConversationMessageSummary _removeReactionFromMessage(
+    ConversationMessageSummary message, {
+    required String emoji,
+    required String userId,
+  }) {
+    final reactions = List<MessageReaction>.of(message.reactions);
+    final existingIndex = reactions.indexWhere((r) => r.emoji == emoji);
+    if (existingIndex == -1) return message;
+    final existing = reactions[existingIndex];
+    if (!existing.userIds.contains(userId)) return message;
+    if (existing.count <= 1) {
+      reactions.removeAt(existingIndex);
+    } else {
+      reactions[existingIndex] = MessageReaction(
+        emoji: emoji,
+        count: existing.count - 1,
+        userIds: existing.userIds.where((id) => id != userId).toList(),
+      );
+    }
+    return message.copyWith(reactions: reactions);
   }
 
   void _persistSession() {
