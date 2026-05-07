@@ -150,9 +150,8 @@ void main() {
   });
 
   test('send preserves draft and stores typed AppFailure on failure', () async {
-    const failure = ServerFailure(
+    const failure = NotFoundFailure(
       message: 'Send failed.',
-      statusCode: 500,
     );
     final repository = _FakeConversationRepository(
       snapshot: ConversationDetailSnapshot(
@@ -1882,9 +1881,8 @@ void main() {
     });
 
     test('retrySend preserves replyToId from pending message', () async {
-      const failure = ServerFailure(
+      const failure = NotFoundFailure(
         message: 'Send failed.',
-        statusCode: 500,
       );
       final repository = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -1929,9 +1927,8 @@ void main() {
     });
 
     test('failed quoted send preserves replyToMessage in state', () async {
-      const failure = ServerFailure(
+      const failure = NotFoundFailure(
         message: 'Send failed.',
-        statusCode: 500,
       );
       final repository = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
