@@ -1973,10 +1973,6 @@ class _AttachmentSection extends StatelessWidget {
     'text/html',
   };
 
-  static const _pdfTypes = {
-    'application/pdf',
-  };
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -2010,65 +2006,7 @@ class _AttachmentSection extends StatelessWidget {
       return _HtmlAttachmentRow(attachment: attachment);
     }
 
-    if (_pdfTypes.contains(mimeType)) {
-      return _PdfAttachmentRow(attachment: attachment);
-    }
-
     return _GenericFileAttachmentRow(attachment: attachment);
-  }
-}
-
-class _PdfAttachmentRow extends StatelessWidget {
-  const _PdfAttachmentRow({required this.attachment});
-
-  final MessageAttachment attachment;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      key: ValueKey('pdf-attachment-${attachment.id ?? attachment.name}'),
-      onTap: () => _openPdfPreview(context),
-      borderRadius: BorderRadius.circular(4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.picture_as_pdf_outlined,
-                size: 18, color: theme.colorScheme.error),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                attachment.name,
-                style: AppTypography.label.copyWith(
-                  color: theme.colorScheme.primary,
-                  decoration: TextDecoration.underline,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (attachment.formattedSize != null) ...[
-              const SizedBox(width: 6),
-              Text(
-                attachment.formattedSize!,
-                style: AppTypography.caption.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _openPdfPreview(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => FilePreviewPage(attachment: attachment),
-      ),
-    );
   }
 }
 

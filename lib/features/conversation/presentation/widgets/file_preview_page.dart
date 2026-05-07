@@ -80,9 +80,15 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
 
   Future<void> _loadAttachment() async {
     final att = widget.attachment;
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
 
     // If no attachment id, try direct URL fallback.
     if (att.id == null || att.id!.isEmpty) {
+      diagnostics.info(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=missing, '
+            'mimeType=${att.type}, fallback=directUrl',
+      );
       if (mounted) {
         setState(() {
           _signedUrl = att.url;
@@ -109,7 +115,12 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       } else {
         if (mounted) setState(() => _loading = false);
       }
-    } on AppFailure {
+    } on AppFailure catch (e) {
+      diagnostics.error(
+        'attachment-preview',
+        'source=signedUrl, attachmentId=${att.id}, '
+            'mimeType=${att.type}, failureType=${e.runtimeType}',
+      );
       // Fall back to direct URL if available (preserves old behavior).
       if (mounted) {
         if (att.url != null) {

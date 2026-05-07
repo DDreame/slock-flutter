@@ -73,6 +73,8 @@ void main() {
       ],
     );
     addTearDown(() async {
+      // Drain pending microtasks before disposing to avoid StateError.
+      await Future<void>.delayed(Duration.zero);
       container.dispose();
       await ingress.dispose();
     });
@@ -530,6 +532,9 @@ void main() {
         ],
       );
       addTearDown(() async {
+        // Drain pending microtasks (e.g. HomeListStore.load fire-and-forget)
+        // before disposing the container to avoid StateError.
+        await Future<void>.delayed(Duration.zero);
         container.dispose();
         await ingress.dispose();
       });
@@ -706,6 +711,8 @@ void main() {
         ],
       );
       addTearDown(() async {
+        // Drain pending microtasks before disposing to avoid StateError.
+        await Future<void>.delayed(Duration.zero);
         container.dispose();
         await ingress.dispose();
       });
@@ -785,6 +792,8 @@ void main() {
         ],
       );
       addTearDown(() async {
+        // Drain pending microtasks before disposing to avoid StateError.
+        await Future<void>.delayed(Duration.zero);
         container.dispose();
         await ingress.dispose();
       });
@@ -890,6 +899,8 @@ void main() {
         ],
       );
       addTearDown(() async {
+        // Drain pending microtasks before disposing to avoid StateError.
+        await Future<void>.delayed(Duration.zero);
         container.dispose();
         await ingress.dispose();
       });
