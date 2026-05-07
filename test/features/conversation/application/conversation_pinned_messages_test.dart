@@ -437,7 +437,16 @@ void main() {
               .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
-      addTearDown(container.dispose);
+      // Keep pinned store alive with a listener
+      final pinnedSub = container.listen(
+        pinnedMessagesStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        pinnedSub.close();
+        container.dispose();
+      });
 
       // Load conversation
       await container.read(conversationDetailStoreProvider.notifier).load();
@@ -478,7 +487,15 @@ void main() {
               .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
-      addTearDown(container.dispose);
+      final pinnedSub = container.listen(
+        pinnedMessagesStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        pinnedSub.close();
+        container.dispose();
+      });
 
       await container.read(conversationDetailStoreProvider.notifier).load();
       await container.read(pinnedMessagesStoreProvider.notifier).load();
@@ -510,7 +527,15 @@ void main() {
               .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
-      addTearDown(container.dispose);
+      final pinnedSub = container.listen(
+        pinnedMessagesStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        pinnedSub.close();
+        container.dispose();
+      });
 
       await container.read(conversationDetailStoreProvider.notifier).load();
       await container.read(pinnedMessagesStoreProvider.notifier).load();
@@ -541,13 +566,19 @@ void main() {
               .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
-      final subscription = container.listen(
+      final detailSub = container.listen(
         conversationDetailStoreProvider,
         (_, __) {},
         fireImmediately: true,
       );
+      final pinnedSub = container.listen(
+        pinnedMessagesStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
       addTearDown(() async {
-        subscription.close();
+        pinnedSub.close();
+        detailSub.close();
         container.dispose();
         await ingress.dispose();
       });
@@ -599,13 +630,19 @@ void main() {
               .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
         ],
       );
-      final subscription = container.listen(
+      final detailSub = container.listen(
         conversationDetailStoreProvider,
         (_, __) {},
         fireImmediately: true,
       );
+      final pinnedSub = container.listen(
+        pinnedMessagesStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
       addTearDown(() async {
-        subscription.close();
+        pinnedSub.close();
+        detailSub.close();
         container.dispose();
         await ingress.dispose();
       });

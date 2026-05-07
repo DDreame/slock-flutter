@@ -32,7 +32,9 @@ class PinnedMessagesState {
 
 final pinnedMessagesStoreProvider =
     AutoDisposeNotifierProvider<PinnedMessagesStore, PinnedMessagesState>(
-        PinnedMessagesStore.new);
+  PinnedMessagesStore.new,
+  dependencies: [currentConversationDetailTargetProvider],
+);
 
 class PinnedMessagesStore extends AutoDisposeNotifier<PinnedMessagesState> {
   @override
