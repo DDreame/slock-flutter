@@ -1465,18 +1465,33 @@ class _ConversationMessageCard extends ConsumerWidget {
     );
   }
 
-  void _showEditDialog(BuildContext context, WidgetRef ref) {
-    showDialog<void>(
+  Future<void> _showEditDialog(BuildContext context, WidgetRef ref) async {
+    final newContent = await showDialog<String>(
       context: context,
       builder: (_) => _EditMessageDialog(
         initialContent: message.content,
-        onSave: (newContent) {
-          ref
-              .read(conversationDetailStoreProvider.notifier)
-              .editMessage(message.id, newContent);
-        },
       ),
     );
+    if (newContent == null || !context.mounted) return;
+
+    try {
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .editMessage(message.id, newContent);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Message edited.')));
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to edit message.'),
+          ),
+        );
+    }
   }
 
   void _navigateToThread(BuildContext context) {
@@ -2324,11 +2339,9 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
 class _EditMessageDialog extends StatefulWidget {
   const _EditMessageDialog({
     required this.initialContent,
-    required this.onSave,
   });
 
   final String initialContent;
-  final void Function(String newContent) onSave;
 
   @override
   State<_EditMessageDialog> createState() => _EditMessageDialogState();
@@ -2381,8 +2394,7 @@ class _EditMessageDialogState extends State<_EditMessageDialog> {
           key: const ValueKey('edit-message-save'),
           onPressed: _hasChanged
               ? () {
-                  widget.onSave(_controller.text.trim());
-                  Navigator.of(context).pop();
+                  Navigator.of(context).pop(_controller.text.trim());
                 }
               : null,
           child: const Text('Save'),

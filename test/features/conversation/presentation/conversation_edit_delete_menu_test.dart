@@ -353,6 +353,62 @@ void main() {
       );
       expect(saveButton.onPressed, isNull);
     });
+
+    testWidgets('Edit failure shows error snackbar, not success', (
+      tester,
+    ) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: 'Alice',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'Original text',
+              createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+              senderType: 'human',
+              senderId: 'current-user',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        editFailure: const ServerFailure(
+          message: 'Forbidden.',
+          statusCode: 403,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          sessionState: const SessionState(userId: 'current-user'),
+          child: ConversationDetailPage(target: target),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Open menu → Edit
+      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('message-action-edit')));
+      await tester.pumpAndSettle();
+
+      // Type new content and save
+      final textField = find.byKey(const ValueKey('edit-message-field'));
+      await tester.enterText(textField, 'Will fail');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('edit-message-save')));
+      await tester.pumpAndSettle();
+
+      // Should show failure snackbar (not success)
+      expect(find.text('Forbidden.'), findsOneWidget);
+      expect(find.text('Message edited.'), findsNothing);
+      // Content reverted to original
+      expect(find.text('Original text'), findsOneWidget);
+    });
   });
 
   group('delete flow', () {
