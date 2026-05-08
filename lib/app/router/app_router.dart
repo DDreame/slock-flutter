@@ -38,6 +38,10 @@ import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/page/invite_landing_page.dart';
 import 'package:slock_app/features/servers/presentation/page/workspace_settings_page.dart';
+import 'package:slock_app/features/share/application/share_intent_store.dart';
+import 'package:slock_app/features/share/application/share_send_service.dart';
+import 'package:slock_app/features/share/data/shared_content.dart';
+import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -176,6 +180,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/biometric-lock',
         builder: (context, state) => const BiometricLockPage(),
+      ),
+      GoRoute(
+        path: '/share-target',
+        builder: (context, state) {
+          return _ShareTargetRoute(ref: ref);
+        },
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
@@ -396,6 +406,52 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     }
   });
 
+  // Navigate to share-target picker when new shared content arrives.
+  // fireImmediately handles cold-start intents that were set before
+  // the listener was registered.
+  ref.listen<SharedContent?>(
+    shareIntentStoreProvider,
+    fireImmediately: true,
+    (prev, next) {
+      if (next == null || next.isEmpty) return;
+      final session = ref.read(sessionStoreProvider);
+      final bootstrapComplete = ref.read(appReadyProvider);
+      if (!session.isAuthenticated || !bootstrapComplete) return;
+      if (router.routeInformationProvider.value.uri.path == '/share-target') {
+        return;
+      }
+      router.go('/share-target');
+    },
+  );
+
+  // Re-check for pending share content when bootstrap completes,
+  // so cold-start intents that arrived before auth/bootstrap are
+  // not silently dropped.
+  ref.listen<bool>(appReadyProvider, (prev, next) {
+    if (next != true) return;
+    final content = ref.read(shareIntentStoreProvider);
+    if (content == null || content.isEmpty) return;
+    final session = ref.read(sessionStoreProvider);
+    if (!session.isAuthenticated) return;
+    router.go('/share-target');
+  });
+
+  // Re-check for pending share content when the user logs in,
+  // so intents that arrived while unauthenticated are routed
+  // once the session becomes authenticated.
+  ref.listen<SessionState>(sessionStoreProvider, (prev, next) {
+    if (!next.isAuthenticated) return;
+    if (prev?.isAuthenticated == true) return; // not a login transition
+    final bootstrapComplete = ref.read(appReadyProvider);
+    if (!bootstrapComplete) return;
+    final content = ref.read(shareIntentStoreProvider);
+    if (content == null || content.isEmpty) return;
+    if (router.routeInformationProvider.value.uri.path == '/share-target') {
+      return;
+    }
+    router.go('/share-target');
+  });
+
   return router;
 });
 
@@ -416,4 +472,46 @@ class _SessionRouterNotifier extends ChangeNotifier {
   }
 
   final Ref _ref;
+}
+
+/// Wrapper that wires [ShareTargetPickerPage] callbacks to
+/// [GoRouter] navigation and the share-send pipeline.
+class _ShareTargetRoute extends StatelessWidget {
+  const _ShareTargetRoute({required this.ref});
+
+  final Ref ref;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShareTargetPickerPage(
+      onTargetSelected: (target) async {
+        final content = ref.read(shareIntentStoreProvider);
+        if (content == null) {
+          if (context.mounted) context.go('/home');
+          return;
+        }
+        try {
+          await ref
+              .read(shareSendServiceProvider)
+              .send(target: target, content: content);
+          // Only consume on success — content is preserved on failure
+          // so the user can retry.
+          ref.read(shareIntentStoreProvider.notifier).consume();
+          if (context.mounted) context.go('/home');
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to send. Please try again.'),
+              ),
+            );
+          }
+        }
+      },
+      onCancel: () {
+        ref.read(shareIntentStoreProvider.notifier).consume();
+        context.go('/home');
+      },
+    );
+  }
 }
