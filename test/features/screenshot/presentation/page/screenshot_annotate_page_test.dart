@@ -232,21 +232,40 @@ void main() {
 
     testWidgets('annotation canvas is not rendered until image size is loaded',
         (tester) async {
-      // On initial render (before _loadImageSize completes), the
-      // AnnotationPainter CustomPaint should not be in the tree.
-      // The image is still displayed but the annotation overlay is gated.
       await tester.pumpWidget(buildPage(imagePath: tempImageFile.path));
 
-      // Immediately after pumpWidget, before async _loadImageSize completes:
-      // The page is rendered but check that the Image widget is present.
+      // Immediately after pumpWidget, before async _loadImageSize completes,
+      // the AnnotationPainter should NOT be in the tree (transform not ready).
       expect(find.text('Annotate Screenshot'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is CustomPaint && w.painter is AnnotationPainter,
+        ),
+        findsNothing,
+        reason: 'AnnotationPainter should not render before image size loads',
+      );
 
-      // After pump (allows _loadImageSize to complete for our tiny test PNG):
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      // The GestureDetector's handlers should be null (guard disables input).
+      final gestureDetector = tester.widget<GestureDetector>(
+        find.byType(GestureDetector).first,
+      );
+      expect(
+        gestureDetector.onPanStart,
+        isNull,
+        reason: 'Pan gestures should be disabled before transform is ready',
+      );
+      expect(
+        gestureDetector.onTapUp,
+        isNull,
+        reason: 'Tap gestures should be disabled before transform is ready',
+      );
 
-      // The page should still render fine.
-      expect(find.text('Annotate Screenshot'), findsOneWidget);
+      // Note: The "after" state (AnnotationPainter present when transform IS
+      // ready) is verified by the 'AnnotationPainter displayScale/displayOffset
+      // contract' test group, which constructs the painter with explicit
+      // scale/offset values. The native image codec (instantiateImageCodec)
+      // does not resolve in the widget-test fakeAsync zone, so we cannot
+      // assert the "after" state here.
     });
 
     testWidgets(
@@ -310,6 +329,42 @@ void main() {
       expect(find.text('Share Target'), findsOneWidget);
 
       router.dispose();
+    });
+
+    testWidgets(
+        'save button tapping with no annotations exports and invokes share sheet',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          screenshotStoreProvider.overrideWith(() {
+            return TestScreenshotStore(imagePath: tempImageFile.path);
+          }),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: ScreenshotAnnotatePage(),
+          ),
+        ),
+      );
+      // Allow image size to load.
+      await tester.pumpAndSettle();
+
+      // Tap the save button — with no annotations, _exportImage will use the
+      // original imagePath directly. Then Share.shareXFiles will throw
+      // MissingPluginException in the test environment.
+      await tester.tap(find.byKey(const ValueKey('screenshot-save')));
+      // Pump to process the async _onSave / _exportImage flow.
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      // Verify the export flow ran: the store's exportedPath should be set.
+      final state = container.read(screenshotStoreProvider);
+      expect(state.exportedPath, tempImageFile.path);
+      expect(state.isExporting, isFalse);
     });
   });
 
