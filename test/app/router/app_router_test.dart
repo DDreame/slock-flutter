@@ -21,6 +21,10 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/share/application/share_intent_store.dart';
+import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/core/auth/biometric_service.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1875,6 +1879,73 @@ void main() {
       },
     );
   });
+
+  group('share intent routing', () {
+    testWidgets(
+      'share intent arriving while unauthenticated routes to /share-target after login',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+            shareIntentStoreProvider.overrideWith(
+              () => _TestShareIntentStore(),
+            ),
+            homeListStoreProvider.overrideWith(
+              () => _TestHomeListStore(),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Start unauthenticated.
+        await container.read(sessionStoreProvider.notifier).restoreSession();
+        container.read(appReadyProvider.notifier).state = true;
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Should be on /login (unauthenticated + bootstrap complete).
+        expect(router.routeInformationProvider.value.uri.path, '/login');
+
+        // Simulate share intent arriving while unauthenticated.
+        container.read(shareIntentStoreProvider.notifier).state =
+            const SharedContent(items: [
+          SharedContentItem(type: SharedContentType.text, path: 'Hello'),
+        ]);
+        await tester.pumpAndSettle();
+
+        // Should still be on /login — not authenticated.
+        expect(router.routeInformationProvider.value.uri.path, '/login');
+
+        // User logs in.
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        // Use pump() not pumpAndSettle() — the /share-target page shows a
+        // CircularProgressIndicator that never settles.
+        await tester.pump();
+        await tester.pump();
+
+        // Should now route to /share-target.
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          '/share-target',
+        );
+      },
+    );
+  });
 }
 
 class _StallingSplashController extends SplashController {
@@ -1922,4 +1993,22 @@ class _FakeBiometricService implements BiometricService {
   }) async {
     return authResult;
   }
+}
+
+class _TestShareIntentStore extends ShareIntentStore {
+  @override
+  SharedContent? build() => null;
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  void consume() {
+    state = null;
+  }
+}
+
+class _TestHomeListStore extends HomeListStore {
+  @override
+  HomeListState build() => const HomeListState();
 }

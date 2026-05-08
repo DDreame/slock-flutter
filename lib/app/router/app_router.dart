@@ -436,6 +436,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     router.go('/share-target');
   });
 
+  // Re-check for pending share content when the user logs in,
+  // so intents that arrived while unauthenticated are routed
+  // once the session becomes authenticated.
+  ref.listen<SessionState>(sessionStoreProvider, (prev, next) {
+    if (!next.isAuthenticated) return;
+    if (prev?.isAuthenticated == true) return; // not a login transition
+    final bootstrapComplete = ref.read(appReadyProvider);
+    if (!bootstrapComplete) return;
+    final content = ref.read(shareIntentStoreProvider);
+    if (content == null || content.isEmpty) return;
+    if (router.routeInformationProvider.value.uri.path == '/share-target') {
+      return;
+    }
+    router.go('/share-target');
+  });
+
   return router;
 });
 
