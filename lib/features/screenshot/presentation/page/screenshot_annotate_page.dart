@@ -2,16 +2,21 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/annotation.dart';
+import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
+import 'package:slock_app/features/screenshot/data/screenshot_state.dart';
 import 'package:slock_app/features/screenshot/presentation/widgets/annotation_canvas.dart';
 import 'package:slock_app/features/screenshot/presentation/widgets/annotation_toolbar.dart';
+import 'package:slock_app/features/share/application/share_intent_store.dart';
+import 'package:slock_app/features/share/data/shared_content.dart';
 
 /// Full-screen page for annotating a captured screenshot.
 ///
 /// Displays the screenshot image with an interactive annotation canvas overlay.
 /// The toolbar at the bottom provides tool selection, undo/redo, and colors.
-/// Action buttons: save to gallery, share to channel/DM, discard.
+/// Action buttons: share to channel/DM (via #408 share pipeline), discard.
 class ScreenshotAnnotatePage extends ConsumerStatefulWidget {
   const ScreenshotAnnotatePage({super.key});
 
@@ -31,6 +36,8 @@ class _ScreenshotAnnotatePageState
   /// End point for arrow tool (updated during drag).
   Offset? _arrowEnd;
 
+  final _captureService = const ScreenshotCaptureService();
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(screenshotStoreProvider);
@@ -47,6 +54,7 @@ class _ScreenshotAnnotatePageState
       appBar: AppBar(
         backgroundColor: Colors.black,
         leading: IconButton(
+          key: const ValueKey('screenshot-discard'),
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () {
             store.reset();
@@ -60,8 +68,9 @@ class _ScreenshotAnnotatePageState
         ),
         actions: [
           IconButton(
+            key: const ValueKey('screenshot-share'),
             icon: const Icon(Icons.share, color: Colors.white),
-            onPressed: state.isExporting ? null : () => _onShare(store),
+            onPressed: state.isExporting ? null : () => _onShare(store, state),
             tooltip: 'Share',
           ),
         ],
@@ -98,6 +107,12 @@ class _ScreenshotAnnotatePageState
                     ),
                     size: Size.infinite,
                   ),
+                  // Loading overlay during export.
+                  if (state.isExporting)
+                    const ColoredBox(
+                      color: Colors.black54,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
                 ],
               ),
             ),
@@ -162,7 +177,6 @@ class _ScreenshotAnnotatePageState
         }
       case AnnotationTool.arrow:
         _arrowEnd = pos;
-        break;
       case AnnotationTool.text:
         break;
     }
@@ -246,9 +260,58 @@ class _ScreenshotAnnotatePageState
     }
   }
 
-  void _onShare(ScreenshotStore store) {
-    // TODO: Export annotated image and navigate to /share-target.
-    // This will be wired in Phase 4 integration.
-    Navigator.of(context).pop();
+  Future<void> _onShare(
+    ScreenshotStore store,
+    ScreenshotState state,
+  ) async {
+    store.setExporting(true);
+
+    try {
+      // If there are annotations, export a flattened image.
+      // Otherwise, use the original screenshot directly.
+      final String? exportedPath;
+      if (state.annotations.isNotEmpty) {
+        exportedPath = await _captureService.export(
+          imagePath: state.imagePath!,
+          annotations: state.annotations,
+        );
+      } else {
+        exportedPath = state.imagePath;
+      }
+
+      if (exportedPath == null) {
+        store.setExporting(false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to export screenshot')),
+          );
+        }
+        return;
+      }
+
+      store.setExportedPath(exportedPath);
+
+      // Hand the exported image to the share pipeline (#408).
+      // Create SharedContent with the image and feed it to the share intent
+      // store, then navigate to /share-target.
+      if (!mounted) return;
+
+      final content = SharedContent(items: [
+        SharedContentItem(
+          type: SharedContentType.image,
+          path: exportedPath,
+          mimeType: 'image/png',
+        ),
+      ]);
+      ref.read(shareIntentStoreProvider.notifier).setContent(content);
+      context.go('/share-target');
+    } catch (e) {
+      store.setExporting(false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Export failed: $e')),
+        );
+      }
+    }
   }
 }
