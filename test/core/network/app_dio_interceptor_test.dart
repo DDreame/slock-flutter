@@ -328,14 +328,19 @@ void main() {
       expect(adapter.callCount, 1);
     });
 
-    test('protected endpoint still gets Authorization and refresh on 401',
+    test('/auth/me 401 triggers refresh and retries with fresh token',
         () async {
       final adapter = _SequenceAdapter([
-        const _StubResponse(statusCode: 200, body: '{"user":"me"}'),
+        const _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
+        const _StubResponse(statusCode: 200, body: '{"id":"u1"}'),
       ]);
 
+      var currentToken = 'stale';
       final coordinator = TokenRefreshCoordinator(
-        refreshToken: () async => 'new-token',
+        refreshToken: () async {
+          currentToken = 'fresh-token';
+          return 'fresh-token';
+        },
       );
 
       final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
@@ -343,7 +348,7 @@ void main() {
       dio.interceptors.add(
         AppDioInterceptor(
           buildHeaders: () async => {
-            'Authorization': 'Bearer valid-token',
+            'Authorization': 'Bearer $currentToken',
           },
           tokenRefreshCoordinator: coordinator,
           logSink: noopNetworkLogSink,
@@ -354,8 +359,54 @@ void main() {
       final response = await dio.get<Object?>('/auth/me');
 
       expect(response.statusCode, 200);
-      final captured = adapter.capturedOptions.last;
-      expect(captured.headers['Authorization'], 'Bearer valid-token');
+      expect(response.data, {'id': 'u1'});
+      expect(adapter.callCount, 2);
+
+      // Retry carried the refreshed token.
+      final retryOpts = adapter.capturedOptions.last;
+      expect(retryOpts.headers['Authorization'], 'Bearer fresh-token');
+      expect(retryOpts.extra[tokenRetriedKey], true);
+    });
+
+    test('/auth/me 401 with expired refresh propagates error (no retry)',
+        () async {
+      var refreshCalls = 0;
+      final adapter = _SequenceAdapter([
+        const _StubResponse(statusCode: 401, body: '{"error":"expired"}'),
+      ]);
+
+      final coordinator = TokenRefreshCoordinator(
+        refreshToken: () async {
+          refreshCalls++;
+          // Simulates refresh 401/403 → logout → returns null.
+          return null;
+        },
+      );
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {
+            'Authorization': 'Bearer stale-token',
+          },
+          tokenRefreshCoordinator: coordinator,
+          logSink: noopNetworkLogSink,
+          dioForRetry: () => dio,
+        ),
+      );
+
+      try {
+        await dio.get<Object?>('/auth/me');
+        fail('should have thrown');
+      } on DioException catch (e) {
+        expect(e.response?.statusCode, 401);
+      }
+
+      // Refresh was attempted exactly once (coordinator handles logout).
+      expect(refreshCalls, 1);
+      // No retry — only the original request.
+      expect(adapter.callCount, 1);
     });
 
     test('retry preserves original request method and body', () async {
