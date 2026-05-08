@@ -24,6 +24,8 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
+import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
+import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -97,6 +99,7 @@ class _ConversationDetailScreenState
   bool _didApplyInitialLanding = false;
   double? _olderLoadAnchorOffset;
   double? _olderLoadAnchorMaxExtent;
+  final GlobalKey _screenshotBoundaryKey = GlobalKey();
 
   @override
   void initState() {
@@ -222,6 +225,13 @@ class _ConversationDetailScreenState
               icon: const Icon(Icons.people_outline),
               onPressed: () {},
             ),
+          if (state.status == ConversationDetailStatus.success)
+            IconButton(
+              key: const ValueKey('conversation-screenshot'),
+              icon: const Icon(Icons.screenshot_outlined),
+              onPressed: () => _captureAndAnnotate(),
+              tooltip: 'Screenshot',
+            ),
           ...?widget.appBarActionsBuilder?.call(context, ref, state),
         ],
       ),
@@ -260,10 +270,13 @@ class _ConversationDetailScreenState
                 ),
               ConversationDetailStatus.success when state.isEmpty =>
                 _ConversationEmptyView(title: state.resolvedTitle),
-              ConversationDetailStatus.success => _ConversationMessageList(
-                  controller: _scrollController,
-                  state: state,
-                  onScrollToMessage: _scrollToMessageId,
+              ConversationDetailStatus.success => RepaintBoundary(
+                  key: _screenshotBoundaryKey,
+                  child: _ConversationMessageList(
+                    controller: _scrollController,
+                    state: state,
+                    onScrollToMessage: _scrollToMessageId,
+                  ),
                 ),
             },
           ),
@@ -303,6 +316,19 @@ class _ConversationDetailScreenState
       _composerController.clear();
       _composerFocusNode.unfocus();
     }
+  }
+
+  Future<void> _captureAndAnnotate() async {
+    const captureService = ScreenshotCaptureService();
+    final pixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final path = await captureService.capture(
+      _screenshotBoundaryKey,
+      pixelRatio: pixelRatio,
+    );
+    if (path == null || !mounted) return;
+
+    ref.read(screenshotStoreProvider.notifier).setCapturedImage(path);
+    context.push('/screenshot-annotate');
   }
 
   void _handleScroll() {

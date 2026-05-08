@@ -74,6 +74,15 @@ class ShareIntentStore extends Notifier<SharedContent?> {
     state = null;
     ReceiveSharingIntent.instance.reset();
   }
+
+  /// Sets shared content programmatically (e.g., from screenshot export).
+  ///
+  /// Unlike [initialize], this does not listen for platform intents — it
+  /// simply seeds the store with the given [content] so the share-target
+  /// picker can consume it.
+  void setContent(SharedContent content) {
+    state = content;
+  }
 }
 
 /// App-scoped provider for [ShareIntentStore].

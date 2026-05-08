@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
@@ -15,6 +16,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository_pro
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
+import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -1520,6 +1522,149 @@ void main() {
     // Should have popped back to conversation detail page
     expect(find.text('Pinned messages'), findsNothing);
     expect(find.byKey(const ValueKey('message-message-1')), findsOneWidget);
+  });
+
+  testWidgets('ConversationDetailPage renders screenshot button in AppBar', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Hello',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The screenshot button should be present in the AppBar.
+    expect(
+      find.byKey(const ValueKey('conversation-screenshot')),
+      findsOneWidget,
+    );
+    expect(find.byIcon(Icons.screenshot_outlined), findsOneWidget);
+  });
+
+  testWidgets(
+      'screenshot button tapping captures and navigates to annotate page', (
+    tester,
+  ) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Hello world',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        conversationRepositoryProvider.overrideWithValue(repository),
+        sessionStoreProvider.overrideWith(
+          () => _FixedSessionStore(const SessionState()),
+        ),
+      ],
+    );
+
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => ConversationDetailPage(target: target),
+        ),
+        GoRoute(
+          path: '/screenshot-annotate',
+          builder: (context, state) =>
+              const Scaffold(body: Text('Annotate Page')),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify the button is present before tapping.
+    expect(
+      find.byKey(const ValueKey('conversation-screenshot')),
+      findsOneWidget,
+    );
+
+    // Tap the screenshot button to trigger _captureAndAnnotate().
+    await tester.tap(find.byKey(const ValueKey('conversation-screenshot')));
+
+    // _captureAndAnnotate calls RenderRepaintBoundary.toImage() which is a
+    // native dart:ui call. Interleave pump + runAsync so each async step
+    // in the capture chain (toImage → toByteData → file write → setState)
+    // completes and its fakeAsync continuation is processed.
+    for (var i = 0; i < 5; i++) {
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+    }
+    await tester.pumpAndSettle();
+
+    // Verify the capture flow ran: ScreenshotCaptureService.capture()
+    // rasterizes the RepaintBoundary and sets the store's imagePath.
+    final screenshotState = container.read(screenshotStoreProvider);
+    expect(screenshotState.imagePath, isNotNull,
+        reason: 'Screenshot capture should populate imagePath in store');
+
+    // Verify navigation to the annotate page.
+    expect(find.text('Annotate Page'), findsOneWidget);
+
+    router.dispose();
   });
 }
 
