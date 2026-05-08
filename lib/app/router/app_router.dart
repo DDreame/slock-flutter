@@ -38,6 +38,10 @@ import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/page/invite_landing_page.dart';
 import 'package:slock_app/features/servers/presentation/page/workspace_settings_page.dart';
+import 'package:slock_app/features/share/application/share_intent_store.dart';
+import 'package:slock_app/features/share/application/share_send_service.dart';
+import 'package:slock_app/features/share/data/shared_content.dart';
+import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -176,6 +180,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/biometric-lock',
         builder: (context, state) => const BiometricLockPage(),
+      ),
+      GoRoute(
+        path: '/share-target',
+        builder: (context, state) {
+          return _ShareTargetRoute(ref: ref);
+        },
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
@@ -396,6 +406,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     }
   });
 
+  // Navigate to share-target picker when new shared content arrives.
+  ref.listen<SharedContent?>(shareIntentStoreProvider, (prev, next) {
+    if (next == null || next.isEmpty) return;
+    final session = ref.read(sessionStoreProvider);
+    final bootstrapComplete = ref.read(appReadyProvider);
+    if (!session.isAuthenticated || !bootstrapComplete) return;
+    router.go('/share-target');
+  });
+
   return router;
 });
 
@@ -416,4 +435,37 @@ class _SessionRouterNotifier extends ChangeNotifier {
   }
 
   final Ref _ref;
+}
+
+/// Wrapper that wires [ShareTargetPickerPage] callbacks to
+/// [GoRouter] navigation and the share-send pipeline.
+class _ShareTargetRoute extends StatelessWidget {
+  const _ShareTargetRoute({required this.ref});
+
+  final Ref ref;
+
+  @override
+  Widget build(BuildContext context) {
+    return ShareTargetPickerPage(
+      onTargetSelected: (target) async {
+        final content = ref.read(shareIntentStoreProvider);
+        if (content == null) {
+          if (context.mounted) context.go('/home');
+          return;
+        }
+        try {
+          await ref
+              .read(shareSendServiceProvider)
+              .send(target: target, content: content);
+        } finally {
+          ref.read(shareIntentStoreProvider.notifier).consume();
+          if (context.mounted) context.go('/home');
+        }
+      },
+      onCancel: () {
+        ref.read(shareIntentStoreProvider.notifier).consume();
+        context.go('/home');
+      },
+    );
+  }
 }

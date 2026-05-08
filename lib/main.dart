@@ -36,6 +36,7 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/biometric/biometric_lock_lifecycle_binding.dart';
 import 'package:slock_app/features/settings/data/biometric_preference.dart';
+import 'package:slock_app/features/share/application/share_intent_store.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -96,6 +97,11 @@ void main() async {
       // Check biometric hardware availability (async, non-blocking).
       unawaited(
         container.read(biometricStoreProvider.notifier).checkAvailability(),
+      );
+
+      // Initialize share intent listener (async, non-blocking).
+      unawaited(
+        container.read(shareIntentStoreProvider.notifier).initialize(),
       );
 
       runApp(UncontrolledProviderScope(
