@@ -74,6 +74,59 @@ void main() {
       expect(find.text('thread-page-msg-1'), findsOneWidget);
     });
 
+    testWidgets(
+        'double-tapping a threaded message fires quick-react, '
+        'not thread navigation', (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: channelTarget,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-dt',
+              content: 'Double-tap me',
+              createdAt: DateTime.parse('2026-05-01T10:00:00Z'),
+              senderId: 'user-2',
+              senderType: 'human',
+              messageType: 'message',
+              senderName: 'Alex',
+              seq: 1,
+              threadId: 'thread-dt',
+              replyCount: 3,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          target: channelTarget,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Double-tap the message shell (two taps within the 300ms window).
+      final shellTL = tester.getTopLeft(
+        find.byKey(const ValueKey('message-shell-msg-dt')),
+      );
+      await tester.tapAt(shellTL + const Offset(10, 10));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(shellTL + const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // Should NOT have navigated to the thread page — the deferred
+      // single-tap timer was cancelled by the second tap.
+      expect(find.text('thread-page-msg-dt'), findsNothing);
+
+      // Quick-react (👍) should have fired via addReaction.
+      expect(repository.addedReactions, hasLength(1));
+      expect(repository.addedReactions.first.messageId, 'msg-dt');
+      expect(repository.addedReactions.first.emoji, '👍');
+    });
+
     testWidgets('tapping a threadless channel message does NOT navigate',
         (tester) async {
       final repository = _FakeConversationRepository(
@@ -583,6 +636,7 @@ class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({required this.snapshot});
 
   final ConversationDetailSnapshot snapshot;
+  final List<({String messageId, String emoji})> addedReactions = [];
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -689,7 +743,9 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
     required String emoji,
-  }) async {}
+  }) async {
+    addedReactions.add((messageId: messageId, emoji: emoji));
+  }
 
   @override
   Future<void> removeReaction(
