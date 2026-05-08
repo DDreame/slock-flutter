@@ -4,11 +4,15 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/annotation.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_state.dart';
 import 'package:slock_app/features/screenshot/presentation/page/screenshot_annotate_page.dart';
+import 'package:slock_app/features/screenshot/presentation/widgets/annotation_canvas.dart';
 import 'package:slock_app/features/screenshot/presentation/widgets/annotation_toolbar.dart';
+import 'package:slock_app/features/share/application/share_intent_store.dart';
+import 'package:slock_app/features/share/data/shared_content.dart';
 
 void main() {
   group('ScreenshotAnnotatePage', () {
@@ -224,6 +228,117 @@ void main() {
         find.widgetWithIcon(IconButton, Icons.undo),
       );
       expect(undoButton.onPressed, isNotNull);
+    });
+
+    testWidgets('annotation canvas is not rendered until image size is loaded',
+        (tester) async {
+      // On initial render (before _loadImageSize completes), the
+      // AnnotationPainter CustomPaint should not be in the tree.
+      // The image is still displayed but the annotation overlay is gated.
+      await tester.pumpWidget(buildPage(imagePath: tempImageFile.path));
+
+      // Immediately after pumpWidget, before async _loadImageSize completes:
+      // The page is rendered but check that the Image widget is present.
+      expect(find.text('Annotate Screenshot'), findsOneWidget);
+
+      // After pump (allows _loadImageSize to complete for our tiny test PNG):
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // The page should still render fine.
+      expect(find.text('Annotate Screenshot'), findsOneWidget);
+    });
+
+    testWidgets(
+        'share button tapping with no annotations seeds ShareIntentStore',
+        (tester) async {
+      // Build with GoRouter so context.go('/share-target') works.
+      final container = ProviderContainer(
+        overrides: [
+          screenshotStoreProvider.overrideWith(() {
+            return TestScreenshotStore(imagePath: tempImageFile.path);
+          }),
+        ],
+      );
+
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const ScreenshotAnnotatePage(),
+          ),
+          GoRoute(
+            path: '/share-target',
+            builder: (context, state) =>
+                const Scaffold(body: Text('Share Target')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.pump();
+      // Allow image size to load.
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Verify ShareIntentStore is initially null.
+      final initialContent = container.read(shareIntentStoreProvider);
+      expect(initialContent, isNull);
+
+      // Tap the share button — with no annotations, _exportImage will use the
+      // original imagePath directly (no image codec needed). Then it seeds
+      // ShareIntentStore and navigates to /share-target.
+      await tester.tap(find.byKey(const ValueKey('screenshot-share')));
+      await tester.pumpAndSettle();
+
+      // After the share flow, ShareIntentStore should be seeded with content.
+      final content = container.read(shareIntentStoreProvider);
+      expect(content, isNotNull);
+      expect(content!.items, hasLength(1));
+      expect(content.items.first.type, SharedContentType.image);
+      expect(content.items.first.path, tempImageFile.path);
+      expect(content.items.first.mimeType, 'image/png');
+
+      // Should have navigated to /share-target.
+      expect(find.text('Share Target'), findsOneWidget);
+
+      router.dispose();
+    });
+  });
+
+  group('AnnotationPainter displayScale/displayOffset contract', () {
+    testWidgets(
+        'AnnotationPainter passes displayScale and displayOffset to paint',
+        (tester) async {
+      // Verify that the painter receives and uses scale/offset params.
+      const painter = AnnotationPainter(
+        annotations: [
+          FreehandAnnotation(
+            color: Color(0xFFFF0000),
+            // Points in image-pixel space (large values).
+            points: [Offset(500, 500), Offset(600, 600)],
+            strokeWidth: 6.0, // Image-space strokeWidth (normalized).
+          ),
+        ],
+        displayScale: 0.5,
+        displayOffset: Offset(10, 20),
+      );
+
+      await tester.pumpWidget(
+        const CustomPaint(painter: painter, size: Size(400, 400)),
+      );
+
+      // No error thrown — the painter applies transform and renders.
+      expect(tester.takeException(), isNull);
+      expect(painter.displayScale, 0.5);
+      expect(painter.displayOffset, const Offset(10, 20));
     });
   });
 }

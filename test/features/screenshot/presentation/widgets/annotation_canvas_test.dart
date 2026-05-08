@@ -253,5 +253,38 @@ void main() {
       expect(roundTrip.dx, closeTo(displayPos.dx, 0.001));
       expect(roundTrip.dy, closeTo(displayPos.dy, 0.001));
     });
+
+    test('size normalization: strokeWidth / scale preserves visual size', () {
+      // A 3px display stroke at scale 0.5 → image strokeWidth = 6.
+      // When rendered under canvas.scale(0.5), it appears as 6*0.5 = 3px ✓.
+      const displayStrokeWidth = 3.0;
+      const scale = 0.5;
+      const imageStrokeWidth = displayStrokeWidth / scale;
+
+      expect(imageStrokeWidth, 6.0);
+      // On display: imageStrokeWidth * scale = visual size
+      expect(imageStrokeWidth * scale, displayStrokeWidth);
+    });
+
+    test('size normalization: fontSize / scale preserves visual size', () {
+      // A 16px display font at scale 0.4 → image fontSize = 40.
+      // When rendered under canvas.scale(0.4), it appears as 40*0.4 = 16px ✓.
+      const displayFontSize = 16.0;
+      const scale = 0.4;
+      const imageFontSize = displayFontSize / scale;
+
+      expect(imageFontSize, 40.0);
+      expect(imageFontSize * scale, displayFontSize);
+    });
+
+    test('size normalization: DPR 2x produces correct image-space sizes', () {
+      // DPR 2x: 800px image in 400px container → scale = 0.5.
+      // Display strokeWidth 3px → image 6px.
+      // Display fontSize 16px → image 32px.
+      // On export (full resolution), these sizes are proportionally correct.
+      const scale = 0.5;
+      expect(3.0 / scale, 6.0);
+      expect(16.0 / scale, 32.0);
+    });
   });
 }

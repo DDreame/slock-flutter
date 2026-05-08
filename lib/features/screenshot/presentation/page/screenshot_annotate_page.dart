@@ -20,6 +20,17 @@ import 'package:slock_app/features/share/data/shared_content.dart';
 /// The toolbar at the bottom provides tool selection, undo/redo, and colors.
 /// Action buttons: share to channel/DM (via #408 share pipeline), save to
 /// device (via system share sheet), discard.
+///
+/// ## Coordinate contract
+///
+/// All committed annotations are stored in **image-pixel** coordinates.
+/// Sizes (strokeWidth, fontSize) are also normalized to image-pixel space
+/// so the exported PNG matches what the user sees on screen.
+///
+/// The display transform (`scale`, `offset`) maps image→display coordinates.
+/// [AnnotationPainter] applies this transform when rendering to the screen.
+/// During export, annotations are painted at their native image-pixel
+/// coordinates with no transform applied.
 class ScreenshotAnnotatePage extends ConsumerStatefulWidget {
   const ScreenshotAnnotatePage({super.key});
 
@@ -30,7 +41,7 @@ class ScreenshotAnnotatePage extends ConsumerStatefulWidget {
 
 class _ScreenshotAnnotatePageState
     extends ConsumerState<ScreenshotAnnotatePage> {
-  /// Currently in-progress freehand stroke (live feedback).
+  /// Currently in-progress freehand stroke (live feedback in display coords).
   FreehandAnnotation? _activeStroke;
 
   /// Start point for arrow tool (in display coordinates during drag).
@@ -42,6 +53,8 @@ class _ScreenshotAnnotatePageState
   final _captureService = const ScreenshotCaptureService();
 
   /// Intrinsic pixel dimensions of the base screenshot image.
+  /// Null until the image header has been decoded.
+  /// Editing is disabled while this is null (BLOCKER 2 guard).
   Size? _imageSize;
 
   @override
@@ -73,6 +86,9 @@ class _ScreenshotAnnotatePageState
     }
   }
 
+  /// Whether the image transform is ready and editing is enabled.
+  bool get _isTransformReady => _imageSize != null;
+
   /// Computes the scale and offset for the `BoxFit.contain` layout of the
   /// image within the given [containerSize].
   ///
@@ -80,11 +96,10 @@ class _ScreenshotAnnotatePageState
   /// - `scale` is the ratio from image-pixel to display-logical coordinates
   /// - `offset` is the top-left corner of the displayed image within the
   ///   container (accounts for letterboxing)
+  ///
+  /// Requires [_imageSize] to be non-null.
   (double scale, Offset offset) _computeDisplayTransform(Size containerSize) {
-    final imgSize = _imageSize;
-    if (imgSize == null || imgSize.isEmpty) {
-      return (1.0, Offset.zero);
-    }
+    final imgSize = _imageSize!;
     final fitted = applyBoxFit(BoxFit.contain, imgSize, containerSize);
     final scale = fitted.destination.width / fitted.source.width;
     final offsetX = (containerSize.width - fitted.destination.width) / 2;
@@ -99,6 +114,12 @@ class _ScreenshotAnnotatePageState
       (displayPos.dx - offset.dx) / scale,
       (displayPos.dy - offset.dy) / scale,
     );
+  }
+
+  /// Converts a size value (strokeWidth, fontSize) from display-logical
+  /// units to image-pixel units.
+  double _displaySizeToImage(double displaySize, double scale) {
+    return displaySize / scale;
   }
 
   @override
@@ -153,38 +174,57 @@ class _ScreenshotAnnotatePageState
                   constraints.maxWidth,
                   constraints.maxHeight,
                 );
-                final (scale, offset) = _computeDisplayTransform(containerSize);
+
+                // Compute transform only when image dimensions are known.
+                final double scale;
+                final Offset offset;
+                if (_isTransformReady) {
+                  (scale, offset) = _computeDisplayTransform(containerSize);
+                } else {
+                  scale = 1.0;
+                  offset = Offset.zero;
+                }
 
                 return GestureDetector(
-                  onPanStart: (details) => _onPanStart(
-                    details,
-                    state.selectedTool,
-                    state.selectedColor,
-                    scale,
-                    offset,
-                  ),
-                  onPanUpdate: (details) => _onPanUpdate(
-                    details,
-                    state.selectedTool,
-                    state.selectedColor,
-                    scale,
-                    offset,
-                  ),
-                  onPanEnd: (details) => _onPanEnd(
-                    store,
-                    state.selectedTool,
-                    state.selectedColor,
-                    scale,
-                    offset,
-                  ),
-                  onTapUp: (details) => _onTapUp(
-                    details,
-                    store,
-                    state.selectedTool,
-                    state.selectedColor,
-                    scale,
-                    offset,
-                  ),
+                  // Disable gesture input until transform is ready to prevent
+                  // misplaced annotations from identity-transform fallback.
+                  onPanStart: _isTransformReady
+                      ? (details) => _onPanStart(
+                            details,
+                            state.selectedTool,
+                            state.selectedColor,
+                            scale,
+                            offset,
+                          )
+                      : null,
+                  onPanUpdate: _isTransformReady
+                      ? (details) => _onPanUpdate(
+                            details,
+                            state.selectedTool,
+                            state.selectedColor,
+                            scale,
+                            offset,
+                          )
+                      : null,
+                  onPanEnd: _isTransformReady
+                      ? (details) => _onPanEnd(
+                            store,
+                            state.selectedTool,
+                            state.selectedColor,
+                            scale,
+                            offset,
+                          )
+                      : null,
+                  onTapUp: _isTransformReady
+                      ? (details) => _onTapUp(
+                            details,
+                            store,
+                            state.selectedTool,
+                            state.selectedColor,
+                            scale,
+                            offset,
+                          )
+                      : null,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -194,15 +234,16 @@ class _ScreenshotAnnotatePageState
                         fit: BoxFit.contain,
                       ),
                       // Overlay: annotation canvas.
-                      CustomPaint(
-                        painter: AnnotationPainter(
-                          annotations: state.annotations,
-                          activeStroke: _activeStroke,
-                          displayScale: scale,
-                          displayOffset: offset,
+                      if (_isTransformReady)
+                        CustomPaint(
+                          painter: AnnotationPainter(
+                            annotations: state.annotations,
+                            activeStroke: _activeStroke,
+                            displayScale: scale,
+                            displayOffset: offset,
+                          ),
+                          size: Size.infinite,
                         ),
-                        size: Size.infinite,
-                      ),
                       // Loading overlay during export.
                       if (state.isExporting)
                         const ColoredBox(
@@ -299,13 +340,15 @@ class _ScreenshotAnnotatePageState
       case AnnotationTool.freehand:
         if (_activeStroke != null && _activeStroke!.points.length >= 2) {
           // Convert all display-coordinate points to image-pixel coordinates.
+          // Also normalize strokeWidth to image space so the committed stroke
+          // renders at the same visual size as the live preview.
           final imagePoints = _activeStroke!.points
               .map((p) => _displayToImage(p, scale, offset))
               .toList();
           store.addAnnotation(FreehandAnnotation(
             color: color,
             points: imagePoints,
-            strokeWidth: _activeStroke!.strokeWidth,
+            strokeWidth: _displaySizeToImage(_activeStroke!.strokeWidth, scale),
           ));
         }
         setState(() {
@@ -313,10 +356,13 @@ class _ScreenshotAnnotatePageState
         });
       case AnnotationTool.arrow:
         if (_arrowStart != null && _arrowEnd != null) {
+          // Normalize positions and strokeWidth to image space.
+          const defaultStrokeWidth = 3.0;
           store.addAnnotation(ArrowAnnotation(
             color: color,
             start: _displayToImage(_arrowStart!, scale, offset),
             end: _displayToImage(_arrowEnd!, scale, offset),
+            strokeWidth: _displaySizeToImage(defaultStrokeWidth, scale),
           ));
         }
         _arrowStart = null;
@@ -382,10 +428,13 @@ class _ScreenshotAnnotatePageState
     controller.dispose();
 
     if (text != null && text.isNotEmpty) {
+      // Normalize position and fontSize to image-pixel space.
+      const defaultFontSize = 16.0;
       store.addAnnotation(TextAnnotation(
         color: color,
         position: _displayToImage(displayPosition, scale, offset),
         text: text,
+        fontSize: _displaySizeToImage(defaultFontSize, scale),
       ));
     }
   }

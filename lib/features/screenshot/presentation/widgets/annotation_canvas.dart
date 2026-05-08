@@ -138,9 +138,10 @@ class AnnotationPainter extends CustomPainter {
     // Draw the shaft.
     canvas.drawLine(start, end, paint);
 
-    // Draw the arrowhead.
+    // Draw the arrowhead — size proportional to strokeWidth so it scales
+    // correctly across display and export coordinate spaces.
     final angle = math.atan2(end.dy - start.dy, end.dx - start.dx);
-    const headLength = 15.0;
+    final headLength = math.max(10.0, strokeWidth * 5);
     const headAngle = math.pi / 6; // 30 degrees
 
     final head1 = Offset(
