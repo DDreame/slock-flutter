@@ -240,6 +240,124 @@ void main() {
       expect(retryOpts.headers['Authorization'], 'Bearer fresh-token');
     });
 
+    test('public auth endpoint request does not carry Authorization header',
+        () async {
+      final adapter = _SequenceAdapter([
+        const _StubResponse(statusCode: 200, body: '{"ok":true}'),
+      ]);
+
+      final coordinator = TokenRefreshCoordinator(
+        refreshToken: () async => 'new-token',
+      );
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {
+            'Authorization': 'Bearer stale-token',
+            'X-Server-Id': 'server-1',
+          },
+          tokenRefreshCoordinator: coordinator,
+          logSink: noopNetworkLogSink,
+          dioForRetry: () => dio,
+        ),
+      );
+
+      // All public auth paths should strip Authorization.
+      for (final path in [
+        '/auth/login',
+        '/auth/register',
+        '/auth/forgot-password',
+        '/auth/reset-password',
+        '/auth/verify-email',
+        '/auth/resend-verification',
+        '/auth/refresh',
+      ]) {
+        adapter.reset([
+          const _StubResponse(statusCode: 200, body: '{"ok":true}'),
+        ]);
+        await dio.post<Object?>(path, data: {'key': 'value'});
+
+        final captured = adapter.capturedOptions.last;
+        expect(
+          captured.headers['Authorization'],
+          isNull,
+          reason: '$path should not carry Authorization',
+        );
+        // Other headers should still be present.
+        expect(captured.headers['X-Server-Id'], 'server-1');
+      }
+    });
+
+    test('public auth endpoint 401 does not trigger refresh retry', () async {
+      var refreshCalls = 0;
+      final adapter = _SequenceAdapter([
+        const _StubResponse(statusCode: 401, body: '{"error":"bad creds"}'),
+      ]);
+
+      final coordinator = TokenRefreshCoordinator(
+        refreshToken: () async {
+          refreshCalls++;
+          return 'new-token';
+        },
+      );
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {
+            'Authorization': 'Bearer stale-token',
+          },
+          tokenRefreshCoordinator: coordinator,
+          logSink: noopNetworkLogSink,
+          dioForRetry: () => dio,
+        ),
+      );
+
+      try {
+        await dio.post<Object?>('/auth/login', data: {'email': 'a@b.c'});
+        fail('should have thrown');
+      } on DioException catch (e) {
+        expect(e.response?.statusCode, 401);
+      }
+
+      // Refresh must NOT have been called — login 401 = bad credentials.
+      expect(refreshCalls, 0);
+      expect(adapter.callCount, 1);
+    });
+
+    test('protected endpoint still gets Authorization and refresh on 401',
+        () async {
+      final adapter = _SequenceAdapter([
+        const _StubResponse(statusCode: 200, body: '{"user":"me"}'),
+      ]);
+
+      final coordinator = TokenRefreshCoordinator(
+        refreshToken: () async => 'new-token',
+      );
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {
+            'Authorization': 'Bearer valid-token',
+          },
+          tokenRefreshCoordinator: coordinator,
+          logSink: noopNetworkLogSink,
+          dioForRetry: () => dio,
+        ),
+      );
+
+      final response = await dio.get<Object?>('/auth/me');
+
+      expect(response.statusCode, 200);
+      final captured = adapter.capturedOptions.last;
+      expect(captured.headers['Authorization'], 'Bearer valid-token');
+    });
+
     test('retry preserves original request method and body', () async {
       final adapter = _SequenceAdapter([
         const _StubResponse(statusCode: 401, body: '{}'),
@@ -290,11 +408,17 @@ class _StubResponse {
 class _SequenceAdapter implements HttpClientAdapter {
   _SequenceAdapter(this._responses);
 
-  final List<_StubResponse> _responses;
+  List<_StubResponse> _responses;
   final List<RequestOptions> capturedOptions = [];
   int _index = 0;
 
   int get callCount => _index;
+
+  void reset(List<_StubResponse> responses) {
+    _responses = responses;
+    capturedOptions.clear();
+    _index = 0;
+  }
 
   @override
   Future<ResponseBody> fetch(

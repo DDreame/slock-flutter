@@ -10,6 +10,20 @@ import 'package:slock_app/core/network/token_refresh_coordinator.dart';
 const tokenRetriedKey = '_tokenRetried';
 const _headerBuildTimeout = Duration(seconds: 5);
 
+/// Public auth endpoints that must not carry a stale Bearer token and must not
+/// trigger token-refresh on 401 (bad credentials ≠ expired token).
+const _publicAuthPaths = <String>{
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/verify-email',
+  '/auth/resend-verification',
+  '/auth/refresh',
+};
+
+bool isPublicAuthEndpoint(String path) => _publicAuthPaths.contains(path);
+
 class AppDioInterceptor extends Interceptor {
   AppDioInterceptor({
     required RequestHeadersBuilder buildHeaders,
@@ -38,6 +52,9 @@ class AppDioInterceptor extends Interceptor {
       options.headers.addAll(headers);
       if (explicitServerHeader != null) {
         options.headers['X-Server-Id'] = explicitServerHeader;
+      }
+      if (isPublicAuthEndpoint(options.path)) {
+        options.headers.remove('Authorization');
       }
       _logSink(
         NetworkLogEvent(
@@ -101,7 +118,8 @@ class AppDioInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     if (err.response?.statusCode == 401 &&
-        err.requestOptions.extra[tokenRetriedKey] != true) {
+        err.requestOptions.extra[tokenRetriedKey] != true &&
+        !isPublicAuthEndpoint(err.requestOptions.path)) {
       String? newToken;
       try {
         newToken = await _tokenRefreshCoordinator.refreshToken();
