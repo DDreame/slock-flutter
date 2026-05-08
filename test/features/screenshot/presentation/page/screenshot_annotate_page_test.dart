@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -334,6 +334,20 @@ void main() {
     testWidgets(
         'save button tapping with no annotations exports and invokes share sheet',
         (tester) async {
+      // Mock the share_plus method channel to verify Share.shareXFiles is
+      // actually called (not just that state updates happen).
+      final shareCalls = <MethodCall>[];
+      const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(shareChannel, (call) async {
+        shareCalls.add(call);
+        return 'dev.fluttercommunity.plus/share/unavailable';
+      });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(shareChannel, null);
+      });
+
       final container = ProviderContainer(
         overrides: [
           screenshotStoreProvider.overrideWith(() {
@@ -354,8 +368,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap the save button — with no annotations, _exportImage will use the
-      // original imagePath directly. Then Share.shareXFiles will throw
-      // MissingPluginException in the test environment.
+      // original imagePath directly. Share.shareXFiles hits the mock channel.
       await tester.tap(find.byKey(const ValueKey('screenshot-save')));
       // Pump to process the async _onSave / _exportImage flow.
       await tester.pump();
@@ -365,6 +378,10 @@ void main() {
       final state = container.read(screenshotStoreProvider);
       expect(state.exportedPath, tempImageFile.path);
       expect(state.isExporting, isFalse);
+
+      // Verify Share.shareXFiles was actually invoked via the method channel.
+      expect(shareCalls, hasLength(1));
+      expect(shareCalls.first.method, 'shareFiles');
     });
   });
 
