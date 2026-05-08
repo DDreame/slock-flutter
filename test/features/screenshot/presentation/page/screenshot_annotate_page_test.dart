@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
+import 'package:slock_app/features/screenshot/data/annotation.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_state.dart';
 import 'package:slock_app/features/screenshot/presentation/page/screenshot_annotate_page.dart';
+import 'package:slock_app/features/screenshot/presentation/widgets/annotation_toolbar.dart';
 
 void main() {
   group('ScreenshotAnnotatePage', () {
@@ -14,7 +16,6 @@ void main() {
 
     setUpAll(() {
       // Create a minimal valid 1x1 red PNG for testing.
-      // PNG header + IHDR + IDAT + IEND (minimal valid PNG).
       final pngBytes = Uint8List.fromList([
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
         0x00, 0x00, 0x00, 0x0D, // IHDR length
@@ -48,7 +49,7 @@ void main() {
       return ProviderScope(
         overrides: [
           screenshotStoreProvider.overrideWith(() {
-            return _TestScreenshotStore(imagePath: imagePath);
+            return TestScreenshotStore(imagePath: imagePath);
           }),
         ],
         child: const MaterialApp(
@@ -73,6 +74,14 @@ void main() {
       expect(find.byKey(const ValueKey('screenshot-share')), findsOneWidget);
     });
 
+    testWidgets('renders save button when imagePath is set', (tester) async {
+      await tester.pumpWidget(buildPage(imagePath: tempImageFile.path));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('screenshot-save')), findsOneWidget);
+      expect(find.byIcon(Icons.save_alt), findsOneWidget);
+    });
+
     testWidgets('discard button pops the page and resets store',
         (tester) async {
       // Wrap in a Navigator so pop() works.
@@ -80,7 +89,7 @@ void main() {
         ProviderScope(
           overrides: [
             screenshotStoreProvider.overrideWith(() {
-              return _TestScreenshotStore(imagePath: tempImageFile.path);
+              return TestScreenshotStore(imagePath: tempImageFile.path);
             }),
           ],
           child: MaterialApp(
@@ -124,20 +133,119 @@ void main() {
       expect(find.byIcon(Icons.undo), findsOneWidget);
       expect(find.byIcon(Icons.redo), findsOneWidget);
     });
+
+    testWidgets('toolbar is an AnnotationToolbar widget', (tester) async {
+      await tester.pumpWidget(buildPage(imagePath: tempImageFile.path));
+      await tester.pump();
+
+      expect(find.byType(AnnotationToolbar), findsOneWidget);
+    });
+
+    testWidgets('save and share buttons are disabled while exporting',
+        (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            screenshotStoreProvider.overrideWith(() {
+              return TestScreenshotStore(
+                imagePath: tempImageFile.path,
+                initialExporting: true,
+              );
+            }),
+          ],
+          child: const MaterialApp(
+            home: ScreenshotAnnotatePage(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Both save and share should be rendered but their onPressed is null.
+      final saveButton = tester.widget<IconButton>(
+        find.byKey(const ValueKey('screenshot-save')),
+      );
+      expect(saveButton.onPressed, isNull);
+
+      final shareButton = tester.widget<IconButton>(
+        find.byKey(const ValueKey('screenshot-share')),
+      );
+      expect(shareButton.onPressed, isNull);
+    });
+
+    testWidgets('shows loading overlay when isExporting', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            screenshotStoreProvider.overrideWith(() {
+              return TestScreenshotStore(
+                imagePath: tempImageFile.path,
+                initialExporting: true,
+              );
+            }),
+          ],
+          child: const MaterialApp(
+            home: ScreenshotAnnotatePage(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('page renders with annotations in state', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            screenshotStoreProvider.overrideWith(() {
+              return TestScreenshotStore(
+                imagePath: tempImageFile.path,
+                initialAnnotations: [
+                  const ArrowAnnotation(
+                    color: Color(0xFFFF0000),
+                    start: Offset(10, 10),
+                    end: Offset(100, 100),
+                  ),
+                ],
+              );
+            }),
+          ],
+          child: const MaterialApp(
+            home: ScreenshotAnnotatePage(),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Page renders without errors.
+      expect(find.text('Annotate Screenshot'), findsOneWidget);
+      // Undo should be enabled since there's an annotation.
+      final undoButton = tester.widget<IconButton>(
+        find.widgetWithIcon(IconButton, Icons.undo),
+      );
+      expect(undoButton.onPressed, isNotNull);
+    });
   });
 }
 
-/// Test store that can be pre-seeded with an imagePath.
-class _TestScreenshotStore extends ScreenshotStore {
-  _TestScreenshotStore({this.imagePath});
+/// Test store that can be pre-seeded with state.
+class TestScreenshotStore extends ScreenshotStore {
+  TestScreenshotStore({
+    this.imagePath,
+    this.initialExporting = false,
+    this.initialAnnotations = const [],
+  });
 
   final String? imagePath;
+  final bool initialExporting;
+  final List<Annotation> initialAnnotations;
 
   @override
   ScreenshotState build() {
-    if (imagePath != null) {
-      return ScreenshotState(imagePath: imagePath);
-    }
-    return const ScreenshotState();
+    return ScreenshotState(
+      imagePath: imagePath,
+      isExporting: initialExporting,
+      annotations: initialAnnotations,
+    );
   }
 }

@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/annotation.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
@@ -16,7 +18,8 @@ import 'package:slock_app/features/share/data/shared_content.dart';
 ///
 /// Displays the screenshot image with an interactive annotation canvas overlay.
 /// The toolbar at the bottom provides tool selection, undo/redo, and colors.
-/// Action buttons: share to channel/DM (via #408 share pipeline), discard.
+/// Action buttons: share to channel/DM (via #408 share pipeline), save to
+/// device (via system share sheet), discard.
 class ScreenshotAnnotatePage extends ConsumerStatefulWidget {
   const ScreenshotAnnotatePage({super.key});
 
@@ -30,13 +33,73 @@ class _ScreenshotAnnotatePageState
   /// Currently in-progress freehand stroke (live feedback).
   FreehandAnnotation? _activeStroke;
 
-  /// Start point for arrow tool.
+  /// Start point for arrow tool (in display coordinates during drag).
   Offset? _arrowStart;
 
-  /// End point for arrow tool (updated during drag).
+  /// End point for arrow tool (in display coordinates during drag).
   Offset? _arrowEnd;
 
   final _captureService = const ScreenshotCaptureService();
+
+  /// Intrinsic pixel dimensions of the base screenshot image.
+  Size? _imageSize;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load image dimensions once after first build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadImageSize();
+    });
+  }
+
+  /// Decodes the base image to obtain its pixel dimensions.
+  Future<void> _loadImageSize() async {
+    final imagePath = ref.read(screenshotStoreProvider).imagePath;
+    if (imagePath == null) return;
+
+    final file = File(imagePath);
+    if (!file.existsSync()) return;
+
+    final bytes = await file.readAsBytes();
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final image = frame.image;
+
+    if (mounted) {
+      setState(() {
+        _imageSize = Size(image.width.toDouble(), image.height.toDouble());
+      });
+    }
+  }
+
+  /// Computes the scale and offset for the `BoxFit.contain` layout of the
+  /// image within the given [containerSize].
+  ///
+  /// Returns `(scale, offset)` where:
+  /// - `scale` is the ratio from image-pixel to display-logical coordinates
+  /// - `offset` is the top-left corner of the displayed image within the
+  ///   container (accounts for letterboxing)
+  (double scale, Offset offset) _computeDisplayTransform(Size containerSize) {
+    final imgSize = _imageSize;
+    if (imgSize == null || imgSize.isEmpty) {
+      return (1.0, Offset.zero);
+    }
+    final fitted = applyBoxFit(BoxFit.contain, imgSize, containerSize);
+    final scale = fitted.destination.width / fitted.source.width;
+    final offsetX = (containerSize.width - fitted.destination.width) / 2;
+    final offsetY = (containerSize.height - fitted.destination.height) / 2;
+    return (scale, Offset(offsetX, offsetY));
+  }
+
+  /// Converts a gesture position in display-local coordinates to image-pixel
+  /// coordinates using the current display transform.
+  Offset _displayToImage(Offset displayPos, double scale, Offset offset) {
+    return Offset(
+      (displayPos.dx - offset.dx) / scale,
+      (displayPos.dy - offset.dy) / scale,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +131,12 @@ class _ScreenshotAnnotatePageState
         ),
         actions: [
           IconButton(
+            key: const ValueKey('screenshot-save'),
+            icon: const Icon(Icons.save_alt, color: Colors.white),
+            onPressed: state.isExporting ? null : () => _onSave(store, state),
+            tooltip: 'Save to device',
+          ),
+          IconButton(
             key: const ValueKey('screenshot-share'),
             icon: const Icon(Icons.share, color: Colors.white),
             onPressed: state.isExporting ? null : () => _onShare(store, state),
@@ -78,43 +147,72 @@ class _ScreenshotAnnotatePageState
       body: Column(
         children: [
           Expanded(
-            child: GestureDetector(
-              onPanStart: (details) =>
-                  _onPanStart(details, state.selectedTool, state.selectedColor),
-              onPanUpdate: (details) => _onPanUpdate(
-                  details, state.selectedTool, state.selectedColor),
-              onPanEnd: (details) =>
-                  _onPanEnd(store, state.selectedTool, state.selectedColor),
-              onTapUp: (details) => _onTapUp(
-                details,
-                store,
-                state.selectedTool,
-                state.selectedColor,
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Background: the captured screenshot.
-                  Image.file(
-                    File(state.imagePath!),
-                    fit: BoxFit.contain,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final containerSize = Size(
+                  constraints.maxWidth,
+                  constraints.maxHeight,
+                );
+                final (scale, offset) = _computeDisplayTransform(containerSize);
+
+                return GestureDetector(
+                  onPanStart: (details) => _onPanStart(
+                    details,
+                    state.selectedTool,
+                    state.selectedColor,
+                    scale,
+                    offset,
                   ),
-                  // Overlay: annotation canvas.
-                  CustomPaint(
-                    painter: AnnotationPainter(
-                      annotations: state.annotations,
-                      activeStroke: _activeStroke,
-                    ),
-                    size: Size.infinite,
+                  onPanUpdate: (details) => _onPanUpdate(
+                    details,
+                    state.selectedTool,
+                    state.selectedColor,
+                    scale,
+                    offset,
                   ),
-                  // Loading overlay during export.
-                  if (state.isExporting)
-                    const ColoredBox(
-                      color: Colors.black54,
-                      child: Center(child: CircularProgressIndicator()),
-                    ),
-                ],
-              ),
+                  onPanEnd: (details) => _onPanEnd(
+                    store,
+                    state.selectedTool,
+                    state.selectedColor,
+                    scale,
+                    offset,
+                  ),
+                  onTapUp: (details) => _onTapUp(
+                    details,
+                    store,
+                    state.selectedTool,
+                    state.selectedColor,
+                    scale,
+                    offset,
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Background: the captured screenshot.
+                      Image.file(
+                        File(state.imagePath!),
+                        fit: BoxFit.contain,
+                      ),
+                      // Overlay: annotation canvas.
+                      CustomPaint(
+                        painter: AnnotationPainter(
+                          annotations: state.annotations,
+                          activeStroke: _activeStroke,
+                          displayScale: scale,
+                          displayOffset: offset,
+                        ),
+                        size: Size.infinite,
+                      ),
+                      // Loading overlay during export.
+                      if (state.isExporting)
+                        const ColoredBox(
+                          color: Colors.black54,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
           // Toolbar at the bottom.
@@ -141,10 +239,16 @@ class _ScreenshotAnnotatePageState
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Gesture handlers
+  // ---------------------------------------------------------------------------
+
   void _onPanStart(
     DragStartDetails details,
     AnnotationTool tool,
     Color color,
+    double scale,
+    Offset offset,
   ) {
     final pos = details.localPosition;
     switch (tool) {
@@ -166,6 +270,8 @@ class _ScreenshotAnnotatePageState
     DragUpdateDetails details,
     AnnotationTool tool,
     Color color,
+    double scale,
+    Offset offset,
   ) {
     final pos = details.localPosition;
     switch (tool) {
@@ -186,11 +292,21 @@ class _ScreenshotAnnotatePageState
     ScreenshotStore store,
     AnnotationTool tool,
     Color color,
+    double scale,
+    Offset offset,
   ) {
     switch (tool) {
       case AnnotationTool.freehand:
         if (_activeStroke != null && _activeStroke!.points.length >= 2) {
-          store.addAnnotation(_activeStroke!);
+          // Convert all display-coordinate points to image-pixel coordinates.
+          final imagePoints = _activeStroke!.points
+              .map((p) => _displayToImage(p, scale, offset))
+              .toList();
+          store.addAnnotation(FreehandAnnotation(
+            color: color,
+            points: imagePoints,
+            strokeWidth: _activeStroke!.strokeWidth,
+          ));
         }
         setState(() {
           _activeStroke = null;
@@ -199,8 +315,8 @@ class _ScreenshotAnnotatePageState
         if (_arrowStart != null && _arrowEnd != null) {
           store.addAnnotation(ArrowAnnotation(
             color: color,
-            start: _arrowStart!,
-            end: _arrowEnd!,
+            start: _displayToImage(_arrowStart!, scale, offset),
+            end: _displayToImage(_arrowEnd!, scale, offset),
           ));
         }
         _arrowStart = null;
@@ -215,16 +331,30 @@ class _ScreenshotAnnotatePageState
     ScreenshotStore store,
     AnnotationTool tool,
     Color color,
+    double scale,
+    Offset offset,
   ) {
     if (tool == AnnotationTool.text) {
-      _showTextInputDialog(details.localPosition, store, color);
+      _showTextInputDialog(
+        details.localPosition,
+        store,
+        color,
+        scale,
+        offset,
+      );
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Text input dialog
+  // ---------------------------------------------------------------------------
+
   Future<void> _showTextInputDialog(
-    Offset position,
+    Offset displayPosition,
     ScreenshotStore store,
     Color color,
+    double scale,
+    Offset offset,
   ) async {
     final controller = TextEditingController();
     final text = await showDialog<String>(
@@ -254,21 +384,25 @@ class _ScreenshotAnnotatePageState
     if (text != null && text.isNotEmpty) {
       store.addAnnotation(TextAnnotation(
         color: color,
-        position: position,
+        position: _displayToImage(displayPosition, scale, offset),
         text: text,
       ));
     }
   }
 
-  Future<void> _onShare(
+  // ---------------------------------------------------------------------------
+  // Export helper — produces the flattened PNG (annotations baked in).
+  // ---------------------------------------------------------------------------
+
+  /// Exports the screenshot with annotations flattened and returns the path,
+  /// or null on failure. Sets isExporting on the store during the operation.
+  Future<String?> _exportImage(
     ScreenshotStore store,
     ScreenshotState state,
   ) async {
     store.setExporting(true);
 
     try {
-      // If there are annotations, export a flattened image.
-      // Otherwise, use the original screenshot directly.
       final String? exportedPath;
       if (state.annotations.isNotEmpty) {
         exportedPath = await _captureService.export(
@@ -286,25 +420,11 @@ class _ScreenshotAnnotatePageState
             const SnackBar(content: Text('Failed to export screenshot')),
           );
         }
-        return;
+        return null;
       }
 
       store.setExportedPath(exportedPath);
-
-      // Hand the exported image to the share pipeline (#408).
-      // Create SharedContent with the image and feed it to the share intent
-      // store, then navigate to /share-target.
-      if (!mounted) return;
-
-      final content = SharedContent(items: [
-        SharedContentItem(
-          type: SharedContentType.image,
-          path: exportedPath,
-          mimeType: 'image/png',
-        ),
-      ]);
-      ref.read(shareIntentStoreProvider.notifier).setContent(content);
-      context.go('/share-target');
+      return exportedPath;
     } catch (e) {
       store.setExporting(false);
       if (mounted) {
@@ -312,6 +432,55 @@ class _ScreenshotAnnotatePageState
           SnackBar(content: Text('Export failed: $e')),
         );
       }
+      return null;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Save to device (via system share sheet)
+  // ---------------------------------------------------------------------------
+
+  Future<void> _onSave(
+    ScreenshotStore store,
+    ScreenshotState state,
+  ) async {
+    final exportedPath = await _exportImage(store, state);
+    if (exportedPath == null || !mounted) return;
+
+    try {
+      await Share.shareXFiles(
+        [XFile(exportedPath)],
+        subject: 'Screenshot',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Save failed: $e')),
+        );
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Share to Slock channel/DM (via #408 share pipeline)
+  // ---------------------------------------------------------------------------
+
+  Future<void> _onShare(
+    ScreenshotStore store,
+    ScreenshotState state,
+  ) async {
+    final exportedPath = await _exportImage(store, state);
+    if (exportedPath == null || !mounted) return;
+
+    // Hand the exported image to the share pipeline (#408).
+    final content = SharedContent(items: [
+      SharedContentItem(
+        type: SharedContentType.image,
+        path: exportedPath,
+        mimeType: 'image/png',
+      ),
+    ]);
+    ref.read(shareIntentStoreProvider.notifier).setContent(content);
+    context.go('/share-target');
   }
 }

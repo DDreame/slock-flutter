@@ -82,7 +82,6 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildToolbar(canUndo: false));
 
-      // The button should be rendered but disabled.
       final iconButton = tester.widget<IconButton>(
         find.widgetWithIcon(IconButton, Icons.undo),
       );
@@ -99,18 +98,77 @@ void main() {
       expect(iconButton.onPressed, isNull);
     });
 
-    testWidgets('renders color dots and tapping changes color', (tester) async {
+    testWidgets('renders exactly 6 color dots', (tester) async {
       await tester.pumpWidget(buildToolbar());
 
-      // There should be 6 color dots.
-      final colorDots = find.byType(GestureDetector);
-      expect(colorDots, findsWidgets);
+      // Each color dot is a GestureDetector wrapping a Container.
+      // The toolbar has 6 colors: red, green, blue, yellow, white, black.
+      // Find all GestureDetector widgets that wrap a Container with a circle
+      // decoration. There may be other GestureDetectors so we count decorated
+      // containers instead.
+      final colorDots = find.byWidgetPredicate((widget) {
+        if (widget is! Container) return false;
+        final decoration = widget.decoration;
+        if (decoration is! BoxDecoration) return false;
+        return decoration.shape == BoxShape.circle;
+      });
+      expect(colorDots, findsNWidgets(6));
+    });
 
-      // Tap the green color dot (index 1 in the _colors list).
-      // Colors are rendered as Container widgets with BoxDecoration.
-      // The simplest approach: tap by finding a Container with green color.
-      // Since exact widget finding is fragile, just verify the toolbar renders.
-      expect(find.byType(AnnotationToolbar), findsOneWidget);
+    testWidgets('tapping a color dot calls onColorSelected with that color',
+        (tester) async {
+      await tester.pumpWidget(
+        buildToolbar(selectedColor: const Color(0xFFFF0000)),
+      );
+
+      // Find the green color dot (0xFF00FF00) by its decoration color.
+      final greenDot = find.byWidgetPredicate((widget) {
+        if (widget is! Container) return false;
+        final decoration = widget.decoration;
+        if (decoration is! BoxDecoration) return false;
+        return decoration.color == const Color(0xFF00FF00);
+      });
+      expect(greenDot, findsOneWidget);
+
+      await tester.tap(greenDot);
+      expect(lastColorSelected, const Color(0xFF00FF00));
+    });
+
+    testWidgets('tapping blue color dot selects blue', (tester) async {
+      await tester.pumpWidget(
+        buildToolbar(selectedColor: const Color(0xFFFF0000)),
+      );
+
+      final blueDot = find.byWidgetPredicate((widget) {
+        if (widget is! Container) return false;
+        final decoration = widget.decoration;
+        if (decoration is! BoxDecoration) return false;
+        return decoration.color == const Color(0xFF0000FF);
+      });
+      expect(blueDot, findsOneWidget);
+
+      await tester.tap(blueDot);
+      expect(lastColorSelected, const Color(0xFF0000FF));
+    });
+
+    testWidgets('selected color dot has thicker border', (tester) async {
+      const selectedColor = Color(0xFFFF0000);
+      await tester.pumpWidget(buildToolbar(selectedColor: selectedColor));
+
+      final selectedDot = tester.widget<Container>(
+        find.byWidgetPredicate((widget) {
+          if (widget is! Container) return false;
+          final decoration = widget.decoration;
+          if (decoration is! BoxDecoration) return false;
+          return decoration.color == selectedColor;
+        }),
+      );
+
+      final decoration = selectedDot.decoration! as BoxDecoration;
+      // Selected dot has border width 2.5, unselected has 1.0.
+      expect(decoration.border, isA<Border>());
+      final border = decoration.border! as Border;
+      expect(border.top.width, 2.5);
     });
   });
 }

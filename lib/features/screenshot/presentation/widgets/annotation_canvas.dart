@@ -5,23 +5,59 @@ import 'package:flutter/material.dart';
 import 'package:slock_app/features/screenshot/data/annotation.dart';
 
 /// Custom painter that renders annotations on top of a screenshot image.
+///
+/// When [displayScale] and [displayOffset] are provided (display mode), the
+/// painter applies an image→display transform so annotations stored in
+/// image-pixel coordinates appear at the correct on-screen positions.
+///
+/// When omitted (export mode), annotations are painted in raw image-pixel
+/// coordinates directly onto the full-resolution canvas.
 class AnnotationPainter extends CustomPainter {
   const AnnotationPainter({
     required this.annotations,
     this.activeStroke,
+    this.displayScale,
+    this.displayOffset,
   });
 
   /// Completed annotations to render.
   final List<Annotation> annotations;
 
   /// The currently in-progress freehand stroke (live feedback while drawing).
+  ///
+  /// Note: the active stroke is in **display** coordinates (raw gesture input)
+  /// and is painted *after* the canvas transform is reset, so it tracks the
+  /// finger position directly. Committed annotations are in image coordinates.
   final FreehandAnnotation? activeStroke;
+
+  /// Scale factor from image-pixel space to display-logical space.
+  /// If null, no transform is applied (export mode).
+  final double? displayScale;
+
+  /// Offset from the top-left of the painting area to the top-left of the
+  /// displayed image (accounts for `BoxFit.contain` letterboxing).
+  /// If null, no transform is applied (export mode).
+  final Offset? displayOffset;
 
   @override
   void paint(Canvas canvas, Size size) {
+    final hasTransform = displayScale != null && displayOffset != null;
+
+    if (hasTransform) {
+      canvas.save();
+      canvas.translate(displayOffset!.dx, displayOffset!.dy);
+      canvas.scale(displayScale!);
+    }
+
     for (final annotation in annotations) {
       _paintAnnotation(canvas, annotation);
     }
+
+    if (hasTransform) {
+      canvas.restore();
+    }
+
+    // Active stroke is painted in display coordinates (no transform).
     if (activeStroke != null) {
       _paintAnnotation(canvas, activeStroke!);
     }
@@ -132,6 +168,8 @@ class AnnotationPainter extends CustomPainter {
   @override
   bool shouldRepaint(AnnotationPainter oldDelegate) {
     return annotations != oldDelegate.annotations ||
-        activeStroke != oldDelegate.activeStroke;
+        activeStroke != oldDelegate.activeStroke ||
+        displayScale != oldDelegate.displayScale ||
+        displayOffset != oldDelegate.displayOffset;
   }
 }
