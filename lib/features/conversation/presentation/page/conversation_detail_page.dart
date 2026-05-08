@@ -326,7 +326,9 @@ class _ConversationDetailScreenState
                 ref
                     .read(conversationDetailStoreProvider.notifier)
                     .updateDraft(value);
-                _emitTyping();
+                if (value.trim().isNotEmpty) {
+                  _emitTyping();
+                }
               },
               onSend: _handleSend,
               onPickAttachment: ref

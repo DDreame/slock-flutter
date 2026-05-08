@@ -1856,6 +1856,70 @@ void main() {
 
     container.dispose();
   });
+
+  testWidgets(
+      'empty draft does not emit typing:start (regression: empty-draft guard)',
+      (tester) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+    final socket = _FakeRealtimeSocketClient();
+    final container = ProviderContainer(
+      overrides: [
+        conversationRepositoryProvider.overrideWithValue(repository),
+        realtimeSocketClientProvider.overrideWithValue(socket),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: ConversationDetailPage(target: target),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Type non-empty text → should emit typing:start.
+    await tester.enterText(
+      find.byKey(const ValueKey('composer-input')),
+      'hello',
+    );
+    await tester.pump();
+    final typingEmits =
+        socket.emitted.where((e) => e.$1 == 'typing:start').toList();
+    expect(typingEmits, hasLength(1));
+
+    // Clear to empty → should NOT emit another typing:start.
+    await tester.enterText(
+      find.byKey(const ValueKey('composer-input')),
+      '',
+    );
+    await tester.pump();
+    final typingEmitsAfterClear =
+        socket.emitted.where((e) => e.$1 == 'typing:start').toList();
+    expect(typingEmitsAfterClear, hasLength(1),
+        reason: 'Empty draft must not emit typing:start');
+
+    container.dispose();
+  });
 }
 
 Widget _buildApp({
