@@ -45,12 +45,37 @@ App Group so the extension can pass data to the main app.
 3. In the Runner target, ensure `Runner/Runner.entitlements` also includes the
    `com.apple.security.application-groups` key with `group.app.slock.shared`.
 
-### 5. Set deployment target
+### 5. Register the `slock` URL scheme
+
+The share extension opens the main app via the `slock://share` URL. The scheme
+is already declared in `ios/Runner/Info.plist` under `CFBundleURLTypes`. Verify
+the entry exists after merging:
+
+```xml
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleTypeRole</key>
+    <string>Editor</string>
+    <key>CFBundleURLName</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>slock</string>
+    </array>
+  </dict>
+</array>
+```
+
+If it is missing for any reason, add it to the `<dict>` in
+`ios/Runner/Info.plist`.
+
+### 6. Set deployment target
 
 1. Select the ShareExtension target → **General** → **Deployment Info**.
 2. Set the minimum iOS version to match the Runner target (iOS 15.0+).
 
-### 6. Build and test
+### 7. Build and test
 
 1. Select the ShareExtension scheme in Xcode.
 2. Build and run on a device or simulator.

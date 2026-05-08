@@ -407,11 +407,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   });
 
   // Navigate to share-target picker when new shared content arrives.
-  ref.listen<SharedContent?>(shareIntentStoreProvider, (prev, next) {
-    if (next == null || next.isEmpty) return;
+  // fireImmediately handles cold-start intents that were set before
+  // the listener was registered.
+  ref.listen<SharedContent?>(
+    shareIntentStoreProvider,
+    fireImmediately: true,
+    (prev, next) {
+      if (next == null || next.isEmpty) return;
+      final session = ref.read(sessionStoreProvider);
+      final bootstrapComplete = ref.read(appReadyProvider);
+      if (!session.isAuthenticated || !bootstrapComplete) return;
+      if (router.routeInformationProvider.value.uri.path == '/share-target') {
+        return;
+      }
+      router.go('/share-target');
+    },
+  );
+
+  // Re-check for pending share content when bootstrap completes,
+  // so cold-start intents that arrived before auth/bootstrap are
+  // not silently dropped.
+  ref.listen<bool>(appReadyProvider, (prev, next) {
+    if (next != true) return;
+    final content = ref.read(shareIntentStoreProvider);
+    if (content == null || content.isEmpty) return;
     final session = ref.read(sessionStoreProvider);
-    final bootstrapComplete = ref.read(appReadyProvider);
-    if (!session.isAuthenticated || !bootstrapComplete) return;
+    if (!session.isAuthenticated) return;
     router.go('/share-target');
   });
 
@@ -457,9 +478,18 @@ class _ShareTargetRoute extends StatelessWidget {
           await ref
               .read(shareSendServiceProvider)
               .send(target: target, content: content);
-        } finally {
+          // Only consume on success — content is preserved on failure
+          // so the user can retry.
           ref.read(shareIntentStoreProvider.notifier).consume();
           if (context.mounted) context.go('/home');
+        } catch (e) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to send. Please try again.'),
+              ),
+            );
+          }
         }
       },
       onCancel: () {

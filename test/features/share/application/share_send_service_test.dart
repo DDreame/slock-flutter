@@ -179,6 +179,44 @@ void main() {
         'application/octet-stream',
       );
     });
+
+    test('propagates upload failure without sending message', () async {
+      mockRepo.shouldFailUpload = true;
+      const content = SharedContent(items: [
+        SharedContentItem(
+          type: SharedContentType.image,
+          path: '/tmp/photo.jpg',
+          mimeType: 'image/jpeg',
+        ),
+      ]);
+      final target = ShareTarget.channel(
+        ChannelScopeId(serverId: testServerId, value: 'ch-1'),
+        'general',
+      );
+
+      expect(
+        () => service.send(target: target, content: content),
+        throwsA(isA<Exception>()),
+      );
+      // Message should NOT be sent when upload fails.
+      expect(mockRepo.sendCalls, isEmpty);
+    });
+
+    test('propagates sendMessage failure', () async {
+      mockRepo.shouldFailSend = true;
+      const content = SharedContent(items: [
+        SharedContentItem(type: SharedContentType.text, path: 'Hello'),
+      ]);
+      final target = ShareTarget.channel(
+        ChannelScopeId(serverId: testServerId, value: 'ch-1'),
+        'general',
+      );
+
+      expect(
+        () => service.send(target: target, content: content),
+        throwsA(isA<Exception>()),
+      );
+    });
   });
 }
 
@@ -209,6 +247,8 @@ class _MockConversationRepository implements ConversationRepository {
   int _uploadIndex = 0;
   final List<_UploadCall> uploadCalls = [];
   final List<_SendCall> sendCalls = [];
+  bool shouldFailUpload = false;
+  bool shouldFailSend = false;
 
   @override
   Future<String> uploadAttachment(
@@ -217,6 +257,7 @@ class _MockConversationRepository implements ConversationRepository {
     void Function(int sent, int total)? onSendProgress,
     CancelToken? cancelToken,
   }) async {
+    if (shouldFailUpload) throw Exception('Upload failed');
     uploadCalls.add(_UploadCall(
       path: attachment.path,
       name: attachment.name,
@@ -232,6 +273,7 @@ class _MockConversationRepository implements ConversationRepository {
     List<String>? attachmentIds,
     String? replyToId,
   }) async {
+    if (shouldFailSend) throw Exception('Send failed');
     sendCalls.add(_SendCall(
       target: target,
       content: content,
