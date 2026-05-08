@@ -90,5 +90,7 @@
 	</array>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Authenticate with Face ID to unlock Slock.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Slock needs microphone access to record voice messages.</string>
 </dict>
 </plist>
