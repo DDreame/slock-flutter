@@ -164,23 +164,51 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
       return textWidget;
     }
 
-    // Error or null metadata — no card.
+    // Successful fetch with displayable metadata → full preview card.
     final metadata = asyncMeta.valueOrNull;
-    if (metadata == null || !metadata.isDisplayable) {
-      return textWidget;
+    if (metadata != null && metadata.isDisplayable) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          textWidget,
+          LinkPreviewCard(
+            metadata: metadata,
+            onTap: widget.onLinkTap != null
+                ? () => widget.onLinkTap!(
+                    metadata.title, metadata.url, metadata.url)
+                : null,
+          ),
+        ],
+      );
     }
 
+    // Metadata is null (no OG tags) or fetch failed and was cleared —
+    // show a tappable link chip so the URL is never inert text.
+    final domain = Uri.tryParse(_detectedUrl!)?.host ?? _detectedUrl!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
         textWidget,
-        LinkPreviewCard(
-          metadata: metadata,
-          onTap: widget.onLinkTap != null
-              ? () =>
-                  widget.onLinkTap!(metadata.title, metadata.url, metadata.url)
-              : null,
+        Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: GestureDetector(
+            key: const ValueKey('link-fallback-chip'),
+            onTap: widget.onLinkTap != null
+                ? () => widget.onLinkTap!(domain, _detectedUrl, _detectedUrl!)
+                : null,
+            child: Text(
+              _detectedUrl!,
+              style: AppTypography.bodySmall.copyWith(
+                color: colors.primary,
+                decoration: TextDecoration.underline,
+                decorationColor: colors.primary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ),
       ],
     );

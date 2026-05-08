@@ -62,28 +62,28 @@ class LinkPreviewService {
 
   /// Fetch metadata for the given [url].
   ///
-  /// Returns `null` if the URL cannot be fetched or parsed.
+  /// Returns `null` if the page was fetched successfully but contains
+  /// no usable OG/meta tags (permanent — safe to cache).
+  ///
+  /// Throws on network errors or non-200 responses so callers can
+  /// distinguish transient failures from genuine "no metadata" results.
   Future<LinkMetadata?> fetchMetadata(String url) async {
-    try {
-      final response = await _dio.get<String>(
-        url,
-        options: Options(
-          // Follow redirects, accept HTML.
-          followRedirects: true,
-          maxRedirects: 5,
-          // Limit received data to ~512KB to avoid huge pages.
-          receiveTimeout: const Duration(seconds: 10),
-        ),
-      );
+    final response = await _dio.get<String>(
+      url,
+      options: Options(
+        // Follow redirects, accept HTML.
+        followRedirects: true,
+        maxRedirects: 5,
+        // Limit received data to ~512KB to avoid huge pages.
+        receiveTimeout: const Duration(seconds: 10),
+      ),
+    );
 
-      if (response.statusCode != 200 || response.data == null) {
-        return null;
-      }
-
-      return _parseHtml(response.data!, url);
-    } catch (_) {
+    if (response.statusCode != 200 || response.data == null) {
       return null;
     }
+
+    return _parseHtml(response.data!, url);
   }
 
   /// Parse HTML content to extract OG and meta tags.

@@ -129,7 +129,7 @@ void main() {
       expect(find.byKey(const ValueKey('link-preview-card')), findsNothing);
     });
 
-    testWidgets('no card shown when metadata fetch returns null',
+    testWidgets('shows tappable fallback link when metadata fetch returns null',
         (tester) async {
       final container = ProviderContainer(
         overrides: [
@@ -157,7 +157,46 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
+      // No preview card.
       expect(find.byKey(const ValueKey('link-preview-card')), findsNothing);
+      // But a tappable fallback link chip.
+      expect(find.byKey(const ValueKey('link-fallback-chip')), findsOneWidget);
+      expect(find.text('https://no-og-tags.invalid'), findsOneWidget);
+    });
+
+    testWidgets('tapping fallback link chip calls onLinkTap', (tester) async {
+      String? tappedHref;
+      final container = ProviderContainer(
+        overrides: [
+          linkPreviewServiceProvider.overrideWithValue(
+            _FakeLinkPreviewService(null),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: MessageContentWidget(
+                message: makeMessage('Check https://no-og-tags.invalid'),
+                onLinkTap: (text, href, title) {
+                  tappedHref = href;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      await tester.tap(find.byKey(const ValueKey('link-fallback-chip')));
+      expect(tappedHref, 'https://no-og-tags.invalid');
     });
 
     testWidgets('tapping card calls onLinkTap', (tester) async {

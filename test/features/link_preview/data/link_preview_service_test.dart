@@ -112,15 +112,17 @@ void main() {
   });
 
   group('LinkPreviewService', () {
-    test('fetchMetadata returns null on network error', () async {
+    test('fetchMetadata throws on network error', () async {
       // Use a Dio with a bad base URL to simulate failure.
       final dio = Dio(BaseOptions(
         connectTimeout: const Duration(milliseconds: 100),
         receiveTimeout: const Duration(milliseconds: 100),
       ));
       final service = LinkPreviewService(dio: dio);
-      final result = await service.fetchMetadata('https://nonexistent.invalid');
-      expect(result, isNull);
+      expect(
+        () => service.fetchMetadata('https://nonexistent.invalid'),
+        throwsA(isA<DioException>()),
+      );
     });
 
     test('parseHtml extracts OG tags', () {
@@ -221,12 +223,14 @@ void main() {
       expect(meta!.imageUrl, 'https://example.com/images/preview.jpg');
     });
 
-    test('fetchMetadata returns null on non-200 status', () async {
+    test('fetchMetadata throws on non-200 status', () async {
       final service = LinkPreviewService(
         dio: _createMockDio('', statusCode: 404),
       );
-      final meta = await service.fetchMetadata('https://example.com');
-      expect(meta, isNull);
+      expect(
+        () => service.fetchMetadata('https://example.com'),
+        throwsA(isA<DioException>()),
+      );
     });
   });
 }

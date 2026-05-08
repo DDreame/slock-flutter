@@ -88,7 +88,8 @@ void main() {
       expect(cache['https://example.com']!.value, isNull);
     });
 
-    test('fetch stores error on network failure', () async {
+    test('fetch removes entry on network failure so retry is possible',
+        () async {
       final failContainer = ProviderContainer(
         overrides: [
           linkPreviewServiceProvider.overrideWithValue(
@@ -102,7 +103,8 @@ void main() {
       await notifier.fetch('https://example.com');
 
       final cache = failContainer.read(linkPreviewCacheProvider);
-      expect(cache['https://example.com'], isA<AsyncError<LinkMetadata?>>());
+      // Entry should be removed, not cached as error.
+      expect(cache.containsKey('https://example.com'), isFalse);
     });
 
     test('multiple URLs are cached independently', () async {
