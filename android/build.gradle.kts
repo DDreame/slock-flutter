@@ -33,14 +33,12 @@ subprojects {
 // Fixes mismatch where plugins (e.g. receive_sharing_intent) default to
 // Java 1.8 + Kotlin 17, causing compileReleaseKotlin to fail.
 subprojects {
-    afterEvaluate {
-        tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-            kotlinOptions.jvmTarget = "11"
-        }
-        tasks.withType<JavaCompile>().configureEach {
-            sourceCompatibility = "11"
-            targetCompatibility = "11"
-        }
+    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+        kotlinOptions.jvmTarget = "11"
+    }
+    tasks.withType<JavaCompile>().configureEach {
+        sourceCompatibility = "11"
+        targetCompatibility = "11"
     }
 }
 
