@@ -26,8 +26,11 @@ import 'package:slock_app/features/conversation/application/message_send_status.
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -1596,21 +1599,40 @@ class _ConversationMessageCard extends ConsumerWidget {
         visualKind != _ConversationMessageVisualKind.system &&
         message.threadId != null;
 
-    return _TapFeedbackWrapper(
-      enableFeedback: enableTapToThread,
-      onTap: enableTapToThread ? () => _navigateToThread(context) : null,
-      onLongPress: () => _showMessageActions(context, ref, isSaved, visualKind),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final maxBubbleWidth = constraints.maxWidth * _bubbleMaxWidthFraction;
-          return Align(
-            key: ValueKey('message-shell-${message.id}'),
-            alignment: shellAlignment,
-            child: switch (visualKind) {
-              _ConversationMessageVisualKind.system => Column(
+    final isNonSystem = visualKind != _ConversationMessageVisualKind.system;
+
+    // Build the message layout (Align → Column with sender label, bubble,
+    // reactions, and thread indicator).
+    final shell = LayoutBuilder(
+      builder: (context, constraints) {
+        final maxBubbleWidth = constraints.maxWidth * _bubbleMaxWidthFraction;
+        return Align(
+          key: ValueKey('message-shell-${message.id}'),
+          alignment: shellAlignment,
+          child: switch (visualKind) {
+            _ConversationMessageVisualKind.system => Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(width: double.infinity, child: bubble),
+                  _ReactionRow(
+                    reactions: message.reactions,
+                    messageId: message.id,
+                    currentUserId: ref.watch(sessionStoreProvider).userId,
+                  ),
+                  threadIndicator,
+                ],
+              ),
+            _ => ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment:
+                      visualKind == _ConversationMessageVisualKind.self
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
                   children: [
-                    SizedBox(width: double.infinity, child: bubble),
+                    senderLabelWidget,
+                    bubble,
                     _ReactionRow(
                       reactions: message.reactions,
                       messageId: message.id,
@@ -1619,173 +1641,119 @@ class _ConversationMessageCard extends ConsumerWidget {
                     threadIndicator,
                   ],
                 ),
-              _ => ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment:
-                        visualKind == _ConversationMessageVisualKind.self
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
-                    children: [
-                      senderLabelWidget,
-                      bubble,
-                      _ReactionRow(
-                        reactions: message.reactions,
-                        messageId: message.id,
-                        currentUserId: ref.watch(sessionStoreProvider).userId,
-                      ),
-                      threadIndicator,
-                    ],
-                  ),
-                ),
-            },
-          );
-        },
-      ),
+              ),
+          },
+        );
+      },
+    );
+
+    // Wrap the entire message shell in a gesture wrapper for double-tap
+    // react, swipe-to-reply, and long-press context menu. The wrapper
+    // covers the full shell area so that long-press can trigger on empty
+    // space around the bubble (avoiding SelectableText gesture arena
+    // conflicts in MarkdownBody). Child widget taps (reaction chips,
+    // thread indicator, task badges, links) still work because their
+    // gesture recognizers are deeper in the tree and win the arena.
+    if (isNonSystem) {
+      return MessageGestureWrapper(
+        enablePressFeedback: enableTapToThread,
+        onTap: enableTapToThread ? () => _navigateToThread(context) : null,
+        onDoubleTap: () => _quickReact(context, ref),
+        enableSwipeReply: !message.content.contains('```'),
+        onSwipeReply: () => ref
+            .read(conversationDetailStoreProvider.notifier)
+            .setReplyTo(message),
+        onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
+        child: shell,
+      );
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
+      child: shell,
     );
   }
 
-  void _showMessageActions(
+  /// Quick-react to a message with 👍 (the first curated emoji).
+  Future<void> _quickReact(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .addReaction(message.id, '👍');
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to add reaction.'),
+          ),
+        );
+    }
+  }
+
+  void _showContextMenu(
     BuildContext context,
     WidgetRef ref,
     bool isSaved,
     _ConversationMessageVisualKind visualKind,
   ) {
     final isOwn = visualKind == _ConversationMessageVisualKind.self;
+    final notifier = ref.read(conversationDetailStoreProvider.notifier);
+    final isChannel = target.surface == ConversationSurface.channel;
 
-    showModalBottomSheet<void>(
+    showMessageContextMenu(
       context: context,
-      builder: (_) => SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isOwn)
-                ListTile(
-                  key: const ValueKey('message-action-edit'),
-                  leading: const Icon(Icons.edit_outlined),
-                  title: const Text('Edit message'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _showEditDialog(context, ref);
-                  },
-                ),
-              ListTile(
-                key: const ValueKey('message-action-reply'),
-                leading: const Icon(Icons.reply_outlined),
-                title: const Text('Reply'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ref
-                      .read(conversationDetailStoreProvider.notifier)
-                      .setReplyTo(message);
-                },
+      message: message,
+      isOwn: isOwn,
+      isSaved: isSaved,
+      isChannel: isChannel,
+      onReply: () => notifier.setReplyTo(message),
+      onReact: () => _showEmojiPicker(context, ref),
+      onCopy: () {
+        Clipboard.setData(ClipboardData(text: message.content));
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('Copied to clipboard.')));
+      },
+      onForward: () => Share.share(message.content),
+      onSave: () => notifier.toggleSaveMessage(message.id),
+      onPin: () async {
+        try {
+          if (message.isPinned) {
+            await notifier.unpinMessage(message.id);
+          } else {
+            await notifier.pinMessage(message.id);
+          }
+        } on AppFailure catch (failure) {
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(failure.message ??
+                    'Failed to ${message.isPinned ? 'unpin' : 'pin'} message.'),
               ),
-              ListTile(
-                key: const ValueKey('message-action-react'),
-                leading: const Icon(Icons.emoji_emotions_outlined),
-                title: const Text('React'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showEmojiPicker(context, ref);
-                },
-              ),
-              ListTile(
-                key: const ValueKey('message-action-copy'),
-                leading: const Icon(Icons.copy_outlined),
-                title: const Text('Copy text'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  Clipboard.setData(ClipboardData(text: message.content));
-                  ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
-                    ..showSnackBar(
-                        const SnackBar(content: Text('Copied to clipboard.')));
-                },
-              ),
-              ListTile(
-                key: const ValueKey('message-action-save'),
-                leading:
-                    Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
-                title: Text(isSaved ? 'Unsave message' : 'Save message'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  ref
-                      .read(conversationDetailStoreProvider.notifier)
-                      .toggleSaveMessage(message.id);
-                },
-              ),
-              ListTile(
-                key: const ValueKey('message-action-pin'),
-                leading: Icon(message.isPinned
-                    ? Icons.push_pin
-                    : Icons.push_pin_outlined),
-                title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  final notifier =
-                      ref.read(conversationDetailStoreProvider.notifier);
-                  try {
-                    if (message.isPinned) {
-                      await notifier.unpinMessage(message.id);
-                    } else {
-                      await notifier.pinMessage(message.id);
-                    }
-                  } on AppFailure catch (failure) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context)
-                      ..hideCurrentSnackBar()
-                      ..showSnackBar(
-                        SnackBar(
-                          content: Text(failure.message ??
-                              'Failed to ${message.isPinned ? 'unpin' : 'pin'} message.'),
-                        ),
-                      );
-                  }
-                },
-              ),
-              if (target.surface == ConversationSurface.channel)
-                ListTile(
-                  key: const ValueKey('message-action-reply-thread'),
-                  leading: const Icon(Icons.forum_outlined),
-                  title: const Text('Reply in thread'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    context.push(
-                      ThreadRouteTarget(
-                        serverId: target.serverId.value,
-                        parentChannelId: target.conversationId,
-                        parentMessageId: message.id,
-                        threadChannelId: message.threadId,
-                      ).toLocation(),
-                    );
-                  },
-                ),
-              if (target.surface == ConversationSurface.channel)
-                ListTile(
-                  key: const ValueKey('message-action-create-task'),
-                  leading: const Icon(Icons.task_alt),
-                  title: const Text('Create task'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _convertMessageToTask(context, ref);
-                  },
-                ),
-              if (isOwn)
-                ListTile(
-                  key: const ValueKey('message-action-delete'),
-                  leading: const Icon(Icons.delete_outline),
-                  title: const Text('Delete message'),
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _confirmAndDeleteMessage(context, ref);
-                  },
-                ),
-            ],
-          ),
-        ),
-      ),
+            );
+        }
+      },
+      onEdit: isOwn ? () => _showEditDialog(context, ref) : null,
+      onDelete: isOwn ? () => _confirmAndDeleteMessage(context, ref) : null,
+      onReplyInThread: isChannel
+          ? () {
+              context.push(
+                ThreadRouteTarget(
+                  serverId: target.serverId.value,
+                  parentChannelId: target.conversationId,
+                  parentMessageId: message.id,
+                  threadChannelId: message.threadId,
+                ).toLocation(),
+              );
+            }
+          : null,
+      onCreateTask:
+          isChannel ? () => _convertMessageToTask(context, ref) : null,
     );
   }
 
@@ -1908,69 +1876,6 @@ class _ConversationMessageCard extends ConsumerWidget {
           ),
         );
     }
-  }
-}
-
-/// Duration of the press-state opacity transition.
-const _kPressFeedbackDuration = Duration(milliseconds: 150);
-
-/// Opacity applied to the bubble while the user holds a tap.
-const _kPressFeedbackOpacity = 0.7;
-
-/// Wraps a child in a [GestureDetector] with optional animated opacity
-/// feedback on tap-down. When [enableFeedback] is `false` the opacity
-/// animation is skipped and the child is rendered at full opacity.
-class _TapFeedbackWrapper extends StatefulWidget {
-  const _TapFeedbackWrapper({
-    required this.enableFeedback,
-    required this.child,
-    this.onTap,
-    this.onLongPress,
-  });
-
-  final bool enableFeedback;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-  final Widget child;
-
-  @override
-  State<_TapFeedbackWrapper> createState() => _TapFeedbackWrapperState();
-}
-
-class _TapFeedbackWrapperState extends State<_TapFeedbackWrapper> {
-  bool _isPressed = false;
-
-  void _handleTapDown(TapDownDetails _) {
-    if (!widget.enableFeedback) return;
-    setState(() => _isPressed = true);
-  }
-
-  void _handleTapUp(TapUpDetails _) {
-    if (!widget.enableFeedback) return;
-    setState(() => _isPressed = false);
-  }
-
-  void _handleTapCancel() {
-    if (!widget.enableFeedback) return;
-    setState(() => _isPressed = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onTap,
-      onLongPress: widget.onLongPress,
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      child: AnimatedOpacity(
-        key: const ValueKey('message-tap-feedback'),
-        opacity: _isPressed ? _kPressFeedbackOpacity : 1.0,
-        duration: _kPressFeedbackDuration,
-        child: widget.child,
-      ),
-    );
   }
 }
 

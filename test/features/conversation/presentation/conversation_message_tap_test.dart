@@ -62,14 +62,69 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap the message shell.
+      // Tap the message bubble (gesture wrapper is on the bubble).
       await tester.tap(
-        find.byKey(const ValueKey('message-shell-msg-1')),
+        find.byKey(const ValueKey('message-msg-1')),
       );
+      // Wait for the deferred-tap timer (300ms) to fire, then settle.
+      await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
 
       // Should have navigated to the thread route stub page.
       expect(find.text('thread-page-msg-1'), findsOneWidget);
+    });
+
+    testWidgets(
+        'double-tapping a threaded message fires quick-react, '
+        'not thread navigation', (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: channelTarget,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-dt',
+              content: 'Double-tap me',
+              createdAt: DateTime.parse('2026-05-01T10:00:00Z'),
+              senderId: 'user-2',
+              senderType: 'human',
+              messageType: 'message',
+              senderName: 'Alex',
+              seq: 1,
+              threadId: 'thread-dt',
+              replyCount: 3,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          target: channelTarget,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Double-tap the message shell (two taps within the 300ms window).
+      final shellTL = tester.getTopLeft(
+        find.byKey(const ValueKey('message-shell-msg-dt')),
+      );
+      await tester.tapAt(shellTL + const Offset(10, 10));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(shellTL + const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // Should NOT have navigated to the thread page — the deferred
+      // single-tap timer was cancelled by the second tap.
+      expect(find.text('thread-page-msg-dt'), findsNothing);
+
+      // Quick-react (👍) should have fired via addReaction.
+      expect(repository.addedReactions, hasLength(1));
+      expect(repository.addedReactions.first.messageId, 'msg-dt');
+      expect(repository.addedReactions.first.emoji, '👍');
     });
 
     testWidgets('tapping a threadless channel message does NOT navigate',
@@ -230,15 +285,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Long-press the message shell.
-      await tester.longPress(
+      // Long-press the message shell near its top-left to avoid
+      // SelectableText gesture arena conflict.
+      final shellTL = tester.getTopLeft(
         find.byKey(const ValueKey('message-shell-msg-lp')),
       );
+      await tester.longPressAt(shellTL + const Offset(10, 10));
       await tester.pumpAndSettle();
 
       // Context menu actions should appear in the bottom sheet.
       expect(
-        find.byKey(const ValueKey('message-action-save')),
+        find.byKey(const ValueKey('ctx-action-save')),
         findsOneWidget,
       );
     });
@@ -426,7 +483,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Before interaction, opacity should be 1.0.
-      final feedbackFinder = find.byKey(const ValueKey('message-tap-feedback'));
+      final feedbackFinder = find.byKey(const ValueKey('gesture-opacity'));
       expect(feedbackFinder, findsOneWidget);
       var opacity = tester.widget<AnimatedOpacity>(feedbackFinder);
       expect(opacity.opacity, 1.0);
@@ -485,13 +542,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // AnimatedOpacity widget should be present but stays at 1.0.
-      final feedbackFinder = find.byKey(const ValueKey('message-tap-feedback'));
+      final feedbackFinder = find.byKey(const ValueKey('gesture-opacity'));
       expect(feedbackFinder, findsOneWidget);
 
-      // Start a tap-down gesture.
+      // Start a tap-down gesture on the bubble.
       final gesture = await tester.startGesture(
         tester.getCenter(
-          find.byKey(const ValueKey('message-shell-msg-nofeed')),
+          find.byKey(const ValueKey('message-msg-nofeed')),
         ),
       );
       await tester.pump();
@@ -579,6 +636,7 @@ class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({required this.snapshot});
 
   final ConversationDetailSnapshot snapshot;
+  final List<({String messageId, String emoji})> addedReactions = [];
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -685,7 +743,9 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
     required String emoji,
-  }) async {}
+  }) async {
+    addedReactions.add((messageId: messageId, emoji: emoji));
+  }
 
   @override
   Future<void> removeReaction(

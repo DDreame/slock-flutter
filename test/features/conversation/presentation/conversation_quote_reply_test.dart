@@ -74,15 +74,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Long-press a message to open actions (use shell key to avoid
-    // SelectableText gesture conflict from MarkdownBody selectable: true)
-    await tester
-        .longPress(find.byKey(const ValueKey('message-shell-message-1')));
+    // Long-press the message shell near its top-left corner to avoid
+    // SelectableText gesture arena conflict (MarkdownBody selectable: true).
+    // The top-left of the shell lands on the sender label or empty space,
+    // not on the SelectableText content area.
+    final shellTL = tester.getTopLeft(
+      find.byKey(const ValueKey('message-shell-message-1')),
+    );
+    await tester.longPressAt(shellTL + const Offset(10, 10));
     await tester.pumpAndSettle();
 
     // Reply action should be visible
     expect(
-      find.byKey(const ValueKey('message-action-reply')),
+      find.byKey(const ValueKey('ctx-action-reply')),
       findsOneWidget,
     );
     expect(find.text('Reply'), findsOneWidget);
@@ -125,12 +129,14 @@ void main() {
       findsNothing,
     );
 
-    // Long-press message card (use shell key to avoid SelectableText gesture
-    // conflict from MarkdownBody selectable: true)
-    await tester
-        .longPress(find.byKey(const ValueKey('message-shell-message-1')));
+    // Long-press message shell near top-left to avoid SelectableText gesture
+    // conflict from MarkdownBody selectable: true
+    final shellTL = tester.getTopLeft(
+      find.byKey(const ValueKey('message-shell-message-1')),
+    );
+    await tester.longPressAt(shellTL + const Offset(10, 10));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('message-action-reply')));
+    await tester.tap(find.byKey(const ValueKey('ctx-action-reply')));
     await tester.pumpAndSettle();
 
     // Reply preview should now be visible with sender name and content
@@ -177,7 +183,7 @@ void main() {
     await tester
         .longPress(find.byKey(const ValueKey('message-shell-message-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('message-action-reply')));
+    await tester.tap(find.byKey(const ValueKey('ctx-action-reply')));
     await tester.pumpAndSettle();
 
     expect(
@@ -279,6 +285,58 @@ void main() {
 
     // No quoted block
     expect(find.byKey(const ValueKey('quoted-message-1')), findsNothing);
+  });
+
+  testWidgets(
+      'swipe-right on message with fenced code block does not trigger reply',
+      (tester) async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-1',
+            content: 'Check this:\n```dart\nprint("hello");\n```',
+            createdAt: DateTime.parse('2026-05-01T10:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            senderName: 'Alice',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // No reply preview initially.
+    expect(
+      find.byKey(const ValueKey('composer-reply-preview')),
+      findsNothing,
+    );
+
+    // Swipe right on the message shell — should be a no-op because the
+    // message contains a fenced code block (```).
+    await tester.drag(
+      find.byKey(const ValueKey('message-shell-message-1')),
+      const Offset(80, 0),
+    );
+    await tester.pumpAndSettle();
+
+    // Reply preview should NOT appear.
+    expect(
+      find.byKey(const ValueKey('composer-reply-preview')),
+      findsNothing,
+    );
   });
 }
 

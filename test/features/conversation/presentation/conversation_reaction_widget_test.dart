@@ -119,12 +119,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Long-press to open actions
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      // Long-press near top-left to avoid SelectableText gesture conflict
+      final shellTL = tester.getTopLeft(
+        find.byKey(const ValueKey('message-shell-msg-1')),
+      );
+      await tester.longPressAt(shellTL + const Offset(10, 10));
       await tester.pumpAndSettle();
 
       // Tap React
-      await tester.tap(find.byKey(const ValueKey('message-action-react')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-react')));
       await tester.pumpAndSettle();
 
       // Pick an emoji from the sheet
@@ -180,6 +183,56 @@ void main() {
 
       // Should show failure snackbar
       expect(find.text('Rate limited.'), findsOneWidget);
+    });
+  });
+
+  group('quick-react (double-tap) failure', () {
+    testWidgets('double-tap quick-react failure shows error snackbar',
+        (tester) async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: 'Alice',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'Double-tap me',
+              createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+              senderType: 'human',
+              senderId: 'other-user',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        addReactionFailure: const ServerFailure(
+          message: 'Server error.',
+          statusCode: 500,
+        ),
+      );
+
+      await tester.pumpWidget(
+        _buildApp(
+          repository: repository,
+          sessionState: const SessionState(userId: 'current-user'),
+          child: ConversationDetailPage(target: target),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Double-tap the message shell to trigger quick-react.
+      final shellTL = tester.getTopLeft(
+        find.byKey(const ValueKey('message-shell-msg-1')),
+      );
+      await tester.tapAt(shellTL + const Offset(10, 10));
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(shellTL + const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // Should show failure snackbar
+      expect(find.text('Server error.'), findsOneWidget);
     });
   });
 }
