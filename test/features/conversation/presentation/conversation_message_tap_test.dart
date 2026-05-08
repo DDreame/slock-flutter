@@ -66,6 +66,8 @@ void main() {
       await tester.tap(
         find.byKey(const ValueKey('message-msg-1')),
       );
+      // Wait for the deferred-tap timer (300ms) to fire, then settle.
+      await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
 
       // Should have navigated to the thread route stub page.

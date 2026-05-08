@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -84,8 +85,11 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
   // ---------- Tap state ----------
   bool _isPressed = false;
 
-  /// Timestamp of the last tap for manual double-tap detection.
-  DateTime? _lastTapTime;
+  /// Timer used to defer single-tap execution so that a second tap can
+  /// cancel it and fire [onDoubleTap] instead. Without this, the first
+  /// tap of an intended double-tap would immediately trigger [onTap]
+  /// (e.g. navigate into a thread) before the user's second tap arrives.
+  Timer? _tapTimer;
 
   // ---------- Snap-back animation ----------
   late AnimationController _snapController;
@@ -110,6 +114,7 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
 
   @override
   void dispose() {
+    _tapTimer?.cancel();
     _snapController
       ..removeListener(_onSnapTick)
       ..dispose();
@@ -171,20 +176,30 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
   }
 
   void _handleTap() {
-    final now = DateTime.now();
+    // When double-tap is enabled, the first tap is deferred by the
+    // double-tap interval. If a second tap arrives before the timer
+    // fires, we cancel the timer and fire onDoubleTap instead.
+    // This prevents premature onTap (e.g. thread navigation) from
+    // firing before the user completes a double-tap.
+    if (widget.onDoubleTap != null) {
+      if (_tapTimer?.isActive ?? false) {
+        // Second tap within interval → double-tap.
+        _tapTimer!.cancel();
+        _tapTimer = null;
+        HapticFeedback.lightImpact();
+        widget.onDoubleTap!();
+        return;
+      }
 
-    // Manual double-tap detection: if two taps arrive within the
-    // interval, fire onDoubleTap and suppress the second onTap.
-    if (widget.onDoubleTap != null &&
-        _lastTapTime != null &&
-        now.difference(_lastTapTime!) < _kDoubleTapInterval) {
-      _lastTapTime = null; // Reset to avoid triple-fire.
-      HapticFeedback.lightImpact();
-      widget.onDoubleTap!();
+      // First tap → start timer. If it fires, execute single-tap.
+      _tapTimer = Timer(_kDoubleTapInterval, () {
+        _tapTimer = null;
+        widget.onTap?.call();
+      });
       return;
     }
 
-    _lastTapTime = now;
+    // No double-tap handler registered → fire onTap immediately.
     widget.onTap?.call();
   }
 

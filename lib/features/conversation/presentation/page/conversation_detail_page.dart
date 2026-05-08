@@ -1659,7 +1659,7 @@ class _ConversationMessageCard extends ConsumerWidget {
         enablePressFeedback: enableTapToThread,
         onTap: enableTapToThread ? () => _navigateToThread(context) : null,
         onDoubleTap: () => _quickReact(context, ref),
-        enableSwipeReply: true,
+        enableSwipeReply: !message.content.contains('```'),
         onSwipeReply: () => ref
             .read(conversationDetailStoreProvider.notifier)
             .setReplyTo(message),
@@ -1676,10 +1676,21 @@ class _ConversationMessageCard extends ConsumerWidget {
   }
 
   /// Quick-react to a message with 👍 (the first curated emoji).
-  void _quickReact(BuildContext context, WidgetRef ref) {
-    ref
-        .read(conversationDetailStoreProvider.notifier)
-        .addReaction(message.id, '👍');
+  Future<void> _quickReact(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .addReaction(message.id, '👍');
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to add reaction.'),
+          ),
+        );
+    }
   }
 
   void _showContextMenu(

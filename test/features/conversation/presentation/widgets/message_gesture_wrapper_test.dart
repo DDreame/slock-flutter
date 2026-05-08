@@ -94,7 +94,32 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(doubleTapped, isTrue);
-        // First tap fires onTap; second fires onDoubleTap instead.
+        // First tap is deferred; second cancels it → onTap never fires.
+        expect(tapCount, 0);
+      });
+
+      testWidgets('single tap fires onTap after double-tap interval expires',
+          (tester) async {
+        int tapCount = 0;
+        bool doubleTapped = false;
+        await tester.pumpWidget(wrap(
+          MessageGestureWrapper(
+            onTap: () => tapCount++,
+            onDoubleTap: () => doubleTapped = true,
+            child: const SizedBox(
+              key: ValueKey('target'),
+              width: 200,
+              height: 50,
+            ),
+          ),
+        ));
+
+        await tester.tap(find.byKey(const ValueKey('target')));
+        // Wait for double-tap interval to expire (300ms).
+        await tester.pump(const Duration(milliseconds: 350));
+        await tester.pumpAndSettle();
+
+        expect(doubleTapped, isFalse);
         expect(tapCount, 1);
       });
     });
