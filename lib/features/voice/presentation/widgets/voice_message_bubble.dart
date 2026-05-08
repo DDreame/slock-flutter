@@ -62,24 +62,25 @@ class VoiceMessageBubble extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Waveform scrubber.
-              GestureDetector(
-                onTapDown: (details) {
-                  final box = context.findRenderObject() as RenderBox?;
-                  if (box == null) return;
-                  final localX = details.localPosition.dx;
-                  final fraction = (localX / box.size.width).clamp(0.0, 1.0);
-                  onSeek(fraction);
-                },
-                child: SizedBox(
-                  height: 28,
-                  child: CustomPaint(
-                    painter: AudioWaveformPainter(
-                      amplitudes: waveform,
-                      color: theme.colorScheme.primary,
-                      inactiveColor: theme.colorScheme.outlineVariant,
-                      progress: progress,
+              LayoutBuilder(
+                builder: (_, constraints) => GestureDetector(
+                  onTapDown: (details) {
+                    final fraction =
+                        (details.localPosition.dx / constraints.maxWidth)
+                            .clamp(0.0, 1.0);
+                    onSeek(fraction);
+                  },
+                  child: SizedBox(
+                    height: 28,
+                    child: CustomPaint(
+                      painter: AudioWaveformPainter(
+                        amplitudes: waveform,
+                        color: theme.colorScheme.primary,
+                        inactiveColor: theme.colorScheme.outlineVariant,
+                        progress: progress,
+                      ),
+                      size: Size.infinite,
                     ),
-                    size: Size.infinite,
                   ),
                 ),
               ),

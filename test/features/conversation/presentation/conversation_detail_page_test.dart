@@ -19,6 +19,7 @@ import 'package:slock_app/features/messages/presentation/page/messages_page.dart
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
+import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -1818,6 +1819,15 @@ void main() {
 
     // Audio attachment should render the inline player with play/pause button.
     expect(find.byKey(const ValueKey('voice-play-pause')), findsOneWidget);
+
+    // Waveform should be rendered (not empty) — verifies BLOCKER 2 fix.
+    final waveformFinder = find.byWidgetPredicate(
+      (w) =>
+          w is CustomPaint &&
+          w.painter is AudioWaveformPainter &&
+          (w.painter! as AudioWaveformPainter).amplitudes.isNotEmpty,
+    );
+    expect(waveformFinder, findsOneWidget);
   });
 }
 

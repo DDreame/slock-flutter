@@ -360,26 +360,72 @@ class _ConversationDetailScreenState
     final recorder = _voiceRecorder ??= VoiceRecorderService();
     final store = ref.read(voiceMessageStoreProvider.notifier);
 
-    final tempDir = await getTemporaryDirectory();
-    final outputPath =
-        '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_voice.m4a';
+    // Check / request microphone permission.
+    try {
+      final granted = await recorder.hasPermission();
+      if (!granted) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            key: ValueKey('mic-permission-denied'),
+            content: Text(
+              'Microphone permission denied. '
+              'Please enable it in Settings.',
+            ),
+          ),
+        );
+        return;
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          key: ValueKey('mic-permission-error'),
+          content: Text('Could not check microphone permission.'),
+        ),
+      );
+      return;
+    }
 
-    _voiceStateSub?.cancel();
-    _voiceAmplitudeSub?.cancel();
-    _voiceElapsedSub?.cancel();
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final outputPath =
+          '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_voice.m4a';
 
-    _voiceStateSub = recorder.stateStream.listen((s) {
-      store.setRecordingState(s);
-    });
-    _voiceAmplitudeSub = recorder.amplitudeStream.listen((a) {
-      store.addAmplitude(a);
-    });
-    _voiceElapsedSub = recorder.elapsedStream.listen((d) {
-      store.setElapsed(d);
-    });
+      _voiceStateSub?.cancel();
+      _voiceAmplitudeSub?.cancel();
+      _voiceElapsedSub?.cancel();
 
-    await recorder.start(outputPath: outputPath);
-    store.setRecordingState(VoiceRecorderState.recording);
+      _voiceStateSub = recorder.stateStream.listen((s) {
+        store.setRecordingState(s);
+      });
+      _voiceAmplitudeSub = recorder.amplitudeStream.listen((a) {
+        store.addAmplitude(a);
+      });
+      _voiceElapsedSub = recorder.elapsedStream.listen((d) {
+        store.setElapsed(d);
+      });
+
+      await recorder.start(outputPath: outputPath);
+      store.setRecordingState(VoiceRecorderState.recording);
+    } catch (e) {
+      // Clean up any partial subscriptions.
+      _voiceStateSub?.cancel();
+      _voiceAmplitudeSub?.cancel();
+      _voiceElapsedSub?.cancel();
+      store.reset();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          key: ValueKey('recording-start-error'),
+          content: Text(
+            'Could not start recording. '
+            'Please check microphone availability.',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _stopRecordingAndSend() async {
@@ -2601,11 +2647,13 @@ class _AudioAttachmentRowState extends State<_AudioAttachmentRow> {
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration>? _durationSub;
   bool _initialized = false;
+  late final List<double> _waveform;
 
   @override
   void initState() {
     super.initState();
     _player = AudioPlayerService();
+    _waveform = _generateWaveform(widget.attachment.name, 40);
   }
 
   @override
@@ -2661,11 +2709,27 @@ class _AudioAttachmentRowState extends State<_AudioAttachmentRow> {
         duration: _duration,
         position: _position,
         isPlaying: _playbackState == AudioPlaybackState.playing,
-        waveform: const [],
+        waveform: _waveform,
         onPlayPause: _handlePlayPause,
         onSeek: _handleSeek,
       ),
     );
+  }
+
+  /// Generate a deterministic pseudo-waveform from the attachment name.
+  ///
+  /// Produces [barCount] normalized values (0.15–1.0) using a simple hash-based
+  /// PRNG so every audio attachment gets a unique but stable visual pattern.
+  static List<double> _generateWaveform(String name, int barCount) {
+    // Simple hash-based PRNG seeded from the file name.
+    var seed = name.hashCode & 0x7fffffff;
+    final bars = <double>[];
+    for (var i = 0; i < barCount; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      // Map to 0.15–1.0 so bars are always visible.
+      bars.add(0.15 + (seed % 1000) / 1000.0 * 0.85);
+    }
+    return bars;
   }
 }
 

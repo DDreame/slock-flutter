@@ -40,6 +40,11 @@ class VoiceRecorderService {
   /// Path to the current or most recent recording file.
   String? get filePath => _currentPath;
 
+  /// Check (and request) microphone permission.
+  ///
+  /// Returns `true` when the permission is granted.
+  Future<bool> hasPermission() => _recorder.hasPermission();
+
   /// Elapsed recording time.
   Duration get elapsed {
     if (_recordingStartedAt == null) return Duration.zero;

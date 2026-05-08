@@ -89,5 +89,49 @@ void main() {
       await tester.pumpWidget(buildBubble(duration: Duration.zero));
       expect(find.text('0:00'), findsOneWidget);
     });
+
+    testWidgets('seek fraction is computed from waveform area, not full bubble',
+        (tester) async {
+      double? seekFraction;
+      await tester.pumpWidget(buildBubble(
+        duration: const Duration(seconds: 60),
+        onSeek: (f) => seekFraction = f,
+      ));
+
+      // Find the CustomPaint (waveform area) and tap its center.
+      final waveformFinder = find.byWidgetPredicate(
+        (w) => w is CustomPaint && w.painter is AudioWaveformPainter,
+      );
+      expect(waveformFinder, findsOneWidget);
+
+      // Tap the center of the waveform area.
+      await tester.tap(waveformFinder);
+      await tester.pump();
+
+      // Seek fraction should be close to 0.5 (center of waveform area).
+      expect(seekFraction, isNotNull);
+      expect(seekFraction!, closeTo(0.5, 0.15));
+    });
+
+    testWidgets('seek at left edge of waveform returns fraction near 0.0',
+        (tester) async {
+      double? seekFraction;
+      await tester.pumpWidget(buildBubble(
+        duration: const Duration(seconds: 60),
+        onSeek: (f) => seekFraction = f,
+      ));
+
+      final waveformFinder = find.byWidgetPredicate(
+        (w) => w is CustomPaint && w.painter is AudioWaveformPainter,
+      );
+      final waveformBox = tester.getRect(waveformFinder);
+
+      // Tap near the left edge of the waveform.
+      await tester.tapAt(Offset(waveformBox.left + 2, waveformBox.center.dy));
+      await tester.pump();
+
+      expect(seekFraction, isNotNull);
+      expect(seekFraction!, lessThan(0.1));
+    });
   });
 }
