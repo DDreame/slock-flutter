@@ -29,16 +29,20 @@ subprojects {
     }
 }
 
-// Force consistent JVM 11 target across all plugin subprojects.
-// Fixes mismatch where plugins (e.g. receive_sharing_intent) default to
-// Java 1.8 + Kotlin 17, causing compileReleaseKotlin to fail.
+// Align Kotlin JVM target with Java target in plugin subprojects.
+// Prevents JVM-target mismatch errors where plugins set Java and Kotlin
+// to different targets (e.g. receive_sharing_intent: Java 1.8 + Kotlin 17).
+// Skip :app — it has explicit JVM 11 config and triggers "already evaluated"
+// with afterEvaluate due to evaluationDependsOn(":app") above.
 subprojects {
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        kotlinOptions.jvmTarget = "11"
-    }
-    tasks.withType<JavaCompile>().configureEach {
-        sourceCompatibility = "11"
-        targetCompatibility = "11"
+    if (name != "app") {
+        afterEvaluate {
+            val javaTarget = tasks.withType<JavaCompile>()
+                .firstOrNull()?.targetCompatibility ?: "17"
+            tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                kotlinOptions.jvmTarget = javaTarget
+            }
+        }
     }
 }
 
