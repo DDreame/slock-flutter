@@ -74,15 +74,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Long-press a message to open actions (use shell key to avoid
-    // SelectableText gesture conflict from MarkdownBody selectable: true)
-    await tester
-        .longPress(find.byKey(const ValueKey('message-shell-message-1')));
+    // Long-press the message shell near its top-left corner to avoid
+    // SelectableText gesture arena conflict (MarkdownBody selectable: true).
+    // The top-left of the shell lands on the sender label or empty space,
+    // not on the SelectableText content area.
+    final shellTL = tester.getTopLeft(
+      find.byKey(const ValueKey('message-shell-message-1')),
+    );
+    await tester.longPressAt(shellTL + const Offset(10, 10));
     await tester.pumpAndSettle();
 
     // Reply action should be visible
     expect(
-      find.byKey(const ValueKey('message-action-reply')),
+      find.byKey(const ValueKey('ctx-action-reply')),
       findsOneWidget,
     );
     expect(find.text('Reply'), findsOneWidget);
@@ -125,12 +129,14 @@ void main() {
       findsNothing,
     );
 
-    // Long-press message card (use shell key to avoid SelectableText gesture
-    // conflict from MarkdownBody selectable: true)
-    await tester
-        .longPress(find.byKey(const ValueKey('message-shell-message-1')));
+    // Long-press message shell near top-left to avoid SelectableText gesture
+    // conflict from MarkdownBody selectable: true
+    final shellTL = tester.getTopLeft(
+      find.byKey(const ValueKey('message-shell-message-1')),
+    );
+    await tester.longPressAt(shellTL + const Offset(10, 10));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('message-action-reply')));
+    await tester.tap(find.byKey(const ValueKey('ctx-action-reply')));
     await tester.pumpAndSettle();
 
     // Reply preview should now be visible with sender name and content
@@ -177,7 +183,7 @@ void main() {
     await tester
         .longPress(find.byKey(const ValueKey('message-shell-message-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('message-action-reply')));
+    await tester.tap(find.byKey(const ValueKey('ctx-action-reply')));
     await tester.pumpAndSettle();
 
     expect(

@@ -43,6 +43,18 @@ void main() {
     FlutterError.onError = FlutterError.dumpErrorToConsole;
   });
 
+  /// Long-press a message near its top-left corner to reliably open
+  /// the context menu. Pressing at the center can land on the
+  /// SelectableText from MarkdownBody(selectable: true), causing the
+  /// outer GestureDetector's long-press to lose the gesture arena.
+  Future<void> longPressShell(
+    WidgetTester tester,
+    String shellKey,
+  ) async {
+    final tl = tester.getTopLeft(find.byKey(ValueKey(shellKey)));
+    await tester.longPressAt(tl + const Offset(10, 10));
+  }
+
   group('long-press context menu', () {
     testWidgets('own message shows Edit, Delete, Copy actions', (
       tester,
@@ -77,14 +89,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Long-press own message
-      await tester.longPress(find.byKey(const ValueKey('message-msg-own')));
+      await longPressShell(tester, 'message-shell-msg-own');
       await tester.pumpAndSettle();
 
       // Should show Edit, Delete, and Copy
-      expect(find.byKey(const ValueKey('message-action-edit')), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('message-action-delete')), findsOneWidget);
-      expect(find.byKey(const ValueKey('message-action-copy')), findsOneWidget);
+      expect(find.byKey(const ValueKey('ctx-action-edit')), findsOneWidget);
+      expect(find.byKey(const ValueKey('ctx-action-delete')), findsOneWidget);
+      expect(find.byKey(const ValueKey('ctx-action-copy')), findsOneWidget);
     });
 
     testWidgets('other user message shows Copy only, no Edit/Delete', (
@@ -120,13 +131,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Long-press other's message
-      await tester.longPress(find.byKey(const ValueKey('message-msg-other')));
+      await longPressShell(tester, 'message-shell-msg-other');
       await tester.pumpAndSettle();
 
       // Should show Copy but NOT Edit or Delete
-      expect(find.byKey(const ValueKey('message-action-copy')), findsOneWidget);
-      expect(find.byKey(const ValueKey('message-action-edit')), findsNothing);
-      expect(find.byKey(const ValueKey('message-action-delete')), findsNothing);
+      expect(find.byKey(const ValueKey('ctx-action-copy')), findsOneWidget);
+      expect(find.byKey(const ValueKey('ctx-action-edit')), findsNothing);
+      expect(find.byKey(const ValueKey('ctx-action-delete')), findsNothing);
     });
 
     testWidgets('Copy action copies message content to clipboard', (
@@ -161,10 +172,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('message-action-copy')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-copy')));
       await tester.pumpAndSettle();
 
       // Verify snackbar feedback (clipboard content verified by platform channel)
@@ -205,10 +216,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const ValueKey('message-action-edit')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-edit')));
       await tester.pumpAndSettle();
 
       // Edit dialog should be visible with pre-filled text
@@ -249,9 +260,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open menu → Edit
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('message-action-edit')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-edit')));
       await tester.pumpAndSettle();
 
       // Clear field and type new content
@@ -297,9 +308,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('message-action-edit')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-edit')));
       await tester.pumpAndSettle();
 
       // Tap Cancel
@@ -339,9 +350,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('message-action-edit')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-edit')));
       await tester.pumpAndSettle();
 
       // Save button should be disabled when content hasn't changed
@@ -388,9 +399,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open menu → Edit
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('message-action-edit')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-edit')));
       await tester.pumpAndSettle();
 
       // Type new content and save
@@ -440,12 +451,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
       await tester
-          .ensureVisible(find.byKey(const ValueKey('message-action-delete')));
+          .ensureVisible(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('message-action-delete')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
 
       // Confirmation dialog should appear
@@ -486,12 +497,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
       await tester
-          .ensureVisible(find.byKey(const ValueKey('message-action-delete')));
+          .ensureVisible(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('message-action-delete')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
 
       // Confirm deletion
@@ -541,12 +552,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
       await tester
-          .ensureVisible(find.byKey(const ValueKey('message-action-delete')));
+          .ensureVisible(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('message-action-delete')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
 
       // Confirm deletion
@@ -602,9 +613,9 @@ void main() {
       await tester.longPress(find.text('[Message deleted]'));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const ValueKey('message-action-edit')), findsNothing);
-      expect(find.byKey(const ValueKey('message-action-delete')), findsNothing);
-      expect(find.byKey(const ValueKey('message-action-copy')), findsNothing);
+      expect(find.byKey(const ValueKey('ctx-action-edit')), findsNothing);
+      expect(find.byKey(const ValueKey('ctx-action-delete')), findsNothing);
+      expect(find.byKey(const ValueKey('ctx-action-copy')), findsNothing);
     });
 
     testWidgets('Cancelling delete keeps message', (tester) async {
@@ -637,12 +648,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      await longPressShell(tester, 'message-shell-msg-1');
       await tester.pumpAndSettle();
       await tester
-          .ensureVisible(find.byKey(const ValueKey('message-action-delete')));
+          .ensureVisible(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('message-action-delete')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-delete')));
       await tester.pumpAndSettle();
 
       // Cancel

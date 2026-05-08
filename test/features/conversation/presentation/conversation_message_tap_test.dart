@@ -62,9 +62,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Tap the message shell.
+      // Tap the message bubble (gesture wrapper is on the bubble).
       await tester.tap(
-        find.byKey(const ValueKey('message-shell-msg-1')),
+        find.byKey(const ValueKey('message-msg-1')),
       );
       await tester.pumpAndSettle();
 
@@ -230,15 +230,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Long-press the message shell.
-      await tester.longPress(
+      // Long-press the message shell near its top-left to avoid
+      // SelectableText gesture arena conflict.
+      final shellTL = tester.getTopLeft(
         find.byKey(const ValueKey('message-shell-msg-lp')),
       );
+      await tester.longPressAt(shellTL + const Offset(10, 10));
       await tester.pumpAndSettle();
 
       // Context menu actions should appear in the bottom sheet.
       expect(
-        find.byKey(const ValueKey('message-action-save')),
+        find.byKey(const ValueKey('ctx-action-save')),
         findsOneWidget,
       );
     });
@@ -426,7 +428,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Before interaction, opacity should be 1.0.
-      final feedbackFinder = find.byKey(const ValueKey('message-tap-feedback'));
+      final feedbackFinder = find.byKey(const ValueKey('gesture-opacity'));
       expect(feedbackFinder, findsOneWidget);
       var opacity = tester.widget<AnimatedOpacity>(feedbackFinder);
       expect(opacity.opacity, 1.0);
@@ -485,13 +487,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // AnimatedOpacity widget should be present but stays at 1.0.
-      final feedbackFinder = find.byKey(const ValueKey('message-tap-feedback'));
+      final feedbackFinder = find.byKey(const ValueKey('gesture-opacity'));
       expect(feedbackFinder, findsOneWidget);
 
-      // Start a tap-down gesture.
+      // Start a tap-down gesture on the bubble.
       final gesture = await tester.startGesture(
         tester.getCenter(
-          find.byKey(const ValueKey('message-shell-msg-nofeed')),
+          find.byKey(const ValueKey('message-msg-nofeed')),
         ),
       );
       await tester.pump();

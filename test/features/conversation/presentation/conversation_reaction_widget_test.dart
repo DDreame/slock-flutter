@@ -119,12 +119,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Long-press to open actions
-      await tester.longPress(find.byKey(const ValueKey('message-msg-1')));
+      // Long-press near top-left to avoid SelectableText gesture conflict
+      final shellTL = tester.getTopLeft(
+        find.byKey(const ValueKey('message-shell-msg-1')),
+      );
+      await tester.longPressAt(shellTL + const Offset(10, 10));
       await tester.pumpAndSettle();
 
       // Tap React
-      await tester.tap(find.byKey(const ValueKey('message-action-react')));
+      await tester.tap(find.byKey(const ValueKey('ctx-action-react')));
       await tester.pumpAndSettle();
 
       // Pick an emoji from the sheet
