@@ -26,6 +26,7 @@ import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/release_notes/presentation/page/release_notes_page.dart';
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
+import 'package:slock_app/features/screenshot/presentation/page/screenshot_annotate_page.dart';
 import 'package:slock_app/features/settings/presentation/page/base_url_settings_page.dart';
 import 'package:slock_app/features/settings/presentation/page/diagnostics_page.dart';
 import 'package:slock_app/features/settings/presentation/page/appearance_settings_page.dart';
@@ -186,6 +187,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           return _ShareTargetRoute(ref: ref);
         },
+      ),
+      GoRoute(
+        path: '/screenshot-annotate',
+        builder: (context, state) => const ScreenshotAnnotatePage(),
       ),
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       GoRoute(
