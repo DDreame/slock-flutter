@@ -20,7 +20,7 @@ void main() {
     late FakeSecureStorage storage;
     late ProviderContainer container;
 
-    Future<HttpServer> _startServer(int statusCode) async {
+    Future<HttpServer> startServer(int statusCode) async {
       final srv = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       srv.listen((request) {
         request.response
@@ -37,8 +37,8 @@ void main() {
       await server.close(force: true);
     });
 
-    Future<void> _setup(int refreshStatusCode) async {
-      server = await _startServer(refreshStatusCode);
+    Future<void> setup(int refreshStatusCode) async {
+      server = await startServer(refreshStatusCode);
       storage = FakeSecureStorage();
 
       // Seed a refresh token so the provider proceeds past the null-check.
@@ -70,7 +70,7 @@ void main() {
     }
 
     test('refresh 401 calls sessionStore.logout() and returns null', () async {
-      await _setup(401);
+      await setup(401);
 
       final refresh = container.read(refreshAuthTokenProvider);
       final result = await refresh();
@@ -83,7 +83,7 @@ void main() {
     });
 
     test('refresh 403 calls sessionStore.logout() and returns null', () async {
-      await _setup(403);
+      await setup(403);
 
       final refresh = container.read(refreshAuthTokenProvider);
       final result = await refresh();
