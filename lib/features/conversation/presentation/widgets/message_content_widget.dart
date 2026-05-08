@@ -183,7 +183,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
       );
     }
 
-    // Metadata is null (no OG tags) or fetch failed and was cleared —
+    // Metadata is null (no OG tags) or fetch error (transient) —
     // show a tappable link chip so the URL is never inert text.
     final domain = Uri.tryParse(_detectedUrl!)?.host ?? _detectedUrl!;
     return Column(

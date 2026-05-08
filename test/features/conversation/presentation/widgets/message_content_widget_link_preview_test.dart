@@ -199,6 +199,41 @@ void main() {
       expect(tappedHref, 'https://no-og-tags.invalid');
     });
 
+    testWidgets('shows fallback link chip on fetch error (not inert text)',
+        (tester) async {
+      final container = ProviderContainer(
+        overrides: [
+          linkPreviewServiceProvider.overrideWithValue(
+            _ThrowingLinkPreviewService(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: MessageContentWidget(
+                message: makeMessage('Check https://failing-server.invalid'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // No preview card.
+      expect(find.byKey(const ValueKey('link-preview-card')), findsNothing);
+      // Tappable fallback link — NOT inert text.
+      expect(find.byKey(const ValueKey('link-fallback-chip')), findsOneWidget);
+      expect(find.text('https://failing-server.invalid'), findsOneWidget);
+    });
+
     testWidgets('tapping card calls onLinkTap', (tester) async {
       String? tappedHref;
       final container = ProviderContainer(
@@ -249,5 +284,15 @@ class _FakeLinkPreviewService extends LinkPreviewService {
   @override
   Future<LinkMetadata?> fetchMetadata(String url) async {
     return _metadata;
+  }
+}
+
+/// A [LinkPreviewService] that always throws (simulates network error).
+class _ThrowingLinkPreviewService extends LinkPreviewService {
+  _ThrowingLinkPreviewService() : super();
+
+  @override
+  Future<LinkMetadata?> fetchMetadata(String url) async {
+    throw Exception('Network error');
   }
 }
