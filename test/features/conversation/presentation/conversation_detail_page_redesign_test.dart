@@ -415,7 +415,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Send button should use an icon (not text)
+      // When text is empty, mic button is shown instead of send.
+      expect(find.byKey(const ValueKey('composer-mic')), findsOneWidget);
+      expect(find.byKey(const ValueKey('composer-send')), findsNothing);
+
+      // Enter text to make the send button appear.
+      await tester.enterText(
+        find.byKey(const ValueKey('composer-input')),
+        'Hello',
+      );
+      await tester.pump();
+
+      // Send button should now use an icon (not text)
       final sendButton = find.byKey(const ValueKey('composer-send'));
       expect(sendButton, findsOneWidget);
 
