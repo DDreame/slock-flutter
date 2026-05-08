@@ -17,6 +17,9 @@ import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
+import 'package:slock_app/features/voice/application/voice_message_store.dart';
+import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
+import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -386,13 +389,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final initialButton = tester.widget<IconButton>(
-      find.descendant(
-        of: find.byKey(const ValueKey('composer-send')),
-        matching: find.byType(IconButton),
-      ),
-    );
-    expect(initialButton.onPressed, isNull);
+    // When text is empty, mic button is shown instead of send.
+    expect(find.byKey(const ValueKey('composer-mic')), findsOneWidget);
+    expect(find.byKey(const ValueKey('composer-send')), findsNothing);
 
     await tester.enterText(
       find.byKey(const ValueKey('composer-input')),
@@ -518,14 +517,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('composer-send')));
     await tester.pump();
 
-    // After optimistic insert, draft is cleared so canSend is false
-    final button = tester.widget<IconButton>(
-      find.descendant(
-        of: find.byKey(const ValueKey('composer-send')),
-        matching: find.byType(IconButton),
-      ),
-    );
-    expect(button.onPressed, isNull);
+    // After optimistic insert, draft is cleared so mic button replaces send.
+    expect(find.byKey(const ValueKey('composer-mic')), findsOneWidget);
+    expect(find.byKey(const ValueKey('composer-send')), findsNothing);
 
     // Pending message visible with sending indicator
     expect(find.byKey(const ValueKey('pending-sending-indicator')),
@@ -534,21 +528,9 @@ void main() {
     sendCompleter.complete(repository.sentMessage!);
     await tester.pumpAndSettle();
 
-    // After completion, send button still disabled (no text in composer)
-    final resolvedButton = tester.widget<IconButton>(
-      find.descendant(
-        of: find.byKey(const ValueKey('composer-send')),
-        matching: find.byType(IconButton),
-      ),
-    );
-    expect(resolvedButton.onPressed, isNull);
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('composer-send')),
-        matching: find.byIcon(Icons.send),
-      ),
-      findsOneWidget,
-    );
+    // After completion, still no text so mic button is shown.
+    expect(find.byKey(const ValueKey('composer-mic')), findsOneWidget);
+    expect(find.byKey(const ValueKey('composer-send')), findsNothing);
 
     // Advance past sent-removal timer to avoid pending timer at teardown
     await tester.pump(const Duration(seconds: 2));
@@ -1665,6 +1647,214 @@ void main() {
     expect(find.text('Annotate Page'), findsOneWidget);
 
     router.dispose();
+  });
+
+  testWidgets('composer shows mic button when text is empty', (tester) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+      sentMessage: ConversationMessageSummary(
+        id: 'message-1',
+        content: 'Hello',
+        createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      ),
+    );
+
+    await tester.pumpWidget(
+      _buildApp(
+        repository: repository,
+        child: ConversationDetailPage(target: target),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Initially, mic button is shown, not send.
+    expect(find.byKey(const ValueKey('composer-mic')), findsOneWidget);
+    expect(find.byKey(const ValueKey('composer-send')), findsNothing);
+
+    // Enter text — send button replaces mic.
+    await tester.enterText(
+      find.byKey(const ValueKey('composer-input')),
+      'Hello',
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('composer-send')), findsOneWidget);
+    expect(find.byKey(const ValueKey('composer-mic')), findsNothing);
+
+    // Clear text — mic button comes back.
+    await tester.enterText(
+      find.byKey(const ValueKey('composer-input')),
+      '',
+    );
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('composer-mic')), findsOneWidget);
+    expect(find.byKey(const ValueKey('composer-send')), findsNothing);
+  });
+
+  testWidgets('voice recorder widget replaces composer when recording',
+      (tester) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    late ProviderContainer container;
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container = ProviderContainer(
+          overrides: [
+            conversationRepositoryProvider.overrideWithValue(repository),
+            sessionStoreProvider.overrideWith(
+              () => _FixedSessionStore(const SessionState()),
+            ),
+          ],
+        ),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: ConversationDetailPage(target: target),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Initially no voice recorder.
+    expect(find.byKey(const ValueKey('composer-voice-recorder')), findsNothing);
+    expect(find.byKey(const ValueKey('composer-input')), findsOneWidget);
+
+    // Simulate recording state via the store.
+    container
+        .read(voiceMessageStoreProvider.notifier)
+        .setRecordingState(VoiceRecorderState.recording);
+    await tester.pump();
+
+    // Voice recorder widget replaces the normal composer.
+    expect(
+        find.byKey(const ValueKey('composer-voice-recorder')), findsOneWidget);
+    expect(find.byKey(const ValueKey('composer-input')), findsNothing);
+
+    // Voice recorder shows cancel and send buttons.
+    expect(find.byKey(const ValueKey('voice-cancel')), findsOneWidget);
+    expect(find.byKey(const ValueKey('voice-send')), findsOneWidget);
+
+    // Reset back to idle.
+    container.read(voiceMessageStoreProvider.notifier).reset();
+    await tester.pump();
+
+    // Normal composer returns.
+    expect(find.byKey(const ValueKey('composer-voice-recorder')), findsNothing);
+    expect(find.byKey(const ValueKey('composer-input')), findsOneWidget);
+
+    container.dispose();
+  });
+
+  testWidgets('audio attachment renders inline player bubble', (tester) async {
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-audio',
+            content: '',
+            createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+            attachments: const [
+              MessageAttachment(
+                name: 'recording.m4a',
+                type: 'audio/mp4',
+                url: 'https://example.com/recording.m4a',
+              ),
+            ],
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    // Seed the waveform cache with real amplitudes to simulate a
+    // recording made in this session (own recording path).
+    late ProviderContainer container;
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container = ProviderContainer(
+          overrides: [
+            conversationRepositoryProvider.overrideWithValue(repository),
+            sessionStoreProvider.overrideWith(
+              () => _FixedSessionStore(const SessionState()),
+            ),
+            voiceWaveformCacheProvider.overrideWith(
+              (ref) => {
+                'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
+              },
+            ),
+          ],
+        ),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: ConversationDetailPage(target: target),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Audio attachment should render the inline player with play/pause button.
+    expect(find.byKey(const ValueKey('voice-play-pause')), findsOneWidget);
+
+    // Waveform should be rendered with cached amplitudes — verifies BLOCKER 2.
+    final waveformFinder = find.byWidgetPredicate(
+      (w) =>
+          w is CustomPaint &&
+          w.painter is AudioWaveformPainter &&
+          (w.painter! as AudioWaveformPainter).amplitudes.isNotEmpty,
+    );
+    expect(waveformFinder, findsOneWidget);
+
+    // Verify it used the cached amplitudes (8 bars from cache).
+    final painter = tester.widget<CustomPaint>(waveformFinder).painter!
+        as AudioWaveformPainter;
+    expect(painter.amplitudes.length, 8);
+
+    container.dispose();
   });
 }
 

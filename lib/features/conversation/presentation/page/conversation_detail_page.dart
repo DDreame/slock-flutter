@@ -1,9 +1,13 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
@@ -28,6 +32,11 @@ import 'package:slock_app/features/screenshot/application/screenshot_store.dart'
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/voice/application/voice_message_store.dart';
+import 'package:slock_app/features/voice/data/audio_player_service.dart';
+import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
+import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
+import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
@@ -101,6 +110,12 @@ class _ConversationDetailScreenState
   double? _olderLoadAnchorMaxExtent;
   final GlobalKey _screenshotBoundaryKey = GlobalKey();
 
+  // Voice recording.
+  VoiceRecorderService? _voiceRecorder;
+  StreamSubscription<VoiceRecorderState>? _voiceStateSub;
+  StreamSubscription<double>? _voiceAmplitudeSub;
+  StreamSubscription<Duration>? _voiceElapsedSub;
+
   @override
   void initState() {
     super.initState();
@@ -125,6 +140,10 @@ class _ConversationDetailScreenState
 
   @override
   void dispose() {
+    _voiceStateSub?.cancel();
+    _voiceAmplitudeSub?.cancel();
+    _voiceElapsedSub?.cancel();
+    _voiceRecorder?.dispose();
     _stateSubscription?.close();
     if (_scrollController.hasClients) {
       ref
@@ -149,6 +168,9 @@ class _ConversationDetailScreenState
       );
     }
     final state = ref.watch(conversationDetailStoreProvider);
+    final voiceState = ref.watch(voiceMessageStoreProvider);
+    final isRecording =
+        voiceState.recordingState == VoiceRecorderState.recording;
     if (_composerController.text != state.draft) {
       _composerController.value = TextEditingValue(
         text: state.draft,
@@ -285,6 +307,7 @@ class _ConversationDetailScreenState
               controller: _composerController,
               focusNode: _composerFocusNode,
               state: state,
+              isRecording: isRecording,
               onChanged: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .updateDraft,
@@ -301,6 +324,9 @@ class _ConversationDetailScreenState
               onClearReply: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .clearReplyTo,
+              onMicTap: _startRecording,
+              onSendRecording: _stopRecordingAndSend,
+              onCancelRecording: _cancelRecording,
             ),
         ],
       ),
@@ -329,6 +355,128 @@ class _ConversationDetailScreenState
 
     ref.read(screenshotStoreProvider.notifier).setCapturedImage(path);
     context.push('/screenshot-annotate');
+  }
+
+  Future<void> _startRecording() async {
+    final recorder = _voiceRecorder ??= VoiceRecorderService();
+    final store = ref.read(voiceMessageStoreProvider.notifier);
+
+    // Check / request microphone permission.
+    try {
+      final granted = await recorder.hasPermission();
+      if (!granted) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            key: ValueKey('mic-permission-denied'),
+            content: Text(
+              'Microphone permission denied. '
+              'Please enable it in Settings.',
+            ),
+          ),
+        );
+        return;
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          key: ValueKey('mic-permission-error'),
+          content: Text('Could not check microphone permission.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final outputPath =
+          '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_voice.m4a';
+
+      _voiceStateSub?.cancel();
+      _voiceAmplitudeSub?.cancel();
+      _voiceElapsedSub?.cancel();
+
+      _voiceStateSub = recorder.stateStream.listen((s) {
+        store.setRecordingState(s);
+      });
+      _voiceAmplitudeSub = recorder.amplitudeStream.listen((a) {
+        store.addAmplitude(a);
+      });
+      _voiceElapsedSub = recorder.elapsedStream.listen((d) {
+        store.setElapsed(d);
+      });
+
+      await recorder.start(outputPath: outputPath);
+      store.setRecordingState(VoiceRecorderState.recording);
+    } catch (e) {
+      // Clean up any partial subscriptions.
+      _voiceStateSub?.cancel();
+      _voiceAmplitudeSub?.cancel();
+      _voiceElapsedSub?.cancel();
+      store.reset();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          key: ValueKey('recording-start-error'),
+          content: Text(
+            'Could not start recording. '
+            'Please check microphone availability.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _stopRecordingAndSend() async {
+    final recorder = _voiceRecorder;
+    if (recorder == null) return;
+
+    // Capture recorded amplitudes before resetting the store.
+    final amplitudes = List<double>.unmodifiable(
+        ref.read(voiceMessageStoreProvider).amplitudes);
+
+    final path = await recorder.stop();
+    final store = ref.read(voiceMessageStoreProvider.notifier);
+    store.reset();
+
+    _voiceStateSub?.cancel();
+    _voiceAmplitudeSub?.cancel();
+    _voiceElapsedSub?.cancel();
+
+    if (path == null || !mounted) return;
+
+    final name = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+    // Cache the recorded waveform so the inline player can use it.
+    if (amplitudes.isNotEmpty) {
+      ref.read(voiceWaveformCacheProvider.notifier).update(
+            (cache) => {...cache, name: amplitudes},
+          );
+    }
+
+    ref.read(conversationDetailStoreProvider.notifier).addPendingAttachment(
+          PendingAttachment(
+            path: path,
+            name: name,
+            mimeType: 'audio/mp4',
+          ),
+        );
+    // Auto-send the voice message immediately.
+    await _handleSend();
+  }
+
+  Future<void> _cancelRecording() async {
+    final recorder = _voiceRecorder;
+    if (recorder == null) return;
+
+    await recorder.cancel();
+    ref.read(voiceMessageStoreProvider.notifier).reset();
+
+    _voiceStateSub?.cancel();
+    _voiceAmplitudeSub?.cancel();
+    _voiceElapsedSub?.cancel();
   }
 
   void _handleScroll() {
@@ -743,23 +891,31 @@ class _ConversationComposer extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.state,
+    required this.isRecording,
     required this.onChanged,
     required this.onSend,
     required this.onPickAttachment,
     required this.onRemoveAttachment,
     required this.onCancelUpload,
     required this.onClearReply,
+    required this.onMicTap,
+    required this.onSendRecording,
+    required this.onCancelRecording,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final ConversationDetailState state;
+  final bool isRecording;
   final ValueChanged<String> onChanged;
   final Future<void> Function() onSend;
   final ValueChanged<PendingAttachment> onPickAttachment;
   final ValueChanged<int> onRemoveAttachment;
   final ValueChanged<int> onCancelUpload;
   final VoidCallback onClearReply;
+  final VoidCallback onMicTap;
+  final VoidCallback onSendRecording;
+  final VoidCallback onCancelRecording;
 
   @override
   Widget build(BuildContext context) {
@@ -817,81 +973,106 @@ class _ConversationComposer extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.sm),
             ],
-            Row(
-              children: [
-                Container(
-                  key: const ValueKey('composer-attach'),
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: colors.surfaceAlt,
-                    shape: BoxShape.circle,
+            if (isRecording)
+              VoiceRecorderWidget(
+                key: const ValueKey('composer-voice-recorder'),
+                onSend: onSendRecording,
+                onCancel: onCancelRecording,
+              )
+            else
+              Row(
+                children: [
+                  Container(
+                    key: const ValueKey('composer-attach'),
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: colors.surfaceAlt,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.attach_file, size: 20),
+                      padding: EdgeInsets.zero,
+                      onPressed: state.isSending
+                          ? null
+                          : () => _showAttachOptions(context),
+                    ),
                   ),
-                  child: IconButton(
-                    icon: const Icon(Icons.attach_file, size: 20),
-                    padding: EdgeInsets.zero,
-                    onPressed: state.isSending
-                        ? null
-                        : () => _showAttachOptions(context),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: TextField(
-                    key: const ValueKey('composer-input'),
-                    controller: controller,
-                    focusNode: focusNode,
-                    onChanged: onChanged,
-                    onSubmitted: (_) => state.canSend ? onSend() : null,
-                    minLines: 1,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: 'Write a message',
-                      border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusFull),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusFull),
-                        borderSide: BorderSide(color: colors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.radiusFull),
-                        borderSide:
-                            BorderSide(color: colors.primary, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                        vertical: AppSpacing.md,
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('composer-input'),
+                      controller: controller,
+                      focusNode: focusNode,
+                      onChanged: onChanged,
+                      onSubmitted: (_) => state.canSend ? onSend() : null,
+                      minLines: 1,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: 'Write a message',
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusFull),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusFull),
+                          borderSide: BorderSide(color: colors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSpacing.radiusFull),
+                          borderSide:
+                              BorderSide(color: colors.primary, width: 1.5),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.md,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Container(
-                  key: const ValueKey('composer-send'),
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: state.canSend ? colors.primary : colors.surfaceAlt,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      state.isSending ? Icons.hourglass_top : Icons.send,
-                      size: 20,
-                      color: state.canSend
-                          ? colors.primaryForeground
-                          : colors.textTertiary,
+                  const SizedBox(width: AppSpacing.sm),
+                  if (state.canSend)
+                    Container(
+                      key: const ValueKey('composer-send'),
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: colors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          state.isSending ? Icons.hourglass_top : Icons.send,
+                          size: 20,
+                          color: colors.primaryForeground,
+                        ),
+                        padding: EdgeInsets.zero,
+                        onPressed: onSend,
+                      ),
+                    )
+                  else
+                    Container(
+                      key: const ValueKey('composer-mic'),
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: colors.surfaceAlt,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.mic,
+                          size: 20,
+                          color: colors.textTertiary,
+                        ),
+                        padding: EdgeInsets.zero,
+                        onPressed: state.isSending ? null : onMicTap,
+                      ),
                     ),
-                    padding: EdgeInsets.zero,
-                    onPressed: state.canSend ? onSend : null,
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
       ),
@@ -1002,6 +1183,10 @@ class _ConversationComposer extends StatelessWidget {
       'txt' => 'text/plain',
       'mp4' => 'video/mp4',
       'mp3' => 'audio/mpeg',
+      'm4a' => 'audio/mp4',
+      'aac' => 'audio/aac',
+      'wav' => 'audio/wav',
+      'ogg' => 'audio/ogg',
       _ => 'application/octet-stream',
     };
   }
@@ -2000,6 +2185,8 @@ class _AttachmentSection extends StatelessWidget {
     'text/html',
   };
 
+  static bool _isAudioType(String mimeType) => mimeType.startsWith('audio/');
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -2031,6 +2218,10 @@ class _AttachmentSection extends StatelessWidget {
 
     if (_htmlTypes.contains(mimeType)) {
       return _HtmlAttachmentRow(attachment: attachment);
+    }
+
+    if (_isAudioType(mimeType) && attachment.url != null) {
+      return _AudioAttachmentRow(attachment: attachment);
     }
 
     return _GenericFileAttachmentRow(attachment: attachment);
@@ -2445,6 +2636,144 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => FilePreviewPage(attachment: attachment),
+      ),
+    );
+  }
+}
+
+/// Inline audio player for voice/audio attachments in chat messages.
+class _AudioAttachmentRow extends ConsumerStatefulWidget {
+  const _AudioAttachmentRow({required this.attachment});
+
+  final MessageAttachment attachment;
+
+  @override
+  ConsumerState<_AudioAttachmentRow> createState() =>
+      _AudioAttachmentRowState();
+}
+
+class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
+  late final AudioPlayerService _player;
+  AudioPlaybackState _playbackState = AudioPlaybackState.stopped;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  StreamSubscription<AudioPlaybackState>? _stateSub;
+  StreamSubscription<Duration>? _positionSub;
+  StreamSubscription<Duration>? _durationSub;
+  bool _initialized = false;
+  List<double> _waveform = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _player = AudioPlayerService();
+    _resolveWaveform();
+  }
+
+  /// Resolve waveform data: use cached amplitudes for own recordings,
+  /// or load audio eagerly to derive duration-based waveform for received audio.
+  void _resolveWaveform() {
+    // Check cache for own recordings (real amplitudes from recording session).
+    final cache = ref.read(voiceWaveformCacheProvider);
+    final cached = cache[widget.attachment.name];
+    if (cached != null && cached.isNotEmpty) {
+      _waveform = cached;
+      return;
+    }
+    // For received audio, load the audio to get its duration.
+    _loadAudioForWaveform();
+  }
+
+  Future<void> _loadAudioForWaveform() async {
+    final url = widget.attachment.url;
+    if (url == null) return;
+    try {
+      _ensureSubscriptions();
+      final duration = await _player.load(url);
+      if (duration != null && mounted) {
+        setState(() {
+          _duration = duration;
+          _waveform = _waveformFromDuration(duration);
+        });
+      }
+    } catch (_) {
+      // If loading fails, leave waveform empty — will show a minimal bar.
+    }
+  }
+
+  /// Generate a duration-proportional waveform approximation.
+  ///
+  /// Produces ~1 bar per 0.75s of audio (capped at 50 bars, minimum 8).
+  /// Bar heights vary in a smooth sine-based pattern to give a natural
+  /// audio-like appearance while being deterministic per duration.
+  static List<double> _waveformFromDuration(Duration duration) {
+    final seconds = duration.inMilliseconds / 1000.0;
+    final barCount = (seconds / 0.75).round().clamp(8, 50);
+    return List.generate(barCount, (i) {
+      // Smooth varying pattern based on index position.
+      final t = i / barCount;
+      final base = 0.3 + 0.4 * math.sin(t * math.pi * 3.7);
+      final detail = 0.15 * math.sin(t * math.pi * 11.3 + 0.7);
+      return (base + detail).clamp(0.15, 0.95);
+    });
+  }
+
+  @override
+  void dispose() {
+    _stateSub?.cancel();
+    _positionSub?.cancel();
+    _durationSub?.cancel();
+    _player.dispose();
+    super.dispose();
+  }
+
+  void _ensureSubscriptions() {
+    if (_initialized) return;
+    _initialized = true;
+    _stateSub = _player.stateStream.listen((s) {
+      if (mounted) setState(() => _playbackState = s);
+    });
+    _positionSub = _player.positionStream.listen((p) {
+      if (mounted) setState(() => _position = p);
+    });
+    _durationSub = _player.durationStream.listen((d) {
+      if (mounted) setState(() => _duration = d);
+    });
+  }
+
+  Future<void> _handlePlayPause() async {
+    _ensureSubscriptions();
+    final url = widget.attachment.url;
+    if (url == null) return;
+    switch (_playbackState) {
+      case AudioPlaybackState.stopped:
+        await _player.play(url);
+      case AudioPlaybackState.playing:
+        await _player.pause();
+      case AudioPlaybackState.paused:
+        await _player.resume();
+    }
+  }
+
+  Future<void> _handleSeek(double fraction) async {
+    if (_duration.inMilliseconds <= 0) return;
+    final target = Duration(
+      milliseconds: (_duration.inMilliseconds * fraction).round(),
+    );
+    await _player.seek(target);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 240,
+      child: VoiceMessageBubble(
+        duration: _duration,
+        position: _position,
+        isPlaying: _playbackState == AudioPlaybackState.playing,
+        waveform: _waveform,
+        onPlayPause: _handlePlayPause,
+        onSeek: _handleSeek,
       ),
     );
   }
