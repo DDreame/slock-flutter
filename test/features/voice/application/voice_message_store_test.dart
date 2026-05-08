@@ -127,4 +127,53 @@ void main() {
       );
     });
   });
+
+  group('voiceWaveformCacheProvider', () {
+    late ProviderContainer container;
+
+    setUp(() {
+      container = ProviderContainer();
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test('initial cache is empty', () {
+      final cache = container.read(voiceWaveformCacheProvider);
+      expect(cache, isEmpty);
+    });
+
+    test('caching amplitudes stores them keyed by name', () {
+      container.read(voiceWaveformCacheProvider.notifier).update(
+            (cache) => {
+              ...cache,
+              'voice_123.m4a': [0.3, 0.7, 0.5]
+            },
+          );
+
+      final cache = container.read(voiceWaveformCacheProvider);
+      expect(cache['voice_123.m4a'], [0.3, 0.7, 0.5]);
+    });
+
+    test('multiple entries are preserved', () {
+      container.read(voiceWaveformCacheProvider.notifier).update(
+            (cache) => {
+              ...cache,
+              'voice_1.m4a': [0.1, 0.2]
+            },
+          );
+      container.read(voiceWaveformCacheProvider.notifier).update(
+            (cache) => {
+              ...cache,
+              'voice_2.m4a': [0.8, 0.9]
+            },
+          );
+
+      final cache = container.read(voiceWaveformCacheProvider);
+      expect(cache, hasLength(2));
+      expect(cache['voice_1.m4a'], [0.1, 0.2]);
+      expect(cache['voice_2.m4a'], [0.8, 0.9]);
+    });
+  });
 }

@@ -87,3 +87,10 @@ class VoiceMessageStore extends Notifier<VoiceMessageState> {
     state = const VoiceMessageState();
   }
 }
+
+/// Cache of recorded waveform amplitudes, keyed by attachment name.
+///
+/// Populated when the user sends a voice recording so the inline player
+/// can display the real waveform captured during recording.
+final voiceWaveformCacheProvider =
+    StateProvider<Map<String, List<double>>>((ref) => {});

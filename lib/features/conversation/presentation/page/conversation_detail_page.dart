@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -432,6 +433,10 @@ class _ConversationDetailScreenState
     final recorder = _voiceRecorder;
     if (recorder == null) return;
 
+    // Capture recorded amplitudes before resetting the store.
+    final amplitudes = List<double>.unmodifiable(
+        ref.read(voiceMessageStoreProvider).amplitudes);
+
     final path = await recorder.stop();
     final store = ref.read(voiceMessageStoreProvider.notifier);
     store.reset();
@@ -443,6 +448,14 @@ class _ConversationDetailScreenState
     if (path == null || !mounted) return;
 
     final name = 'voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+    // Cache the recorded waveform so the inline player can use it.
+    if (amplitudes.isNotEmpty) {
+      ref.read(voiceWaveformCacheProvider.notifier).update(
+            (cache) => {...cache, name: amplitudes},
+          );
+    }
+
     ref.read(conversationDetailStoreProvider.notifier).addPendingAttachment(
           PendingAttachment(
             path: path,
@@ -2629,16 +2642,17 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
 }
 
 /// Inline audio player for voice/audio attachments in chat messages.
-class _AudioAttachmentRow extends StatefulWidget {
+class _AudioAttachmentRow extends ConsumerStatefulWidget {
   const _AudioAttachmentRow({required this.attachment});
 
   final MessageAttachment attachment;
 
   @override
-  State<_AudioAttachmentRow> createState() => _AudioAttachmentRowState();
+  ConsumerState<_AudioAttachmentRow> createState() =>
+      _AudioAttachmentRowState();
 }
 
-class _AudioAttachmentRowState extends State<_AudioAttachmentRow> {
+class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
   late final AudioPlayerService _player;
   AudioPlaybackState _playbackState = AudioPlaybackState.stopped;
   Duration _position = Duration.zero;
@@ -2647,13 +2661,61 @@ class _AudioAttachmentRowState extends State<_AudioAttachmentRow> {
   StreamSubscription<Duration>? _positionSub;
   StreamSubscription<Duration>? _durationSub;
   bool _initialized = false;
-  late final List<double> _waveform;
+  List<double> _waveform = const [];
 
   @override
   void initState() {
     super.initState();
     _player = AudioPlayerService();
-    _waveform = _generateWaveform(widget.attachment.name, 40);
+    _resolveWaveform();
+  }
+
+  /// Resolve waveform data: use cached amplitudes for own recordings,
+  /// or load audio eagerly to derive duration-based waveform for received audio.
+  void _resolveWaveform() {
+    // Check cache for own recordings (real amplitudes from recording session).
+    final cache = ref.read(voiceWaveformCacheProvider);
+    final cached = cache[widget.attachment.name];
+    if (cached != null && cached.isNotEmpty) {
+      _waveform = cached;
+      return;
+    }
+    // For received audio, load the audio to get its duration.
+    _loadAudioForWaveform();
+  }
+
+  Future<void> _loadAudioForWaveform() async {
+    final url = widget.attachment.url;
+    if (url == null) return;
+    try {
+      _ensureSubscriptions();
+      final duration = await _player.load(url);
+      if (duration != null && mounted) {
+        setState(() {
+          _duration = duration;
+          _waveform = _waveformFromDuration(duration);
+        });
+      }
+    } catch (_) {
+      // If loading fails, leave waveform empty — will show a minimal bar.
+    }
+  }
+
+  /// Generate a duration-proportional waveform approximation.
+  ///
+  /// Produces ~1 bar per 0.75s of audio (capped at 50 bars, minimum 8).
+  /// Bar heights vary in a smooth sine-based pattern to give a natural
+  /// audio-like appearance while being deterministic per duration.
+  static List<double> _waveformFromDuration(Duration duration) {
+    final seconds = duration.inMilliseconds / 1000.0;
+    final barCount = (seconds / 0.75).round().clamp(8, 50);
+    return List.generate(barCount, (i) {
+      // Smooth varying pattern based on index position.
+      final t = i / barCount;
+      final base = 0.3 + 0.4 * math.sin(t * math.pi * 3.7);
+      final detail = 0.15 * math.sin(t * math.pi * 11.3 + 0.7);
+      return (base + detail).clamp(0.15, 0.95);
+    });
   }
 
   @override
@@ -2714,22 +2776,6 @@ class _AudioAttachmentRowState extends State<_AudioAttachmentRow> {
         onSeek: _handleSeek,
       ),
     );
-  }
-
-  /// Generate a deterministic pseudo-waveform from the attachment name.
-  ///
-  /// Produces [barCount] normalized values (0.15–1.0) using a simple hash-based
-  /// PRNG so every audio attachment gets a unique but stable visual pattern.
-  static List<double> _generateWaveform(String name, int barCount) {
-    // Simple hash-based PRNG seeded from the file name.
-    var seed = name.hashCode & 0x7fffffff;
-    final bars = <double>[];
-    for (var i = 0; i < barCount; i++) {
-      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-      // Map to 0.15–1.0 so bars are always visible.
-      bars.add(0.15 + (seed % 1000) / 1000.0 * 0.85);
-    }
-    return bars;
   }
 }
 

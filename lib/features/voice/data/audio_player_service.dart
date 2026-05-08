@@ -54,6 +54,26 @@ class AudioPlayerService {
   // Playback controls
   // ---------------------------------------------------------------------------
 
+  /// Load an audio source without starting playback.
+  ///
+  /// Accepts both local file paths and HTTP/HTTPS URLs.
+  /// Returns the audio duration, or `null` if it cannot be determined.
+  /// After loading, [durationStream] and other streams become active.
+  Future<Duration?> load(String path) async {
+    final player = _lazyPlayer;
+    if (_currentPath != path) {
+      Duration? duration;
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        duration = await player.setUrl(path);
+      } else {
+        duration = await player.setFilePath(path);
+      }
+      _currentPath = path;
+      return duration;
+    }
+    return player.duration;
+  }
+
   /// Load and play an audio file at [path].
   ///
   /// Accepts both local file paths and HTTP/HTTPS URLs.

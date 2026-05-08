@@ -1809,10 +1809,30 @@ void main() {
       ),
     );
 
+    // Seed the waveform cache with real amplitudes to simulate a
+    // recording made in this session (own recording path).
+    late ProviderContainer container;
     await tester.pumpWidget(
-      _buildApp(
-        repository: repository,
-        child: ConversationDetailPage(target: target),
+      UncontrolledProviderScope(
+        container: container = ProviderContainer(
+          overrides: [
+            conversationRepositoryProvider.overrideWithValue(repository),
+            sessionStoreProvider.overrideWith(
+              () => _FixedSessionStore(const SessionState()),
+            ),
+            voiceWaveformCacheProvider.overrideWith(
+              (ref) => {
+                'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
+              },
+            ),
+          ],
+        ),
+        child: MaterialApp(
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: ConversationDetailPage(target: target),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -1820,7 +1840,7 @@ void main() {
     // Audio attachment should render the inline player with play/pause button.
     expect(find.byKey(const ValueKey('voice-play-pause')), findsOneWidget);
 
-    // Waveform should be rendered (not empty) — verifies BLOCKER 2 fix.
+    // Waveform should be rendered with cached amplitudes — verifies BLOCKER 2.
     final waveformFinder = find.byWidgetPredicate(
       (w) =>
           w is CustomPaint &&
@@ -1828,6 +1848,13 @@ void main() {
           (w.painter! as AudioWaveformPainter).amplitudes.isNotEmpty,
     );
     expect(waveformFinder, findsOneWidget);
+
+    // Verify it used the cached amplitudes (8 bars from cache).
+    final painter = tester.widget<CustomPaint>(waveformFinder).painter!
+        as AudioWaveformPainter;
+    expect(painter.amplitudes.length, 8);
+
+    container.dispose();
   });
 }
 
