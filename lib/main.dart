@@ -28,6 +28,7 @@ import 'package:slock_app/stores/notification/notification_permission_onboarding
 import 'package:slock_app/core/notifications/background_worker_auth_binding.dart';
 import 'package:slock_app/core/notifications/realtime_notification_bridge.dart';
 import 'package:slock_app/features/home/application/home_refresh_lifecycle_binding.dart';
+import 'package:slock_app/features/presence/data/presence_realtime_binding.dart';
 import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
 import 'package:slock_app/core/core.dart' show connectivityServiceProvider;
 import 'package:slock_app/core/network/connectivity_service.dart'
@@ -139,6 +140,7 @@ class SlockApp extends ConsumerWidget {
     ref.watch(inboxRealtimeRefreshBindingProvider);
     ref.watch(backgroundWorkerAuthBindingProvider);
     ref.watch(biometricLockLifecycleBindingProvider);
+    ref.watch(presenceRealtimeBindingProvider);
     final themeState = ref.watch(themeModeStoreProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(

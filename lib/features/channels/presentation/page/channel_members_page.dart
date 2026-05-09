@@ -8,6 +8,7 @@ import 'package:slock_app/features/channels/application/channel_member_store.dar
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/presentation/widget/add_member_dialog.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -246,14 +247,21 @@ class _MemberTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final avatar = CircleAvatar(
+      backgroundImage:
+          member.avatarUrl != null ? NetworkImage(member.avatarUrl!) : null,
+      child: member.avatarUrl == null
+          ? Icon(member.isAgent ? Icons.smart_toy : Icons.person)
+          : null,
+    );
+
     return ListTile(
-      leading: CircleAvatar(
-        backgroundImage:
-            member.avatarUrl != null ? NetworkImage(member.avatarUrl!) : null,
-        child: member.avatarUrl == null
-            ? Icon(member.isAgent ? Icons.smart_toy : Icons.person)
-            : null,
-      ),
+      leading: member.isHuman && member.userId != null
+          ? PresenceAvatar(
+              userId: member.userId!,
+              child: avatar,
+            )
+          : avatar,
       title: Text(member.displayName),
       subtitle: Text(member.isAgent ? 'Agent' : 'Human'),
       trailing: Row(
