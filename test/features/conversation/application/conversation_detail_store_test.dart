@@ -2323,6 +2323,14 @@ void main() {
           reason: 'Timeout must transition pending message to queued',
         );
 
+        // CancelToken must have been cancelled by the timeout handler.
+        expect(repository.lastSendCancelToken, isNotNull,
+            reason: 'sendMessage must receive a CancelToken');
+        expect(repository.lastSendCancelToken!.isCancelled, isTrue,
+            reason: 'Timeout must cancel the in-flight CancelToken to prevent '
+                'duplicate sends from both the original request and the '
+                'outbox drain');
+
         // Outbox must contain the message.
         final outbox = container.read(outboxStoreProvider);
         final tKey = outboxTargetKey(target);
@@ -2659,6 +2667,7 @@ class _FakeConversationRepository implements ConversationRepository {
   final List<int> newerRequests = [];
   final List<String> sentContents = [];
   final List<String?> sentReplyToIds = [];
+  CancelToken? lastSendCancelToken;
   final List<ConversationMessageSummary> persistedMessages = [];
   final Map<String, String> updatedContents = {};
   final List<String> deletedMessageIds = [];
@@ -2713,6 +2722,7 @@ class _FakeConversationRepository implements ConversationRepository {
   }) async {
     sentContents.add(content);
     sentReplyToIds.add(replyToId);
+    lastSendCancelToken = cancelToken;
     if (sendFailure != null) {
       throw sendFailure!;
     }
