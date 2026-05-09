@@ -44,8 +44,6 @@ final homeMachineCountLoaderProvider =
 });
 
 class HomeListStore extends Notifier<HomeListState> {
-  static const _fallbackBatchSize = 5;
-
   List<HomeChannelSummary> _allChannels = const [];
   List<HomeDirectMessageSummary> _allDirectMessages = const [];
   List<AgentItem> _allAgents = const [];
@@ -217,14 +215,6 @@ class HomeListStore extends Notifier<HomeListState> {
         serverScopeId: snapshot.serverId,
         status: HomeListStatus.success,
       );
-
-      // Fire-and-forget background fallback: for channels / DMs
-      // whose API response did not include a lastMessage object,
-      // fetch the most recent message individually and update both
-      // the local store and in-memory state.
-      unawaited(
-        _fetchMissingPreviews(snapshot).catchError((_) {}),
-      );
     } on AppFailure catch (failure) {
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
       if (cached != null) return;
@@ -294,118 +284,6 @@ class HomeListStore extends Notifier<HomeListState> {
   }
 
   Future<void> retry() => load();
-
-  /// Background fallback: fetches the most recent message for
-  /// channels / DMs that had no `lastMessage` in the initial API
-  /// response, then updates the local store and in-memory list.
-  ///
-  /// Guarded against stale overwrites: before applying a fallback
-  /// result, [_realtimePreviewIds] is checked.  If a realtime
-  /// `message:new` event already populated the preview, the
-  /// fallback result is silently discarded.  Cache-retained
-  /// previews (which keep [lastMessageId] for edit-sync) are
-  /// NOT in [_realtimePreviewIds] and can be replaced.
-  ///
-  /// Requests are batched (max [_fallbackBatchSize] concurrent)
-  /// to avoid stampeding the messages API.
-  Future<void> _fetchMissingPreviews(
-    HomeWorkspaceSnapshot snapshot,
-  ) async {
-    final loader = ref.read(homePreviewFallbackLoaderProvider);
-    final repo = ref.read(homeRepositoryProvider);
-    final serverId = snapshot.serverId;
-
-    final missingChannels = snapshot.channels
-        .where((ch) => ch.lastMessagePreview == null)
-        .toList(growable: false);
-    final missingDms = snapshot.directMessages
-        .where((dm) => dm.lastMessagePreview == null)
-        .toList(growable: false);
-
-    Future<void> fetchChannel(HomeChannelSummary ch) async {
-      final result = await loader(serverId, ch.scopeId.value);
-      if (result == null) return;
-
-      // Guard: skip if a realtime message:new already populated
-      // this channel's preview while the fallback was in flight.
-      if (_realtimePreviewIds.contains(ch.scopeId.value)) {
-        return;
-      }
-
-      try {
-        await repo.persistConversationActivity(
-          serverId: serverId,
-          conversationId: ch.scopeId.value,
-          messageId: result.messageId,
-          preview: result.preview,
-          activityAt: result.activityAt,
-        );
-      } catch (_) {
-        // Local store failure is non-fatal.
-      }
-
-      // Re-check after persist await — a realtime message:new
-      // may have arrived during the async gap.
-      if (_realtimePreviewIds.contains(ch.scopeId.value)) {
-        return;
-      }
-
-      _applyChannelFallbackPreview(
-        conversationId: ch.scopeId.value,
-        messageId: result.messageId,
-        preview: result.preview,
-        activityAt: result.activityAt,
-      );
-    }
-
-    Future<void> fetchDm(HomeDirectMessageSummary dm) async {
-      final result = await loader(serverId, dm.scopeId.value);
-      if (result == null) return;
-
-      // Guard: skip if a realtime message:new already populated
-      // this DM's preview while the fallback was in flight.
-      if (_realtimePreviewIds.contains(dm.scopeId.value)) {
-        return;
-      }
-
-      try {
-        await repo.persistConversationActivity(
-          serverId: serverId,
-          conversationId: dm.scopeId.value,
-          messageId: result.messageId,
-          preview: result.preview,
-          activityAt: result.activityAt,
-        );
-      } catch (_) {
-        // Local store failure is non-fatal.
-      }
-
-      // Re-check after persist await — a realtime message:new
-      // may have arrived during the async gap.
-      if (_realtimePreviewIds.contains(dm.scopeId.value)) {
-        return;
-      }
-
-      _applyDmFallbackPreview(
-        conversationId: dm.scopeId.value,
-        messageId: result.messageId,
-        preview: result.preview,
-        activityAt: result.activityAt,
-      );
-    }
-
-    // Process in batches to avoid stampeding the API.
-    final allWork = <Future<void> Function()>[
-      ...missingChannels.map((ch) => () => fetchChannel(ch)),
-      ...missingDms.map((dm) => () => fetchDm(dm)),
-    ];
-    for (var i = 0; i < allWork.length; i += _fallbackBatchSize) {
-      final end = (i + _fallbackBatchSize).clamp(0, allWork.length);
-      await Future.wait([
-        for (var j = i; j < end; j++) allWork[j](),
-      ]);
-    }
-  }
 
   void _hydrateUnreadCounts(HomeWorkspaceSnapshot snapshot) {
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
@@ -501,53 +379,6 @@ class HomeListStore extends Notifier<HomeListState> {
     if (dm.lastMessageId != messageId) return;
     final dms = List<HomeDirectMessageSummary>.of(_allDirectMessages);
     dms[index] = dm.copyWith(lastMessagePreview: preview);
-    _allDirectMessages = dms;
-    _emitPersonalizedState();
-  }
-
-  /// Applies a fallback-fetched preview without touching
-  /// [_realtimePreviewIds].  This ensures fallback writes
-  /// never mark a conversation as realtime-protected and
-  /// never remove a genuine realtime flag.
-  void _applyChannelFallbackPreview({
-    required String conversationId,
-    required String messageId,
-    required String preview,
-    required DateTime activityAt,
-  }) {
-    if (state.status != HomeListStatus.success) return;
-    final index =
-        _allChannels.indexWhere((c) => c.scopeId.value == conversationId);
-    if (index == -1) return;
-    final channels = List<HomeChannelSummary>.of(_allChannels);
-    channels[index] = channels[index].copyWith(
-      lastMessageId: messageId,
-      lastMessagePreview: preview,
-      lastActivityAt: activityAt,
-    );
-    _allChannels = channels;
-    _emitPersonalizedState();
-  }
-
-  /// DM counterpart of [_applyChannelFallbackPreview].
-  void _applyDmFallbackPreview({
-    required String conversationId,
-    required String messageId,
-    required String preview,
-    required DateTime activityAt,
-  }) {
-    if (state.status != HomeListStatus.success) return;
-    final index =
-        _allDirectMessages.indexWhere((d) => d.scopeId.value == conversationId);
-    if (index == -1) return;
-    final dms = List<HomeDirectMessageSummary>.of(
-      _allDirectMessages,
-    );
-    dms[index] = dms[index].copyWith(
-      lastMessageId: messageId,
-      lastMessagePreview: preview,
-      lastActivityAt: activityAt,
-    );
     _allDirectMessages = dms;
     _emitPersonalizedState();
   }

@@ -8,13 +8,12 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
-import 'package:slock_app/features/home/application/home_unread_item.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
-import 'package:slock_app/features/inbox/application/inbox_to_home_unread_adapter.dart';
+import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -38,32 +37,33 @@ import 'package:slock_app/l10n/app_localizations.dart';
 /// - Mark all read removed from home unread section
 /// - Header "View all →" links to inbox
 void main() {
-  group('HomeUnreadItem model', () {
+  group('ConversationProjection model', () {
     test('senderName field is available and nullable', () {
-      const item = HomeUnreadItem(
-        kind: HomeUnreadKind.channel,
+      const item = ConversationProjection(
+        kind: ConversationProjectionKind.channel,
         id: 'channel:general',
         title: 'general',
+        previewText: 'Hello world',
         unreadCount: 3,
         senderName: 'Alice',
-        preview: 'Hello world',
       );
       expect(item.senderName, 'Alice');
-      expect(item.preview, 'Hello world');
+      expect(item.previewText, 'Hello world');
     });
 
     test('senderName can be null', () {
-      const item = HomeUnreadItem(
-        kind: HomeUnreadKind.channel,
+      const item = ConversationProjection(
+        kind: ConversationProjectionKind.channel,
         id: 'channel:general',
         title: 'general',
+        previewText: '[No preview]',
         unreadCount: 1,
       );
       expect(item.senderName, isNull);
     });
   });
 
-  group('inboxItemToHomeUnreadItem adapter', () {
+  group('projectInboxItem adapter', () {
     test('maps senderName from InboxItem', () {
       const item = InboxItem(
         kind: InboxItemKind.channel,
@@ -74,13 +74,13 @@ void main() {
         unreadCount: 2,
       );
 
-      final result = inboxItemToHomeUnreadItem(
+      final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
       );
 
       expect(result.senderName, 'Bob');
-      expect(result.preview, 'Hey everyone');
+      expect(result.previewText, 'Hey everyone');
     });
 
     test('maps null senderName when absent', () {
@@ -91,7 +91,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final result = inboxItemToHomeUnreadItem(
+      final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
       );
@@ -113,13 +113,13 @@ void main() {
         unreadCount: 5,
       );
 
-      final result = inboxItemToHomeUnreadItem(
+      final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
       );
 
       expect(result.senderName, 'Carol');
-      expect(result.kind, HomeUnreadKind.thread);
+      expect(result.kind, ConversationProjectionKind.thread);
       // Source is just parent channel, NOT "parent · title" (title goes on line 2)
       expect(result.sourceLabel, '#general');
       expect(result.title, 'Design review');
@@ -133,7 +133,7 @@ void main() {
         unreadCount: 42,
       );
 
-      final result = inboxItemToHomeUnreadItem(
+      final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
       );
@@ -151,7 +151,7 @@ void main() {
         lastActivityAt: now,
       );
 
-      final result = inboxItemToHomeUnreadItem(
+      final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
       );
@@ -167,7 +167,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final result = inboxItemToHomeUnreadItem(
+      final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
       );
@@ -187,7 +187,7 @@ void main() {
         unreadCount: 3,
       );
 
-      final result = inboxItemToHomeUnreadItem(
+      final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
       );
@@ -211,7 +211,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final result = inboxItemToHomeUnreadItem(
+      final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
       );
@@ -222,6 +222,22 @@ void main() {
       expect(result.threadRouteTarget!.threadChannelId, 'th-chan-1');
       expect(result.channelScopeId, isNull);
       expect(result.dmScopeId, isNull);
+    });
+
+    test('missing preview resolves to [No preview]', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'empty',
+        channelName: 'empty',
+        unreadCount: 1,
+      );
+
+      final result = projectInboxItem(
+        item,
+        serverId: const ServerScopeId('server-1'),
+      );
+
+      expect(result.previewText, '[No preview]');
     });
   });
 
@@ -373,7 +389,8 @@ void main() {
       );
     });
 
-    testWidgets('missing preview and sender shows no line 3', (tester) async {
+    testWidgets('missing preview and sender shows [No preview] on line 3',
+        (tester) async {
       await _pumpHomeWithInboxItems(
         tester,
         items: const [
@@ -388,8 +405,13 @@ void main() {
 
       expect(
         find.byKey(const ValueKey('unread-preview-channel:empty')),
-        findsNothing,
-        reason: 'No line 3 when both sender and preview are missing',
+        findsOneWidget,
+        reason: 'Line 3 should always be rendered via ConversationProjection',
+      );
+      expect(
+        find.text('[No preview]'),
+        findsOneWidget,
+        reason: 'Missing preview should show [No preview] fallback',
       );
     });
 
@@ -476,7 +498,7 @@ void main() {
         reason: 'Channel glyph badge should be present',
       );
       expect(
-        find.byKey(const ValueKey('unread-kind-directMessage')),
+        find.byKey(const ValueKey('unread-kind-dm')),
         findsOneWidget,
         reason: 'DM glyph badge should be present',
       );
@@ -584,8 +606,7 @@ void main() {
       );
 
       // Kind badge
-      final badgeFinder =
-          find.byKey(const ValueKey('unread-kind-directMessage'));
+      final badgeFinder = find.byKey(const ValueKey('unread-kind-dm'));
       final badgeContainer = tester.widget<Container>(badgeFinder);
       final badgeDecoration = badgeContainer.decoration! as BoxDecoration;
       expect(

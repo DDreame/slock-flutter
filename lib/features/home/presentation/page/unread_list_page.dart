@@ -5,10 +5,9 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
-import 'package:slock_app/features/home/application/home_unread_item.dart';
+import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
-import 'package:slock_app/features/inbox/application/inbox_to_home_unread_adapter.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -46,11 +45,11 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
     final serverId = ref.watch(activeServerScopeIdProvider);
 
     final items = serverId != null
-        ? inboxState.items
-            .where((item) => item.unreadCount > 0)
-            .map((item) => inboxItemToHomeUnreadItem(item, serverId: serverId))
-            .toList(growable: false)
-        : <HomeUnreadItem>[];
+        ? projectInboxItems(
+            inboxState.items.where((item) => item.unreadCount > 0).toList(),
+            serverId: serverId,
+          )
+        : <ConversationProjection>[];
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -77,7 +76,7 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
     AppColors colors,
     AppLocalizations l10n,
     InboxState inboxState,
-    List<HomeUnreadItem> items,
+    List<ConversationProjection> items,
   ) {
     if (inboxState.status == InboxStatus.loading && items.isEmpty) {
       return const Center(
@@ -196,16 +195,16 @@ class _UnreadListRow extends StatelessWidget {
     required this.colors,
   });
 
-  final HomeUnreadItem item;
+  final ConversationProjection item;
   final AppColors colors;
 
   (String glyph, Color Function(AppColors) colorFn) get _kindBadge {
     switch (item.kind) {
-      case HomeUnreadKind.thread:
+      case ConversationProjectionKind.thread:
         return ('\u21a9', (c) => c.primary);
-      case HomeUnreadKind.channel:
+      case ConversationProjectionKind.channel:
         return ('#', (c) => c.success);
-      case HomeUnreadKind.directMessage:
+      case ConversationProjectionKind.dm:
         return ('\u2709', (c) => c.warning);
     }
   }
@@ -254,17 +253,15 @@ class _UnreadListRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  if (item.preview != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      item.preview!,
-                      style: AppTypography.caption.copyWith(
-                        color: colors.textTertiary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 2),
+                  Text(
+                    item.previewText,
+                    style: AppTypography.caption.copyWith(
+                      color: colors.textTertiary,
                     ),
-                  ],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

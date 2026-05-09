@@ -5,9 +5,9 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
-import 'package:slock_app/features/inbox/application/inbox_to_home_unread_adapter.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 
@@ -187,16 +187,16 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
-    final homeItem = inboxItemToHomeUnreadItem(item, serverId: serverId);
-    if (homeItem.threadRouteTarget != null) {
-      context.push(homeItem.threadRouteTarget!.toLocation());
-    } else if (homeItem.channelScopeId != null) {
-      final sid = homeItem.channelScopeId!.serverId.value;
-      final cid = homeItem.channelScopeId!.value;
+    final projection = projectInboxItem(item, serverId: serverId);
+    if (projection.threadRouteTarget != null) {
+      context.push(projection.threadRouteTarget!.toLocation());
+    } else if (projection.channelScopeId != null) {
+      final sid = projection.channelScopeId!.serverId.value;
+      final cid = projection.channelScopeId!.value;
       context.push('/servers/$sid/channels/$cid');
-    } else if (homeItem.dmScopeId != null) {
-      final sid = homeItem.dmScopeId!.serverId.value;
-      final dmId = homeItem.dmScopeId!.value;
+    } else if (projection.dmScopeId != null) {
+      final sid = projection.dmScopeId!.serverId.value;
+      final dmId = projection.dmScopeId!.value;
       context.push('/servers/$sid/dms/$dmId');
     }
   }
@@ -370,32 +370,30 @@ class _InboxListTile extends StatelessWidget {
                           ),
                       ],
                     ),
-                    if (item.preview != null) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          if (item.senderName != null)
-                            Text(
-                              '${item.senderName}: ',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: colors.textSecondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        if (item.senderName != null)
+                          Text(
+                            '${item.senderName}: ',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
-                          Expanded(
-                            child: Text(
-                              item.preview!,
-                              style: AppTypography.bodySmall.copyWith(
-                                color: colors.textTertiary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            maxLines: 1,
                           ),
-                        ],
-                      ),
-                    ],
+                        Expanded(
+                          child: Text(
+                            resolvePreviewText(item.preview),
+                            style: AppTypography.bodySmall.copyWith(
+                              color: colors.textTertiary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

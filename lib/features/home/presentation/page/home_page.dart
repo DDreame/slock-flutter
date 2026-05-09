@@ -13,11 +13,10 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/application/home_tasks_realtime_binding.dart';
-import 'package:slock_app/features/home/application/home_unread_item.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
-import 'package:slock_app/features/inbox/application/inbox_to_home_unread_adapter.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
@@ -880,13 +879,13 @@ class _InboxUnreadSectionState extends ConsumerState<_InboxUnreadSection> {
     final inboxState = ref.watch(inboxStoreProvider);
     final serverId = ref.watch(activeServerScopeIdProvider);
 
-    // Convert inbox items to HomeUnreadItem for consistent rendering.
+    // Convert inbox items to ConversationProjection for consistent rendering.
     final unreadItems = serverId != null
-        ? inboxState.items
-            .where((item) => item.unreadCount > 0)
-            .map((item) => inboxItemToHomeUnreadItem(item, serverId: serverId))
-            .toList(growable: false)
-        : <HomeUnreadItem>[];
+        ? projectInboxItems(
+            inboxState.items.where((item) => item.unreadCount > 0).toList(),
+            serverId: serverId,
+          )
+        : <ConversationProjection>[];
 
     return _SummaryCardBase(
       accentColor: colors.error,
@@ -917,7 +916,7 @@ class _InboxUnreadListContent extends ConsumerWidget {
     this.onViewAll,
   });
 
-  final List<HomeUnreadItem> unreadItems;
+  final List<ConversationProjection> unreadItems;
   final VoidCallback? onViewAll;
 
   @override
@@ -994,18 +993,18 @@ class _UnreadItemRow extends ConsumerWidget {
     required this.now,
   });
 
-  final HomeUnreadItem item;
+  final ConversationProjection item;
   final DateTime now;
 
   /// Z2-style type glyph and theme-safe badge color per kind.
   /// Colors: THREAD=purple(primary), CHANNEL=teal, DM=blue.
   (String glyph, Color Function(AppColors) colorFn) get _kindBadge {
     switch (item.kind) {
-      case HomeUnreadKind.thread:
+      case ConversationProjectionKind.thread:
         return ('\u21a9', (c) => c.primary);
-      case HomeUnreadKind.channel:
+      case ConversationProjectionKind.channel:
         return ('#', (_) => const Color(0xFF14B8A6));
-      case HomeUnreadKind.directMessage:
+      case ConversationProjectionKind.dm:
         return ('\u2709', (_) => const Color(0xFF2196F3));
     }
   }
@@ -1013,11 +1012,11 @@ class _UnreadItemRow extends ConsumerWidget {
   /// Z2 type pill label per kind.
   String get _typePillLabel {
     switch (item.kind) {
-      case HomeUnreadKind.thread:
+      case ConversationProjectionKind.thread:
         return 'THREAD';
-      case HomeUnreadKind.channel:
+      case ConversationProjectionKind.channel:
         return 'CHANNEL';
-      case HomeUnreadKind.directMessage:
+      case ConversationProjectionKind.dm:
         return 'DM';
     }
   }
@@ -1028,7 +1027,7 @@ class _UnreadItemRow extends ConsumerWidget {
     final (glyph, colorFn) = _kindBadge;
     final badgeColor = colorFn(colors);
 
-    // Build line 3: "senderName: preview"
+    // Build line 3: "senderName: previewText"
     final line3Text = _buildPreviewLine();
 
     return GestureDetector(
@@ -1134,19 +1133,17 @@ class _UnreadItemRow extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  // Line 3: senderName: preview
-                  if (line3Text != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      line3Text,
-                      key: ValueKey('unread-preview-${item.id}'),
-                      style: AppTypography.caption.copyWith(
-                        color: colors.textTertiary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  // Line 3: senderName: previewText (always shown)
+                  const SizedBox(height: 2),
+                  Text(
+                    line3Text,
+                    key: ValueKey('unread-preview-${item.id}'),
+                    style: AppTypography.caption.copyWith(
+                      color: colors.textTertiary,
                     ),
-                  ],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
@@ -1162,24 +1159,22 @@ class _UnreadItemRow extends ConsumerWidget {
     );
   }
 
-  /// Build "senderName: preview" for line 3.
-  /// If senderName is missing, just show preview.
-  /// If both are missing, returns null.
-  String? _buildPreviewLine() {
-    if (item.senderName != null && item.preview != null) {
-      return '${item.senderName}: ${item.preview}';
+  /// Build "senderName: previewText" for line 3.
+  /// previewText is always non-null via ConversationProjection contract.
+  String _buildPreviewLine() {
+    if (item.senderName != null) {
+      return '${item.senderName}: ${item.previewText}';
     }
-    if (item.senderName != null) return item.senderName;
-    return item.preview;
+    return item.previewText;
   }
 
   void _navigateTo(BuildContext context, WidgetRef ref) {
     switch (item.kind) {
-      case HomeUnreadKind.thread:
+      case ConversationProjectionKind.thread:
         if (item.threadRouteTarget != null) {
           context.push(item.threadRouteTarget!.toLocation());
         }
-      case HomeUnreadKind.channel:
+      case ConversationProjectionKind.channel:
         if (item.channelScopeId != null) {
           ref.read(markChannelReadUseCaseProvider)(
             item.channelScopeId!,
@@ -1188,7 +1183,7 @@ class _UnreadItemRow extends ConsumerWidget {
           final cid = item.channelScopeId!.routeParam;
           context.push('/servers/$sid/channels/$cid');
         }
-      case HomeUnreadKind.directMessage:
+      case ConversationProjectionKind.dm:
         if (item.dmScopeId != null) {
           ref.read(markDmReadUseCaseProvider)(item.dmScopeId!);
           final sid = item.dmScopeId!.serverId.routeParam;
