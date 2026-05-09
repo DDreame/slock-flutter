@@ -158,6 +158,7 @@ class FormattingToolbar extends StatelessWidget {
     required this.controller,
     required this.visible,
     required this.focusNode,
+    this.onChanged,
   });
 
   /// The text editing controller to apply formatting to.
@@ -168,6 +169,10 @@ class FormattingToolbar extends StatelessWidget {
 
   /// The focus node to re-focus after applying formatting.
   final FocusNode focusNode;
+
+  /// Called with the new text after a format is applied, so the caller
+  /// can sync draft state.
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -226,6 +231,7 @@ class FormattingToolbar extends StatelessWidget {
 
   void _apply(MarkdownFormat format) {
     applyMarkdownFormat(controller, format);
+    onChanged?.call(controller.text);
     focusNode.requestFocus();
   }
 }

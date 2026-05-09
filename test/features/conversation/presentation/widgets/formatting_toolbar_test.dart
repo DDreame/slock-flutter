@@ -23,7 +23,7 @@ void main() {
 
       expect(controller.text, 'hello **world**');
       // Cursor should be after the wrapped text, before closing markers.
-      expect(controller.selection, const TextSelection.collapsed(offset: 14));
+      expect(controller.selection, const TextSelection.collapsed(offset: 13));
     });
 
     test('inserts bold placeholder at cursor when no selection', () {

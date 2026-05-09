@@ -1028,6 +1028,7 @@ class _ConversationComposer extends StatelessWidget {
                 controller: controller,
                 visible: isFormattingToolbarVisible,
                 focusNode: focusNode,
+                onChanged: onChanged,
               ),
               Row(
                 children: [
