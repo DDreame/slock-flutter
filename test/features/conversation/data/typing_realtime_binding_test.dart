@@ -46,7 +46,7 @@ void main() {
         eventType: kTypingStartEvent,
         scopeKey: 'server:s1/channel:ch1',
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'scopeKey': 'server:s1/channel:ch1',
           'userId': 'user-2',
           'displayName': 'Bob',
@@ -69,7 +69,7 @@ void main() {
         eventType: kTypingStartEvent,
         scopeKey: 'server:s1/channel:other',
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'scopeKey': 'server:s1/channel:other',
           'userId': 'user-2',
           'displayName': 'Bob',
@@ -89,7 +89,7 @@ void main() {
         eventType: kTypingStartEvent,
         scopeKey: 'server:s1/channel:ch1',
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'scopeKey': 'server:s1/channel:ch1',
           'userId': 'current-user',
           'displayName': 'Me',
@@ -109,7 +109,7 @@ void main() {
         eventType: 'message:new',
         scopeKey: 'server:s1/channel:ch1',
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'scopeKey': 'server:s1/channel:ch1',
           'userId': 'user-2',
           'displayName': 'Bob',
@@ -129,7 +129,7 @@ void main() {
         eventType: kTypingStartEvent,
         scopeKey: 'server:s1/channel:ch1',
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'scopeKey': 'server:s1/channel:ch1',
           'userId': 'user-2',
         },
@@ -172,7 +172,7 @@ void main() {
         eventType: kTypingStartEvent,
         scopeKey: 'server:s1/channel:ch1',
         receivedAt: DateTime.now(),
-        payload: {
+        payload: const {
           'scopeKey': 'server:s1/channel:ch1',
           'userId': 'user-2',
           'displayName': 'Bob',
