@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 
 enum _HomeDmAction { togglePin, hide, moveUp, moveDown }
 
@@ -60,43 +61,63 @@ class HomeDirectMessageRow extends StatelessWidget {
                 SizedBox(
                   width: 32,
                   height: 32,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      CircleAvatar(
-                        key: const ValueKey('dm-avatar'),
-                        radius: 16,
-                        backgroundColor: colors.primaryLight,
-                        child: Text(
-                          _initials(directMessage.title),
-                          style: AppTypography.label.copyWith(
-                            color: colors.primary,
-                            fontSize: 12,
+                  child: directMessage.peerId != null
+                      ? PresenceAvatar(
+                          key: ValueKey(
+                            'dm-presence-${directMessage.scopeId.routeParam}',
                           ),
-                        ),
-                      ),
-                      Positioned(
-                        right: -1,
-                        bottom: -1,
-                        child: Container(
-                          key: const ValueKey('dm-status-dot'),
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color:
-                                isOnline ? colors.success : colors.textTertiary,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: hasUnread
-                                  ? colors.primaryLight
-                                  : colors.surface,
-                              width: 2,
+                          userId: directMessage.peerId!,
+                          child: CircleAvatar(
+                            key: const ValueKey('dm-avatar'),
+                            radius: 16,
+                            backgroundColor: colors.primaryLight,
+                            child: Text(
+                              _initials(directMessage.title),
+                              style: AppTypography.label.copyWith(
+                                color: colors.primary,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
+                        )
+                      : Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            CircleAvatar(
+                              key: const ValueKey('dm-avatar'),
+                              radius: 16,
+                              backgroundColor: colors.primaryLight,
+                              child: Text(
+                                _initials(directMessage.title),
+                                style: AppTypography.label.copyWith(
+                                  color: colors.primary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              right: -1,
+                              bottom: -1,
+                              child: Container(
+                                key: const ValueKey('dm-status-dot'),
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: isOnline
+                                      ? colors.success
+                                      : colors.textTertiary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: hasUnread
+                                        ? colors.primaryLight
+                                        : colors.surface,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               const SizedBox(width: AppSpacing.md),
               Expanded(

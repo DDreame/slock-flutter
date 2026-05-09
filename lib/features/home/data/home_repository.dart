@@ -246,6 +246,7 @@ class HomeDirectMessageSummary {
     this.lastMessagePreview,
     this.lastActivityAt,
     this.isAgent = false,
+    this.peerId,
   });
 
   final DirectMessageScopeId scopeId;
@@ -255,11 +256,17 @@ class HomeDirectMessageSummary {
   final DateTime? lastActivityAt;
   final bool isAgent;
 
+  /// The peer's user or agent ID, if known.
+  ///
+  /// Used for presence dot lookup in DM rows.
+  final String? peerId;
+
   HomeDirectMessageSummary copyWith({
     String? lastMessageId,
     String? lastMessagePreview,
     DateTime? lastActivityAt,
     bool? isAgent,
+    String? peerId,
   }) {
     return HomeDirectMessageSummary(
       scopeId: scopeId,
@@ -268,6 +275,7 @@ class HomeDirectMessageSummary {
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
       lastActivityAt: lastActivityAt ?? this.lastActivityAt,
       isAgent: isAgent ?? this.isAgent,
+      peerId: peerId ?? this.peerId,
     );
   }
 
@@ -281,7 +289,8 @@ class HomeDirectMessageSummary {
             lastMessageId == other.lastMessageId &&
             lastMessagePreview == other.lastMessagePreview &&
             lastActivityAt == other.lastActivityAt &&
-            isAgent == other.isAgent;
+            isAgent == other.isAgent &&
+            peerId == other.peerId;
   }
 
   @override
@@ -292,5 +301,6 @@ class HomeDirectMessageSummary {
         lastMessagePreview,
         lastActivityAt,
         isAgent,
+        peerId,
       );
 }

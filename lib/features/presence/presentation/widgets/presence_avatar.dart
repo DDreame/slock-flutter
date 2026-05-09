@@ -46,6 +46,7 @@ class PresenceAvatar extends ConsumerWidget {
 
     final dotColor = switch (status) {
       UserPresenceStatus.online => colors.success,
+      UserPresenceStatus.idle => colors.warning,
       UserPresenceStatus.offline => colors.textTertiary,
     };
 

@@ -95,6 +95,32 @@ Map<String, dynamic>? _readOptionalMap(Object? payload) {
   return null;
 }
 
+/// Extracts the peer's user/agent ID from a DM payload.
+///
+/// Tries common field names: `peerId`, `peerUserId`, `peerAgentId`,
+/// or nested identity objects with an `id` field.
+String? resolveDirectMessagePeerId(Object? payload) {
+  final map = _readOptionalMap(payload);
+  if (map == null) return null;
+
+  // Try direct ID fields.
+  final directId = _firstPresentString(
+    map,
+    fields: const ['peerId', 'peerUserId', 'peerAgentId', 'participantId'],
+  );
+  if (directId != null) return directId;
+
+  // Try nested identity objects with an 'id' field.
+  for (final field in const ['peer', 'peerUser', 'participant']) {
+    final nested = _readOptionalMap(map[field]);
+    if (nested == null) continue;
+    final id = _readOptionalString(nested['id']);
+    if (id != null) return id;
+  }
+
+  return null;
+}
+
 String? _readOptionalString(Object? value) {
   if (value is String && value.isNotEmpty) {
     return value;

@@ -42,6 +42,8 @@ import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubb
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
 import 'package:slock_app/features/conversation/data/typing_realtime_binding.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
@@ -197,7 +199,11 @@ class _ConversationDetailScreenState
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(widget.titleOverride ?? state.resolvedTitle),
-            if (state.memberCount != null)
+            if (target.surface == ConversationSurface.directMessage)
+              _DmPresenceSubtitle(
+                conversationId: target.conversationId,
+              )
+            else if (state.memberCount != null)
               Text(
                 '${state.memberCount} '
                 '${state.memberCount == 1 ? 'member' : 'members'}',
@@ -3108,6 +3114,73 @@ class _QuotedMessageBlock extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// DM presence subtitle — shown in the app bar for direct messages.
+// ---------------------------------------------------------------------------
+
+class _DmPresenceSubtitle extends ConsumerWidget {
+  const _DmPresenceSubtitle({required this.conversationId});
+
+  final String conversationId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final peerId = ref.watch(
+      homeListStoreProvider.select((state) {
+        for (final dm in state.pinnedDirectMessages) {
+          if (dm.scopeId.value == conversationId) return dm.peerId;
+        }
+        for (final dm in state.directMessages) {
+          if (dm.scopeId.value == conversationId) return dm.peerId;
+        }
+        for (final dm in state.hiddenDirectMessages) {
+          if (dm.scopeId.value == conversationId) return dm.peerId;
+        }
+        return null;
+      }),
+    );
+    if (peerId == null) return const SizedBox.shrink();
+
+    final status = ref.watch(
+      presenceStoreProvider.select((s) => s.statusOf(peerId)),
+    );
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    final dotColor = switch (status) {
+      UserPresenceStatus.online => colors.success,
+      UserPresenceStatus.idle => colors.warning,
+      UserPresenceStatus.offline => colors.textTertiary,
+    };
+    final statusText = switch (status) {
+      UserPresenceStatus.online => 'Online',
+      UserPresenceStatus.idle => 'Idle',
+      UserPresenceStatus.offline => 'Offline',
+    };
+
+    return Row(
+      key: const ValueKey('conversation-dm-presence'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(
+            color: dotColor,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          statusText,
+          style: AppTypography.caption.copyWith(
+            color: colors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 }

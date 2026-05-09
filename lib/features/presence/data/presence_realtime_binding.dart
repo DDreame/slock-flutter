@@ -2,23 +2,18 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/realtime/providers.dart';
-import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/core/realtime/realtime_reduction_ingress.dart';
+import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
-/// Socket.IO event name for user coming online.
-const kPresenceOnlineEvent = 'presence:online';
-
-/// Socket.IO event name for user going offline.
-const kPresenceOfflineEvent = 'presence:offline';
-
-/// Socket.IO event name for the initial list of online users
-/// sent on connection.
-const kPresenceListEvent = 'presence:list';
+/// Socket.IO event name for user presence changes.
+const kUserPresenceEvent = 'user:presence';
 
 /// Binds realtime presence events to the [PresenceStore].
 ///
-/// Presence is global (server-scoped), not per-conversation.
+/// Listens for `user:presence` events and updates the store
+/// with the user's status (online / idle / offline).
+///
 /// Call [bind] to start listening, and [dispose] to stop.
 class PresenceRealtimeBinding {
   PresenceRealtimeBinding({
@@ -36,28 +31,16 @@ class PresenceRealtimeBinding {
   /// Start listening for presence events.
   void bind() {
     _subscription = ingress.acceptedEvents.listen((event) {
+      if (event.eventType != kUserPresenceEvent) return;
+
       final payload = event.payload;
       if (payload is! Map) return;
 
-      switch (event.eventType) {
-        case kPresenceOnlineEvent:
-          final userId = payload['userId'] as String?;
-          if (userId == null || userId == currentUserId) return;
-          store.setOnline(userId);
-        case kPresenceOfflineEvent:
-          final userId = payload['userId'] as String?;
-          if (userId == null || userId == currentUserId) return;
-          store.setOffline(userId);
-        case kPresenceListEvent:
-          final userIds = payload['userIds'];
-          if (userIds is List) {
-            store.setOnlineList(
-              userIds.whereType<String>().toList(),
-            );
-          }
-        default:
-          break;
-      }
+      final userId = payload['userId'] as String?;
+      if (userId == null || userId == currentUserId) return;
+
+      final presence = payload['presence'] as String?;
+      store.setPresence(userId, presence);
     });
   }
 

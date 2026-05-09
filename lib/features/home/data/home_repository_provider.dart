@@ -398,6 +398,7 @@ List<HomeDirectMessageSummary> _parseDirectMessageSummaries(
       lastMessagePreview: lastMessage?.content,
       lastActivityAt: lastMessage?.createdAt,
       isAgent: peerType == 'agent',
+      peerId: resolveDirectMessagePeerId(item),
     );
   }, growable: false);
 }

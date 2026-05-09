@@ -42,11 +42,44 @@ void main() {
       expect(decoration.color, AppColors.light.success);
     });
 
+    testWidgets('shows yellow dot when user is idle', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(presenceStoreProvider.notifier).setIdle('user-1');
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const Scaffold(
+              body: PresenceAvatar(
+                userId: 'user-1',
+                child: CircleAvatar(
+                  key: ValueKey('test-avatar'),
+                  radius: 16,
+                  child: Text('A'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final dotFinder = find.byKey(const ValueKey('presence-dot-user-1'));
+      expect(dotFinder, findsOneWidget);
+
+      final dot = tester.widget<Container>(dotFinder);
+      final decoration = dot.decoration! as BoxDecoration;
+      expect(decoration.color, AppColors.light.warning);
+    });
+
     testWidgets('shows gray dot when user is offline', (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      // user-1 not set online — defaults to offline.
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,

@@ -17,16 +17,18 @@ void main() {
   });
 
   group('PresenceStore', () {
-    test('initial state has no online users', () {
+    test('initial state has no users', () {
       final state = container.read(presenceStoreProvider);
       expect(state.onlineUserIds, isEmpty);
+      expect(state.statuses, isEmpty);
     });
 
-    test('setOnline adds a user to online set', () {
+    test('setOnline adds a user as online', () {
       container.read(presenceStoreProvider.notifier).setOnline('user-1');
 
       final state = container.read(presenceStoreProvider);
       expect(state.onlineUserIds, contains('user-1'));
+      expect(state.statusOf('user-1'), UserPresenceStatus.online);
     });
 
     test('setOnline is idempotent', () {
@@ -38,13 +40,22 @@ void main() {
       expect(state.onlineUserIds, hasLength(1));
     });
 
-    test('setOffline removes a user from online set', () {
+    test('setIdle marks a user as idle', () {
+      container.read(presenceStoreProvider.notifier).setIdle('user-1');
+
+      final state = container.read(presenceStoreProvider);
+      expect(state.statusOf('user-1'), UserPresenceStatus.idle);
+      expect(state.isOnline('user-1'), isFalse);
+    });
+
+    test('setOffline removes a user from statuses', () {
       final notifier = container.read(presenceStoreProvider.notifier);
       notifier.setOnline('user-1');
       notifier.setOffline('user-1');
 
       final state = container.read(presenceStoreProvider);
       expect(state.onlineUserIds, isEmpty);
+      expect(state.statusOf('user-1'), UserPresenceStatus.offline);
     });
 
     test('setOffline on unknown user is a no-op', () {
@@ -56,7 +67,28 @@ void main() {
       expect(state.onlineUserIds, hasLength(1));
     });
 
-    test('setOnlineList replaces online set with given user IDs', () {
+    test('setPresence parses label strings correctly', () {
+      final notifier = container.read(presenceStoreProvider.notifier);
+      notifier.setPresence('user-1', 'online');
+      notifier.setPresence('user-2', 'idle');
+      notifier.setPresence('user-3', 'offline');
+
+      final state = container.read(presenceStoreProvider);
+      expect(state.statusOf('user-1'), UserPresenceStatus.online);
+      expect(state.statusOf('user-2'), UserPresenceStatus.idle);
+      expect(state.statusOf('user-3'), UserPresenceStatus.offline);
+    });
+
+    test('setPresence with null label sets offline', () {
+      final notifier = container.read(presenceStoreProvider.notifier);
+      notifier.setOnline('user-1');
+      notifier.setPresence('user-1', null);
+
+      final state = container.read(presenceStoreProvider);
+      expect(state.statusOf('user-1'), UserPresenceStatus.offline);
+    });
+
+    test('setOnlineList replaces all statuses', () {
       final notifier = container.read(presenceStoreProvider.notifier);
       notifier.setOnline('user-old');
       notifier.setOnlineList(['user-1', 'user-2', 'user-3']);
@@ -66,54 +98,42 @@ void main() {
         state.onlineUserIds,
         unorderedEquals(['user-1', 'user-2', 'user-3']),
       );
-      expect(state.onlineUserIds, isNot(contains('user-old')));
+      expect(state.isOnline('user-old'), isFalse);
     });
 
     test('clearAll removes all users', () {
       final notifier = container.read(presenceStoreProvider.notifier);
       notifier.setOnline('user-1');
-      notifier.setOnline('user-2');
+      notifier.setIdle('user-2');
       notifier.clearAll();
 
       final state = container.read(presenceStoreProvider);
-      expect(state.onlineUserIds, isEmpty);
-    });
-  });
-
-  group('PresenceState.isOnline', () {
-    test('returns true for an online user', () {
-      container.read(presenceStoreProvider.notifier).setOnline('user-1');
-
-      final state = container.read(presenceStoreProvider);
-      expect(state.isOnline('user-1'), isTrue);
-    });
-
-    test('returns false for an offline user', () {
-      final state = container.read(presenceStoreProvider);
-      expect(state.isOnline('user-unknown'), isFalse);
-    });
-
-    test('returns false after user goes offline', () {
-      final notifier = container.read(presenceStoreProvider.notifier);
-      notifier.setOnline('user-1');
-      notifier.setOffline('user-1');
-
-      final state = container.read(presenceStoreProvider);
-      expect(state.isOnline('user-1'), isFalse);
+      expect(state.statuses, isEmpty);
     });
   });
 
   group('PresenceState.statusOf', () {
     test('returns online for online user', () {
       container.read(presenceStoreProvider.notifier).setOnline('user-1');
+      expect(
+        container.read(presenceStoreProvider).statusOf('user-1'),
+        UserPresenceStatus.online,
+      );
+    });
 
-      final state = container.read(presenceStoreProvider);
-      expect(state.statusOf('user-1'), UserPresenceStatus.online);
+    test('returns idle for idle user', () {
+      container.read(presenceStoreProvider.notifier).setIdle('user-1');
+      expect(
+        container.read(presenceStoreProvider).statusOf('user-1'),
+        UserPresenceStatus.idle,
+      );
     });
 
     test('returns offline for unknown user', () {
-      final state = container.read(presenceStoreProvider);
-      expect(state.statusOf('user-1'), UserPresenceStatus.offline);
+      expect(
+        container.read(presenceStoreProvider).statusOf('user-1'),
+        UserPresenceStatus.offline,
+      );
     });
   });
 }

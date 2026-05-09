@@ -19,6 +19,7 @@ import 'package:slock_app/features/agents/presentation/widget/agent_form_dialog.
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 class AgentsPage extends ConsumerStatefulWidget {
@@ -998,13 +999,17 @@ class _AgentDetailBody extends ConsumerWidget {
             key: const ValueKey('agent-detail-glow-ring'),
             status: _mapActivityToGlowStatus(agent.activity),
             size: 80,
-            child: CircleAvatar(
-              radius: 34,
-              backgroundColor: colors.surfaceAlt,
-              child: Text(
-                agent.label.isNotEmpty ? agent.label[0].toUpperCase() : '?',
-                style: AppTypography.displayMedium.copyWith(
-                  color: colors.text,
+            child: PresenceAvatar(
+              key: ValueKey('agent-detail-presence-${agent.id}'),
+              userId: agent.id,
+              child: CircleAvatar(
+                radius: 34,
+                backgroundColor: colors.surfaceAlt,
+                child: Text(
+                  agent.label.isNotEmpty ? agent.label[0].toUpperCase() : '?',
+                  style: AppTypography.displayMedium.copyWith(
+                    color: colors.text,
+                  ),
                 ),
               ),
             ),

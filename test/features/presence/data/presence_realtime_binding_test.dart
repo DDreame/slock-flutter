@@ -31,34 +31,55 @@ void main() {
   });
 
   group('PresenceRealtimeBinding — receive', () {
-    test('presence:online event marks user as online', () async {
+    test('user:presence with online status marks user online', () async {
       binding.bind();
 
       ingress.accept(RealtimeEventEnvelope(
-        eventType: kPresenceOnlineEvent,
+        eventType: kUserPresenceEvent,
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
+          'presence': 'online',
         },
       ));
 
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(presenceStoreProvider);
-      expect(state.isOnline('user-2'), isTrue);
+      expect(state.statusOf('user-2'), UserPresenceStatus.online);
     });
 
-    test('presence:offline event marks user as offline', () async {
+    test('user:presence with idle status marks user idle', () async {
       binding.bind();
 
-      // First set online.
       ingress.accept(RealtimeEventEnvelope(
-        eventType: kPresenceOnlineEvent,
+        eventType: kUserPresenceEvent,
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
+          'presence': 'idle',
+        },
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(presenceStoreProvider);
+      expect(state.statusOf('user-2'), UserPresenceStatus.idle);
+    });
+
+    test('user:presence with offline status marks user offline', () async {
+      binding.bind();
+
+      // First set online.
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: kUserPresenceEvent,
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime.now(),
+        payload: const {
+          'userId': 'user-2',
+          'presence': 'online',
         },
       ));
       await Future<void>.delayed(Duration.zero);
@@ -66,56 +87,39 @@ void main() {
 
       // Then set offline.
       ingress.accept(RealtimeEventEnvelope(
-        eventType: kPresenceOfflineEvent,
+        eventType: kUserPresenceEvent,
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
+          'presence': 'offline',
         },
       ));
       await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(presenceStoreProvider);
-      expect(state.isOnline('user-2'), isFalse);
-    });
-
-    test('presence:list event sets initial online list', () async {
-      binding.bind();
-
-      ingress.accept(RealtimeEventEnvelope(
-        eventType: kPresenceListEvent,
-        scopeKey: RealtimeEventEnvelope.globalScopeKey,
-        receivedAt: DateTime.now(),
-        payload: const {
-          'userIds': ['user-1', 'user-2', 'user-3'],
-        },
-      ));
-
-      await Future<void>.delayed(Duration.zero);
-
-      final state = container.read(presenceStoreProvider);
-      expect(state.isOnline('user-1'), isTrue);
-      expect(state.isOnline('user-2'), isTrue);
-      expect(state.isOnline('user-3'), isTrue);
-      expect(state.isOnline('user-unknown'), isFalse);
+      expect(
+        container.read(presenceStoreProvider).statusOf('user-2'),
+        UserPresenceStatus.offline,
+      );
     });
 
     test('ignores presence events from current user', () async {
       binding.bind();
 
       ingress.accept(RealtimeEventEnvelope(
-        eventType: kPresenceOnlineEvent,
+        eventType: kUserPresenceEvent,
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'current-user',
+          'presence': 'online',
         },
       ));
 
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(presenceStoreProvider);
-      expect(state.isOnline('current-user'), isFalse);
+      expect(state.statuses, isEmpty);
     });
 
     test('ignores non-presence events', () async {
@@ -127,31 +131,65 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
+          'presence': 'online',
         },
       ));
 
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(presenceStoreProvider);
-      expect(state.onlineUserIds, isEmpty);
+      expect(state.statuses, isEmpty);
     });
 
     test('ignores event with missing userId', () async {
       binding.bind();
 
       ingress.accept(RealtimeEventEnvelope(
-        eventType: kPresenceOnlineEvent,
+        eventType: kUserPresenceEvent,
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
         payload: const {
-          'other': 'data',
+          'presence': 'online',
         },
       ));
 
       await Future<void>.delayed(Duration.zero);
 
       final state = container.read(presenceStoreProvider);
-      expect(state.onlineUserIds, isEmpty);
+      expect(state.statuses, isEmpty);
+    });
+
+    test('null presence label maps to offline', () async {
+      binding.bind();
+
+      // First set online.
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: kUserPresenceEvent,
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime.now(),
+        payload: const {
+          'userId': 'user-2',
+          'presence': 'online',
+        },
+      ));
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(presenceStoreProvider).isOnline('user-2'), isTrue);
+
+      // Send event with no presence field.
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: kUserPresenceEvent,
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime.now(),
+        payload: const {
+          'userId': 'user-2',
+        },
+      ));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        container.read(presenceStoreProvider).statusOf('user-2'),
+        UserPresenceStatus.offline,
+      );
     });
   });
 
@@ -160,11 +198,12 @@ void main() {
       binding.bind();
 
       ingress.accept(RealtimeEventEnvelope(
-        eventType: kPresenceOnlineEvent,
+        eventType: kUserPresenceEvent,
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
+          'presence': 'online',
         },
       ));
       await Future<void>.delayed(Duration.zero);
@@ -172,10 +211,7 @@ void main() {
 
       binding.dispose();
 
-      expect(
-        container.read(presenceStoreProvider).onlineUserIds,
-        isEmpty,
-      );
+      expect(container.read(presenceStoreProvider).statuses, isEmpty);
     });
   });
 }

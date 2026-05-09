@@ -4,30 +4,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Possible presence statuses for a user.
 enum UserPresenceStatus {
   online,
+  idle,
   offline,
 }
 
-/// Immutable state holding the set of currently-online user IDs.
+/// Immutable state holding user presence information.
 @immutable
 class PresenceState {
   const PresenceState({
-    this.onlineUserIds = const {},
+    this.statuses = const {},
   });
 
-  /// Set of user IDs currently online.
-  final Set<String> onlineUserIds;
+  /// Map from user ID to their current presence status.
+  final Map<String, UserPresenceStatus> statuses;
+
+  /// Convenience: set of user IDs that are online.
+  Set<String> get onlineUserIds => {
+        for (final entry in statuses.entries)
+          if (entry.value == UserPresenceStatus.online) entry.key,
+      };
 
   /// Returns `true` if the user with [userId] is currently online.
-  bool isOnline(String userId) => onlineUserIds.contains(userId);
+  bool isOnline(String userId) => statuses[userId] == UserPresenceStatus.online;
 
   /// Returns the [UserPresenceStatus] for the given [userId].
-  UserPresenceStatus statusOf(String userId) => onlineUserIds.contains(userId)
-      ? UserPresenceStatus.online
-      : UserPresenceStatus.offline;
+  UserPresenceStatus statusOf(String userId) =>
+      statuses[userId] ?? UserPresenceStatus.offline;
 
-  PresenceState copyWith({Set<String>? onlineUserIds}) {
+  PresenceState copyWith({Map<String, UserPresenceStatus>? statuses}) {
     return PresenceState(
-      onlineUserIds: onlineUserIds ?? this.onlineUserIds,
+      statuses: statuses ?? this.statuses,
     );
   }
 }
@@ -43,27 +49,66 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
 
   /// Mark a single user as online.
   void setOnline(String userId) {
-    if (state.onlineUserIds.contains(userId)) return;
-    state = state.copyWith(onlineUserIds: {...state.onlineUserIds, userId});
+    if (state.statuses[userId] == UserPresenceStatus.online) return;
+    state = state.copyWith(
+      statuses: {...state.statuses, userId: UserPresenceStatus.online},
+    );
+  }
+
+  /// Mark a single user as idle.
+  void setIdle(String userId) {
+    if (state.statuses[userId] == UserPresenceStatus.idle) return;
+    state = state.copyWith(
+      statuses: {...state.statuses, userId: UserPresenceStatus.idle},
+    );
   }
 
   /// Mark a single user as offline.
   void setOffline(String userId) {
-    if (!state.onlineUserIds.contains(userId)) return;
-    final updated = Set<String>.of(state.onlineUserIds)..remove(userId);
-    state = state.copyWith(onlineUserIds: updated);
+    final current = state.statuses[userId];
+    if (current == null || current == UserPresenceStatus.offline) return;
+    final updated = Map<String, UserPresenceStatus>.of(state.statuses)
+      ..remove(userId);
+    state = state.copyWith(statuses: updated);
   }
 
-  /// Replace the entire online set with the given list of user IDs.
+  /// Set presence status for a user from a string label.
   ///
-  /// Used when receiving a `presence:list` event that provides
-  /// the full set of currently-online users.
+  /// Maps `'online'` → [UserPresenceStatus.online],
+  /// `'idle'` → [UserPresenceStatus.idle],
+  /// anything else → [UserPresenceStatus.offline].
+  void setPresence(String userId, String? presenceLabel) {
+    final status = _parsePresenceLabel(presenceLabel);
+    if (status == UserPresenceStatus.offline) {
+      setOffline(userId);
+    } else {
+      state = state.copyWith(
+        statuses: {...state.statuses, userId: status},
+      );
+    }
+  }
+
+  /// Replace the entire status map with the given list of online user IDs.
+  ///
+  /// Used when receiving a bulk presence snapshot.
   void setOnlineList(List<String> userIds) {
-    state = state.copyWith(onlineUserIds: Set<String>.of(userIds));
+    state = state.copyWith(
+      statuses: {
+        for (final id in userIds) id: UserPresenceStatus.online,
+      },
+    );
   }
 
   /// Remove all presence data.
   void clearAll() {
     state = const PresenceState();
+  }
+
+  static UserPresenceStatus _parsePresenceLabel(String? label) {
+    return switch (label) {
+      'online' => UserPresenceStatus.online,
+      'idle' => UserPresenceStatus.idle,
+      _ => UserPresenceStatus.offline,
+    };
   }
 }
