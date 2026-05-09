@@ -77,7 +77,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           ),
         HomeListStatus.success => RefreshIndicator(
             key: const ValueKey('home-refresh-indicator'),
-            onRefresh: homeStore.load,
+            onRefresh: homeStore.refresh,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.pageHorizontal,

@@ -15,6 +15,7 @@ class InboxState {
     this.hasMore = false,
     this.filter = InboxFilter.all,
     this.offset = 0,
+    this.isRefreshing = false,
     this.failure,
   });
 
@@ -25,6 +26,10 @@ class InboxState {
   final bool hasMore;
   final InboxFilter filter;
   final int offset;
+
+  /// Whether a background refresh is in progress while existing data
+  /// remains visible (stale-while-revalidate).
+  final bool isRefreshing;
   final AppFailure? failure;
 
   /// Total number of items with unreadCount > 0 in the current list.
@@ -39,6 +44,7 @@ class InboxState {
     bool? hasMore,
     InboxFilter? filter,
     int? offset,
+    bool? isRefreshing,
     AppFailure? failure,
     bool clearFailure = false,
   }) {
@@ -50,6 +56,7 @@ class InboxState {
       hasMore: hasMore ?? this.hasMore,
       filter: filter ?? this.filter,
       offset: offset ?? this.offset,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
       failure: clearFailure ? null : (failure ?? this.failure),
     );
   }
@@ -66,6 +73,7 @@ class InboxState {
             hasMore == other.hasMore &&
             filter == other.filter &&
             offset == other.offset &&
+            isRefreshing == other.isRefreshing &&
             failure == other.failure;
   }
 
@@ -78,6 +86,7 @@ class InboxState {
         hasMore,
         filter,
         offset,
+        isRefreshing,
         failure,
       );
 }

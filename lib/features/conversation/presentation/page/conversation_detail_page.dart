@@ -312,13 +312,24 @@ class _ConversationDetailScreenState
                 ),
               ConversationDetailStatus.success when state.isEmpty =>
                 _ConversationEmptyView(title: state.resolvedTitle),
-              ConversationDetailStatus.success => RepaintBoundary(
-                  key: _screenshotBoundaryKey,
-                  child: _ConversationMessageList(
-                    controller: _scrollController,
-                    state: state,
-                    onScrollToMessage: _scrollToMessageId,
-                  ),
+              ConversationDetailStatus.success => Column(
+                  children: [
+                    if (state.isRefreshing)
+                      const LinearProgressIndicator(
+                        key: ValueKey('conversation-refreshing'),
+                        minHeight: 2,
+                      ),
+                    Expanded(
+                      child: RepaintBoundary(
+                        key: _screenshotBoundaryKey,
+                        child: _ConversationMessageList(
+                          controller: _scrollController,
+                          state: state,
+                          onScrollToMessage: _scrollToMessageId,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
             },
           ),

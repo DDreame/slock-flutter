@@ -658,6 +658,129 @@ void main() {
       expect(state.visibleUnreadCount, 2);
     });
   });
+
+  group('InboxStore SWR (stale-while-revalidate)', () {
+    test('refresh preserves existing items while loading', () async {
+      final repo = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-1',
+              channelName: 'general',
+              unreadCount: 5,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 5,
+          hasMore: false,
+        ),
+      );
+      final container = createContainer(repository: repo);
+      addTearDown(container.dispose);
+
+      // Initial load
+      final store = container.read(inboxStoreProvider.notifier);
+      await store.load();
+      expect(container.read(inboxStoreProvider).items, hasLength(1));
+
+      // Update repo response for refresh
+      repo.fetchResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            channelName: 'general',
+            unreadCount: 3,
+          ),
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-1',
+            channelName: 'Bob',
+            unreadCount: 1,
+          ),
+        ],
+        totalCount: 2,
+        totalUnreadCount: 4,
+        hasMore: false,
+      );
+
+      // Refresh — items should be preserved during load
+      await store.refresh();
+
+      final state = container.read(inboxStoreProvider);
+      expect(state.status, InboxStatus.success);
+      expect(state.isRefreshing, isFalse);
+      expect(state.items, hasLength(2));
+      expect(state.totalUnreadCount, 4);
+    });
+
+    test('refresh keeps existing items on failure', () async {
+      final repo = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-1',
+              channelName: 'general',
+              unreadCount: 5,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 5,
+          hasMore: false,
+        ),
+      );
+      final container = createContainer(repository: repo);
+      addTearDown(container.dispose);
+
+      final store = container.read(inboxStoreProvider.notifier);
+      await store.load();
+
+      // Make next fetch fail
+      repo.fetchResponse = const InboxResponse(
+        items: [],
+        totalCount: 0,
+        totalUnreadCount: 0,
+        hasMore: false,
+      );
+      repo.failNext = true;
+
+      await store.refresh();
+
+      final state = container.read(inboxStoreProvider);
+      // Items preserved from initial load
+      expect(state.items, hasLength(1));
+      expect(state.isRefreshing, isFalse);
+      expect(state.failure, isNotNull);
+    });
+
+    test('initial load with no prior data uses loading status', () async {
+      final repo = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-1',
+              channelName: 'general',
+              unreadCount: 1,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 1,
+          hasMore: false,
+        ),
+      );
+      final container = createContainer(repository: repo);
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+
+      final state = container.read(inboxStoreProvider);
+      expect(state.status, InboxStatus.success);
+      expect(state.isRefreshing, isFalse);
+    });
+  });
 }
 
 class FakeInboxRepository implements InboxRepository {
@@ -675,6 +798,7 @@ class FakeInboxRepository implements InboxRepository {
 
   InboxResponse fetchResponse;
   final AppFailure? _fetchFailure;
+  bool failNext = false;
 
   int fetchCallCount = 0;
   InboxFilter? lastFetchFilter;
@@ -697,6 +821,10 @@ class FakeInboxRepository implements InboxRepository {
     lastFetchOffset = offset;
     lastFetchLimit = limit;
     if (_fetchFailure != null) throw _fetchFailure;
+    if (failNext) {
+      failNext = false;
+      throw const UnknownFailure(message: 'network error');
+    }
     return fetchResponse;
   }
 

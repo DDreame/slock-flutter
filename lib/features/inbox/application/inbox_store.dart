@@ -14,6 +14,8 @@ final inboxStoreProvider = NotifierProvider<InboxStore, InboxState>(
 );
 
 class InboxStore extends Notifier<InboxState> {
+  final RequestCoordinator _coordinator = RequestCoordinator();
+
   @override
   InboxState build() => const InboxState();
 
@@ -22,8 +24,14 @@ class InboxStore extends Notifier<InboxState> {
   /// Resets pagination. If [filter] differs from current, clears items.
   Future<void> load({InboxFilter? filter}) async {
     final activeFilter = filter ?? state.filter;
+    // If we already have items and the filter hasn't changed,
+    // preserve them during refresh (SWR pattern).
+    final hasExistingData =
+        state.items.isNotEmpty && activeFilter == state.filter;
+
     state = state.copyWith(
-      status: InboxStatus.loading,
+      status: hasExistingData ? null : InboxStatus.loading,
+      isRefreshing: hasExistingData,
       filter: activeFilter,
       offset: 0,
       clearFailure: true,
@@ -37,6 +45,7 @@ class InboxStore extends Notifier<InboxState> {
         totalCount: 0,
         totalUnreadCount: 0,
         hasMore: false,
+        isRefreshing: false,
       );
       return;
     }
@@ -55,13 +64,23 @@ class InboxStore extends Notifier<InboxState> {
         totalUnreadCount: response.totalUnreadCount,
         hasMore: response.hasMore,
         offset: response.items.length,
+        isRefreshing: false,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        status: InboxStatus.failure,
-        failure: failure,
-      );
+      if (hasExistingData) {
+        // Keep existing data visible on refresh failure (SWR).
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: failure,
+        );
+      } else {
+        state = state.copyWith(
+          status: InboxStatus.failure,
+          isRefreshing: false,
+          failure: failure,
+        );
+      }
     }
   }
 
@@ -94,8 +113,10 @@ class InboxStore extends Notifier<InboxState> {
 
   /// Refresh inbox (re-fetch first page with current filter).
   ///
-  /// Used after realtime events trigger a refresh.
-  Future<void> refresh() => load(filter: state.filter);
+  /// Uses [RequestCoordinator] to deduplicate concurrent refreshes.
+  /// Preserves existing items via SWR pattern.
+  Future<void> refresh() =>
+      _coordinator.coordinate('refresh', () => load(filter: state.filter));
 
   /// Switch filter mode and reload.
   Future<void> setFilter(InboxFilter filter) => load(filter: filter);

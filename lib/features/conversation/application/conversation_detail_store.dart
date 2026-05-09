@@ -45,6 +45,7 @@ class ConversationDetailStore
   final Map<int, CancelToken> _uploadCancelTokens = {};
   final Map<String, Timer> _sendTimeoutTimers = {};
   final Map<String, CancelToken> _sendCancelTokens = {};
+  final RequestCoordinator _coordinator = RequestCoordinator();
 
   /// Maximum duration a message can stay in [MessageSendStatus.sending]
   /// before being auto-transitioned to queued via the outbox.
@@ -93,6 +94,7 @@ class ConversationDetailStore
 
     ref.onDispose(() {
       unawaited(subscription.cancel());
+      _coordinator.dispose();
       for (final timer in _sentRemovalTimers) {
         timer.cancel();
       }
@@ -180,6 +182,7 @@ class ConversationDetailStore
       historyLimited: false,
       hasOlder: false,
       hasNewer: false,
+      isRefreshing: false,
       clearFailure: true,
       clearSendFailure: true,
     );
@@ -199,6 +202,7 @@ class ConversationDetailStore
         messages: snapshot.messages,
         historyLimited: snapshot.historyLimited,
         hasOlder: snapshot.hasOlder,
+        isRefreshing: false,
         clearFailure: true,
         clearSendFailure: true,
       );
@@ -216,12 +220,66 @@ class ConversationDetailStore
         historyLimited: false,
         hasOlder: false,
         failure: failure,
+        isRefreshing: false,
         clearSendFailure: true,
       );
     }
   }
 
+  /// Stale-while-revalidate refresh: keeps existing messages visible
+  /// while fetching fresh data in the background.
+  ///
+  /// If no prior data exists, falls back to [load].
+  Future<void> refresh() async {
+    // No existing data — use full load.
+    if (state.status != ConversationDetailStatus.success ||
+        state.messages.isEmpty) {
+      return load();
+    }
+
+    return _coordinator.coordinate('refresh', () async {
+      final target = ref.read(currentConversationDetailTargetProvider);
+      final requestEpoch = ++_requestEpoch;
+
+      state = state.copyWith(isRefreshing: true, clearFailure: true);
+
+      try {
+        final snapshot = await ref
+            .read(conversationRepositoryProvider)
+            .loadConversation(target);
+        if (!_isCurrentRequest(requestEpoch, target)) {
+          return;
+        }
+        state = state.copyWith(
+          target: snapshot.target,
+          status: ConversationDetailStatus.success,
+          title: snapshot.title,
+          memberCount: snapshot.memberCount,
+          messages: snapshot.messages,
+          historyLimited: snapshot.historyLimited,
+          hasOlder: snapshot.hasOlder,
+          isRefreshing: false,
+          clearFailure: true,
+        );
+        _persistSession();
+        unawaited(refreshSavedMessageIds());
+      } on AppFailure catch (failure) {
+        if (!_isCurrentRequest(requestEpoch, target)) {
+          return;
+        }
+        // Keep existing messages visible on refresh failure.
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: failure,
+        );
+      }
+    });
+  }
+
   Future<void> retry() => load();
+
+  /// Called by pull-to-refresh; preserves visible messages.
+  Future<void> pullToRefresh() => refresh();
 
   Future<void> loadOlder() async {
     final target = ref.read(currentConversationDetailTargetProvider);
