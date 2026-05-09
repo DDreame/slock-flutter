@@ -112,7 +112,7 @@ void main() {
     });
 
     test('projects channel item with null preview as [No preview]', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.channel,
         channelId: 'ch-2',
         channelName: 'random',
@@ -125,7 +125,7 @@ void main() {
     });
 
     test('projects DM item', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.dm,
         channelId: 'dm-1',
         channelName: 'Bob',
@@ -146,7 +146,7 @@ void main() {
     });
 
     test('projects thread item with navigation data', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.thread,
         channelId: 'thread-ch-1',
         threadChannelId: 'thread-ch-1',
@@ -175,7 +175,7 @@ void main() {
     });
 
     test('thread without parentMessageId has no route target', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.thread,
         channelId: 'thread-ch-2',
         threadChannelId: 'thread-ch-2',
@@ -191,7 +191,7 @@ void main() {
     });
 
     test('unknown kind projects as channel', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.unknown,
         channelId: 'unknown-1',
         channelName: 'mystery',
@@ -206,7 +206,7 @@ void main() {
     });
 
     test('sourceLabel is #channelName for channels', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.channel,
         channelId: 'ch-1',
         channelName: 'general',
@@ -219,7 +219,7 @@ void main() {
     });
 
     test('sourceLabel is channelName for DMs', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.dm,
         channelId: 'dm-1',
         channelName: 'Alice',
@@ -232,7 +232,7 @@ void main() {
     });
 
     test('sourceLabel is #channelName for threads', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.thread,
         channelId: 'thread-1',
         channelName: 'general',
@@ -245,7 +245,7 @@ void main() {
     });
 
     test('title falls back to channelId when names are null', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.channel,
         channelId: 'ch-no-name',
         preview: 'Hi',
@@ -257,7 +257,7 @@ void main() {
     });
 
     test('thread title prefers threadTitle over channelName', () {
-      final item = InboxItem(
+      const item = InboxItem(
         kind: InboxItemKind.thread,
         channelId: 'thread-1',
         channelName: 'general',
@@ -275,7 +275,7 @@ void main() {
     const serverId = ServerScopeId('server-1');
 
     test('projects list of items preserving order', () {
-      final items = [
+      const items = [
         InboxItem(
           kind: InboxItemKind.channel,
           channelId: 'ch-1',
@@ -305,7 +305,7 @@ void main() {
     });
 
     test('all projected items have non-null previewText', () {
-      final items = [
+      const items = [
         InboxItem(
           kind: InboxItemKind.channel,
           channelId: 'ch-1',
