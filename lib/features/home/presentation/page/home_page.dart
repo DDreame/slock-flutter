@@ -1044,7 +1044,8 @@ class _UnreadItemRow extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: Container(
-                key: ValueKey('unread-kind-${item.kind.name}'),
+                key: ValueKey(
+                    'unread-kind-${item.kind == ConversationProjectionKind.dm ? 'directMessage' : item.kind.name}'),
                 width: 22,
                 height: 22,
                 alignment: Alignment.center,

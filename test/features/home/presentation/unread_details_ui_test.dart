@@ -498,7 +498,7 @@ void main() {
         reason: 'Channel glyph badge should be present',
       );
       expect(
-        find.byKey(const ValueKey('unread-kind-dm')),
+        find.byKey(const ValueKey('unread-kind-directMessage')),
         findsOneWidget,
         reason: 'DM glyph badge should be present',
       );
@@ -606,7 +606,8 @@ void main() {
       );
 
       // Kind badge
-      final badgeFinder = find.byKey(const ValueKey('unread-kind-dm'));
+      final badgeFinder =
+          find.byKey(const ValueKey('unread-kind-directMessage'));
       final badgeContainer = tester.widget<Container>(badgeFinder);
       final badgeDecoration = badgeContainer.decoration! as BoxDecoration;
       expect(

@@ -1997,7 +1997,7 @@ void main() {
           find.descendant(
             of: row,
             matching: find.byKey(
-              const ValueKey('unread-kind-dm'),
+              const ValueKey('unread-kind-directMessage'),
             ),
           ),
           findsOneWidget,
