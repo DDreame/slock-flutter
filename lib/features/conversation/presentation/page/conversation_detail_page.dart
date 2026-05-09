@@ -790,6 +790,7 @@ class _PendingMessageCard extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final isFailed = pending.status == MessageSendStatus.failed;
     final isSending = pending.status == MessageSendStatus.sending;
+    final isQueued = pending.status == MessageSendStatus.queued;
     final isSent = pending.status == MessageSendStatus.sent;
 
     final bodyStyle = AppTypography.body.copyWith(
@@ -838,6 +839,35 @@ class _PendingMessageCard extends ConsumerWidget {
               'Sending...',
               style: AppTypography.caption.copyWith(
                 color: colors.textSecondary,
+              ),
+            ),
+          ],
+          if (isQueued) ...[
+            Icon(
+              Icons.schedule,
+              key: const ValueKey('pending-queued-icon'),
+              size: 14,
+              color: colors.warning,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Queued — waiting for connection',
+              key: const ValueKey('pending-queued-label'),
+              style: AppTypography.caption.copyWith(
+                color: colors.warning,
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              key: const ValueKey('pending-queued-dismiss-button'),
+              onTap: () => ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .dismissPendingMessage(pending.localId),
+              child: Text(
+                'Dismiss',
+                style: AppTypography.caption.copyWith(
+                  color: colors.textTertiary,
+                ),
               ),
             ),
           ],

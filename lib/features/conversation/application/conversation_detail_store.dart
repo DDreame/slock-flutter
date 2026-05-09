@@ -43,6 +43,11 @@ class ConversationDetailStore
   int _localIdCounter = 0;
   final Set<Timer> _sentRemovalTimers = {};
   final Map<int, CancelToken> _uploadCancelTokens = {};
+  final Map<String, Timer> _sendTimeoutTimers = {};
+
+  /// Maximum duration a message can stay in [MessageSendStatus.sending]
+  /// before being auto-transitioned to queued via the outbox.
+  static const sendTimeoutDuration = Duration(seconds: 30);
 
   @override
   ConversationDetailState build() {
@@ -91,6 +96,10 @@ class ConversationDetailStore
         timer.cancel();
       }
       _sentRemovalTimers.clear();
+      for (final timer in _sendTimeoutTimers.values) {
+        timer.cancel();
+      }
+      _sendTimeoutTimers.clear();
       // Unregister outbox drain callback using captured reference.
       outbox.unregisterDrainCallback(targetKey);
     });
@@ -326,9 +335,10 @@ class ConversationDetailStore
         content: content,
         createdAt: DateTime.now(),
         replyToId: replyToId,
+        status: MessageSendStatus.queued,
       );
 
-      // Optimistic insert with sending status
+      // Optimistic insert with queued status — user sees it's waiting.
       state = state.copyWith(
         pendingMessages: [...state.pendingMessages, pending],
         draft: '',
@@ -366,6 +376,12 @@ class ConversationDetailStore
       draft: '',
       clearSendFailure: true,
     );
+
+    // Start send timeout. If the send takes longer than sendTimeoutDuration,
+    // auto-transition to queued and enqueue in the outbox.
+    if (pendingFiles == null || pendingFiles.isEmpty) {
+      _startSendTimeout(localId, target, content, replyToId: replyToId);
+    }
 
     try {
       final repo = ref.read(conversationRepositoryProvider);
@@ -469,7 +485,8 @@ class ConversationDetailStore
         return;
       }
 
-      // Success: transition to sent, clear reply preview.
+      // Success: cancel timeout, transition to sent, clear reply preview.
+      _cancelSendTimeout(localId);
       state = state.copyWith(
         pendingMessages: state.pendingMessages.map((m) {
           if (m.localId == localId) {
@@ -489,6 +506,7 @@ class ConversationDetailStore
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
+      _cancelSendTimeout(localId);
 
       if (failure.isRetryable &&
           (pendingFiles == null || pendingFiles.isEmpty)) {
@@ -500,6 +518,15 @@ class ConversationDetailStore
               replyToId: replyToId,
               localId: localId,
             );
+        // Transition visible UI to queued so the user sees the real state.
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(status: MessageSendStatus.queued);
+            }
+            return m;
+          }).toList(),
+        );
         _persistSession();
       } else {
         // Non-retryable or has attachments: mark as failed for manual retry.
@@ -571,26 +598,50 @@ class ConversationDetailStore
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
-      state = state.copyWith(
-        pendingMessages: state.pendingMessages.map((m) {
-          if (m.localId == localId) {
-            return m.copyWith(
-              status: MessageSendStatus.failed,
-              failure: failure,
+      if (failure.isRetryable &&
+          (pending.attachmentIds == null || pending.attachmentIds!.isEmpty)) {
+        // Retryable failure: hand off to outbox for automatic retry.
+        ref.read(outboxStoreProvider.notifier).enqueue(
+              target,
+              pending.content,
+              replyToId: pending.replyToId,
+              localId: localId,
             );
-          }
-          return m;
-        }).toList(),
-      );
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(status: MessageSendStatus.queued);
+            }
+            return m;
+          }).toList(),
+        );
+        _persistSession();
+      } else {
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(
+                status: MessageSendStatus.failed,
+                failure: failure,
+              );
+            }
+            return m;
+          }).toList(),
+        );
+        _persistSession();
+      }
     }
   }
 
-  /// Remove a failed pending message without retrying.
+  /// Remove a failed or queued pending message without retrying.
   void dismissPendingMessage(String localId) {
+    final target = ref.read(currentConversationDetailTargetProvider);
     state = state.copyWith(
       pendingMessages:
           state.pendingMessages.where((m) => m.localId != localId).toList(),
     );
+    // Also remove from the outbox to prevent phantom sends.
+    ref.read(outboxStoreProvider.notifier).removeItem(target, localId);
     _persistSession();
   }
 
@@ -1100,6 +1151,46 @@ class ConversationDetailStore
       _persistSession();
     });
     _sentRemovalTimers.add(timer);
+  }
+
+  /// Start a timeout timer for a sending message. If the send takes longer
+  /// than [sendTimeoutDuration], auto-transition to queued via the outbox.
+  void _startSendTimeout(
+    String localId,
+    ConversationDetailTarget target,
+    String content, {
+    String? replyToId,
+  }) {
+    _sendTimeoutTimers[localId] = Timer(sendTimeoutDuration, () {
+      _sendTimeoutTimers.remove(localId);
+      // Only act if the pending message is still in sending state.
+      final pending =
+          state.pendingMessages.where((m) => m.localId == localId).firstOrNull;
+      if (pending == null || pending.status != MessageSendStatus.sending) {
+        return;
+      }
+      // Enqueue in outbox and transition to queued.
+      ref.read(outboxStoreProvider.notifier).enqueue(
+            target,
+            content,
+            replyToId: replyToId,
+            localId: localId,
+          );
+      state = state.copyWith(
+        pendingMessages: state.pendingMessages.map((m) {
+          if (m.localId == localId) {
+            return m.copyWith(status: MessageSendStatus.queued);
+          }
+          return m;
+        }).toList(),
+      );
+      _persistSession();
+    });
+  }
+
+  /// Cancel a send timeout timer (called on success or explicit failure).
+  void _cancelSendTimeout(String localId) {
+    _sendTimeoutTimers.remove(localId)?.cancel();
   }
 
   /// Callback invoked by the [OutboxStore] when a queued message is

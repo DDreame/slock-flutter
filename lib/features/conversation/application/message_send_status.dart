@@ -6,6 +6,9 @@ enum MessageSendStatus {
   /// Message is being sent to the server.
   sending,
 
+  /// Message has been queued in the outbox for automatic retry.
+  queued,
+
   /// Message was successfully delivered.
   sent,
 
@@ -16,10 +19,11 @@ enum MessageSendStatus {
 /// A message that has been optimistically inserted into the conversation
 /// list before receiving server confirmation.
 ///
-/// Tracks the local lifecycle: sending → sent | failed.
+/// Tracks the local lifecycle: sending → sent | queued → sent | failed.
 /// On success, replaced by the canonical [ConversationMessageSummary]
 /// from the server response. On failure, retained with [status] == failed
-/// so the user can tap to retry.
+/// so the user can tap to retry. On queued, the outbox will retry
+/// automatically when connectivity is restored.
 @immutable
 class PendingMessage {
   const PendingMessage({
