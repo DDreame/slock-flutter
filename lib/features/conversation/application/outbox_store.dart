@@ -161,6 +161,13 @@ class OutboxStore extends Notifier<OutboxState> {
     final state = _loadFromPrefs();
     _listenConnectivity();
     ref.onDispose(() => _connectivitySub?.cancel());
+    // Drain any persisted outbox items on startup when already online.
+    if (state.items.isNotEmpty) {
+      final connectivity = ref.read(connectivityServiceProvider);
+      if (connectivity.isOnline) {
+        Future.microtask(() => drainAll());
+      }
+    }
     return state;
   }
 

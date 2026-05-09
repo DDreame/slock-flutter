@@ -285,6 +285,7 @@ class _ApiConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   }) async {
     try {
       final data = <String, dynamic>{
@@ -301,6 +302,7 @@ class _ApiConversationRepository implements ConversationRepository {
         _sendMessagePath,
         data: data,
         options: _serverScopedOptions(target.serverId),
+        cancelToken: cancelToken,
       );
       final message = _parseSingleMessage(
         response.data,

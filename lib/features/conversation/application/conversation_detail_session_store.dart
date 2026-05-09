@@ -27,7 +27,7 @@ class ConversationDetailSessionEntry {
   final bool hasOlder;
   final double scrollOffset;
 
-  /// Failed pending messages preserved across session restore.
+  /// Failed and queued pending messages preserved across session restore.
   final List<PendingMessage> failedPendingMessages;
 
   ConversationDetailState toState(ConversationDetailTarget target) {
@@ -72,7 +72,13 @@ class ConversationDetailSessionEntry {
       hasOlder: state.hasOlder,
       scrollOffset: scrollOffset,
       failedPendingMessages: state.pendingMessages
-          .where((m) => m.status == MessageSendStatus.failed)
+          .where((m) =>
+              m.status == MessageSendStatus.failed ||
+              m.status == MessageSendStatus.queued ||
+              m.status == MessageSendStatus.sending)
+          .map((m) => m.status == MessageSendStatus.sending
+              ? m.copyWith(status: MessageSendStatus.queued)
+              : m)
           .toList(growable: false),
     );
   }

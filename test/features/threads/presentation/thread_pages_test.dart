@@ -623,6 +623,7 @@ class _FakeConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   }) async {
     return ConversationMessageSummary(
       id: 'reply-2',

@@ -324,6 +324,7 @@ class _FakeConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   }) async {
     lastSentAttachmentIds = attachmentIds;
     if (shouldFail) {

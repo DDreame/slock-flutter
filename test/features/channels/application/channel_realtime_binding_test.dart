@@ -177,6 +177,7 @@ class _FakeConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   }) async =>
       throw UnimplementedError();
 
