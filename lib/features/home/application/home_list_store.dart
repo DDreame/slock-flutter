@@ -55,6 +55,11 @@ class HomeListStore extends Notifier<HomeListState> {
   SidebarOrder _sidebarOrder = const SidebarOrder();
   final RequestCoordinator _coordinator = RequestCoordinator();
 
+  /// Guard flag: set to `true` when the notifier's provider container
+  /// is disposed. Prevents unawaited supplemental callbacks from
+  /// reading `ref` or mutating `state` after disposal.
+  bool _disposed = false;
+
   /// Tracks conversation IDs whose preview was set by a realtime
   /// `message:new` event.  The fallback loader checks this set
   /// instead of [lastMessageId] so cached-retained previews can
@@ -74,6 +79,12 @@ class HomeListStore extends Notifier<HomeListState> {
     _threadItems = const [];
     _sidebarOrder = const SidebarOrder();
     _realtimePreviewIds.clear();
+    _disposed = false;
+
+    ref.onDispose(() {
+      _disposed = true;
+      _coordinator.dispose();
+    });
 
     final serverScopeId = ref.watch(activeServerScopeIdProvider);
     if (serverScopeId == null) {
@@ -274,6 +285,7 @@ class HomeListStore extends Notifier<HomeListState> {
   Future<void> _loadAndMergeSupplemental(ServerScopeId serverScopeId) async {
     await Future.wait([
       _loadAgentsSafe().then((agents) {
+        if (_disposed) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _allAgents = List.of(agents);
         if (agents.isNotEmpty) {
@@ -285,17 +297,20 @@ class HomeListStore extends Notifier<HomeListState> {
         _emitPersonalizedState();
       }),
       _loadTaskCountSafe(serverScopeId).then((taskItems) {
+        if (_disposed) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _taskCount = taskItems.length;
         _taskItems = List.of(taskItems);
         _emitPersonalizedState();
       }),
       _loadMachineCountSafe(serverScopeId).then((count) {
+        if (_disposed) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _machineCount = count;
         _emitPersonalizedState();
       }),
       _loadThreadItemsSafe(serverScopeId).then((threadItems) {
+        if (_disposed) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _threadCount = threadItems.length;
         _threadItems = List.of(threadItems);
