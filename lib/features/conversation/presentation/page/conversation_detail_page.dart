@@ -41,6 +41,7 @@ import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
 import 'package:slock_app/features/conversation/data/typing_realtime_binding.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/presence/application/presence_store.dart';
@@ -116,6 +117,7 @@ class _ConversationDetailScreenState
   double? _olderLoadAnchorOffset;
   double? _olderLoadAnchorMaxExtent;
   final GlobalKey _screenshotBoundaryKey = GlobalKey();
+  bool _isFormattingToolbarVisible = false;
 
   // Voice recording.
   VoiceRecorderService? _voiceRecorder;
@@ -328,6 +330,12 @@ class _ConversationDetailScreenState
               focusNode: _composerFocusNode,
               state: state,
               isRecording: isRecording,
+              isFormattingToolbarVisible: _isFormattingToolbarVisible,
+              onToggleFormattingToolbar: () {
+                setState(() {
+                  _isFormattingToolbarVisible = !_isFormattingToolbarVisible;
+                });
+              },
               onChanged: (value) {
                 ref
                     .read(conversationDetailStoreProvider.notifier)
@@ -924,6 +932,8 @@ class _ConversationComposer extends StatelessWidget {
     required this.focusNode,
     required this.state,
     required this.isRecording,
+    required this.isFormattingToolbarVisible,
+    required this.onToggleFormattingToolbar,
     required this.onChanged,
     required this.onSend,
     required this.onPickAttachment,
@@ -939,6 +949,8 @@ class _ConversationComposer extends StatelessWidget {
   final FocusNode focusNode;
   final ConversationDetailState state;
   final bool isRecording;
+  final bool isFormattingToolbarVisible;
+  final VoidCallback onToggleFormattingToolbar;
   final ValueChanged<String> onChanged;
   final Future<void> Function() onSend;
   final ValueChanged<PendingAttachment> onPickAttachment;
@@ -1011,7 +1023,13 @@ class _ConversationComposer extends StatelessWidget {
                 onSend: onSendRecording,
                 onCancel: onCancelRecording,
               )
-            else
+            else ...[
+              FormattingToolbar(
+                controller: controller,
+                visible: isFormattingToolbarVisible,
+                focusNode: focusNode,
+                onChanged: onChanged,
+              ),
               Row(
                 children: [
                   Container(
@@ -1028,6 +1046,28 @@ class _ConversationComposer extends StatelessWidget {
                       onPressed: state.isSending
                           ? null
                           : () => _showAttachOptions(context),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Container(
+                    key: const ValueKey('composer-format-toggle'),
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isFormattingToolbarVisible
+                          ? colors.primaryLight
+                          : colors.surfaceAlt,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.text_format,
+                        size: 20,
+                        color:
+                            isFormattingToolbarVisible ? colors.primary : null,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: onToggleFormattingToolbar,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
@@ -1105,6 +1145,7 @@ class _ConversationComposer extends StatelessWidget {
                     ),
                 ],
               ),
+            ],
           ],
         ),
       ),
