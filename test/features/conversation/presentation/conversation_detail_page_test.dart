@@ -2017,6 +2017,7 @@ class _FakeConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   }) async {
     sentContents.add(content);
     if (sendFailure != null) {
@@ -2181,6 +2182,7 @@ class _QueueConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   }) {
     throw UnimplementedError();
   }
