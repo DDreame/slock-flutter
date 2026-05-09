@@ -107,7 +107,11 @@ void main() {
   group('DM presence subtitle — status display', () {
     testWidgets('presence store maps status to display text', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setOnline('user-1');
       final status = container.read(presenceStoreProvider).statusOf('user-1');
@@ -123,7 +127,11 @@ void main() {
 
     testWidgets('idle status maps to "Idle" text', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setIdle('user-1');
       final status = container.read(presenceStoreProvider).statusOf('user-1');
@@ -139,7 +147,11 @@ void main() {
 
     testWidgets('offline status maps to "Offline" text', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       final status = container.read(presenceStoreProvider).statusOf('user-1');
       expect(status, UserPresenceStatus.offline);
@@ -154,7 +166,11 @@ void main() {
 
     testWidgets('dot color matches status', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setOnline('user-1');
 

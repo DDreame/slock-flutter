@@ -10,7 +10,11 @@ void main() {
   group('PresenceAvatar', () {
     testWidgets('shows green dot when user is online', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setOnline('user-1');
 
@@ -44,7 +48,11 @@ void main() {
 
     testWidgets('shows yellow dot when user is idle', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setIdle('user-1');
 
@@ -78,7 +86,11 @@ void main() {
 
     testWidgets('shows gray dot when user is offline', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -110,7 +122,11 @@ void main() {
 
     testWidgets('renders child widget', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -139,7 +155,11 @@ void main() {
     testWidgets('dot updates reactively when user comes online',
         (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -177,7 +197,11 @@ void main() {
 
     testWidgets('hides dot when showDot is false', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         UncontrolledProviderScope(

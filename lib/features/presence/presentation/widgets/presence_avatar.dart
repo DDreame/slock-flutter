@@ -47,7 +47,7 @@ class PresenceAvatar extends ConsumerWidget {
     final status = ref.watch(
       presenceStoreProvider.select((s) => s.statusOf(userId)),
     );
-    final colors = Theme.of(context).extension<AppColors>()!;
+    final colors = Theme.of(context).extension<AppColors>() ?? AppColors.light;
 
     final dotColor = switch (status) {
       UserPresenceStatus.online => colors.success,

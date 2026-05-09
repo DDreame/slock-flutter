@@ -14,7 +14,11 @@ void main() {
   group('Agent detail — PresenceAvatar inside StatusGlowRing', () {
     testWidgets('renders presence dot within glow ring', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setOnline('agent-1');
 
@@ -65,7 +69,11 @@ void main() {
 
     testWidgets('shows idle dot within glow ring', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setIdle('agent-2');
 
@@ -103,7 +111,11 @@ void main() {
 
     testWidgets('shows offline dot when agent has no presence', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         UncontrolledProviderScope(
@@ -139,7 +151,11 @@ void main() {
 
     testWidgets('dot updates when presence changes', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         UncontrolledProviderScope(

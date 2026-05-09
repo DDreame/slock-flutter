@@ -48,7 +48,11 @@ void main() {
   group('HomeDirectMessageRow — presence integration', () {
     testWidgets('uses PresenceAvatar when peerId is set', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setOnline('user-123');
 
@@ -76,7 +80,11 @@ void main() {
 
     testWidgets('shows yellow dot when peer is idle', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       container.read(presenceStoreProvider.notifier).setIdle('user-123');
 
@@ -97,7 +105,11 @@ void main() {
 
     testWidgets('shows gray dot when peer is offline', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         buildRow(
@@ -117,7 +129,11 @@ void main() {
     testWidgets('falls back to inline status dot when peerId is null',
         (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         buildRow(
@@ -143,7 +159,11 @@ void main() {
 
     testWidgets('presence dot updates reactively', (tester) async {
       final container = ProviderContainer();
-      addTearDown(container.dispose);
+      final sub = container.listen(presenceStoreProvider, (_, __) {});
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
 
       await tester.pumpWidget(
         buildRow(
