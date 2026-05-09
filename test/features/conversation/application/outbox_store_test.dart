@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -425,6 +426,7 @@ class _FakeConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   }) async {
     sentContents.add(content);
     if (sendFailure != null) throw sendFailure!;

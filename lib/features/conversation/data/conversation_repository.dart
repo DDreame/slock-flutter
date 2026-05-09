@@ -81,6 +81,7 @@ abstract class ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   });
 
   Future<ConversationMessageSummary> persistMessage(

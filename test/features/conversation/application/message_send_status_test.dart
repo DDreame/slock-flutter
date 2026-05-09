@@ -1303,6 +1303,7 @@ class _ControllableConversationRepository implements ConversationRepository {
     String content, {
     List<String>? attachmentIds,
     String? replyToId,
+    CancelToken? cancelToken,
   }) {
     sentContents.add(content);
     lastSendAttachmentIds = attachmentIds;

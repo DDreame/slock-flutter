@@ -44,6 +44,7 @@ class ConversationDetailStore
   final Set<Timer> _sentRemovalTimers = {};
   final Map<int, CancelToken> _uploadCancelTokens = {};
   final Map<String, Timer> _sendTimeoutTimers = {};
+  final Map<String, CancelToken> _sendCancelTokens = {};
 
   /// Maximum duration a message can stay in [MessageSendStatus.sending]
   /// before being auto-transitioned to queued via the outbox.
@@ -100,6 +101,10 @@ class ConversationDetailStore
         timer.cancel();
       }
       _sendTimeoutTimers.clear();
+      for (final token in _sendCancelTokens.values) {
+        if (!token.isCancelled) token.cancel('Disposed');
+      }
+      _sendCancelTokens.clear();
       // Unregister outbox drain callback using captured reference.
       outbox.unregisterDrainCallback(targetKey);
     });
@@ -424,6 +429,9 @@ class ConversationDetailStore
 
     // Start send timeout. If the send takes longer than sendTimeoutDuration,
     // auto-transition to queued and enqueue in the outbox.
+    // Create a CancelToken so the timeout can cancel the in-flight request.
+    final sendCancelToken = CancelToken();
+    _sendCancelTokens[localId] = sendCancelToken;
     if (pendingFiles == null || pendingFiles.isEmpty) {
       _startSendTimeout(localId, target, content, replyToId: replyToId);
     }
@@ -525,6 +533,7 @@ class ConversationDetailStore
         content,
         attachmentIds: attachmentIds,
         replyToId: replyToId,
+        cancelToken: sendCancelToken,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
@@ -533,6 +542,7 @@ class ConversationDetailStore
       // Success: cancel timeout, remove from outbox (handles late-success
       // after timeout race), transition to sent, clear reply preview.
       _cancelSendTimeout(localId);
+      _sendCancelTokens.remove(localId);
       ref.read(outboxStoreProvider.notifier).removeItem(target, localId);
       state = state.copyWith(
         pendingMessages: state.pendingMessages.map((m) {
@@ -554,6 +564,12 @@ class ConversationDetailStore
         return;
       }
       _cancelSendTimeout(localId);
+      _sendCancelTokens.remove(localId);
+
+      // CancelledFailure means the send timeout cancelled the in-flight
+      // request. The timeout handler already transitioned to .queued and
+      // enqueued in the outbox — skip the failure transition.
+      if (failure is CancelledFailure) return;
 
       if (failure.isRetryable &&
           (pendingFiles == null || pendingFiles.isEmpty)) {
@@ -616,6 +632,9 @@ class ConversationDetailStore
     );
 
     // Start send timeout (same as send()) for text-only retries.
+    // Create a CancelToken so the timeout can cancel the in-flight request.
+    final sendCancelToken = CancelToken();
+    _sendCancelTokens[localId] = sendCancelToken;
     if (pending.attachmentIds == null || pending.attachmentIds!.isEmpty) {
       _startSendTimeout(
         localId,
@@ -632,6 +651,7 @@ class ConversationDetailStore
         pending.content,
         attachmentIds: pending.attachmentIds,
         replyToId: pending.replyToId,
+        cancelToken: sendCancelToken,
       );
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
@@ -640,6 +660,7 @@ class ConversationDetailStore
       // Success: cancel timeout, remove from outbox (handles late-success
       // after timeout race), transition to sent.
       _cancelSendTimeout(localId);
+      _sendCancelTokens.remove(localId);
       ref.read(outboxStoreProvider.notifier).removeItem(target, localId);
       state = state.copyWith(
         pendingMessages: state.pendingMessages.map((m) {
@@ -659,6 +680,13 @@ class ConversationDetailStore
         return;
       }
       _cancelSendTimeout(localId);
+      _sendCancelTokens.remove(localId);
+
+      // CancelledFailure means the send timeout cancelled the in-flight
+      // request. The timeout handler already transitioned to .queued and
+      // enqueued in the outbox — skip the failure transition.
+      if (failure is CancelledFailure) return;
+
       if (failure.isRetryable &&
           (pending.attachmentIds == null || pending.attachmentIds!.isEmpty)) {
         // Retryable failure: hand off to outbox for automatic retry.
@@ -1215,7 +1243,8 @@ class ConversationDetailStore
   }
 
   /// Start a timeout timer for a sending message. If the send takes longer
-  /// than [sendTimeoutDuration], auto-transition to queued via the outbox.
+  /// than [sendTimeoutDuration], cancel the in-flight request and enqueue
+  /// the message in the outbox for automatic retry.
   void _startSendTimeout(
     String localId,
     ConversationDetailTarget target,
@@ -1229,6 +1258,13 @@ class ConversationDetailStore
           state.pendingMessages.where((m) => m.localId == localId).firstOrNull;
       if (pending == null || pending.status != MessageSendStatus.sending) {
         return;
+      }
+      // Cancel the in-flight request BEFORE enqueuing in the outbox.
+      // This prevents the race where both the original request and
+      // the outbox drain send the same message simultaneously.
+      final cancelToken = _sendCancelTokens.remove(localId);
+      if (cancelToken != null && !cancelToken.isCancelled) {
+        cancelToken.cancel('Send timeout');
       }
       // Enqueue in outbox and transition to queued.
       ref.read(outboxStoreProvider.notifier).enqueue(
