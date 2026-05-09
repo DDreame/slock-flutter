@@ -53,6 +53,12 @@ class HomeListStore extends Notifier<HomeListState> {
   int _threadCount = 0;
   List<ThreadInboxItem> _threadItems = const [];
   SidebarOrder _sidebarOrder = const SidebarOrder();
+  final RequestCoordinator _coordinator = RequestCoordinator();
+
+  /// Guard flag: set to `true` when the notifier's provider container
+  /// is disposed. Prevents unawaited supplemental callbacks from
+  /// reading `ref` or mutating `state` after disposal.
+  bool _disposed = false;
 
   /// Tracks conversation IDs whose preview was set by a realtime
   /// `message:new` event.  The fallback loader checks this set
@@ -73,6 +79,12 @@ class HomeListStore extends Notifier<HomeListState> {
     _threadItems = const [];
     _sidebarOrder = const SidebarOrder();
     _realtimePreviewIds.clear();
+    _disposed = false;
+
+    ref.onDispose(() {
+      _disposed = true;
+      _coordinator.dispose();
+    });
 
     final serverScopeId = ref.watch(activeServerScopeIdProvider);
     if (serverScopeId == null) {
@@ -117,22 +129,15 @@ class HomeListStore extends Notifier<HomeListState> {
     }
 
     try {
-      final results = await Future.wait([
+      // Tier 1: workspace + sidebar order — critical for initial render.
+      final criticalResults = await Future.wait([
         repo.loadWorkspace(serverScopeId),
         _loadSidebarOrderSafe(serverScopeId),
-        _loadAgentsSafe(),
-        _loadTaskCountSafe(serverScopeId),
-        _loadMachineCountSafe(serverScopeId),
-        _loadThreadItemsSafe(serverScopeId),
       ]);
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
 
-      final snapshot = results[0] as HomeWorkspaceSnapshot;
-      final sidebarOrder = results[1] as SidebarOrder;
-      final agents = results[2] as List<AgentItem>;
-      final taskCount = results[3] as List<TaskItem>;
-      final machineCount = results[4] as int;
-      final threadItems = results[5] as List<ThreadInboxItem>;
+      final snapshot = criticalResults[0] as HomeWorkspaceSnapshot;
+      final sidebarOrder = criticalResults[1] as SidebarOrder;
 
       // Build cached-preview lookup before overwriting.
       final priorChById = <String, HomeChannelSummary>{
@@ -177,23 +182,7 @@ class HomeListStore extends Notifier<HomeListState> {
           lastActivityAt: cached.lastActivityAt,
         );
       }
-      _allAgents = List.of(agents);
-      _taskCount = taskCount.length;
-      _taskItems = List.of(taskCount);
-      _machineCount = machineCount;
-      _threadCount = threadItems.length;
-      _threadItems = List.of(threadItems);
       _sidebarOrder = sidebarOrder;
-
-      // Persist agent names so the AGENT badge survives cached/offline loads.
-      if (agents.isNotEmpty) {
-        try {
-          final agentNames = <String>{for (final a in agents) a.label};
-          ref.read(persistedAgentNamesProvider.notifier).update(agentNames);
-        } catch (_) {
-          // SharedPreferences may not be available in tests or early boot.
-        }
-      }
 
       // Populate known thread channel IDs from the initial load
       // so the realtime unread binding can suppress phantom DM
@@ -211,10 +200,16 @@ class HomeListStore extends Notifier<HomeListState> {
 
       _hydrateUnreadCounts(snapshot);
 
+      // Emit success with workspace data immediately — don't wait
+      // for agents/tasks/machines/threads.
       _emitPersonalizedState(
         serverScopeId: snapshot.serverId,
         status: HomeListStatus.success,
       );
+
+      // Tier 2: supplemental data — load independently, merge as
+      // each completes. Failures are silently absorbed.
+      unawaited(_loadAndMergeSupplemental(serverScopeId));
     } on AppFailure catch (failure) {
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
       if (cached != null) return;
@@ -284,6 +279,147 @@ class HomeListStore extends Notifier<HomeListState> {
   }
 
   Future<void> retry() => load();
+
+  /// Loads supplemental data (agents, tasks, machines, threads)
+  /// independently and merges each into state as it arrives.
+  Future<void> _loadAndMergeSupplemental(ServerScopeId serverScopeId) async {
+    await Future.wait([
+      _loadAgentsSafe().then((agents) {
+        if (_disposed) return;
+        if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+        _allAgents = List.of(agents);
+        if (agents.isNotEmpty) {
+          try {
+            final agentNames = <String>{for (final a in agents) a.label};
+            ref.read(persistedAgentNamesProvider.notifier).update(agentNames);
+          } catch (_) {}
+        }
+        _emitPersonalizedState();
+      }),
+      _loadTaskCountSafe(serverScopeId).then((taskItems) {
+        if (_disposed) return;
+        if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+        _taskCount = taskItems.length;
+        _taskItems = List.of(taskItems);
+        _emitPersonalizedState();
+      }),
+      _loadMachineCountSafe(serverScopeId).then((count) {
+        if (_disposed) return;
+        if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+        _machineCount = count;
+        _emitPersonalizedState();
+      }),
+      _loadThreadItemsSafe(serverScopeId).then((threadItems) {
+        if (_disposed) return;
+        if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+        _threadCount = threadItems.length;
+        _threadItems = List.of(threadItems);
+        _emitPersonalizedState();
+      }),
+    ]);
+  }
+
+  /// Stale-while-revalidate refresh: keeps existing Home data visible
+  /// while fetching fresh data in the background.
+  ///
+  /// [reason] is a deduplication key for [RequestCoordinator]: concurrent
+  /// refreshes with the same reason share a single in-flight request,
+  /// while different reasons (e.g. `pullToRefresh` vs `reconnect`) run
+  /// concurrently. Defaults to `'pullToRefresh'`.
+  ///
+  /// If no prior data exists, falls back to [load].
+  Future<void> refresh({String reason = 'pullToRefresh'}) async {
+    if (state.status != HomeListStatus.success) {
+      return load();
+    }
+
+    return _coordinator.coordinate(reason, () async {
+      final serverScopeId = ref.read(activeServerScopeIdProvider);
+      if (serverScopeId == null) return;
+
+      _realtimePreviewIds.clear();
+      state = state.copyWith(isRefreshing: true, clearFailure: true);
+
+      final repo = ref.read(homeRepositoryProvider);
+
+      try {
+        // Tier 1: workspace + sidebar order — critical for render.
+        final criticalResults = await Future.wait([
+          repo.loadWorkspace(serverScopeId),
+          _loadSidebarOrderSafe(serverScopeId),
+        ]);
+        if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+
+        final snapshot = criticalResults[0] as HomeWorkspaceSnapshot;
+        final sidebarOrder = criticalResults[1] as SidebarOrder;
+
+        // Build cached-preview lookup before overwriting.
+        final priorChById = <String, HomeChannelSummary>{
+          for (final ch in _allChannels)
+            if (ch.lastMessageId != null) ch.scopeId.value: ch,
+        };
+        final priorDmById = <String, HomeDirectMessageSummary>{
+          for (final dm in _allDirectMessages)
+            if (dm.lastMessageId != null) dm.scopeId.value: dm,
+        };
+
+        _allChannels = List.of(snapshot.channels);
+        _allDirectMessages = List.of(snapshot.directMessages);
+
+        for (var i = 0; i < _allChannels.length; i++) {
+          final ch = _allChannels[i];
+          if (ch.lastMessageId != null) continue;
+          final cached = priorChById[ch.scopeId.value];
+          if (cached == null) continue;
+          _allChannels[i] = ch.copyWith(
+            lastMessageId: cached.lastMessageId,
+            lastMessagePreview: cached.lastMessagePreview,
+            lastActivityAt: cached.lastActivityAt,
+          );
+        }
+        for (var i = 0; i < _allDirectMessages.length; i++) {
+          final dm = _allDirectMessages[i];
+          if (dm.lastMessageId != null) continue;
+          final cached = priorDmById[dm.scopeId.value];
+          if (cached == null) continue;
+          _allDirectMessages[i] = dm.copyWith(
+            lastMessageId: cached.lastMessageId,
+            lastMessagePreview: cached.lastMessagePreview,
+            lastActivityAt: cached.lastActivityAt,
+          );
+        }
+
+        _sidebarOrder = sidebarOrder;
+
+        if (snapshot.threadChannelIds.isNotEmpty) {
+          final current = ref.read(knownThreadChannelIdsProvider);
+          final servId = serverScopeId.value;
+          ref.read(knownThreadChannelIdsProvider.notifier).state = {
+            ...current,
+            for (final id in snapshot.threadChannelIds)
+              threadChannelKey(servId, id),
+          };
+        }
+
+        _hydrateUnreadCounts(snapshot);
+
+        // Emit success with Tier 1 data, clear refreshing indicator.
+        _emitPersonalizedState(
+          serverScopeId: snapshot.serverId,
+          status: HomeListStatus.success,
+          isRefreshing: false,
+        );
+
+        // Tier 2: supplemental data — load independently, merge as
+        // each completes. Failures are silently absorbed.
+        unawaited(_loadAndMergeSupplemental(serverScopeId));
+      } on AppFailure {
+        if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+        // Keep existing data visible on refresh failure.
+        state = state.copyWith(isRefreshing: false);
+      }
+    });
+  }
 
   void _hydrateUnreadCounts(HomeWorkspaceSnapshot snapshot) {
     final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
@@ -666,6 +802,7 @@ class HomeListStore extends Notifier<HomeListState> {
   void _emitPersonalizedState({
     ServerScopeId? serverScopeId,
     HomeListStatus? status,
+    bool? isRefreshing,
   }) {
     final order = _sidebarOrder;
 
@@ -748,6 +885,7 @@ class HomeListStore extends Notifier<HomeListState> {
       threadCount: _threadCount,
       threadItems: _threadItems,
       sidebarOrder: order,
+      isRefreshing: isRefreshing,
       clearFailure: status == HomeListStatus.success,
     );
   }

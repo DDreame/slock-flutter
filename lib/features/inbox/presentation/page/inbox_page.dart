@@ -138,57 +138,69 @@ class _InboxPageState extends ConsumerState<InboxPage> {
         ? projectInboxItems(inboxState.items, serverId: serverId)
         : <ConversationProjection>[];
 
-    return RefreshIndicator(
-      onRefresh: () => ref.read(inboxStoreProvider.notifier).refresh(),
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is ScrollEndNotification &&
-              notification.metrics.extentAfter < 200 &&
-              inboxState.hasMore) {
-            ref.read(inboxStoreProvider.notifier).loadMore();
-          }
-          return false;
-        },
-        child: ListView.builder(
-          key: const ValueKey('inbox-list-view'),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.pageHorizontal,
-            vertical: AppSpacing.sm,
+    return Column(
+      children: [
+        if (inboxState.isRefreshing)
+          const LinearProgressIndicator(
+            key: ValueKey('inbox-refreshing'),
+            minHeight: 2,
           ),
-          itemCount: projections.length + (inboxState.hasMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= projections.length) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.md),
-                  child: CircularProgressIndicator(strokeWidth: 2),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: () => ref.read(inboxStoreProvider.notifier).refresh(),
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is ScrollEndNotification &&
+                    notification.metrics.extentAfter < 200 &&
+                    inboxState.hasMore) {
+                  ref.read(inboxStoreProvider.notifier).loadMore();
+                }
+                return false;
+              },
+              child: ListView.builder(
+                key: const ValueKey('inbox-list-view'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pageHorizontal,
+                  vertical: AppSpacing.sm,
                 ),
-              );
-            }
-            final projection = projections[index];
-            return _InboxListTile(
-              key: ValueKey(
-                  'inbox-item-${projection.channelId ?? projection.id}'),
-              item: projection,
-              onMarkDone: () {
-                if (projection.channelId != null) {
-                  ref
-                      .read(inboxStoreProvider.notifier)
-                      .markDone(channelId: projection.channelId!);
-                }
-              },
-              onMarkRead: () {
-                if (projection.channelId != null) {
-                  ref
-                      .read(inboxStoreProvider.notifier)
-                      .markRead(channelId: projection.channelId!);
-                }
-              },
-              onTap: () => _navigateToProjection(projection),
-            );
-          },
+                itemCount: projections.length + (inboxState.hasMore ? 1 : 0),
+                itemBuilder: (context, index) {
+                  if (index >= projections.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(AppSpacing.md),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
+                  }
+                  final projection = projections[index];
+                  return _InboxListTile(
+                    key: ValueKey(
+                      'inbox-item-${projection.channelId ?? projection.id}',
+                    ),
+                    item: projection,
+                    onMarkDone: () {
+                      if (projection.channelId != null) {
+                        ref
+                            .read(inboxStoreProvider.notifier)
+                            .markDone(channelId: projection.channelId!);
+                      }
+                    },
+                    onMarkRead: () {
+                      if (projection.channelId != null) {
+                        ref
+                            .read(inboxStoreProvider.notifier)
+                            .markRead(channelId: projection.channelId!);
+                      }
+                    },
+                    onTap: () => _navigateToProjection(projection),
+                  );
+                },
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 

@@ -24,6 +24,7 @@ class ConversationDetailState {
     this.isSending = false,
     this.isLoadingOlder = false,
     this.isLoadingNewer = false,
+    this.isRefreshing = false,
     this.failure,
     this.sendFailure,
     this.isSearchActive = false,
@@ -54,6 +55,10 @@ class ConversationDetailState {
   final bool isSending;
   final bool isLoadingOlder;
   final bool isLoadingNewer;
+
+  /// Whether a background refresh is in progress while existing data
+  /// remains visible (stale-while-revalidate).
+  final bool isRefreshing;
   final AppFailure? failure;
   final AppFailure? sendFailure;
   final bool isSearchActive;
@@ -93,6 +98,7 @@ class ConversationDetailState {
     bool? isSending,
     bool? isLoadingOlder,
     bool? isLoadingNewer,
+    bool? isRefreshing,
     AppFailure? failure,
     AppFailure? sendFailure,
     bool clearFailure = false,
@@ -121,6 +127,7 @@ class ConversationDetailState {
       isSending: isSending ?? this.isSending,
       isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
       isLoadingNewer: isLoadingNewer ?? this.isLoadingNewer,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
       failure: clearFailure ? null : (failure ?? this.failure),
       sendFailure: clearSendFailure ? null : (sendFailure ?? this.sendFailure),
       isSearchActive: isSearchActive ?? this.isSearchActive,
@@ -154,6 +161,7 @@ class ConversationDetailState {
             isSending == other.isSending &&
             isLoadingOlder == other.isLoadingOlder &&
             isLoadingNewer == other.isLoadingNewer &&
+            isRefreshing == other.isRefreshing &&
             failure == other.failure &&
             sendFailure == other.sendFailure &&
             isSearchActive == other.isSearchActive &&
@@ -181,6 +189,7 @@ class ConversationDetailState {
         isSending,
         isLoadingOlder,
         isLoadingNewer,
+        isRefreshing,
         failure,
         sendFailure,
         Object.hash(

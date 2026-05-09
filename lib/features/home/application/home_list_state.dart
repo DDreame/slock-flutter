@@ -27,6 +27,7 @@ class HomeListState {
     this.threadCount = 0,
     this.threadItems = const [],
     this.sidebarOrder = const SidebarOrder(),
+    this.isRefreshing = false,
     this.failure,
   });
 
@@ -46,6 +47,10 @@ class HomeListState {
   final int threadCount;
   final List<ThreadInboxItem> threadItems;
   final SidebarOrder sidebarOrder;
+
+  /// Whether a background refresh is in progress while existing data
+  /// remains visible (stale-while-revalidate).
+  final bool isRefreshing;
   final AppFailure? failure;
 
   bool get isEmpty =>
@@ -76,6 +81,7 @@ class HomeListState {
     int? threadCount,
     List<ThreadInboxItem>? threadItems,
     SidebarOrder? sidebarOrder,
+    bool? isRefreshing,
     AppFailure? failure,
     bool clearFailure = false,
   }) {
@@ -97,6 +103,7 @@ class HomeListState {
       threadCount: threadCount ?? this.threadCount,
       threadItems: threadItems ?? this.threadItems,
       sidebarOrder: sidebarOrder ?? this.sidebarOrder,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
       failure: clearFailure ? null : (failure ?? this.failure),
     );
   }
@@ -125,6 +132,7 @@ class HomeListState {
             threadCount == other.threadCount &&
             listEquals(threadItems, other.threadItems) &&
             sidebarOrder == other.sidebarOrder &&
+            isRefreshing == other.isRefreshing &&
             failure == other.failure;
   }
 
@@ -146,6 +154,7 @@ class HomeListState {
         threadCount,
         Object.hashAll(threadItems),
         sidebarOrder,
+        isRefreshing,
         failure,
       );
 }

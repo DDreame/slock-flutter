@@ -55,7 +55,9 @@ void _reloadHomeList(Ref ref) {
     if (state.status == HomeListStatus.loading) {
       return;
     }
-    unawaited(ref.read(homeListStoreProvider.notifier).load());
+    unawaited(ref.read(homeListStoreProvider.notifier).refresh(
+          reason: 'channelUpdated',
+        ));
   } catch (e, st) {
     ref.read(crashReporterProvider).captureException(e, stackTrace: st);
   }

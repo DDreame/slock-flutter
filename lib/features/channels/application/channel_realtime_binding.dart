@@ -31,7 +31,9 @@ final channelPageRealtimeBindingProvider =
         return;
       }
 
-      unawaited(ref.read(conversationDetailStoreProvider.notifier).load());
+      unawaited(ref.read(conversationDetailStoreProvider.notifier).refresh(
+            reason: 'channelUpdated',
+          ));
     });
 
     ref.onDispose(() {

@@ -75,49 +75,61 @@ class _HomePageState extends ConsumerState<HomePage> {
             message: state.failure?.message ?? l10n.homeLoadFailedFallback,
             onRetry: homeStore.retry,
           ),
-        HomeListStatus.success => RefreshIndicator(
-            key: const ValueKey('home-refresh-indicator'),
-            onRefresh: homeStore.load,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.pageHorizontal,
-                AppSpacing.md,
-                AppSpacing.pageHorizontal,
-                AppSpacing.xl,
+        HomeListStatus.success => Column(
+            children: [
+              if (state.isRefreshing)
+                const LinearProgressIndicator(
+                  key: ValueKey('home-refreshing'),
+                  minHeight: 2,
+                ),
+              Expanded(
+                child: RefreshIndicator(
+                  key: const ValueKey('home-refresh-indicator'),
+                  onRefresh: homeStore.refresh,
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.pageHorizontal,
+                      AppSpacing.md,
+                      AppSpacing.pageHorizontal,
+                      AppSpacing.xl,
+                    ),
+                    children: [
+                      _HomeTasksSection(
+                        key: const ValueKey('home-card-tasks'),
+                        taskItems: state.taskItems,
+                        channels: [
+                          ...state.pinnedChannels,
+                          ...state.channels,
+                        ],
+                        onViewAll: () => _pushServerRoute('tasks'),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _InboxUnreadSection(
+                        key: const ValueKey('home-card-unread'),
+                        onViewAll: () => _pushServerRoute('unread'),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _HomeAgentsSection(
+                        key: const ValueKey('home-card-agents'),
+                        agents: [
+                          ...state.pinnedAgents,
+                          ...state.agents,
+                        ],
+                        onViewAll: () => _pushServerRoute('agents'),
+                        onAgentTap: (agent) {
+                          final sid =
+                              ref.read(activeServerScopeIdProvider)?.value;
+                          if (sid == null) return;
+                          context.push(
+                            '/servers/$sid/agents/${agent.id}',
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              children: [
-                _HomeTasksSection(
-                  key: const ValueKey('home-card-tasks'),
-                  taskItems: state.taskItems,
-                  channels: [
-                    ...state.pinnedChannels,
-                    ...state.channels,
-                  ],
-                  onViewAll: () => _pushServerRoute('tasks'),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _InboxUnreadSection(
-                  key: const ValueKey('home-card-unread'),
-                  onViewAll: () => _pushServerRoute('unread'),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _HomeAgentsSection(
-                  key: const ValueKey('home-card-agents'),
-                  agents: [
-                    ...state.pinnedAgents,
-                    ...state.agents,
-                  ],
-                  onViewAll: () => _pushServerRoute('agents'),
-                  onAgentTap: (agent) {
-                    final sid = ref.read(activeServerScopeIdProvider)?.value;
-                    if (sid == null) return;
-                    context.push(
-                      '/servers/$sid/agents/${agent.id}',
-                    );
-                  },
-                ),
-              ],
-            ),
+            ],
           ),
       },
     );
