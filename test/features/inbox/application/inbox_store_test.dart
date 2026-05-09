@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -780,7 +782,116 @@ void main() {
       expect(state.status, InboxStatus.success);
       expect(state.isRefreshing, isFalse);
     });
+
+    test('isRefreshing is true mid-flight during SWR refresh', () async {
+      final completerRepo = _ControllableInboxRepository();
+      final container = ProviderContainer(
+        overrides: [
+          inboxRepositoryProvider.overrideWithValue(completerRepo),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Initial load completes immediately.
+      completerRepo.nextResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            channelName: 'general',
+            unreadCount: 5,
+          ),
+        ],
+        totalCount: 1,
+        totalUnreadCount: 5,
+        hasMore: false,
+      );
+      await container.read(inboxStoreProvider.notifier).load();
+      expect(container.read(inboxStoreProvider).status, InboxStatus.success);
+      expect(container.read(inboxStoreProvider).isRefreshing, isFalse);
+
+      // Start refresh with a blocked completer.
+      final refreshCompleter = Completer<InboxResponse>();
+      completerRepo.fetchCompleter = refreshCompleter;
+
+      final refreshFuture =
+          container.read(inboxStoreProvider.notifier).refresh();
+
+      // Mid-flight: isRefreshing must be true while existing data is visible.
+      final midState = container.read(inboxStoreProvider);
+      expect(midState.isRefreshing, isTrue,
+          reason: 'isRefreshing must be true during SWR refresh');
+      expect(midState.status, isNot(InboxStatus.loading),
+          reason: 'SWR must not clear status to loading');
+      expect(midState.items, hasLength(1),
+          reason: 'Existing items must remain visible during refresh');
+
+      // Complete refresh.
+      refreshCompleter.complete(const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            channelName: 'general',
+            unreadCount: 3,
+          ),
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-1',
+            channelName: 'Bob',
+            unreadCount: 1,
+          ),
+        ],
+        totalCount: 2,
+        totalUnreadCount: 4,
+        hasMore: false,
+      ));
+      await refreshFuture;
+
+      final postState = container.read(inboxStoreProvider);
+      expect(postState.isRefreshing, isFalse,
+          reason: 'isRefreshing must be false after refresh completes');
+      expect(postState.items, hasLength(2),
+          reason: 'Items should update to fresh data');
+      expect(postState.totalUnreadCount, 4);
+    });
   });
+}
+
+/// Inbox repository with controllable fetch timing.
+class _ControllableInboxRepository implements InboxRepository {
+  InboxResponse? nextResponse;
+  Completer<InboxResponse>? fetchCompleter;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    if (fetchCompleter != null) {
+      return fetchCompleter!.future;
+    }
+    return nextResponse!;
+  }
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
 }
 
 class FakeInboxRepository implements InboxRepository {

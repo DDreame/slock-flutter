@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -2256,6 +2257,393 @@ void main() {
       expect(state.pendingMessages.first.status, MessageSendStatus.failed);
     });
   });
+
+  group('P0-B send reliability regression', () {
+    test('send timeout transitions pending to queued and enqueues in outbox',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      fakeAsync((fake) {
+        final sendCompleter = Completer<ConversationMessageSummary>();
+        final repository = _FakeConversationRepository(
+          snapshot: ConversationDetailSnapshot(
+            target: target,
+            title: '#general',
+            messages: const [],
+            historyLimited: false,
+            hasOlder: false,
+          ),
+          sendCompleter: sendCompleter,
+        );
+
+        final container = ProviderContainer(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            conversationRepositoryProvider.overrideWithValue(repository),
+            connectivityServiceProvider
+                .overrideWithValue(_onlineConnectivity()),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+        );
+
+        // Keep the autoDispose provider alive across the fakeAsync
+        // timeline so Riverpod does not dispose it between timer ticks.
+        final sub = container.listen(
+          conversationDetailStoreProvider,
+          (_, __) {},
+        );
+
+        // Load.
+        container.read(conversationDetailStoreProvider.notifier).load();
+        fake.flushMicrotasks();
+
+        final notifier =
+            container.read(conversationDetailStoreProvider.notifier);
+        notifier.updateDraft('Timeout message');
+        notifier.send();
+        fake.flushMicrotasks();
+
+        // Mid-flight: pending in sending state.
+        expect(
+          container
+              .read(conversationDetailStoreProvider)
+              .pendingMessages
+              .first
+              .status,
+          MessageSendStatus.sending,
+          reason: 'Message should be in sending state before timeout',
+        );
+
+        // Advance past timeout (30 seconds).
+        fake.elapse(ConversationDetailStore.sendTimeoutDuration);
+        fake.flushMicrotasks();
+
+        // After timeout: pending transitions to queued.
+        expect(
+          container
+              .read(conversationDetailStoreProvider)
+              .pendingMessages
+              .first
+              .status,
+          MessageSendStatus.queued,
+          reason: 'Timeout must transition pending message to queued',
+        );
+
+        // CancelToken must have been cancelled by the timeout handler.
+        expect(repository.lastSendCancelToken, isNotNull,
+            reason: 'sendMessage must receive a CancelToken');
+        expect(repository.lastSendCancelToken!.isCancelled, isTrue,
+            reason: 'Timeout must cancel the in-flight CancelToken to prevent '
+                'duplicate sends from both the original request and the '
+                'outbox drain');
+
+        // Outbox must contain the message.
+        final outbox = container.read(outboxStoreProvider);
+        final tKey = outboxTargetKey(target);
+        expect(outbox.items[tKey], hasLength(1),
+            reason: 'Timeout must enqueue message in outbox');
+        expect(outbox.items[tKey]!.first.content, 'Timeout message');
+
+        // Complete the send completer so the dangling future resolves.
+        sendCompleter.completeError(const CancelledFailure(message: 'timeout'));
+        fake.flushMicrotasks();
+
+        // State must remain queued (CancelledFailure is no-op in catch).
+        expect(
+          container
+              .read(conversationDetailStoreProvider)
+              .pendingMessages
+              .first
+              .status,
+          MessageSendStatus.queued,
+          reason:
+              'CancelledFailure after timeout must not change queued status',
+        );
+
+        sub.close();
+        container.dispose();
+      });
+    });
+
+    test('retrySend happy path: failed → sending → sent', () async {
+      final sentMessage = ConversationMessageSummary(
+        id: 'retry-msg-1',
+        content: 'Retry this',
+        createdAt: DateTime.parse('2026-05-09T12:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      );
+
+      final mutableRepo = _MutableFakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      // First send will fail with non-retryable error.
+      mutableRepo.sendFailure = const NotFoundFailure(message: 'Not found');
+
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(mutableRepo),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      // Send — will fail.
+      notifier.updateDraft('Retry this');
+      await notifier.send();
+
+      expect(
+        container
+            .read(conversationDetailStoreProvider)
+            .pendingMessages
+            .first
+            .status,
+        MessageSendStatus.failed,
+        reason: 'Non-retryable failure must set status to failed',
+      );
+
+      // Clear failure, set success response for retry.
+      mutableRepo.sendFailure = null;
+      mutableRepo.sentMessage = sentMessage;
+
+      final localId = container
+          .read(conversationDetailStoreProvider)
+          .pendingMessages
+          .first
+          .localId;
+      await notifier.retrySend(localId);
+
+      final retriedState = container.read(conversationDetailStoreProvider);
+      expect(
+        retriedState.pendingMessages.first.status,
+        MessageSendStatus.sent,
+        reason: 'retrySend must transition failed → sent on success',
+      );
+    });
+
+    test('retrySend guard: no-op when message is not in failed status',
+        () async {
+      final sentMessage = ConversationMessageSummary(
+        id: 'guard-msg-1',
+        content: 'Guard test',
+        createdAt: DateTime.parse('2026-05-09T12:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sentMessage: sentMessage,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      // Send succeeds → pending message is in 'sent' status.
+      notifier.updateDraft('Guard test');
+      await notifier.send();
+
+      final sentState = container.read(conversationDetailStoreProvider);
+      expect(sentState.pendingMessages.first.status, MessageSendStatus.sent);
+      final localId = sentState.pendingMessages.first.localId;
+
+      // Attempt retrySend on a sent message — must be no-op.
+      repository.sentContents.clear();
+      await notifier.retrySend(localId);
+
+      // Repository should NOT have been called again.
+      expect(repository.sentContents, isEmpty,
+          reason: 'retrySend must not fire for non-failed messages');
+    });
+
+    test('permanent failure → terminal state, no infinite retry', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        sendFailure: const NotFoundFailure(message: 'Not found'),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(_onlineConnectivity()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final notifier = container.read(conversationDetailStoreProvider.notifier);
+
+      notifier.updateDraft('Will fail permanently');
+      await notifier.send();
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.pendingMessages, hasLength(1));
+      expect(state.pendingMessages.first.status, MessageSendStatus.failed,
+          reason: 'Non-retryable failure must reach terminal failed state');
+
+      // Verify the message was NOT enqueued in the outbox (no auto-retry).
+      // NotFoundFailure.isRetryable is false.
+      expect(repository.sentContents, hasLength(1),
+          reason: 'Only one send attempt should occur');
+    });
+  });
+}
+
+/// Mutable fake for tests that need to change send behavior mid-test.
+class _MutableFakeConversationRepository implements ConversationRepository {
+  _MutableFakeConversationRepository({this.snapshot});
+
+  final ConversationDetailSnapshot? snapshot;
+  AppFailure? sendFailure;
+  ConversationMessageSummary? sentMessage;
+  final List<String> sentContents = [];
+  final List<String?> sentReplyToIds = [];
+
+  @override
+  Future<ConversationDetailSnapshot> loadConversation(
+    ConversationDetailTarget target,
+  ) async =>
+      snapshot!;
+
+  @override
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async =>
+      const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+      );
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content, {
+    List<String>? attachmentIds,
+    String? replyToId,
+    CancelToken? cancelToken,
+  }) async {
+    sentContents.add(content);
+    sentReplyToIds.add(replyToId);
+    if (sendFailure != null) throw sendFailure!;
+    return sentMessage!;
+  }
+
+  @override
+  Future<String> uploadAttachment(
+    ConversationDetailTarget target,
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async =>
+      message;
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async =>
+      null;
+
+  @override
+  Future<void> editMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {}
+
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      const [];
+
+  @override
+  Future<void> addReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
 }
 
 class _FakeConversationRepository implements ConversationRepository {
@@ -2287,6 +2675,7 @@ class _FakeConversationRepository implements ConversationRepository {
   final List<int> newerRequests = [];
   final List<String> sentContents = [];
   final List<String?> sentReplyToIds = [];
+  CancelToken? lastSendCancelToken;
   final List<ConversationMessageSummary> persistedMessages = [];
   final Map<String, String> updatedContents = {};
   final List<String> deletedMessageIds = [];
@@ -2341,6 +2730,7 @@ class _FakeConversationRepository implements ConversationRepository {
   }) async {
     sentContents.add(content);
     sentReplyToIds.add(replyToId);
+    lastSendCancelToken = cancelToken;
     if (sendFailure != null) {
       throw sendFailure!;
     }
