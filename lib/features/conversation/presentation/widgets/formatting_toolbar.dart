@@ -21,11 +21,16 @@ void applyMarkdownFormat(
   TextEditingController controller,
   MarkdownFormat format,
 ) {
-  final value = controller.value;
-  final selection = value.selection;
-  final text = value.text;
+  final text = controller.value.text;
+  var selection = controller.value.selection;
 
-  if (!selection.isValid) return;
+  // When the controller has never been focused, the selection is invalid
+  // (base/extent == -1). Establish a sane collapsed cursor so toolbar
+  // taps work on first use.
+  if (!selection.isValid) {
+    selection = TextSelection.collapsed(offset: text.length);
+    controller.selection = selection;
+  }
 
   final hasSelection = selection.baseOffset != selection.extentOffset;
 

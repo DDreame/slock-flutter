@@ -179,4 +179,38 @@ void main() {
       );
     });
   });
+
+  group('applyMarkdownFormat — invalid selection (first use)', () {
+    test('inserts bold placeholder when selection is invalid', () {
+      // Fresh controller — selection is invalid (base/extent == -1).
+      final fresh = TextEditingController();
+      expect(fresh.selection.isValid, isFalse);
+
+      applyMarkdownFormat(fresh, MarkdownFormat.bold);
+
+      expect(fresh.text, '**bold**');
+      expect(
+        fresh.selection,
+        const TextSelection(baseOffset: 2, extentOffset: 6),
+      );
+      fresh.dispose();
+    });
+
+    test('inserts link placeholder when selection is invalid on non-empty text',
+        () {
+      final fresh = TextEditingController(text: 'hello ');
+      // Controller created with text but never focused — selection invalid.
+      expect(fresh.selection.isValid, isFalse);
+
+      applyMarkdownFormat(fresh, MarkdownFormat.link);
+
+      // Should insert at text.length (6).
+      expect(fresh.text, 'hello [text](url)');
+      expect(
+        fresh.selection,
+        const TextSelection(baseOffset: 13, extentOffset: 16),
+      );
+      fresh.dispose();
+    });
+  });
 }
