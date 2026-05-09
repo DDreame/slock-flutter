@@ -307,13 +307,18 @@ class HomeListStore extends Notifier<HomeListState> {
   /// Stale-while-revalidate refresh: keeps existing Home data visible
   /// while fetching fresh data in the background.
   ///
+  /// [reason] is a deduplication key for [RequestCoordinator]: concurrent
+  /// refreshes with the same reason share a single in-flight request,
+  /// while different reasons (e.g. `pullToRefresh` vs `reconnect`) run
+  /// concurrently. Defaults to `'pullToRefresh'`.
+  ///
   /// If no prior data exists, falls back to [load].
-  Future<void> refresh() async {
+  Future<void> refresh({String reason = 'pullToRefresh'}) async {
     if (state.status != HomeListStatus.success) {
       return load();
     }
 
-    return _coordinator.coordinate('refresh', () async {
+    return _coordinator.coordinate(reason, () async {
       final serverScopeId = ref.read(activeServerScopeIdProvider);
       if (serverScopeId == null) return;
 
@@ -323,22 +328,15 @@ class HomeListStore extends Notifier<HomeListState> {
       final repo = ref.read(homeRepositoryProvider);
 
       try {
-        final results = await Future.wait([
+        // Tier 1: workspace + sidebar order — critical for render.
+        final criticalResults = await Future.wait([
           repo.loadWorkspace(serverScopeId),
           _loadSidebarOrderSafe(serverScopeId),
-          _loadAgentsSafe(),
-          _loadTaskCountSafe(serverScopeId),
-          _loadMachineCountSafe(serverScopeId),
-          _loadThreadItemsSafe(serverScopeId),
         ]);
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
 
-        final snapshot = results[0] as HomeWorkspaceSnapshot;
-        final sidebarOrder = results[1] as SidebarOrder;
-        final agents = results[2] as List<AgentItem>;
-        final taskCount = results[3] as List<TaskItem>;
-        final machineCount = results[4] as int;
-        final threadItems = results[5] as List<ThreadInboxItem>;
+        final snapshot = criticalResults[0] as HomeWorkspaceSnapshot;
+        final sidebarOrder = criticalResults[1] as SidebarOrder;
 
         // Build cached-preview lookup before overwriting.
         final priorChById = <String, HomeChannelSummary>{
@@ -376,20 +374,7 @@ class HomeListStore extends Notifier<HomeListState> {
           );
         }
 
-        _allAgents = List.of(agents);
-        _taskCount = taskCount.length;
-        _taskItems = List.of(taskCount);
-        _machineCount = machineCount;
-        _threadCount = threadItems.length;
-        _threadItems = List.of(threadItems);
         _sidebarOrder = sidebarOrder;
-
-        if (agents.isNotEmpty) {
-          try {
-            final agentNames = <String>{for (final a in agents) a.label};
-            ref.read(persistedAgentNamesProvider.notifier).update(agentNames);
-          } catch (_) {}
-        }
 
         if (snapshot.threadChannelIds.isNotEmpty) {
           final current = ref.read(knownThreadChannelIdsProvider);
@@ -403,11 +388,16 @@ class HomeListStore extends Notifier<HomeListState> {
 
         _hydrateUnreadCounts(snapshot);
 
+        // Emit success with Tier 1 data, clear refreshing indicator.
         _emitPersonalizedState(
           serverScopeId: snapshot.serverId,
           status: HomeListStatus.success,
           isRefreshing: false,
         );
+
+        // Tier 2: supplemental data — load independently, merge as
+        // each completes. Failures are silently absorbed.
+        unawaited(_loadAndMergeSupplemental(serverScopeId));
       } on AppFailure {
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         // Keep existing data visible on refresh failure.

@@ -28,22 +28,23 @@ final homeRefreshRealtimeStateProvider =
   return ref.watch(realtimeServiceProvider);
 });
 
-/// Triggers [HomeListStore.load()] on:
+/// Triggers [HomeListStore.refresh()] on:
 /// - App lifecycle resuming (→ resumed)
 /// - WebSocket reconnection (reconnecting → connected)
 ///
 /// Both signals are debounced through a shared timer so
-/// simultaneous events result in a single load() call.
-/// When Home is not yet in success state, load() is still
-/// triggered — its completion will transition status to success,
-/// which drains the pending-event queue in the realtime binding.
+/// simultaneous events result in a single refresh() call.
+/// When Home is not yet in success state, refresh() falls
+/// back to load() — its completion will transition status to
+/// success, which drains the pending-event queue in the
+/// realtime binding.
 final homeRefreshLifecycleBindingProvider = Provider<void>((ref) {
   Timer? debounceTimer;
 
-  void scheduleRefresh() {
+  void scheduleRefresh(String reason) {
     debounceTimer?.cancel();
     debounceTimer = Timer(homeRefreshDebounceDuration, () {
-      ref.read(homeListStoreProvider.notifier).load();
+      ref.read(homeListStoreProvider.notifier).refresh(reason: reason);
     });
   }
 
@@ -54,7 +55,7 @@ final homeRefreshLifecycleBindingProvider = Provider<void>((ref) {
       if (next == AppLifecycleStatus.resumed &&
           previous != null &&
           previous != AppLifecycleStatus.resumed) {
-        scheduleRefresh();
+        scheduleRefresh('appResume');
       }
     },
   );
@@ -66,7 +67,7 @@ final homeRefreshLifecycleBindingProvider = Provider<void>((ref) {
       if (previous == null) return;
       if (previous.status == RealtimeConnectionStatus.reconnecting &&
           next.status == RealtimeConnectionStatus.connected) {
-        scheduleRefresh();
+        scheduleRefresh('reconnect');
       }
     },
   );

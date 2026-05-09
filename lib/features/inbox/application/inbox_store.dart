@@ -114,9 +114,12 @@ class InboxStore extends Notifier<InboxState> {
   /// Refresh inbox (re-fetch first page with current filter).
   ///
   /// Uses [RequestCoordinator] to deduplicate concurrent refreshes.
+  /// [reason] defaults to `'pullToRefresh'`; callers may pass a
+  /// different key (e.g. `'reconnect'`) so concurrent triggers with
+  /// different reasons can run in parallel.
   /// Preserves existing items via SWR pattern.
-  Future<void> refresh() =>
-      _coordinator.coordinate('refresh', () => load(filter: state.filter));
+  Future<void> refresh({String reason = 'pullToRefresh'}) =>
+      _coordinator.coordinate(reason, () => load(filter: state.filter));
 
   /// Switch filter mode and reload.
   Future<void> setFilter(InboxFilter filter) => load(filter: filter);

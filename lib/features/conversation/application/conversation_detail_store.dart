@@ -229,15 +229,20 @@ class ConversationDetailStore
   /// Stale-while-revalidate refresh: keeps existing messages visible
   /// while fetching fresh data in the background.
   ///
+  /// [reason] is a deduplication key for [RequestCoordinator]: concurrent
+  /// refreshes with the same reason share a single in-flight request,
+  /// while different reasons run concurrently. Defaults to
+  /// `'pullToRefresh'`.
+  ///
   /// If no prior data exists, falls back to [load].
-  Future<void> refresh() async {
+  Future<void> refresh({String reason = 'pullToRefresh'}) async {
     // No existing data — use full load.
     if (state.status != ConversationDetailStatus.success ||
         state.messages.isEmpty) {
       return load();
     }
 
-    return _coordinator.coordinate('refresh', () async {
+    return _coordinator.coordinate(reason, () async {
       final target = ref.read(currentConversationDetailTargetProvider);
       final requestEpoch = ++_requestEpoch;
 

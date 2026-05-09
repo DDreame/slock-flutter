@@ -46,7 +46,7 @@ final homeRealtimeUnreadBindingProvider = Provider<void>((ref) {
             unawaited(
               ref
                   .read(homeListStoreProvider.notifier)
-                  .load()
+                  .refresh(reason: 'messageNew')
                   .catchError((_) {}),
             );
           }

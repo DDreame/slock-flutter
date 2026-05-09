@@ -41,7 +41,9 @@ void _reloadHomeList(Ref ref) {
   try {
     final state = ref.read(homeListStoreProvider);
     if (state.status == HomeListStatus.loading) return;
-    unawaited(ref.read(homeListStoreProvider.notifier).load());
+    unawaited(ref.read(homeListStoreProvider.notifier).refresh(
+          reason: 'taskEvent',
+        ));
   } catch (e, st) {
     ref.read(crashReporterProvider).captureException(e, stackTrace: st);
   }
