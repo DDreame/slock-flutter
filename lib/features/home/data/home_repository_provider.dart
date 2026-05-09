@@ -6,7 +6,6 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 
 const _channelsPath = '/channels';
 const _directMessageChannelsPath = '/channels/dm';
-const _messagesPathPrefix = '/messages/channel/';
 const _serverHeaderName = 'X-Server-Id';
 const _channelSurface = 'channel';
 const _directMessageSurface = 'direct_message';
@@ -109,24 +108,6 @@ final homeRepositoryProvider = Provider<HomeRepository>((ref) {
     persistConversationActivity: persistConversationActivity,
     persistConversationPreviewUpdate: persistConversationPreviewUpdate,
   );
-});
-
-/// Fetches the most recent message for a single conversation from
-/// the messages API.  Returns `null` when the response is empty or
-/// the request fails.  Used as an async background fallback for
-/// channels / DMs whose `/channels` response did not include a
-/// `lastMessage` object.
-typedef HomePreviewFallbackLoader = Future<HomePreviewFallbackResult?> Function(
-    ServerScopeId serverId, String conversationId);
-
-final homePreviewFallbackLoaderProvider =
-    Provider<HomePreviewFallbackLoader>((ref) {
-  final appDioClient = ref.watch(appDioClientProvider);
-  return (serverId, conversationId) => _fetchLastMessagePreview(
-        appDioClient: appDioClient,
-        serverId: serverId,
-        conversationId: conversationId,
-      );
 });
 
 Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
@@ -501,57 +482,4 @@ Map<String, int> _parseUnreadCounts(Object? payload) {
     }
   }
   return result;
-}
-
-/// Fetches the most recent message for [conversationId] and returns
-/// a [HomePreviewFallbackResult] that the caller can use to update
-/// both the local store and in-memory list.  Returns `null` when the
-/// conversation has no messages or the request fails.
-Future<HomePreviewFallbackResult?> _fetchLastMessagePreview({
-  required AppDioClient appDioClient,
-  required ServerScopeId serverId,
-  required String conversationId,
-}) async {
-  try {
-    final response = await appDioClient.get<Object?>(
-      '$_messagesPathPrefix$conversationId',
-      queryParameters: {'limit': 1},
-      options: _serverScopedOptions(serverId),
-    );
-    final data = response.data;
-    if (data is! Map) return null;
-    final messages = data['messages'];
-    if (messages is! List || messages.isEmpty) return null;
-
-    final last = messages.last;
-    if (last is! Map) return null;
-    final map = Map<String, dynamic>.from(last);
-    final id = map['id'];
-    if (id is! String || id.isEmpty) return null;
-
-    final content = map['content'] is String ? map['content'] as String : '';
-    final rawCreatedAt = map['createdAt'];
-    final createdAt =
-        rawCreatedAt is String ? DateTime.tryParse(rawCreatedAt) : null;
-
-    return HomePreviewFallbackResult(
-      messageId: id,
-      preview: content,
-      activityAt: createdAt ?? DateTime.now(),
-    );
-  } catch (_) {
-    return null;
-  }
-}
-
-class HomePreviewFallbackResult {
-  const HomePreviewFallbackResult({
-    required this.messageId,
-    required this.preview,
-    required this.activityAt,
-  });
-
-  final String messageId;
-  final String preview;
-  final DateTime activityAt;
 }

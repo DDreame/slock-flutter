@@ -5,10 +5,9 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
-import 'package:slock_app/features/inbox/application/inbox_to_home_unread_adapter.dart';
-import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 
 /// Full-screen inbox page.
@@ -134,6 +133,11 @@ class _InboxPageState extends ConsumerState<InboxPage> {
       );
     }
 
+    final serverId = ref.read(activeServerScopeIdProvider);
+    final projections = serverId != null
+        ? projectInboxItems(inboxState.items, serverId: serverId)
+        : <ConversationProjection>[];
+
     return RefreshIndicator(
       onRefresh: () => ref.read(inboxStoreProvider.notifier).refresh(),
       child: NotificationListener<ScrollNotification>(
@@ -151,9 +155,9 @@ class _InboxPageState extends ConsumerState<InboxPage> {
             horizontal: AppSpacing.pageHorizontal,
             vertical: AppSpacing.sm,
           ),
-          itemCount: inboxState.items.length + (inboxState.hasMore ? 1 : 0),
+          itemCount: projections.length + (inboxState.hasMore ? 1 : 0),
           itemBuilder: (context, index) {
-            if (index >= inboxState.items.length) {
+            if (index >= projections.length) {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(AppSpacing.md),
@@ -161,21 +165,26 @@ class _InboxPageState extends ConsumerState<InboxPage> {
                 ),
               );
             }
-            final item = inboxState.items[index];
+            final projection = projections[index];
             return _InboxListTile(
-              key: ValueKey('inbox-item-${item.channelId}'),
-              item: item,
+              key: ValueKey(
+                  'inbox-item-${projection.channelId ?? projection.id}'),
+              item: projection,
               onMarkDone: () {
-                ref
-                    .read(inboxStoreProvider.notifier)
-                    .markDone(channelId: item.channelId);
+                if (projection.channelId != null) {
+                  ref
+                      .read(inboxStoreProvider.notifier)
+                      .markDone(channelId: projection.channelId!);
+                }
               },
               onMarkRead: () {
-                ref
-                    .read(inboxStoreProvider.notifier)
-                    .markRead(channelId: item.channelId);
+                if (projection.channelId != null) {
+                  ref
+                      .read(inboxStoreProvider.notifier)
+                      .markRead(channelId: projection.channelId!);
+                }
               },
-              onTap: () => _navigateToItem(item),
+              onTap: () => _navigateToProjection(projection),
             );
           },
         ),
@@ -183,20 +192,16 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     );
   }
 
-  void _navigateToItem(InboxItem item) {
-    final serverId = ref.read(activeServerScopeIdProvider);
-    if (serverId == null) return;
-
-    final homeItem = inboxItemToHomeUnreadItem(item, serverId: serverId);
-    if (homeItem.threadRouteTarget != null) {
-      context.push(homeItem.threadRouteTarget!.toLocation());
-    } else if (homeItem.channelScopeId != null) {
-      final sid = homeItem.channelScopeId!.serverId.value;
-      final cid = homeItem.channelScopeId!.value;
+  void _navigateToProjection(ConversationProjection projection) {
+    if (projection.threadRouteTarget != null) {
+      context.push(projection.threadRouteTarget!.toLocation());
+    } else if (projection.channelScopeId != null) {
+      final sid = projection.channelScopeId!.serverId.value;
+      final cid = projection.channelScopeId!.value;
       context.push('/servers/$sid/channels/$cid');
-    } else if (homeItem.dmScopeId != null) {
-      final sid = homeItem.dmScopeId!.serverId.value;
-      final dmId = homeItem.dmScopeId!.value;
+    } else if (projection.dmScopeId != null) {
+      final sid = projection.dmScopeId!.serverId.value;
+      final dmId = projection.dmScopeId!.value;
       context.push('/servers/$sid/dms/$dmId');
     }
   }
@@ -296,7 +301,7 @@ class _InboxListTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final InboxItem item;
+  final ConversationProjection item;
   final VoidCallback onMarkDone;
   final VoidCallback onMarkRead;
   final VoidCallback onTap;
@@ -306,7 +311,7 @@ class _InboxListTile extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return Dismissible(
-      key: ValueKey('inbox-dismiss-${item.channelId}'),
+      key: ValueKey('inbox-dismiss-${item.channelId ?? item.id}'),
       background: _swipeBackground(
         colors: colors,
         alignment: Alignment.centerLeft,
@@ -350,7 +355,7 @@ class _InboxListTile extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            item.channelName ?? item.channelId,
+                            item.title,
                             style: AppTypography.body.copyWith(
                               color: colors.text,
                               fontWeight: item.unreadCount > 0
@@ -370,39 +375,38 @@ class _InboxListTile extends StatelessWidget {
                           ),
                       ],
                     ),
-                    if (item.preview != null) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          if (item.senderName != null)
-                            Text(
-                              '${item.senderName}: ',
-                              style: AppTypography.bodySmall.copyWith(
-                                color: colors.textSecondary,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              maxLines: 1,
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        if (item.senderName != null)
+                          Text(
+                            '${item.senderName}: ',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: colors.textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
-                          Expanded(
-                            child: Text(
-                              item.preview!,
-                              style: AppTypography.bodySmall.copyWith(
-                                color: colors.textTertiary,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                            maxLines: 1,
                           ),
-                        ],
-                      ),
-                    ],
+                        Expanded(
+                          child: Text(
+                            item.previewText,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: colors.textTertiary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
               if (item.unreadCount > 0) ...[
                 const SizedBox(width: AppSpacing.sm),
                 Container(
-                  key: ValueKey('inbox-unread-badge-${item.channelId}'),
+                  key: ValueKey(
+                      'inbox-unread-badge-${item.channelId ?? item.id}'),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 6,
                     vertical: 2,
@@ -430,10 +434,15 @@ class _InboxListTile extends StatelessWidget {
 
   Widget _kindIcon(AppColors colors) {
     final (icon, color) = switch (item.kind) {
-      InboxItemKind.channel => (Icons.tag, colors.success),
-      InboxItemKind.dm => (Icons.chat_bubble_outline, colors.warning),
-      InboxItemKind.thread => (Icons.subdirectory_arrow_right, colors.primary),
-      InboxItemKind.unknown => (Icons.circle, colors.textTertiary),
+      ConversationProjectionKind.channel => (Icons.tag, colors.success),
+      ConversationProjectionKind.dm => (
+          Icons.chat_bubble_outline,
+          colors.warning
+        ),
+      ConversationProjectionKind.thread => (
+          Icons.subdirectory_arrow_right,
+          colors.primary
+        ),
     };
 
     return Container(

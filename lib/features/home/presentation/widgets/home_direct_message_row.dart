@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 
 enum _HomeDmAction { togglePin, hide, moveUp, moveDown }
@@ -176,17 +177,15 @@ class HomeDirectMessageRow extends StatelessWidget {
                         ],
                       ],
                     ),
-                    if (directMessage.lastMessagePreview != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        directMessage.lastMessagePreview!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: colors.textSecondary,
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      resolvePreviewText(directMessage.lastMessagePreview),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: colors.textSecondary,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),

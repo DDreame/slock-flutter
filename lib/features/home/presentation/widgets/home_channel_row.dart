@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 
 enum _HomeChannelAction { edit, delete, leave, togglePin, moveUp, moveDown }
 
@@ -72,17 +73,15 @@ class HomeChannelRow extends StatelessWidget {
                             hasUnread ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
-                    if (channel.lastMessagePreview != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        channel.lastMessagePreview!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: colors.textSecondary,
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      resolvePreviewText(channel.lastMessagePreview),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: colors.textSecondary,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
