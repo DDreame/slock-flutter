@@ -22,7 +22,7 @@ final inboxRealtimeRefreshBindingProvider = Provider<void>((ref) {
   final ingress = ref.watch(realtimeReductionIngressProvider);
   Timer? debounceTimer;
 
-  void scheduleRefresh() {
+  void scheduleRefresh(String reason) {
     final inboxState = ref.read(inboxStoreProvider);
     if (inboxState.status != InboxStatus.success) return;
 
@@ -30,24 +30,24 @@ final inboxRealtimeRefreshBindingProvider = Provider<void>((ref) {
     debounceTimer = Timer(
       const Duration(milliseconds: _refreshDebounceMs),
       () {
-        ref.read(inboxStoreProvider.notifier).refresh();
+        ref.read(inboxStoreProvider.notifier).refresh(reason: reason);
       },
     );
   }
 
-  void immediateRefresh() {
+  void immediateRefresh(String reason) {
     final inboxState = ref.read(inboxStoreProvider);
     if (inboxState.status != InboxStatus.success) return;
 
     debounceTimer?.cancel();
-    ref.read(inboxStoreProvider.notifier).refresh();
+    ref.read(inboxStoreProvider.notifier).refresh(reason: reason);
   }
 
   final subscription = ingress.acceptedEvents.listen((event) {
     if (event.eventType == 'message:new' || event.eventType == 'dm:new') {
-      scheduleRefresh();
+      scheduleRefresh('messageNew');
     } else if (event.eventType == 'connect') {
-      immediateRefresh();
+      immediateRefresh('reconnect');
     }
   });
 
@@ -57,7 +57,7 @@ final inboxRealtimeRefreshBindingProvider = Provider<void>((ref) {
     (previous, next) {
       if (next == AppLifecycleStatus.resumed &&
           previous != AppLifecycleStatus.resumed) {
-        immediateRefresh();
+        immediateRefresh('appResume');
       }
     },
   );
