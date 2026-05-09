@@ -104,8 +104,53 @@ class ConversationDetailStore
       outbox.unregisterDrainCallback(targetKey);
     });
 
-    final initialState = cachedSession?.toState(target) ??
+    var initialState = cachedSession?.toState(target) ??
         ConversationDetailState(target: target);
+
+    // Hydrate pending messages from the durable outbox.
+    // The outbox is the single source of truth for queued messages across
+    // page reopens and app restarts. Merge any outbox items for this target
+    // into the pending list, deduplicating by localId.
+    final outboxState = ref.read(outboxStoreProvider);
+    final outboxItems = outboxState.items[targetKey]?.where(
+          (m) => m.status == OutboxMessageStatus.pending,
+        ) ??
+        const [];
+    if (outboxItems.isNotEmpty) {
+      final existingLocalIds =
+          initialState.pendingMessages.map((m) => m.localId).toSet();
+      final hydrated = <PendingMessage>[
+        ...initialState.pendingMessages,
+        for (final item in outboxItems)
+          if (!existingLocalIds.contains(item.localId))
+            PendingMessage(
+              localId: item.localId,
+              content: item.content,
+              createdAt: item.createdAt,
+              replyToId: item.replyToId,
+              status: MessageSendStatus.queued,
+            ),
+      ];
+      if (hydrated.length != initialState.pendingMessages.length) {
+        initialState = initialState.copyWith(pendingMessages: hydrated);
+      }
+    }
+
+    // Remove stale session-persisted queued messages that the outbox already
+    // drained while this page was closed.
+    if (initialState.pendingMessages.isNotEmpty) {
+      final outboxLocalIds = outboxItems.map((m) => m.localId).toSet();
+      final pruned = initialState.pendingMessages.where((m) {
+        if (m.status == MessageSendStatus.queued) {
+          return outboxLocalIds.contains(m.localId);
+        }
+        return true; // keep non-queued (failed) messages as-is
+      }).toList();
+      if (pruned.length != initialState.pendingMessages.length) {
+        initialState = initialState.copyWith(pendingMessages: pruned);
+      }
+    }
+
     if (cachedSession != null) {
       Future.microtask(() => _refreshFromCache(target));
     }
@@ -485,8 +530,10 @@ class ConversationDetailStore
         return;
       }
 
-      // Success: cancel timeout, transition to sent, clear reply preview.
+      // Success: cancel timeout, remove from outbox (handles late-success
+      // after timeout race), transition to sent, clear reply preview.
       _cancelSendTimeout(localId);
+      ref.read(outboxStoreProvider.notifier).removeItem(target, localId);
       state = state.copyWith(
         pendingMessages: state.pendingMessages.map((m) {
           if (m.localId == localId) {
@@ -568,6 +615,16 @@ class ConversationDetailStore
       }).toList(),
     );
 
+    // Start send timeout (same as send()) for text-only retries.
+    if (pending.attachmentIds == null || pending.attachmentIds!.isEmpty) {
+      _startSendTimeout(
+        localId,
+        target,
+        pending.content,
+        replyToId: pending.replyToId,
+      );
+    }
+
     try {
       final repo = ref.read(conversationRepositoryProvider);
       final message = await repo.sendMessage(
@@ -580,7 +637,10 @@ class ConversationDetailStore
         return;
       }
 
-      // Success: transition to sent (do NOT add canonical to messages yet)
+      // Success: cancel timeout, remove from outbox (handles late-success
+      // after timeout race), transition to sent.
+      _cancelSendTimeout(localId);
+      ref.read(outboxStoreProvider.notifier).removeItem(target, localId);
       state = state.copyWith(
         pendingMessages: state.pendingMessages.map((m) {
           if (m.localId == localId) {
@@ -598,6 +658,7 @@ class ConversationDetailStore
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
+      _cancelSendTimeout(localId);
       if (failure.isRetryable &&
           (pending.attachmentIds == null || pending.attachmentIds!.isEmpty)) {
         // Retryable failure: hand off to outbox for automatic retry.
@@ -1207,8 +1268,14 @@ class ConversationDetailStore
     final currentTarget = ref.read(currentConversationDetailTargetProvider);
     if (currentTarget != target) return;
 
-    final hasPending = state.pendingMessages.any((m) => m.localId == localId);
-    if (!hasPending) return;
+    final pendingMsg =
+        state.pendingMessages.where((m) => m.localId == localId).firstOrNull;
+    if (pendingMsg == null) return;
+
+    // Skip if the original in-flight request already resolved this message
+    // (late-success-after-timeout race). The success path already removed
+    // the outbox entry, so this drain callback is a stale echo.
+    if (pendingMsg.status == MessageSendStatus.sent) return;
 
     if (serverMessage != null) {
       // Success: transition to sent, then schedule removal + canonical insert.
