@@ -2287,6 +2287,13 @@ void main() {
           ],
         );
 
+        // Keep the autoDispose provider alive across the fakeAsync
+        // timeline so Riverpod does not dispose it between timer ticks.
+        final sub = container.listen(
+          conversationDetailStoreProvider,
+          (_, __) {},
+        );
+
         // Load.
         container.read(conversationDetailStoreProvider.notifier).load();
         fake.flushMicrotasks();
@@ -2354,6 +2361,7 @@ void main() {
               'CancelledFailure after timeout must not change queued status',
         );
 
+        sub.close();
         container.dispose();
       });
     });
