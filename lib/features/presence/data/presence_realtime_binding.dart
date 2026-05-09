@@ -39,7 +39,7 @@ class PresenceRealtimeBinding {
       final userId = payload['userId'] as String?;
       if (userId == null || userId == currentUserId) return;
 
-      final presence = payload['presence'] as String?;
+      final presence = payload['status'] as String?;
       store.setPresence(userId, presence);
     });
   }

@@ -67,6 +67,8 @@ class HomeDirectMessageRow extends StatelessWidget {
                             'dm-presence-${directMessage.scopeId.routeParam}',
                           ),
                           userId: directMessage.peerId!,
+                          dotBorderColor:
+                              hasUnread ? colors.primaryLight : colors.surface,
                           child: CircleAvatar(
                             key: const ValueKey('dm-avatar'),
                             radius: 16,

@@ -40,7 +40,7 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
-          'presence': 'online',
+          'status': 'online',
         },
       ));
 
@@ -59,7 +59,7 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
-          'presence': 'idle',
+          'status': 'idle',
         },
       ));
 
@@ -79,7 +79,7 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
-          'presence': 'online',
+          'status': 'online',
         },
       ));
       await Future<void>.delayed(Duration.zero);
@@ -92,7 +92,7 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
-          'presence': 'offline',
+          'status': 'offline',
         },
       ));
       await Future<void>.delayed(Duration.zero);
@@ -112,7 +112,7 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'current-user',
-          'presence': 'online',
+          'status': 'online',
         },
       ));
 
@@ -131,7 +131,7 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
-          'presence': 'online',
+          'status': 'online',
         },
       ));
 
@@ -149,7 +149,7 @@ void main() {
         scopeKey: RealtimeEventEnvelope.globalScopeKey,
         receivedAt: DateTime.now(),
         payload: const {
-          'presence': 'online',
+          'status': 'online',
         },
       ));
 
@@ -169,7 +169,7 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
-          'presence': 'online',
+          'status': 'online',
         },
       ));
       await Future<void>.delayed(Duration.zero);
@@ -203,7 +203,7 @@ void main() {
         receivedAt: DateTime.now(),
         payload: const {
           'userId': 'user-2',
-          'presence': 'online',
+          'status': 'online',
         },
       ));
       await Future<void>.delayed(Duration.zero);

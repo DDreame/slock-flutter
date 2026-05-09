@@ -19,6 +19,7 @@ class PresenceAvatar extends ConsumerWidget {
     required this.child,
     this.dotSize = 10,
     this.dotBorderWidth = 2,
+    this.dotBorderColor,
     this.showDot = true,
   });
 
@@ -33,6 +34,10 @@ class PresenceAvatar extends ConsumerWidget {
 
   /// Width of the dot's border (matches the background).
   final double dotBorderWidth;
+
+  /// Explicit border color for the dot. When null, falls back to
+  /// [AppColors.surface] from the current theme.
+  final Color? dotBorderColor;
 
   /// Whether to show the dot at all.
   final bool showDot;
@@ -66,7 +71,7 @@ class PresenceAvatar extends ConsumerWidget {
                 color: dotColor,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: colors.surface,
+                  color: dotBorderColor ?? colors.surface,
                   width: dotBorderWidth,
                 ),
               ),
