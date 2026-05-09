@@ -40,6 +40,8 @@ import 'package:slock_app/features/voice/data/audio_player_service.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
+import 'package:slock_app/features/conversation/data/typing_realtime_binding.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
@@ -174,6 +176,13 @@ class _ConversationDetailScreenState
     final voiceState = ref.watch(voiceMessageStoreProvider);
     final isRecording =
         voiceState.recordingState == VoiceRecorderState.recording;
+
+    // Initialize typing realtime binding — auto-binds/disposes via provider.
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final typingScopeKey =
+        'server:${target.serverId.value}/${target.surface == ConversationSurface.channel ? 'channel' : 'dm'}:${target.conversationId}';
+    ref.watch(typingRealtimeBindingProvider(typingScopeKey));
+
     if (_composerController.text != state.draft) {
       _composerController.value = TextEditingValue(
         text: state.draft,
@@ -306,14 +315,21 @@ class _ConversationDetailScreenState
             },
           ),
           if (state.status == ConversationDetailStatus.success)
+            const TypingIndicatorWidget(),
+          if (state.status == ConversationDetailStatus.success)
             _ConversationComposer(
               controller: _composerController,
               focusNode: _composerFocusNode,
               state: state,
               isRecording: isRecording,
-              onChanged: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .updateDraft,
+              onChanged: (value) {
+                ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .updateDraft(value);
+                if (value.trim().isNotEmpty) {
+                  _emitTyping();
+                }
+              },
               onSend: _handleSend,
               onPickAttachment: ref
                   .read(conversationDetailStoreProvider.notifier)
@@ -345,6 +361,13 @@ class _ConversationDetailScreenState
       _composerController.clear();
       _composerFocusNode.unfocus();
     }
+  }
+
+  void _emitTyping() {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    final typingScopeKey =
+        'server:${target.serverId.value}/${target.surface == ConversationSurface.channel ? 'channel' : 'dm'}:${target.conversationId}';
+    ref.read(typingRealtimeBindingProvider(typingScopeKey)).emitTyping();
   }
 
   Future<void> _captureAndAnnotate() async {
