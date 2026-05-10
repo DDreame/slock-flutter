@@ -14,8 +14,8 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 
 /// DMs tab — extracts the DM list from [HomePage].
 ///
@@ -36,8 +36,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
-    final unreadState = ref.watch(channelUnreadStoreProvider);
-    final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
+    final unreadState = ref.watch(unreadSourceProjectionProvider);
     final l10n = context.l10n;
 
     return Scaffold(
@@ -70,7 +69,6 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
               state: state,
               homeStore: homeStore,
               unreadState: unreadState,
-              unreadStore: unreadStore,
               l10n: l10n,
             ),
           ),
@@ -81,8 +79,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   Widget _buildDmList({
     required HomeListState state,
     required HomeListStore homeStore,
-    required ChannelUnreadState unreadState,
-    required ChannelUnreadStore unreadStore,
+    required UnreadSourceProjectionState unreadState,
     required AppLocalizations l10n,
   }) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -145,7 +142,6 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             _buildHiddenDmsTile(
               state: state,
               homeStore: homeStore,
-              unreadStore: unreadStore,
               l10n: l10n,
             ),
           Padding(
@@ -194,13 +190,11 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             isAgent: dm.isAgent || allAgentNames.contains(dm.title),
             homeStore: homeStore,
             unreadState: unreadState,
-            unreadStore: unreadStore,
           ),
         if (state.hiddenDirectMessages.isNotEmpty && _searchQuery.isEmpty)
           _buildHiddenDmsTile(
             state: state,
             homeStore: homeStore,
-            unreadStore: unreadStore,
             l10n: l10n,
           ),
       ],
@@ -240,8 +234,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     required bool isOnline,
     required bool isAgent,
     required HomeListStore homeStore,
-    required ChannelUnreadState unreadState,
-    required ChannelUnreadStore unreadStore,
+    required UnreadSourceProjectionState unreadState,
   }) {
     final unreadCount = unreadState.dmUnreadCount(dm.scopeId);
 
@@ -261,8 +254,12 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
         isOnline: isOnline,
         isAgent: isAgent,
         onTap: () {
-          ref.read(markDmReadUseCaseProvider)(dm.scopeId);
           context.push(homeStore.directMessageRoutePath(dm.scopeId));
+          // Deferred mark-read: brief delay before clearing unread
+          // so the user sees the conversation before the count drops.
+          Future.delayed(const Duration(seconds: 1), () {
+            ref.read(markDmReadUseCaseProvider)(dm.scopeId);
+          });
         },
         onTogglePin: () => isPinned
             ? homeStore.unpinDirectMessage(dm.scopeId)
@@ -275,7 +272,6 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   Widget _buildHiddenDmsTile({
     required HomeListState state,
     required HomeListStore homeStore,
-    required ChannelUnreadStore unreadStore,
     required AppLocalizations l10n,
   }) {
     return ListTile(
@@ -286,13 +282,12 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
           state.hiddenDirectMessages.length,
         ),
       ),
-      onTap: () => _showHiddenDmsSheet(homeStore, unreadStore),
+      onTap: () => _showHiddenDmsSheet(homeStore),
     );
   }
 
   void _showHiddenDmsSheet(
     HomeListStore homeStore,
-    ChannelUnreadStore unreadStore,
   ) {
     showModalBottomSheet<void>(
       context: context,

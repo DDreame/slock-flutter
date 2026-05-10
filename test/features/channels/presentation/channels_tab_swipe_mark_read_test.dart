@@ -14,6 +14,9 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/application/inbox_state.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -22,7 +25,15 @@ import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
+
+/// Fake InboxStore that returns a fixed state.
+class _SeedableInboxStore extends InboxStore {
+  _SeedableInboxStore(this._initial);
+  final InboxState _initial;
+
+  @override
+  InboxState build() => _initial;
+}
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -43,9 +54,23 @@ void main() {
     directMessages: [],
   );
 
+  /// InboxState that makes 'general' channel unread.
+  InboxState inboxWithGeneralUnread(int count) => InboxState(
+        status: InboxStatus.success,
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'general',
+            channelName: 'general',
+            preview: 'Hello',
+            unreadCount: count,
+          ),
+        ],
+      );
+
   Widget buildApp({
     required HomeRepository homeRepository,
-    List<ChannelScopeId> markedRead = const [],
+    InboxState? inboxState,
     void Function(ChannelScopeId)? onMarkRead,
   }) {
     final router = GoRouter(
@@ -88,6 +113,10 @@ void main() {
         markChannelReadUseCaseProvider.overrideWithValue(
           (scopeId) => onMarkRead?.call(scopeId),
         ),
+        if (inboxState != null)
+          inboxStoreProvider.overrideWith(
+            () => _SeedableInboxStore(inboxState),
+          ),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -106,17 +135,9 @@ void main() {
 
       await tester.pumpWidget(buildApp(
         homeRepository: const _FakeHomeRepository(snapshot),
+        inboxState: inboxWithGeneralUnread(3),
         onMarkRead: (scopeId) => markedReadScopeId = scopeId,
       ));
-      await tester.pumpAndSettle();
-
-      // Inject unread count for 'general' channel.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(ChannelsTabPage)),
-      );
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .setChannelUnreadCount(channelGeneral.scopeId, 3);
       await tester.pumpAndSettle();
 
       // Fling left to exceed dismiss threshold.
@@ -133,17 +154,9 @@ void main() {
     testWidgets('channel row stays visible after swipe', (tester) async {
       await tester.pumpWidget(buildApp(
         homeRepository: const _FakeHomeRepository(snapshot),
+        inboxState: inboxWithGeneralUnread(5),
         onMarkRead: (_) {},
       ));
-      await tester.pumpAndSettle();
-
-      // Inject unread count.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(ChannelsTabPage)),
-      );
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .setChannelUnreadCount(channelGeneral.scopeId, 5);
       await tester.pumpAndSettle();
 
       // Fling left.
@@ -168,6 +181,7 @@ void main() {
 
       await tester.pumpWidget(buildApp(
         homeRepository: const _FakeHomeRepository(snapshot),
+        // No inbox override — 'general' has no unread.
         onMarkRead: (scopeId) => markedReadScopeId = scopeId,
       ));
       await tester.pumpAndSettle();
@@ -186,17 +200,9 @@ void main() {
     testWidgets('SwipeToMarkRead wraps unread channel row', (tester) async {
       await tester.pumpWidget(buildApp(
         homeRepository: const _FakeHomeRepository(snapshot),
+        inboxState: inboxWithGeneralUnread(2),
         onMarkRead: (_) {},
       ));
-      await tester.pumpAndSettle();
-
-      // Inject unread count.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(ChannelsTabPage)),
-      );
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .setChannelUnreadCount(channelGeneral.scopeId, 2);
       await tester.pumpAndSettle();
 
       // The Dismissible wrapper should be present for the unread channel.

@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 /// Full-screen unread list page.
@@ -42,14 +42,9 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
     final inboxState = ref.watch(inboxStoreProvider);
-    final serverId = ref.watch(activeServerScopeIdProvider);
-
-    final items = serverId != null
-        ? projectInboxItems(
-            inboxState.items.where((item) => item.unreadCount > 0).toList(),
-            serverId: serverId,
-          )
-        : <ConversationProjection>[];
+    final projectionState = ref.watch(unreadSourceProjectionProvider);
+    final items = projectionState.visibleSources;
+    final hiddenItems = projectionState.hiddenSources;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -68,7 +63,7 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
           ),
         ],
       ),
-      body: _buildBody(colors, l10n, inboxState, items),
+      body: _buildBody(colors, l10n, inboxState, items, hiddenItems),
     );
   }
 
@@ -77,15 +72,18 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
     AppLocalizations l10n,
     InboxState inboxState,
     List<ConversationProjection> items,
+    List<ConversationProjection> hiddenItems,
   ) {
-    if (inboxState.status == InboxStatus.loading && items.isEmpty) {
+    if (inboxState.status == InboxStatus.loading &&
+        items.isEmpty &&
+        hiddenItems.isEmpty) {
       return const Center(
         key: ValueKey('unread-list-loading'),
         child: CircularProgressIndicator(),
       );
     }
 
-    if (items.isEmpty) {
+    if (items.isEmpty && hiddenItems.isEmpty) {
       return Center(
         key: const ValueKey('unread-list-empty'),
         child: Column(
@@ -108,6 +106,15 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
       );
     }
 
+    // Combine visible items, optional hidden-sources header, and hidden items
+    // into a single index space for the list builder.
+    final hasHiddenSection = hiddenItems.isNotEmpty;
+    final visibleCount = items.length;
+    final hiddenHeaderIndex = hasHiddenSection ? visibleCount : -1;
+    final hiddenStart = hasHiddenSection ? visibleCount + 1 : visibleCount;
+    final totalCount =
+        visibleCount + (hasHiddenSection ? 1 + hiddenItems.length : 0);
+
     return RefreshIndicator(
       onRefresh: () => ref.read(inboxStoreProvider.notifier).refresh(),
       child: NotificationListener<ScrollNotification>(
@@ -122,21 +129,59 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
         child: ListView.builder(
           key: const ValueKey('unread-list-view'),
           padding: const EdgeInsets.all(AppSpacing.md),
-          itemCount: items.length + (inboxState.hasMore ? 1 : 0),
+          itemCount: totalCount + (inboxState.hasMore ? 1 : 0),
           itemBuilder: (context, index) {
-            if (index >= items.length) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.md),
-                  child: CircularProgressIndicator(strokeWidth: 2),
+            // Visible sources.
+            if (index < visibleCount) {
+              return _UnreadListRow(
+                key: ValueKey('unread-list-item-${items[index].id}'),
+                item: items[index],
+                colors: colors,
+              );
+            }
+
+            // Hidden-sources section header.
+            if (index == hiddenHeaderIndex) {
+              return Padding(
+                key: const ValueKey('unread-hidden-header'),
+                padding: const EdgeInsets.fromLTRB(
+                  0,
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.sm,
+                ),
+                child: Text(
+                  'Other unread sources',
+                  style: AppTypography.label.copyWith(
+                    color: colors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               );
             }
-            final item = items[index];
-            return _UnreadListRow(
-              key: ValueKey('unread-list-item-${item.id}'),
-              item: item,
-              colors: colors,
+
+            // Hidden-source rows.
+            if (index >= hiddenStart &&
+                index < hiddenStart + hiddenItems.length) {
+              final hiddenIndex = index - hiddenStart;
+              return Opacity(
+                opacity: 0.7,
+                child: _UnreadListRow(
+                  key: ValueKey(
+                    'unread-hidden-item-${hiddenItems[hiddenIndex].id}',
+                  ),
+                  item: hiddenItems[hiddenIndex],
+                  colors: colors,
+                ),
+              );
+            }
+
+            // Load-more indicator.
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.md),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             );
           },
         ),

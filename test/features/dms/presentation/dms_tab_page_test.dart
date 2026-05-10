@@ -334,6 +334,8 @@ void main() {
       find.byKey(const ValueKey('dms-tab-dm-alice')),
     );
     await tester.pumpAndSettle();
+    // Elapse the deferred mark-read timer (1 second post-navigation).
+    await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('dm:server-1/dm-alice'), findsOneWidget);
   });

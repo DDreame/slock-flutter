@@ -4,11 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
-import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 
 /// Full-screen inbox page.
 ///
@@ -133,10 +133,7 @@ class _InboxPageState extends ConsumerState<InboxPage> {
       );
     }
 
-    final serverId = ref.read(activeServerScopeIdProvider);
-    final projections = serverId != null
-        ? projectInboxItems(inboxState.items, serverId: serverId)
-        : <ConversationProjection>[];
+    final projections = ref.watch(inboxProjectionProvider);
 
     return Column(
       children: [

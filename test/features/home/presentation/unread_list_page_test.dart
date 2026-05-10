@@ -32,17 +32,29 @@ void main() {
     testWidgets(
       'shows all items without 5-item cap',
       (tester) async {
-        // Create 8 thread inbox items with unread > 0
+        // Snapshot with 8 visible channels matching inbox items.
+        final eightChannelSnapshot = HomeWorkspaceSnapshot(
+          serverId: const ServerScopeId('server-1'),
+          channels: List.generate(
+            8,
+            (i) => HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: const ServerScopeId('server-1'),
+                value: 'ulp-ch-$i',
+              ),
+              name: 'Channel $i',
+            ),
+          ),
+          directMessages: const [],
+        );
+
+        // Create 8 channel inbox items with unread > 0
         final items = List.generate(
           8,
           (i) => InboxItem(
-            kind: InboxItemKind.thread,
-            channelId: 'ulp-msg-$i',
-            threadChannelId: 'ulp-msg-$i',
-            parentChannelId: 'general',
-            parentMessageId: 'ulp-msg-$i',
-            channelName: 'general',
-            threadTitle: 'Thread $i',
+            kind: InboxItemKind.channel,
+            channelId: 'ulp-ch-$i',
+            channelName: 'Channel $i',
             unreadCount: 1,
           ),
         );
@@ -69,7 +81,7 @@ void main() {
                 _ConfigurableInboxRepository(items: items),
               ),
               homeRepositoryProvider.overrideWithValue(
-                const _FakeHomeRepository(_snapshot),
+                _FakeHomeRepository(eightChannelSnapshot),
               ),
               serverListRepositoryProvider.overrideWithValue(
                 const _FakeServerListRepository([]),
@@ -110,7 +122,7 @@ void main() {
         for (var i = 0; i < 8; i++) {
           expect(
             find.byKey(
-              ValueKey('unread-list-item-thread:ulp-msg-$i'),
+              ValueKey('unread-list-item-channel:ulp-ch-$i'),
             ),
             findsOneWidget,
             reason: 'Item $i should be visible '
@@ -190,13 +202,10 @@ void main() {
       (tester) async {
         final items = [
           const InboxItem(
-            kind: InboxItemKind.thread,
-            channelId: 'agg-msg',
-            threadChannelId: 'agg-msg',
-            parentChannelId: 'general',
-            parentMessageId: 'agg-msg',
+            kind: InboxItemKind.channel,
+            channelId: 'general',
             channelName: 'general',
-            threadTitle: 'Thread topic',
+            preview: 'Latest message',
             unreadCount: 3,
           ),
         ];
@@ -254,7 +263,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Thread source label should be parent channel only (Z2 spec)
+        // Channel source label should show "#general"
         expect(
           find.text('#general'),
           findsOneWidget,
