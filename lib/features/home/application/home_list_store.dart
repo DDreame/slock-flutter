@@ -75,6 +75,7 @@ class HomeListStore extends Notifier<HomeListState> {
     _allAgents = const [];
     _taskCount = 0;
     _taskItems = const [];
+    _taskLoadFailure = null;
     _machineCount = 0;
     _threadCount = 0;
     _threadItems = const [];
@@ -108,11 +109,13 @@ class HomeListStore extends Notifier<HomeListState> {
 
     // Reset per-load-cycle state so retries start clean.
     _realtimePreviewIds.clear();
+    _taskLoadFailure = null;
 
     state = state.copyWith(
       serverScopeId: serverScopeId,
       status: HomeListStatus.loading,
       clearFailure: true,
+      clearTaskLoadFailure: true,
     );
 
     final repo = ref.read(homeRepositoryProvider);
