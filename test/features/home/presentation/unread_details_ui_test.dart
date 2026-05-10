@@ -243,7 +243,7 @@ void main() {
   });
 
   group('Z2 three-line unread UI rendering', () {
-    testWidgets('thread item renders type pill with THREAD label',
+    testWidgets('thread item is excluded from Home unread card (hidden source)',
         (tester) async {
       await _pumpHomeWithInboxItems(
         tester,
@@ -263,15 +263,16 @@ void main() {
         ],
       );
 
+      // Threads are hidden sources — not rendered on Home unread card.
       expect(
         find.byKey(const ValueKey('unread-pill-thread:th-1')),
-        findsOneWidget,
-        reason: 'Thread item should have a type pill',
+        findsNothing,
+        reason: 'Thread items should be excluded from Home card',
       );
       expect(
         find.text('THREAD'),
-        findsOneWidget,
-        reason: 'Thread type pill should say THREAD',
+        findsNothing,
+        reason: 'No THREAD pill on Home card under hidden-thread contract',
       );
     });
 
@@ -464,16 +465,6 @@ void main() {
         tester,
         items: const [
           InboxItem(
-            kind: InboxItemKind.thread,
-            channelId: 'th-glyph',
-            threadChannelId: 'th-glyph',
-            parentChannelId: 'general',
-            parentMessageId: 'msg-g',
-            channelName: 'general',
-            threadTitle: 'Test',
-            unreadCount: 1,
-          ),
-          InboxItem(
             kind: InboxItemKind.channel,
             channelId: 'ch-glyph',
             channelName: 'channel-x',
@@ -488,11 +479,7 @@ void main() {
         ],
       );
 
-      expect(
-        find.byKey(const ValueKey('unread-kind-thread')),
-        findsOneWidget,
-        reason: 'Thread glyph badge should be present',
-      );
+      // Only channel and DM glyphs render (threads are hidden sources).
       expect(
         find.byKey(const ValueKey('unread-kind-channel')),
         findsOneWidget,
@@ -505,7 +492,7 @@ void main() {
       );
     });
 
-    testWidgets('thread pill/badge uses purple (primary) color',
+    testWidgets('thread pill is not rendered on Home card (hidden source)',
         (tester) async {
       await _pumpHomeWithInboxItems(
         tester,
@@ -523,26 +510,11 @@ void main() {
         ],
       );
 
-      // Thread pill color should be purple (AppColors.light.primary = 0xFF6366F1)
-      final pillFinder =
-          find.byKey(const ValueKey('unread-pill-thread:th-color'));
-      final pillContainer = tester.widget<Container>(pillFinder);
-      final pillDecoration = pillContainer.decoration! as BoxDecoration;
-      // The pill background uses primary.withValues(alpha: 0.12)
+      // Thread is a hidden source — pill not rendered on Home card.
       expect(
-        pillDecoration.color!.r,
-        closeTo(const Color(0xFF6366F1).r, 0.01),
-        reason: 'Thread pill should use primary (purple) color channel',
-      );
-
-      // Kind badge
-      final badgeFinder = find.byKey(const ValueKey('unread-kind-thread'));
-      final badgeContainer = tester.widget<Container>(badgeFinder);
-      final badgeDecoration = badgeContainer.decoration! as BoxDecoration;
-      expect(
-        badgeDecoration.color!.r,
-        closeTo(const Color(0xFF6366F1).r, 0.01),
-        reason: 'Thread badge should use primary (purple)',
+        find.byKey(const ValueKey('unread-pill-thread:th-color')),
+        findsNothing,
+        reason: 'Thread pill should not appear on Home card',
       );
     });
 
@@ -640,7 +612,7 @@ void main() {
     });
 
     testWidgets(
-        'thread source label does NOT duplicate title on line 1 and line 2',
+        'thread source and title are not rendered on Home card (hidden source)',
         (tester) async {
       await _pumpHomeWithInboxItems(
         tester,
@@ -658,20 +630,17 @@ void main() {
         ],
       );
 
-      // Source label (line 1) should be just "#general" (source only)
-      final sourceWidget = tester.widget<Text>(
+      // Thread is a hidden source — not rendered on Home card.
+      expect(
         find.byKey(const ValueKey('unread-source-thread:th-dup')),
+        findsNothing,
+        reason: 'Thread source label should not appear on Home card',
       );
-      expect(sourceWidget.data, '#general',
-          reason: 'Thread source should be just parent channel name');
-      expect(sourceWidget.data, isNot(contains('My Thread Title')),
-          reason: 'Thread source should NOT contain the thread title');
-
-      // Title (line 2) should be the thread title
-      final titleWidget = tester.widget<Text>(
+      expect(
         find.byKey(const ValueKey('unread-title-thread:th-dup')),
+        findsNothing,
+        reason: 'Thread title should not appear on Home card',
       );
-      expect(titleWidget.data, 'My Thread Title');
     });
   });
 }
@@ -682,8 +651,73 @@ void main() {
 
 const _unreadSnapshot = HomeWorkspaceSnapshot(
   serverId: ServerScopeId('server-1'),
-  channels: [],
-  directMessages: [],
+  channels: [
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+      name: 'general',
+    ),
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'announcements',
+      ),
+      name: 'announcements',
+    ),
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'random',
+      ),
+      name: 'random',
+    ),
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'empty',
+      ),
+      name: 'empty',
+    ),
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'ch-color',
+      ),
+      name: 'teal-test',
+    ),
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'ch-glyph',
+      ),
+      name: 'channel-x',
+    ),
+  ],
+  directMessages: [
+    HomeDirectMessageSummary(
+      scopeId: DirectMessageScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'dm-1',
+      ),
+      title: 'Dave',
+    ),
+    HomeDirectMessageSummary(
+      scopeId: DirectMessageScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'dm-color',
+      ),
+      title: 'Blue Test',
+    ),
+    HomeDirectMessageSummary(
+      scopeId: DirectMessageScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'dm-glyph',
+      ),
+      title: 'Frank',
+    ),
+  ],
 );
 
 GoRouter _buildRouter() {
