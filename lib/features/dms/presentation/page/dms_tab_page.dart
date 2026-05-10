@@ -7,7 +7,6 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
-import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/persisted_agent_names.dart';
@@ -35,11 +34,6 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Keep the admin realtime binding alive while this tab is visible,
-    // so channel:updated / server:membership-removed events continue
-    // flowing even when the user is not on the Home tab.
-    ref.watch(homeAdminRealtimeBindingProvider);
-
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final unreadState = ref.watch(channelUnreadStoreProvider);

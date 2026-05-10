@@ -141,6 +141,7 @@ class SlockApp extends ConsumerWidget {
     ref.watch(backgroundWorkerAuthBindingProvider);
     ref.watch(biometricLockLifecycleBindingProvider);
     ref.watch(presenceRealtimeBindingProvider);
+    ref.watch(domainRuntimeEventRouterProvider);
     final themeState = ref.watch(themeModeStoreProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(

@@ -10,14 +10,12 @@ import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agent_machine_group.dart';
 import 'package:slock_app/features/agents/application/agents_fold_state.dart';
-import 'package:slock_app/features/agents/application/agents_realtime_binding.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/presentation/widget/agent_form_dialog.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
-import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -41,11 +39,6 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Keep the admin realtime binding alive while this tab is visible,
-    // so channel:updated / server:membership-removed events continue
-    // flowing even when the user is not on the Home tab.
-    ref.watch(homeAdminRealtimeBindingProvider);
-    ref.watch(agentsRealtimeBindingProvider);
     final state = ref.watch(agentsStoreProvider);
 
     if (widget.agentId != null) {
