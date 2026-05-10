@@ -112,7 +112,7 @@ void main() {
         tester.element(find.byKey(const ValueKey('unread-badge'))),
       );
       await container.read(homeListStoreProvider.notifier).load();
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // Push a message:new event through the ingress.
       ingress.accept(RealtimeEventEnvelope(
