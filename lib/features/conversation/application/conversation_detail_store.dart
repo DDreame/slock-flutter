@@ -460,13 +460,13 @@ class ConversationDetailStore
         clearSendFailure: true,
       );
 
-      // Update Home sidebar preview to "正在发送..." for queued messages
-      // so the user sees the pending state on the home screen.
+      // Update Home sidebar preview to "未发送，点击重试" for queued messages
+      // (PM groups queued+failed under the same semantic preview).
       _updateHomeSidebarPreview(
         target: target,
         content: content,
         localId: localId,
-        sendState: MessageSendState.sending,
+        sendState: MessageSendState.failed,
       );
 
       // Enqueue in the outbox for later drain.
@@ -674,6 +674,15 @@ class ConversationDetailStore
           }).toList(),
         );
         _persistSession();
+
+        // Update Home sidebar to "未发送，点击重试" — PM groups
+        // queued+failed under the same semantic preview.
+        _updateHomeSidebarPreview(
+          target: target,
+          content: content,
+          localId: localId,
+          sendState: MessageSendState.failed,
+        );
       } else {
         // Non-retryable or has attachments: mark as failed for manual retry.
         state = state.copyWith(
@@ -805,6 +814,15 @@ class ConversationDetailStore
           }).toList(),
         );
         _persistSession();
+
+        // Update Home sidebar to "未发送，点击重试" — PM groups
+        // queued+failed under the same semantic preview.
+        _updateHomeSidebarPreview(
+          target: target,
+          content: pending.content,
+          localId: localId,
+          sendState: MessageSendState.failed,
+        );
       } else {
         state = state.copyWith(
           pendingMessages: state.pendingMessages.map((m) {
@@ -1429,6 +1447,15 @@ class ConversationDetailStore
         }).toList(),
       );
       _persistSession();
+
+      // Update Home sidebar to "未发送，点击重试" — PM groups
+      // queued+failed under the same semantic preview.
+      _updateHomeSidebarPreview(
+        target: target,
+        content: content,
+        localId: localId,
+        sendState: MessageSendState.failed,
+      );
     });
   }
 
@@ -1487,6 +1514,14 @@ class ConversationDetailStore
         }).toList(),
       );
       _persistSession();
+
+      // Update Home sidebar to "未发送，点击重试" on outbox drain failure.
+      _updateHomeSidebarPreview(
+        target: target,
+        content: pendingMsg.content,
+        localId: localId,
+        sendState: MessageSendState.failed,
+      );
     }
   }
 
