@@ -130,7 +130,9 @@ void main() {
         },
       ));
 
-      // Allow the event to propagate.
+      // Allow the async broadcast stream to deliver the event (microtask)
+      // and then pump the widget tree to trigger rebuild.
+      await Future<void>.delayed(Duration.zero);
       await tester.pump();
 
       // Badge should now show unread 1.

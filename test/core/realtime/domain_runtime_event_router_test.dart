@@ -385,18 +385,56 @@ void main() {
           serverId: serverId,
           value: 'ch-1',
         );
-        container = createContainer(
+
+        // Use a delayed home repository so the auto-load triggered by
+        // HomeListStore.build() blocks until we explicitly complete it.
+        // This prevents the race where the microtask auto-load resolves
+        // instantly, putting the store in success state before the event
+        // is pushed.
+        final delayedRepo = _DelayedHomeRepository(
           channels: const [
             HomeChannelSummary(
               scopeId: channelScopeId,
               name: 'general',
             ),
           ],
-          sessionUserId: 'user-other',
         );
-        addTearDown(container.dispose);
+        container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(serverId),
+            realtimeReductionIngressProvider.overrideWithValue(ingress),
+            realtimeSocketClientProvider.overrideWithValue(socket),
+            homeRepositoryProvider.overrideWithValue(delayedRepo),
+            sidebarOrderRepositoryProvider
+                .overrideWithValue(const _FakeSidebarOrderRepository()),
+            agentsRepositoryProvider
+                .overrideWithValue(_TrackingAgentsRepository()),
+            tasksRepositoryProvider
+                .overrideWithValue(const _FakeTasksRepository()),
+            threadRepositoryProvider
+                .overrideWithValue(const _FakeThreadRepository()),
+            homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+            serverListRepositoryProvider.overrideWithValue(
+              _TrackingServerListRepository(const []),
+            ),
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            crashReporterProvider.overrideWithValue(NoOpCrashReporter()),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            inboxRepositoryProvider
+                .overrideWithValue(_TrackingInboxRepository()),
+            sessionStoreProvider.overrideWith(
+              () => _PresetSessionStore('user-other'),
+            ),
+          ],
+        );
+        addTearDown(() {
+          delayedRepo.complete();
+          container.dispose();
+        });
 
-        // Activate router BEFORE home load (status is not success yet).
+        // Activate router — HomeListStore.build() fires auto-load, but it
+        // blocks on the delayed repo (store stays in loading/initial).
         container.read(domainRuntimeEventRouterProvider);
 
         pushEvent('message:new', payload: {
@@ -410,7 +448,7 @@ void main() {
         });
         await Future<void>.delayed(Duration.zero);
 
-        // Unread should still be 0 (message queued).
+        // Unread should still be 0 (message queued, home not yet success).
         expect(
           container
               .read(channelUnreadStoreProvider)
@@ -418,8 +456,9 @@ void main() {
           0,
         );
 
-        // Now trigger success — pending queue drains.
-        await container.read(homeListStoreProvider.notifier).load();
+        // Complete the delayed load — store reaches success, queue drains.
+        delayedRepo.complete();
+        await Future<void>.delayed(Duration.zero);
         await Future<void>.delayed(Duration.zero);
 
         expect(
@@ -563,10 +602,42 @@ void main() {
       });
 
       test('dm:new buffers before success and replays after', () async {
-        container = createContainer();
-        addTearDown(container.dispose);
+        // Use a delayed home repository to prevent HomeListStore's
+        // auto-load microtask from reaching success state before
+        // the event is pushed.
+        final delayedRepo = _DelayedHomeRepository();
+        container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider.overrideWithValue(serverId),
+            realtimeReductionIngressProvider.overrideWithValue(ingress),
+            realtimeSocketClientProvider.overrideWithValue(socket),
+            homeRepositoryProvider.overrideWithValue(delayedRepo),
+            sidebarOrderRepositoryProvider
+                .overrideWithValue(const _FakeSidebarOrderRepository()),
+            agentsRepositoryProvider
+                .overrideWithValue(_TrackingAgentsRepository()),
+            tasksRepositoryProvider
+                .overrideWithValue(const _FakeTasksRepository()),
+            threadRepositoryProvider
+                .overrideWithValue(const _FakeThreadRepository()),
+            homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+            serverListRepositoryProvider.overrideWithValue(
+              _TrackingServerListRepository(const []),
+            ),
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            crashReporterProvider.overrideWithValue(NoOpCrashReporter()),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            inboxRepositoryProvider
+                .overrideWithValue(_TrackingInboxRepository()),
+          ],
+        );
+        addTearDown(() {
+          delayedRepo.complete();
+          container.dispose();
+        });
 
-        // Activate router BEFORE home is loaded.
+        // Activate router BEFORE home reaches success.
         container.read(domainRuntimeEventRouterProvider);
 
         pushEvent('dm:new', payload: {
@@ -577,15 +648,16 @@ void main() {
 
         // Socket join should happen immediately.
         expect(socket.emittedEvents, contains(('join:channel', 'dm-buffered')));
-        // But persistence should NOT happen yet.
-        expect(homeRepo.persistDmSummaryCalls, 0);
+        // But persistence should NOT happen yet (home still loading).
+        expect(delayedRepo.persistDmSummaryCalls, 0);
 
-        // Load home to reach success.
-        await container.read(homeListStoreProvider.notifier).load();
+        // Complete the delayed load — store reaches success, buffer replays.
+        delayedRepo.complete();
         await Future<void>.delayed(Duration.zero);
         await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-        expect(homeRepo.persistDmSummaryCalls, 1,
+        expect(delayedRepo.persistDmSummaryCalls, 1,
             reason: 'Buffered DM should replay after home success');
       });
     });
@@ -1136,7 +1208,13 @@ class _TrackingHomeRepository implements HomeRepository {
 }
 
 class _DelayedHomeRepository implements HomeRepository {
+  _DelayedHomeRepository({
+    this.channels = const [],
+  });
+
   final _completer = Completer<void>();
+  final List<HomeChannelSummary> channels;
+  int persistDmSummaryCalls = 0;
 
   void complete() {
     if (!_completer.isCompleted) _completer.complete();
@@ -1154,7 +1232,7 @@ class _DelayedHomeRepository implements HomeRepository {
     await _completer.future;
     return HomeWorkspaceSnapshot(
       serverId: serverId,
-      channels: const [],
+      channels: channels,
       directMessages: const [],
     );
   }
@@ -1163,6 +1241,7 @@ class _DelayedHomeRepository implements HomeRepository {
   Future<HomeDirectMessageSummary> persistDirectMessageSummary(
     HomeDirectMessageSummary summary,
   ) async {
+    persistDmSummaryCalls++;
     return summary;
   }
 

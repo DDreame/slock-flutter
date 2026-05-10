@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agents_realtime_binding.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
@@ -308,10 +309,20 @@ void main() {
               sharedPreferencesProvider.overrideWithValue(prefs),
               realtimeReductionIngressProvider.overrideWithValue(ingress),
             ],
-            child: MaterialApp(
-                theme: AppTheme.light,
-                home: const TickerMode(
-                    enabled: false, child: AgentsPage(agentId: 'agent-1'))),
+            child: Consumer(
+              builder: (context, ref, child) {
+                // Activate the agent realtime binding so agent:activity
+                // events from the ingress update the agents store.
+                // In production this is handled by the root-mounted
+                // domainRuntimeEventRouterProvider in main.dart.
+                ref.watch(agentsRealtimeBindingProvider);
+                return child!;
+              },
+              child: MaterialApp(
+                  theme: AppTheme.light,
+                  home: const TickerMode(
+                      enabled: false, child: AgentsPage(agentId: 'agent-1'))),
+            ),
           ),
         );
 
