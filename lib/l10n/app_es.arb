@@ -103,6 +103,7 @@
   "homeCardTasks": "TAREAS",
   "homeCardTasksSubtitle": "tareas totales",
   "homeCardTasksEmpty": "Sin tareas activas",
+  "homeCardTasksUnavailable": "Tareas no disponibles",
   "homeCardTasksOverflow": "+{count} más",
   "homeCardTasksInProgress": "En progreso",
   "homeCardTasksTodo": "Pendiente",

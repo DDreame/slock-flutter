@@ -782,6 +782,199 @@ void main() {
       expect(ch.lastMessageId, 'msg-cached');
     },
   );
+
+  group('task load failure diagnostic', () {
+    test('task 500 surfaces taskLoadFailure in state instead of silent empty',
+        () async {
+      const failure = ServerFailure(
+        message: 'Internal server error',
+        statusCode: 500,
+      );
+      final repository = _FakeHomeRepository(
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [],
+          directMessages: [],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(const _FakeAgentsRepository()),
+          tasksRepositoryProvider
+              .overrideWithValue(_FailingTasksRepository(failure)),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+
+      // Wait for supplemental Tier-2 to complete.
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.status, HomeListStatus.success,
+          reason: 'Tier 1 succeeds; task failure is supplemental');
+      expect(state.taskItems, isEmpty,
+          reason: 'Failed task load returns empty list');
+      expect(state.taskCount, 0);
+      expect(state.taskLoadFailure, isNotNull,
+          reason: 'Task failure must be surfaced, not swallowed');
+      expect(state.taskLoadFailure, isA<ServerFailure>());
+      expect((state.taskLoadFailure as ServerFailure).statusCode, 500);
+    });
+
+    test('successful task load clears taskLoadFailure', () async {
+      const failure = ServerFailure(
+        message: 'Internal server error',
+        statusCode: 500,
+      );
+      final repository = _FakeHomeRepository(
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [],
+          directMessages: [],
+        ),
+      );
+      final tasksRepo = _FailingTasksRepository(failure);
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(const _FakeAgentsRepository()),
+          tasksRepositoryProvider.overrideWithValue(tasksRepo),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // First load — tasks fail.
+      await container.read(homeListStoreProvider.notifier).load();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        container.read(homeListStoreProvider).taskLoadFailure,
+        isNotNull,
+        reason: 'Pre-condition: failure must be set',
+      );
+
+      // Clear the failure so next load succeeds.
+      tasksRepo.failure = null;
+      await container.read(homeListStoreProvider.notifier).load();
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.taskLoadFailure, isNull,
+          reason: 'Successful reload must clear taskLoadFailure');
+    });
+
+    test('non-retryable AppFailure surfaces as taskLoadFailure', () async {
+      const failure = NotFoundFailure(message: 'Not found');
+      final repository = _FakeHomeRepository(
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: ServerScopeId('server-1'),
+          channels: [],
+          directMessages: [],
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(repository),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(const _FakeAgentsRepository()),
+          tasksRepositoryProvider
+              .overrideWithValue(_FailingTasksRepository(failure)),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.taskLoadFailure, isA<NotFoundFailure>());
+      expect(state.taskLoadFailure!.message, 'Not found');
+    });
+  });
+}
+
+class _FailingTasksRepository implements TasksRepository {
+  _FailingTasksRepository(this.failure);
+  AppFailure? failure;
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async {
+    if (failure != null) throw failure!;
+    return const [];
+  }
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      const [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) =>
+      throw UnimplementedError();
 }
 
 class _FakeHomeRepository implements HomeRepository {

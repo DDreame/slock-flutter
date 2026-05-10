@@ -49,6 +49,7 @@ class HomeListStore extends Notifier<HomeListState> {
   List<AgentItem> _allAgents = const [];
   int _taskCount = 0;
   List<TaskItem> _taskItems = const [];
+  AppFailure? _taskLoadFailure;
   int _machineCount = 0;
   int _threadCount = 0;
   List<ThreadInboxItem> _threadItems = const [];
@@ -247,10 +248,19 @@ class HomeListStore extends Notifier<HomeListState> {
     ServerScopeId serverScopeId,
   ) async {
     try {
-      return await ref
+      final items = await ref
           .read(tasksRepositoryProvider)
           .listServerTasks(serverScopeId);
+      _taskLoadFailure = null;
+      return items;
+    } on AppFailure catch (failure) {
+      _taskLoadFailure = failure;
+      return const [];
     } catch (_) {
+      _taskLoadFailure = const UnknownFailure(
+        message: 'Failed to load tasks.',
+        causeType: 'unknown',
+      );
       return const [];
     }
   }
@@ -887,6 +897,8 @@ class HomeListStore extends Notifier<HomeListState> {
       sidebarOrder: order,
       isRefreshing: isRefreshing,
       clearFailure: status == HomeListStatus.success,
+      taskLoadFailure: _taskLoadFailure,
+      clearTaskLoadFailure: _taskLoadFailure == null,
     );
   }
 

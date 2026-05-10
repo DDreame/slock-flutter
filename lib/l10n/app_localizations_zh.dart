@@ -303,6 +303,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeCardTasksEmpty => '暂无活跃任务';
 
   @override
+  String get homeCardTasksUnavailable => '任务加载失败';
+
+  @override
   String homeCardTasksOverflow(int count) {
     return '还有 $count 项';
   }
