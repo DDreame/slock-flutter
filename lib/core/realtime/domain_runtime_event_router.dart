@@ -38,6 +38,9 @@ const _serverMembershipRemovedEvent = 'server:membership-removed';
 const _taskCreatedEvent = 'task:created';
 const _taskUpdatedEvent = 'task:updated';
 const _taskDeletedEvent = 'task:deleted';
+const _messageDeletedEvent = 'message:deleted';
+const _channelCreatedEvent = 'channel:created';
+const _channelDeletedEvent = 'channel:deleted';
 const _agentActivityEvent = 'agent:activity';
 const _agentCreatedEvent = 'agent:created';
 const _agentDeletedEvent = 'agent:deleted';
@@ -119,10 +122,11 @@ class TaskDeletedRouterEvent extends TaskRouterEvent {
 ///
 /// This is the single subscription point for [RealtimeReductionIngress].
 /// It replaces:
-/// - `homeRealtimeUnreadBindingProvider` (message:new/updated)
+/// - `homeRealtimeUnreadBindingProvider` (message:new/updated/deleted)
 /// - `homeRealtimeDmMaterializationBindingProvider` (dm:new)
 /// - `inboxRealtimeRefreshBindingProvider` (inbox debounce + lifecycle)
-/// - `homeAdminRealtimeBindingProvider` (channel:updated, server:membership)
+/// - `homeAdminRealtimeBindingProvider` (channel:updated/created/deleted,
+///    server:membership-removed)
 /// - `homeTasksRealtimeBindingProvider` (task events → home refresh)
 /// - `agentsRealtimeBindingProvider` (agent lifecycle)
 /// - `channelPageRealtimeBindingProvider` (channel detail refresh relay)
@@ -201,6 +205,9 @@ final domainRuntimeEventRouterProvider = Provider<void>(
         case _messageUpdatedEvent:
           _handleMessageUpdated(ref, event);
 
+        case _messageDeletedEvent:
+          _handleMessageDeleted(ref, event);
+
         // — DM domain —
         case _dmNewEvent:
           _handleDmNew(ref, event, pendingDmBuffer);
@@ -229,6 +236,16 @@ final domainRuntimeEventRouterProvider = Provider<void>(
             serverId: _extractServerId(event),
             channelId: _extractChannelId(event),
           );
+
+        case _channelCreatedEvent:
+          if (activeServerId != null && _targetsServer(activeServerId, event)) {
+            _refreshHomeList(ref, reason: 'channelCreated');
+          }
+
+        case _channelDeletedEvent:
+          if (activeServerId != null && _targetsServer(activeServerId, event)) {
+            _refreshHomeList(ref, reason: 'channelDeleted');
+          }
 
         // — Server membership domain —
         case _serverMembershipRemovedEvent:
@@ -522,6 +539,52 @@ void _handleMessageUpdated(Ref ref, RealtimeEventEnvelope event) {
     messageId: updated.id,
     preview: updated.content,
   );
+}
+
+/// Handles `message:deleted` at the home level.
+///
+/// When the deleted message is the current sidebar preview for a channel
+/// or DM, the preview is stale — refresh the home list so the server
+/// provides the correct last-message preview.
+void _handleMessageDeleted(Ref ref, RealtimeEventEnvelope event) {
+  final deleted = tryParseMessageDeletedPayload(event.payload);
+  if (deleted == null) return;
+
+  final homeState = ref.read(homeListStoreProvider);
+  if (homeState.status != HomeListStatus.success) return;
+
+  // Check if deleted message is the current sidebar preview for a
+  // channel or DM. If so, refresh to get the correct last-message.
+  final isChannelPreview = homeState.channels.any(
+        (ch) =>
+            ch.scopeId.value == deleted.channelId &&
+            ch.lastMessageId == deleted.id,
+      ) ||
+      homeState.pinnedChannels.any(
+        (ch) =>
+            ch.scopeId.value == deleted.channelId &&
+            ch.lastMessageId == deleted.id,
+      );
+
+  final isDmPreview = homeState.directMessages.any(
+        (dm) =>
+            dm.scopeId.value == deleted.channelId &&
+            dm.lastMessageId == deleted.id,
+      ) ||
+      homeState.pinnedDirectMessages.any(
+        (dm) =>
+            dm.scopeId.value == deleted.channelId &&
+            dm.lastMessageId == deleted.id,
+      ) ||
+      homeState.hiddenDirectMessages.any(
+        (dm) =>
+            dm.scopeId.value == deleted.channelId &&
+            dm.lastMessageId == deleted.id,
+      );
+
+  if (isChannelPreview || isDmPreview) {
+    _refreshHomeList(ref, reason: 'messageDeleted');
+  }
 }
 
 // ---------------------------------------------------------------------------

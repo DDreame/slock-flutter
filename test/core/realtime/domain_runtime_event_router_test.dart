@@ -219,6 +219,82 @@ void main() {
         expect(capturedSignal!.serverId, 'server-1');
         expect(capturedSignal!.channelId, 'ch-2');
       });
+
+      test('channel:created triggers home list refresh', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        final loadsBefore = homeRepo.loadWorkspaceCalls;
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('channel:created', payload: {'serverId': 'server-1'});
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          homeRepo.loadWorkspaceCalls,
+          greaterThan(loadsBefore),
+          reason: 'channel:created for active server must trigger home refresh',
+        );
+      });
+
+      test('channel:created for different server is ignored', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        final loadsBefore = homeRepo.loadWorkspaceCalls;
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('channel:created', payload: {'serverId': 'other-server'});
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          homeRepo.loadWorkspaceCalls,
+          loadsBefore,
+          reason: 'channel:created for a different server must be ignored',
+        );
+      });
+
+      test('channel:deleted triggers home list refresh', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        final loadsBefore = homeRepo.loadWorkspaceCalls;
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('channel:deleted', payload: {'serverId': 'server-1'});
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          homeRepo.loadWorkspaceCalls,
+          greaterThan(loadsBefore),
+          reason: 'channel:deleted for active server must trigger home refresh',
+        );
+      });
+
+      test('channel:deleted for different server is ignored', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        final loadsBefore = homeRepo.loadWorkspaceCalls;
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('channel:deleted', payload: {'serverId': 'other-server'});
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          homeRepo.loadWorkspaceCalls,
+          loadsBefore,
+          reason: 'channel:deleted for a different server must be ignored',
+        );
+      });
     });
 
     // ------------------------------------------------------------------
@@ -384,6 +460,82 @@ void main() {
 
         expect(homeRepo.persistPreviewUpdateCalls, 1,
             reason: 'Preview update should be persisted');
+      });
+
+      test(
+          'message:deleted refreshes home when deleted message is sidebar preview',
+          () async {
+        const channelScopeId = ChannelScopeId(
+          serverId: serverId,
+          value: 'ch-1',
+        );
+        container = createContainer(
+          channels: const [
+            HomeChannelSummary(
+              scopeId: channelScopeId,
+              name: 'general',
+              lastMessageId: 'msg-last',
+              lastMessagePreview: 'Last message text',
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        final loadsBefore = homeRepo.loadWorkspaceCalls;
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('message:deleted', payload: {
+          'id': 'msg-last',
+          'channelId': 'ch-1',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          homeRepo.loadWorkspaceCalls,
+          greaterThan(loadsBefore),
+          reason: 'Deleting the sidebar preview message must trigger '
+              'home refresh to get the correct last-message',
+        );
+      });
+
+      test(
+          'message:deleted is no-op when deleted message is not sidebar preview',
+          () async {
+        const channelScopeId = ChannelScopeId(
+          serverId: serverId,
+          value: 'ch-1',
+        );
+        container = createContainer(
+          channels: const [
+            HomeChannelSummary(
+              scopeId: channelScopeId,
+              name: 'general',
+              lastMessageId: 'msg-last',
+              lastMessagePreview: 'Last message text',
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        final loadsBefore = homeRepo.loadWorkspaceCalls;
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        // Delete a non-preview message.
+        pushEvent('message:deleted', payload: {
+          'id': 'msg-older',
+          'channelId': 'ch-1',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          homeRepo.loadWorkspaceCalls,
+          loadsBefore,
+          reason: 'Deleting a non-preview message should not trigger refresh',
+        );
       });
     });
 
