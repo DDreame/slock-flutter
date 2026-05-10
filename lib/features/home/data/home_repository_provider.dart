@@ -2,7 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
+import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 
 const _channelsPath = '/channels';
 const _directMessageChannelsPath = '/channels/dm';
@@ -430,7 +432,9 @@ String _describeType(Object? value) => value?.runtimeType.toString() ?? 'Null';
 ///
 /// Expected shape:
 /// ```json
-/// { "id": "msg-1", "content": "Hello", "createdAt": "2026-..." }
+/// { "id": "msg-1", "content": "Hello", "createdAt": "2026-...",
+///   "messageType": "message", "isDeleted": false,
+///   "attachments": [{"name": "...", "type": "..."}] }
 /// ```
 _LastMessagePreview? _parseLastMessage(Object? payload) {
   if (payload is! Map) return null;
@@ -443,9 +447,22 @@ _LastMessagePreview? _parseLastMessage(Object? payload) {
   final createdAt =
       rawCreatedAt is String ? DateTime.tryParse(rawCreatedAt) : null;
 
+  final messageType =
+      map['messageType'] is String ? map['messageType'] as String : null;
+  final isDeleted = map['isDeleted'] == true ||
+      (map['deletedAt'] is String && (map['deletedAt'] as String).isNotEmpty);
+  final attachments = parseAttachments(map['attachments']);
+
+  final preview = MessagePreviewResolver.resolve(
+    content: content,
+    messageType: messageType,
+    isDeleted: isDeleted,
+    attachments: attachments,
+  );
+
   return _LastMessagePreview(
     id: id,
-    content: content,
+    content: preview,
     createdAt: createdAt,
   );
 }

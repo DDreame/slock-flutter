@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 
 void main() {
@@ -10,15 +11,15 @@ void main() {
     });
 
     test('returns fallback when preview is null', () {
-      expect(resolvePreviewText(null), '[No preview]');
+      expect(resolvePreviewText(null), MessagePreviewResolver.fallbackPreview);
     });
 
     test('returns fallback when preview is empty string', () {
-      expect(resolvePreviewText(''), '[No preview]');
+      expect(resolvePreviewText(''), MessagePreviewResolver.fallbackPreview);
     });
 
     test('returns fallback when preview is whitespace-only', () {
-      expect(resolvePreviewText('   '), '[No preview]');
+      expect(resolvePreviewText('   '), MessagePreviewResolver.fallbackPreview);
     });
 
     test('preserves leading/trailing whitespace in non-empty preview', () {
@@ -111,7 +112,7 @@ void main() {
       expect(projection.threadRouteTarget, isNull);
     });
 
-    test('projects channel item with null preview as [No preview]', () {
+    test('projects channel item with null preview as fallback', () {
       const item = InboxItem(
         kind: InboxItemKind.channel,
         channelId: 'ch-2',
@@ -121,7 +122,7 @@ void main() {
 
       final projection = projectInboxItem(item, serverId: serverId);
 
-      expect(projection.previewText, '[No preview]');
+      expect(projection.previewText, MessagePreviewResolver.fallbackPreview);
     });
 
     test('projects DM item', () {
@@ -334,8 +335,10 @@ void main() {
         expect(p.previewText, isNotEmpty);
       }
       expect(projections[0].previewText, 'Hello');
-      expect(projections[1].previewText, '[No preview]');
-      expect(projections[2].previewText, '[No preview]');
+      expect(
+          projections[1].previewText, MessagePreviewResolver.fallbackPreview);
+      expect(
+          projections[2].previewText, MessagePreviewResolver.fallbackPreview);
     });
   });
 }

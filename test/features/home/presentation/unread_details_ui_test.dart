@@ -14,6 +14,7 @@ import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -56,7 +57,7 @@ void main() {
         kind: ConversationProjectionKind.channel,
         id: 'channel:general',
         title: 'general',
-        previewText: '[No preview]',
+        previewText: MessagePreviewResolver.fallbackPreview,
         unreadCount: 1,
       );
       expect(item.senderName, isNull);
@@ -224,7 +225,7 @@ void main() {
       expect(result.dmScopeId, isNull);
     });
 
-    test('missing preview resolves to [No preview]', () {
+    test('missing preview resolves to fallback preview', () {
       const item = InboxItem(
         kind: InboxItemKind.channel,
         channelId: 'empty',
@@ -237,7 +238,7 @@ void main() {
         serverId: const ServerScopeId('server-1'),
       );
 
-      expect(result.previewText, '[No preview]');
+      expect(result.previewText, MessagePreviewResolver.fallbackPreview);
     });
   });
 
@@ -389,7 +390,7 @@ void main() {
       );
     });
 
-    testWidgets('missing preview and sender shows [No preview] on line 3',
+    testWidgets('missing preview and sender shows fallback on line 3',
         (tester) async {
       await _pumpHomeWithInboxItems(
         tester,
@@ -409,9 +410,9 @@ void main() {
         reason: 'Line 3 should always be rendered via ConversationProjection',
       );
       expect(
-        find.text('[No preview]'),
+        find.text(MessagePreviewResolver.fallbackPreview),
         findsOneWidget,
-        reason: 'Missing preview should show [No preview] fallback',
+        reason: 'Missing preview should show fallback preview',
       );
     });
 

@@ -172,7 +172,7 @@ void main() {
       );
     });
 
-    test('attachment-only message:new shows [Attachment] preview', () async {
+    test('attachment-only message:new shows semantic image preview', () async {
       final container = createContainer();
 
       container.read(homeRealtimeUnreadBindingProvider);
@@ -196,10 +196,10 @@ void main() {
       final homeState = container.read(homeListStoreProvider);
       final channel = homeState.channels
           .firstWhere((c) => c.scopeId.value == channelScopeId.value);
-      expect(channel.lastMessagePreview, '[Attachment]');
+      expect(channel.lastMessagePreview, '图片');
     });
 
-    test('empty non-attachment message does not show [Attachment]', () async {
+    test('empty non-attachment message shows fallback preview', () async {
       final container = createContainer();
 
       container.read(homeRealtimeUnreadBindingProvider);
@@ -224,9 +224,8 @@ void main() {
           .firstWhere((c) => c.scopeId.value == channelScopeId.value);
       expect(
         channel.lastMessagePreview,
-        isNot('[Attachment]'),
-        reason:
-            'Empty non-attachment messages should not be labeled as attachment',
+        '新消息',
+        reason: 'Empty non-attachment messages should show fallback preview',
       );
     });
 

@@ -93,13 +93,17 @@ void main() {
           'createdAt': '2026-05-05T01:00:00Z',
           'seq': 3,
           'attachments': [
-            {'id': 'att-1', 'filename': 'photo.png'}
+            {
+              'id': 'att-1',
+              'filename': 'photo.png',
+              'mimeType': 'image/png',
+            }
           ],
         });
         await Future<void>.delayed(Duration.zero);
 
         expect(fakeSink.notifications, hasLength(1));
-        expect(fakeSink.notifications.first['body'], '[Attachment]');
+        expect(fakeSink.notifications.first['body'], '图片');
       });
 
       test('delivers multiple notifications for different channels', () async {
