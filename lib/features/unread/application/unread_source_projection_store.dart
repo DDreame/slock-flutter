@@ -29,34 +29,80 @@ final unreadSourceProjectionProvider =
     return const UnreadSourceProjectionState();
   }
 
-  // Collect visible channel and DM IDs from home list for
-  // visibility resolution.
-  final visibleChannelIds = <String>{};
-  final visibleDmIds = <String>{};
-
-  if (homeState.status == HomeListStatus.success) {
-    for (final ch in homeState.pinnedChannels) {
-      visibleChannelIds.add(ch.scopeId.value);
-    }
-    for (final ch in homeState.channels) {
-      visibleChannelIds.add(ch.scopeId.value);
-    }
-    for (final dm in homeState.pinnedDirectMessages) {
-      visibleDmIds.add(dm.scopeId.value);
-    }
-    for (final dm in homeState.directMessages) {
-      visibleDmIds.add(dm.scopeId.value);
-    }
-  }
+  final ctx = _visibilityContext(homeState);
 
   return _projectSources(
     inboxState.items,
     serverId: serverId,
-    visibleChannelIds: visibleChannelIds,
-    visibleDmIds: visibleDmIds,
-    homeLoaded: homeState.status == HomeListStatus.success,
+    visibleChannelIds: ctx.channelIds,
+    visibleDmIds: ctx.dmIds,
+    homeLoaded: ctx.homeLoaded,
   );
 });
+
+/// Provides ALL inbox items (unread + read) projected through the
+/// same visibility-resolution path as [unreadSourceProjectionProvider].
+///
+/// Used by InboxPage to display the full inbox list with consistent
+/// visibility metadata. Items with [UnreadSourceProjection.unreadCount]
+/// of 0 are included (unlike [unreadSourceProjectionProvider]).
+final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
+  final inboxState = ref.watch(inboxStoreProvider);
+  final homeState = ref.watch(homeListStoreProvider);
+  final serverId = ref.watch(activeServerScopeIdProvider);
+
+  if (inboxState.status != InboxStatus.success || serverId == null) {
+    return const [];
+  }
+
+  final ctx = _visibilityContext(homeState);
+
+  return [
+    for (final item in inboxState.items)
+      UnreadSourceProjection.fromProjection(
+        projectInboxItem(item, serverId: serverId),
+        visibility: _resolveVisibility(
+          item,
+          visibleChannelIds: ctx.channelIds,
+          visibleDmIds: ctx.dmIds,
+          homeLoaded: ctx.homeLoaded,
+        ),
+      ),
+  ];
+});
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+/// Collects visible channel/DM IDs from [HomeListState] for
+/// visibility resolution.
+({Set<String> channelIds, Set<String> dmIds, bool homeLoaded})
+    _visibilityContext(HomeListState homeState) {
+  final channelIds = <String>{};
+  final dmIds = <String>{};
+
+  if (homeState.status == HomeListStatus.success) {
+    for (final ch in homeState.pinnedChannels) {
+      channelIds.add(ch.scopeId.value);
+    }
+    for (final ch in homeState.channels) {
+      channelIds.add(ch.scopeId.value);
+    }
+    for (final dm in homeState.pinnedDirectMessages) {
+      dmIds.add(dm.scopeId.value);
+    }
+    for (final dm in homeState.directMessages) {
+      dmIds.add(dm.scopeId.value);
+    }
+  }
+
+  return (
+    channelIds: channelIds,
+    dmIds: dmIds,
+    homeLoaded: homeState.status == HomeListStatus.success,
+  );
+}
 
 /// Projects [InboxItem]s into [UnreadSourceProjectionState] with
 /// visibility resolved against the home list.

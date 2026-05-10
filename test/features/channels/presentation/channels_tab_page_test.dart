@@ -324,6 +324,8 @@ void main() {
       find.byKey(const ValueKey('channels-tab-general')),
     );
     await tester.pumpAndSettle();
+    // Elapse the deferred mark-read timer (1 second post-navigation).
+    await tester.pump(const Duration(seconds: 1));
 
     expect(find.text('channel:server-1/general'), findsOneWidget);
   });
