@@ -14,9 +14,6 @@ import 'package:slock_app/core/realtime/realtime.dart';
 import 'package:slock_app/core/storage/flutter_secure_storage_impl.dart';
 import 'package:slock_app/core/telemetry/crash_marker_service.dart';
 import 'package:slock_app/core/telemetry/crash_recovery_wrapper.dart';
-import 'package:slock_app/features/home/application/home_realtime_dm_materialization_binding.dart';
-import 'package:slock_app/features/home/application/home_realtime_unread_binding.dart';
-import 'package:slock_app/features/inbox/application/inbox_realtime_refresh_binding.dart';
 import 'package:slock_app/features/push_token/application/push_token_lifecycle_binding.dart';
 import 'package:slock_app/features/settings/data/base_url_settings.dart';
 import 'package:slock_app/features/unread/application/channel_unread_hydration_binding.dart';
@@ -126,8 +123,6 @@ class SlockApp extends ConsumerWidget {
     ref.watch(realtimeLifecycleBindingProvider);
     ref.watch(foregroundServiceLifecycleBindingProvider);
     ref.watch(backgroundSyncLifecycleBindingProvider);
-    ref.watch(homeRealtimeUnreadBindingProvider);
-    ref.watch(homeRealtimeDmMaterializationBindingProvider);
     ref.watch(pushTokenLifecycleBindingProvider);
     ref.watch(notificationLifecycleBindingProvider);
     ref.watch(notificationVisibleTargetBindingProvider);
@@ -137,10 +132,10 @@ class SlockApp extends ConsumerWidget {
     ref.watch(notificationPermissionOnboardingBindingProvider);
     ref.watch(channelUnreadSessionBindingProvider);
     ref.watch(channelUnreadHydrationBindingProvider);
-    ref.watch(inboxRealtimeRefreshBindingProvider);
     ref.watch(backgroundWorkerAuthBindingProvider);
     ref.watch(biometricLockLifecycleBindingProvider);
     ref.watch(presenceRealtimeBindingProvider);
+    ref.watch(domainRuntimeEventRouterProvider);
     final themeState = ref.watch(themeModeStoreProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(

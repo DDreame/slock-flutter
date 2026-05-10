@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/channels/application/channel_realtime_binding.dart';
 import 'package:slock_app/features/channels/application/channel_member_state.dart';
 import 'package:slock_app/features/channels/application/channel_member_store.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
@@ -69,7 +70,21 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(channelMembersRealtimeBindingProvider);
+    // Listen to channel members update signals relayed by the root event
+    // router. Replaces the old channelMembersRealtimeBindingProvider.
+    ref.listen(routedChannelMembersSignalProvider, (prev, next) {
+      if (next == null) return;
+      final serverId = ref.read(currentChannelMemberServerIdProvider);
+      final channelId = ref.read(currentChannelMemberChannelIdProvider);
+      if (next.serverId != null && next.serverId != serverId.value) return;
+      if (next.channelId != null && next.channelId != channelId) return;
+      if (ref.read(channelMemberStoreProvider).status ==
+          ChannelMemberStatus.loading) {
+        return;
+      }
+      unawaited(ref.read(channelMemberStoreProvider.notifier).load());
+    });
+
     final state = ref.watch(channelMemberStoreProvider);
     final canManageMembers = _canManageMembers();
 

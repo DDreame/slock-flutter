@@ -1,3 +1,4 @@
+export 'domain_runtime_event_router.dart';
 export 'providers.dart';
 export 'realtime_connection_state.dart';
 export 'realtime_event_envelope.dart';
