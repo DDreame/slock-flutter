@@ -132,19 +132,9 @@ class InboxStore extends Notifier<InboxState> {
     // Optimistic: zero out unreadCount for the item.
     final updatedItems = state.items.map((item) {
       if (item.channelId == channelId) {
-        return InboxItem(
-          kind: item.kind,
-          channelId: item.channelId,
-          threadChannelId: item.threadChannelId,
-          parentChannelId: item.parentChannelId,
-          parentMessageId: item.parentMessageId,
-          channelName: item.channelName,
-          threadTitle: item.threadTitle,
-          senderName: item.senderName,
-          preview: item.preview,
+        return item.copyWith(
           unreadCount: 0,
-          firstUnreadMessageId: null,
-          lastActivityAt: item.lastActivityAt,
+          clearFirstUnreadMessageId: true,
         );
       }
       return item;
@@ -219,19 +209,9 @@ class InboxStore extends Notifier<InboxState> {
     // Optimistic: zero all unread counts.
     final updatedItems = state.items.map((item) {
       if (item.unreadCount > 0) {
-        return InboxItem(
-          kind: item.kind,
-          channelId: item.channelId,
-          threadChannelId: item.threadChannelId,
-          parentChannelId: item.parentChannelId,
-          parentMessageId: item.parentMessageId,
-          channelName: item.channelName,
-          threadTitle: item.threadTitle,
-          senderName: item.senderName,
-          preview: item.preview,
+        return item.copyWith(
           unreadCount: 0,
-          firstUnreadMessageId: null,
-          lastActivityAt: item.lastActivityAt,
+          clearFirstUnreadMessageId: true,
         );
       }
       return item;

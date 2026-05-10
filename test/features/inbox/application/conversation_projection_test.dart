@@ -433,4 +433,75 @@ void main() {
       expect(projection.previewText, MessagePreviewResolver.linkPreview);
     });
   });
+
+  group('InboxItem.copyWith preserves structured fields', () {
+    test('copyWith preserves messageType, isDeleted, and attachments', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Old text',
+        unreadCount: 5,
+        messageType: 'system',
+        isDeleted: true,
+        attachments: [
+          MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+        ],
+      );
+
+      final copied = item.copyWith(unreadCount: 0);
+
+      expect(copied.unreadCount, 0);
+      expect(copied.messageType, 'system');
+      expect(copied.isDeleted, true);
+      expect(copied.attachments, hasLength(1));
+      expect(copied.attachments!.first.name, 'photo.jpg');
+      expect(copied.channelName, 'general');
+      expect(copied.preview, 'Old text');
+    });
+
+    test('copyWith clears firstUnreadMessageId', () {
+      const item = InboxItem(
+        kind: InboxItemKind.dm,
+        channelId: 'dm-1',
+        channelName: 'Alice',
+        unreadCount: 3,
+        firstUnreadMessageId: 'msg-99',
+      );
+
+      final copied = item.copyWith(
+        unreadCount: 0,
+        clearFirstUnreadMessageId: true,
+      );
+
+      expect(copied.unreadCount, 0);
+      expect(copied.firstUnreadMessageId, isNull);
+    });
+
+    test('markRead via copyWith preserves semantic preview in projection', () {
+      const serverId = ServerScopeId('server-1');
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Hello',
+        unreadCount: 5,
+        isDeleted: true,
+        attachments: [
+          MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+        ],
+      );
+
+      // Simulate markRead via copyWith (same as inbox_store.dart).
+      final readItem = item.copyWith(
+        unreadCount: 0,
+        clearFirstUnreadMessageId: true,
+      );
+      final projection = projectInboxItem(readItem, serverId: serverId);
+
+      // isDeleted is preserved → semantic preview should be 消息已删除.
+      expect(projection.previewText, MessagePreviewResolver.deletedPreview);
+      expect(projection.unreadCount, 0);
+    });
+  });
 }

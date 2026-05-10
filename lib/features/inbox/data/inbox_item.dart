@@ -93,6 +93,36 @@ class InboxItem {
   /// Null when the inbox API does not include attachment metadata.
   final List<MessageAttachment>? attachments;
 
+  /// Creates a copy with selectively overridden fields.
+  ///
+  /// Preserves all structured metadata ([messageType], [isDeleted],
+  /// [attachments]) that is not explicitly overridden.
+  InboxItem copyWith({
+    int? unreadCount,
+    String? firstUnreadMessageId,
+    bool clearFirstUnreadMessageId = false,
+  }) {
+    return InboxItem(
+      kind: kind,
+      channelId: channelId,
+      threadChannelId: threadChannelId,
+      parentChannelId: parentChannelId,
+      parentMessageId: parentMessageId,
+      channelName: channelName,
+      threadTitle: threadTitle,
+      senderName: senderName,
+      preview: preview,
+      unreadCount: unreadCount ?? this.unreadCount,
+      firstUnreadMessageId: clearFirstUnreadMessageId
+          ? null
+          : (firstUnreadMessageId ?? this.firstUnreadMessageId),
+      lastActivityAt: lastActivityAt,
+      messageType: messageType,
+      isDeleted: isDeleted,
+      attachments: attachments,
+    );
+  }
+
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
