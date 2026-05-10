@@ -7,6 +7,8 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agent_display_status.dart';
+import 'package:slock_app/features/agents/application/agent_status_group.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
@@ -115,14 +117,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ...state.agents,
                         ],
                         onViewAll: () => _pushServerRoute('agents'),
-                        onAgentTap: (agent) {
-                          final sid =
-                              ref.read(activeServerScopeIdProvider)?.value;
-                          if (sid == null) return;
-                          context.push(
-                            '/servers/$sid/agents/${agent.id}',
-                          );
-                        },
                       ),
                     ],
                   ),
@@ -231,76 +225,25 @@ class _SummaryCardBase extends StatelessWidget {
 // Agents summary card
 // ---------------------------------------------------------------------------
 
-/// Priority order for sorting agents by activity.
-/// Lower = more prominent (shown first).
-/// Stopped agents always sort last regardless of stale activity value.
-int _agentActivityPriority(AgentItem agent) {
-  if (agent.status == 'stopped') return 4;
-  return switch (agent.activity) {
-    'working' => 0,
-    'thinking' => 1,
-    'error' => 2,
-    'online' => 3,
-    _ => 4, // offline
-  };
-}
-
-const _maxVisibleAgents = 3;
-
-/// Whether an agent is considered "active" (working/thinking/error/online) —
-/// these are shown as individual rows.
-/// Stopped agents are never active regardless of stale activity value.
-bool _isAgentActive(AgentItem agent) {
-  if (agent.status == 'stopped') return false;
-  return agent.activity == 'working' ||
-      agent.activity == 'thinking' ||
-      agent.activity == 'error' ||
-      agent.activity == 'online';
-}
+const _maxVisibleGroups = 4;
 
 class _HomeAgentsSection extends StatelessWidget {
   const _HomeAgentsSection({
     super.key,
     required this.agents,
     required this.onViewAll,
-    required this.onAgentTap,
   });
 
   final List<AgentItem> agents;
   final VoidCallback onViewAll;
-  final void Function(AgentItem agent) onAgentTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
-    // Sort: working/thinking/error → online → stopped/offline
-    final sorted = List.of(agents)
-      ..sort(
-        (a, b) =>
-            _agentActivityPriority(a).compareTo(_agentActivityPriority(b)),
-      );
-
-    final active = sorted.where((a) => _isAgentActive(a)).toList();
-    final stopped = sorted.where((a) => !_isAgentActive(a)).toList();
-
-    // Chip counts — each bucket counted independently;
-    // exclude stopped agents from online/error counts.
-    final online = agents
-        .where(
-          (a) => a.activity == 'online' && a.status != 'stopped',
-        )
-        .length;
-    final errorCount = agents
-        .where(
-          (a) => a.activity == 'error' && a.status != 'stopped',
-        )
-        .length;
-
-    // Show up to 3 active agents as rows
-    final visibleAgents = active.take(_maxVisibleAgents).toList();
-    final hasActiveRows = visibleAgents.isNotEmpty;
+    final groups = groupAgentsByStatus(agents);
+    final visibleGroups = groups.take(_maxVisibleGroups).toList();
 
     return _SummaryCardBase(
       accentColor: colors.primary,
@@ -325,55 +268,18 @@ class _HomeAgentsSection extends StatelessWidget {
             ),
           ),
 
-          // Status chips
-          const SizedBox(height: AppSpacing.md),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.xs,
-            children: [
-              if (online > 0)
-                _StatusChip(
-                  label: l10n.homeCardAgentsOnline(online),
-                  color: colors.success,
-                ),
-              if (errorCount > 0)
-                _StatusChip(
-                  label: l10n.homeCardAgentsError(errorCount),
-                  color: colors.error,
-                ),
-              if (stopped.isNotEmpty)
-                _StatusChip(
-                  label: l10n.homeCardAgentsStopped(
-                    stopped.length,
-                  ),
-                  color: colors.warning,
-                ),
-            ],
-          ),
-
-          // Active agent rows or empty state
-          if (hasActiveRows) ...[
+          // Group summaries
+          if (visibleGroups.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
-            for (final agent in visibleAgents)
-              _MiniAgentRow(
-                key: ValueKey('agent-row-${agent.id}'),
-                agent: agent,
-                onTap: () => onAgentTap(agent),
+            for (final group in visibleGroups)
+              _AgentGroupRow(
+                key: ValueKey('agent-group-${group.foldKey}'),
+                group: group,
               ),
           ] else if (agents.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.md),
             const _AgentsEmptyState(
               key: ValueKey('home-agents-empty'),
-            ),
-          ],
-
-          // Fold: stopped/offline summary
-          if (stopped.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.sm),
-            _AgentFoldSummary(
-              key: const ValueKey('home-agents-fold'),
-              stoppedCount: stopped.length,
-              onTap: onViewAll,
             ),
           ],
         ],
@@ -409,154 +315,56 @@ class _AgentsEmptyState extends StatelessWidget {
   }
 }
 
-class _AgentFoldSummary extends StatelessWidget {
-  const _AgentFoldSummary({
+class _AgentGroupRow extends StatelessWidget {
+  const _AgentGroupRow({
     super.key,
-    required this.stoppedCount,
-    required this.onTap,
+    required this.group,
   });
 
-  final int stoppedCount;
-  final VoidCallback onTap;
+  final AgentStatusGroup group;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final l10n = context.l10n;
 
-    final text = l10n.homeCardAgentsStopped(stoppedCount);
+    final dotColor = switch (group.displayStatus) {
+      AgentDisplayStatus.thinking ||
+      AgentDisplayStatus.working =>
+        colors.success,
+      AgentDisplayStatus.error => colors.error,
+      AgentDisplayStatus.online => colors.success,
+      AgentDisplayStatus.offline ||
+      AgentDisplayStatus.stopped =>
+        colors.textTertiary,
+    };
 
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.xs,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                text,
-                style: AppTypography.caption.copyWith(
-                  color: colors.textTertiary,
-                ),
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              color: dotColor,
+              shape: BoxShape.circle,
             ),
-            Text(
-              '${l10n.homeCardViewAll} \u2192',
-              style: AppTypography.caption.copyWith(
-                color: colors.primary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              group.mergedSummary,
+              style: AppTypography.bodySmall.copyWith(
+                color: colors.text,
                 fontWeight: FontWeight.w500,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
-  }
-}
-
-class _MiniAgentRow extends StatelessWidget {
-  const _MiniAgentRow({
-    super.key,
-    required this.agent,
-    this.onTap,
-  });
-
-  final AgentItem agent;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    final dotColor = switch (agent.activity) {
-      'online' || 'thinking' || 'working' => colors.success,
-      'error' => colors.error,
-      _ => colors.textTertiary,
-    };
-
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: colors.primary.withAlpha(20),
-                    child: Text(
-                      agent.label.isNotEmpty
-                          ? agent.label[0].toUpperCase()
-                          : '?',
-                      style: AppTypography.caption.copyWith(
-                        color: colors.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: dotColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: colors.surface,
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                agent.label,
-                style: AppTypography.bodySmall.copyWith(
-                  color: colors.text,
-                  fontWeight: FontWeight.w500,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            Text(
-              _activityText(context, agent.activity),
-              style: AppTypography.caption.copyWith(
-                color: colors.textTertiary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _activityText(
-    BuildContext context,
-    String activity,
-  ) {
-    final l10n = context.l10n;
-    return switch (activity) {
-      'online' => l10n.homeCardAgentActivityOnline,
-      'thinking' => l10n.homeCardAgentActivityThinking,
-      'working' => l10n.homeCardAgentActivityWorking,
-      'error' => l10n.homeCardAgentActivityError,
-      _ => l10n.homeCardAgentActivityOffline,
-    };
   }
 }
 
@@ -1319,37 +1127,6 @@ class _UnreadBadge extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Status chip
 // ---------------------------------------------------------------------------
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({
-    required this.label,
-    required this.color,
-  });
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 4,
-      ),
-      decoration: BoxDecoration(
-        color: color.withAlpha(25),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.caption.copyWith(
-          color: color,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // State widgets

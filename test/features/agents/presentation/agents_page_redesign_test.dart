@@ -186,12 +186,11 @@ void main() {
         final rings =
             tester.widgetList<StatusGlowRing>(find.byType(StatusGlowRing));
         final statuses = rings.map((r) => r.status).toList();
-        // Within a machine group, agents are sorted by
-        // activity priority: working > thinking > error >
-        // online > stopped.
+        // Status-first grouping: groups ordered by display priority
+        // thinking > working > error > online > stopped.
         expect(statuses, [
-          GlowRingStatus.working,
           GlowRingStatus.thinking,
+          GlowRingStatus.working,
           GlowRingStatus.error,
           GlowRingStatus.online,
           GlowRingStatus.offline,
@@ -246,8 +245,8 @@ void main() {
     });
 
     testWidgets(
-      'working agents are listed before stopped agents '
-      'within a machine group',
+      'active agents are listed before stopped agents '
+      'via status-first grouping',
       (tester) async {
         final repo = _MutableAgentsRepository(initialItems: [
           makeAgent(
@@ -265,8 +264,8 @@ void main() {
         await tester.pumpWidget(buildApp(fakeRepo: repo));
         await tester.pumpAndSettle();
 
-        // Within the same machine group, active agents
-        // should sort before stopped agents.
+        // With status-first grouping, online group renders
+        // before stopped group.
         final activeCenter = tester.getCenter(find.text('ActiveBot'));
         final stoppedCenter = tester.getCenter(find.text('StoppedBot'));
         expect(
