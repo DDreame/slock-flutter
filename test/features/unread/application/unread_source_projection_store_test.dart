@@ -97,7 +97,7 @@ void main() {
             ),
           ],
         ),
-        homeState: HomeListState(
+        homeState: const HomeListState(
           status: HomeListStatus.success,
           channels: [
             HomeChannelSummary(
@@ -170,7 +170,7 @@ void main() {
             ),
           ],
         ),
-        homeState: HomeListState(
+        homeState: const HomeListState(
           status: HomeListStatus.success,
           directMessages: [
             HomeDirectMessageSummary(
@@ -274,7 +274,7 @@ void main() {
             ),
           ],
         ),
-        homeState: HomeListState(
+        homeState: const HomeListState(
           status: HomeListStatus.success,
           directMessages: [
             HomeDirectMessageSummary(
@@ -330,7 +330,7 @@ void main() {
             ),
           ],
         ),
-        homeState: HomeListState(
+        homeState: const HomeListState(
           status: HomeListStatus.success,
           channels: [
             HomeChannelSummary(
@@ -379,7 +379,7 @@ void main() {
             ),
           ],
         ),
-        homeState: HomeListState(
+        homeState: const HomeListState(
           status: HomeListStatus.success,
           pinnedChannels: [
             HomeChannelSummary(
@@ -413,7 +413,7 @@ void main() {
             ),
           ],
         ),
-        homeState: HomeListState(
+        homeState: const HomeListState(
           status: HomeListStatus.success,
           pinnedDirectMessages: [
             HomeDirectMessageSummary(
@@ -481,7 +481,7 @@ void main() {
             ),
           ],
         ),
-        homeState: HomeListState(
+        homeState: const HomeListState(
           status: HomeListStatus.success,
           channels: [
             HomeChannelSummary(

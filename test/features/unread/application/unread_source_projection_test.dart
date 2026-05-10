@@ -209,7 +209,7 @@ void main() {
           visibility: UnreadSourceVisibility.visible,
         ),
       ];
-      final state = UnreadSourceProjectionState(
+      const state = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
@@ -268,7 +268,7 @@ void main() {
           visibility: UnreadSourceVisibility.visible,
         ),
       ];
-      final state = UnreadSourceProjectionState(
+      const state = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
@@ -303,7 +303,7 @@ void main() {
           visibility: UnreadSourceVisibility.visible,
         ),
       ];
-      final state = UnreadSourceProjectionState(
+      const state = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
@@ -332,7 +332,7 @@ void main() {
           visibility: UnreadSourceVisibility.hidden,
         ),
       ];
-      final state = UnreadSourceProjectionState(
+      const state = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
@@ -353,11 +353,11 @@ void main() {
         ),
       ];
 
-      final a = UnreadSourceProjectionState(
+      const a = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
-      final b = UnreadSourceProjectionState(
+      const b = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );

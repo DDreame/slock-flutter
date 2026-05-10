@@ -102,7 +102,7 @@ void main() {
         activeServerScopeIdProvider.overrideWithValue(server1),
         homeListStoreProvider.overrideWith(
           () => _FakeHomeListStore(
-            HomeListState(
+            const HomeListState(
               status: HomeListStatus.success,
               channels: [
                 HomeChannelSummary(
