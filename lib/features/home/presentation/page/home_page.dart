@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_admin_realtime_binding.dart';
@@ -97,6 +98,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       _HomeTasksSection(
                         key: const ValueKey('home-card-tasks'),
                         taskItems: state.taskItems,
+                        taskLoadFailure: state.taskLoadFailure,
                         channels: [
                           ...state.pinnedChannels,
                           ...state.channels,
@@ -573,11 +575,13 @@ class _HomeTasksSection extends ConsumerWidget {
     required this.taskItems,
     required this.channels,
     required this.onViewAll,
+    this.taskLoadFailure,
   });
 
   final List<TaskItem> taskItems;
   final List<HomeChannelSummary> channels;
   final VoidCallback onViewAll;
+  final AppFailure? taskLoadFailure;
 
   String _channelName(String channelId) {
     for (final ch in channels) {
@@ -613,33 +617,40 @@ class _HomeTasksSection extends ConsumerWidget {
       accentColor: colors.warning,
       title: l10n.homeCardTasks,
       onViewAll: onViewAll,
-      child: activeTasks.isEmpty
-          ? const _TasksEmptyState(key: ValueKey('home-tasks-empty'))
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (final task in visibleTasks)
-                  _TaskItemRow(
-                    key: ValueKey('task-item-${task.id}'),
-                    task: task,
-                    channelName: _channelName(task.channelId),
-                    now: now,
-                  ),
-                if (overflowCount > 0)
-                  Padding(
-                    key: const ValueKey('home-tasks-overflow'),
-                    padding: const EdgeInsets.only(
-                      top: AppSpacing.xs,
-                    ),
-                    child: Text(
-                      l10n.homeCardTasksOverflow(overflowCount),
-                      style: AppTypography.caption.copyWith(
-                        color: colors.textTertiary,
+      child: taskLoadFailure != null
+          ? _TasksUnavailableState(
+              key: const ValueKey('home-tasks-unavailable'),
+              message:
+                  taskLoadFailure!.message ?? l10n.homeCardTasksUnavailable,
+              onRetry: () => ref.read(homeListStoreProvider.notifier).refresh(),
+            )
+          : activeTasks.isEmpty
+              ? const _TasksEmptyState(key: ValueKey('home-tasks-empty'))
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final task in visibleTasks)
+                      _TaskItemRow(
+                        key: ValueKey('task-item-${task.id}'),
+                        task: task,
+                        channelName: _channelName(task.channelId),
+                        now: now,
                       ),
-                    ),
-                  ),
-              ],
-            ),
+                    if (overflowCount > 0)
+                      Padding(
+                        key: const ValueKey('home-tasks-overflow'),
+                        padding: const EdgeInsets.only(
+                          top: AppSpacing.xs,
+                        ),
+                        child: Text(
+                          l10n.homeCardTasksOverflow(overflowCount),
+                          style: AppTypography.caption.copyWith(
+                            color: colors.textTertiary,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
     );
   }
 }
@@ -664,6 +675,50 @@ class _TasksEmptyState extends StatelessWidget {
           l10n.homeCardTasksEmpty,
           style: AppTypography.caption.copyWith(
             color: colors.textTertiary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TasksUnavailableState extends StatelessWidget {
+  const _TasksUnavailableState({
+    super.key,
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Row(
+      children: [
+        Icon(
+          Icons.error_outline,
+          size: 20,
+          color: colors.error,
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            message,
+            style: AppTypography.caption.copyWith(
+              color: colors.textTertiary,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        GestureDetector(
+          onTap: onRetry,
+          child: Icon(
+            Icons.refresh,
+            size: 20,
+            color: colors.primary,
           ),
         ),
       ],

@@ -104,6 +104,7 @@
   "homeCardTasks": "任务",
   "homeCardTasksSubtitle": "全部任务",
   "homeCardTasksEmpty": "暂无活跃任务",
+  "homeCardTasksUnavailable": "任务加载失败",
   "homeCardTasksOverflow": "还有 {count} 项",
   "homeCardTasksInProgress": "进行中",
   "homeCardTasksTodo": "待办",

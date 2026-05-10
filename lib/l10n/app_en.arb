@@ -106,6 +106,7 @@
   "homeCardTasks": "TASKS",
   "homeCardTasksSubtitle": "total tasks",
   "homeCardTasksEmpty": "No active tasks",
+  "homeCardTasksUnavailable": "Tasks unavailable",
   "homeCardTasksOverflow": "+{count} more",
   "@homeCardTasksOverflow": { "placeholders": { "count": { "type": "int" } } },
   "homeCardTasksInProgress": "In Progress",

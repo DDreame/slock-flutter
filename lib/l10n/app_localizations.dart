@@ -676,6 +676,12 @@ abstract class AppLocalizations {
   /// **'No active tasks'**
   String get homeCardTasksEmpty;
 
+  /// No description provided for @homeCardTasksUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks unavailable'**
+  String get homeCardTasksUnavailable;
+
   /// No description provided for @homeCardTasksOverflow.
   ///
   /// In en, this message translates to:

@@ -332,6 +332,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeCardTasksEmpty => 'Sin tareas activas';
 
   @override
+  String get homeCardTasksUnavailable => 'Tareas no disponibles';
+
+  @override
   String homeCardTasksOverflow(int count) {
     return '+$count más';
   }

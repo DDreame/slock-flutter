@@ -29,6 +29,7 @@ class HomeListState {
     this.sidebarOrder = const SidebarOrder(),
     this.isRefreshing = false,
     this.failure,
+    this.taskLoadFailure,
   });
 
   final ServerScopeId? serverScopeId;
@@ -52,6 +53,11 @@ class HomeListState {
   /// remains visible (stale-while-revalidate).
   final bool isRefreshing;
   final AppFailure? failure;
+
+  /// Failure from Tier-2 task loading — surfaced independently so
+  /// the Home card can show "Tasks unavailable" instead of silently
+  /// displaying an empty list.
+  final AppFailure? taskLoadFailure;
 
   bool get isEmpty =>
       status == HomeListStatus.success &&
@@ -84,6 +90,8 @@ class HomeListState {
     bool? isRefreshing,
     AppFailure? failure,
     bool clearFailure = false,
+    AppFailure? taskLoadFailure,
+    bool clearTaskLoadFailure = false,
   }) {
     return HomeListState(
       serverScopeId: serverScopeId ?? this.serverScopeId,
@@ -105,6 +113,9 @@ class HomeListState {
       sidebarOrder: sidebarOrder ?? this.sidebarOrder,
       isRefreshing: isRefreshing ?? this.isRefreshing,
       failure: clearFailure ? null : (failure ?? this.failure),
+      taskLoadFailure: clearTaskLoadFailure
+          ? null
+          : (taskLoadFailure ?? this.taskLoadFailure),
     );
   }
 
@@ -133,7 +144,8 @@ class HomeListState {
             listEquals(threadItems, other.threadItems) &&
             sidebarOrder == other.sidebarOrder &&
             isRefreshing == other.isRefreshing &&
-            failure == other.failure;
+            failure == other.failure &&
+            taskLoadFailure == other.taskLoadFailure;
   }
 
   @override
@@ -156,5 +168,6 @@ class HomeListState {
         sidebarOrder,
         isRefreshing,
         failure,
+        taskLoadFailure,
       );
 }
