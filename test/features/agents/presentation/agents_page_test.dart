@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,14 +9,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/agents/application/agents_realtime_binding.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
@@ -308,14 +326,32 @@ void main() {
                   .overrideWithValue(() async => const []),
               sharedPreferencesProvider.overrideWithValue(prefs),
               realtimeReductionIngressProvider.overrideWithValue(ingress),
+              // Router dependencies for domainRuntimeEventRouterProvider:
+              activeServerScopeIdProvider.overrideWithValue(null),
+              realtimeSocketClientProvider
+                  .overrideWithValue(_FakeRealtimeSocketClient()),
+              homeRepositoryProvider
+                  .overrideWithValue(const _FakeHomeRepository()),
+              sidebarOrderRepositoryProvider
+                  .overrideWithValue(const _FakeSidebarOrderRepository()),
+              tasksRepositoryProvider
+                  .overrideWithValue(const _FakeTasksRepository()),
+              threadRepositoryProvider
+                  .overrideWithValue(const _FakeThreadRepository()),
+              homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+              serverListRepositoryProvider
+                  .overrideWithValue(const _FakeServerListRepository()),
+              secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+              crashReporterProvider.overrideWithValue(NoOpCrashReporter()),
+              inboxRepositoryProvider
+                  .overrideWithValue(const _FakeInboxRepository()),
             ],
             child: Consumer(
               builder: (context, ref, child) {
-                // Activate the agent realtime binding so agent:activity
-                // events from the ingress update the agents store.
-                // In production this is handled by the root-mounted
-                // domainRuntimeEventRouterProvider in main.dart.
-                ref.watch(agentsRealtimeBindingProvider);
+                // Activate the root-mounted event router, matching
+                // production (main.dart). This routes agent:activity
+                // events through the ingress to the agents store.
+                ref.watch(domainRuntimeEventRouterProvider);
                 return child!;
               },
               child: MaterialApp(
@@ -1160,4 +1196,226 @@ class _FakeMemberRepository implements MemberRepository {
     openedAgentDmIds.add(agentId);
     return agentDmChannelId;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Router dependency test doubles
+// ---------------------------------------------------------------------------
+
+class _FakeRealtimeSocketClient implements RealtimeSocketClient {
+  final StreamController<RealtimeSocketSignal> _signalsController =
+      StreamController<RealtimeSocketSignal>.broadcast();
+
+  @override
+  Stream<RealtimeSocketSignal> get signals => _signalsController.stream;
+
+  @override
+  bool get isConnected => false;
+
+  @override
+  Future<void> connect() async {}
+
+  @override
+  Future<void> disconnect() async {}
+
+  @override
+  void emit(String eventName, Object? payload) {}
+
+  @override
+  Future<void> dispose() async {
+    await _signalsController.close();
+  }
+}
+
+class _FakeHomeRepository implements HomeRepository {
+  const _FakeHomeRepository();
+
+  @override
+  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
+    ServerScopeId serverId,
+  ) async =>
+      null;
+
+  @override
+  Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
+    return HomeWorkspaceSnapshot(
+      serverId: serverId,
+      channels: const [],
+      directMessages: const [],
+    );
+  }
+
+  @override
+  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
+    HomeDirectMessageSummary summary,
+  ) async =>
+      summary;
+
+  @override
+  Future<void> persistConversationActivity({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) async {}
+
+  @override
+  Future<void> persistConversationPreviewUpdate({
+    required ServerScopeId serverId,
+    required String conversationId,
+    required String messageId,
+    required String preview,
+  }) async {}
+}
+
+class _FakeSecureStorage implements SecureStorage {
+  final Map<String, String> _store = {};
+
+  @override
+  Future<String?> read({required String key}) async => _store[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _store[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    _store.remove(key);
+  }
+}
+
+class _FakeSidebarOrderRepository implements SidebarOrderRepository {
+  const _FakeSidebarOrderRepository();
+
+  @override
+  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async =>
+      const SidebarOrder();
+
+  @override
+  Future<void> updateSidebarOrder(
+    ServerScopeId serverId, {
+    required Map<String, Object> patch,
+  }) async {}
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository();
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async =>
+      const [];
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      const [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) =>
+      throw UnimplementedError();
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository();
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+    ServerScopeId serverId,
+  ) async =>
+      const [];
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+}
+
+class _FakeInboxRepository implements InboxRepository {
+  const _FakeInboxRepository();
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async =>
+      const InboxResponse(
+        items: [],
+        totalCount: 0,
+        totalUnreadCount: 0,
+        hasMore: false,
+      );
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
+}
+
+class _FakeServerListRepository implements ServerListRepository {
+  const _FakeServerListRepository();
+
+  @override
+  Future<List<ServerSummary>> loadServers() async => const [];
 }
