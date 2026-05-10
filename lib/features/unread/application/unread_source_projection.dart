@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
-import 'package:slock_app/features/threads/application/thread_route.dart';
 
 /// Whether an unread source is visible on the user's tab surfaces.
 enum UnreadSourceVisibility {
@@ -10,7 +9,7 @@ enum UnreadSourceVisibility {
 
   /// Source exists in the inbox but has no corresponding tab row
   /// (e.g. a channel the user joined after the last home refresh,
-  /// or a hidden DM).
+  /// a hidden DM, or a thread — threads have no dedicated tab row).
   hidden,
 }
 
@@ -23,21 +22,21 @@ enum UnreadSourceVisibility {
 /// Guarantees: [unreadCount] > 0 — items with zero unreads are
 /// filtered out during projection.
 @immutable
-class UnreadSourceProjection {
+class UnreadSourceProjection extends ConversationProjection {
   const UnreadSourceProjection({
-    required this.kind,
-    required this.id,
-    required this.title,
-    required this.previewText,
-    required this.unreadCount,
+    required super.kind,
+    required super.id,
+    required super.title,
+    required super.previewText,
+    required super.unreadCount,
     required this.visibility,
-    this.sourceLabel,
-    this.senderName,
-    this.lastActivityAt,
-    this.channelScopeId,
-    this.dmScopeId,
-    this.threadRouteTarget,
-    this.channelId,
+    super.sourceLabel,
+    super.senderName,
+    super.lastActivityAt,
+    super.channelScopeId,
+    super.dmScopeId,
+    super.threadRouteTarget,
+    super.channelId,
   });
 
   /// Constructs from an existing [ConversationProjection] and
@@ -63,19 +62,7 @@ class UnreadSourceProjection {
     );
   }
 
-  final ConversationProjectionKind kind;
-  final String id;
-  final String title;
-  final String previewText;
-  final int unreadCount;
   final UnreadSourceVisibility visibility;
-  final String? sourceLabel;
-  final String? senderName;
-  final DateTime? lastActivityAt;
-  final ChannelScopeId? channelScopeId;
-  final DirectMessageScopeId? dmScopeId;
-  final ThreadRouteTarget? threadRouteTarget;
-  final String? channelId;
 
   @override
   bool operator ==(Object other) {

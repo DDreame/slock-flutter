@@ -254,8 +254,12 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
         isOnline: isOnline,
         isAgent: isAgent,
         onTap: () {
-          ref.read(markDmReadUseCaseProvider)(dm.scopeId);
           context.push(homeStore.directMessageRoutePath(dm.scopeId));
+          // Deferred mark-read: brief delay before clearing unread
+          // so the user sees the conversation before the count drops.
+          Future.delayed(const Duration(seconds: 1), () {
+            ref.read(markDmReadUseCaseProvider)(dm.scopeId);
+          });
         },
         onTogglePin: () => isPinned
             ? homeStore.unpinDirectMessage(dm.scopeId)

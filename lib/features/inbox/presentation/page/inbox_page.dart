@@ -133,7 +133,7 @@ class _InboxPageState extends ConsumerState<InboxPage> {
       );
     }
 
-    final serverId = ref.read(activeServerScopeIdProvider);
+    final serverId = ref.watch(activeServerScopeIdProvider);
     final projections = serverId != null
         ? projectInboxItems(inboxState.items, serverId: serverId)
         : <ConversationProjection>[];

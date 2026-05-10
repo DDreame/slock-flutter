@@ -138,9 +138,8 @@ UnreadSourceVisibility _resolveVisibility(
           ? UnreadSourceVisibility.visible
           : UnreadSourceVisibility.hidden;
     case InboxItemKind.thread:
-      // Threads are always visible in the unread list
-      // (they don't have a dedicated tab row but should
-      // appear in the "未读来源" section).
-      return UnreadSourceVisibility.visible;
+      // Threads have no dedicated tab row — they appear
+      // in the hidden-sources ("未读来源") section.
+      return UnreadSourceVisibility.hidden;
   }
 }

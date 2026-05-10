@@ -224,8 +224,12 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         isPinned: isPinned,
         isMutating: managementState.isBusy,
         onTap: () {
-          ref.read(markChannelReadUseCaseProvider)(channel.scopeId);
           context.push(homeStore.channelRoutePath(channel.scopeId));
+          // Deferred mark-read: brief delay before clearing unread
+          // so the user sees the conversation before the count drops.
+          Future.delayed(const Duration(seconds: 1), () {
+            ref.read(markChannelReadUseCaseProvider)(channel.scopeId);
+          });
         },
         onEdit: () => _showEditChannelDialog(channel),
         onDelete: () => _showDeleteChannelDialog(channel),

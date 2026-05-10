@@ -21,6 +21,7 @@ import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 class HomePage extends ConsumerStatefulWidget {
@@ -939,35 +940,26 @@ class _InboxUnreadSectionState extends ConsumerState<_InboxUnreadSection> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    final inboxState = ref.watch(inboxStoreProvider);
-    final serverId = ref.watch(activeServerScopeIdProvider);
-
-    // Convert inbox items to ConversationProjection for consistent rendering.
-    final unreadItems = serverId != null
-        ? projectInboxItems(
-            inboxState.items.where((item) => item.unreadCount > 0).toList(),
-            serverId: serverId,
-          )
-        : <ConversationProjection>[];
+    final projectionState = ref.watch(unreadSourceProjectionProvider);
+    final unreadItems = projectionState.visibleSources;
 
     return _SummaryCardBase(
       accentColor: colors.error,
       title: l10n.homeCardUnread,
       onViewAll: widget.onViewAll,
-      child:
-          inboxState.status == InboxStatus.loading && inboxState.items.isEmpty
+      child: !projectionState.isLoaded
+          ? const _UnreadEmptyState(
+              key: ValueKey('home-unread-loading'),
+            )
+          : unreadItems.isEmpty
               ? const _UnreadEmptyState(
-                  key: ValueKey('home-unread-loading'),
+                  key: ValueKey('home-unread-empty'),
                 )
-              : unreadItems.isEmpty
-                  ? const _UnreadEmptyState(
-                      key: ValueKey('home-unread-empty'),
-                    )
-                  : _InboxUnreadListContent(
-                      key: const ValueKey('home-unread-list'),
-                      unreadItems: unreadItems,
-                      onViewAll: widget.onViewAll,
-                    ),
+              : _InboxUnreadListContent(
+                  key: const ValueKey('home-unread-list'),
+                  unreadItems: unreadItems,
+                  onViewAll: widget.onViewAll,
+                ),
     );
   }
 }
