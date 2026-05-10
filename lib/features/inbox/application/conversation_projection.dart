@@ -1,18 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 
-/// Preview text fallback: returns the raw preview when available,
-/// otherwise a non-empty placeholder.
-///
-/// Fallback chain: text content → `[No preview]`.
-/// Additional content-type hints ([Attachment], [Voice message], [Image])
-/// can be added when the inbox API provides message-type metadata.
-String resolvePreviewText(String? rawPreview) {
-  if (rawPreview != null && rawPreview.trim().isNotEmpty) return rawPreview;
-  return '[No preview]';
-}
+// Re-export so existing `import conversation_projection.dart` callsites
+// continue to see `resolvePreviewText`.
+export 'package:slock_app/features/inbox/application/message_preview_resolver.dart'
+    show resolvePreviewText;
 
 /// The kind of conversation for a projection.
 enum ConversationProjectionKind { channel, dm, thread }
@@ -110,7 +105,12 @@ ConversationProjection projectInboxItem(
     kind: _mapKind(item.kind),
     id: _buildId(item),
     title: _buildTitle(item),
-    previewText: resolvePreviewText(item.preview),
+    previewText: MessagePreviewResolver.resolve(
+      content: item.preview,
+      messageType: item.messageType,
+      isDeleted: item.isDeleted,
+      attachments: item.attachments,
+    ),
     unreadCount: item.unreadCount,
     sourceLabel: _buildSourceLabel(item),
     senderName: item.senderName,

@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 
 void main() {
@@ -10,15 +12,15 @@ void main() {
     });
 
     test('returns fallback when preview is null', () {
-      expect(resolvePreviewText(null), '[No preview]');
+      expect(resolvePreviewText(null), MessagePreviewResolver.fallbackPreview);
     });
 
     test('returns fallback when preview is empty string', () {
-      expect(resolvePreviewText(''), '[No preview]');
+      expect(resolvePreviewText(''), MessagePreviewResolver.fallbackPreview);
     });
 
     test('returns fallback when preview is whitespace-only', () {
-      expect(resolvePreviewText('   '), '[No preview]');
+      expect(resolvePreviewText('   '), MessagePreviewResolver.fallbackPreview);
     });
 
     test('preserves leading/trailing whitespace in non-empty preview', () {
@@ -111,7 +113,7 @@ void main() {
       expect(projection.threadRouteTarget, isNull);
     });
 
-    test('projects channel item with null preview as [No preview]', () {
+    test('projects channel item with null preview as fallback', () {
       const item = InboxItem(
         kind: InboxItemKind.channel,
         channelId: 'ch-2',
@@ -121,7 +123,7 @@ void main() {
 
       final projection = projectInboxItem(item, serverId: serverId);
 
-      expect(projection.previewText, '[No preview]');
+      expect(projection.previewText, MessagePreviewResolver.fallbackPreview);
     });
 
     test('projects DM item', () {
@@ -334,8 +336,172 @@ void main() {
         expect(p.previewText, isNotEmpty);
       }
       expect(projections[0].previewText, 'Hello');
-      expect(projections[1].previewText, '[No preview]');
-      expect(projections[2].previewText, '[No preview]');
+      expect(
+          projections[1].previewText, MessagePreviewResolver.fallbackPreview);
+      expect(
+          projections[2].previewText, MessagePreviewResolver.fallbackPreview);
+    });
+  });
+
+  group('projectInboxItem structured preview', () {
+    const serverId = ServerScopeId('server-1');
+
+    test('deleted inbox item shows 消息已删除', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Old text',
+        unreadCount: 1,
+        isDeleted: true,
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.deletedPreview);
+    });
+
+    test('system inbox item shows 系统消息', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'User joined',
+        unreadCount: 1,
+        messageType: 'system',
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.systemPreview);
+    });
+
+    test('attachment inbox item with no preview shows semantic type', () {
+      const item = InboxItem(
+        kind: InboxItemKind.dm,
+        channelId: 'dm-1',
+        channelName: 'Alice',
+        unreadCount: 1,
+        attachments: [
+          MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+        ],
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.imagePreview);
+    });
+
+    test('voice attachment inbox item shows 语音消息', () {
+      const item = InboxItem(
+        kind: InboxItemKind.dm,
+        channelId: 'dm-1',
+        channelName: 'Bob',
+        unreadCount: 1,
+        attachments: [
+          MessageAttachment(name: 'voice.m4a', type: 'audio/m4a'),
+        ],
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.voicePreview);
+    });
+
+    test('text preview takes priority over attachment metadata', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Check this image',
+        unreadCount: 1,
+        attachments: [
+          MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+        ],
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, 'Check this image');
+    });
+
+    test('link-only preview shows 链接', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'https://example.com/article',
+        unreadCount: 1,
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.linkPreview);
+    });
+  });
+
+  group('InboxItem.copyWith preserves structured fields', () {
+    test('copyWith preserves messageType, isDeleted, and attachments', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Old text',
+        unreadCount: 5,
+        messageType: 'system',
+        isDeleted: true,
+        attachments: [
+          MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+        ],
+      );
+
+      final copied = item.copyWith(unreadCount: 0);
+
+      expect(copied.unreadCount, 0);
+      expect(copied.messageType, 'system');
+      expect(copied.isDeleted, true);
+      expect(copied.attachments, hasLength(1));
+      expect(copied.attachments!.first.name, 'photo.jpg');
+      expect(copied.channelName, 'general');
+      expect(copied.preview, 'Old text');
+    });
+
+    test('copyWith clears firstUnreadMessageId', () {
+      const item = InboxItem(
+        kind: InboxItemKind.dm,
+        channelId: 'dm-1',
+        channelName: 'Alice',
+        unreadCount: 3,
+        firstUnreadMessageId: 'msg-99',
+      );
+
+      final copied = item.copyWith(
+        unreadCount: 0,
+        clearFirstUnreadMessageId: true,
+      );
+
+      expect(copied.unreadCount, 0);
+      expect(copied.firstUnreadMessageId, isNull);
+    });
+
+    test('markRead via copyWith preserves semantic preview in projection', () {
+      const serverId = ServerScopeId('server-1');
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Hello',
+        unreadCount: 5,
+        isDeleted: true,
+        attachments: [
+          MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+        ],
+      );
+
+      // Simulate markRead via copyWith (same as inbox_store.dart).
+      final readItem = item.copyWith(
+        unreadCount: 0,
+        clearFirstUnreadMessageId: true,
+      );
+      final projection = projectInboxItem(readItem, serverId: serverId);
+
+      // isDeleted is preserved → semantic preview should be 消息已删除.
+      expect(projection.previewText, MessagePreviewResolver.deletedPreview);
+      expect(projection.unreadCount, 0);
     });
   });
 }

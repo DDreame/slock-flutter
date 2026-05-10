@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+
 /// Status of the background socket connection.
 enum BackgroundSocketStatus {
   connected,
@@ -64,8 +67,6 @@ class BackgroundWorkerDiagnostics {
   final DateTime? lastNotificationAttempt;
   final DateTime? lastPermissionFailure;
 }
-
-const _attachmentFallbackPreview = '[Attachment]';
 
 /// Callback that provides fresh auth credentials for reconnection.
 /// Used to reload credentials from SharedPreferences after token
@@ -272,12 +273,17 @@ class BackgroundNotificationWorker {
     }
 
     // Determine notification body.
-    final body = content.isNotEmpty
-        ? content
-        : (payload['attachments'] is List &&
-                (payload['attachments'] as List).isNotEmpty)
-            ? _attachmentFallbackPreview
-            : content;
+    final messageType = payload['messageType'] as String?;
+    final isDeleted = payload['isDeleted'] == true ||
+        (payload['deletedAt'] is String &&
+            (payload['deletedAt'] as String).isNotEmpty);
+    final attachments = parseAttachments(payload['attachments']);
+    final body = MessagePreviewResolver.resolve(
+      content: content,
+      messageType: messageType,
+      isDeleted: isDeleted,
+      attachments: attachments,
+    );
 
     final notificationPayload = <String, dynamic>{
       'title': senderName ?? 'New message',

@@ -14,6 +14,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -44,10 +45,6 @@ const _channelDeletedEvent = 'channel:deleted';
 const _agentActivityEvent = 'agent:activity';
 const _agentCreatedEvent = 'agent:created';
 const _agentDeletedEvent = 'agent:deleted';
-
-/// Attachment fallback preview text for messages with empty content
-/// but non-empty attachments.
-const _attachmentFallbackPreview = '[Attachment]';
 
 /// Maximum number of message events queued before Home reaches success
 /// state. Prevents unbounded memory growth.
@@ -401,11 +398,7 @@ void _handleMessageNew(
   final matchedDirectMessage =
       _matchDirectMessageScopeId(homeState, incoming.conversationId);
 
-  final preview = incoming.message.content.isNotEmpty
-      ? incoming.message.content
-      : (incoming.message.attachments?.isNotEmpty == true)
-          ? _attachmentFallbackPreview
-          : incoming.message.content;
+  final preview = MessagePreviewResolver.resolveFromMessage(incoming.message);
 
   final notifier = ref.read(homeListStoreProvider.notifier);
 
@@ -522,22 +515,24 @@ void _handleMessageUpdated(Ref ref, RealtimeEventEnvelope event) {
 
   final notifier = ref.read(homeListStoreProvider.notifier);
 
+  final preview = MessagePreviewResolver.resolve(content: updated.content);
+
   unawaited(ref.read(homeRepositoryProvider).persistConversationPreviewUpdate(
         serverId: homeState.serverScopeId!,
         conversationId: updated.channelId,
         messageId: updated.id,
-        preview: updated.content,
+        preview: preview,
       ));
 
   notifier.updateChannelPreview(
     conversationId: updated.channelId,
     messageId: updated.id,
-    preview: updated.content,
+    preview: preview,
   );
   notifier.updateDmPreview(
     conversationId: updated.channelId,
     messageId: updated.id,
-    preview: updated.content,
+    preview: preview,
   );
 }
 
