@@ -14,6 +14,10 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
@@ -23,7 +27,10 @@ import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
+import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
+import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/session/session_state.dart';
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -33,16 +40,24 @@ void main() {
   late _TrackingHomeRepository homeRepo;
   late _TrackingAgentsRepository agentsRepo;
   late _TrackingServerListRepository serverListRepo;
+  late _TrackingInboxRepository inboxRepo;
   late _FakeSecureStorage secureStorage;
   late ProviderContainer container;
 
   ProviderContainer createContainer({
     ServerScopeId? activeServerId = serverId,
     List<ServerSummary> initialServers = const [],
+    List<HomeChannelSummary> channels = const [],
+    List<HomeDirectMessageSummary> directMessages = const [],
+    String? sessionUserId,
   }) {
-    homeRepo = _TrackingHomeRepository();
+    homeRepo = _TrackingHomeRepository(
+      channels: channels,
+      directMessages: directMessages,
+    );
     agentsRepo = _TrackingAgentsRepository();
     serverListRepo = _TrackingServerListRepository(initialServers);
+    inboxRepo = _TrackingInboxRepository();
     secureStorage = _FakeSecureStorage();
 
     final c = ProviderContainer(
@@ -62,6 +77,11 @@ void main() {
         secureStorageProvider.overrideWithValue(secureStorage),
         crashReporterProvider.overrideWithValue(NoOpCrashReporter()),
         agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+        inboxRepositoryProvider.overrideWithValue(inboxRepo),
+        if (sessionUserId != null)
+          sessionStoreProvider.overrideWith(
+            () => _PresetSessionStore(sessionUserId),
+          ),
       ],
     );
     return c;
@@ -98,11 +118,9 @@ void main() {
         container = createContainer();
         addTearDown(container.dispose);
 
-        // Initial load so refresh has something to work with.
         await container.read(homeListStoreProvider.notifier).load();
         final loadsBefore = homeRepo.loadWorkspaceCalls;
 
-        // Activate the router.
         container.read(domainRuntimeEventRouterProvider);
 
         pushEvent('channel:updated', payload: {'serverId': 'server-1'});
@@ -144,7 +162,6 @@ void main() {
 
         container.read(domainRuntimeEventRouterProvider);
 
-        // scopeKey contains the server ID.
         pushEvent(
           'channel:updated',
           scopeKey: 'server:server-1/channel:ch-1',
@@ -155,6 +172,331 @@ void main() {
           homeRepo.loadWorkspaceCalls,
           greaterThan(loadsBefore),
           reason: 'Server ID parsed from scopeKey must match',
+        );
+      });
+
+      test('channel:updated emits relay signal', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        ChannelRouterSignal? capturedSignal;
+        container.listen(routedChannelDetailSignalProvider, (prev, next) {
+          capturedSignal = next;
+        });
+
+        pushEvent('channel:updated', payload: {
+          'serverId': 'server-1',
+          'channelId': 'ch-1',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(capturedSignal, isNotNull);
+        expect(capturedSignal!.serverId, 'server-1');
+        expect(capturedSignal!.channelId, 'ch-1');
+      });
+
+      test('channel:members-updated emits relay signal', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        ChannelRouterSignal? capturedSignal;
+        container.listen(routedChannelMembersSignalProvider, (prev, next) {
+          capturedSignal = next;
+        });
+
+        pushEvent('channel:members-updated', payload: {
+          'serverId': 'server-1',
+          'channelId': 'ch-2',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(capturedSignal, isNotNull);
+        expect(capturedSignal!.serverId, 'server-1');
+        expect(capturedSignal!.channelId, 'ch-2');
+      });
+    });
+
+    // ------------------------------------------------------------------
+    // Message domain
+    // ------------------------------------------------------------------
+    group('message domain', () {
+      test('message:new updates channel preview and increments unread',
+          () async {
+        const channelScopeId = ChannelScopeId(
+          serverId: serverId,
+          value: 'ch-1',
+        );
+        container = createContainer(
+          channels: const [
+            HomeChannelSummary(
+              scopeId: channelScopeId,
+              name: 'general',
+            ),
+          ],
+          sessionUserId: 'user-other',
+        );
+        addTearDown(container.dispose);
+
+        // Load home to reach success state.
+        await container.read(homeListStoreProvider.notifier).load();
+
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('message:new', payload: {
+          'channelId': 'ch-1',
+          'id': 'msg-1',
+          'content': 'Hello world',
+          'createdAt': DateTime.now().toIso8601String(),
+          'senderId': 'user-123',
+          'senderName': 'Alice',
+          'senderType': 'user',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        final unreadState = container.read(channelUnreadStoreProvider);
+        expect(
+          unreadState.channelUnreadCount(channelScopeId),
+          1,
+          reason: 'Unread count should increment for a non-self message',
+        );
+      });
+
+      test('message:new for self message does not increment unread', () async {
+        const channelScopeId = ChannelScopeId(
+          serverId: serverId,
+          value: 'ch-1',
+        );
+        container = createContainer(
+          channels: const [
+            HomeChannelSummary(
+              scopeId: channelScopeId,
+              name: 'general',
+            ),
+          ],
+          sessionUserId: 'user-self',
+        );
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('message:new', payload: {
+          'channelId': 'ch-1',
+          'id': 'msg-2',
+          'content': 'My own message',
+          'createdAt': DateTime.now().toIso8601String(),
+          'senderId': 'user-self',
+          'senderName': 'Me',
+          'senderType': 'user',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        final unreadState = container.read(channelUnreadStoreProvider);
+        expect(
+          unreadState.channelUnreadCount(channelScopeId),
+          0,
+          reason: 'Self messages should not increment unread count',
+        );
+      });
+
+      test('message:new queued before success and drained after', () async {
+        const channelScopeId = ChannelScopeId(
+          serverId: serverId,
+          value: 'ch-1',
+        );
+        container = createContainer(
+          channels: const [
+            HomeChannelSummary(
+              scopeId: channelScopeId,
+              name: 'general',
+            ),
+          ],
+          sessionUserId: 'user-other',
+        );
+        addTearDown(container.dispose);
+
+        // Activate router BEFORE home load (status is not success yet).
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('message:new', payload: {
+          'channelId': 'ch-1',
+          'id': 'msg-queued',
+          'content': 'Queued message',
+          'createdAt': DateTime.now().toIso8601String(),
+          'senderId': 'user-123',
+          'senderName': 'Bob',
+          'senderType': 'user',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        // Unread should still be 0 (message queued).
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(channelScopeId),
+          0,
+        );
+
+        // Now trigger success — pending queue drains.
+        await container.read(homeListStoreProvider.notifier).load();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          container
+              .read(channelUnreadStoreProvider)
+              .channelUnreadCount(channelScopeId),
+          1,
+          reason: 'Queued message should increment unread after home success',
+        );
+      });
+
+      test('message:updated updates channel preview', () async {
+        const channelScopeId = ChannelScopeId(
+          serverId: serverId,
+          value: 'ch-1',
+        );
+        container = createContainer(
+          channels: const [
+            HomeChannelSummary(
+              scopeId: channelScopeId,
+              name: 'general',
+              lastMessageId: 'msg-1',
+              lastMessagePreview: 'Original text',
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('message:updated', payload: {
+          'id': 'msg-1',
+          'channelId': 'ch-1',
+          'content': 'Edited text',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(homeRepo.persistPreviewUpdateCalls, 1,
+            reason: 'Preview update should be persisted');
+      });
+    });
+
+    // ------------------------------------------------------------------
+    // DM domain
+    // ------------------------------------------------------------------
+    group('dm domain', () {
+      test('dm:new emits join:channel and materializes DM', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('dm:new', payload: {
+          'channelId': 'dm-new-1',
+          'displayName': 'New Peer',
+        });
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(socket.emittedEvents, contains(('join:channel', 'dm-new-1')));
+        expect(homeRepo.persistDmSummaryCalls, 1,
+            reason: 'DM summary should be persisted');
+      });
+
+      test('dm:new buffers before success and replays after', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        // Activate router BEFORE home is loaded.
+        container.read(domainRuntimeEventRouterProvider);
+
+        pushEvent('dm:new', payload: {
+          'channelId': 'dm-buffered',
+          'displayName': 'Buffered Peer',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        // Socket join should happen immediately.
+        expect(socket.emittedEvents, contains(('join:channel', 'dm-buffered')));
+        // But persistence should NOT happen yet.
+        expect(homeRepo.persistDmSummaryCalls, 0);
+
+        // Load home to reach success.
+        await container.read(homeListStoreProvider.notifier).load();
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(homeRepo.persistDmSummaryCalls, 1,
+            reason: 'Buffered DM should replay after home success');
+      });
+    });
+
+    // ------------------------------------------------------------------
+    // Inbox domain
+    // ------------------------------------------------------------------
+    group('inbox domain', () {
+      test('message:new schedules debounced inbox refresh', () async {
+        container = createContainer(
+          channels: const [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: serverId,
+                value: 'ch-1',
+              ),
+              name: 'general',
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+
+        // Bring inbox to success state.
+        await container.read(inboxStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        final refreshesBefore = inboxRepo.fetchInboxCalls;
+
+        pushEvent('message:new', payload: {
+          'channelId': 'ch-1',
+          'id': 'msg-inbox',
+          'content': 'Inbox trigger',
+          'createdAt': DateTime.now().toIso8601String(),
+          'senderId': 'user-x',
+          'senderName': 'X',
+          'senderType': 'user',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        // Should NOT have refreshed yet (debounced).
+        expect(inboxRepo.fetchInboxCalls, refreshesBefore,
+            reason: 'Inbox refresh should be debounced');
+      });
+
+      test('connect event triggers immediate inbox refresh', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        // Bring inbox to success state.
+        await container.read(inboxStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        final refreshesBefore = inboxRepo.fetchInboxCalls;
+
+        pushEvent('connect');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(
+          inboxRepo.fetchInboxCalls,
+          greaterThan(refreshesBefore),
+          reason: 'connect must trigger immediate inbox refresh',
         );
       });
     });
@@ -203,6 +545,94 @@ void main() {
           reason: 'Task events must be ignored when no active server',
         );
       });
+
+      test('task:created emits relay with parsed tasks', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        TaskRouterEvent? capturedEvent;
+        container.listen(routedTaskEventProvider, (prev, next) {
+          capturedEvent = next;
+        });
+
+        pushEvent('task:created', payload: {
+          'tasks': [
+            {
+              'id': 'task-1',
+              'taskNumber': 1,
+              'title': 'Fix bug',
+              'status': 'todo',
+              'channelId': 'ch-1',
+              'createdById': 'user-1',
+              'createdByName': 'Alice',
+              'createdAt': DateTime.now().toIso8601String(),
+            },
+          ],
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(capturedEvent, isA<TasksCreatedRouterEvent>());
+        final created = capturedEvent as TasksCreatedRouterEvent;
+        expect(created.tasks.length, 1);
+        expect(created.tasks.first.title, 'Fix bug');
+      });
+
+      test('task:updated emits relay with parsed task', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        TaskRouterEvent? capturedEvent;
+        container.listen(routedTaskEventProvider, (prev, next) {
+          capturedEvent = next;
+        });
+
+        pushEvent('task:updated', payload: {
+          'task': {
+            'id': 'task-2',
+            'taskNumber': 2,
+            'title': 'Updated task',
+            'status': 'in_progress',
+            'channelId': 'ch-1',
+            'createdById': 'user-1',
+            'createdByName': 'Alice',
+            'createdAt': DateTime.now().toIso8601String(),
+          },
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(capturedEvent, isA<TaskUpdatedRouterEvent>());
+        final updated = capturedEvent as TaskUpdatedRouterEvent;
+        expect(updated.task.title, 'Updated task');
+        expect(updated.task.status, 'in_progress');
+      });
+
+      test('task:deleted emits relay with task ID', () async {
+        container = createContainer();
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+        container.read(domainRuntimeEventRouterProvider);
+
+        TaskRouterEvent? capturedEvent;
+        container.listen(routedTaskEventProvider, (prev, next) {
+          capturedEvent = next;
+        });
+
+        pushEvent('task:deleted', payload: {
+          'taskId': 'task-3',
+        });
+        await Future<void>.delayed(Duration.zero);
+
+        expect(capturedEvent, isA<TaskDeletedRouterEvent>());
+        final deleted = capturedEvent as TaskDeletedRouterEvent;
+        expect(deleted.taskId, 'task-3');
+      });
     });
 
     // ------------------------------------------------------------------
@@ -213,7 +643,6 @@ void main() {
         container = createContainer();
         addTearDown(container.dispose);
 
-        // Seed agents store with one agent.
         agentsRepo.agents = [
           const AgentItem(
             id: 'agent-1',
@@ -340,7 +769,6 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        // Prime the server list store.
         await container.read(serverListStoreProvider.notifier).load();
         final loadsBefore = serverListRepo.loadServersCalls;
 
@@ -387,7 +815,6 @@ void main() {
         'server:membership-removed clears selection '
         'when active server was removed',
         () async {
-          // Start with server-1 in the list, then remove it on reload.
           container = createContainer(
             initialServers: [
               const ServerSummary(id: 'server-1', name: 'Main'),
@@ -395,13 +822,11 @@ void main() {
           );
           addTearDown(container.dispose);
 
-          // Prime both stores.
           await container.read(serverListStoreProvider.notifier).load();
           await container
               .read(serverSelectionStoreProvider.notifier)
               .selectServer('server-1');
 
-          // Now change what the repo returns (server-1 is gone).
           serverListRepo.servers = const [];
 
           container.read(domainRuntimeEventRouterProvider);
@@ -463,6 +888,7 @@ void main() {
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
           crashReporterProvider.overrideWithValue(NoOpCrashReporter()),
           agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+          inboxRepositoryProvider.overrideWithValue(inboxRepo),
         ],
       );
       addTearDown(() {
@@ -470,9 +896,7 @@ void main() {
         container.dispose();
       });
 
-      // Start a load that will hang.
       final loadFuture = container.read(homeListStoreProvider.notifier).load();
-      // Status should be loading at this point.
       expect(
         container.read(homeListStoreProvider).status,
         HomeListStatus.loading,
@@ -480,11 +904,9 @@ void main() {
 
       container.read(domainRuntimeEventRouterProvider);
 
-      // This should be skipped because status is loading.
       pushEvent('task:created');
       await Future<void>.delayed(Duration.zero);
 
-      // Complete the hanging load so teardown works.
       delayedRepo.complete();
       await loadFuture;
     });
@@ -495,8 +917,26 @@ void main() {
 // Test doubles
 // ---------------------------------------------------------------------------
 
+class _PresetSessionStore extends SessionStore {
+  _PresetSessionStore(this._userId);
+
+  final String _userId;
+
+  @override
+  SessionState build() => SessionState(userId: _userId);
+}
+
 class _TrackingHomeRepository implements HomeRepository {
+  _TrackingHomeRepository({
+    this.channels = const [],
+    this.directMessages = const [],
+  });
+
   int loadWorkspaceCalls = 0;
+  int persistPreviewUpdateCalls = 0;
+  int persistDmSummaryCalls = 0;
+  final List<HomeChannelSummary> channels;
+  final List<HomeDirectMessageSummary> directMessages;
 
   @override
   Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
@@ -510,8 +950,8 @@ class _TrackingHomeRepository implements HomeRepository {
     loadWorkspaceCalls++;
     return HomeWorkspaceSnapshot(
       serverId: serverId,
-      channels: const [],
-      directMessages: const [],
+      channels: channels,
+      directMessages: directMessages,
     );
   }
 
@@ -519,6 +959,7 @@ class _TrackingHomeRepository implements HomeRepository {
   Future<HomeDirectMessageSummary> persistDirectMessageSummary(
     HomeDirectMessageSummary summary,
   ) async {
+    persistDmSummaryCalls++;
     return summary;
   }
 
@@ -537,7 +978,9 @@ class _TrackingHomeRepository implements HomeRepository {
     required String conversationId,
     required String messageId,
     required String preview,
-  }) async {}
+  }) async {
+    persistPreviewUpdateCalls++;
+  }
 }
 
 class _DelayedHomeRepository implements HomeRepository {
@@ -626,6 +1069,41 @@ class _TrackingServerListRepository implements ServerListRepository {
     loadServersCalls++;
     return servers;
   }
+}
+
+class _TrackingInboxRepository implements InboxRepository {
+  int fetchInboxCalls = 0;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async {
+    fetchInboxCalls++;
+    return const InboxResponse(
+      items: [],
+      totalCount: 0,
+      totalUnreadCount: 0,
+      hasMore: false,
+    );
+  }
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
 }
 
 class _FakeSecureStorage implements SecureStorage {
@@ -744,6 +1222,8 @@ class _FakeRealtimeSocketClient implements RealtimeSocketClient {
   final StreamController<RealtimeSocketSignal> _signalsController =
       StreamController<RealtimeSocketSignal>.broadcast();
 
+  final List<(String, Object?)> emittedEvents = [];
+
   @override
   Stream<RealtimeSocketSignal> get signals => _signalsController.stream;
 
@@ -757,7 +1237,9 @@ class _FakeRealtimeSocketClient implements RealtimeSocketClient {
   Future<void> disconnect() async {}
 
   @override
-  void emit(String eventName, Object? payload) {}
+  void emit(String eventName, Object? payload) {
+    emittedEvents.add((eventName, payload));
+  }
 
   @override
   Future<void> dispose() async {

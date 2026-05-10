@@ -9,7 +9,6 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
-import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -56,7 +55,27 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.watch(tasksRealtimeBindingProvider);
+    // Listen to task events relayed by the root event router.
+    // Replaces the old tasksRealtimeBindingProvider.
+    ref.listen(routedTaskEventProvider, (prev, next) {
+      if (next == null) return;
+      try {
+        final store = ref.read(tasksStoreProvider.notifier);
+        switch (next) {
+          case TasksCreatedRouterEvent(:final tasks):
+            for (final task in tasks) {
+              store.upsertTask(task);
+            }
+          case TaskUpdatedRouterEvent(:final task):
+            store.upsertTask(task);
+          case TaskDeletedRouterEvent(:final taskId):
+            store.removeTask(taskId);
+        }
+      } catch (e, st) {
+        ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+      }
+    });
+
     final state = ref.watch(tasksStoreProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
     final homeState = ref.watch(homeListStoreProvider);
