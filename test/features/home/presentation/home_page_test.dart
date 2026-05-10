@@ -1155,7 +1155,7 @@ void main() {
     );
 
     testWidgets(
-      'unread section shows thread, channel, and DM items',
+      'unread section shows visible channel and DM items',
       (tester) async {
         final router = _buildRouter();
 
@@ -1165,34 +1165,21 @@ void main() {
             homeRepository: const _FakeHomeRepository(
               _unreadSnapshot,
             ),
-            threadRepository: const _FakeThreadRepository(
-              threads: [
-                ThreadInboxItem(
-                  routeTarget: ThreadRouteTarget(
-                    serverId: 'server-1',
-                    parentChannelId: 'general',
-                    parentMessageId: 'msg-1',
-                  ),
-                  title: 'Thread title',
-                  preview: 'Thread preview text',
-                  replyCount: 3,
-                  unreadCount: 2,
-                  participantIds: ['u1'],
-                ),
-              ],
-            ),
             inboxRepository: const _ConfigurableInboxRepository(
               items: [
                 InboxItem(
-                  kind: InboxItemKind.thread,
-                  channelId: 'msg-1',
-                  threadChannelId: 'msg-1',
-                  parentChannelId: 'general',
-                  parentMessageId: 'msg-1',
+                  kind: InboxItemKind.channel,
+                  channelId: 'general',
                   channelName: 'general',
-                  threadTitle: 'Thread title',
-                  preview: 'Thread preview text',
-                  unreadCount: 2,
+                  preview: 'Channel preview text',
+                  unreadCount: 3,
+                ),
+                InboxItem(
+                  kind: InboxItemKind.dm,
+                  channelId: 'dm-alice',
+                  channelName: 'Alice',
+                  preview: 'DM preview text',
+                  unreadCount: 1,
                 ),
               ],
             ),
@@ -1200,18 +1187,27 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Thread with unreadCount > 0 should appear
+        // Channel with unreadCount > 0 should appear
         expect(
           find.byKey(
-            const ValueKey('unread-item-thread:msg-1'),
+            const ValueKey('unread-item-channel:general'),
           ),
           findsOneWidget,
-          reason: 'Thread unread should appear',
+          reason: 'Channel unread should appear',
+        );
+
+        // DM with unreadCount > 0 should appear
+        expect(
+          find.byKey(
+            const ValueKey('unread-item-dm:dm-alice'),
+          ),
+          findsOneWidget,
+          reason: 'DM unread should appear',
         );
 
         // Title and preview should render
         final row = find.byKey(
-          const ValueKey('unread-item-thread:msg-1'),
+          const ValueKey('unread-item-channel:general'),
         );
         expect(
           find.descendant(
@@ -1223,7 +1219,7 @@ void main() {
         expect(
           find.descendant(
             of: row,
-            matching: find.text('Thread preview text'),
+            matching: find.text('Channel preview text'),
           ),
           findsOneWidget,
         );
@@ -1235,32 +1231,28 @@ void main() {
       (tester) async {
         final router = _buildRouter();
 
-        // Create 7 threads with unread > 0
-        final threads = List.generate(
-          7,
-          (i) => ThreadInboxItem(
-            routeTarget: ThreadRouteTarget(
-              serverId: 'server-1',
-              parentChannelId: 'general',
-              parentMessageId: 'msg-$i',
+        // Snapshot with 7 visible channels.
+        final manyChannelSnapshot = HomeWorkspaceSnapshot(
+          serverId: const ServerScopeId('server-1'),
+          channels: List.generate(
+            7,
+            (i) => HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: const ServerScopeId('server-1'),
+                value: 'ch-$i',
+              ),
+              name: 'Channel $i',
             ),
-            title: 'Thread $i',
-            replyCount: 1,
-            unreadCount: 1,
-            participantIds: const ['u1'],
           ),
+          directMessages: const [],
         );
 
         final inboxItems = List.generate(
           7,
           (i) => InboxItem(
-            kind: InboxItemKind.thread,
-            channelId: 'msg-$i',
-            threadChannelId: 'msg-$i',
-            parentChannelId: 'general',
-            parentMessageId: 'msg-$i',
-            channelName: 'general',
-            threadTitle: 'Thread $i',
+            kind: InboxItemKind.channel,
+            channelId: 'ch-$i',
+            channelName: 'Channel $i',
             unreadCount: 1,
           ),
         );
@@ -1268,11 +1260,8 @@ void main() {
         await tester.pumpWidget(
           _buildApp(
             router: router,
-            homeRepository: const _FakeHomeRepository(
-              _sampleSnapshot,
-            ),
-            threadRepository: _FakeThreadRepository(
-              threads: threads,
+            homeRepository: _FakeHomeRepository(
+              manyChannelSnapshot,
             ),
             inboxRepository: _ConfigurableInboxRepository(
               items: inboxItems,
@@ -1284,17 +1273,17 @@ void main() {
         // Should show 5 items + overflow
         for (var i = 0; i < 5; i++) {
           expect(
-            find.byKey(ValueKey('unread-item-thread:msg-$i')),
+            find.byKey(ValueKey('unread-item-channel:ch-$i')),
             findsOneWidget,
           );
         }
         // Items 5 and 6 should be hidden
         expect(
-          find.byKey(const ValueKey('unread-item-thread:msg-5')),
+          find.byKey(const ValueKey('unread-item-channel:ch-5')),
           findsNothing,
         );
         expect(
-          find.byKey(const ValueKey('unread-item-thread:msg-6')),
+          find.byKey(const ValueKey('unread-item-channel:ch-6')),
           findsNothing,
         );
         // Overflow indicator
@@ -1650,24 +1639,16 @@ void main() {
         // Inbox API returns items already sorted by lastActivityAt desc.
         final inboxItems = [
           InboxItem(
-            kind: InboxItemKind.thread,
-            channelId: 'new-msg',
-            threadChannelId: 'new-msg',
-            parentChannelId: 'random',
-            parentMessageId: 'new-msg',
-            channelName: 'random',
-            threadTitle: 'New thread',
+            kind: InboxItemKind.channel,
+            channelId: 'general',
+            channelName: 'general',
             unreadCount: 1,
             lastActivityAt: now.subtract(const Duration(minutes: 10)),
           ),
           InboxItem(
-            kind: InboxItemKind.thread,
-            channelId: 'old-msg',
-            threadChannelId: 'old-msg',
-            parentChannelId: 'general',
-            parentMessageId: 'old-msg',
-            channelName: 'general',
-            threadTitle: 'Old thread',
+            kind: InboxItemKind.channel,
+            channelId: 'random',
+            channelName: 'random',
             unreadCount: 1,
             lastActivityAt: now.subtract(const Duration(hours: 5)),
           ),
@@ -1688,16 +1669,16 @@ void main() {
         await tester.pumpAndSettle();
 
         final newItem = find.byKey(
-          const ValueKey('unread-item-thread:new-msg'),
+          const ValueKey('unread-item-channel:general'),
         );
         final oldItem = find.byKey(
-          const ValueKey('unread-item-thread:old-msg'),
+          const ValueKey('unread-item-channel:random'),
         );
 
         expect(newItem, findsOneWidget);
         expect(oldItem, findsOneWidget);
 
-        // New thread should appear before old thread
+        // More recent activity should appear first
         final newPos = tester.getTopLeft(newItem).dy;
         final oldPos = tester.getTopLeft(oldItem).dy;
         expect(
@@ -1722,13 +1703,9 @@ void main() {
             inboxRepository: const _ConfigurableInboxRepository(
               items: [
                 InboxItem(
-                  kind: InboxItemKind.thread,
-                  channelId: 'thread-msg',
-                  threadChannelId: 'thread-msg',
-                  parentChannelId: 'general',
-                  parentMessageId: 'thread-msg',
+                  kind: InboxItemKind.channel,
+                  channelId: 'general',
                   channelName: 'general',
-                  threadTitle: 'A thread',
                   unreadCount: 1,
                 ),
               ],
@@ -1738,28 +1715,28 @@ void main() {
         await tester.pumpAndSettle();
 
         final row = find.byKey(
-          const ValueKey('unread-item-thread:thread-msg'),
+          const ValueKey('unread-item-channel:general'),
         );
         expect(row, findsOneWidget);
 
-        // Thread kind badge should show ↩ glyph
+        // Channel kind badge should show # glyph
         expect(
           find.descendant(
             of: row,
             matching: find.byKey(
-              const ValueKey('unread-kind-thread'),
+              const ValueKey('unread-kind-channel'),
             ),
           ),
           findsOneWidget,
-          reason: 'Thread unread should show kind badge',
+          reason: 'Channel unread should show kind badge',
         );
         expect(
           find.descendant(
             of: row,
-            matching: find.text('\u21a9'),
+            matching: find.text('#'),
           ),
           findsOneWidget,
-          reason: 'Thread unread should show ↩ glyph',
+          reason: 'Channel unread should show # glyph',
         );
       },
     );
@@ -1778,13 +1755,9 @@ void main() {
             inboxRepository: const _ConfigurableInboxRepository(
               items: [
                 InboxItem(
-                  kind: InboxItemKind.thread,
-                  channelId: 'badge-msg',
-                  threadChannelId: 'badge-msg',
-                  parentChannelId: 'general',
-                  parentMessageId: 'badge-msg',
+                  kind: InboxItemKind.channel,
+                  channelId: 'general',
                   channelName: 'general',
-                  threadTitle: 'Badge thread',
                   unreadCount: 5,
                 ),
               ],
@@ -1794,7 +1767,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final row = find.byKey(
-          const ValueKey('unread-item-thread:badge-msg'),
+          const ValueKey('unread-item-channel:general'),
         );
         expect(row, findsOneWidget);
 
@@ -1808,7 +1781,7 @@ void main() {
     );
 
     testWidgets(
-      'unread thread item shows source label with parent channel name',
+      'thread items are excluded from Home unread card (hidden sources)',
       (tester) async {
         final router = _buildRouter();
 
@@ -1837,19 +1810,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final row = find.byKey(
-          const ValueKey('unread-item-thread:src-msg'),
-        );
-        expect(row, findsOneWidget);
-
-        // Source label should show just "#general" (source-only per Z2 spec)
+        // Thread items are classified as hidden sources and excluded
+        // from the Home unread card (only visibleSources are shown).
         expect(
-          find.descendant(
-            of: row,
-            matching: find.text('#general'),
-          ),
-          findsOneWidget,
-          reason: 'Thread source label should show parent channel only',
+          find.byKey(const ValueKey('unread-item-thread:src-msg')),
+          findsNothing,
+          reason: 'Threads are hidden sources — not rendered on Home card',
         );
       },
     );
@@ -2033,17 +1999,29 @@ void main() {
       (tester) async {
         final router = _buildRouter();
 
-        // Create 7 inbox thread items with unread > 0
+        // Snapshot with 7 visible channels so all items are visible sources.
+        final manyChannelSnapshot = HomeWorkspaceSnapshot(
+          serverId: const ServerScopeId('server-1'),
+          channels: List.generate(
+            7,
+            (i) => HomeChannelSummary(
+              scopeId: ChannelScopeId(
+                serverId: const ServerScopeId('server-1'),
+                value: 'ov-ch-$i',
+              ),
+              name: 'Overflow $i',
+            ),
+          ),
+          directMessages: const [],
+        );
+
+        // Create 7 inbox channel items with unread > 0
         final inboxItems = List.generate(
           7,
           (i) => InboxItem(
-            kind: InboxItemKind.thread,
-            channelId: 'ov-msg-$i',
-            threadChannelId: 'ov-msg-$i',
-            parentChannelId: 'general',
-            parentMessageId: 'ov-msg-$i',
-            channelName: 'general',
-            threadTitle: 'Thread $i',
+            kind: InboxItemKind.channel,
+            channelId: 'ov-ch-$i',
+            channelName: 'Overflow $i',
             unreadCount: 1,
           ),
         );
@@ -2051,8 +2029,8 @@ void main() {
         await tester.pumpWidget(
           _buildApp(
             router: router,
-            homeRepository: const _FakeHomeRepository(
-              _sampleSnapshot,
+            homeRepository: _FakeHomeRepository(
+              manyChannelSnapshot,
             ),
             inboxRepository: _ConfigurableInboxRepository(
               items: inboxItems,
@@ -2861,15 +2839,13 @@ class _FakeTasksRepository implements TasksRepository {
 }
 
 class _FakeThreadRepository implements ThreadRepository {
-  const _FakeThreadRepository({this.threads = const []});
-
-  final List<ThreadInboxItem> threads;
+  const _FakeThreadRepository();
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(
     ServerScopeId serverId,
   ) async {
-    return threads;
+    return const [];
   }
 
   @override
