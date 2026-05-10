@@ -105,7 +105,12 @@ ConversationProjection projectInboxItem(
     kind: _mapKind(item.kind),
     id: _buildId(item),
     title: _buildTitle(item),
-    previewText: resolvePreviewText(item.preview),
+    previewText: MessagePreviewResolver.resolve(
+      content: item.preview,
+      messageType: item.messageType,
+      isDeleted: item.isDeleted,
+      attachments: item.attachments,
+    ),
     unreadCount: item.unreadCount,
     sourceLabel: _buildSourceLabel(item),
     senderName: item.senderName,

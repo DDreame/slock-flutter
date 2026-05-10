@@ -31,7 +31,72 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 2. System messages
+    // 2. Send state
+    // ---------------------------------------------------------------
+    test('sending message returns 正在发送...', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'Hello',
+          sendState: MessageSendState.sending,
+        ),
+        '正在发送...',
+      );
+    });
+
+    test('failed message returns 未发送，点击重试', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'Hello',
+          sendState: MessageSendState.failed,
+        ),
+        '未发送，点击重试',
+      );
+    });
+
+    test('sent message with content returns content', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'Hello',
+          sendState: MessageSendState.sent,
+        ),
+        'Hello',
+      );
+    });
+
+    test('deleted wins over sending', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'Hello',
+          isDeleted: true,
+          sendState: MessageSendState.sending,
+        ),
+        '消息已删除',
+      );
+    });
+
+    test('sending wins over system', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'Event',
+          messageType: 'system',
+          sendState: MessageSendState.sending,
+        ),
+        '正在发送...',
+      );
+    });
+
+    test('failed wins over content', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'Hello',
+          sendState: MessageSendState.failed,
+        ),
+        '未发送，点击重试',
+      );
+    });
+
+    // ---------------------------------------------------------------
+    // 3. System messages
     // ---------------------------------------------------------------
     test('system message returns 系统消息', () {
       expect(
@@ -54,7 +119,7 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 3. Text content
+    // 4. Text content (non-link)
     // ---------------------------------------------------------------
     test('non-empty content returns content as-is', () {
       expect(
@@ -91,8 +156,63 @@ void main() {
       );
     });
 
+    test('mixed text with URL returns content as-is', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'Check out https://example.com please',
+        ),
+        'Check out https://example.com please',
+      );
+    });
+
     // ---------------------------------------------------------------
-    // 4. Voice attachments (audio/* MIME)
+    // 5. Link-only content
+    // ---------------------------------------------------------------
+    test('bare HTTP URL returns 链接', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'https://example.com/page',
+        ),
+        '链接',
+      );
+    });
+
+    test('bare HTTP URL with leading/trailing whitespace returns 链接', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: '  https://example.com  ',
+        ),
+        '链接',
+      );
+    });
+
+    test('http (non-https) URL returns 链接', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'http://example.com',
+        ),
+        '链接',
+      );
+    });
+
+    test('URL with query string returns 链接', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: 'https://example.com/path?q=1&a=2',
+        ),
+        '链接',
+      );
+    });
+
+    test('non-URL text is not treated as link', () {
+      expect(
+        MessagePreviewResolver.resolve(content: 'Hello world'),
+        'Hello world',
+      );
+    });
+
+    // ---------------------------------------------------------------
+    // 6. Voice attachments (audio/* MIME)
     // ---------------------------------------------------------------
     test('voice attachment returns 语音消息', () {
       expect(
@@ -119,7 +239,7 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 5. Image attachments (image/* MIME)
+    // 7. Image attachments (image/* MIME)
     // ---------------------------------------------------------------
     test('image attachment returns 图片', () {
       expect(
@@ -146,20 +266,8 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 6. Other attachments
+    // 8. Video attachments
     // ---------------------------------------------------------------
-    test('file attachment with name returns 附件: filename', () {
-      expect(
-        MessagePreviewResolver.resolve(
-          content: '',
-          attachments: const [
-            MessageAttachment(name: 'report.pdf', type: 'application/pdf'),
-          ],
-        ),
-        '附件: report.pdf',
-      );
-    });
-
     test('video attachment returns 视频', () {
       expect(
         MessagePreviewResolver.resolve(
@@ -173,7 +281,22 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 7. Priority: content wins over attachments
+    // 9. Other file attachments
+    // ---------------------------------------------------------------
+    test('file attachment with name returns 附件: filename', () {
+      expect(
+        MessagePreviewResolver.resolve(
+          content: '',
+          attachments: const [
+            MessageAttachment(name: 'report.pdf', type: 'application/pdf'),
+          ],
+        ),
+        '附件: report.pdf',
+      );
+    });
+
+    // ---------------------------------------------------------------
+    // 10. Priority: content wins over attachments
     // ---------------------------------------------------------------
     test('non-empty content with attachments returns content', () {
       expect(
@@ -188,7 +311,7 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 8. Priority: deleted wins over everything
+    // 11. Priority: deleted wins over everything
     // ---------------------------------------------------------------
     test('deleted system message returns 消息已删除', () {
       expect(
@@ -202,7 +325,7 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 9. Multiple attachments — first determines type
+    // 12. Multiple attachments — first determines type
     // ---------------------------------------------------------------
     test('multiple attachments uses first for type resolution', () {
       expect(
@@ -218,7 +341,7 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 10. Default message type
+    // 13. Default message type
     // ---------------------------------------------------------------
     test('null messageType with content returns content', () {
       expect(
@@ -241,7 +364,7 @@ void main() {
     });
 
     // ---------------------------------------------------------------
-    // 11. Empty attachments list treated as no attachments
+    // 14. Empty attachments list treated as no attachments
     // ---------------------------------------------------------------
     test('empty attachments list falls to fallback', () {
       expect(
@@ -330,6 +453,54 @@ void main() {
         reactions: const [],
       );
       expect(MessagePreviewResolver.resolveFromMessage(msg), '语音消息');
+    });
+
+    test('resolves link-only message', () {
+      final msg = ConversationMessageSummary(
+        id: 'msg-1',
+        content: 'https://example.com/article',
+        createdAt: DateTime(2026),
+        senderType: 'human',
+        messageType: 'message',
+        reactions: const [],
+      );
+      expect(MessagePreviewResolver.resolveFromMessage(msg), '链接');
+    });
+
+    test('resolves sending message', () {
+      final msg = ConversationMessageSummary(
+        id: 'msg-1',
+        content: 'Hello',
+        createdAt: DateTime(2026),
+        senderType: 'human',
+        messageType: 'message',
+        reactions: const [],
+      );
+      expect(
+        MessagePreviewResolver.resolveFromMessage(
+          msg,
+          sendState: MessageSendState.sending,
+        ),
+        '正在发送...',
+      );
+    });
+
+    test('resolves failed message', () {
+      final msg = ConversationMessageSummary(
+        id: 'msg-1',
+        content: 'Hello',
+        createdAt: DateTime(2026),
+        senderType: 'human',
+        messageType: 'message',
+        reactions: const [],
+      );
+      expect(
+        MessagePreviewResolver.resolveFromMessage(
+          msg,
+          sendState: MessageSendState.failed,
+        ),
+        '未发送，点击重试',
+      );
     });
   });
 

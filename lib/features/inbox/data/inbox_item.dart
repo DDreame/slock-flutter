@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 /// The kind of source for an inbox item.
 enum InboxItemKind {
@@ -40,6 +42,9 @@ class InboxItem {
     this.unreadCount = 0,
     this.firstUnreadMessageId,
     this.lastActivityAt,
+    this.messageType,
+    this.isDeleted = false,
+    this.attachments,
   });
 
   factory InboxItem.fromJson(Map<String, dynamic> json) {
@@ -56,6 +61,11 @@ class InboxItem {
       unreadCount: _parseInt(json['unreadCount']),
       firstUnreadMessageId: json['firstUnreadMessageId'] as String?,
       lastActivityAt: _parseDateTime(json['lastActivityAt']),
+      messageType: json['messageType'] as String?,
+      isDeleted: json['isDeleted'] == true ||
+          (json['deletedAt'] is String &&
+              (json['deletedAt'] as String).isNotEmpty),
+      attachments: parseAttachments(json['attachments']),
     );
   }
 
@@ -71,6 +81,17 @@ class InboxItem {
   final int unreadCount;
   final String? firstUnreadMessageId;
   final DateTime? lastActivityAt;
+
+  /// Message type of the last message (e.g. `'message'`, `'system'`).
+  /// Null when the inbox API does not include this field.
+  final String? messageType;
+
+  /// Whether the last message was deleted.
+  final bool isDeleted;
+
+  /// Parsed attachments from the last message.
+  /// Null when the inbox API does not include attachment metadata.
+  final List<MessageAttachment>? attachments;
 
   @override
   bool operator ==(Object other) {
@@ -88,7 +109,9 @@ class InboxItem {
             preview == other.preview &&
             unreadCount == other.unreadCount &&
             firstUnreadMessageId == other.firstUnreadMessageId &&
-            lastActivityAt == other.lastActivityAt;
+            lastActivityAt == other.lastActivityAt &&
+            messageType == other.messageType &&
+            isDeleted == other.isDeleted;
   }
 
   @override
@@ -105,6 +128,8 @@ class InboxItem {
         unreadCount,
         firstUnreadMessageId,
         lastActivityAt,
+        messageType,
+        isDeleted,
       );
 
   static int _parseInt(Object? value) {

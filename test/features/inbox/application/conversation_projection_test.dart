@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -339,6 +340,97 @@ void main() {
           projections[1].previewText, MessagePreviewResolver.fallbackPreview);
       expect(
           projections[2].previewText, MessagePreviewResolver.fallbackPreview);
+    });
+  });
+
+  group('projectInboxItem structured preview', () {
+    const serverId = ServerScopeId('server-1');
+
+    test('deleted inbox item shows 消息已删除', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Old text',
+        unreadCount: 1,
+        isDeleted: true,
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.deletedPreview);
+    });
+
+    test('system inbox item shows 系统消息', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'User joined',
+        unreadCount: 1,
+        messageType: 'system',
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.systemPreview);
+    });
+
+    test('attachment inbox item with no preview shows semantic type', () {
+      const item = InboxItem(
+        kind: InboxItemKind.dm,
+        channelId: 'dm-1',
+        channelName: 'Alice',
+        unreadCount: 1,
+        attachments: [
+          MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+        ],
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.imagePreview);
+    });
+
+    test('voice attachment inbox item shows 语音消息', () {
+      const item = InboxItem(
+        kind: InboxItemKind.dm,
+        channelId: 'dm-1',
+        channelName: 'Bob',
+        unreadCount: 1,
+        attachments: [
+          MessageAttachment(name: 'voice.m4a', type: 'audio/m4a'),
+        ],
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.voicePreview);
+    });
+
+    test('text preview takes priority over attachment metadata', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Check this image',
+        unreadCount: 1,
+        attachments: [
+          MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+        ],
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, 'Check this image');
+    });
+
+    test('link-only preview shows 链接', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'https://example.com/article',
+        unreadCount: 1,
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.linkPreview);
     });
   });
 }
