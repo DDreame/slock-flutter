@@ -4,6 +4,9 @@ import 'package:slock_app/core/scope/channel_scope_id.dart';
 import 'package:slock_app/core/scope/direct_message_scope_id.dart';
 import 'package:slock_app/core/scope/server_scope_id.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/application/inbox_unread_count_provider.dart';
@@ -11,46 +14,7 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
-import 'package:slock_app/features/unread/data/channel_unread_repository.dart';
-import 'package:slock_app/features/unread/data/channel_unread_repository_provider.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
-
-class _RecordingUnreadRepository implements ChannelUnreadRepository {
-  final List<({String method, String id, String serverId})> calls = [];
-  bool shouldThrow = false;
-
-  @override
-  Future<Map<String, int>> fetchUnreadCounts(
-    ServerScopeId serverId,
-  ) async {
-    return {};
-  }
-
-  @override
-  Future<void> markChannelRead(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {
-    calls.add((
-      method: 'markChannelRead',
-      id: channelId,
-      serverId: serverId.value,
-    ));
-    if (shouldThrow) throw Exception('test error');
-  }
-
-  @override
-  Future<void> markAllInboxRead(
-    ServerScopeId serverId,
-  ) async {
-    calls.add((
-      method: 'markAllInboxRead',
-      id: '',
-      serverId: serverId.value,
-    ));
-    if (shouldThrow) throw Exception('test error');
-  }
-}
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 
 class _RecordingInboxRepository implements InboxRepository {
   final List<({String method, String channelId})> calls = [];
@@ -105,6 +69,15 @@ class _RecordingInboxRepository implements InboxRepository {
   }
 }
 
+/// Fake HomeListStore that returns a fixed state.
+class _FakeHomeListStore extends HomeListStore {
+  _FakeHomeListStore(this._initial);
+  final HomeListState _initial;
+
+  @override
+  HomeListState build() => _initial;
+}
+
 void main() {
   const server1 = ServerScopeId('server-1');
   const channelGeneral = ChannelScopeId(
@@ -116,20 +89,36 @@ void main() {
     value: 'dm-alice',
   );
 
-  late _RecordingUnreadRepository legacyRepo;
   late _RecordingInboxRepository inboxRepo;
 
   setUp(() {
-    legacyRepo = _RecordingUnreadRepository();
     inboxRepo = _RecordingInboxRepository();
   });
 
   ProviderContainer createContainer() {
     final container = ProviderContainer(
       overrides: [
-        channelUnreadRepositoryProvider.overrideWithValue(legacyRepo),
         inboxRepositoryProvider.overrideWithValue(inboxRepo),
         activeServerScopeIdProvider.overrideWithValue(server1),
+        homeListStoreProvider.overrideWith(
+          () => _FakeHomeListStore(
+            HomeListState(
+              status: HomeListStatus.success,
+              channels: [
+                HomeChannelSummary(
+                  scopeId: channelGeneral,
+                  name: 'general',
+                ),
+              ],
+              directMessages: [
+                HomeDirectMessageSummary(
+                  scopeId: dmAlice,
+                  title: 'Alice',
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -137,72 +126,72 @@ void main() {
   }
 
   group('markChannelReadUseCaseProvider', () {
-    test('clears local unread badge immediately', () async {
+    test('clears projection unread badge immediately', () async {
       final container = createContainer();
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .hydrateChannelUnreads({channelGeneral: 5});
+      await container.read(inboxStoreProvider.notifier).load();
+
+      // Before mark-read: projection shows unread count.
+      expect(
+        container
+            .read(unreadSourceProjectionProvider)
+            .channelUnreadCount(channelGeneral),
+        5,
+      );
 
       container.read(markChannelReadUseCaseProvider)(channelGeneral);
       await Future<void>.delayed(Duration.zero);
 
+      // After mark-read: projection shows zero.
       expect(
         container
-            .read(channelUnreadStoreProvider)
+            .read(unreadSourceProjectionProvider)
             .channelUnreadCount(channelGeneral),
         0,
       );
     });
 
-    test('fires canonical /read-all via InboxStore, not legacy /read',
-        () async {
+    test('fires canonical /read-all via InboxStore', () async {
       final container = createContainer();
       await container.read(inboxStoreProvider.notifier).load();
 
       container.read(markChannelReadUseCaseProvider)(channelGeneral);
       await Future<void>.delayed(Duration.zero);
 
-      // Canonical endpoint called.
       expect(inboxRepo.calls, hasLength(1));
       expect(inboxRepo.calls.single.method, 'markItemRead');
       expect(inboxRepo.calls.single.channelId, 'ch-general');
-
-      // Legacy endpoint NOT called.
-      expect(legacyRepo.calls, isEmpty);
     });
   });
 
   group('markDmReadUseCaseProvider', () {
-    test('clears local DM unread badge immediately', () async {
+    test('clears projection DM unread badge immediately', () async {
       final container = createContainer();
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .hydrateDmUnreads({dmAlice: 3});
+      await container.read(inboxStoreProvider.notifier).load();
+
+      expect(
+        container.read(unreadSourceProjectionProvider).dmUnreadCount(dmAlice),
+        3,
+      );
 
       container.read(markDmReadUseCaseProvider)(dmAlice);
       await Future<void>.delayed(Duration.zero);
 
       expect(
-        container.read(channelUnreadStoreProvider).dmUnreadCount(dmAlice),
+        container.read(unreadSourceProjectionProvider).dmUnreadCount(dmAlice),
         0,
       );
     });
 
-    test('fires canonical /read-all via InboxStore, not legacy /read',
-        () async {
+    test('fires canonical /read-all via InboxStore', () async {
       final container = createContainer();
       await container.read(inboxStoreProvider.notifier).load();
 
       container.read(markDmReadUseCaseProvider)(dmAlice);
       await Future<void>.delayed(Duration.zero);
 
-      // Canonical endpoint called.
       expect(inboxRepo.calls, hasLength(1));
       expect(inboxRepo.calls.single.method, 'markItemRead');
       expect(inboxRepo.calls.single.channelId, 'dm-alice');
-
-      // Legacy endpoint NOT called.
-      expect(legacyRepo.calls, isEmpty);
     });
   });
 

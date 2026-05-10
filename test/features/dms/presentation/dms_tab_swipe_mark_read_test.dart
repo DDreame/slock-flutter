@@ -15,6 +15,9 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/application/inbox_state.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -23,8 +26,16 @@ import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
+
+/// Fake InboxStore that returns a fixed state.
+class _SeedableInboxStore extends InboxStore {
+  _SeedableInboxStore(this._initial);
+  final InboxState _initial;
+
+  @override
+  InboxState build() => _initial;
+}
 
 void main() {
   late SharedPreferences prefs;
@@ -52,9 +63,39 @@ void main() {
     directMessages: [dmAlice, dmBob],
   );
 
+  /// InboxState that makes Alice DM unread.
+  InboxState inboxWithAliceUnread(int count) => InboxState(
+        status: InboxStatus.success,
+        items: [
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-alice',
+            channelName: 'Alice',
+            preview: 'Hey',
+            unreadCount: count,
+          ),
+        ],
+      );
+
+  /// InboxState that makes Bob DM unread.
+  InboxState inboxWithBobUnread(int count) => InboxState(
+        status: InboxStatus.success,
+        items: [
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-bob',
+            channelName: 'Bob',
+            preview: 'Hi',
+            unreadCount: count,
+          ),
+        ],
+      );
+
   Widget buildApp({
     required HomeRepository homeRepository,
+    InboxState? inboxState,
     void Function(DirectMessageScopeId)? onMarkRead,
+    ThemeData? theme,
   }) {
     final router = GoRouter(
       initialLocation: '/dms',
@@ -97,10 +138,14 @@ void main() {
         markDmReadUseCaseProvider.overrideWithValue(
           (scopeId) => onMarkRead?.call(scopeId),
         ),
+        if (inboxState != null)
+          inboxStoreProvider.overrideWith(
+            () => _SeedableInboxStore(inboxState),
+          ),
       ],
       child: MaterialApp.router(
         routerConfig: router,
-        theme: AppTheme.light,
+        theme: theme ?? AppTheme.light,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
       ),
@@ -113,17 +158,9 @@ void main() {
 
       await tester.pumpWidget(buildApp(
         homeRepository: const _FakeHomeRepository(snapshot),
+        inboxState: inboxWithAliceUnread(4),
         onMarkRead: (scopeId) => markedReadScopeId = scopeId,
       ));
-      await tester.pumpAndSettle();
-
-      // Inject unread count for Alice DM.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(DmsTabPage)),
-      );
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .setDmUnreadCount(dmAlice.scopeId, 4);
       await tester.pumpAndSettle();
 
       // Fling left to exceed dismiss threshold.
@@ -140,17 +177,9 @@ void main() {
     testWidgets('DM row stays visible after swipe', (tester) async {
       await tester.pumpWidget(buildApp(
         homeRepository: const _FakeHomeRepository(snapshot),
+        inboxState: inboxWithAliceUnread(2),
         onMarkRead: (_) {},
       ));
-      await tester.pumpAndSettle();
-
-      // Inject unread count.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(DmsTabPage)),
-      );
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .setDmUnreadCount(dmAlice.scopeId, 2);
       await tester.pumpAndSettle();
 
       // Fling left.
@@ -191,17 +220,9 @@ void main() {
     testWidgets('SwipeToMarkRead wraps unread DM row', (tester) async {
       await tester.pumpWidget(buildApp(
         homeRepository: const _FakeHomeRepository(snapshot),
+        inboxState: inboxWithAliceUnread(1),
         onMarkRead: (_) {},
       ));
-      await tester.pumpAndSettle();
-
-      // Inject unread count.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(DmsTabPage)),
-      );
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .setDmUnreadCount(dmAlice.scopeId, 1);
       await tester.pumpAndSettle();
 
       // The Dismissible wrapper should be present.
@@ -214,56 +235,12 @@ void main() {
     testWidgets('swipe works in dark mode', (tester) async {
       DirectMessageScopeId? markedReadScopeId;
 
-      final router = GoRouter(
-        initialLocation: '/dms',
-        routes: [
-          GoRoute(
-            path: '/dms',
-            builder: (_, __) => const DmsTabPage(),
-          ),
-        ],
-      );
-
-      await tester.pumpWidget(ProviderScope(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(serverId),
-          homeRepositoryProvider.overrideWithValue(
-            const _FakeHomeRepository(snapshot),
-          ),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          sidebarOrderRepositoryProvider.overrideWithValue(
-            const _FakeSidebarOrderRepository(),
-          ),
-          agentsRepositoryProvider.overrideWithValue(
-            const _FakeAgentsRepository(),
-          ),
-          tasksRepositoryProvider.overrideWithValue(
-            const _FakeTasksRepository(),
-          ),
-          threadRepositoryProvider.overrideWithValue(
-            const _FakeThreadRepository(),
-          ),
-          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-          markDmReadUseCaseProvider.overrideWithValue(
-            (scopeId) => markedReadScopeId = scopeId,
-          ),
-        ],
-        child: MaterialApp.router(
-          routerConfig: router,
-          theme: AppTheme.dark,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-        ),
+      await tester.pumpWidget(buildApp(
+        homeRepository: const _FakeHomeRepository(snapshot),
+        inboxState: inboxWithBobUnread(7),
+        onMarkRead: (scopeId) => markedReadScopeId = scopeId,
+        theme: AppTheme.dark,
       ));
-      await tester.pumpAndSettle();
-
-      // Inject unread count.
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(DmsTabPage)),
-      );
-      container
-          .read(channelUnreadStoreProvider.notifier)
-          .setDmUnreadCount(dmBob.scopeId, 7);
       await tester.pumpAndSettle();
 
       // Fling left.

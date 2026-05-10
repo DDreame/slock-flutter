@@ -17,8 +17,8 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_state.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 
 /// Channels tab — extracts the channel list from [HomePage].
 ///
@@ -38,8 +38,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
-    final unreadState = ref.watch(channelUnreadStoreProvider);
-    final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
+    final unreadState = ref.watch(unreadSourceProjectionProvider);
     final managementState = ref.watch(channelManagementStoreProvider);
     final l10n = context.l10n;
 
@@ -73,7 +72,6 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               state: state,
               homeStore: homeStore,
               unreadState: unreadState,
-              unreadStore: unreadStore,
               managementState: managementState,
               l10n: l10n,
             ),
@@ -85,8 +83,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   Widget _buildChannelList({
     required HomeListState state,
     required HomeListStore homeStore,
-    required ChannelUnreadState unreadState,
-    required ChannelUnreadStore unreadStore,
+    required UnreadSourceProjectionState unreadState,
     required ChannelManagementState managementState,
     required AppLocalizations l10n,
   }) {
@@ -169,7 +166,6 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             isPinned: pinnedIds.contains(sorted[i].scopeId.value),
             homeStore: homeStore,
             unreadState: unreadState,
-            unreadStore: unreadStore,
             managementState: managementState,
           ),
       ],
@@ -207,8 +203,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     required HomeChannelSummary channel,
     required bool isPinned,
     required HomeListStore homeStore,
-    required ChannelUnreadState unreadState,
-    required ChannelUnreadStore unreadStore,
+    required UnreadSourceProjectionState unreadState,
     required ChannelManagementState managementState,
   }) {
     final unreadCount = unreadState.channelUnreadCount(channel.scopeId);

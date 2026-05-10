@@ -17,6 +17,7 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -29,7 +30,6 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
 void main() {
@@ -1381,14 +1381,15 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // After tap, mark-read use case clears the count.
+        // After tap, mark-read use case clears the count
+        // via InboxStore (canonical path).
+        final items = container.read(inboxStoreProvider).items;
+        final channelItem = items.firstWhere(
+          (i) => i.channelId == 'general',
+          orElse: () => throw StateError('channel item not found'),
+        );
         expect(
-          container.read(channelUnreadStoreProvider).channelUnreadCount(
-                const ChannelScopeId(
-                  serverId: ServerScopeId('server-1'),
-                  value: 'general',
-                ),
-              ),
+          channelItem.unreadCount,
           0,
           reason: 'Tapping channel unread row should '
               'clear its unread count via mark-read use case',
@@ -1471,14 +1472,15 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // After tap, mark-read use case clears the DM count.
+        // After tap, mark-read use case clears the DM count
+        // via InboxStore (canonical path).
+        final items = container.read(inboxStoreProvider).items;
+        final dmItem = items.firstWhere(
+          (i) => i.channelId == 'dm-alice',
+          orElse: () => throw StateError('DM item not found'),
+        );
         expect(
-          container.read(channelUnreadStoreProvider).dmUnreadCount(
-                const DirectMessageScopeId(
-                  serverId: ServerScopeId('server-1'),
-                  value: 'dm-alice',
-                ),
-              ),
+          dmItem.unreadCount,
           0,
           reason: 'Tapping DM unread row should '
               'clear its unread count via mark-read use case',

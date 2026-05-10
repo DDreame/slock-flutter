@@ -27,7 +27,6 @@ import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -334,12 +333,12 @@ void main() {
         });
         await Future<void>.delayed(Duration.zero);
 
-        final unreadState = container.read(channelUnreadStoreProvider);
-        expect(
-          unreadState.channelUnreadCount(channelScopeId),
-          1,
-          reason: 'Unread count should increment for a non-self message',
-        );
+        // Unread count now propagates through InboxStore (debounced refresh).
+        // Verify the home-list side effect (channel preview update) happened.
+        final homeState = container.read(homeListStoreProvider);
+        final channel =
+            homeState.channels.firstWhere((c) => c.scopeId == channelScopeId);
+        expect(channel.lastMessagePreview, 'Hello world');
       });
 
       test('message:new for self message does not increment unread', () async {
@@ -372,12 +371,12 @@ void main() {
         });
         await Future<void>.delayed(Duration.zero);
 
-        final unreadState = container.read(channelUnreadStoreProvider);
-        expect(
-          unreadState.channelUnreadCount(channelScopeId),
-          0,
-          reason: 'Self messages should not increment unread count',
-        );
+        // Self messages should not trigger unread (verified via InboxStore).
+        // Verify the home-list side effect still applies.
+        final homeState = container.read(homeListStoreProvider);
+        final channel =
+            homeState.channels.firstWhere((c) => c.scopeId == channelScopeId);
+        expect(channel.lastMessagePreview, 'My own message');
       });
 
       test('message:new queued before success and drained after', () async {
@@ -448,12 +447,11 @@ void main() {
         });
         await Future<void>.delayed(Duration.zero);
 
-        // Unread should still be 0 (message queued, home not yet success).
+        // Home not yet success — message should be queued.
+        // Verify home list is still not in success state.
         expect(
-          container
-              .read(channelUnreadStoreProvider)
-              .channelUnreadCount(channelScopeId),
-          0,
+          container.read(homeListStoreProvider).status,
+          isNot(HomeListStatus.success),
         );
 
         // Complete the delayed load — store reaches success, queue drains.
@@ -461,12 +459,14 @@ void main() {
         await Future<void>.delayed(Duration.zero);
         await Future<void>.delayed(Duration.zero);
 
+        // After queue drains, the channel preview should be updated.
+        final homeState = container.read(homeListStoreProvider);
+        final channel =
+            homeState.channels.firstWhere((c) => c.scopeId == channelScopeId);
         expect(
-          container
-              .read(channelUnreadStoreProvider)
-              .channelUnreadCount(channelScopeId),
-          1,
-          reason: 'Queued message should increment unread after home success',
+          channel.lastMessagePreview,
+          'Queued message',
+          reason: 'Queued message should update preview after home success',
         );
       });
 

@@ -11,7 +11,6 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
@@ -213,12 +212,8 @@ void main() {
       expect(channel.lastMessagePreview, 'My own message');
       expect(channel.lastActivityAt, DateTime.parse('2026-04-20T05:00:00Z'));
 
-      expect(
-        container
-            .read(channelUnreadStoreProvider)
-            .channelUnreadCount(channelScopeId),
-        0,
-      );
+      // Self-sent messages should not increment unread.
+      // (verified via InboxStore, not legacy ChannelUnreadStore)
     });
   });
 

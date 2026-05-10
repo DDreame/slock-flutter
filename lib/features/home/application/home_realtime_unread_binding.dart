@@ -13,7 +13,6 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 const realtimeMessageCreatedEventType = 'message:new';
@@ -147,9 +146,7 @@ void _handleMessageNew(
       activityAt: incoming.message.createdAt,
     );
     if (!isSelfMessage && !isOpen) {
-      ref
-          .read(channelUnreadStoreProvider.notifier)
-          .incrementChannelUnread(matchedChannel);
+      // Unread count update flows through InboxStore → unreadSourceProjectionProvider.
     }
     return;
   }
@@ -168,9 +165,7 @@ void _handleMessageNew(
       activityAt: incoming.message.createdAt,
     );
     if (!isSelfMessage && !isOpen) {
-      ref
-          .read(channelUnreadStoreProvider.notifier)
-          .incrementDmUnread(matchedDirectMessage);
+      // Unread count update flows through InboxStore → unreadSourceProjectionProvider.
     }
     return;
   }
@@ -225,9 +220,6 @@ void _handleMessageNew(
                   ),
                 );
         notifier.addDirectMessage(summary);
-        ref
-            .read(channelUnreadStoreProvider.notifier)
-            .incrementDmUnread(newScopeId);
       } catch (e, st) {
         ref.read(crashReporterProvider).captureException(e, stackTrace: st);
       }

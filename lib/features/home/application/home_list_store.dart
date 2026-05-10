@@ -18,7 +18,6 @@ import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
-import 'package:slock_app/stores/channel_unread/channel_unread_store.dart';
 
 final homeListStoreProvider = NotifierProvider<HomeListStore, HomeListState>(
   HomeListStore.new,
@@ -434,20 +433,9 @@ class HomeListStore extends Notifier<HomeListState> {
     });
   }
 
-  void _hydrateUnreadCounts(HomeWorkspaceSnapshot snapshot) {
-    final unreadStore = ref.read(channelUnreadStoreProvider.notifier);
-    final serverId = snapshot.serverId;
-
-    unreadStore.hydrateChannelUnreads({
-      for (final entry in snapshot.channelUnreadCounts.entries)
-        ChannelScopeId(serverId: serverId, value: entry.key): entry.value,
-    });
-
-    unreadStore.hydrateDmUnreads({
-      for (final entry in snapshot.dmUnreadCounts.entries)
-        DirectMessageScopeId(serverId: serverId, value: entry.key): entry.value,
-    });
-  }
+  /// No-op: ChannelUnreadStore hydration retired in favour of
+  /// unreadSourceProjectionProvider (derives from InboxStore).
+  void _hydrateUnreadCounts(HomeWorkspaceSnapshot snapshot) {}
 
   void addDirectMessage(HomeDirectMessageSummary dm) {
     if (state.status != HomeListStatus.success) return;
