@@ -1,0 +1,60 @@
+{
+  "channelUnreadCounts": {
+    "ch-1": 3,
+    "ch-2": 5
+  },
+  "channelUnreadTotal": 8,
+  "dmUnreadCounts": {
+    "dm-1": 2
+  },
+  "dmUnreadTotal": 2,
+  "isLoaded": true,
+  "sources": [
+    {
+      "id": "channel:ch-1",
+      "kind": "channel",
+      "lastActivityAt": "2026-01-10T08:30:00.000Z",
+      "previewText": "New message in general",
+      "senderName": "Bob",
+      "sourceLabel": "#General",
+      "title": "General",
+      "unreadCount": 3,
+      "visibility": "visible"
+    },
+    {
+      "id": "channel:ch-2",
+      "kind": "channel",
+      "lastActivityAt": "2026-01-10T08:25:00.000Z",
+      "previewText": "Deploy complete",
+      "senderName": "Alice",
+      "sourceLabel": "#Engineering",
+      "title": "Engineering",
+      "unreadCount": 5,
+      "visibility": "visible"
+    },
+    {
+      "id": "dm:dm-1",
+      "kind": "dm",
+      "lastActivityAt": "2026-01-10T08:20:00.000Z",
+      "previewText": "Can you review?",
+      "senderName": "Alice",
+      "sourceLabel": "Alice",
+      "title": "Alice",
+      "unreadCount": 2,
+      "visibility": "visible"
+    },
+    {
+      "id": "thread:th-ch-1",
+      "kind": "thread",
+      "lastActivityAt": "2026-01-10T08:15:00.000Z",
+      "previewText": "Thread reply",
+      "senderName": "Eve",
+      "sourceLabel": "#General",
+      "title": "General",
+      "unreadCount": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "threadUnreadTotal": 1,
+  "totalUnreadCount": 11
+}
