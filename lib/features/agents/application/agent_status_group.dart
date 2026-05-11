@@ -67,8 +67,7 @@ List<AgentStatusGroup> groupAgentsByStatus(List<AgentItem> agents) {
 
   final result = <AgentStatusGroup>[];
   for (final entry in buckets.entries) {
-    final sorted = [...entry.value]
-      ..sort((a, b) => a.label.compareTo(b.label));
+    final sorted = [...entry.value]..sort((a, b) => a.label.compareTo(b.label));
     result.add(AgentStatusGroup(
       displayStatus: entry.key,
       agents: sorted,

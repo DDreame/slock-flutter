@@ -187,7 +187,8 @@ void main() {
       expect(groups[2].displayStatus, AgentDisplayStatus.online);
     });
 
-    test('groups sorted by priority: thinking > working > error > online > offline > stopped',
+    test(
+        'groups sorted by priority: thinking > working > error > online > offline > stopped',
         () {
       final agents = [
         _agent(id: 'a1', name: 'F', status: 'stopped', activity: 'offline'),
