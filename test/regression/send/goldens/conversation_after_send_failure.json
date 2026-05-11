@@ -1,0 +1,57 @@
+{
+  "hasNewer": false,
+  "hasOlder": true,
+  "historyLimited": false,
+  "memberCount": 5,
+  "messages": [
+    {
+      "content": "Welcome to the channel",
+      "createdAt": "2026-01-10T08:00:00.000Z",
+      "id": "msg-1",
+      "isDeleted": false,
+      "isPinned": false,
+      "messageType": "message",
+      "reactions": [],
+      "senderId": "user-1",
+      "senderName": "Alice",
+      "senderType": "human",
+      "seq": 1
+    },
+    {
+      "content": "Thanks for the invite!",
+      "createdAt": "2026-01-10T08:05:00.000Z",
+      "id": "msg-2",
+      "isDeleted": false,
+      "isPinned": false,
+      "messageType": "message",
+      "reactions": [],
+      "senderId": "user-2",
+      "senderName": "Bob",
+      "senderType": "human",
+      "seq": 2
+    },
+    {
+      "content": "Let me check the latest build",
+      "createdAt": "2026-01-10T08:10:00.000Z",
+      "id": "msg-3",
+      "isDeleted": false,
+      "isPinned": false,
+      "messageType": "message",
+      "reactions": [],
+      "senderId": "user-1",
+      "senderName": "Alice",
+      "senderType": "human",
+      "seq": 3
+    }
+  ],
+  "pendingMessages": [
+    {
+      "attachmentIds": null,
+      "content": "This message will fail",
+      "replyToId": null,
+      "status": "failed"
+    }
+  ],
+  "status": "success",
+  "title": "#General"
+}
