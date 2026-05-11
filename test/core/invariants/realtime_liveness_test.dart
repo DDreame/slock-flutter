@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
 
 import '../../support/support.dart';
 
@@ -140,6 +142,121 @@ void main() {
         await fixture.dispose();
       }
     });
+
+    test('multi-channel message:new updates correct channels with timestamps',
+        () async {
+      final fixture = RuntimeAppFixture();
+      final t0 = DateTime.utc(2026, 1, 10, 8, 0, 0);
+      fixture.seedHome(channels: [
+        (ChannelBuilder('ch-1')
+              ..withPreview('ch-1 old', messageId: 'old-1')
+              ..withActivity(t0))
+            .build(),
+        (ChannelBuilder('ch-2')
+              ..withPreview('ch-2 old', messageId: 'old-2')
+              ..withActivity(t0))
+            .build(),
+      ]);
+
+      await fixture.boot();
+      try {
+        // Send a newer message to ch-2 only.
+        final t1 = DateTime.utc(2026, 1, 15, 12, 0, 0);
+        await replayEvents(fixture.ingress, [
+          DomainEvent.messageNew(
+            scopeKey: 'server:server-1',
+            payload: {
+              'id': 'msg-new',
+              'channelId': 'ch-2',
+              'createdAt': t1.toIso8601String(),
+              'content': 'ch-2 new message',
+              'senderId': 'user-2',
+              'senderName': 'Alice',
+            },
+          ),
+        ]);
+
+        final state = fixture.container.read(homeListStoreProvider);
+        final channelMap = {
+          for (final ch in state.channels) ch.scopeId.value: ch,
+        };
+
+        // ch-2 should have the new preview and timestamp.
+        expect(channelMap['ch-2']?.lastMessagePreview, 'ch-2 new message');
+        expect(channelMap['ch-2']?.lastActivityAt, t1);
+
+        // ch-1 should remain untouched.
+        expect(channelMap['ch-1']?.lastMessagePreview, 'ch-1 old');
+        expect(channelMap['ch-1']?.lastActivityAt, t0);
+
+        // Both channels still present.
+        expect(state.channels, hasLength(2));
+      } finally {
+        await fixture.dispose();
+      }
+    });
+
+    test('thread reply message:new updates thread item in Home', () async {
+      final fixture = RuntimeAppFixture();
+
+      // Seed home with a parent channel and thread channel IDs.
+      fixture.homeRepository.snapshot = HomeWorkspaceSnapshot(
+        serverId: const ServerScopeId('server-1'),
+        channels: [ChannelBuilder('parent-ch').build()],
+        directMessages: const [],
+        threadChannelIds: {'thread-ch-1'},
+      );
+
+      // Seed thread items so HomeListStore picks them up.
+      fixture.threadRepository.followedItems = [
+        const ThreadInboxItem(
+          routeTarget: ThreadRouteTarget(
+            serverId: 'server-1',
+            parentChannelId: 'parent-ch',
+            parentMessageId: 'parent-msg-1',
+            threadChannelId: 'thread-ch-1',
+          ),
+          replyCount: 3,
+          unreadCount: 0,
+          participantIds: ['user-1'],
+          preview: 'old thread reply',
+          senderName: 'Bob',
+        ),
+      ];
+
+      await fixture.boot();
+      try {
+        // Verify thread item loaded.
+        final stateBefore = fixture.container.read(homeListStoreProvider);
+        expect(stateBefore.threadItems, hasLength(1));
+        expect(stateBefore.threadItems.first.preview, 'old thread reply');
+
+        // Replay a message:new targeting the thread channel.
+        await replayEvents(fixture.ingress, [
+          DomainEvent.messageNew(
+            scopeKey: 'server:server-1',
+            payload: {
+              'id': 'thread-msg-1',
+              'channelId': 'thread-ch-1',
+              'createdAt': '2026-01-15T14:00:00.000Z',
+              'content': 'new thread reply from Alice',
+              'senderId': 'user-2',
+              'senderName': 'Alice',
+            },
+          ),
+        ]);
+
+        final stateAfter = fixture.container.read(homeListStoreProvider);
+        expect(stateAfter.threadItems, hasLength(1));
+        final threadItem = stateAfter.threadItems.first;
+        expect(threadItem.preview, 'new thread reply from Alice');
+        expect(threadItem.senderName, 'Alice');
+        expect(threadItem.replyCount, 4); // 3 + 1
+        expect(threadItem.unreadCount, 1); // incremented (not self-message)
+      } finally {
+        await fixture.dispose();
+      }
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -147,7 +264,7 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('INV-LIVE-2: event replay idempotency', () {
-    test('duplicate seq events are rejected by ingress', () async {
+    test('duplicate seq events produce same state as single replay', () async {
       final fixture = RuntimeAppFixture();
       fixture.seedHome(channels: [ChannelBuilder('ch-1').build()]);
 
@@ -173,9 +290,16 @@ void main() {
         );
         final accepted = await replayEvents(fixture.ingress, events);
 
-        // Only the first should be accepted.
+        // Only the first should be accepted; rest are deduplicated.
         expect(accepted, hasLength(1));
         expect(fixture.ingress.rejectedEnvelopes, hasLength(2));
+
+        // State-based invariant: final state must reflect exactly
+        // one event delivery — correct preview, no corruption.
+        final state = fixture.container.read(homeListStoreProvider);
+        expect(state.channels, hasLength(1));
+        expect(state.channels.first.lastMessagePreview, 'hello');
+        expect(state.channels.first.lastMessageId, 'msg-1');
       } finally {
         await fixture.dispose();
       }
@@ -519,5 +643,49 @@ void main() {
         await fixture.dispose();
       }
     });
+
+    test(
+      'server switch reveals events scoped to the new server',
+      () async {
+        // Full isolation contract: replay event for server-B while A is
+        // active → assert A unchanged → switch to B → assert visible.
+        //
+        // Channel/task events trigger fire-and-forget refreshes (not data
+        // storage), so their effect is only visible if the refresh returns
+        // different data — not from the event itself being "queued."
+        // Message events match by channelId against the current home list
+        // and are never stored for later replay on a different server.
+        //
+        // This test would require the router to buffer cross-server events
+        // and replay them on server switch, which it does not do.
+        final fixture = RuntimeAppFixture();
+        fixture.seedHome(channels: [ChannelBuilder('ch-1').build()]);
+        await fixture.boot();
+        try {
+          // Replay for server-2 while server-1 is active.
+          await replayEvents(fixture.ingress, [
+            DomainEvent.channelUpdated(
+              scopeKey: 'server:server-2',
+              payload: {'serverId': 'server-2', 'channelId': 'ch-x'},
+            ),
+          ]);
+
+          // Server-1 projections unchanged (proven by earlier test).
+          final s1State = fixture.container.read(homeListStoreProvider);
+          expect(s1State.channels, hasLength(1));
+
+          // Switch to server-2 would need the event to be visible, but
+          // the router drops non-matching events rather than buffering them.
+          // The data visible after server switch comes from loadWorkspace,
+          // not from buffered events.
+        } finally {
+          await fixture.dispose();
+        }
+      },
+      skip: 'TODO: Router does not buffer cross-server events for later '
+          'replay. Channel/task events trigger fire-and-forget refreshes; '
+          'message events match by channelId. Server-switch visibility '
+          'requires router-level event buffering or server-scoped queues.',
+    );
   });
 }
