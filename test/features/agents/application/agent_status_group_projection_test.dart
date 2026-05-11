@@ -7,7 +7,7 @@ import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 
 void main() {
-  AgentItem _agent({
+  AgentItem makeAgent({
     required String id,
     required String name,
     String status = 'active',
@@ -70,9 +70,9 @@ void main() {
                 AgentsState(
                   status: AgentsStatus.success,
                   items: [
-                    _agent(id: 'a1', name: 'J1', activity: 'thinking'),
-                    _agent(id: 'a2', name: 'J2', activity: 'thinking'),
-                    _agent(id: 'a3', name: 'A1', activity: 'online'),
+                    makeAgent(id: 'a1', name: 'J1', activity: 'thinking'),
+                    makeAgent(id: 'a2', name: 'J2', activity: 'thinking'),
+                    makeAgent(id: 'a3', name: 'A1', activity: 'online'),
                   ],
                 ),
               )),
@@ -96,12 +96,12 @@ void main() {
                 AgentsState(
                   status: AgentsStatus.success,
                   items: [
-                    _agent(
+                    makeAgent(
                       id: 'a1',
                       name: 'Active',
                       activity: 'working',
                     ),
-                    _agent(
+                    makeAgent(
                       id: 'a2',
                       name: 'Stale',
                       status: 'stopped',
@@ -144,14 +144,14 @@ void main() {
                 AgentsState(
                   status: AgentsStatus.success,
                   items: [
-                    _agent(
+                    makeAgent(
                       id: 'a1',
                       name: 'Stopped',
                       status: 'stopped',
                       activity: 'offline',
                     ),
-                    _agent(id: 'a2', name: 'Error', activity: 'error'),
-                    _agent(id: 'a3', name: 'Thinker', activity: 'thinking'),
+                    makeAgent(id: 'a2', name: 'Error', activity: 'error'),
+                    makeAgent(id: 'a3', name: 'Thinker', activity: 'thinking'),
                   ],
                 ),
               )),

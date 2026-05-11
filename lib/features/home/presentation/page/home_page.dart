@@ -9,7 +9,9 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/application/agent_status_group.dart';
-import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/application/agent_status_group_projection.dart';
+import 'package:slock_app/features/agents/application/agents_state.dart';
+import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -34,6 +36,14 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    // Populate shared agents store so the projection provider can serve
+    // both the Home card and the AgentsPage from the same source.
+    Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
@@ -112,10 +122,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                       const SizedBox(height: AppSpacing.md),
                       _HomeAgentsSection(
                         key: const ValueKey('home-card-agents'),
-                        agents: [
-                          ...state.pinnedAgents,
-                          ...state.agents,
-                        ],
                         onViewAll: () => _pushServerRoute('agents'),
                       ),
                     ],
@@ -227,22 +233,22 @@ class _SummaryCardBase extends StatelessWidget {
 
 const _maxVisibleGroups = 4;
 
-class _HomeAgentsSection extends StatelessWidget {
+class _HomeAgentsSection extends ConsumerWidget {
   const _HomeAgentsSection({
     super.key,
-    required this.agents,
     required this.onViewAll,
   });
 
-  final List<AgentItem> agents;
   final VoidCallback onViewAll;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
-    final groups = groupAgentsByStatus(agents);
+    final groups = ref.watch(agentStatusGroupProjectionProvider);
+    final agentsState = ref.watch(agentsStoreProvider);
+    final totalCount = agentsState.items.length;
     final visibleGroups = groups.take(_maxVisibleGroups).toList();
 
     return _SummaryCardBase(
@@ -254,7 +260,7 @@ class _HomeAgentsSection extends StatelessWidget {
         children: [
           // Total count + subtitle
           Text(
-            '${agents.length}',
+            '$totalCount',
             style: AppTypography.displayMedium.copyWith(
               color: colors.text,
               fontWeight: FontWeight.w700,
@@ -276,7 +282,8 @@ class _HomeAgentsSection extends StatelessWidget {
                 key: ValueKey('agent-group-${group.foldKey}'),
                 group: group,
               ),
-          ] else if (agents.isNotEmpty) ...[
+          ] else if (totalCount > 0 &&
+              agentsState.status == AgentsStatus.success) ...[
             const SizedBox(height: AppSpacing.md),
             const _AgentsEmptyState(
               key: ValueKey('home-agents-empty'),

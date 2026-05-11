@@ -10,6 +10,7 @@ import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/application/agent_status_group.dart';
+import 'package:slock_app/features/agents/application/agent_status_group_projection.dart';
 import 'package:slock_app/features/agents/application/agents_fold_state.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
@@ -125,7 +126,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     AgentsState state,
     AppColors colors,
   ) {
-    final groups = groupAgentsByStatus(state.items);
+    final groups = ref.watch(agentStatusGroupProjectionProvider);
     final active = state.items.where((a) => a.isActive).length;
     final stopped = state.items.length - active;
 

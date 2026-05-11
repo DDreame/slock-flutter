@@ -1281,6 +1281,9 @@ void main() {
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
+            ),
           ],
         );
 
@@ -1371,6 +1374,9 @@ void main() {
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
+            ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
             ),
           ],
         );
@@ -1492,6 +1498,9 @@ void main() {
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
+            ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
             ),
           ],
         );
@@ -1806,6 +1815,9 @@ void main() {
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
+            ),
           ],
         );
 
@@ -1881,6 +1893,9 @@ void main() {
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
+            ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
             ),
           ],
         );
@@ -2179,6 +2194,9 @@ void main() {
               homeMachineCountLoaderProvider.overrideWithValue(
                 (_) async => 0,
               ),
+              agentsMachinesLoaderProvider.overrideWithValue(
+                () async => const [],
+              ),
             ],
             child: MaterialApp.router(
               routerConfig: router,
@@ -2287,6 +2305,9 @@ void main() {
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
+            ),
           ],
         );
 
@@ -2370,6 +2391,9 @@ void main() {
               ),
               homeMachineCountLoaderProvider.overrideWithValue(
                 (_) async => 0,
+              ),
+              agentsMachinesLoaderProvider.overrideWithValue(
+                () async => const [],
               ),
             ],
             child: MaterialApp.router(
@@ -2499,6 +2523,9 @@ Widget _buildApp({
       inboxRepositoryProvider.overrideWithValue(inboxRepository),
       homeMachineCountLoaderProvider.overrideWithValue(
         (_) async => 0,
+      ),
+      agentsMachinesLoaderProvider.overrideWithValue(
+        () async => const [],
       ),
       if (now != null) homeNowProvider.overrideWithValue(now),
     ],
