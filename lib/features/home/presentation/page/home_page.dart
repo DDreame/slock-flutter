@@ -50,6 +50,12 @@ class _HomePageState extends ConsumerState<HomePage> {
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final l10n = context.l10n;
 
+    // Reload shared agents store when the active server changes so the
+    // projection never serves stale data from a previous server.
+    ref.listen(activeServerScopeIdProvider, (_, __) {
+      ref.read(agentsStoreProvider.notifier).load();
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: _HomeAppBarTitle(
