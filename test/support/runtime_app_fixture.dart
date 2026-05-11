@@ -61,7 +61,7 @@ class RuntimeAppFixture {
   final appDioClient = FakeAppDioClient();
   final secureStorage = FakeSecureStorage();
 
-  late final RealtimeReductionIngress ingress = RealtimeReductionIngress();
+  late final FakeRealtimeIngress ingress = FakeRealtimeIngress();
 
   ProviderContainer? _container;
   ProviderSubscription<void>? _routerSubscription;

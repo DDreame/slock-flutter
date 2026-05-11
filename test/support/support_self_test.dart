@@ -424,5 +424,34 @@ void main() {
       expect(client.requests.first.method, 'GET');
       expect(client.requests.first.path, '/tasks/server');
     });
+
+    test('FakeRealtimeIngress tracks accepted and rejected envelopes',
+        () async {
+      final ingress = FakeRealtimeIngress();
+      addTearDown(ingress.dispose);
+
+      final env1 = RealtimeEventEnvelope(
+        eventType: 'message:new',
+        scopeKey: 'server:server-1',
+        payload: const {'id': 'msg-1'},
+        seq: 1,
+        receivedAt: DateTime.utc(2026),
+      );
+      final env2 = RealtimeEventEnvelope(
+        eventType: 'message:new',
+        scopeKey: 'server:server-1',
+        payload: const {'id': 'msg-1'},
+        seq: 1, // duplicate seq
+        receivedAt: DateTime.utc(2026),
+      );
+
+      final accepted1 = ingress.accept(env1);
+      final accepted2 = ingress.accept(env2);
+
+      expect(accepted1, isTrue);
+      expect(accepted2, isFalse);
+      expect(ingress.acceptedEnvelopes.length, 1);
+      expect(ingress.rejectedEnvelopes.length, 1);
+    });
   });
 }
