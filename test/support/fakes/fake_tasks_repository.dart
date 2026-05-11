@@ -17,6 +17,11 @@ class FakeTasksRepository implements TasksRepository {
   List<TaskItem> createResult;
   bool shouldFail;
 
+  /// When non-null, [listServerTasks] throws this specific [AppFailure].
+  /// Takes precedence over [shouldFail]. Mutable so tests can clear it
+  /// mid-test (e.g. first load fails, second succeeds).
+  AppFailure? listFailure;
+
   TaskItem? statusResult;
   TaskItem? claimResult;
   TaskItem? unclaimResult;
@@ -33,6 +38,7 @@ class FakeTasksRepository implements TasksRepository {
   @override
   Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async {
     listCalls++;
+    if (listFailure != null) throw listFailure!;
     if (shouldFail) {
       throw const UnknownFailure(message: 'Failed to load tasks.');
     }

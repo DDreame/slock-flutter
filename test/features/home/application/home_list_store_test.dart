@@ -3,87 +3,107 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/agents/data/agent_item.dart';
-import 'package:slock_app/features/agents/data/agents_repository.dart';
-import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
-import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
-import 'package:slock_app/features/tasks/data/task_item.dart';
-import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
-import 'package:slock_app/features/threads/application/thread_route.dart';
-import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 
+import '../../../support/support.dart';
+
+// ---------------------------------------------------------------------------
+// Migration: mock-call → state-based assertions (#476)
+//
+// Original file used 6 private fake classes (_FakeHomeRepository,
+// _FakeSidebarOrderRepository, _FakeAgentsRepository, _FakeTasksRepository,
+// _FakeThreadRepository, _FailingTasksRepository) and plain ProviderContainers.
+//
+// Migration mapping:
+//   _FakeHomeRepository          → FakeHomeRepository (shared)
+//   _FakeSidebarOrderRepository  → FakeSidebarOrderRepository (shared)
+//   _FakeAgentsRepository        → FakeAgentsRepository (shared)
+//   _FakeTasksRepository         → FakeTasksRepository (shared)
+//   _FakeThreadRepository        → FakeThreadRepository (shared)
+//   _FailingTasksRepository      → FakeTasksRepository.listFailure (shared)
+//   _DelayedHomeRepository       → _DelayedHomeRepository (local — needs
+//                                  Completer-based blocking not in shared fake)
+//   plain ProviderContainer      → RuntimeAppFixture where feasible
+//
+// Removed assertions:
+//   repository.requestedServerIds — call-tracking, not state-based
+//
+// Tests using null active server (noActiveServer, addDirectMessage no-op)
+// keep plain ProviderContainer because RuntimeAppFixture.boot() always
+// selects a server.
+// ---------------------------------------------------------------------------
+
+/// File-level provider for the stale-load race test. Allows mid-test
+/// mutation of the active server without full fixture rebuild.
 final _testActiveServerProvider = StateProvider<ServerScopeId?>((ref) => null);
 
 void main() {
+  // ---------------------------------------------------------------------------
+  // 1. load populates channel and direct message lists on success
+  //
+  // Before: plain ProviderContainer + all private fakes + requestedServerIds
+  // After:  RuntimeAppFixture + seedHome + state-only assertions
+  // ---------------------------------------------------------------------------
+
   test('load populates channel and direct message lists on success', () async {
-    final repository = _FakeHomeRepository(
-      snapshot: const HomeWorkspaceSnapshot(
-        serverId: ServerScopeId('server-1'),
-        channels: [
-          HomeChannelSummary(
-            scopeId: ChannelScopeId(
-              serverId: ServerScopeId('server-1'),
-              value: 'general',
-            ),
-            name: 'general',
+    final fixture = RuntimeAppFixture();
+    fixture.homeRepository.snapshot = const HomeWorkspaceSnapshot(
+      serverId: ServerScopeId('server-1'),
+      channels: [
+        HomeChannelSummary(
+          scopeId: ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
           ),
-        ],
-        directMessages: [
-          HomeDirectMessageSummary(
-            scopeId: DirectMessageScopeId(
-              serverId: ServerScopeId('server-1'),
-              value: 'dm-alice',
-            ),
-            title: 'Alice',
-          ),
-        ],
-      ),
-    );
-    final container = ProviderContainer(
-      overrides: [
-        activeServerScopeIdProvider.overrideWithValue(
-          const ServerScopeId('server-1'),
+          name: 'general',
         ),
-        homeRepositoryProvider.overrideWithValue(repository),
-        sidebarOrderRepositoryProvider
-            .overrideWithValue(const _FakeSidebarOrderRepository()),
-        agentsRepositoryProvider
-            .overrideWithValue(const _FakeAgentsRepository()),
-        tasksRepositoryProvider.overrideWithValue(const _FakeTasksRepository()),
-        threadRepositoryProvider
-            .overrideWithValue(const _FakeThreadRepository()),
-        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+      ],
+      directMessages: [
+        HomeDirectMessageSummary(
+          scopeId: DirectMessageScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'dm-alice',
+          ),
+          title: 'Alice',
+        ),
       ],
     );
-    addTearDown(container.dispose);
+    await fixture.boot();
+    addTearDown(fixture.dispose);
 
-    await container.read(homeListStoreProvider.notifier).load();
-    final state = container.read(homeListStoreProvider);
+    await fixture.container.read(homeListStoreProvider.notifier).load();
+    final state = fixture.container.read(homeListStoreProvider);
 
     expect(state.status, HomeListStatus.success);
     expect(state.serverScopeId, const ServerScopeId('server-1'));
     expect(state.channels.single.name, 'general');
     expect(state.directMessages.single.title, 'Alice');
     expect(state.failure, isNull);
-    expect(repository.requestedServerIds, [const ServerScopeId('server-1')]);
+    // Removed: repository.requestedServerIds — call-tracking, not state-based
   });
+
+  // ---------------------------------------------------------------------------
+  // 2. build returns noActiveServer when no server is selected
+  //
+  // Before: plain ProviderContainer + null active server
+  // After:  plain ProviderContainer + shared FakeHomeRepository
+  //         (RuntimeAppFixture always selects a server)
+  // ---------------------------------------------------------------------------
 
   test('build returns noActiveServer when no server is selected', () {
     final container = ProviderContainer(
       overrides: [
         activeServerScopeIdProvider.overrideWithValue(null),
-        homeRepositoryProvider.overrideWithValue(
-          _FakeHomeRepository(),
-        ),
+        homeRepositoryProvider.overrideWithValue(FakeHomeRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -93,13 +113,18 @@ void main() {
     expect(state.serverScopeId, isNull);
   });
 
+  // ---------------------------------------------------------------------------
+  // 3. load returns noActiveServer when no server is selected
+  //
+  // Before: plain ProviderContainer + null active server
+  // After:  plain ProviderContainer + shared FakeHomeRepository
+  // ---------------------------------------------------------------------------
+
   test('load returns noActiveServer when no server is selected', () async {
     final container = ProviderContainer(
       overrides: [
         activeServerScopeIdProvider.overrideWithValue(null),
-        homeRepositoryProvider.overrideWithValue(
-          _FakeHomeRepository(),
-        ),
+        homeRepositoryProvider.overrideWithValue(FakeHomeRepository()),
       ],
     );
     addTearDown(container.dispose);
@@ -109,33 +134,25 @@ void main() {
     expect(state.status, HomeListStatus.noActiveServer);
   });
 
+  // ---------------------------------------------------------------------------
+  // 4. load stores typed AppFailure in state without rethrowing
+  //
+  // Before: plain ProviderContainer + _FakeHomeRepository(failure: ...)
+  // After:  RuntimeAppFixture + homeRepository.failure = ...
+  // ---------------------------------------------------------------------------
+
   test('load stores typed AppFailure in state without rethrowing', () async {
     const failure = ServerFailure(
       message: 'Home snapshot failed.',
       statusCode: 500,
     );
-    final container = ProviderContainer(
-      overrides: [
-        activeServerScopeIdProvider.overrideWithValue(
-          const ServerScopeId('server-1'),
-        ),
-        homeRepositoryProvider.overrideWithValue(
-          _FakeHomeRepository(failure: failure),
-        ),
-        sidebarOrderRepositoryProvider
-            .overrideWithValue(const _FakeSidebarOrderRepository()),
-        agentsRepositoryProvider
-            .overrideWithValue(const _FakeAgentsRepository()),
-        tasksRepositoryProvider.overrideWithValue(const _FakeTasksRepository()),
-        threadRepositoryProvider
-            .overrideWithValue(const _FakeThreadRepository()),
-        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-      ],
-    );
-    addTearDown(container.dispose);
+    final fixture = RuntimeAppFixture();
+    fixture.homeRepository.failure = failure;
+    await fixture.boot();
+    addTearDown(fixture.dispose);
 
-    await container.read(homeListStoreProvider.notifier).load();
-    final state = container.read(homeListStoreProvider);
+    await fixture.container.read(homeListStoreProvider.notifier).load();
+    final state = fixture.container.read(homeListStoreProvider);
 
     expect(state.status, HomeListStatus.failure);
     expect(state.failure, failure);
@@ -143,53 +160,51 @@ void main() {
     expect(state.directMessages, isEmpty);
   });
 
+  // ---------------------------------------------------------------------------
+  // 5. build auto-loads workspace when active server is set
+  //
+  // Before: plain ProviderContainer, manual check initial→success transition
+  //         + requestedServerIds
+  // After:  RuntimeAppFixture (boot auto-loads), verify success state.
+  //         The auto-load transition is implicitly tested by boot()
+  //         completing with success status.
+  // ---------------------------------------------------------------------------
+
   test('build auto-loads workspace when active server is set', () async {
-    final repository = _FakeHomeRepository(
-      snapshot: const HomeWorkspaceSnapshot(
-        serverId: ServerScopeId('server-1'),
-        channels: [
-          HomeChannelSummary(
-            scopeId: ChannelScopeId(
-              serverId: ServerScopeId('server-1'),
-              value: 'general',
-            ),
-            name: 'general',
+    final fixture = RuntimeAppFixture();
+    fixture.homeRepository.snapshot = const HomeWorkspaceSnapshot(
+      serverId: ServerScopeId('server-1'),
+      channels: [
+        HomeChannelSummary(
+          scopeId: ChannelScopeId(
+            serverId: ServerScopeId('server-1'),
+            value: 'general',
           ),
-        ],
-        directMessages: [],
-      ),
-    );
-    final container = ProviderContainer(
-      overrides: [
-        activeServerScopeIdProvider.overrideWithValue(
-          const ServerScopeId('server-1'),
+          name: 'general',
         ),
-        homeRepositoryProvider.overrideWithValue(repository),
-        sidebarOrderRepositoryProvider
-            .overrideWithValue(const _FakeSidebarOrderRepository()),
-        agentsRepositoryProvider
-            .overrideWithValue(const _FakeAgentsRepository()),
-        tasksRepositoryProvider.overrideWithValue(const _FakeTasksRepository()),
-        threadRepositoryProvider
-            .overrideWithValue(const _FakeThreadRepository()),
-        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
       ],
+      directMessages: [],
     );
-    addTearDown(container.dispose);
+    await fixture.boot();
+    addTearDown(fixture.dispose);
 
-    expect(
-      container.read(homeListStoreProvider).status,
-      HomeListStatus.initial,
-    );
-
-    await Future.delayed(Duration.zero);
-
-    final state = container.read(homeListStoreProvider);
+    final state = fixture.container.read(homeListStoreProvider);
     expect(state.status, HomeListStatus.success);
     expect(state.serverScopeId, const ServerScopeId('server-1'));
     expect(state.channels.single.name, 'general');
-    expect(repository.requestedServerIds, [const ServerScopeId('server-1')]);
+    // Removed: repository.requestedServerIds — call-tracking, not state-based
   });
+
+  // ---------------------------------------------------------------------------
+  // 6. stale load is discarded when active server changes during fetch
+  //
+  // Before: _DelayedHomeRepository + _testActiveServerProvider + all
+  //         private fakes
+  // After:  _DelayedHomeRepository (local — Completer-based blocking
+  //         unavailable in shared FakeHomeRepository) + shared fakes
+  //         for sidebar/agents/tasks/threads. Plain ProviderContainer
+  //         because test manipulates activeServerScopeIdProvider mid-test.
+  // ---------------------------------------------------------------------------
 
   test('stale load is discarded when active server changes during fetch',
       () async {
@@ -203,12 +218,10 @@ void main() {
           _DelayedHomeRepository(completer),
         ),
         sidebarOrderRepositoryProvider
-            .overrideWithValue(const _FakeSidebarOrderRepository()),
-        agentsRepositoryProvider
-            .overrideWithValue(const _FakeAgentsRepository()),
-        tasksRepositoryProvider.overrideWithValue(const _FakeTasksRepository()),
-        threadRepositoryProvider
-            .overrideWithValue(const _FakeThreadRepository()),
+            .overrideWithValue(FakeSidebarOrderRepository()),
+        agentsRepositoryProvider.overrideWithValue(FakeAgentsRepository()),
+        tasksRepositoryProvider.overrideWithValue(FakeTasksRepository()),
+        threadRepositoryProvider.overrideWithValue(FakeThreadRepository()),
         homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
       ],
     );
@@ -248,39 +261,32 @@ void main() {
     await Future.delayed(Duration.zero);
   });
 
+  // ---------------------------------------------------------------------------
+  // addDirectMessage group
+  //
+  // Before: plain ProviderContainer + private fakes
+  // After:  RuntimeAppFixture for tests that need a loaded state,
+  //         plain ProviderContainer for the null-server no-op test
+  // ---------------------------------------------------------------------------
+
   group('addDirectMessage', () {
     test('prepends new DM to front of list when status is success', () async {
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
-          ),
-          homeRepositoryProvider.overrideWithValue(
-            _FakeHomeRepository(
-              snapshot: const HomeWorkspaceSnapshot(
-                serverId: ServerScopeId('server-1'),
-                channels: [],
-                directMessages: [
-                  HomeDirectMessageSummary(
-                    scopeId: DirectMessageScopeId(
-                      serverId: ServerScopeId('server-1'),
-                      value: 'dm-existing',
-                    ),
-                    title: 'Existing',
-                  ),
-                ],
-              ),
+      final fixture = RuntimeAppFixture();
+      fixture.seedHome(
+        directMessages: [
+          const HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-existing',
             ),
+            title: 'Existing',
           ),
-          sidebarOrderRepositoryProvider
-              .overrideWithValue(const _FakeSidebarOrderRepository()),
-          agentsRepositoryProvider
-              .overrideWithValue(const _FakeAgentsRepository()),
         ],
       );
-      addTearDown(container.dispose);
+      await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      await container.read(homeListStoreProvider.notifier).load();
+      await fixture.container.read(homeListStoreProvider.notifier).load();
 
       const newDm = HomeDirectMessageSummary(
         scopeId: DirectMessageScopeId(
@@ -289,46 +295,33 @@ void main() {
         ),
         title: 'New DM',
       );
-      container.read(homeListStoreProvider.notifier).addDirectMessage(newDm);
+      fixture.container
+          .read(homeListStoreProvider.notifier)
+          .addDirectMessage(newDm);
 
-      final state = container.read(homeListStoreProvider);
+      final state = fixture.container.read(homeListStoreProvider);
       expect(state.directMessages.length, 2);
       expect(state.directMessages.first.scopeId.value, 'dm-new');
       expect(state.directMessages.last.scopeId.value, 'dm-existing');
     });
 
     test('deduplicates by scopeId', () async {
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
-          ),
-          homeRepositoryProvider.overrideWithValue(
-            _FakeHomeRepository(
-              snapshot: const HomeWorkspaceSnapshot(
-                serverId: ServerScopeId('server-1'),
-                channels: [],
-                directMessages: [
-                  HomeDirectMessageSummary(
-                    scopeId: DirectMessageScopeId(
-                      serverId: ServerScopeId('server-1'),
-                      value: 'dm-alice',
-                    ),
-                    title: 'Alice',
-                  ),
-                ],
-              ),
+      final fixture = RuntimeAppFixture();
+      fixture.seedHome(
+        directMessages: [
+          const HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-alice',
             ),
+            title: 'Alice',
           ),
-          sidebarOrderRepositoryProvider
-              .overrideWithValue(const _FakeSidebarOrderRepository()),
-          agentsRepositoryProvider
-              .overrideWithValue(const _FakeAgentsRepository()),
         ],
       );
-      addTearDown(container.dispose);
+      await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      await container.read(homeListStoreProvider.notifier).load();
+      await fixture.container.read(homeListStoreProvider.notifier).load();
 
       const duplicate = HomeDirectMessageSummary(
         scopeId: DirectMessageScopeId(
@@ -337,22 +330,22 @@ void main() {
         ),
         title: 'Alice duplicate',
       );
-      container
+      fixture.container
           .read(homeListStoreProvider.notifier)
           .addDirectMessage(duplicate);
 
-      final state = container.read(homeListStoreProvider);
+      final state = fixture.container.read(homeListStoreProvider);
       expect(state.directMessages.length, 1);
       expect(state.directMessages.first.title, 'Alice');
     });
 
+    // Before: plain ProviderContainer with null active server
+    // After:  plain ProviderContainer + shared FakeHomeRepository
     test('no-op when status is not success', () {
       final container = ProviderContainer(
         overrides: [
           activeServerScopeIdProvider.overrideWithValue(null),
-          homeRepositoryProvider.overrideWithValue(
-            _FakeHomeRepository(),
-          ),
+          homeRepositoryProvider.overrideWithValue(FakeHomeRepository()),
         ],
       );
       addTearDown(container.dispose);
@@ -375,48 +368,38 @@ void main() {
   // a no-op; unread counts flow through InboxStore →
   // unreadSourceProjectionProvider.
 
+  // ---------------------------------------------------------------------------
+  // 10. load populates knownThreadChannelIds from snapshot threadChannelIds
+  //
+  // Before: plain ProviderContainer + all private fakes
+  // After:  RuntimeAppFixture + homeRepository.snapshot with threadChannelIds
+  // ---------------------------------------------------------------------------
+
   test(
     'load populates knownThreadChannelIds from snapshot '
     'threadChannelIds',
     () async {
-      final repository = _FakeHomeRepository(
-        snapshot: const HomeWorkspaceSnapshot(
-          serverId: ServerScopeId('server-1'),
-          channels: [
-            HomeChannelSummary(
-              scopeId: ChannelScopeId(
-                serverId: ServerScopeId('server-1'),
-                value: 'general',
-              ),
-              name: 'general',
+      final fixture = RuntimeAppFixture();
+      fixture.homeRepository.snapshot = const HomeWorkspaceSnapshot(
+        serverId: ServerScopeId('server-1'),
+        channels: [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'general',
             ),
-          ],
-          directMessages: [],
-          threadChannelIds: {'thread-a', 'thread-b'},
-        ),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
+            name: 'general',
           ),
-          homeRepositoryProvider.overrideWithValue(repository),
-          sidebarOrderRepositoryProvider
-              .overrideWithValue(const _FakeSidebarOrderRepository()),
-          agentsRepositoryProvider
-              .overrideWithValue(const _FakeAgentsRepository()),
-          tasksRepositoryProvider
-              .overrideWithValue(const _FakeTasksRepository()),
-          threadRepositoryProvider
-              .overrideWithValue(const _FakeThreadRepository()),
-          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
         ],
+        directMessages: [],
+        threadChannelIds: {'thread-a', 'thread-b'},
       );
-      addTearDown(container.dispose);
+      await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      await container.read(homeListStoreProvider.notifier).load();
+      await fixture.container.read(homeListStoreProvider.notifier).load();
 
-      final knownIds = container.read(knownThreadChannelIdsProvider);
+      final knownIds = fixture.container.read(knownThreadChannelIdsProvider);
       expect(
         knownIds,
         containsAll([
@@ -429,11 +412,21 @@ void main() {
     },
   );
 
+  // ---------------------------------------------------------------------------
+  // 11. cached preview survives network refresh that omits lastMessage
+  //
+  // Before: plain ProviderContainer + _FakeHomeRepository with
+  //         snapshot + cachedSnapshot
+  // After:  RuntimeAppFixture + homeRepository.snapshot/cachedSnapshot
+  // ---------------------------------------------------------------------------
+
   test(
     'cached preview survives network refresh '
     'that omits lastMessage',
     () async {
-      final cachedSnapshot = HomeWorkspaceSnapshot(
+      final fixture = RuntimeAppFixture();
+
+      fixture.homeRepository.cachedSnapshot = HomeWorkspaceSnapshot(
         serverId: const ServerScopeId('server-1'),
         channels: [
           HomeChannelSummary(
@@ -462,7 +455,7 @@ void main() {
       );
 
       // Network snapshot omits lastMessage for both.
-      const networkSnapshot = HomeWorkspaceSnapshot(
+      fixture.homeRepository.snapshot = const HomeWorkspaceSnapshot(
         serverId: ServerScopeId('server-1'),
         channels: [
           HomeChannelSummary(
@@ -484,37 +477,12 @@ void main() {
         ],
       );
 
-      final repository = _FakeHomeRepository(
-        snapshot: networkSnapshot,
-        cachedSnapshot: cachedSnapshot,
-      );
+      await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
-          ),
-          homeRepositoryProvider.overrideWithValue(repository),
-          sidebarOrderRepositoryProvider.overrideWithValue(
-            const _FakeSidebarOrderRepository(),
-          ),
-          agentsRepositoryProvider.overrideWithValue(
-            const _FakeAgentsRepository(),
-          ),
-          tasksRepositoryProvider.overrideWithValue(
-            const _FakeTasksRepository(),
-          ),
-          threadRepositoryProvider.overrideWithValue(
-            const _FakeThreadRepository(),
-          ),
-          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-        ],
-      );
-      addTearDown(container.dispose);
+      await fixture.container.read(homeListStoreProvider.notifier).load();
 
-      await container.read(homeListStoreProvider.notifier).load();
-
-      final state = container.read(homeListStoreProvider);
+      final state = fixture.container.read(homeListStoreProvider);
       final ch = state.channels.firstWhere(
         (c) => c.scopeId.value == 'ch-1',
       );
@@ -540,11 +508,20 @@ void main() {
     },
   );
 
+  // ---------------------------------------------------------------------------
+  // 12. message:updated syncs preview during cached-retained preview window
+  //
+  // Before: plain ProviderContainer + _FakeHomeRepository
+  // After:  RuntimeAppFixture + homeRepository fields
+  // ---------------------------------------------------------------------------
+
   test(
     'message:updated syncs preview during '
     'cached-retained preview window',
     () async {
-      final cachedSnapshot = HomeWorkspaceSnapshot(
+      final fixture = RuntimeAppFixture();
+
+      fixture.homeRepository.cachedSnapshot = HomeWorkspaceSnapshot(
         serverId: const ServerScopeId('server-1'),
         channels: [
           HomeChannelSummary(
@@ -561,7 +538,7 @@ void main() {
         directMessages: [],
       );
 
-      const networkSnapshot = HomeWorkspaceSnapshot(
+      fixture.homeRepository.snapshot = const HomeWorkspaceSnapshot(
         serverId: ServerScopeId('server-1'),
         channels: [
           HomeChannelSummary(
@@ -575,44 +552,21 @@ void main() {
         directMessages: [],
       );
 
-      final repository = _FakeHomeRepository(
-        snapshot: networkSnapshot,
-        cachedSnapshot: cachedSnapshot,
-      );
+      await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
-          ),
-          homeRepositoryProvider.overrideWithValue(repository),
-          sidebarOrderRepositoryProvider.overrideWithValue(
-            const _FakeSidebarOrderRepository(),
-          ),
-          agentsRepositoryProvider.overrideWithValue(
-            const _FakeAgentsRepository(),
-          ),
-          tasksRepositoryProvider.overrideWithValue(
-            const _FakeTasksRepository(),
-          ),
-          threadRepositoryProvider.overrideWithValue(
-            const _FakeThreadRepository(),
-          ),
-          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      await container.read(homeListStoreProvider.notifier).load();
+      await fixture.container.read(homeListStoreProvider.notifier).load();
 
       // Simulate message:updated for the cached message.
-      container.read(homeListStoreProvider.notifier).updateChannelPreview(
+      fixture.container
+          .read(homeListStoreProvider.notifier)
+          .updateChannelPreview(
             conversationId: 'ch-1',
             messageId: 'msg-cached',
             preview: 'Edited text',
           );
 
-      final state = container.read(homeListStoreProvider);
+      final state = fixture.container.read(homeListStoreProvider);
       final ch = state.channels.firstWhere(
         (c) => c.scopeId.value == 'ch-1',
       );
@@ -628,45 +582,34 @@ void main() {
     },
   );
 
+  // ---------------------------------------------------------------------------
+  // task load failure diagnostic group
+  //
+  // Before: _FailingTasksRepository with mutable AppFailure? failure field
+  // After:  shared FakeTasksRepository with listFailure field
+  //         (added to shared fake as backward-compatible extension)
+  // ---------------------------------------------------------------------------
+
   group('task load failure diagnostic', () {
+    // Before: _FailingTasksRepository(ServerFailure(...))
+    // After:  fixture.tasksRepository.listFailure = ServerFailure(...)
     test('task 500 surfaces taskLoadFailure in state instead of silent empty',
         () async {
       const failure = ServerFailure(
         message: 'Internal server error',
         statusCode: 500,
       );
-      final repository = _FakeHomeRepository(
-        snapshot: const HomeWorkspaceSnapshot(
-          serverId: ServerScopeId('server-1'),
-          channels: [],
-          directMessages: [],
-        ),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
-          ),
-          homeRepositoryProvider.overrideWithValue(repository),
-          sidebarOrderRepositoryProvider
-              .overrideWithValue(const _FakeSidebarOrderRepository()),
-          agentsRepositoryProvider
-              .overrideWithValue(const _FakeAgentsRepository()),
-          tasksRepositoryProvider
-              .overrideWithValue(_FailingTasksRepository(failure)),
-          threadRepositoryProvider
-              .overrideWithValue(const _FakeThreadRepository()),
-          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-        ],
-      );
-      addTearDown(container.dispose);
+      final fixture = RuntimeAppFixture();
+      fixture.tasksRepository.listFailure = failure;
+      await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      await container.read(homeListStoreProvider.notifier).load();
+      await fixture.container.read(homeListStoreProvider.notifier).load();
 
       // Wait for supplemental Tier-2 to complete.
       await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(homeListStoreProvider);
+      final state = fixture.container.read(homeListStoreProvider);
       expect(state.status, HomeListStatus.success,
           reason: 'Tier 1 succeeds; task failure is supplemental');
       expect(state.taskItems, isEmpty,
@@ -678,94 +621,58 @@ void main() {
       expect((state.taskLoadFailure as ServerFailure).statusCode, 500);
     });
 
+    // Before: _FailingTasksRepository with mutable failure, set then cleared
+    // After:  fixture.tasksRepository.listFailure set then cleared
     test('successful task load clears taskLoadFailure', () async {
       const failure = ServerFailure(
         message: 'Internal server error',
         statusCode: 500,
       );
-      final repository = _FakeHomeRepository(
-        snapshot: const HomeWorkspaceSnapshot(
-          serverId: ServerScopeId('server-1'),
-          channels: [],
-          directMessages: [],
-        ),
-      );
-      final tasksRepo = _FailingTasksRepository(failure);
-
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
-          ),
-          homeRepositoryProvider.overrideWithValue(repository),
-          sidebarOrderRepositoryProvider
-              .overrideWithValue(const _FakeSidebarOrderRepository()),
-          agentsRepositoryProvider
-              .overrideWithValue(const _FakeAgentsRepository()),
-          tasksRepositoryProvider.overrideWithValue(tasksRepo),
-          threadRepositoryProvider
-              .overrideWithValue(const _FakeThreadRepository()),
-          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-        ],
-      );
-      addTearDown(container.dispose);
+      final fixture = RuntimeAppFixture();
+      fixture.tasksRepository.listFailure = failure;
+      await fixture.boot();
+      addTearDown(fixture.dispose);
 
       // First load — tasks fail.
-      await container.read(homeListStoreProvider.notifier).load();
+      await fixture.container.read(homeListStoreProvider.notifier).load();
       await Future<void>.delayed(Duration.zero);
 
       expect(
-        container.read(homeListStoreProvider).taskLoadFailure,
+        fixture.container.read(homeListStoreProvider).taskLoadFailure,
         isNotNull,
         reason: 'Pre-condition: failure must be set',
       );
 
       // Clear the failure so next load succeeds.
-      tasksRepo.failure = null;
-      await container.read(homeListStoreProvider.notifier).load();
+      fixture.tasksRepository.listFailure = null;
+      await fixture.container.read(homeListStoreProvider.notifier).load();
       await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(homeListStoreProvider);
+      final state = fixture.container.read(homeListStoreProvider);
       expect(state.taskLoadFailure, isNull,
           reason: 'Successful reload must clear taskLoadFailure');
     });
 
+    // Before: _FailingTasksRepository(NotFoundFailure(...))
+    // After:  fixture.tasksRepository.listFailure = NotFoundFailure(...)
     test('non-retryable AppFailure surfaces as taskLoadFailure', () async {
       const failure = NotFoundFailure(message: 'Not found');
-      final repository = _FakeHomeRepository(
-        snapshot: const HomeWorkspaceSnapshot(
-          serverId: ServerScopeId('server-1'),
-          channels: [],
-          directMessages: [],
-        ),
-      );
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
-          ),
-          homeRepositoryProvider.overrideWithValue(repository),
-          sidebarOrderRepositoryProvider
-              .overrideWithValue(const _FakeSidebarOrderRepository()),
-          agentsRepositoryProvider
-              .overrideWithValue(const _FakeAgentsRepository()),
-          tasksRepositoryProvider
-              .overrideWithValue(_FailingTasksRepository(failure)),
-          threadRepositoryProvider
-              .overrideWithValue(const _FakeThreadRepository()),
-          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-        ],
-      );
-      addTearDown(container.dispose);
+      final fixture = RuntimeAppFixture();
+      fixture.tasksRepository.listFailure = failure;
+      await fixture.boot();
+      addTearDown(fixture.dispose);
 
-      await container.read(homeListStoreProvider.notifier).load();
+      await fixture.container.read(homeListStoreProvider.notifier).load();
       await Future<void>.delayed(Duration.zero);
 
-      final state = container.read(homeListStoreProvider);
+      final state = fixture.container.read(homeListStoreProvider);
       expect(state.taskLoadFailure, isA<NotFoundFailure>());
       expect(state.taskLoadFailure!.message, 'Not found');
     });
 
+    // Before: _FailingTasksRepository with mutable failure, listener for
+    //         intermediate loading state
+    // After:  fixture.tasksRepository.listFailure set then cleared
     test(
       'stale taskLoadFailure is cleared at start of reload '
       'before new task fetch resolves',
@@ -774,46 +681,24 @@ void main() {
           message: 'Internal server error',
           statusCode: 500,
         );
-        final repository = _FakeHomeRepository(
-          snapshot: const HomeWorkspaceSnapshot(
-            serverId: ServerScopeId('server-1'),
-            channels: [],
-            directMessages: [],
-          ),
-        );
-        final tasksRepo = _FailingTasksRepository(failure);
-
-        final container = ProviderContainer(
-          overrides: [
-            activeServerScopeIdProvider.overrideWithValue(
-              const ServerScopeId('server-1'),
-            ),
-            homeRepositoryProvider.overrideWithValue(repository),
-            sidebarOrderRepositoryProvider
-                .overrideWithValue(const _FakeSidebarOrderRepository()),
-            agentsRepositoryProvider
-                .overrideWithValue(const _FakeAgentsRepository()),
-            tasksRepositoryProvider.overrideWithValue(tasksRepo),
-            threadRepositoryProvider
-                .overrideWithValue(const _FakeThreadRepository()),
-            homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
-          ],
-        );
-        addTearDown(container.dispose);
+        final fixture = RuntimeAppFixture();
+        fixture.tasksRepository.listFailure = failure;
+        await fixture.boot();
+        addTearDown(fixture.dispose);
 
         // First load — tasks fail, failure is surfaced.
-        await container.read(homeListStoreProvider.notifier).load();
+        await fixture.container.read(homeListStoreProvider.notifier).load();
         await Future<void>.delayed(Duration.zero);
 
         expect(
-          container.read(homeListStoreProvider).taskLoadFailure,
+          fixture.container.read(homeListStoreProvider).taskLoadFailure,
           isNotNull,
           reason: 'Pre-condition: stale failure must be present',
         );
 
         // Capture the intermediate loading state during the next load.
         HomeListState? loadingSnapshot;
-        container.listen(homeListStoreProvider, (prev, next) {
+        fixture.container.listen(homeListStoreProvider, (prev, next) {
           if (next.status == HomeListStatus.loading &&
               loadingSnapshot == null) {
             loadingSnapshot = next;
@@ -821,8 +706,8 @@ void main() {
         });
 
         // Clear repo failure so the next load succeeds.
-        tasksRepo.failure = null;
-        await container.read(homeListStoreProvider.notifier).load();
+        fixture.tasksRepository.listFailure = null;
+        await fixture.container.read(homeListStoreProvider.notifier).load();
         await Future<void>.delayed(Duration.zero);
 
         // The loading state must have cleared taskLoadFailure immediately,
@@ -841,7 +726,7 @@ void main() {
         );
 
         // Final state also has no failure.
-        final finalState = container.read(homeListStoreProvider);
+        final finalState = fixture.container.read(homeListStoreProvider);
         expect(finalState.taskLoadFailure, isNull);
         expect(finalState.status, HomeListStatus.success);
       },
@@ -849,269 +734,23 @@ void main() {
   });
 }
 
-class _FailingTasksRepository implements TasksRepository {
-  _FailingTasksRepository(this.failure);
-  AppFailure? failure;
+// ---------------------------------------------------------------------------
+// Local test fakes
+// ---------------------------------------------------------------------------
 
-  @override
-  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async {
-    if (failure != null) throw failure!;
-    return const [];
-  }
-
-  @override
-  Future<List<TaskItem>> createTasks(
-    ServerScopeId serverId, {
-    required String channelId,
-    required List<String> titles,
-  }) async =>
-      const [];
-
-  @override
-  Future<TaskItem> updateTaskStatus(
-    ServerScopeId serverId, {
-    required String taskId,
-    required String status,
-  }) =>
-      throw UnimplementedError();
-
-  @override
-  Future<void> deleteTask(
-    ServerScopeId serverId, {
-    required String taskId,
-  }) async {}
-
-  @override
-  Future<TaskItem> claimTask(
-    ServerScopeId serverId, {
-    required String taskId,
-  }) =>
-      throw UnimplementedError();
-
-  @override
-  Future<TaskItem> unclaimTask(
-    ServerScopeId serverId, {
-    required String taskId,
-  }) =>
-      throw UnimplementedError();
-
-  @override
-  Future<TaskItem> convertMessageToTask(
-    ServerScopeId serverId, {
-    required String messageId,
-  }) =>
-      throw UnimplementedError();
-}
-
-class _FakeHomeRepository implements HomeRepository {
-  _FakeHomeRepository({
-    this.snapshot,
-    this.cachedSnapshot,
-    this.failure,
-  });
-
-  final HomeWorkspaceSnapshot? snapshot;
-  final HomeWorkspaceSnapshot? cachedSnapshot;
-  final AppFailure? failure;
-  final List<ServerScopeId> requestedServerIds = [];
-
-  @override
-  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
-    ServerScopeId serverId,
-  ) async {
-    return cachedSnapshot;
-  }
-
-  @override
-  Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) async {
-    requestedServerIds.add(serverId);
-    if (failure != null) {
-      throw failure!;
-    }
-    return snapshot!;
-  }
-
-  @override
-  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
-    HomeDirectMessageSummary summary,
-  ) async {
-    return summary;
-  }
-
-  @override
-  Future<void> persistConversationActivity({
-    required ServerScopeId serverId,
-    required String conversationId,
-    required String messageId,
-    required String preview,
-    required DateTime activityAt,
-  }) async {}
-
-  @override
-  Future<void> persistConversationPreviewUpdate({
-    required ServerScopeId serverId,
-    required String conversationId,
-    required String messageId,
-    required String preview,
-  }) async {}
-}
-
-class _DelayedHomeRepository implements HomeRepository {
+/// A [FakeHomeRepository] variant whose [loadWorkspace] blocks on a
+/// [Completer], allowing tests to observe stale-load races.
+///
+/// Kept local because the shared [FakeHomeRepository] does not support
+/// Completer-based blocking (its [onLoad] callback is synchronous and
+/// non-blocking).
+class _DelayedHomeRepository extends FakeHomeRepository {
   _DelayedHomeRepository(this.completer);
 
   final Completer<HomeWorkspaceSnapshot> completer;
 
   @override
-  Future<HomeWorkspaceSnapshot?> loadCachedWorkspace(
-    ServerScopeId serverId,
-  ) async {
-    return null;
-  }
-
-  @override
   Future<HomeWorkspaceSnapshot> loadWorkspace(ServerScopeId serverId) {
     return completer.future;
   }
-
-  @override
-  Future<HomeDirectMessageSummary> persistDirectMessageSummary(
-    HomeDirectMessageSummary summary,
-  ) async {
-    return summary;
-  }
-
-  @override
-  Future<void> persistConversationActivity({
-    required ServerScopeId serverId,
-    required String conversationId,
-    required String messageId,
-    required String preview,
-    required DateTime activityAt,
-  }) async {}
-
-  @override
-  Future<void> persistConversationPreviewUpdate({
-    required ServerScopeId serverId,
-    required String conversationId,
-    required String messageId,
-    required String preview,
-  }) async {}
-}
-
-class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  const _FakeSidebarOrderRepository();
-
-  @override
-  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
-    return const SidebarOrder();
-  }
-
-  @override
-  Future<void> updateSidebarOrder(
-    ServerScopeId serverId, {
-    required Map<String, Object> patch,
-  }) async {}
-}
-
-class _FakeAgentsRepository implements AgentsRepository {
-  const _FakeAgentsRepository();
-
-  @override
-  Future<List<AgentItem>> listAgents() async => const [];
-
-  @override
-  Future<void> startAgent(String agentId) async {}
-
-  @override
-  Future<void> stopAgent(String agentId) async {}
-
-  @override
-  Future<void> resetAgent(String agentId, {required String mode}) async {}
-
-  @override
-  Future<List<AgentActivityLogEntry>> getActivityLog(
-    String agentId, {
-    int limit = 50,
-  }) async =>
-      const [];
-}
-
-class _FakeTasksRepository implements TasksRepository {
-  const _FakeTasksRepository();
-
-  @override
-  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async =>
-      const [];
-
-  @override
-  Future<List<TaskItem>> createTasks(
-    ServerScopeId serverId, {
-    required String channelId,
-    required List<String> titles,
-  }) async =>
-      const [];
-
-  @override
-  Future<TaskItem> updateTaskStatus(
-    ServerScopeId serverId, {
-    required String taskId,
-    required String status,
-  }) =>
-      throw UnimplementedError();
-
-  @override
-  Future<void> deleteTask(
-    ServerScopeId serverId, {
-    required String taskId,
-  }) async {}
-
-  @override
-  Future<TaskItem> claimTask(
-    ServerScopeId serverId, {
-    required String taskId,
-  }) =>
-      throw UnimplementedError();
-
-  @override
-  Future<TaskItem> unclaimTask(
-    ServerScopeId serverId, {
-    required String taskId,
-  }) =>
-      throw UnimplementedError();
-
-  @override
-  Future<TaskItem> convertMessageToTask(
-    ServerScopeId serverId, {
-    required String messageId,
-  }) =>
-      throw UnimplementedError();
-}
-
-class _FakeThreadRepository implements ThreadRepository {
-  const _FakeThreadRepository();
-
-  @override
-  Future<List<ThreadInboxItem>> loadFollowedThreads(
-    ServerScopeId serverId,
-  ) async =>
-      const [];
-
-  @override
-  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) =>
-      throw UnimplementedError();
-
-  @override
-  Future<void> followThread(ThreadRouteTarget target) async {}
-
-  @override
-  Future<void> markThreadDone(
-    ServerScopeId serverId, {
-    required String threadChannelId,
-  }) async {}
-
-  @override
-  Future<void> markThreadRead(
-    ServerScopeId serverId, {
-    required String threadChannelId,
-  }) async {}
 }
