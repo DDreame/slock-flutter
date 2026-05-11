@@ -42,6 +42,11 @@ void main() {
         .selectServer(serverId.value);
     homeSub = container.listen(homeListStoreProvider, (_, __) {});
     bindingSub = container.listen(homeTasksRealtimeBindingProvider, (_, __) {});
+
+    // Wait for HomeListStore.build() auto-load to settle, then
+    // clear the baseline so each test only sees its own calls.
+    await _waitForHomeSuccess(container);
+    homeLoader.calls.clear();
   });
 
   tearDown(() async {
@@ -59,15 +64,7 @@ void main() {
           channels: [],
           directMessages: [],
         ),
-        const HomeWorkspaceSnapshot(
-          serverId: serverId,
-          channels: [],
-          directMessages: [],
-        ),
       ];
-
-      await container.read(homeListStoreProvider.notifier).load();
-      expect(homeLoader.calls, [serverId]);
 
       ingress.accept(
         RealtimeEventEnvelope(
@@ -77,9 +74,9 @@ void main() {
           payload: const {'id': 'task-1', 'title': 'New task'},
         ),
       );
-      await _waitForHomeReload(homeLoader, container, expectedCalls: 2);
+      await _waitForHomeReload(homeLoader, container, expectedCalls: 1);
 
-      expect(homeLoader.calls, [serverId, serverId]);
+      expect(homeLoader.calls, [serverId]);
     });
 
     test('task:updated triggers home refresh', () async {
@@ -89,15 +86,7 @@ void main() {
           channels: [],
           directMessages: [],
         ),
-        const HomeWorkspaceSnapshot(
-          serverId: serverId,
-          channels: [],
-          directMessages: [],
-        ),
       ];
-
-      await container.read(homeListStoreProvider.notifier).load();
-      expect(homeLoader.calls, [serverId]);
 
       ingress.accept(
         RealtimeEventEnvelope(
@@ -107,9 +96,9 @@ void main() {
           payload: const {'id': 'task-1', 'status': 'done'},
         ),
       );
-      await _waitForHomeReload(homeLoader, container, expectedCalls: 2);
+      await _waitForHomeReload(homeLoader, container, expectedCalls: 1);
 
-      expect(homeLoader.calls, [serverId, serverId]);
+      expect(homeLoader.calls, [serverId]);
     });
 
     test('task:deleted triggers home refresh', () async {
@@ -119,15 +108,7 @@ void main() {
           channels: [],
           directMessages: [],
         ),
-        const HomeWorkspaceSnapshot(
-          serverId: serverId,
-          channels: [],
-          directMessages: [],
-        ),
       ];
-
-      await container.read(homeListStoreProvider.notifier).load();
-      expect(homeLoader.calls, [serverId]);
 
       ingress.accept(
         RealtimeEventEnvelope(
@@ -137,22 +118,12 @@ void main() {
           payload: const {'id': 'task-1'},
         ),
       );
-      await _waitForHomeReload(homeLoader, container, expectedCalls: 2);
+      await _waitForHomeReload(homeLoader, container, expectedCalls: 1);
 
-      expect(homeLoader.calls, [serverId, serverId]);
+      expect(homeLoader.calls, [serverId]);
     });
 
     test('unrelated event types are ignored', () async {
-      homeLoader.snapshots = [
-        const HomeWorkspaceSnapshot(
-          serverId: serverId,
-          channels: [],
-          directMessages: [],
-        ),
-      ];
-
-      await container.read(homeListStoreProvider.notifier).load();
-
       ingress.accept(
         RealtimeEventEnvelope(
           eventType: 'message:new',
@@ -163,7 +134,8 @@ void main() {
       );
       await _drainAsyncWork();
 
-      expect(homeLoader.calls, [serverId]);
+      // No call beyond the auto-load baseline (which was already cleared)
+      expect(homeLoader.calls, isEmpty);
     });
 
     test('skips refresh when home list is still loading', () async {
@@ -175,7 +147,7 @@ void main() {
         ),
       ];
 
-      // Start load but don't await — home will be in loading state
+      // Start a manual reload (don't await) to put home in loading state
       final loadFuture = container.read(homeListStoreProvider.notifier).load();
       final stateBeforeEvent = container.read(homeListStoreProvider);
 
@@ -195,10 +167,31 @@ void main() {
       await loadFuture;
       await _drainAsyncWork();
 
-      // Only the initial load should have been triggered
+      // Only the manual load should exist — event should not enqueue
+      // another refresh while HomeListStatus.loading.
       expect(homeLoader.calls, [serverId]);
     });
   });
+}
+
+/// Waits for [homeListStoreProvider] to reach [HomeListStatus.success].
+Future<void> _waitForHomeSuccess(ProviderContainer container) async {
+  final completer = Completer<void>();
+  final subscription = container.listen<HomeListState>(
+    homeListStoreProvider,
+    (_, next) {
+      if (!completer.isCompleted && next.status == HomeListStatus.success) {
+        completer.complete();
+      }
+    },
+    fireImmediately: true,
+  );
+
+  try {
+    await completer.future.timeout(const Duration(seconds: 2));
+  } finally {
+    subscription.close();
+  }
 }
 
 Future<void> _drainAsyncWork() async {
