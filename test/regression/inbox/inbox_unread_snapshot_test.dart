@@ -26,8 +26,13 @@ void main() {
 
   /// Creates a consistently-seeded fixture with representative inbox data.
   ///
-  /// Seeds 4 inbox items (2 channel threads, 1 DM, 1 mention) plus
-  /// matching Home channels/DMs for visibility resolution.
+  /// Seeds 4 inbox items (2 channels, 1 DM, 1 thread) plus matching
+  /// Home channels/DMs for visibility resolution.
+  ///
+  /// Note: The PM scope listed "1 mention" as a surface, but
+  /// [InboxItemKind] only supports `channel`, `dm`, `thread`, and
+  /// `unknown` — there is no mention-specific kind in the current
+  /// data model. Mentions are not a distinct inbox surface today.
   RuntimeAppFixture createBaselineFixture() {
     final fixture = RuntimeAppFixture();
 
@@ -147,19 +152,82 @@ void main() {
   // RT-INBOX-3: Inbox state after message:new
   // ---------------------------------------------------------------------------
 
-  test(
-    'RT-INBOX-3: inbox state after message:new event',
-    () async {
-      final fixture = createBaselineFixture();
-      await bootAndLoadInbox(fixture);
+  test('RT-INBOX-3: inbox state after message:new event', () async {
+    final fixture = createBaselineFixture();
+    await bootAndLoadInbox(fixture);
+    try {
+      // Pre-stage the refreshed inbox response the debounced refresh
+      // will fetch. Simulates a new message arriving in ch-1 with an
+      // incremented unread count.
+      final eventTime = DateTime.utc(2026, 1, 10, 9, 0, 0);
+      fixture.inboxRepository.fetchResponse = InboxResponse(
+        items: [
+          (InboxItemBuilder('ch-1')
+                ..withName('General')
+                ..withUnread(4)
+                ..withPreview('Just deployed v2.1', senderName: 'Charlie')
+                ..withActivity(eventTime))
+              .build(),
+          (InboxItemBuilder('ch-2')
+                ..withName('Engineering')
+                ..withUnread(5)
+                ..withPreview('Deploy complete', senderName: 'Alice')
+                ..withActivity(t0.add(const Duration(minutes: 25))))
+              .build(),
+          (InboxItemBuilder('dm-1', kind: InboxItemKind.dm)
+                ..withName('Alice')
+                ..withUnread(2)
+                ..withPreview('Can you review?', senderName: 'Alice')
+                ..withActivity(t0.add(const Duration(minutes: 20))))
+              .build(),
+          (InboxItemBuilder('th-1', kind: InboxItemKind.thread)
+                ..withName('General')
+                ..withUnread(1)
+                ..withPreview('Thread reply', senderName: 'Eve')
+                ..withThread(
+                  threadChannelId: 'th-ch-1',
+                  parentChannelId: 'ch-1',
+                  parentMessageId: 'msg-parent-1',
+                )
+                ..withActivity(t0.add(const Duration(minutes: 15))))
+              .build(),
+        ],
+        totalCount: 4,
+        totalUnreadCount: 12,
+        hasMore: false,
+      );
+
+      // Replay message:new through the real router path. The router's
+      // scheduleInboxRefresh sets a 2000ms debounce timer.
+      await replayEvents(fixture.ingress, [
+        DomainEvent.messageNew(
+          scopeKey: 'server:server-1',
+          payload: {
+            'id': 'msg-new-1',
+            'channelId': 'ch-1',
+            'createdAt': eventTime.toIso8601String(),
+            'content': 'Just deployed v2.1',
+            'senderId': 'user-3',
+            'senderName': 'Charlie',
+          },
+        ),
+      ]);
+
+      // Wait through the 2000ms debounce window so the timer fires
+      // and InboxStore.refresh() re-fetches from the repo.
+      await Future<void>.delayed(const Duration(milliseconds: 2100));
+
+      final state = fixture.container.read(inboxStoreProvider);
+      final snapshot = _inboxStateToMap(state);
+
+      await expectMatchesGoldenJson(
+        snapshot,
+        goldenPath: '$goldensDir/inbox_after_message_new.json',
+      );
+    } finally {
       await fixture.dispose();
-    },
-    skip: 'TODO: message:new → router scheduleInboxRefresh (2000ms debounce '
-        'timer) → InboxStore.refresh(). The debounced Timer is real wall-clock '
-        'time, not microtask-based, so end-to-end snapshot through the real '
-        'event path requires fakeAsync or timer overrides that are not '
-        'available in the current test harness.',
-  );
+    }
+  });
 
   // ---------------------------------------------------------------------------
   // RT-INBOX-4: Inbox state after mark-read
@@ -257,6 +325,24 @@ void main() {
       await fixture.dispose();
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // RT-INBOX-7: Mention surface snapshot
+  // ---------------------------------------------------------------------------
+
+  test(
+    'RT-INBOX-7: inbox state with mention-type item',
+    () async {
+      final fixture = createBaselineFixture();
+      await bootAndLoadInbox(fixture);
+      await fixture.dispose();
+    },
+    skip: 'TODO: InboxItemKind only supports channel, dm, thread, and '
+        'unknown — there is no mention-specific kind in the current data '
+        'model. Mentions are not a distinct inbox surface today. When a '
+        'mention kind is added, this test should seed a mention inbox '
+        'item and snapshot its projection behavior.',
+  );
 }
 
 // ---------------------------------------------------------------------------
