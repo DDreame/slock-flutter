@@ -81,7 +81,8 @@ void main() {
         'offline',
       ]) {
         expect(
-          resolveDisplayStatus(makeAgent(status: 'stopped', activity: activity)),
+          resolveDisplayStatus(
+              makeAgent(status: 'stopped', activity: activity)),
           AgentDisplayStatus.stopped,
           reason: 'Stopped agent with stale activity "$activity" '
               'should resolve to stopped',
