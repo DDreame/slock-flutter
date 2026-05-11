@@ -3,7 +3,7 @@ import 'package:slock_app/features/agents/application/agent_display_status.dart'
 import 'package:slock_app/features/agents/data/agent_item.dart';
 
 void main() {
-  AgentItem _agent({
+  AgentItem makeAgent({
     String status = 'active',
     String activity = 'online',
   }) {
@@ -32,42 +32,42 @@ void main() {
   group('resolveDisplayStatus', () {
     test('active + thinking → thinking', () {
       expect(
-        resolveDisplayStatus(_agent(activity: 'thinking')),
+        resolveDisplayStatus(makeAgent(activity: 'thinking')),
         AgentDisplayStatus.thinking,
       );
     });
 
     test('active + working → working', () {
       expect(
-        resolveDisplayStatus(_agent(activity: 'working')),
+        resolveDisplayStatus(makeAgent(activity: 'working')),
         AgentDisplayStatus.working,
       );
     });
 
     test('active + error → error', () {
       expect(
-        resolveDisplayStatus(_agent(activity: 'error')),
+        resolveDisplayStatus(makeAgent(activity: 'error')),
         AgentDisplayStatus.error,
       );
     });
 
     test('active + online → online', () {
       expect(
-        resolveDisplayStatus(_agent(activity: 'online')),
+        resolveDisplayStatus(makeAgent(activity: 'online')),
         AgentDisplayStatus.online,
       );
     });
 
     test('active + offline → offline', () {
       expect(
-        resolveDisplayStatus(_agent(activity: 'offline')),
+        resolveDisplayStatus(makeAgent(activity: 'offline')),
         AgentDisplayStatus.offline,
       );
     });
 
     test('active + unknown activity → offline', () {
       expect(
-        resolveDisplayStatus(_agent(activity: 'something-unknown')),
+        resolveDisplayStatus(makeAgent(activity: 'something-unknown')),
         AgentDisplayStatus.offline,
       );
     });
@@ -81,7 +81,7 @@ void main() {
         'offline',
       ]) {
         expect(
-          resolveDisplayStatus(_agent(status: 'stopped', activity: activity)),
+          resolveDisplayStatus(makeAgent(status: 'stopped', activity: activity)),
           AgentDisplayStatus.stopped,
           reason: 'Stopped agent with stale activity "$activity" '
               'should resolve to stopped',
@@ -91,7 +91,7 @@ void main() {
 
     test('unknown status with valid activity → resolved by activity', () {
       expect(
-        resolveDisplayStatus(_agent(status: 'unknown', activity: 'working')),
+        resolveDisplayStatus(makeAgent(status: 'unknown', activity: 'working')),
         AgentDisplayStatus.working,
       );
     });

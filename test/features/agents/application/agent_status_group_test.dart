@@ -4,7 +4,7 @@ import 'package:slock_app/features/agents/application/agent_status_group.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 
 void main() {
-  AgentItem _agent({
+  AgentItem makeAgent({
     required String id,
     required String name,
     String status = 'active',
@@ -28,8 +28,8 @@ void main() {
       final group = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.thinking,
         agents: [
-          _agent(id: 'a1', name: 'A1', displayName: 'Alice'),
-          _agent(id: 'a2', name: 'A2', displayName: 'Bob'),
+          makeAgent(id: 'a1', name: 'A1', displayName: 'Alice'),
+          makeAgent(id: 'a2', name: 'A2', displayName: 'Bob'),
         ],
       );
 
@@ -40,7 +40,7 @@ void main() {
       final group = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.working,
         agents: [
-          _agent(id: 'a1', name: 'A1', displayName: 'Alice'),
+          makeAgent(id: 'a1', name: 'A1', displayName: 'Alice'),
         ],
       );
 
@@ -51,8 +51,8 @@ void main() {
       final group = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.online,
         agents: [
-          _agent(id: 'a1', name: 'Agent1'),
-          _agent(id: 'a2', name: 'Agent2'),
+          makeAgent(id: 'a1', name: 'Agent1'),
+          makeAgent(id: 'a2', name: 'Agent2'),
         ],
       );
 
@@ -63,9 +63,9 @@ void main() {
       final group = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.online,
         agents: [
-          _agent(id: 'a1', name: 'A'),
-          _agent(id: 'a2', name: 'B'),
-          _agent(id: 'a3', name: 'C'),
+          makeAgent(id: 'a1', name: 'A'),
+          makeAgent(id: 'a2', name: 'B'),
+          makeAgent(id: 'a3', name: 'C'),
         ],
       );
 
@@ -75,7 +75,7 @@ void main() {
     test('foldKey uses displayStatus name', () {
       final group = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.thinking,
-        agents: [_agent(id: 'a1', name: 'A')],
+        agents: [makeAgent(id: 'a1', name: 'A')],
       );
 
       expect(group.foldKey, 'status:thinking');
@@ -85,28 +85,28 @@ void main() {
       expect(
         AgentStatusGroup(
           displayStatus: AgentDisplayStatus.thinking,
-          agents: [_agent(id: 'a', name: 'A')],
+          agents: [makeAgent(id: 'a', name: 'A')],
         ).isActive,
         isTrue,
       );
       expect(
         AgentStatusGroup(
           displayStatus: AgentDisplayStatus.working,
-          agents: [_agent(id: 'a', name: 'A')],
+          agents: [makeAgent(id: 'a', name: 'A')],
         ).isActive,
         isTrue,
       );
       expect(
         AgentStatusGroup(
           displayStatus: AgentDisplayStatus.error,
-          agents: [_agent(id: 'a', name: 'A')],
+          agents: [makeAgent(id: 'a', name: 'A')],
         ).isActive,
         isTrue,
       );
       expect(
         AgentStatusGroup(
           displayStatus: AgentDisplayStatus.online,
-          agents: [_agent(id: 'a', name: 'A')],
+          agents: [makeAgent(id: 'a', name: 'A')],
         ).isActive,
         isTrue,
       );
@@ -116,14 +116,14 @@ void main() {
       expect(
         AgentStatusGroup(
           displayStatus: AgentDisplayStatus.offline,
-          agents: [_agent(id: 'a', name: 'A')],
+          agents: [makeAgent(id: 'a', name: 'A')],
         ).isActive,
         isFalse,
       );
       expect(
         AgentStatusGroup(
           displayStatus: AgentDisplayStatus.stopped,
-          agents: [_agent(id: 'a', name: 'A')],
+          agents: [makeAgent(id: 'a', name: 'A')],
         ).isActive,
         isFalse,
       );
@@ -132,11 +132,11 @@ void main() {
     test('equality based on displayStatus and agents', () {
       final group1 = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.thinking,
-        agents: [_agent(id: 'a1', name: 'A')],
+        agents: [makeAgent(id: 'a1', name: 'A')],
       );
       final group2 = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.thinking,
-        agents: [_agent(id: 'a1', name: 'A')],
+        agents: [makeAgent(id: 'a1', name: 'A')],
       );
       expect(group1, equals(group2));
     });
@@ -144,11 +144,11 @@ void main() {
     test('not equal when displayStatus differs', () {
       final group1 = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.thinking,
-        agents: [_agent(id: 'a1', name: 'A')],
+        agents: [makeAgent(id: 'a1', name: 'A')],
       );
       final group2 = AgentStatusGroup(
         displayStatus: AgentDisplayStatus.working,
-        agents: [_agent(id: 'a1', name: 'A')],
+        agents: [makeAgent(id: 'a1', name: 'A')],
       );
       expect(group1, isNot(equals(group2)));
     });
@@ -161,8 +161,8 @@ void main() {
 
     test('agents with same status are grouped together', () {
       final agents = [
-        _agent(id: 'a1', name: 'A', activity: 'thinking'),
-        _agent(id: 'a2', name: 'B', activity: 'thinking'),
+        makeAgent(id: 'a1', name: 'A', activity: 'thinking'),
+        makeAgent(id: 'a2', name: 'B', activity: 'thinking'),
       ];
 
       final groups = groupAgentsByStatus(agents);
@@ -174,9 +174,9 @@ void main() {
 
     test('agents with different statuses produce separate groups', () {
       final agents = [
-        _agent(id: 'a1', name: 'A', activity: 'thinking'),
-        _agent(id: 'a2', name: 'B', activity: 'working'),
-        _agent(id: 'a3', name: 'C', activity: 'online'),
+        makeAgent(id: 'a1', name: 'A', activity: 'thinking'),
+        makeAgent(id: 'a2', name: 'B', activity: 'working'),
+        makeAgent(id: 'a3', name: 'C', activity: 'online'),
       ];
 
       final groups = groupAgentsByStatus(agents);
@@ -191,12 +191,12 @@ void main() {
         'groups sorted by priority: thinking > working > error > online > offline > stopped',
         () {
       final agents = [
-        _agent(id: 'a1', name: 'F', status: 'stopped', activity: 'offline'),
-        _agent(id: 'a2', name: 'E', activity: 'offline'),
-        _agent(id: 'a3', name: 'D', activity: 'online'),
-        _agent(id: 'a4', name: 'C', activity: 'error'),
-        _agent(id: 'a5', name: 'B', activity: 'working'),
-        _agent(id: 'a6', name: 'A', activity: 'thinking'),
+        makeAgent(id: 'a1', name: 'F', status: 'stopped', activity: 'offline'),
+        makeAgent(id: 'a2', name: 'E', activity: 'offline'),
+        makeAgent(id: 'a3', name: 'D', activity: 'online'),
+        makeAgent(id: 'a4', name: 'C', activity: 'error'),
+        makeAgent(id: 'a5', name: 'B', activity: 'working'),
+        makeAgent(id: 'a6', name: 'A', activity: 'thinking'),
       ];
 
       final groups = groupAgentsByStatus(agents);
@@ -212,9 +212,9 @@ void main() {
 
     test('agents within group sorted alphabetically by label', () {
       final agents = [
-        _agent(id: 'a1', name: 'Zeta', activity: 'thinking'),
-        _agent(id: 'a2', name: 'Alpha', activity: 'thinking'),
-        _agent(id: 'a3', name: 'Mu', activity: 'thinking'),
+        makeAgent(id: 'a1', name: 'Zeta', activity: 'thinking'),
+        makeAgent(id: 'a2', name: 'Alpha', activity: 'thinking'),
+        makeAgent(id: 'a3', name: 'Mu', activity: 'thinking'),
       ];
 
       final groups = groupAgentsByStatus(agents);
@@ -227,13 +227,13 @@ void main() {
 
     test('stopped agent with stale activity groups as stopped', () {
       final agents = [
-        _agent(
+        makeAgent(
           id: 'a1',
           name: 'A',
           status: 'stopped',
           activity: 'thinking',
         ),
-        _agent(id: 'a2', name: 'B', activity: 'thinking'),
+        makeAgent(id: 'a2', name: 'B', activity: 'thinking'),
       ];
 
       final groups = groupAgentsByStatus(agents);
@@ -249,19 +249,19 @@ void main() {
 
     test('mergedSummary produces correct Chinese format', () {
       final agents = [
-        _agent(
+        makeAgent(
           id: 'a1',
           name: 'J1',
           displayName: 'J1',
           activity: 'thinking',
         ),
-        _agent(
+        makeAgent(
           id: 'a2',
           name: 'J2',
           displayName: 'J2',
           activity: 'thinking',
         ),
-        _agent(
+        makeAgent(
           id: 'a3',
           name: 'A1',
           displayName: 'A1',
@@ -277,7 +277,7 @@ void main() {
 
     test('displayName preferred over name in mergedSummary', () {
       final agents = [
-        _agent(
+        makeAgent(
           id: 'a1',
           name: 'agent-1',
           displayName: 'Alice',
