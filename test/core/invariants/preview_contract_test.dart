@@ -1,6 +1,13 @@
 import 'package:glados/glados.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
+
+import '../../support/support.dart';
 
 /// CT — Preview Contract Invariants (INV-PREVIEW-1/2/3).
 ///
@@ -298,12 +305,9 @@ void main() {
       expect(result, equals(emoji));
     });
 
-    test('long text (>200 chars) → returns content as-is (no truncation)', () {
-      final longText = 'A' * 500;
-      final result = MessagePreviewResolver.resolve(content: longText);
-      expect(result, equals(longText));
-      expect(result.length, 500);
-    });
+    // NOTE: No assertion for >200-char content here — that would bless
+    // length > 200 as expected behavior, contradicting INV-PREVIEW-2.
+    // See the skip+TODO on the INV-PREVIEW-2 property test above.
 
     test('non-http URL in content → returns content as-is', () {
       final result = MessagePreviewResolver.resolve(
@@ -463,6 +467,175 @@ void main() {
         resolvePreviewText('   '),
         equals(MessagePreviewResolver.fallbackPreview),
       );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Integration: Preview invariants through RuntimeAppFixture projection
+  // ---------------------------------------------------------------------------
+
+  group('Integration: Home surface preview pipeline', () {
+    test('seeded channel/DM previews satisfy INV-PREVIEW-1/3 after load',
+        () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedHome(
+        channels: [
+          (ChannelBuilder('ch-text')..withPreview('Hello world')).build(),
+          (ChannelBuilder('ch-link')
+                ..withPreview(MessagePreviewResolver.linkPreview))
+              .build(),
+          (ChannelBuilder('ch-no-preview')..withName('empty-ch')).build(),
+        ],
+        directMessages: [
+          (DmBuilder('dm-text')..withPreview('DM content')).build(),
+          (DmBuilder('dm-no-preview')..withTitle('empty-dm')).build(),
+        ],
+      );
+
+      final container = await fixture.boot();
+      try {
+        final state = container.read(homeListStoreProvider);
+        expect(state.status, HomeListStatus.success);
+
+        // resolvePreviewText is the UI safety net called by HomeChannelRow /
+        // HomeDirectMessageRow. Verify it never returns empty or [No preview].
+        for (final ch in [...state.pinnedChannels, ...state.channels]) {
+          final preview = resolvePreviewText(ch.lastMessagePreview);
+          expect(preview, isNotEmpty,
+              reason: 'channel ${ch.scopeId.value} preview empty');
+          expect(preview.trim(), isNotEmpty,
+              reason: 'channel ${ch.scopeId.value} preview whitespace-only');
+          expect(preview, isNot(equals('[No preview]')),
+              reason: 'channel ${ch.scopeId.value}');
+        }
+
+        for (final dm in [
+          ...state.pinnedDirectMessages,
+          ...state.directMessages,
+        ]) {
+          final preview = resolvePreviewText(dm.lastMessagePreview);
+          expect(preview, isNotEmpty,
+              reason: 'dm ${dm.scopeId.value} preview empty');
+          expect(preview.trim(), isNotEmpty,
+              reason: 'dm ${dm.scopeId.value} preview whitespace-only');
+          expect(preview, isNot(equals('[No preview]')),
+              reason: 'dm ${dm.scopeId.value}');
+        }
+      } finally {
+        await fixture.dispose();
+      }
+    });
+  });
+
+  group('Integration: Inbox projection preview pipeline', () {
+    test(
+        'all preview variants (text, null, system, deleted, attachment) '
+        'satisfy INV-PREVIEW-1/3', () async {
+      final fixture = RuntimeAppFixture();
+
+      // Seed home channels so visibility resolves to visible.
+      fixture.seedHome(channels: [
+        ChannelBuilder('ch-text').build(),
+        ChannelBuilder('ch-null').build(),
+        ChannelBuilder('ch-system').build(),
+        ChannelBuilder('ch-deleted').build(),
+        ChannelBuilder('ch-attachment').build(),
+      ]);
+
+      fixture.seedInbox([
+        (InboxItemBuilder('ch-text')
+              ..withUnread(1)
+              ..withPreview('Hello world'))
+            .build(),
+        (InboxItemBuilder('ch-null')..withUnread(1)).build(), // null preview
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-system',
+          channelName: 'ch-system',
+          unreadCount: 1,
+          messageType: 'system',
+        ),
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-deleted',
+          channelName: 'ch-deleted',
+          unreadCount: 1,
+          isDeleted: true,
+        ),
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-attachment',
+          channelName: 'ch-attachment',
+          unreadCount: 1,
+          attachments: [
+            MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+          ],
+        ),
+      ]);
+
+      final container = await fixture.boot();
+      try {
+        // Inbox is not auto-loaded by the event router; trigger explicitly.
+        await container.read(inboxStoreProvider.notifier).load();
+        for (var i = 0; i < 20; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        final projections = container.read(inboxProjectionProvider);
+        expect(projections, hasLength(5));
+
+        for (final p in projections) {
+          expect(p.previewText, isNotEmpty, reason: '${p.id} preview empty');
+          expect(p.previewText.trim(), isNotEmpty,
+              reason: '${p.id} preview whitespace-only');
+          expect(p.previewText, isNot(equals('[No preview]')),
+              reason: p.id);
+        }
+      } finally {
+        await fixture.dispose();
+      }
+    });
+  });
+
+  group('Integration: Unread source projection preview pipeline', () {
+    test('all unread sources satisfy INV-PREVIEW-1/3', () async {
+      final fixture = RuntimeAppFixture();
+
+      fixture.seedHome(channels: [
+        ChannelBuilder('ch-1').build(),
+        ChannelBuilder('ch-2').build(),
+      ]);
+
+      fixture.seedInbox([
+        (InboxItemBuilder('ch-1')
+              ..withUnread(3)
+              ..withPreview('New message'))
+            .build(),
+        (InboxItemBuilder('ch-2')..withUnread(1)).build(), // null preview
+      ]);
+
+      final container = await fixture.boot();
+      try {
+        await container.read(inboxStoreProvider.notifier).load();
+        for (var i = 0; i < 20; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        final state = container.read(unreadSourceProjectionProvider);
+        expect(state.isLoaded, isTrue);
+        expect(state.sources, hasLength(2));
+
+        for (final source in state.sources) {
+          expect(source.previewText, isNotEmpty,
+              reason: '${source.id} preview empty');
+          expect(source.previewText.trim(), isNotEmpty,
+              reason: '${source.id} preview whitespace-only');
+          expect(source.previewText, isNot(equals('[No preview]')),
+              reason: source.id);
+        }
+      } finally {
+        await fixture.dispose();
+      }
     });
   });
 }
