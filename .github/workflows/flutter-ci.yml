@@ -94,6 +94,14 @@ jobs:
       - name: Unit and widget tests
         run: make ci-test-all
 
+      - name: Core tests (CT)
+        if: ${{ always() }}
+        run: make ci-test-core
+
+      - name: Regression tests (RT)
+        if: ${{ always() }}
+        run: make ci-test-regression
+
   smoke-build:
     runs-on: ubuntu-latest
     needs: [detect-project, verify]

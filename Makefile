@@ -5,7 +5,7 @@ RUNTIME_DART_DEFINE_FLAGS := --dart-define=SLOCK_API_BASE_URL=$(SLOCK_API_BASE_U
 RUNTIME_BUILD_NUMBER_FLAG := $(if $(BUILD_NUMBER),--build-number=$(BUILD_NUMBER),)
 MISSING_RUNTIME_DART_DEFINE_MESSAGE := Missing required runtime endpoint configuration: SLOCK_API_BASE_URL and SLOCK_REALTIME_URL must be set for produced app-binary builds.
 
-.PHONY: format analyze test ci-test-all ci-build-smoke ci-build-ios-smoke
+.PHONY: format analyze test ci-test-all ci-test-core ci-test-regression ci-build-smoke ci-build-ios-smoke
 
 format:
 	@if [ ! -f pubspec.yaml ]; then \
@@ -36,6 +36,24 @@ ci-test-all:
 		echo "$(SKIP_MESSAGE)"; \
 	else \
 		flutter test; \
+	fi
+
+ci-test-core:
+	@if [ ! -f pubspec.yaml ]; then \
+		echo "$(SKIP_MESSAGE)"; \
+	elif ! find test/core -name '*_test.dart' 2>/dev/null | grep -q .; then \
+		echo "No core tests found in test/core/ — skipping."; \
+	else \
+		flutter test test/core/; \
+	fi
+
+ci-test-regression:
+	@if [ ! -f pubspec.yaml ]; then \
+		echo "$(SKIP_MESSAGE)"; \
+	elif ! find test/regression -name '*_test.dart' 2>/dev/null | grep -q .; then \
+		echo "No regression tests found in test/regression/ — skipping."; \
+	else \
+		flutter test test/regression/; \
 	fi
 
 ci-build-smoke:
