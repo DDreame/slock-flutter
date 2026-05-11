@@ -89,7 +89,7 @@ void main() {
     );
 
     testWidgets(
-      'agents card shows count, status chips, and sorted rows',
+      'agents card shows count and group summaries',
       (tester) async {
         final router = _buildRouter();
 
@@ -150,68 +150,56 @@ void main() {
           findsOneWidget,
         );
 
-        // Status chips (each bucket counted independently)
+        // Group summaries (grouped by status, not individual rows)
         expect(
           find.descendant(
             of: card,
-            matching: find.text('1 online'),
+            matching: find.text('Alpha 工作中'),
           ),
           findsOneWidget,
+          reason: 'Working group summary',
         );
         expect(
           find.descendant(
             of: card,
-            matching: find.text('1 error'),
+            matching: find.text('Beta 错误'),
           ),
           findsOneWidget,
+          reason: 'Error group summary',
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('Delta 在线'),
+          ),
+          findsOneWidget,
+          reason: 'Online group summary',
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('Gamma 已停止'),
+          ),
+          findsOneWidget,
+          reason: 'Stopped group summary',
         );
 
-        // "1 stopped" in both chip and fold summary
+        // Old-style elements removed
         expect(
-          find.descendant(
-            of: card,
-            matching: find.text('1 stopped'),
-          ),
-          findsNWidgets(2),
-        );
-
-        // Active agent rows: working, error, online visible
-        expect(
-          find.descendant(
-            of: card,
-            matching: find.text('Alpha'),
-          ),
-          findsOneWidget,
-        );
-        expect(
-          find.descendant(
-            of: card,
-            matching: find.text('Beta'),
-          ),
-          findsOneWidget,
-        );
-        // Delta (online) is active → shown as row (max 3)
-        expect(
-          find.byKey(const ValueKey('agent-row-a4')),
-          findsOneWidget,
-          reason: 'Online agents should be visible rows',
-        );
-
-        // Gamma is stopped → appears in fold, not as a row
-        expect(
-          find.byKey(const ValueKey('agent-row-a3')),
+          find.byKey(const ValueKey('agent-row-a1')),
           findsNothing,
-          reason: 'Stopped agents should be folded',
+          reason: 'Individual agent rows replaced by group summaries',
         );
         expect(
           find.byKey(const ValueKey('home-agents-fold')),
-          findsOneWidget,
+          findsNothing,
+          reason: 'Fold replaced by group summaries',
         );
       },
     );
 
     testWidgets(
-      'agents card sorting: working/thinking before online',
+      'agents card group summaries sorted by display priority',
       (tester) async {
         final router = _buildRouter();
 
@@ -254,40 +242,39 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // All three are active → shown as rows
-        final workerRow = find.byKey(const ValueKey('agent-row-a2'));
-        final thinkerRow = find.byKey(const ValueKey('agent-row-a3'));
-        final onlineRow = find.byKey(const ValueKey('agent-row-a1'));
-        expect(workerRow, findsOneWidget);
-        expect(thinkerRow, findsOneWidget);
+        // Each agent is a separate status → 3 group rows
+        final thinkingRow = find.byKey(
+          const ValueKey('agent-group-status:thinking'),
+        );
+        final workingRow = find.byKey(
+          const ValueKey('agent-group-status:working'),
+        );
+        final onlineRow = find.byKey(
+          const ValueKey('agent-group-status:online'),
+        );
+        expect(thinkingRow, findsOneWidget);
+        expect(workingRow, findsOneWidget);
         expect(onlineRow, findsOneWidget);
 
-        // Worker (priority 0) above Thinker (priority 1)
-        // above Online (priority 3)
-        final workerY = tester.getTopLeft(workerRow).dy;
-        final thinkerY = tester.getTopLeft(thinkerRow).dy;
+        // Priority order: thinking → working → online
+        final thinkingY = tester.getTopLeft(thinkingRow).dy;
+        final workingY = tester.getTopLeft(workingRow).dy;
         final onlineY = tester.getTopLeft(onlineRow).dy;
         expect(
-          workerY,
-          lessThan(thinkerY),
-          reason: 'Working agents should sort before thinking',
+          thinkingY,
+          lessThan(workingY),
+          reason: 'Thinking group should sort before working',
         );
         expect(
-          thinkerY,
+          workingY,
           lessThan(onlineY),
-          reason: 'Thinking agents should sort before online',
-        );
-
-        // No stopped → no fold
-        expect(
-          find.byKey(const ValueKey('home-agents-fold')),
-          findsNothing,
+          reason: 'Working group should sort before online',
         );
       },
     );
 
     testWidgets(
-      'agents card max 3 active rows',
+      'agents card merges same-status agents into single group',
       (tester) async {
         final router = _buildRouter();
 
@@ -313,36 +300,25 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // First 3 should be visible
-        expect(
-          find.byKey(const ValueKey('agent-row-a0')),
-          findsOneWidget,
+        // All 5 agents share working status → single group
+        final workingGroup = find.byKey(
+          const ValueKey('agent-group-status:working'),
         );
-        expect(
-          find.byKey(const ValueKey('agent-row-a1')),
-          findsOneWidget,
-        );
-        expect(
-          find.byKey(const ValueKey('agent-row-a2')),
-          findsOneWidget,
-        );
+        expect(workingGroup, findsOneWidget);
 
-        // 4th and 5th should NOT be visible as rows
+        // Merged summary contains all names (sorted alphabetically)
         expect(
-          find.byKey(const ValueKey('agent-row-a3')),
-          findsNothing,
-          reason: 'Max 3 active rows',
-        );
-        expect(
-          find.byKey(const ValueKey('agent-row-a4')),
-          findsNothing,
-          reason: 'Max 3 active rows',
+          find.text(
+            'Agent 0、Agent 1、Agent 2、Agent 3、Agent 4 工作中',
+          ),
+          findsOneWidget,
+          reason: 'All same-status agents merged into one summary',
         );
       },
     );
 
     testWidgets(
-      'agents card shows empty state when all stopped',
+      'agents card shows stopped group when all stopped',
       (tester) async {
         final router = _buildRouter();
 
@@ -376,22 +352,24 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Empty state should appear
+        // Stopped agents produce a group summary, not empty state
         expect(
-          find.byKey(const ValueKey('home-agents-empty')),
+          find.text('Stopped One、Stopped Two 已停止'),
           findsOneWidget,
+          reason: 'Stopped agents shown as group summary',
         );
 
-        // Fold should show counts
+        // Empty state should NOT appear — stopped group is visible
         expect(
-          find.byKey(const ValueKey('home-agents-fold')),
-          findsOneWidget,
+          find.byKey(const ValueKey('home-agents-empty')),
+          findsNothing,
+          reason: 'Empty state not shown when groups exist',
         );
       },
     );
 
     testWidgets(
-      'agents card fold shows stopped count',
+      'agents card renders all status groups',
       (tester) async {
         final router = _buildRouter();
 
@@ -443,42 +421,27 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final fold = find.byKey(const ValueKey('home-agents-fold'));
-        expect(fold, findsOneWidget);
-
-        // Fold shows stopped count only
+        // Three groups: working, online, stopped
         expect(
-          find.descendant(
-            of: fold,
-            matching: find.textContaining('2 stopped'),
-          ),
+          find.text('Worker 工作中'),
           findsOneWidget,
+          reason: 'Working group summary',
         );
-
-        // Active agents shown as rows
         expect(
-          find.byKey(const ValueKey('agent-row-a1')),
+          find.text('Online 1 在线'),
           findsOneWidget,
+          reason: 'Online group summary',
         );
         expect(
-          find.byKey(const ValueKey('agent-row-a2')),
+          find.text('Stopped 1、Stopped 2 已停止'),
           findsOneWidget,
-        );
-
-        // Stopped agents not shown as rows
-        expect(
-          find.byKey(const ValueKey('agent-row-a3')),
-          findsNothing,
-        );
-        expect(
-          find.byKey(const ValueKey('agent-row-a4')),
-          findsNothing,
+          reason: 'Stopped group merges both agents',
         );
       },
     );
 
     testWidgets(
-      'stopped agent with stale online activity folds as stopped',
+      'stopped agent with stale activity grouped as stopped',
       (tester) async {
         final router = _buildRouter();
 
@@ -514,47 +477,27 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Active worker should be a visible row
+        // Active worker in working group
         expect(
-          find.byKey(const ValueKey('agent-row-a1')),
+          find.text('Worker 工作中'),
           findsOneWidget,
-          reason: 'Active working agent should be a row',
+          reason: 'Active working agent in working group',
         );
 
-        // Stopped agent with stale online activity must
-        // NOT be a row — it should fold as stopped
+        // Stopped agent with stale online activity → stopped group
         expect(
-          find.byKey(const ValueKey('agent-row-a2')),
-          findsNothing,
-          reason: 'Stopped agent with stale online activity '
-              'must fold, not render as online row',
-        );
-
-        // Fold should show 1 stopped
-        final fold = find.byKey(
-          const ValueKey('home-agents-fold'),
-        );
-        expect(fold, findsOneWidget);
-        expect(
-          find.descendant(
-            of: fold,
-            matching: find.textContaining('1 stopped'),
-          ),
+          find.text('Stale 已停止'),
           findsOneWidget,
+          reason: 'Stopped agent with stale activity '
+              'resolves to stopped group',
         );
 
-        // Online chip should NOT count the stopped agent
-        final card = find.byKey(
-          const ValueKey('home-card-agents'),
-        );
+        // Should NOT appear in online group
         expect(
-          find.descendant(
-            of: card,
-            matching: find.text('1 online'),
-          ),
+          find.textContaining('Stale 在线'),
           findsNothing,
-          reason: 'Stopped agent should not inflate '
-              'online chip count',
+          reason: 'Stopped agent must not inflate '
+              'online group',
         );
       },
     );
@@ -1338,6 +1281,9 @@ void main() {
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
+            ),
           ],
         );
 
@@ -1428,6 +1374,9 @@ void main() {
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
+            ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
             ),
           ],
         );
@@ -1549,6 +1498,9 @@ void main() {
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
+            ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
             ),
           ],
         );
@@ -1863,6 +1815,9 @@ void main() {
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
+            ),
           ],
         );
 
@@ -1938,6 +1893,9 @@ void main() {
             ),
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
+            ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
             ),
           ],
         );
@@ -2236,6 +2194,9 @@ void main() {
               homeMachineCountLoaderProvider.overrideWithValue(
                 (_) async => 0,
               ),
+              agentsMachinesLoaderProvider.overrideWithValue(
+                () async => const [],
+              ),
             ],
             child: MaterialApp.router(
               routerConfig: router,
@@ -2344,6 +2305,9 @@ void main() {
             homeMachineCountLoaderProvider.overrideWithValue(
               (_) async => 0,
             ),
+            agentsMachinesLoaderProvider.overrideWithValue(
+              () async => const [],
+            ),
           ],
         );
 
@@ -2427,6 +2391,9 @@ void main() {
               ),
               homeMachineCountLoaderProvider.overrideWithValue(
                 (_) async => 0,
+              ),
+              agentsMachinesLoaderProvider.overrideWithValue(
+                () async => const [],
               ),
             ],
             child: MaterialApp.router(
@@ -2556,6 +2523,9 @@ Widget _buildApp({
       inboxRepositoryProvider.overrideWithValue(inboxRepository),
       homeMachineCountLoaderProvider.overrideWithValue(
         (_) async => 0,
+      ),
+      agentsMachinesLoaderProvider.overrideWithValue(
+        () async => const [],
       ),
       if (now != null) homeNowProvider.overrideWithValue(now),
     ],

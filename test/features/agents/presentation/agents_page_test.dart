@@ -714,8 +714,8 @@ void main() {
 
       final statuses = rings.map((r) => r.status).toList();
       expect(statuses, [
-        GlowRingStatus.working,
         GlowRingStatus.thinking,
+        GlowRingStatus.working,
         GlowRingStatus.error,
         GlowRingStatus.online,
         GlowRingStatus.offline,

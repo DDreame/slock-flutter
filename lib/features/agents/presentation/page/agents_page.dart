@@ -8,7 +8,9 @@ import 'package:slock_app/app/widgets/role_badge.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/agents/application/agent_machine_group.dart';
+import 'package:slock_app/features/agents/application/agent_display_status.dart';
+import 'package:slock_app/features/agents/application/agent_status_group.dart';
+import 'package:slock_app/features/agents/application/agent_status_group_projection.dart';
 import 'package:slock_app/features/agents/application/agents_fold_state.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
@@ -124,10 +126,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     AgentsState state,
     AppColors colors,
   ) {
-    final groups = groupAgentsByMachine(
-      agents: state.items,
-      machines: state.machines,
-    );
+    final groups = ref.watch(agentStatusGroupProjectionProvider);
     final active = state.items.where((a) => a.isActive).length;
     final stopped = state.items.length - active;
 
@@ -412,7 +411,7 @@ class _AgentsStatsSummary extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Machine-grouped list view
+// Status-grouped list view
 // ---------------------------------------------------------------------------
 
 class _GroupedAgentsListView extends ConsumerWidget {
@@ -427,7 +426,7 @@ class _GroupedAgentsListView extends ConsumerWidget {
     required this.onReset,
   });
 
-  final List<AgentMachineGroup> groups;
+  final List<AgentStatusGroup> groups;
   final int totalActive;
   final int totalStopped;
   final AppColors colors;
@@ -457,7 +456,7 @@ class _GroupedAgentsListView extends ConsumerWidget {
             ),
             children: [
               for (final group in groups)
-                _MachineGroupSection(
+                _StatusGroupSection(
                   group: group,
                   isCollapsed: collapsed.contains(group.foldKey),
                   colors: colors,
@@ -480,11 +479,11 @@ class _GroupedAgentsListView extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Machine group section (collapsible)
+// Status group section (collapsible)
 // ---------------------------------------------------------------------------
 
-class _MachineGroupSection extends StatelessWidget {
-  const _MachineGroupSection({
+class _StatusGroupSection extends StatelessWidget {
+  const _StatusGroupSection({
     required this.group,
     required this.isCollapsed,
     required this.colors,
@@ -495,7 +494,7 @@ class _MachineGroupSection extends StatelessWidget {
     required this.onReset,
   });
 
-  final AgentMachineGroup group;
+  final AgentStatusGroup group;
   final bool isCollapsed;
   final AppColors colors;
   final VoidCallback onToggle;
@@ -507,10 +506,10 @@ class _MachineGroupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      key: ValueKey('machine-group-${group.foldKey}'),
+      key: ValueKey('status-group-${group.foldKey}'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _MachineGroupHeader(
+        _StatusGroupHeader(
           group: group,
           isCollapsed: isCollapsed,
           colors: colors,
@@ -537,27 +536,38 @@ class _MachineGroupSection extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Machine group header
+// Status group header
 // ---------------------------------------------------------------------------
 
-class _MachineGroupHeader extends StatelessWidget {
-  const _MachineGroupHeader({
+class _StatusGroupHeader extends StatelessWidget {
+  const _StatusGroupHeader({
     required this.group,
     required this.isCollapsed,
     required this.colors,
     required this.onToggle,
   });
 
-  final AgentMachineGroup group;
+  final AgentStatusGroup group;
   final bool isCollapsed;
   final AppColors colors;
   final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
+    final dotColor = switch (group.displayStatus) {
+      AgentDisplayStatus.thinking ||
+      AgentDisplayStatus.working =>
+        colors.success,
+      AgentDisplayStatus.error => colors.error,
+      AgentDisplayStatus.online => colors.success,
+      AgentDisplayStatus.offline ||
+      AgentDisplayStatus.stopped =>
+        colors.textTertiary,
+    };
+
     return InkWell(
       key: ValueKey(
-        'machine-header-${group.foldKey}',
+        'status-header-${group.foldKey}',
       ),
       onTap: onToggle,
       child: Padding(
@@ -575,17 +585,18 @@ class _MachineGroupHeader extends StatelessWidget {
               color: colors.textTertiary,
             ),
             const SizedBox(width: AppSpacing.xs),
-            Icon(
-              Icons.dns_outlined,
-              size: 16,
-              color: group.machineOnline ? colors.success : colors.textTertiary,
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: dotColor,
+                shape: BoxShape.circle,
+              ),
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
-                group.machineId == null
-                    ? context.l10n.agentsNoMachineAssigned
-                    : group.machineName,
+                displayStatusLabel(group.displayStatus),
                 style: AppTypography.label.copyWith(
                   color: colors.text,
                   fontWeight: FontWeight.w600,
@@ -595,13 +606,8 @@ class _MachineGroupHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            _StatusDotMatrix(
-              group: group,
-              colors: colors,
-            ),
-            const SizedBox(width: AppSpacing.sm),
             Text(
-              '${group.totalCount}',
+              '${group.count}',
               style: AppTypography.caption.copyWith(
                 color: colors.textTertiary,
               ),
@@ -610,56 +616,6 @@ class _MachineGroupHeader extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Status dot matrix
-// ---------------------------------------------------------------------------
-
-class _StatusDotMatrix extends StatelessWidget {
-  const _StatusDotMatrix({
-    required this.group,
-    required this.colors,
-  });
-
-  final AgentMachineGroup group;
-  final AppColors colors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final agent in group.agents) ...[
-          Container(
-            key: ValueKey(
-              'status-dot-${agent.id}',
-            ),
-            width: 8,
-            height: 8,
-            margin: const EdgeInsets.only(
-              right: 3,
-            ),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _dotColor(agent),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Color _dotColor(AgentItem agent) {
-    if (agent.isStopped) return colors.textTertiary;
-    return switch (agent.activity) {
-      'working' => colors.primary,
-      'thinking' => colors.warning,
-      'error' => colors.error,
-      'online' => colors.success,
-      _ => colors.textTertiary,
-    };
   }
 }
 
@@ -673,23 +629,11 @@ class _CollapsedSummary extends StatelessWidget {
     required this.colors,
   });
 
-  final AgentMachineGroup group;
+  final AgentStatusGroup group;
   final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final summary = group.agents.map((a) {
-      final activity = switch (a.activity) {
-        'online' => l10n.homeCardAgentActivityOnline,
-        'thinking' => l10n.homeCardAgentActivityThinking,
-        'working' => l10n.homeCardAgentActivityWorking,
-        'error' => l10n.homeCardAgentActivityError,
-        _ => l10n.homeCardAgentActivityOffline,
-      };
-      return '${a.label} $activity';
-    }).join(' · ');
-
     return Padding(
       key: ValueKey(
         'collapsed-summary-${group.foldKey}',
@@ -701,7 +645,7 @@ class _CollapsedSummary extends StatelessWidget {
         AppSpacing.sm,
       ),
       child: Text(
-        summary,
+        group.mergedSummary,
         style: AppTypography.bodySmall.copyWith(
           color: colors.textSecondary,
         ),
