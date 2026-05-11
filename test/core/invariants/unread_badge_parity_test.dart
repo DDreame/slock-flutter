@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -67,6 +68,7 @@ void main() {
         final state = fixture.container.read(unreadSourceProjectionProvider);
         expect(state.isLoaded, isTrue);
         _assertPartitionIdentity(state);
+        _assertBadgeMatchesProjection(fixture.container, state);
       } finally {
         await fixture.dispose();
       }
@@ -94,6 +96,7 @@ void main() {
         final state = fixture.container.read(unreadSourceProjectionProvider);
         expect(state.isLoaded, isTrue);
         _assertPartitionIdentity(state);
+        _assertBadgeMatchesProjection(fixture.container, state);
       } finally {
         await fixture.dispose();
       }
@@ -121,6 +124,7 @@ void main() {
         final state = fixture.container.read(unreadSourceProjectionProvider);
         expect(state.isLoaded, isTrue);
         _assertPartitionIdentity(state);
+        _assertBadgeMatchesProjection(fixture.container, state);
         // Threads are always hidden.
         expect(state.visibleSources, isEmpty);
         expect(state.hiddenSources, hasLength(1));
@@ -166,6 +170,7 @@ void main() {
         final state = fixture.container.read(unreadSourceProjectionProvider);
         expect(state.isLoaded, isTrue);
         _assertPartitionIdentity(state);
+        _assertBadgeMatchesProjection(fixture.container, state);
         expect(state.totalUnreadCount, 10); // 5 + 3 + 2
       } finally {
         await fixture.dispose();
@@ -192,6 +197,7 @@ void main() {
         final state = fixture.container.read(unreadSourceProjectionProvider);
         expect(state.isLoaded, isTrue);
         _assertPartitionIdentity(state);
+        _assertBadgeMatchesProjection(fixture.container, state);
         expect(state.visibleSources, hasLength(1));
         expect(state.hiddenSources, hasLength(1));
         expect(state.totalUnreadCount, 10); // 3 + 7
@@ -224,6 +230,7 @@ void main() {
         // Only items with unreadCount > 0 appear in sources.
         expect(state.sources, hasLength(1));
         _assertPartitionIdentity(state);
+        _assertBadgeMatchesProjection(fixture.container, state);
       } finally {
         await fixture.dispose();
       }
@@ -512,6 +519,49 @@ void main() {
         await fixture.dispose();
       }
     });
+
+    test(
+      'clearSelection zeroes badge providers (not just projection)',
+      () async {
+        final fixture = RuntimeAppFixture();
+        fixture.seedHome(channels: [ChannelBuilder('ch-1').build()]);
+        fixture.seedInbox([
+          (InboxItemBuilder('ch-1')
+                ..withUnread(5)
+                ..withPreview('msg'))
+              .build(),
+        ]);
+
+        await bootWithInbox(fixture);
+        try {
+          expect(fixture.container.read(inboxTotalUnreadCountProvider), 5);
+
+          await fixture.container
+              .read(serverSelectionStoreProvider.notifier)
+              .clearSelection();
+          for (var i = 0; i < 20; i++) {
+            await Future<void>.delayed(Duration.zero);
+          }
+
+          // Badge providers derive from InboxStore which does NOT
+          // rebuild on server selection change.
+          final totalBadge =
+              fixture.container.read(inboxTotalUnreadCountProvider);
+          final channelBadge =
+              fixture.container.read(inboxChannelUnreadTotalProvider);
+          expect(totalBadge, 0,
+              reason: 'badge total should zero after clearSelection');
+          expect(channelBadge, 0,
+              reason: 'channel badge should zero after clearSelection');
+        } finally {
+          await fixture.dispose();
+        }
+      },
+      skip: 'TODO: InboxStore does not rebuild on server selection change; '
+          'badge providers retain stale counts after clearSelection. '
+          'Requires InboxStore to watch activeServerScopeId or clear on '
+          'server switch.',
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -760,4 +810,35 @@ void _assertPartitionIdentity(UnreadSourceProjectionState state) {
   for (final source in state.hiddenSources) {
     expect(source.visibility, UnreadSourceVisibility.hidden);
   }
+}
+
+/// Asserts that badge providers (which read from [InboxStore] directly)
+/// agree with the [UnreadSourceProjectionState] totals.
+///
+/// In single-server scenarios, the badge providers and projection
+/// should report identical totals because all inbox items belong to
+/// the active server.
+void _assertBadgeMatchesProjection(
+  ProviderContainer container,
+  UnreadSourceProjectionState state,
+) {
+  final totalBadge = container.read(inboxTotalUnreadCountProvider);
+  final channelBadge = container.read(inboxChannelUnreadTotalProvider);
+  final dmBadge = container.read(inboxDmUnreadTotalProvider);
+
+  expect(
+    totalBadge,
+    state.totalUnreadCount,
+    reason: 'INV-BADGE-1: badge total must match projection total',
+  );
+  expect(
+    channelBadge,
+    state.channelUnreadTotal,
+    reason: 'INV-BADGE-1: channel badge must match projection channel total',
+  );
+  expect(
+    dmBadge,
+    state.dmUnreadTotal,
+    reason: 'INV-BADGE-1: DM badge must match projection DM total',
+  );
 }
