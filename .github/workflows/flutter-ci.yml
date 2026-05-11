@@ -95,9 +95,11 @@ jobs:
         run: make ci-test-all
 
       - name: Core tests (CT)
+        if: ${{ always() }}
         run: make ci-test-core
 
       - name: Regression tests (RT)
+        if: ${{ always() }}
         run: make ci-test-regression
 
   smoke-build:
