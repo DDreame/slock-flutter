@@ -588,8 +588,7 @@ void main() {
           expect(p.previewText, isNotEmpty, reason: '${p.id} preview empty');
           expect(p.previewText.trim(), isNotEmpty,
               reason: '${p.id} preview whitespace-only');
-          expect(p.previewText, isNot(equals('[No preview]')),
-              reason: p.id);
+          expect(p.previewText, isNot(equals('[No preview]')), reason: p.id);
         }
       } finally {
         await fixture.dispose();
