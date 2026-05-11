@@ -1,0 +1,116 @@
+{
+  "agents": [
+    {
+      "activity": "online",
+      "activityDetail": null,
+      "displayName": "J1",
+      "id": "agent-1",
+      "model": "claude-sonnet",
+      "name": "J1",
+      "runtime": "claude-code",
+      "status": "active"
+    },
+    {
+      "activity": "thinking",
+      "activityDetail": null,
+      "displayName": "J2",
+      "id": "agent-2",
+      "model": "claude-sonnet",
+      "name": "J2",
+      "runtime": "claude-code",
+      "status": "active"
+    }
+  ],
+  "channels": [
+    {
+      "lastActivityAt": "2026-01-10T08:00:00.000Z",
+      "lastMessageId": "msg-ch1",
+      "lastMessagePreview": "Welcome to General!",
+      "name": "General",
+      "scopeId": "ch-1"
+    },
+    {
+      "lastActivityAt": "2026-01-10T08:10:00.000Z",
+      "lastMessageId": "msg-ch2",
+      "lastMessagePreview": "PR #42 merged",
+      "name": "Engineering",
+      "scopeId": "ch-2"
+    },
+    {
+      "lastActivityAt": "2026-01-10T08:20:00.000Z",
+      "lastMessageId": "msg-ch3",
+      "lastMessagePreview": "New mockups ready",
+      "name": "Design",
+      "scopeId": "ch-3"
+    }
+  ],
+  "directMessages": [
+    {
+      "isAgent": false,
+      "lastActivityAt": "2026-01-10T08:05:00.000Z",
+      "lastMessageId": "msg-dm1",
+      "lastMessagePreview": "Hey, quick question",
+      "peerId": null,
+      "scopeId": "dm-1",
+      "title": "Alice"
+    },
+    {
+      "isAgent": false,
+      "lastActivityAt": "2026-01-10T08:15:00.000Z",
+      "lastMessageId": "msg-dm2",
+      "lastMessagePreview": "LGTM, ship it",
+      "peerId": null,
+      "scopeId": "dm-2",
+      "title": "Bob"
+    }
+  ],
+  "pinnedAgents": [],
+  "pinnedChannels": [],
+  "pinnedDirectMessages": [],
+  "serverScopeId": "server-1",
+  "status": "success",
+  "taskCount": 3,
+  "taskItems": [
+    {
+      "channelId": "ch-1",
+      "channelType": "channel",
+      "claimedById": null,
+      "claimedByName": null,
+      "createdAt": "2026-01-10T08:00:00.000Z",
+      "createdById": "user-1",
+      "createdByName": "Tester",
+      "id": "task-1",
+      "status": "todo",
+      "taskNumber": 1,
+      "title": "Fix login bug"
+    },
+    {
+      "channelId": "ch-1",
+      "channelType": "channel",
+      "claimedById": "user-2",
+      "claimedByName": "Alice",
+      "createdAt": "2026-01-10T08:00:00.000Z",
+      "createdById": "user-1",
+      "createdByName": "Tester",
+      "id": "task-2",
+      "status": "in_progress",
+      "taskNumber": 2,
+      "title": "Add dark mode"
+    },
+    {
+      "channelId": "ch-1",
+      "channelType": "channel",
+      "claimedById": "user-3",
+      "claimedByName": "Bob",
+      "createdAt": "2026-01-10T08:00:00.000Z",
+      "createdById": "user-1",
+      "createdByName": "Tester",
+      "id": "task-3",
+      "status": "done",
+      "taskNumber": 3,
+      "title": "Write docs"
+    }
+  ],
+  "threadCount": 0,
+  "threadItems": []
+}
