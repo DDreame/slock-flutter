@@ -1,0 +1,77 @@
+{
+  "agents": [
+    {
+      "activity": "online",
+      "activityDetail": null,
+      "displayName": "J1",
+      "id": "agent-1",
+      "model": "claude-sonnet",
+      "name": "J1",
+      "runtime": "claude-code",
+      "status": "active"
+    }
+  ],
+  "channels": [
+    {
+      "lastActivityAt": "2026-01-10T08:00:00.000Z",
+      "lastMessageId": "msg-1",
+      "lastMessagePreview": "Hello",
+      "name": "General",
+      "scopeId": "ch-1"
+    }
+  ],
+  "directMessages": [],
+  "pinnedAgents": [],
+  "pinnedChannels": [],
+  "pinnedDirectMessages": [],
+  "serverScopeId": "server-1",
+  "status": "success",
+  "taskCount": 1,
+  "taskItems": [
+    {
+      "channelId": "ch-1",
+      "channelType": "channel",
+      "claimedById": null,
+      "claimedByName": null,
+      "createdAt": "2026-01-10T08:00:00.000Z",
+      "createdById": "user-1",
+      "createdByName": "Tester",
+      "id": "task-1",
+      "status": "todo",
+      "taskNumber": 1,
+      "title": "Fix bug"
+    }
+  ],
+  "threadCount": 2,
+  "threadItems": [
+    {
+      "lastReplyAt": "2026-01-10T09:00:00.000Z",
+      "parentChannelId": "ch-1",
+      "parentMessageId": "parent-1",
+      "participantIds": [
+        "user-1",
+        "user-2"
+      ],
+      "preview": "Latest reply in thread 1",
+      "replyCount": 5,
+      "senderName": "Alice",
+      "serverId": "server-1",
+      "threadChannelId": "thread-ch-1",
+      "unreadCount": 0
+    },
+    {
+      "lastReplyAt": "2026-01-10T10:00:00.000Z",
+      "parentChannelId": "ch-1",
+      "parentMessageId": "parent-2",
+      "participantIds": [
+        "user-3"
+      ],
+      "preview": "Latest reply in thread 2",
+      "replyCount": 2,
+      "senderName": "Bob",
+      "serverId": "server-1",
+      "threadChannelId": "thread-ch-2",
+      "unreadCount": 0
+    }
+  ]
+}
