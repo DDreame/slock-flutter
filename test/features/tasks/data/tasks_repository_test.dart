@@ -213,6 +213,28 @@ void main() {
       expect(unclaimed.claimedById, isNull);
       expect(appDioClient.requests.single.path, '/tasks/task-1/unclaim');
     });
+
+    test('listServerTasks wraps non-AppFailure as UnknownFailure', () async {
+      final appDioClient = _ThrowingAppDioClient();
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repo = container.read(tasksRepositoryProvider);
+
+      expect(
+        () => repo.listServerTasks(const ServerScopeId('server-1')),
+        throwsA(
+          isA<UnknownFailure>().having(
+            (f) => f.message,
+            'message',
+            'Failed to load tasks.',
+          ),
+        ),
+        reason: 'Non-AppFailure errors should be wrapped as UnknownFailure',
+      );
+    });
   });
 }
 
@@ -275,4 +297,22 @@ class _CapturedRequest {
   final Map<String, Object?> headers;
 
   String? get serverIdHeader => headers['X-Server-Id'] as String?;
+}
+
+class _ThrowingAppDioClient extends AppDioClient {
+  _ThrowingAppDioClient() : super(Dio());
+
+  @override
+  Future<Response<T>> request<T>(
+    String path, {
+    required String method,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    void Function(int, int)? onSendProgress,
+  }) async {
+    // Simulate a non-AppFailure (e.g. network error, FormatException)
+    throw const FormatException('Unexpected response format');
+  }
 }
