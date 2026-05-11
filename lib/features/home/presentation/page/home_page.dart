@@ -37,24 +37,10 @@ class HomePage extends ConsumerStatefulWidget {
 
 class _HomePageState extends ConsumerState<HomePage> {
   @override
-  void initState() {
-    super.initState();
-    // Populate shared agents store so the projection provider can serve
-    // both the Home card and the AgentsPage from the same source.
-    Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
-  }
-
-  @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final l10n = context.l10n;
-
-    // Reload shared agents store when the active server changes so the
-    // projection never serves stale data from a previous server.
-    ref.listen(activeServerScopeIdProvider, (_, __) {
-      ref.read(agentsStoreProvider.notifier).load();
-    });
 
     return Scaffold(
       appBar: AppBar(
@@ -256,6 +242,17 @@ class _HomeAgentsSection extends ConsumerWidget {
     final agentsState = ref.watch(agentsStoreProvider);
     final totalCount = agentsState.items.length;
     final visibleGroups = groups.take(_maxVisibleGroups).toList();
+
+    // Trigger initial load and reload on server switch. Placed here
+    // (not in HomePage.initState) so that agentsStoreProvider already
+    // has a listener via ref.watch above — preventing autoDispose from
+    // discarding the state before the async load completes.
+    ref.listen(activeServerScopeIdProvider, (_, __) {
+      ref.read(agentsStoreProvider.notifier).load();
+    });
+    if (agentsState.status == AgentsStatus.initial) {
+      Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
+    }
 
     return _SummaryCardBase(
       accentColor: colors.primary,
