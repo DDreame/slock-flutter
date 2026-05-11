@@ -7,22 +7,33 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/application/inbox_unread_count_provider.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 
-/// Regression tests for the algebraic invariant:
-///   totalUnreadCount == sum(visibleSources) + sum(hiddenSources)
-///   badge == sum(visibleSources.map(s => s.unreadCount))
+/// Regression tests for badge-list parity:
 ///
-/// These ensure the badge shown on tabs equals the sum of
-/// the visible unread source rows the user can actually see.
+///   channelBadge == projection.channelUnreadTotal
+///   dmBadge      == projection.dmUnreadTotal
+///   totalBadge   == totalUnreadCount from InboxState
+///   projection.totalUnreadCount == sum(visible) + sum(hidden)
+///
+/// These cross-check the actual tab badge providers
+/// (inboxChannelUnreadTotalProvider, inboxDmUnreadTotalProvider,
+/// inboxTotalUnreadCountProvider) against the UnreadSourceProjection
+/// to ensure badges and visible list rows stay in sync.
 void main() {
   const serverId = ServerScopeId('server-1');
 
   ProviderContainer createContainer({
     required List<InboxItem> inboxItems,
     required HomeListState homeState,
+    int? totalUnreadCount,
   }) {
+    // Compute total if not provided — matches real API behavior
+    final total = totalUnreadCount ??
+        inboxItems.fold<int>(0, (sum, item) => sum + item.unreadCount);
+
     final container = ProviderContainer(
       overrides: [
         activeServerScopeIdProvider.overrideWithValue(serverId),
@@ -30,6 +41,7 @@ void main() {
           () => _FakeInboxStore(InboxState(
             status: InboxStatus.success,
             items: inboxItems,
+            totalUnreadCount: total,
           )),
         ),
         homeListStoreProvider.overrideWith(
@@ -42,7 +54,8 @@ void main() {
   }
 
   group('badge-list parity invariant', () {
-    test('totalUnreadCount == sum of visible + hidden source unread counts',
+    test(
+        'badge providers match projection totals with mixed visible/hidden sources',
         () {
       final container = createContainer(
         inboxItems: const [
@@ -91,35 +104,58 @@ void main() {
         ),
       );
 
-      final state = container.read(unreadSourceProjectionProvider);
+      // Read actual badge providers (what AppShell tabs display)
+      final channelBadge = container.read(inboxChannelUnreadTotalProvider);
+      final dmBadge = container.read(inboxDmUnreadTotalProvider);
+      final totalBadge = container.read(inboxTotalUnreadCountProvider);
+
+      // Read projection (what list pages display)
+      final projection = container.read(unreadSourceProjectionProvider);
+      final visibleSum = projection.visibleSources
+          .fold<int>(0, (sum, s) => sum + s.unreadCount);
+      final hiddenSum = projection.hiddenSources
+          .fold<int>(0, (sum, s) => sum + s.unreadCount);
+
+      // Badge providers must equal projection sub-totals
+      expect(
+        channelBadge,
+        projection.channelUnreadTotal,
+        reason:
+            'Channels tab badge must equal projection channelUnreadTotal (8)',
+      );
+      expect(channelBadge, 8); // 5 + 3 (both visible and hidden)
+
+      expect(
+        dmBadge,
+        projection.dmUnreadTotal,
+        reason: 'DMs tab badge must equal projection dmUnreadTotal (2)',
+      );
+      expect(dmBadge, 2);
+
+      expect(
+        totalBadge,
+        projection.totalUnreadCount,
+        reason: 'Total badge must equal projection totalUnreadCount (11)',
+      );
+      expect(totalBadge, 11);
 
       // Algebraic invariant: total == visible + hidden
-      final visibleSum =
-          state.visibleSources.fold<int>(0, (sum, s) => sum + s.unreadCount);
-      final hiddenSum =
-          state.hiddenSources.fold<int>(0, (sum, s) => sum + s.unreadCount);
       expect(
-        state.totalUnreadCount,
+        projection.totalUnreadCount,
         visibleSum + hiddenSum,
         reason: 'totalUnreadCount must equal visible + hidden sums',
       );
 
-      // Visible sources: ch-general (5) + dm-alice (2) = 7
+      // Visible: ch-general (5) + dm-alice (2) = 7
       expect(visibleSum, 7);
 
-      // Hidden sources: ch-hidden (3) + thread-1 (1) = 4
+      // Hidden: ch-hidden (3) + thread-1 (1) = 4
       expect(hiddenSum, 4);
-
-      // Total = 11
-      expect(state.totalUnreadCount, 11);
-
-      // Verify sub-totals
-      expect(state.channelUnreadTotal, 8); // 5 + 3
-      expect(state.dmUnreadTotal, 2);
-      expect(state.threadUnreadTotal, 1);
     });
 
-    test('all visible channels: badge equals sum of all channel unreads', () {
+    test(
+        'all visible channels: channel badge equals visible channel source sum',
+        () {
       final container = createContainer(
         inboxItems: const [
           InboxItem(
@@ -150,45 +186,69 @@ void main() {
         ),
       );
 
-      final state = container.read(unreadSourceProjectionProvider);
+      final channelBadge = container.read(inboxChannelUnreadTotalProvider);
+      final projection = container.read(unreadSourceProjectionProvider);
 
-      expect(state.visibleSources.length, 2);
-      expect(state.hiddenSources, isEmpty);
+      // All channels visible → badge == visible sum == total
+      expect(projection.visibleSources.length, 2);
+      expect(projection.hiddenSources, isEmpty);
 
-      final visibleSum =
-          state.visibleSources.fold<int>(0, (sum, s) => sum + s.unreadCount);
-      expect(visibleSum, state.totalUnreadCount);
-      expect(visibleSum, 30);
+      final visibleSum = projection.visibleSources
+          .fold<int>(0, (sum, s) => sum + s.unreadCount);
+      expect(channelBadge, visibleSum,
+          reason: 'When all channels visible, badge equals visible sum');
+      expect(channelBadge, projection.channelUnreadTotal);
+      expect(channelBadge, 30);
     });
 
-    test('no visible sources: badge is zero but total is non-zero', () {
+    test(
+        'hidden channels: channel badge includes hidden but visible list does not',
+        () {
       final container = createContainer(
         inboxItems: const [
           InboxItem(
             kind: InboxItemKind.channel,
-            channelId: 'ch-hidden',
-            channelName: 'hidden',
+            channelId: 'ch-visible',
+            channelName: 'visible',
             unreadCount: 5,
           ),
           InboxItem(
-            kind: InboxItemKind.thread,
-            channelId: 'thread-1',
-            channelName: 'Thread',
+            kind: InboxItemKind.channel,
+            channelId: 'ch-hidden',
+            channelName: 'hidden',
             unreadCount: 3,
           ),
         ],
         homeState: const HomeListState(
           status: HomeListStatus.success,
+          channels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(serverId: serverId, value: 'ch-visible'),
+              name: 'visible',
+            ),
+          ],
         ),
       );
 
-      final state = container.read(unreadSourceProjectionProvider);
+      final channelBadge = container.read(inboxChannelUnreadTotalProvider);
+      final projection = container.read(unreadSourceProjectionProvider);
 
-      final visibleSum =
-          state.visibleSources.fold<int>(0, (sum, s) => sum + s.unreadCount);
-      expect(visibleSum, 0, reason: 'No visible sources → badge is 0');
-      expect(state.totalUnreadCount, 8);
-      expect(state.hiddenSources.length, 2);
+      // Badge counts ALL channels (visible + hidden)
+      expect(channelBadge, 8, reason: 'Badge includes hidden channels');
+      expect(channelBadge, projection.channelUnreadTotal);
+
+      // But visible list only shows the visible channel
+      final visibleChannelSum = projection.visibleSources
+          .fold<int>(0, (sum, s) => sum + s.unreadCount);
+      expect(visibleChannelSum, 5,
+          reason: 'Visible list excludes hidden channels');
+
+      // Hidden source accounts for the difference
+      expect(projection.hiddenSources.length, 1);
+      expect(projection.hiddenSources.first.unreadCount, 3);
+
+      // Parity: badge == visible + hidden for channels
+      expect(channelBadge, visibleChannelSum + 3);
     });
 
     test('pinned channels contribute to visible badge', () {
@@ -218,20 +278,23 @@ void main() {
         ),
       );
 
-      final state = container.read(unreadSourceProjectionProvider);
+      final channelBadge = container.read(inboxChannelUnreadTotalProvider);
+      final projection = container.read(unreadSourceProjectionProvider);
 
-      expect(state.visibleSources.length, 1);
-      expect(state.visibleSources.first.unreadCount, 7);
+      // Badge counts all channels
+      expect(channelBadge, 10);
+      expect(channelBadge, projection.channelUnreadTotal);
 
-      final visibleSum =
-          state.visibleSources.fold<int>(0, (sum, s) => sum + s.unreadCount);
-      expect(visibleSum, 7);
+      // Pinned channel is visible
+      expect(projection.visibleSources.length, 1);
+      expect(projection.visibleSources.first.unreadCount, 7);
 
-      expect(state.hiddenSources.length, 1);
-      expect(state.hiddenSources.first.unreadCount, 3);
+      // Unpinned is hidden
+      expect(projection.hiddenSources.length, 1);
+      expect(projection.hiddenSources.first.unreadCount, 3);
 
       // Invariant holds
-      expect(state.totalUnreadCount, visibleSum + 3);
+      expect(projection.totalUnreadCount, 10);
     });
 
     test('home not loaded: all sources optimistically visible', () {
@@ -255,16 +318,27 @@ void main() {
         ),
       );
 
-      final state = container.read(unreadSourceProjectionProvider);
+      final channelBadge = container.read(inboxChannelUnreadTotalProvider);
+      final dmBadge = container.read(inboxDmUnreadTotalProvider);
+      final totalBadge = container.read(inboxTotalUnreadCountProvider);
+      final projection = container.read(unreadSourceProjectionProvider);
 
       // All non-thread sources should be visible optimistically
-      expect(state.visibleSources.length, 2);
-      expect(state.hiddenSources, isEmpty);
+      expect(projection.visibleSources.length, 2);
+      expect(projection.hiddenSources, isEmpty);
 
-      final visibleSum =
-          state.visibleSources.fold<int>(0, (sum, s) => sum + s.unreadCount);
-      expect(visibleSum, state.totalUnreadCount);
-      expect(visibleSum, 10);
+      // Badge providers must match projection
+      expect(channelBadge, projection.channelUnreadTotal);
+      expect(channelBadge, 4);
+      expect(dmBadge, projection.dmUnreadTotal);
+      expect(dmBadge, 6);
+      expect(totalBadge, projection.totalUnreadCount);
+      expect(totalBadge, 10);
+
+      final visibleSum = projection.visibleSources
+          .fold<int>(0, (sum, s) => sum + s.unreadCount);
+      expect(visibleSum, totalBadge,
+          reason: 'Optimistic: all visible, badge == visible sum');
     });
   });
 }
