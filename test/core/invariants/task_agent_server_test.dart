@@ -166,6 +166,68 @@ void main() {
         await fixture.dispose();
       }
     });
+
+    test(
+      'done status requires an assignee',
+      () async {
+        // The PM-scoped contract states that completed tasks must have
+        // an assignee. However, the current TaskItem data model and
+        // TasksStore.updateTaskStatus() do not enforce this constraint —
+        // a task with status 'done' and claimedById == null is accepted
+        // without error. This test would verify that the store rejects
+        // or auto-assigns when transitioning to 'done' without a claim.
+        final fixture = RuntimeAppFixture();
+        fixture.seedHome(channels: [ChannelBuilder('ch-1').build()]);
+        fixture.seedTasks([
+          (TaskBuilder('task-1', taskNumber: 1)
+                ..withTitle('Unclaimed done task')
+                ..withStatus('done'))
+              .build(),
+        ]);
+
+        await fixture.boot();
+        try {
+          final state = fixture.container.read(homeListStoreProvider);
+          final task = state.taskItems.first;
+          // Current impl accepts done without assignee — no enforcement.
+          expect(task.status, 'done');
+          expect(task.claimedById, isNull);
+        } finally {
+          await fixture.dispose();
+        }
+      },
+      skip: 'TODO: TaskItem data model and TasksStore.updateTaskStatus() '
+          'do not enforce the "done requires assignee" constraint. A task '
+          'with status=done and claimedById=null is silently accepted. '
+          'Enforcement requires server-side or store-level validation.',
+    );
+
+    test(
+      'task status transitions follow todo → in_progress → in_review → done',
+      () async {
+        // The PM-scoped contract defines a linear state machine:
+        // todo → in_progress → in_review → done. However,
+        // TasksStore.updateTaskStatus() accepts arbitrary status strings
+        // without validating the transition (e.g. todo → done is
+        // accepted). This test would verify that invalid transitions
+        // are rejected.
+        final fixture = RuntimeAppFixture();
+        fixture.seedHome(channels: [ChannelBuilder('ch-1').build()]);
+        fixture.seedTasks([
+          (TaskBuilder('task-1', taskNumber: 1)
+                ..withTitle('Test task')
+                ..withStatus('todo'))
+              .build(),
+        ]);
+        await fixture.boot();
+        await fixture.dispose();
+      },
+      skip: 'TODO: TasksStore.updateTaskStatus() accepts arbitrary status '
+          'strings with no transition validation. todo → done, '
+          'done → todo, and other invalid transitions are silently '
+          'accepted. Enforcement requires store-level or server-side '
+          'state machine validation.',
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -402,7 +464,8 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('INV-SERVER-1: server switch data isolation', () {
-    test('switching to server B clears server A channels and DMs', () async {
+    test('switching to server B clears server A channels, DMs, tasks, agents',
+        () async {
       final fixture = RuntimeAppFixture();
       fixture.seedHome(
         channels: [
@@ -419,12 +482,12 @@ void main() {
             .build(),
       ]);
       fixture.seedAgents([
-        (AgentBuilder('agent-1')..withActivity('online')).build(),
+        (AgentBuilder('agent-a')..withActivity('online')).build(),
       ]);
 
       await fixture.boot();
       try {
-        // Verify server A data is visible.
+        // Verify server A data is visible (including agents).
         final stateA = fixture.container.read(homeListStoreProvider);
         expect(stateA.channels, hasLength(1));
         expect(stateA.channels.first.name, 'Server A Channel');
@@ -432,6 +495,8 @@ void main() {
         expect(stateA.directMessages.first.title, 'Server A DM');
         expect(stateA.taskItems, hasLength(1));
         expect(stateA.taskItems.first.title, 'Server A Task');
+        expect(stateA.agents, hasLength(1));
+        expect(stateA.agents.first.id, 'agent-a');
 
         // Prepare empty data for server B.
         fixture.homeRepository.snapshot = const HomeWorkspaceSnapshot(
@@ -450,7 +515,7 @@ void main() {
           await Future<void>.delayed(Duration.zero);
         }
 
-        // Server A data must NOT be visible.
+        // Server A data must NOT be visible — channels, DMs, tasks, agents.
         final stateB = fixture.container.read(homeListStoreProvider);
         expect(stateB.channels, isEmpty,
             reason: 'server A channels must not appear on server B');
@@ -458,6 +523,8 @@ void main() {
             reason: 'server A DMs must not appear on server B');
         expect(stateB.taskItems, isEmpty,
             reason: 'server A tasks must not appear on server B');
+        expect(stateB.agents, isEmpty,
+            reason: 'server A agents must not appear on server B');
       } finally {
         await fixture.dispose();
       }
@@ -526,27 +593,133 @@ void main() {
       }
     });
 
-    test('server B data is not visible when server A is active', () async {
-      // Start with server A, then verify that data seeded for server B
-      // is not visible in the current projection.
+    test('bi-directional isolation: each server shows only its own data',
+        () async {
+      // Seed server A with distinct data, switch to server B with different
+      // data, verify B data visible and A data not. Switch back to A,
+      // verify A data restored and B data not visible.
       final fixture = RuntimeAppFixture();
       fixture.seedHome(
         channels: [
           (ChannelBuilder('ch-a')..withName('Channel A')).build(),
         ],
+        directMessages: [
+          (DmBuilder('dm-a')..withTitle('DM A')).build(),
+        ],
       );
+      fixture.seedTasks([
+        (TaskBuilder('task-a', taskNumber: 1)
+              ..withTitle('Task A')
+              ..withStatus('todo'))
+            .build(),
+      ]);
+      fixture.seedAgents([
+        (AgentBuilder('agent-a')
+              ..withName('Agent-A')
+              ..withActivity('online'))
+            .build(),
+      ]);
 
       await fixture.boot();
       try {
-        final state = fixture.container.read(homeListStoreProvider);
-        expect(state.channels, hasLength(1));
-        expect(state.channels.first.name, 'Channel A');
+        // --- Server A active: verify A data visible ---
+        final stateA1 = fixture.container.read(homeListStoreProvider);
+        expect(stateA1.channels.first.name, 'Channel A');
+        expect(stateA1.directMessages.first.title, 'DM A');
+        expect(stateA1.taskItems.first.title, 'Task A');
+        expect(stateA1.agents.first.name, 'Agent-A');
 
-        // The projection only shows data for the active server.
-        // No server B channels should be present.
-        final channelNames = state.channels.map((c) => c.name).toSet();
-        expect(channelNames, isNot(contains('Channel B')),
-            reason: 'server B data must not leak into server A projection');
+        // --- Switch to server B with its own data ---
+        fixture.homeRepository.snapshot = HomeWorkspaceSnapshot(
+          serverId: const ServerScopeId('server-2'),
+          channels: [
+            (ChannelBuilder('ch-b')..withName('Channel B')).build(),
+          ],
+          directMessages: [
+            (DmBuilder('dm-b')..withTitle('DM B')).build(),
+          ],
+        );
+        fixture.tasksRepository.listResult = [
+          (TaskBuilder('task-b', taskNumber: 2)
+                ..withTitle('Task B')
+                ..withStatus('in_progress'))
+              .build(),
+        ];
+        fixture.agentsRepository.agents = [
+          (AgentBuilder('agent-b')
+                ..withName('Agent-B')
+                ..withActivity('thinking'))
+              .build(),
+        ];
+
+        await fixture.container
+            .read(serverSelectionStoreProvider.notifier)
+            .selectServer('server-2');
+        for (var i = 0; i < 20; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        // --- Server B active: verify B data visible, A data NOT ---
+        final stateB = fixture.container.read(homeListStoreProvider);
+        expect(stateB.channels, hasLength(1));
+        expect(stateB.channels.first.name, 'Channel B');
+        expect(stateB.directMessages, hasLength(1));
+        expect(stateB.directMessages.first.title, 'DM B');
+        expect(stateB.taskItems, hasLength(1));
+        expect(stateB.taskItems.first.title, 'Task B');
+        expect(stateB.agents, hasLength(1));
+        expect(stateB.agents.first.name, 'Agent-B');
+
+        // A data must NOT leak into B projection.
+        final bChannelNames = stateB.channels.map((c) => c.name).toSet();
+        expect(bChannelNames, isNot(contains('Channel A')),
+            reason: 'server A channels must not leak into server B');
+
+        // --- Switch back to server A ---
+        fixture.homeRepository.snapshot = HomeWorkspaceSnapshot(
+          serverId: const ServerScopeId('server-1'),
+          channels: [
+            (ChannelBuilder('ch-a')..withName('Channel A')).build(),
+          ],
+          directMessages: [
+            (DmBuilder('dm-a')..withTitle('DM A')).build(),
+          ],
+        );
+        fixture.tasksRepository.listResult = [
+          (TaskBuilder('task-a', taskNumber: 1)
+                ..withTitle('Task A')
+                ..withStatus('todo'))
+              .build(),
+        ];
+        fixture.agentsRepository.agents = [
+          (AgentBuilder('agent-a')
+                ..withName('Agent-A')
+                ..withActivity('online'))
+              .build(),
+        ];
+
+        await fixture.container
+            .read(serverSelectionStoreProvider.notifier)
+            .selectServer('server-1');
+        for (var i = 0; i < 20; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        // --- Server A active again: verify A data restored, B data NOT ---
+        final stateA2 = fixture.container.read(homeListStoreProvider);
+        expect(stateA2.channels, hasLength(1));
+        expect(stateA2.channels.first.name, 'Channel A');
+        expect(stateA2.directMessages, hasLength(1));
+        expect(stateA2.directMessages.first.title, 'DM A');
+        expect(stateA2.taskItems, hasLength(1));
+        expect(stateA2.taskItems.first.title, 'Task A');
+        expect(stateA2.agents, hasLength(1));
+        expect(stateA2.agents.first.name, 'Agent-A');
+
+        // B data must NOT leak into A projection.
+        final aChannelNames = stateA2.channels.map((c) => c.name).toSet();
+        expect(aChannelNames, isNot(contains('Channel B')),
+            reason: 'server B channels must not leak into server A');
       } finally {
         await fixture.dispose();
       }
