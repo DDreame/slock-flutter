@@ -3,13 +3,24 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_tasks_realtime_binding.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
+import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
 import '../../../stores/session/session_store_persistence_test.dart'
@@ -34,6 +45,19 @@ void main() {
         homeWorkspaceSnapshotLoaderProvider.overrideWithValue(homeLoader.call),
         serverListLoaderProvider
             .overrideWithValue(() async => const <ServerSummary>[]),
+        sidebarOrderRepositoryProvider.overrideWithValue(
+          const _FakeSidebarOrderRepository(),
+        ),
+        tasksRepositoryProvider.overrideWithValue(
+          const _FakeTasksRepository(),
+        ),
+        agentsRepositoryProvider.overrideWithValue(
+          const _FakeAgentsRepository(),
+        ),
+        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        threadRepositoryProvider.overrideWithValue(
+          const _FakeThreadRepository(),
+        ),
       ],
     );
 
@@ -244,4 +268,123 @@ class _FakeHomeWorkspaceLoader {
     }
     return snapshots.last;
   }
+}
+
+class _FakeSidebarOrderRepository implements SidebarOrderRepository {
+  const _FakeSidebarOrderRepository();
+
+  @override
+  Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async =>
+      const SidebarOrder();
+
+  @override
+  Future<void> updateSidebarOrder(
+    ServerScopeId serverId, {
+    required Map<String, Object> patch,
+  }) async {}
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository();
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async =>
+      const [];
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      const [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async =>
+      throw UnimplementedError();
+}
+
+class _FakeAgentsRepository implements AgentsRepository {
+  const _FakeAgentsRepository();
+
+  @override
+  Future<List<AgentItem>> listAgents() async => const [];
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository();
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+    ServerScopeId serverId,
+  ) async =>
+      const [];
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(
+    ThreadRouteTarget target,
+  ) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
 }
