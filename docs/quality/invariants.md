@@ -268,11 +268,68 @@ offset, counts) and UI assertions (widget presence/absence via
 
 ---
 
+## Batch 11: UX / Performance / Network Boundary Invariants
+
+Origin: Batch 11 — Smooth Interaction & Architecture Optimization.
+
+These invariants encode the Batch 11 hard rules (proposed by A1, approved
+by DDreame):
+1. Core list Stores must not clear-then-load
+2. Core Tab Providers must not autoDispose with page navigation
+3. Every UX/perf optimization must deliver a testable invariant
+
+### Cache / SWR (`test/core/invariants/` — to be created)
+
+| ID | Description | Scope | Test Hint |
+|----|-------------|-------|-----------|
+| INV-CACHE-SWR-1 | Core list Store refresh must keep stale data visible (stale-while-revalidate) | HomeListStore, InboxStore, ChannelListStore, DMListStore, AgentListStore, TaskListStore | After `load()` succeeds, call `refresh()` with a delayed repo response. Assert `state.items` is non-empty while `state.status == refreshing`. |
+| INV-CACHE-SWR-2 | Refresh operation must not clear items before loading (no clear-then-load) | Same as SWR-1 | After `load()` succeeds, call `load()` again. Assert `state.items` is never empty between the two calls (use Completer-based timing to observe mid-flight state). |
+
+**Enforcement:** Any PR that introduces `state = state.copyWith(items: [])` or
+equivalent clearing in a core list Store's `load()` / `refresh()` path will be
+blocked at review.
+
+---
+
+### Provider Lifecycle (`test/core/invariants/` — to be created)
+
+| ID | Description | Scope | Test Hint |
+|----|-------------|-------|-----------|
+| INV-LIFECYCLE-1 | Core Tab Providers must be session-scoped (keepAlive) — not disposed on navigation | homeListStoreProvider, inboxStoreProvider, channelListStoreProvider, dmListStoreProvider, agentListStoreProvider, taskListStoreProvider | After `boot()` + `load()`, simulate navigation away (remove listener). Assert provider state is preserved (not reset to initial). |
+| INV-LIFECYCLE-2 | Only detail/conversation page Providers may use autoDispose | ConversationDetailStore, per-channel providers | Verify that core Tab providers do not have `autoDispose` modifier. Detail providers should reset to initial after all listeners removed. |
+
+**Enforcement:** Any PR that adds `autoDispose` to a core Tab Provider will be
+blocked at review.
+
+---
+
+### Skeleton Screens (`test/core/invariants/` — to be created)
+
+| ID | Description | Scope | Test Hint |
+|----|-------------|-------|-----------|
+| INV-UX-SKELETON-1 | First frame must show skeleton screen, not blank/white screen | Home, Inbox, Channels, DMs, Chat pages | Pump widget with `delayResponse: true` on the fake repo. After 1 frame, assert skeleton key (`ValueKey('xxx-skeleton')`) is present. Assert no full-screen blank or spinner-only state. |
+| INV-UX-SKELETON-2 | Tab switch with cached data must render within 16ms (1 frame) | Home, Inbox, Channels, DMs tabs | After initial load, simulate tab switch. Assert stale data or skeleton is visible after exactly 1 `pump()` call (no intermediate blank frame). |
+
+---
+
+### Network Degradation (`test/core/invariants/` — to be created)
+
+| ID | Description | Scope | Test Hint |
+|----|-------------|-------|-----------|
+| INV-NET-DEGRADE-1 | Network error must overlay on existing data, not replace it | All core list Stores | After `load()` succeeds, set `fetchFailure` on fake repo, call `refresh()`. Assert `state.items` is preserved (stale data visible) AND `state.error` is non-null. |
+| INV-NET-DEGRADE-2 | API timeout must not clear visible list | All core list Stores | After `load()` succeeds, trigger a timeout (Completer that never completes + timeout logic). Assert `state.items` remains non-empty. |
+
+**Enforcement:** Any PR that replaces loaded data with an error screen (clearing
+items on failure) will be blocked at review.
+
+---
+
 ## Summary
 
 | Category | Total | Active | Skip+TODO |
 |----------|-------|--------|-----------|
-| CT invariants | 15 | 9 | 6 (across 5 IDs) |
-| RT snapshots | 18 | 14 | 4 |
-| Phase 4 migrations | 5 files | -- | -- |
-| **Total test points** | **33** | **23** | **10** |
+| CT invariants (Batch 10) | 15 | 9 | 6 (across 5 IDs) |
+| RT snapshots (Batch 10) | 18 | 14 | 4 |
+| Phase 4 migrations (Batch 10) | 5 files | -- | -- |
+| Boundary invariants (Batch 11) | 8 | pending | -- |
+| **Total test points** | **41** | **23 + 8 pending** | **10** |
