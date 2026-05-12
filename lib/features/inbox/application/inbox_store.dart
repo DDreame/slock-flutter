@@ -24,10 +24,12 @@ class InboxStore extends Notifier<InboxState> {
   /// Resets pagination. If [filter] differs from current, clears items.
   Future<void> load({InboxFilter? filter}) async {
     final activeFilter = filter ?? state.filter;
-    // If we already have items and the filter hasn't changed,
-    // preserve them during refresh (SWR pattern).
+    // If we already loaded successfully and the filter hasn't changed,
+    // preserve current state during refresh (SWR pattern).
+    // Uses status == success (not items.isNotEmpty) so loaded-empty
+    // inbox is treated as valid stale data.
     final hasExistingData =
-        state.items.isNotEmpty && activeFilter == state.filter;
+        state.status == InboxStatus.success && activeFilter == state.filter;
 
     state = state.copyWith(
       status: hasExistingData ? null : InboxStatus.loading,
