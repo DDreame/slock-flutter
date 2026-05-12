@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -6,8 +8,9 @@ import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
-import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/outbox_store.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -284,23 +287,47 @@ void main() {
   });
 
   // -----------------------------------------------------------------------
-  // Detail page providers use autoDispose (declaration check)
+  // Detail page providers use autoDispose (behavioral verification)
   // -----------------------------------------------------------------------
   group('Detail page providers use autoDispose (architecture contract)', () {
     test(
-      'ConversationDetailStore is declared with autoDispose',
-      () {
-        // Verify the provider type includes autoDispose.
-        // AutoDisposeNotifierProvider is the concrete type for
-        // NotifierProvider.autoDispose declarations.
-        expect(
-          conversationDetailStoreProvider,
-          isA<
-              AutoDisposeNotifierProvider<ConversationDetailStore,
-                  ConversationDetailState>>(),
-          reason: 'ConversationDetailStore must use autoDispose — '
-              'detail pages are not session-scoped',
+      'ConversationDetailStore disposes after listener removal '
+      '(autoDispose behavior)',
+      () async {
+        final ingress = _TrackingRealtimeIngress();
+        final target = ConversationDetailTarget.channel(
+          const ChannelScopeId(serverId: serverId, value: 'ch-1'),
         );
+
+        final container = ProviderContainer(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            realtimeReductionIngressProvider.overrideWithValue(ingress),
+            outboxStoreProvider.overrideWith(() => _FakeOutboxStore()),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Listen → provider initializes → build() subscribes to ingress
+        // stream via ref.watch(realtimeReductionIngressProvider).
+        final sub =
+            container.listen(conversationDetailStoreProvider, (_, __) {});
+        await Future.delayed(Duration.zero);
+        expect(ingress.subscriptionCount, 1,
+            reason: 'build() should subscribe to acceptedEvents');
+        expect(ingress.hasActiveSubscription, isTrue);
+
+        // Simulate page pop: close listener.
+        sub.close();
+        await Future.delayed(Duration.zero);
+
+        // autoDispose: provider torn down → ref.onDispose() cancels
+        // the stream subscription. If keepAlive or ref.keepAlive() were
+        // used, the subscription would remain active.
+        expect(ingress.hasActiveSubscription, isFalse,
+            reason: 'INV-LIFECYCLE-1: ConversationDetailStore must dispose '
+                'after listener removal (autoDispose behavior) — '
+                'stream subscription must be cancelled on disposal');
       },
     );
   });
@@ -352,6 +379,44 @@ void main() {
       expect(repo.loadCount, 1,
           reason: 'Single load — no re-fetch on repeated tab visits');
       sub3.close();
+    });
+
+    test('core tab state resets on provider invalidation (server switch)',
+        () async {
+      final repo = _FakeHomeRepository(
+        snapshot: const HomeWorkspaceSnapshot(
+          serverId: serverId,
+          channels: [
+            HomeChannelSummary(
+              scopeId: ChannelScopeId(serverId: serverId, value: 'general'),
+              name: 'general',
+            ),
+          ],
+          directMessages: [],
+        ),
+      );
+      final container = createHomeContainer(repo);
+      addTearDown(container.dispose);
+
+      // Load data.
+      final sub = container.listen(homeListStoreProvider, (_, __) {});
+      await container.read(homeListStoreProvider.notifier).load();
+      expect(
+          container.read(homeListStoreProvider).status, HomeListStatus.success);
+      expect(container.read(homeListStoreProvider).channels, hasLength(1));
+
+      // Simulate server switch / logout: invalidate the provider.
+      container.invalidate(homeListStoreProvider);
+      await Future.delayed(Duration.zero);
+
+      // State should reset to initial (build() re-runs with clean state).
+      final state = container.read(homeListStoreProvider);
+      expect(state.status, HomeListStatus.initial,
+          reason: 'INV-LIFECYCLE-1: core tab state must reset on server '
+              'switch (provider invalidation clears keepAlive state)');
+      expect(state.channels, isEmpty,
+          reason: 'Channel data must be cleared on server switch');
+      sub.close();
     });
   });
 }
@@ -547,4 +612,46 @@ class _FakeInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+}
+
+/// Tracks stream subscription lifecycle to detect autoDispose disposal.
+///
+/// When [ConversationDetailStore.build()] runs, it subscribes to
+/// [acceptedEvents]. When the provider is disposed (autoDispose),
+/// [ref.onDispose()] cancels the subscription. The [onCancel] callback
+/// on the broadcast controller sets [hasActiveSubscription] to false,
+/// proving disposal occurred.
+class _TrackingRealtimeIngress implements RealtimeReductionIngress {
+  bool hasActiveSubscription = false;
+  int subscriptionCount = 0;
+
+  late final _controller = StreamController<RealtimeEventEnvelope>.broadcast(
+    onListen: () {
+      hasActiveSubscription = true;
+      subscriptionCount++;
+    },
+    onCancel: () {
+      hasActiveSubscription = false;
+    },
+  );
+
+  @override
+  Stream<RealtimeEventEnvelope> get acceptedEvents => _controller.stream;
+
+  @override
+  Map<String, int> get lastSeqByScope => const {};
+
+  @override
+  bool accept(RealtimeEventEnvelope envelope) => false;
+
+  @override
+  Future<void> dispose() async => _controller.close();
+}
+
+/// Minimal [OutboxStore] fake that avoids SharedPreferences and connectivity
+/// dependencies. Inherits [registerDrainCallback] / [unregisterDrainCallback]
+/// from [OutboxStore] so [ConversationDetailStore.build()] can complete.
+class _FakeOutboxStore extends OutboxStore {
+  @override
+  OutboxState build() => const OutboxState();
 }
