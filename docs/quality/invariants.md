@@ -200,8 +200,8 @@ Tasks: #476, #477, #478
 
 ### Assertions Removed
 
-All call-tracking / path assertions eliminated from migrated tests:
-- `repo.lastFetchFilter`, `repo.lastFetchOffset`, `repo.fetchCallCount`
+Call-tracking / path assertions eliminated from migrated tests:
+- `repo.lastFetchFilter`, `repo.lastFetchOffset`
 - `repo.lastMarkReadChannelId`, `repo.lastMarkDoneChannelId`
 - `repo.markAllReadCalled`, `repo.markedDoneIds`, `repo.markedReadIds`
 - `repository.requestedServerIds`
@@ -209,6 +209,17 @@ All call-tracking / path assertions eliminated from migrated tests:
 Replaced with state assertions on `InboxState` (status, items, filter,
 offset, counts) and UI assertions (widget presence/absence via
 `find.byKey`).
+
+**Retained with justification:**
+- `repo.fetchCallCount` — kept in `inbox_realtime_refresh_binding_test.dart`
+  and the "no active server" test in `inbox_store_test.dart`. Debounce
+  verification requires proving N rapid events produce exactly 1 fetch;
+  there is no state-observable equivalent because the resulting `InboxState`
+  is identical whether one or N fetches ran.
+- `repo.lastFilter` — kept in `inbox_page_test.dart` filter-tab test.
+  The re-fetch result is visually indistinguishable from the initial load.
+- `repo.loadMoreCalled` — kept in `inbox_page_test.dart` pagination test.
+  Same indistinguishability reason as `lastFilter`.
 
 ---
 
