@@ -24,6 +24,11 @@ class FakeInboxRepository implements InboxRepository {
   InboxResponse fetchResponse;
   AppFailure? fetchFailure;
 
+  /// When true, the next [fetchInbox] call throws [UnknownFailure] and
+  /// resets this flag to false. Useful for testing one-shot failures
+  /// (e.g. first refresh fails, second succeeds).
+  bool failNext = false;
+
   int fetchCallCount = 0;
   InboxFilter? lastFetchFilter;
   int? lastFetchOffset;
@@ -44,6 +49,10 @@ class FakeInboxRepository implements InboxRepository {
     lastFetchOffset = offset;
     lastFetchLimit = limit;
     if (fetchFailure != null) throw fetchFailure!;
+    if (failNext) {
+      failNext = false;
+      throw const UnknownFailure(message: 'network error');
+    }
     return fetchResponse;
   }
 

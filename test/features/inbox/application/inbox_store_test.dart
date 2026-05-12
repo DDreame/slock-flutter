@@ -10,6 +10,25 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 
+import '../../../support/support.dart';
+
+// ---------------------------------------------------------------------------
+// Migration: mock-call → state-based assertions (#478)
+//
+// Original file used 2 local fakes:
+//   FakeInboxRepository     → replaced with shared FakeInboxRepository
+//                              from test/support/fakes/
+//   _ControllableInboxRepository → kept local (Completer-based timing)
+//
+// Three standalone path-only tests were merged into their companion
+// state-assertion tests:
+//   "calls repository markItemRead"   → merged into markRead state test
+//   "calls repository markItemDone"   → merged into markDone state test
+//   "calls repository markAllRead"    → merged into markAllRead state test
+//
+// All other tests were already state-based (no mock.verify()).
+// ---------------------------------------------------------------------------
+
 void main() {
   ProviderContainer createContainer({
     required FakeInboxRepository repository,
@@ -302,8 +321,12 @@ void main() {
     });
   });
 
+  // Before: "optimistically zeros unreadCount" and "calls repository
+  //         markItemRead" were two separate tests. Merged into one —
+  //         state assertion is primary, repository call is secondary.
   group('InboxStore.markRead', () {
-    test('optimistically zeros unreadCount for target item', () async {
+    test('optimistically zeros unreadCount and persists via repository',
+        () async {
       final repo = FakeInboxRepository(
         fetchResponse: const InboxResponse(
           items: [
@@ -337,37 +360,17 @@ void main() {
       final ch1 = state.items.firstWhere((i) => i.channelId == 'ch-1');
       expect(ch1.unreadCount, 0);
       expect(state.totalUnreadCount, 2); // 7 - 5
-    });
 
-    test('calls repository markItemRead', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 3,
-            ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 3,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markRead(channelId: 'ch-1');
-
+      // Repository was called to persist the read state.
       expect(repo.lastMarkReadChannelId, 'ch-1');
     });
   });
 
+  // Before: "optimistically removes item" and "calls repository markItemDone"
+  //         were two separate tests. Merged — state primary, repo secondary.
   group('InboxStore.markDone', () {
-    test('optimistically removes item from list', () async {
+    test('optimistically removes item from list and persists via repository',
+        () async {
       final repo = FakeInboxRepository(
         fetchResponse: const InboxResponse(
           items: [
@@ -400,37 +403,17 @@ void main() {
       expect(state.items.first.channelId, 'dm-1');
       expect(state.totalCount, 1);
       expect(state.totalUnreadCount, 2); // 7 - 5
-    });
 
-    test('calls repository markItemDone', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 3,
-            ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 3,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markDone(channelId: 'ch-1');
-
+      // Repository was called to persist the done state.
       expect(repo.lastMarkDoneChannelId, 'ch-1');
     });
   });
 
+  // Before: "optimistically zeros all unread counts" and "calls repository
+  //         markAllRead" were two separate tests. Merged.
   group('InboxStore.markAllRead', () {
-    test('optimistically zeros all unread counts', () async {
+    test('optimistically zeros all unread counts and persists via repository',
+        () async {
       final repo = FakeInboxRepository(
         fetchResponse: const InboxResponse(
           items: [
@@ -461,29 +444,8 @@ void main() {
       for (final item in state.items) {
         expect(item.unreadCount, 0);
       }
-    });
 
-    test('calls repository markAllRead', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 3,
-            ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 3,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      await container.read(inboxStoreProvider.notifier).markAllRead();
-
+      // Repository was called to persist the read-all state.
       expect(repo.markAllReadCalled, isTrue);
     });
   });
@@ -860,6 +822,14 @@ void main() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Local test fake
+//
+// Kept local because it provides Completer-based timing control for
+// testing mid-flight SWR state. The shared FakeInboxRepository does
+// not support async response blocking.
+// ---------------------------------------------------------------------------
+
 /// Inbox repository with controllable fetch timing.
 class _ControllableInboxRepository implements InboxRepository {
   InboxResponse? nextResponse;
@@ -892,71 +862,4 @@ class _ControllableInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
-}
-
-class FakeInboxRepository implements InboxRepository {
-  FakeInboxRepository({
-    InboxResponse? fetchResponse,
-    AppFailure? fetchFailure,
-  })  : fetchResponse = fetchResponse ??
-            const InboxResponse(
-              items: [],
-              totalCount: 0,
-              totalUnreadCount: 0,
-              hasMore: false,
-            ),
-        _fetchFailure = fetchFailure;
-
-  InboxResponse fetchResponse;
-  final AppFailure? _fetchFailure;
-  bool failNext = false;
-
-  int fetchCallCount = 0;
-  InboxFilter? lastFetchFilter;
-  int? lastFetchOffset;
-  int? lastFetchLimit;
-
-  String? lastMarkReadChannelId;
-  String? lastMarkDoneChannelId;
-  bool markAllReadCalled = false;
-
-  @override
-  Future<InboxResponse> fetchInbox(
-    ServerScopeId serverId, {
-    InboxFilter filter = InboxFilter.all,
-    int limit = 30,
-    int offset = 0,
-  }) async {
-    fetchCallCount++;
-    lastFetchFilter = filter;
-    lastFetchOffset = offset;
-    lastFetchLimit = limit;
-    if (_fetchFailure != null) throw _fetchFailure;
-    if (failNext) {
-      failNext = false;
-      throw const UnknownFailure(message: 'network error');
-    }
-    return fetchResponse;
-  }
-
-  @override
-  Future<void> markItemRead(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {
-    lastMarkReadChannelId = channelId;
-  }
-
-  @override
-  Future<void> markItemDone(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {
-    lastMarkDoneChannelId = channelId;
-  }
-
-  @override
-  Future<void> markAllRead(ServerScopeId serverId) async {
-    markAllReadCalled = true;
-  }
 }
