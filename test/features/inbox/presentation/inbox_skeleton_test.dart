@@ -17,7 +17,10 @@ import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
 //
 // Invariants verified:
 // INV-UX-SKELETON-1: First frame must show skeleton, never blank.
-// INV-UX-SKELETON-2: Skeleton → content transition is smooth.
+//
+// Note: INV-UX-SKELETON-2 (no layout jump on transition) is scoped as
+// "skeleton replaces loading indicator" — presence/absence verified, not
+// golden/layout-shift.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -54,20 +57,45 @@ void main() {
 
   group('Inbox skeleton integration', () {
     testWidgets(
-      'shows 5 skeleton list items on initial load (INV-UX-SKELETON-1)',
+      'shows skeleton on very first frame — initial status '
+      '(INV-UX-SKELETON-1)',
+      (tester) async {
+        repo.delayResponse = true;
+
+        await tester.pumpWidget(buildApp());
+        // Single pump — status is still `initial` (microtask hasn't fired).
+        await tester.pump();
+
+        // Skeleton must be visible even on the very first frame.
+        expect(
+          find.byKey(const ValueKey('inbox-skeleton')),
+          findsOneWidget,
+          reason: 'INV-UX-SKELETON-1: skeleton must appear on the very first '
+              'frame when status is initial',
+        );
+
+        // No spinner.
+        expect(
+          find.byType(CircularProgressIndicator),
+          findsNothing,
+          reason: 'Skeleton replaces CircularProgressIndicator',
+        );
+      },
+    );
+
+    testWidgets(
+      'shows 5 skeleton list items during loading state',
       (tester) async {
         repo.delayResponse = true;
 
         await tester.pumpWidget(buildApp());
         await tester.pump(); // trigger microtask load
-        await tester.pump(); // allow state transition
+        await tester.pump(); // allow state transition to loading
 
         // Skeleton container must be visible.
         expect(
           find.byKey(const ValueKey('inbox-skeleton')),
           findsOneWidget,
-          reason: 'INV-UX-SKELETON-1: skeleton must appear on first frame, '
-              'never blank',
         );
 
         // All 5 skeleton list items present.
@@ -102,8 +130,7 @@ void main() {
     );
 
     testWidgets(
-      'skeleton transitions to real content after data arrives '
-      '(INV-UX-SKELETON-2)',
+      'skeleton disappears after data arrives',
       (tester) async {
         // Use non-delayed repo with items.
         repo.items = [
@@ -117,8 +144,7 @@ void main() {
         expect(
           find.byKey(const ValueKey('inbox-skeleton')),
           findsNothing,
-          reason: 'INV-UX-SKELETON-2: skeleton must disappear after '
-              'data arrives',
+          reason: 'Skeleton must disappear after data arrives',
         );
 
         // Real content visible.
@@ -157,16 +183,16 @@ void main() {
     );
 
     testWidgets(
-      'skeleton shown, then empty state after empty data',
+      'skeleton shown during loading, then empty state after empty data',
       (tester) async {
-        // Start with delay, then allow empty response.
+        // Start with delay so load hangs.
         repo.delayResponse = true;
 
         await tester.pumpWidget(buildApp());
         await tester.pump();
         await tester.pump();
 
-        // Skeleton visible.
+        // Skeleton visible while loading.
         expect(
           find.byKey(const ValueKey('inbox-skeleton')),
           findsOneWidget,

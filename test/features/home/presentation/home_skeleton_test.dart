@@ -35,7 +35,10 @@ import 'package:slock_app/l10n/app_localizations.dart';
 //
 // Invariants verified:
 // INV-UX-SKELETON-1: First frame must show skeleton, never blank.
-// INV-UX-SKELETON-2: Skeleton → content transition is smooth.
+//
+// Note: INV-UX-SKELETON-2 (no layout jump on transition) is scoped as
+// "skeleton replaces loading indicator" — presence/absence verified, not
+// golden/layout-shift.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -242,8 +245,7 @@ void main() {
     );
 
     testWidgets(
-      'skeleton transitions to real content after data arrives '
-      '(INV-UX-SKELETON-2)',
+      'skeleton disappears after data arrives',
       (tester) async {
         final router = buildRouter();
         final networkCompleter = Completer<HomeWorkspaceSnapshot>();
@@ -274,8 +276,7 @@ void main() {
         expect(
           find.byKey(const ValueKey('home-skeleton')),
           findsNothing,
-          reason: 'INV-UX-SKELETON-2: skeleton must disappear after '
-              'data arrives',
+          reason: 'Skeleton must disappear after data arrives',
         );
 
         // Real content visible.

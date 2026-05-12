@@ -75,7 +75,9 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   }
 
   Widget _buildBody(AppColors colors, InboxState inboxState) {
-    if (inboxState.status == InboxStatus.loading && inboxState.items.isEmpty) {
+    if ((inboxState.status == InboxStatus.initial ||
+            inboxState.status == InboxStatus.loading) &&
+        inboxState.items.isEmpty) {
       return ListView(
         key: const ValueKey('inbox-skeleton'),
         padding: const EdgeInsets.symmetric(
