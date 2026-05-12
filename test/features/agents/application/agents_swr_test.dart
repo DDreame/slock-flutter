@@ -153,8 +153,8 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-CACHE-SWR: SWR refresh preserves stale data', () {
     test(
-      'refresh preserves stale agent list while fetching '
-      '(INV-CACHE-SWR-1)',
+      'stale agent list remains present during refresh '
+      '(INV-CACHE-SWR-1 — data preservation)',
       () async {
         final repo = _ControllableAgentsRepository();
         final container = createContainer(repo);
@@ -176,16 +176,15 @@ void main() {
         // ignore: unawaited_futures
         container.read(agentsStoreProvider.notifier).load();
 
-        // Mid-flight: stale data must remain visible.
+        // Mid-flight: stale items must remain in state.
+        // load() changes status but does NOT clear items.
         final midState = container.read(agentsStoreProvider);
         expect(midState.items, hasLength(3),
             reason: 'INV-CACHE-SWR-1: stale agent list must remain '
-                'visible during refresh');
-        expect(midState.status, AgentsStatus.success,
-            reason: 'INV-CACHE-SWR-1: status should remain success '
-                'during SWR refresh (not revert to loading)');
+                'present during refresh — load() must not clear items');
+        expect(midState.items.map((a) => a.name), ['Alpha', 'Beta', 'Gamma']);
 
-        // Complete refresh.
+        // Complete refresh with updated data.
         final updatedAgents = [
           makeAgent(id: 'a1', name: 'Alpha-v2'),
           makeAgent(id: 'a4', name: 'Delta'),
@@ -199,14 +198,47 @@ void main() {
         expect(finalState.items.map((a) => a.name), ['Alpha-v2', 'Delta']);
         sub.close();
       },
-      skip: 'TODO: AgentsStore.load() sets status=loading on every call, '
-          'hiding stale data. Phase B must implement SWR: when '
-          'status == success, preserve items and set isRefreshing '
-          'instead of status=loading.',
     );
 
     test(
-      'load never clears agent list during refresh (INV-CACHE-SWR-2)',
+      'refresh exposes SWR status signal instead of full-screen loading '
+      '(INV-CACHE-SWR-1 — status signal)',
+      () async {
+        final repo = _ControllableAgentsRepository();
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+
+        final sub = container.listen(agentsStoreProvider, (_, __) {});
+
+        // Initial load — seed stale data.
+        final c1 = repo.nextListCall();
+        final f1 = container.read(agentsStoreProvider.notifier).load();
+        c1.complete(seedAgents);
+        await f1;
+
+        // Start second load (refresh).
+        final c2 = repo.nextListCall();
+        // ignore: unawaited_futures
+        container.read(agentsStoreProvider.notifier).load();
+
+        // Mid-flight: status should remain success (not revert to loading).
+        // Phase B adds isRefreshing field as the SWR signal.
+        final midState = container.read(agentsStoreProvider);
+        expect(midState.status, AgentsStatus.success,
+            reason: 'INV-CACHE-SWR-1: status must remain success during '
+                'SWR refresh — use isRefreshing for loading signal');
+
+        c2.complete(seedAgents);
+        await Future.delayed(Duration.zero);
+        sub.close();
+      },
+      skip: 'TODO: AgentsStore.load() sets status=loading on every call. '
+          'Phase B must keep status=success when stale data exists and '
+          'expose isRefreshing as the SWR loading signal.',
+    );
+
+    test(
+      'agent list is never cleared during refresh (INV-CACHE-SWR-2)',
       () async {
         final repo = _ControllableAgentsRepository();
         final container = createContainer(repo);
@@ -238,9 +270,6 @@ void main() {
         }
         sub.close();
       },
-      skip: 'TODO: AgentsStore.load() does not preserve stale items '
-          'during refresh. Phase B must keep items intact when '
-          'transitioning from success to refreshing.',
     );
   });
 
@@ -249,7 +278,7 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-NET-DEGRADE-1: error during refresh', () {
     test(
-      'refresh error preserves stale agent list (data preservation)',
+      'stale agent list survives refresh error (data preservation)',
       () async {
         final repo = _ControllableAgentsRepository();
         final container = createContainer(repo);
@@ -272,28 +301,21 @@ void main() {
         );
         await f2;
 
-        // Stale data must survive the error.
+        // Stale items must survive the error.
+        // load() sets status=failure but does NOT clear items.
         final state = container.read(agentsStoreProvider);
         expect(state.items, hasLength(3),
             reason: 'INV-NET-DEGRADE-1: stale agent list must survive '
-                'refresh error');
+                'refresh error — load() must not clear items');
         expect(state.items.map((a) => a.name), ['Alpha', 'Beta', 'Gamma'],
             reason: 'Agent data from initial load must be preserved');
-        // Status should remain success (not flip to failure) when
-        // stale data exists.
-        expect(state.status, AgentsStatus.success,
-            reason: 'INV-NET-DEGRADE-1: status must remain success when '
-                'stale data exists after refresh error');
         sub.close();
       },
-      skip: 'TODO: AgentsStore.load() sets status=failure on any error, '
-          'even when stale data exists. Phase B must keep '
-          'status=success and surface error via state.failure when '
-          'stale data is available.',
     );
 
     test(
-      'refresh error surfaces failure without clobbering status',
+      'refresh error keeps success status with failure overlay '
+      '(INV-NET-DEGRADE-1 — error overlay signal)',
       () async {
         final repo = _ControllableAgentsRepository();
         final container = createContainer(repo);
@@ -315,19 +337,22 @@ void main() {
         );
         await f2;
 
+        // Status should remain success (not flip to failure) when
+        // stale data exists. Error is surfaced via state.failure
+        // as an overlay.
         final state = container.read(agentsStoreProvider);
+        expect(state.status, AgentsStatus.success,
+            reason: 'INV-NET-DEGRADE-1: status must remain success when '
+                'stale data exists after refresh error');
         expect(state.failure, isA<ServerFailure>(),
             reason: 'Error must be surfaced via state.failure for '
                 'error overlay display');
-        expect(state.status, isNot(AgentsStatus.failure),
-            reason: 'INV-NET-DEGRADE-1: status must not flip to failure '
-                'when stale data is available — error is shown as '
-                'overlay, not full-screen error');
         sub.close();
       },
-      skip: 'TODO: AgentsStore.load() sets status=failure on any error. '
-          'Phase B must differentiate initial-load error (status=failure) '
-          'from refresh error (status=success + failure overlay).',
+      skip: 'TODO: AgentsStore.load() sets status=failure on any error, '
+          'even when stale data exists. Phase B must keep '
+          'status=success and surface error via state.failure '
+          'as overlay when stale data is available.',
     );
   });
 
