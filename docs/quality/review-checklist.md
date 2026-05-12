@@ -3,6 +3,11 @@
 Checklist for code review. Verify each applicable item before posting
 a continuity verdict.
 
+**Related docs:**
+[Task Scope Template](task-scope-template.md) |
+[Merge Gate Rules](merge-gate-rules.md) |
+[Invariant Registry](invariants.md)
+
 ---
 
 ## Phase Compliance
@@ -10,7 +15,7 @@ a continuity verdict.
 ### Phase A (test-only)
 
 - [ ] No `lib/` files modified
-- [ ] Only `test/` and `docs/` files in the diff
+- [ ] Only `test/` files in the diff (docs/config changes belong to N/A phase)
 - [ ] No production behavior changes (even via test support files)
 
 ### Phase B (implementation-only)

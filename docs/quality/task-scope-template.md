@@ -4,6 +4,11 @@ Use this template when defining new tasks. Each scope should be a
 self-contained assignment that an engineer can claim and execute without
 ambiguity.
 
+**Related docs:**
+[A1 Review Checklist](review-checklist.md) |
+[Merge Gate Rules](merge-gate-rules.md) |
+[Invariant Registry](invariants.md)
+
 ---
 
 ## Header

@@ -3,6 +3,11 @@
 Rules for the merge gate. Every PR must pass all applicable checks before
 merge.
 
+**Related docs:**
+[Task Scope Template](task-scope-template.md) |
+[A1 Review Checklist](review-checklist.md) |
+[Invariant Registry](invariants.md)
+
 ---
 
 ## Required Checks
