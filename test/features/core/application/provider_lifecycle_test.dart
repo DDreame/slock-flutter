@@ -48,7 +48,13 @@ import 'package:slock_app/features/threads/data/thread_repository_provider.dart'
 // 3. Detail page providers (ConversationDetail) dispose after listener
 //    removal (autoDispose — correct behavior)
 // 4. Core tab data is not re-fetched on tab return
+// 5. Core tab state resets on server switch / logout
 // ---------------------------------------------------------------------------
+
+/// Mutable server scope for session-boundary tests.
+/// [HomeListStore.build()] watches [activeServerScopeIdProvider] via
+/// [ref.watch], so changing this triggers a provider rebuild.
+final _serverScopeOverride = StateProvider<ServerScopeId?>((ref) => null);
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -381,7 +387,7 @@ void main() {
       sub3.close();
     });
 
-    test('core tab state resets on provider invalidation (server switch)',
+    test('core tab state resets on server switch (active scope change)',
         () async {
       final repo = _FakeHomeRepository(
         snapshot: const HomeWorkspaceSnapshot(
@@ -395,27 +401,46 @@ void main() {
           directMessages: [],
         ),
       );
-      final container = createHomeContainer(repo);
+
+      // Use mutable server scope so we can simulate a server switch.
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider
+              .overrideWith((ref) => ref.watch(_serverScopeOverride)),
+          homeRepositoryProvider.overrideWithValue(repo),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(const _FakeAgentsRepository()),
+          tasksRepositoryProvider
+              .overrideWithValue(const _FakeTasksRepository()),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
       addTearDown(container.dispose);
 
-      // Load data.
+      // Set server A and let build() → Future.microtask → load() complete.
+      container.read(_serverScopeOverride.notifier).state = serverId;
       final sub = container.listen(homeListStoreProvider, (_, __) {});
-      await container.read(homeListStoreProvider.notifier).load();
+      await Future.delayed(Duration.zero);
       expect(
           container.read(homeListStoreProvider).status, HomeListStatus.success);
       expect(container.read(homeListStoreProvider).channels, hasLength(1));
 
-      // Simulate server switch / logout: invalidate the provider.
-      container.invalidate(homeListStoreProvider);
+      // Simulate logout: clear the active server scope.
+      // build() re-runs → serverScopeId is null → noActiveServer.
+      container.read(_serverScopeOverride.notifier).state = null;
       await Future.delayed(Duration.zero);
 
-      // State should reset to initial (build() re-runs with clean state).
+      // Old server A data must not leak into the new session.
       final state = container.read(homeListStoreProvider);
-      expect(state.status, HomeListStatus.initial,
-          reason: 'INV-LIFECYCLE-1: core tab state must reset on server '
-              'switch (provider invalidation clears keepAlive state)');
+      expect(state.status, HomeListStatus.noActiveServer,
+          reason: 'INV-LIFECYCLE-1: core tab state must reset when active '
+              'server scope is cleared (logout / server switch)');
       expect(state.channels, isEmpty,
-          reason: 'Channel data must be cleared on server switch');
+          reason: 'Channel data from old server must not leak to new session');
       sub.close();
     });
   });
