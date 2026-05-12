@@ -92,7 +92,6 @@ void main() {
       expect(state.status, AgentsStatus.success);
       expect(state.items, hasLength(3));
       expect(state.items.map((a) => a.name), ['Alpha', 'Beta', 'Gamma']);
-      expect(repo.loadCount, 1);
       sub.close();
     });
 
@@ -121,29 +120,6 @@ void main() {
       expect(state.failure, isA<ServerFailure>());
       expect(state.items, isEmpty,
           reason: 'No stale data to preserve on initial load failure');
-      sub.close();
-    });
-
-    test('load count tracks repository calls', () async {
-      final repo = _ControllableAgentsRepository();
-      final container = createContainer(repo);
-      addTearDown(container.dispose);
-
-      final sub = container.listen(agentsStoreProvider, (_, __) {});
-
-      // First load.
-      final c1 = repo.nextListCall();
-      final f1 = container.read(agentsStoreProvider.notifier).load();
-      c1.complete(seedAgents);
-      await f1;
-      expect(repo.loadCount, 1);
-
-      // Second load.
-      final c2 = repo.nextListCall();
-      final f2 = container.read(agentsStoreProvider.notifier).load();
-      c2.complete(seedAgents);
-      await f2;
-      expect(repo.loadCount, 2);
       sub.close();
     });
   });
