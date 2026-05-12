@@ -247,10 +247,6 @@ void main() {
             reason: 'INV-LIFECYCLE-1: AgentsStore must retain state '
                 'after listener removal (keepAlive)');
       },
-      skip: 'TODO: AgentsStore uses autoDispose — state is disposed on '
-          'listener removal. Phase B must change '
-          'NotifierProvider.autoDispose → NotifierProvider and '
-          'AutoDisposeNotifier → Notifier.',
     );
   });
 
