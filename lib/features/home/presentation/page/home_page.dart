@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/app/widgets/skeleton_card.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/application/agent_status_group.dart';
 import 'package:slock_app/features/agents/application/agent_status_group_projection.dart';
@@ -70,8 +71,21 @@ class _HomePageState extends ConsumerState<HomePage> {
         HomeListStatus.noActiveServer => _HomeNoServerState(
             onSelectServer: () => showServerSwitcherSheet(context),
           ),
-        HomeListStatus.initial || HomeListStatus.loading => const Center(
-            child: CircularProgressIndicator(),
+        HomeListStatus.initial || HomeListStatus.loading => ListView(
+            key: const ValueKey('home-skeleton'),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.pageHorizontal,
+              AppSpacing.md,
+              AppSpacing.pageHorizontal,
+              AppSpacing.xl,
+            ),
+            children: const [
+              SkeletonCard(key: ValueKey('home-skeleton-card-0')),
+              SizedBox(height: AppSpacing.md),
+              SkeletonCard(key: ValueKey('home-skeleton-card-1')),
+              SizedBox(height: AppSpacing.md),
+              SkeletonCard(key: ValueKey('home-skeleton-card-2')),
+            ],
           ),
         HomeListStatus.failure => _HomeErrorState(
             message: state.failure?.message ?? l10n.homeLoadFailedFallback,
