@@ -176,10 +176,10 @@ void main() {
   });
 
   // -----------------------------------------------------------------------
-  // #485  INV-NET-DEGRADE-1: Channel view — error overlay preserves data
+  // #485  INV-NET-DEGRADE-1: Channel view — data preservation on error
   // -----------------------------------------------------------------------
   group('#485 Channel view path — INV-NET-DEGRADE-1', () {
-    test('refresh failure preserves stale channels and sets failure', () async {
+    test('refresh failure preserves stale channels', () async {
       final repo = _ControllableHomeRepository();
       repo.nextWorkspace = multiChannelSnapshot;
       final container = createContainer(repo);
@@ -207,6 +207,39 @@ void main() {
           reason: 'Status stays success — stale data is still valid');
       expect(state.isRefreshing, isFalse);
     });
+
+    test(
+      'refresh failure surfaces failure for channel error overlay',
+      () async {
+        final repo = _ControllableHomeRepository();
+        repo.nextWorkspace = multiChannelSnapshot;
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+
+        // Refresh fails.
+        final failCompleter = Completer<HomeWorkspaceSnapshot>();
+        repo.workspaceCompleter = failCompleter;
+
+        final refreshFuture =
+            container.read(homeListStoreProvider.notifier).refresh();
+
+        failCompleter.completeError(
+          const ServerFailure(message: 'Network error', statusCode: 500),
+        );
+        await refreshFuture;
+
+        final state = container.read(homeListStoreProvider);
+        expect(state.failure, isNotNull,
+            reason: 'INV-NET-DEGRADE-1: failure must be surfaced so '
+                'channel view can render error overlay');
+      },
+      skip: 'TODO: HomeListStore.refresh() swallows AppFailure without '
+          'setting state.failure (line 428-431). Phase B must add '
+          '`failure: failure` to the copyWith so channel/DM views '
+          'can render an error overlay.',
+    );
 
     test('no blank channel screen across full SWR refresh cycle', () async {
       final repo = _ControllableHomeRepository();
@@ -336,7 +369,7 @@ void main() {
   });
 
   // -----------------------------------------------------------------------
-  // #486  INV-NET-DEGRADE-1: DM view — error overlay preserves data
+  // #486  INV-NET-DEGRADE-1: DM view — data preservation on error
   // -----------------------------------------------------------------------
   group('#486 DM view path — INV-NET-DEGRADE-1', () {
     test('refresh failure preserves stale DMs', () async {
@@ -367,6 +400,39 @@ void main() {
       expect(state.status, HomeListStatus.success);
       expect(state.isRefreshing, isFalse);
     });
+
+    test(
+      'refresh failure surfaces failure for DM error overlay',
+      () async {
+        final repo = _ControllableHomeRepository();
+        repo.nextWorkspace = multiChannelSnapshot;
+        final container = createContainer(repo);
+        addTearDown(container.dispose);
+
+        await container.read(homeListStoreProvider.notifier).load();
+
+        // Refresh fails.
+        final failCompleter = Completer<HomeWorkspaceSnapshot>();
+        repo.workspaceCompleter = failCompleter;
+
+        final refreshFuture =
+            container.read(homeListStoreProvider.notifier).refresh();
+
+        failCompleter.completeError(
+          const ServerFailure(message: 'Network error', statusCode: 500),
+        );
+        await refreshFuture;
+
+        final state = container.read(homeListStoreProvider);
+        expect(state.failure, isNotNull,
+            reason: 'INV-NET-DEGRADE-1: failure must be surfaced so '
+                'DM view can render error overlay');
+      },
+      skip: 'TODO: HomeListStore.refresh() swallows AppFailure without '
+          'setting state.failure (line 428-431). Phase B must add '
+          '`failure: failure` to the copyWith so channel/DM views '
+          'can render an error overlay.',
+    );
 
     test('no blank DM screen across full SWR refresh cycle', () async {
       final repo = _ControllableHomeRepository();
