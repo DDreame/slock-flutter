@@ -281,10 +281,6 @@ void main() {
             reason: 'INV-LIFECYCLE-1: TasksStore must retain state '
                 'after listener removal (keepAlive)');
       },
-      skip: 'TODO: TasksStore uses autoDispose — state is disposed on '
-          'listener removal. Phase B must change '
-          'NotifierProvider.autoDispose → NotifierProvider and '
-          'AutoDisposeNotifier → Notifier.',
     );
   });
 

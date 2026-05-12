@@ -10,22 +10,26 @@ class TasksState {
     this.status = TasksStatus.initial,
     this.items = const [],
     this.failure,
+    this.isRefreshing = false,
   });
 
   final TasksStatus status;
   final List<TaskItem> items;
   final AppFailure? failure;
+  final bool isRefreshing;
 
   TasksState copyWith({
     TasksStatus? status,
     List<TaskItem>? items,
     AppFailure? failure,
+    bool? isRefreshing,
     bool clearFailure = false,
   }) {
     return TasksState(
       status: status ?? this.status,
       items: items ?? this.items,
       failure: clearFailure ? null : (failure ?? this.failure),
+      isRefreshing: isRefreshing ?? this.isRefreshing,
     );
   }
 
@@ -36,9 +40,11 @@ class TasksState {
             runtimeType == other.runtimeType &&
             status == other.status &&
             listEquals(items, other.items) &&
-            failure == other.failure;
+            failure == other.failure &&
+            isRefreshing == other.isRefreshing;
   }
 
   @override
-  int get hashCode => Object.hash(status, Object.hashAll(items), failure);
+  int get hashCode =>
+      Object.hash(status, Object.hashAll(items), failure, isRefreshing);
 }

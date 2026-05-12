@@ -10,12 +10,12 @@ final currentTasksServerIdProvider = Provider<ServerScopeId>((ref) {
   );
 });
 
-final tasksStoreProvider = NotifierProvider.autoDispose<TasksStore, TasksState>(
+final tasksStoreProvider = NotifierProvider<TasksStore, TasksState>(
   TasksStore.new,
   dependencies: [currentTasksServerIdProvider],
 );
 
-class TasksStore extends AutoDisposeNotifier<TasksState> {
+class TasksStore extends Notifier<TasksState> {
   @override
   TasksState build() {
     return const TasksState();
@@ -23,10 +23,20 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
 
   Future<void> load() async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    state = state.copyWith(
-      status: TasksStatus.loading,
-      clearFailure: true,
-    );
+    final hasStaleData = state.status == TasksStatus.success;
+
+    if (hasStaleData) {
+      // SWR: keep status=success, signal refresh via isRefreshing.
+      state = state.copyWith(
+        isRefreshing: true,
+        clearFailure: true,
+      );
+    } else {
+      state = state.copyWith(
+        status: TasksStatus.loading,
+        clearFailure: true,
+      );
+    }
 
     try {
       final repo = ref.read(tasksRepositoryProvider);
@@ -34,13 +44,22 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       state = state.copyWith(
         status: TasksStatus.success,
         items: tasks,
+        isRefreshing: false,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        status: TasksStatus.failure,
-        failure: failure,
-      );
+      if (hasStaleData) {
+        // SWR: preserve success status, surface error as overlay.
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: failure,
+        );
+      } else {
+        state = state.copyWith(
+          status: TasksStatus.failure,
+          failure: failure,
+        );
+      }
     }
   }
 

@@ -228,9 +228,6 @@ void main() {
         await Future.delayed(Duration.zero);
         sub.close();
       },
-      skip: 'TODO: TasksStore.load() sets status=loading on every call. '
-          'Phase B must keep status=success when stale data exists and '
-          'expose isRefreshing as the SWR loading signal.',
     );
 
     test(
@@ -351,10 +348,6 @@ void main() {
                 'error overlay display');
         sub.close();
       },
-      skip: 'TODO: TasksStore.load() sets status=failure on any error, '
-          'even when stale data exists. Phase B must keep '
-          'status=success and surface error via state.failure '
-          'as overlay when stale data is available.',
     );
   });
 
@@ -390,10 +383,6 @@ void main() {
         expect(state.items, hasLength(3),
             reason: 'Task data must persist across tab switches');
       },
-      skip: 'TODO: TasksStore uses autoDispose — state is disposed on '
-          'listener removal. Phase B must change '
-          'NotifierProvider.autoDispose → NotifierProvider and '
-          'AutoDisposeNotifier → Notifier.',
     );
 
     test(
@@ -425,9 +414,6 @@ void main() {
             reason: 'No re-fetch on tab return — keepAlive retains data');
         sub2.close();
       },
-      skip: 'TODO: TasksStore uses autoDispose — provider resets on '
-          'listener removal. Phase B must migrate to keepAlive so '
-          'tab return does not trigger re-fetch.',
     );
   });
 }
