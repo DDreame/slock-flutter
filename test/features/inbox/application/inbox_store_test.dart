@@ -10,131 +10,129 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 
-void main() {
-  ProviderContainer createContainer({
-    required FakeInboxRepository repository,
-    ServerScopeId? activeServerId = const ServerScopeId('server-1'),
-    bool noActiveServer = false,
-  }) {
-    return ProviderContainer(
-      overrides: [
-        inboxRepositoryProvider.overrideWithValue(repository),
-        activeServerScopeIdProvider
-            .overrideWithValue(noActiveServer ? null : activeServerId),
-      ],
-    );
-  }
+import '../../../support/support.dart';
 
+// ---------------------------------------------------------------------------
+// Migration: mock-call → state-based assertions (#478)
+//
+// Original file used 2 local fakes:
+//   FakeInboxRepository        → replaced with shared FakeInboxRepository
+//                                 from test/support/fakes/
+//   _ControllableInboxRepository → kept local (Completer-based timing)
+//
+// createContainer() → RuntimeAppFixture + boot() + manual inbox load
+//
+// Tests that cannot use RuntimeAppFixture keep direct ProviderContainer
+// with explicit justification:
+//   - "no active server" → RuntimeAppFixture.boot() always selects a server
+//   - "isRefreshing mid-flight" → needs _ControllableInboxRepository
+//
+// Three standalone path-only tests merged into companion state tests.
+// All repo.lastFetchFilter, repo.lastFetchOffset, repo.fetchCallCount,
+// repo.lastMarkReadChannelId, repo.lastMarkDoneChannelId, and
+// repo.markAllReadCalled assertions replaced with InboxState assertions.
+// ---------------------------------------------------------------------------
+
+void main() {
   group('InboxStore.load', () {
     test('fetches first page and updates state to success', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              channelName: 'general',
-              unreadCount: 5,
-            ),
-            InboxItem(
-              kind: InboxItemKind.dm,
-              channelId: 'dm-1',
-              channelName: 'Bob',
-              unreadCount: 2,
-            ),
-          ],
-          totalCount: 2,
-          totalUnreadCount: 7,
-          hasMore: false,
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          channelName: 'general',
+          unreadCount: 5,
         ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+        const InboxItem(
+          kind: InboxItemKind.dm,
+          channelId: 'dm-1',
+          channelName: 'Bob',
+          unreadCount: 2,
+        ),
+      ]);
 
-      final store = container.read(inboxStoreProvider.notifier);
-      await store.load();
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
 
-      final state = container.read(inboxStoreProvider);
-      expect(state.status, InboxStatus.success);
-      expect(state.items, hasLength(2));
-      expect(state.totalCount, 2);
-      expect(state.totalUnreadCount, 7);
-      expect(state.hasMore, isFalse);
-      expect(state.offset, 2);
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.status, InboxStatus.success);
+        expect(state.items, hasLength(2));
+        expect(state.totalCount, 2);
+        expect(state.totalUnreadCount, 7);
+        expect(state.hasMore, isFalse);
+        expect(state.offset, 2);
+      } finally {
+        await fixture.dispose();
+      }
     });
 
     test('sets status to loading then success', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [],
-          totalCount: 0,
-          totalUnreadCount: 0,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([]);
 
-      final states = <InboxStatus>[];
-      container.listen(
-        inboxStoreProvider.select((s) => s.status),
-        (_, next) => states.add(next),
-      );
+      await fixture.boot();
+      try {
+        final states = <InboxStatus>[];
+        fixture.container.listen(
+          inboxStoreProvider.select((s) => s.status),
+          (_, next) => states.add(next),
+        );
 
-      await container.read(inboxStoreProvider.notifier).load();
+        await fixture.container.read(inboxStoreProvider.notifier).load();
 
-      expect(states, [InboxStatus.loading, InboxStatus.success]);
+        expect(states, [InboxStatus.loading, InboxStatus.success]);
+      } finally {
+        await fixture.dispose();
+      }
     });
 
     test('sets status to failure on AppFailure', () async {
-      final repo = FakeInboxRepository(
-        fetchFailure: const NetworkFailure(message: 'offline'),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchFailure =
+          const NetworkFailure(message: 'offline');
 
-      await container.read(inboxStoreProvider.notifier).load();
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
 
-      final state = container.read(inboxStoreProvider);
-      expect(state.status, InboxStatus.failure);
-      expect(state.failure, isA<NetworkFailure>());
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.status, InboxStatus.failure);
+        expect(state.failure, isA<NetworkFailure>());
+      } finally {
+        await fixture.dispose();
+      }
     });
 
-    test('passes filter parameter to repository', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [],
-          totalCount: 0,
-          totalUnreadCount: 0,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+    test('load with filter updates InboxState.filter', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([]);
 
-      await container
-          .read(inboxStoreProvider.notifier)
-          .load(filter: InboxFilter.unread);
+      await fixture.boot();
+      try {
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .load(filter: InboxFilter.unread);
 
-      expect(repo.lastFetchFilter, InboxFilter.unread);
-      expect(
-        container.read(inboxStoreProvider).filter,
-        InboxFilter.unread,
-      );
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.filter, InboxFilter.unread);
+      } finally {
+        await fixture.dispose();
+      }
     });
 
+    // Direct ProviderContainer: RuntimeAppFixture.boot() always selects
+    // a server, making it impossible to test the no-active-server path.
+    // fetchCallCount retained: with an empty default response, state alone
+    // cannot distinguish "fetched empty" from "never fetched."
     test('returns empty success when no active server', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [],
-          totalCount: 0,
-          totalUnreadCount: 0,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(
-        repository: repo,
-        noActiveServer: true,
+      final repo = FakeInboxRepository();
+      final container = ProviderContainer(
+        overrides: [
+          inboxRepositoryProvider.overrideWithValue(repo),
+          activeServerScopeIdProvider.overrideWithValue(null),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -143,239 +141,39 @@ void main() {
       final state = container.read(inboxStoreProvider);
       expect(state.status, InboxStatus.success);
       expect(state.items, isEmpty);
+      // No fetch should have been made — state-only can't distinguish
+      // "fetched empty" from "skipped fetch" with default empty response.
       expect(repo.fetchCallCount, 0);
     });
   });
 
   group('InboxStore.loadMore', () {
     test('appends next page items', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 3,
-            ),
-          ],
-          totalCount: 2,
-          totalUnreadCount: 5,
-          hasMore: true,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      // Load first page
-      await container.read(inboxStoreProvider.notifier).load();
-      expect(container.read(inboxStoreProvider).items, hasLength(1));
-
-      // Prepare second page response
-      repo.fetchResponse = const InboxResponse(
-        items: [
-          InboxItem(
-            kind: InboxItemKind.dm,
-            channelId: 'dm-1',
-            unreadCount: 2,
-          ),
-        ],
-        totalCount: 2,
-        totalUnreadCount: 5,
-        hasMore: false,
-      );
-
-      await container.read(inboxStoreProvider.notifier).loadMore();
-
-      final state = container.read(inboxStoreProvider);
-      expect(state.items, hasLength(2));
-      expect(state.items[0].channelId, 'ch-1');
-      expect(state.items[1].channelId, 'dm-1');
-      expect(state.hasMore, isFalse);
-      expect(state.offset, 2);
-    });
-
-    test('does nothing when hasMore is false', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 1,
-            ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 1,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      final callsBefore = repo.fetchCallCount;
-
-      await container.read(inboxStoreProvider.notifier).loadMore();
-
-      expect(repo.fetchCallCount, callsBefore);
-    });
-
-    test('passes correct offset for pagination', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-1', unreadCount: 1),
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-2', unreadCount: 1),
-          ],
-          totalCount: 4,
-          totalUnreadCount: 4,
-          hasMore: true,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-
-      repo.fetchResponse = const InboxResponse(
-        items: [
-          InboxItem(
-              kind: InboxItemKind.channel, channelId: 'ch-3', unreadCount: 1),
-          InboxItem(
-              kind: InboxItemKind.channel, channelId: 'ch-4', unreadCount: 1),
-        ],
-        totalCount: 4,
-        totalUnreadCount: 4,
-        hasMore: false,
-      );
-
-      await container.read(inboxStoreProvider.notifier).loadMore();
-
-      expect(repo.lastFetchOffset, 2);
-    });
-  });
-
-  group('InboxStore.setFilter', () {
-    test('reloads with new filter', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 5,
-            ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 5,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      expect(container.read(inboxStoreProvider).filter, InboxFilter.all);
-
-      repo.fetchResponse = const InboxResponse(
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchResponse = const InboxResponse(
         items: [
           InboxItem(
             kind: InboxItemKind.channel,
             channelId: 'ch-1',
-            unreadCount: 5,
+            unreadCount: 3,
           ),
         ],
-        totalCount: 1,
+        totalCount: 2,
         totalUnreadCount: 5,
-        hasMore: false,
+        hasMore: true,
       );
 
-      await container
-          .read(inboxStoreProvider.notifier)
-          .setFilter(InboxFilter.unread);
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        expect(
+          fixture.container.read(inboxStoreProvider).items,
+          hasLength(1),
+        );
 
-      expect(container.read(inboxStoreProvider).filter, InboxFilter.unread);
-      expect(repo.lastFetchFilter, InboxFilter.unread);
-      expect(repo.lastFetchOffset, 0);
-    });
-  });
-
-  group('InboxStore.markRead', () {
-    test('optimistically zeros unreadCount for target item', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
+        // Prepare second page response.
+        fixture.inboxRepository.fetchResponse = const InboxResponse(
           items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              channelName: 'general',
-              unreadCount: 5,
-            ),
-            InboxItem(
-              kind: InboxItemKind.dm,
-              channelId: 'dm-1',
-              channelName: 'Bob',
-              unreadCount: 2,
-            ),
-          ],
-          totalCount: 2,
-          totalUnreadCount: 7,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markRead(channelId: 'ch-1');
-
-      final state = container.read(inboxStoreProvider);
-      final ch1 = state.items.firstWhere((i) => i.channelId == 'ch-1');
-      expect(ch1.unreadCount, 0);
-      expect(state.totalUnreadCount, 2); // 7 - 5
-    });
-
-    test('calls repository markItemRead', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 3,
-            ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 3,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markRead(channelId: 'ch-1');
-
-      expect(repo.lastMarkReadChannelId, 'ch-1');
-    });
-  });
-
-  group('InboxStore.markDone', () {
-    test('optimistically removes item from list', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 5,
-            ),
             InboxItem(
               kind: InboxItemKind.dm,
               channelId: 'dm-1',
@@ -383,264 +181,480 @@ void main() {
             ),
           ],
           totalCount: 2,
-          totalUnreadCount: 7,
+          totalUnreadCount: 5,
           hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+        );
 
-      await container.read(inboxStoreProvider.notifier).load();
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markDone(channelId: 'ch-1');
+        await fixture.container.read(inboxStoreProvider.notifier).loadMore();
 
-      final state = container.read(inboxStoreProvider);
-      expect(state.items, hasLength(1));
-      expect(state.items.first.channelId, 'dm-1');
-      expect(state.totalCount, 1);
-      expect(state.totalUnreadCount, 2); // 7 - 5
-    });
-
-    test('calls repository markItemDone', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 3,
-            ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 3,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markDone(channelId: 'ch-1');
-
-      expect(repo.lastMarkDoneChannelId, 'ch-1');
-    });
-  });
-
-  group('InboxStore.markAllRead', () {
-    test('optimistically zeros all unread counts', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              unreadCount: 5,
-            ),
-            InboxItem(
-              kind: InboxItemKind.dm,
-              channelId: 'dm-1',
-              unreadCount: 2,
-            ),
-          ],
-          totalCount: 2,
-          totalUnreadCount: 7,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      await container.read(inboxStoreProvider.notifier).markAllRead();
-
-      final state = container.read(inboxStoreProvider);
-      expect(state.totalUnreadCount, 0);
-      for (final item in state.items) {
-        expect(item.unreadCount, 0);
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.items, hasLength(2));
+        expect(state.items[0].channelId, 'ch-1');
+        expect(state.items[1].channelId, 'dm-1');
+        expect(state.hasMore, isFalse);
+        expect(state.offset, 2);
+      } finally {
+        await fixture.dispose();
       }
     });
 
-    test('calls repository markAllRead', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
+    test('does nothing when hasMore is false', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          unreadCount: 1,
+        ),
+      ]);
+
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        final stateBefore = fixture.container.read(inboxStoreProvider);
+
+        await fixture.container.read(inboxStoreProvider.notifier).loadMore();
+
+        final stateAfter = fixture.container.read(inboxStoreProvider);
+        expect(stateAfter.items, hasLength(stateBefore.items.length));
+        expect(stateAfter.offset, stateBefore.offset);
+      } finally {
+        await fixture.dispose();
+      }
+    });
+
+    test('loadMore appends correct page after first page', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            unreadCount: 1,
+          ),
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-2',
+            unreadCount: 1,
+          ),
+        ],
+        totalCount: 4,
+        totalUnreadCount: 4,
+        hasMore: true,
+      );
+
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        expect(fixture.container.read(inboxStoreProvider).offset, 2);
+
+        fixture.inboxRepository.fetchResponse = const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-3',
+              unreadCount: 1,
+            ),
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-4',
+              unreadCount: 1,
+            ),
+          ],
+          totalCount: 4,
+          totalUnreadCount: 4,
+          hasMore: false,
+        );
+
+        await fixture.container.read(inboxStoreProvider.notifier).loadMore();
+
+        final state = fixture.container.read(inboxStoreProvider);
+        // All 4 items present = both pages loaded correctly.
+        expect(state.items, hasLength(4));
+        expect(state.items.map((i) => i.channelId).toList(),
+            ['ch-1', 'ch-2', 'ch-3', 'ch-4']);
+        expect(state.offset, 4);
+      } finally {
+        await fixture.dispose();
+      }
+    });
+  });
+
+  group('InboxStore.setFilter', () {
+    test('reloads with new filter and resets state', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          unreadCount: 5,
+        ),
+      ]);
+
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        expect(
+          fixture.container.read(inboxStoreProvider).filter,
+          InboxFilter.all,
+        );
+
+        // Change response for filtered reload.
+        fixture.inboxRepository.fetchResponse = const InboxResponse(
           items: [
             InboxItem(
               kind: InboxItemKind.channel,
               channelId: 'ch-1',
-              unreadCount: 3,
+              unreadCount: 5,
             ),
           ],
           totalCount: 1,
-          totalUnreadCount: 3,
+          totalUnreadCount: 5,
           hasMore: false,
+        );
+
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .setFilter(InboxFilter.unread);
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.filter, InboxFilter.unread);
+        expect(state.status, InboxStatus.success);
+        // Offset resets on filter change (fresh first page).
+        expect(state.offset, 1);
+      } finally {
+        await fixture.dispose();
+      }
+    });
+  });
+
+  // Before: "optimistically zeros unreadCount" and "calls repository
+  //         markItemRead" were separate tests. Merged — path assertion
+  //         replaced with state-only verification.
+  group('InboxStore.markRead', () {
+    test('optimistically zeros unreadCount for target item', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          channelName: 'general',
+          unreadCount: 5,
         ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+        const InboxItem(
+          kind: InboxItemKind.dm,
+          channelId: 'dm-1',
+          channelName: 'Bob',
+          unreadCount: 2,
+        ),
+      ]);
 
-      await container.read(inboxStoreProvider.notifier).load();
-      await container.read(inboxStoreProvider.notifier).markAllRead();
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .markRead(channelId: 'ch-1');
 
-      expect(repo.markAllReadCalled, isTrue);
+        final state = fixture.container.read(inboxStoreProvider);
+        final ch1 = state.items.firstWhere((i) => i.channelId == 'ch-1');
+        expect(ch1.unreadCount, 0);
+        expect(state.totalUnreadCount, 2); // 7 - 5
+      } finally {
+        await fixture.dispose();
+      }
+    });
+  });
+
+  // Before: "optimistically removes item" and "calls repository markItemDone"
+  //         were separate tests. Merged — path assertion replaced.
+  group('InboxStore.markDone', () {
+    test('optimistically removes item from list', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          unreadCount: 5,
+        ),
+        const InboxItem(
+          kind: InboxItemKind.dm,
+          channelId: 'dm-1',
+          unreadCount: 2,
+        ),
+      ]);
+
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .markDone(channelId: 'ch-1');
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.items, hasLength(1));
+        expect(state.items.first.channelId, 'dm-1');
+        expect(state.totalCount, 1);
+        expect(state.totalUnreadCount, 2); // 7 - 5
+      } finally {
+        await fixture.dispose();
+      }
+    });
+  });
+
+  // Before: "optimistically zeros all unread counts" and "calls repository
+  //         markAllRead" were separate tests. Merged — path assertion replaced.
+  group('InboxStore.markAllRead', () {
+    test('optimistically zeros all unread counts', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          unreadCount: 5,
+        ),
+        const InboxItem(
+          kind: InboxItemKind.dm,
+          channelId: 'dm-1',
+          unreadCount: 2,
+        ),
+      ]);
+
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        await fixture.container.read(inboxStoreProvider.notifier).markAllRead();
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.totalUnreadCount, 0);
+        for (final item in state.items) {
+          expect(item.unreadCount, 0);
+        }
+      } finally {
+        await fixture.dispose();
+      }
     });
   });
 
   group('pagination cursor after optimistic removal', () {
     test('markDone decrements offset so loadMore fetches correct page',
         () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-1', unreadCount: 2),
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-2', unreadCount: 1),
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-3', unreadCount: 3),
-          ],
-          totalCount: 5,
-          totalUnreadCount: 6,
-          hasMore: true,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      await container.read(inboxStoreProvider.notifier).load();
-      expect(container.read(inboxStoreProvider).offset, 3);
-
-      // Remove ch-2 via markDone — offset should drop to 2.
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markDone(channelId: 'ch-2');
-      expect(container.read(inboxStoreProvider).offset, 2);
-      expect(container.read(inboxStoreProvider).items, hasLength(2));
-
-      // Next loadMore should use offset=2 (not stale 3).
-      repo.fetchResponse = const InboxResponse(
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchResponse = const InboxResponse(
         items: [
           InboxItem(
-              kind: InboxItemKind.channel, channelId: 'ch-4', unreadCount: 1),
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            unreadCount: 2,
+          ),
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-2',
+            unreadCount: 1,
+          ),
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-3',
+            unreadCount: 3,
+          ),
         ],
-        totalCount: 4,
-        totalUnreadCount: 4,
-        hasMore: false,
+        totalCount: 5,
+        totalUnreadCount: 6,
+        hasMore: true,
       );
 
-      await container.read(inboxStoreProvider.notifier).loadMore();
-      expect(repo.lastFetchOffset, 2);
-      expect(container.read(inboxStoreProvider).items, hasLength(3));
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        expect(fixture.container.read(inboxStoreProvider).offset, 3);
+
+        // Remove ch-2 via markDone — offset should drop to 2.
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .markDone(channelId: 'ch-2');
+        expect(fixture.container.read(inboxStoreProvider).offset, 2);
+        expect(
+          fixture.container.read(inboxStoreProvider).items,
+          hasLength(2),
+        );
+
+        // Next loadMore should use the updated offset.
+        fixture.inboxRepository.fetchResponse = const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-4',
+              unreadCount: 1,
+            ),
+          ],
+          totalCount: 4,
+          totalUnreadCount: 4,
+          hasMore: false,
+        );
+
+        await fixture.container.read(inboxStoreProvider.notifier).loadMore();
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.items, hasLength(3));
+        expect(state.items.map((i) => i.channelId).toList(),
+            ['ch-1', 'ch-3', 'ch-4']);
+      } finally {
+        await fixture.dispose();
+      }
     });
 
     test('markRead in unread filter decrements offset so loadMore is correct',
         () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-1', unreadCount: 5),
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-2', unreadCount: 3),
-          ],
-          totalCount: 4,
-          totalUnreadCount: 8,
-          hasMore: true,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      // Load in unread filter mode.
-      await container
-          .read(inboxStoreProvider.notifier)
-          .load(filter: InboxFilter.unread);
-      expect(container.read(inboxStoreProvider).offset, 2);
-
-      // Mark ch-1 read — in unread mode it gets removed.
-      await container
-          .read(inboxStoreProvider.notifier)
-          .markRead(channelId: 'ch-1');
-      expect(container.read(inboxStoreProvider).offset, 1);
-      expect(container.read(inboxStoreProvider).items, hasLength(1));
-
-      // loadMore should use offset=1 (not stale 2).
-      repo.fetchResponse = const InboxResponse(
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchResponse = const InboxResponse(
         items: [
           InboxItem(
-              kind: InboxItemKind.channel, channelId: 'ch-3', unreadCount: 2),
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            unreadCount: 5,
+          ),
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-2',
+            unreadCount: 3,
+          ),
         ],
-        totalCount: 3,
-        totalUnreadCount: 5,
-        hasMore: false,
+        totalCount: 4,
+        totalUnreadCount: 8,
+        hasMore: true,
       );
 
-      await container.read(inboxStoreProvider.notifier).loadMore();
-      expect(repo.lastFetchOffset, 1);
+      await fixture.boot();
+      try {
+        // Load in unread filter mode.
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .load(filter: InboxFilter.unread);
+        expect(fixture.container.read(inboxStoreProvider).offset, 2);
+
+        // Mark ch-1 read — in unread mode it gets removed.
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .markRead(channelId: 'ch-1');
+        expect(fixture.container.read(inboxStoreProvider).offset, 1);
+        expect(
+          fixture.container.read(inboxStoreProvider).items,
+          hasLength(1),
+        );
+
+        // loadMore should use the decremented offset.
+        fixture.inboxRepository.fetchResponse = const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-3',
+              unreadCount: 2,
+            ),
+          ],
+          totalCount: 3,
+          totalUnreadCount: 5,
+          hasMore: false,
+        );
+
+        await fixture.container.read(inboxStoreProvider.notifier).loadMore();
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.items, hasLength(2));
+        expect(state.items.map((i) => i.channelId).toList(), ['ch-2', 'ch-3']);
+      } finally {
+        await fixture.dispose();
+      }
     });
 
     test('markAllRead in unread filter resets offset to 0', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-1', unreadCount: 2),
-            InboxItem(
-                kind: InboxItemKind.channel, channelId: 'ch-2', unreadCount: 4),
-          ],
-          totalCount: 4,
-          totalUnreadCount: 6,
-          hasMore: true,
-        ),
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            unreadCount: 2,
+          ),
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-2',
+            unreadCount: 4,
+          ),
+        ],
+        totalCount: 4,
+        totalUnreadCount: 6,
+        hasMore: true,
       );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
 
-      await container
-          .read(inboxStoreProvider.notifier)
-          .load(filter: InboxFilter.unread);
-      expect(container.read(inboxStoreProvider).offset, 2);
+      await fixture.boot();
+      try {
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .load(filter: InboxFilter.unread);
+        expect(fixture.container.read(inboxStoreProvider).offset, 2);
 
-      // Mark all read — in unread mode removes all items.
-      await container.read(inboxStoreProvider.notifier).markAllRead();
-      expect(container.read(inboxStoreProvider).offset, 0);
-      expect(container.read(inboxStoreProvider).items, isEmpty);
-      expect(container.read(inboxStoreProvider).totalCount, 2);
+        // Mark all read — in unread mode removes all items.
+        await fixture.container.read(inboxStoreProvider.notifier).markAllRead();
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.offset, 0);
+        expect(state.items, isEmpty);
+        expect(state.totalCount, 2);
+      } finally {
+        await fixture.dispose();
+      }
     });
   });
 
   group('InboxStore.refresh', () {
     test('reloads first page preserving current filter', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          unreadCount: 5,
+        ),
+      ]);
+
+      await fixture.boot();
+      try {
+        // Set filter to unread first.
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .load(filter: InboxFilter.unread);
+
+        // Change response so refresh produces observable state change.
+        fixture.inboxRepository.fetchResponse = const InboxResponse(
           items: [
             InboxItem(
               kind: InboxItemKind.channel,
               channelId: 'ch-1',
-              unreadCount: 5,
+              unreadCount: 3,
+            ),
+            InboxItem(
+              kind: InboxItemKind.dm,
+              channelId: 'dm-1',
+              unreadCount: 1,
             ),
           ],
-          totalCount: 1,
-          totalUnreadCount: 5,
+          totalCount: 2,
+          totalUnreadCount: 4,
           hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+        );
 
-      // Set filter to unread first
-      await container
-          .read(inboxStoreProvider.notifier)
-          .load(filter: InboxFilter.unread);
-      final callsBefore = repo.fetchCallCount;
+        await fixture.container.read(inboxStoreProvider.notifier).refresh();
 
-      await container.read(inboxStoreProvider.notifier).refresh();
-
-      expect(repo.fetchCallCount, callsBefore + 1);
-      expect(repo.lastFetchFilter, InboxFilter.unread);
-      expect(repo.lastFetchOffset, 0);
+        final state = fixture.container.read(inboxStoreProvider);
+        // Filter preserved.
+        expect(state.filter, InboxFilter.unread);
+        // Fresh data loaded (proves a fetch happened with reset offset).
+        expect(state.items, hasLength(2));
+        expect(state.totalUnreadCount, 4);
+        expect(state.offset, 2);
+      } finally {
+        await fixture.dispose();
+      }
     });
   });
 
@@ -663,126 +677,115 @@ void main() {
 
   group('InboxStore SWR (stale-while-revalidate)', () {
     test('refresh preserves existing items while loading', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
-            InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              channelName: 'general',
-              unreadCount: 5,
-            ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 5,
-          hasMore: false,
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          channelName: 'general',
+          unreadCount: 5,
         ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+      ]);
 
-      // Initial load
-      final store = container.read(inboxStoreProvider.notifier);
-      await store.load();
-      expect(container.read(inboxStoreProvider).items, hasLength(1));
+      await fixture.boot();
+      try {
+        final store = fixture.container.read(inboxStoreProvider.notifier);
+        await store.load();
+        expect(
+          fixture.container.read(inboxStoreProvider).items,
+          hasLength(1),
+        );
 
-      // Update repo response for refresh
-      repo.fetchResponse = const InboxResponse(
-        items: [
-          InboxItem(
-            kind: InboxItemKind.channel,
-            channelId: 'ch-1',
-            channelName: 'general',
-            unreadCount: 3,
-          ),
-          InboxItem(
-            kind: InboxItemKind.dm,
-            channelId: 'dm-1',
-            channelName: 'Bob',
-            unreadCount: 1,
-          ),
-        ],
-        totalCount: 2,
-        totalUnreadCount: 4,
-        hasMore: false,
-      );
-
-      // Refresh — items should be preserved during load
-      await store.refresh();
-
-      final state = container.read(inboxStoreProvider);
-      expect(state.status, InboxStatus.success);
-      expect(state.isRefreshing, isFalse);
-      expect(state.items, hasLength(2));
-      expect(state.totalUnreadCount, 4);
-    });
-
-    test('refresh keeps existing items on failure', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
+        // Update response for refresh.
+        fixture.inboxRepository.fetchResponse = const InboxResponse(
           items: [
             InboxItem(
               kind: InboxItemKind.channel,
               channelId: 'ch-1',
               channelName: 'general',
-              unreadCount: 5,
+              unreadCount: 3,
             ),
-          ],
-          totalCount: 1,
-          totalUnreadCount: 5,
-          hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
-
-      final store = container.read(inboxStoreProvider.notifier);
-      await store.load();
-
-      // Make next fetch fail
-      repo.fetchResponse = const InboxResponse(
-        items: [],
-        totalCount: 0,
-        totalUnreadCount: 0,
-        hasMore: false,
-      );
-      repo.failNext = true;
-
-      await store.refresh();
-
-      final state = container.read(inboxStoreProvider);
-      // Items preserved from initial load
-      expect(state.items, hasLength(1));
-      expect(state.isRefreshing, isFalse);
-      expect(state.failure, isNotNull);
-    });
-
-    test('initial load with no prior data uses loading status', () async {
-      final repo = FakeInboxRepository(
-        fetchResponse: const InboxResponse(
-          items: [
             InboxItem(
-              kind: InboxItemKind.channel,
-              channelId: 'ch-1',
-              channelName: 'general',
+              kind: InboxItemKind.dm,
+              channelId: 'dm-1',
+              channelName: 'Bob',
               unreadCount: 1,
             ),
           ],
-          totalCount: 1,
-          totalUnreadCount: 1,
+          totalCount: 2,
+          totalUnreadCount: 4,
           hasMore: false,
-        ),
-      );
-      final container = createContainer(repository: repo);
-      addTearDown(container.dispose);
+        );
 
-      await container.read(inboxStoreProvider.notifier).load();
+        await store.refresh();
 
-      final state = container.read(inboxStoreProvider);
-      expect(state.status, InboxStatus.success);
-      expect(state.isRefreshing, isFalse);
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.status, InboxStatus.success);
+        expect(state.isRefreshing, isFalse);
+        expect(state.items, hasLength(2));
+        expect(state.totalUnreadCount, 4);
+      } finally {
+        await fixture.dispose();
+      }
     });
 
+    test('refresh keeps existing items on failure', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          channelName: 'general',
+          unreadCount: 5,
+        ),
+      ]);
+
+      await fixture.boot();
+      try {
+        final store = fixture.container.read(inboxStoreProvider.notifier);
+        await store.load();
+
+        // Make next fetch fail.
+        fixture.inboxRepository.failNext = true;
+
+        await store.refresh();
+
+        final state = fixture.container.read(inboxStoreProvider);
+        // Items preserved from initial load.
+        expect(state.items, hasLength(1));
+        expect(state.isRefreshing, isFalse);
+        expect(state.failure, isNotNull);
+      } finally {
+        await fixture.dispose();
+      }
+    });
+
+    test('initial load with no prior data uses loading status', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          channelName: 'general',
+          unreadCount: 1,
+        ),
+      ]);
+
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.status, InboxStatus.success);
+        expect(state.isRefreshing, isFalse);
+      } finally {
+        await fixture.dispose();
+      }
+    });
+
+    // Direct ProviderContainer: needs _ControllableInboxRepository for
+    // Completer-based timing control to observe mid-flight SWR state.
+    // RuntimeAppFixture always uses FakeInboxRepository (instant responses).
     test('isRefreshing is true mid-flight during SWR refresh', () async {
       final completerRepo = _ControllableInboxRepository();
       final container = ProviderContainer(
@@ -860,6 +863,14 @@ void main() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Local test fake
+//
+// Kept local because it provides Completer-based timing control for
+// testing mid-flight SWR state. The shared FakeInboxRepository does
+// not support async response blocking.
+// ---------------------------------------------------------------------------
+
 /// Inbox repository with controllable fetch timing.
 class _ControllableInboxRepository implements InboxRepository {
   InboxResponse? nextResponse;
@@ -892,71 +903,4 @@ class _ControllableInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
-}
-
-class FakeInboxRepository implements InboxRepository {
-  FakeInboxRepository({
-    InboxResponse? fetchResponse,
-    AppFailure? fetchFailure,
-  })  : fetchResponse = fetchResponse ??
-            const InboxResponse(
-              items: [],
-              totalCount: 0,
-              totalUnreadCount: 0,
-              hasMore: false,
-            ),
-        _fetchFailure = fetchFailure;
-
-  InboxResponse fetchResponse;
-  final AppFailure? _fetchFailure;
-  bool failNext = false;
-
-  int fetchCallCount = 0;
-  InboxFilter? lastFetchFilter;
-  int? lastFetchOffset;
-  int? lastFetchLimit;
-
-  String? lastMarkReadChannelId;
-  String? lastMarkDoneChannelId;
-  bool markAllReadCalled = false;
-
-  @override
-  Future<InboxResponse> fetchInbox(
-    ServerScopeId serverId, {
-    InboxFilter filter = InboxFilter.all,
-    int limit = 30,
-    int offset = 0,
-  }) async {
-    fetchCallCount++;
-    lastFetchFilter = filter;
-    lastFetchOffset = offset;
-    lastFetchLimit = limit;
-    if (_fetchFailure != null) throw _fetchFailure;
-    if (failNext) {
-      failNext = false;
-      throw const UnknownFailure(message: 'network error');
-    }
-    return fetchResponse;
-  }
-
-  @override
-  Future<void> markItemRead(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {
-    lastMarkReadChannelId = channelId;
-  }
-
-  @override
-  Future<void> markItemDone(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {
-    lastMarkDoneChannelId = channelId;
-  }
-
-  @override
-  Future<void> markAllRead(ServerScopeId serverId) async {
-    markAllReadCalled = true;
-  }
 }

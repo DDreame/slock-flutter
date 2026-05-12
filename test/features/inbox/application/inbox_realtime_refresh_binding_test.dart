@@ -5,19 +5,46 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/inbox/application/inbox_realtime_refresh_binding.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
-import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
+
+import '../../../support/support.dart';
+
+// ---------------------------------------------------------------------------
+// Migration: mock-call → state-based assertions (#478)
+//
+// Original file used a local _FakeInboxRepository with fetchCallCount
+// tracking. Replaced with shared FakeInboxRepository from
+// test/support/fakes/.
+//
+// fetchCallCount tracking is retained because it is essential for
+// testing debounce behavior — the test verifies that N rapid events
+// produce exactly 1 repository fetch, which is inherently a
+// call-count assertion (no state-only equivalent exists).
+// ---------------------------------------------------------------------------
 
 void main() {
   const serverId = ServerScopeId('server-1');
   final now = DateTime.utc(2026, 5, 5);
 
-  late _FakeInboxRepository repo;
+  late FakeInboxRepository repo;
   late RealtimeReductionIngress ingress;
   late ProviderContainer container;
 
   setUp(() {
-    repo = _FakeInboxRepository();
+    repo = FakeInboxRepository(
+      fetchResponse: const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            unreadCount: 1,
+          ),
+        ],
+        totalCount: 1,
+        totalUnreadCount: 1,
+        hasMore: false,
+      ),
+    );
     ingress = RealtimeReductionIngress();
   });
 
@@ -184,45 +211,4 @@ void main() {
       expect(repo.fetchCallCount, callsAfterLoad + 1);
     });
   });
-}
-
-class _FakeInboxRepository implements InboxRepository {
-  int fetchCallCount = 0;
-
-  @override
-  Future<InboxResponse> fetchInbox(
-    ServerScopeId serverId, {
-    InboxFilter filter = InboxFilter.all,
-    int limit = 30,
-    int offset = 0,
-  }) async {
-    fetchCallCount++;
-    return const InboxResponse(
-      items: [
-        InboxItem(
-          kind: InboxItemKind.channel,
-          channelId: 'ch-1',
-          unreadCount: 1,
-        ),
-      ],
-      totalCount: 1,
-      totalUnreadCount: 1,
-      hasMore: false,
-    );
-  }
-
-  @override
-  Future<void> markItemRead(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {}
-
-  @override
-  Future<void> markItemDone(
-    ServerScopeId serverId, {
-    required String channelId,
-  }) async {}
-
-  @override
-  Future<void> markAllRead(ServerScopeId serverId) async {}
 }
