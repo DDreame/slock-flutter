@@ -177,17 +177,31 @@ class ConversationDetailStore
     final target = ref.read(currentConversationDetailTargetProvider);
     final requestEpoch = ++_requestEpoch;
 
-    state = state.copyWith(
-      target: target,
-      status: ConversationDetailStatus.loading,
-      messages: const [],
-      historyLimited: false,
-      hasOlder: false,
-      hasNewer: false,
-      isRefreshing: false,
-      clearFailure: true,
-      clearSendFailure: true,
-    );
+    // SWR: when data already exists, preserve it during reload
+    // (stale-while-revalidate) instead of clearing to empty.
+    final hasExistingData = state.status == ConversationDetailStatus.success &&
+        state.messages.isNotEmpty;
+
+    if (hasExistingData) {
+      state = state.copyWith(
+        target: target,
+        isRefreshing: true,
+        clearFailure: true,
+        clearSendFailure: true,
+      );
+    } else {
+      state = state.copyWith(
+        target: target,
+        status: ConversationDetailStatus.loading,
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+        hasNewer: false,
+        isRefreshing: false,
+        clearFailure: true,
+        clearSendFailure: true,
+      );
+    }
 
     try {
       final snapshot = await ref
@@ -214,17 +228,25 @@ class ConversationDetailStore
       if (!_isCurrentRequest(requestEpoch, target)) {
         return;
       }
-      state = state.copyWith(
-        target: target,
-        status: ConversationDetailStatus.failure,
-        title: target.defaultTitle,
-        messages: const [],
-        historyLimited: false,
-        hasOlder: false,
-        failure: failure,
-        isRefreshing: false,
-        clearSendFailure: true,
-      );
+      if (hasExistingData) {
+        // SWR error: preserve existing messages, overlay failure.
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: failure,
+        );
+      } else {
+        state = state.copyWith(
+          target: target,
+          status: ConversationDetailStatus.failure,
+          title: target.defaultTitle,
+          messages: const [],
+          historyLimited: false,
+          hasOlder: false,
+          failure: failure,
+          isRefreshing: false,
+          clearSendFailure: true,
+        );
+      }
     }
   }
 
@@ -283,7 +305,15 @@ class ConversationDetailStore
     });
   }
 
-  Future<void> retry() => load();
+  /// Retries loading conversation data. When stale data is available,
+  /// delegates to [refresh] to preserve it (stale-while-revalidate).
+  Future<void> retry() {
+    if (state.status == ConversationDetailStatus.success &&
+        state.messages.isNotEmpty) {
+      return refresh();
+    }
+    return load();
+  }
 
   /// Called by pull-to-refresh; preserves visible messages.
   Future<void> pullToRefresh() => refresh();
