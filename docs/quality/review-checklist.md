@@ -82,6 +82,47 @@ When reviewing test migration PRs:
 
 ---
 
+## Batch 11 Hard Rules
+
+These rules are **mandatory blockers** for all Batch 11+ PRs that touch
+core Stores or Tab Providers. Ref:
+[INV-CACHE-SWR-1/2, INV-LIFECYCLE-1/2](invariants.md#batch-11-ux--performance--network-boundary-invariants).
+
+### Rule 1: No clear-then-load on core list Stores
+
+- [ ] Core list Stores (Home, Inbox, Channels, DMs, Agents, Tasks) must
+  distinguish `initialLoading` / `refreshing` / `errorWithStaleData`
+- [ ] `load()` and `refresh()` must not clear `state.items` before the
+  API response arrives
+- [ ] Any `state = state.copyWith(items: [])` or equivalent clearing in a
+  core Store's load/refresh path is an **automatic blocker**
+- [ ] Ref: [INV-CACHE-SWR-1](invariants.md#cache--swr-testcoreinvariants--to-be-created),
+  [INV-CACHE-SWR-2](invariants.md#cache--swr-testcoreinvariants--to-be-created)
+
+### Rule 2: No autoDispose on core Tab Providers
+
+- [ ] Core Tab Providers (`homeListStoreProvider`, `inboxStoreProvider`,
+  `channelListStoreProvider`, `dmListStoreProvider`,
+  `agentListStoreProvider`, `taskListStoreProvider`) must use `keepAlive`
+- [ ] Adding `autoDispose` to any core Tab Provider is an
+  **automatic blocker**
+- [ ] Only detail/conversation page Providers may use `autoDispose`
+- [ ] Ref: [INV-LIFECYCLE-1](invariants.md#provider-lifecycle-testcoreinvariants--to-be-created),
+  [INV-LIFECYCLE-2](invariants.md#provider-lifecycle-testcoreinvariants--to-be-created)
+
+### Rule 3: Every UX/perf optimization must deliver a testable invariant
+
+- [ ] Each UX or performance PR must reference or introduce at least one
+  `INV-*` invariant from the
+  [registry](invariants.md#batch-11-ux--performance--network-boundary-invariants)
+- [ ] Skeleton work must reference `INV-UX-SKELETON-*`
+- [ ] SWR work must reference `INV-CACHE-SWR-*`
+- [ ] Network resilience work must reference `INV-NET-DEGRADE-*`
+- [ ] "Feels faster" or "looks better" without a testable invariant is an
+  **automatic blocker**
+
+---
+
 ## General
 
 - [ ] `dart format` clean (no `--language-version` flag)

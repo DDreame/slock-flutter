@@ -97,6 +97,19 @@ Reject the merge gate if any of these are true:
 - Synthetic merge has conflicts
 - PR contains files outside the declared write set (Phase A/B violation)
 
+### Batch 11 Hard Rule Violations (automatic reject)
+
+These are **zero-tolerance** rejections for Batch 11+ PRs. Ref:
+[Invariant Registry — Batch 11](invariants.md#batch-11-ux--performance--network-boundary-invariants).
+
+- PR introduces clear-then-load pattern in a core list Store
+  (Home/Inbox/Channels/DMs/Agents/Tasks) — violates
+  [INV-CACHE-SWR-1](invariants.md#cache--swr-testcoreinvariants--to-be-created) /
+  [INV-CACHE-SWR-2](invariants.md#cache--swr-testcoreinvariants--to-be-created)
+- PR adds `autoDispose` to a core Tab Provider — violates
+  [INV-LIFECYCLE-1](invariants.md#provider-lifecycle-testcoreinvariants--to-be-created)
+- UX/perf PR does not reference or deliver a testable `INV-*` invariant
+
 When rejecting, post the specific reason in the task thread and tag the
 author for a fix.
 
