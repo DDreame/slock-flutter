@@ -104,13 +104,16 @@ void main() {
       expect(repo.lastFilter, InboxFilter.unread);
     });
 
-    testWidgets('swipe left on item calls markDone', (tester) async {
+    testWidgets('swipe left on item removes it from list', (tester) async {
       repo.items = [
         _makeItem(channelId: 'ch-1', channelName: '#general', unread: 1),
       ];
 
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
+
+      // Item visible before swipe.
+      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
 
       // Swipe endToStart (right-to-left in LTR layout) = mark done
       await tester.drag(
@@ -119,16 +122,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(repo.markedDoneIds, contains('ch-1'));
+      // Item removed from the list (optimistic state update + Dismissible).
+      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsNothing);
     });
 
-    testWidgets('swipe right on item calls markRead', (tester) async {
+    testWidgets('swipe right on item clears unread badge', (tester) async {
       repo.items = [
         _makeItem(channelId: 'ch-1', channelName: '#general', unread: 5),
       ];
 
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
+
+      // Badge visible before swipe.
+      expect(find.byKey(const ValueKey('inbox-unread-badge-ch-1')),
+          findsOneWidget);
 
       // Swipe startToEnd (left-to-right in LTR layout) = mark read
       await tester.drag(
@@ -137,7 +145,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(repo.markedReadIds, contains('ch-1'));
+      // Item stays in the list but unread badge is gone (optimistic zeroing).
+      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('inbox-unread-badge-ch-1')), findsNothing);
     });
 
     testWidgets('mark all read button visible when unread items exist',
@@ -155,7 +166,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('inbox-mark-all-read')));
       await tester.pumpAndSettle();
 
-      expect(repo.markAllReadCalled, isTrue);
+      // Button disappears because totalUnreadCount drops to 0 (optimistic).
+      expect(find.byKey(const ValueKey('inbox-mark-all-read')), findsNothing);
     });
 
     testWidgets('mark all read button hidden when no unread', (tester) async {
@@ -264,6 +276,19 @@ InboxItem _makeItem({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Migration: mock-call → state-based assertions (#478)
+//
+// Removed markedDoneIds, markedReadIds, markAllReadCalled tracking fields.
+// Tests now assert UI outcomes (item disappears, badge clears, button hides)
+// instead of verifying repository call bookkeeping.
+//
+// Retained: lastFilter (filter tab test), loadMoreCalled (pagination test).
+// These remain because the UI-observable outcome (filtered list, loaded items)
+// depends on a re-fetch whose result is indistinguishable from the initial
+// load in a widget test without call tracking.
+// ---------------------------------------------------------------------------
+
 class _FakeInboxRepository implements InboxRepository {
   List<InboxItem> items = [];
   bool shouldFail = false;
@@ -271,9 +296,6 @@ class _FakeInboxRepository implements InboxRepository {
   bool hasMore = false;
   int totalUnreadCount = 0;
   InboxFilter? lastFilter;
-  List<String> markedDoneIds = [];
-  List<String> markedReadIds = [];
-  bool markAllReadCalled = false;
   bool loadMoreCalled = false;
   int _fetchCount = 0;
 
@@ -313,20 +335,14 @@ class _FakeInboxRepository implements InboxRepository {
 
   @override
   Future<void> markItemDone(ServerScopeId serverId,
-      {required String channelId}) async {
-    markedDoneIds.add(channelId);
-  }
+      {required String channelId}) async {}
 
   @override
   Future<void> markItemRead(ServerScopeId serverId,
-      {required String channelId}) async {
-    markedReadIds.add(channelId);
-  }
+      {required String channelId}) async {}
 
   @override
-  Future<void> markAllRead(ServerScopeId serverId) async {
-    markAllReadCalled = true;
-  }
+  Future<void> markAllRead(ServerScopeId serverId) async {}
 
   int _calcUnread() => items.fold(0, (sum, item) => sum + item.unreadCount);
 }
