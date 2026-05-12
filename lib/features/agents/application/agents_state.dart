@@ -14,6 +14,7 @@ class AgentsState {
     this.machines = const [],
     this.activityLogs = const <String, List<AgentActivityLogEntry>>{},
     this.failure,
+    this.isRefreshing = false,
     this.isCreating = false,
     this.savingAgentIds = const <String>{},
     this.deletingAgentIds = const <String>{},
@@ -25,6 +26,7 @@ class AgentsState {
   final List<MachineItem> machines;
   final Map<String, List<AgentActivityLogEntry>> activityLogs;
   final AppFailure? failure;
+  final bool isRefreshing;
   final bool isCreating;
   final Set<String> savingAgentIds;
   final Set<String> deletingAgentIds;
@@ -47,6 +49,7 @@ class AgentsState {
     List<MachineItem>? machines,
     Map<String, List<AgentActivityLogEntry>>? activityLogs,
     AppFailure? failure,
+    bool? isRefreshing,
     bool? isCreating,
     Set<String>? savingAgentIds,
     Set<String>? deletingAgentIds,
@@ -59,6 +62,7 @@ class AgentsState {
       machines: machines ?? this.machines,
       activityLogs: activityLogs ?? this.activityLogs,
       failure: clearFailure ? null : (failure ?? this.failure),
+      isRefreshing: isRefreshing ?? this.isRefreshing,
       isCreating: isCreating ?? this.isCreating,
       savingAgentIds: savingAgentIds ?? this.savingAgentIds,
       deletingAgentIds: deletingAgentIds ?? this.deletingAgentIds,

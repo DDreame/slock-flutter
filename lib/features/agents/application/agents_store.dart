@@ -7,9 +7,9 @@ import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 
 final agentsStoreProvider =
-    NotifierProvider.autoDispose<AgentsStore, AgentsState>(AgentsStore.new);
+    NotifierProvider<AgentsStore, AgentsState>(AgentsStore.new);
 
-class AgentsStore extends AutoDisposeNotifier<AgentsState> {
+class AgentsStore extends Notifier<AgentsState> {
   static const _maxActivityLogEntries = 200;
 
   @override
@@ -18,10 +18,20 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
   }
 
   Future<void> load() async {
-    state = state.copyWith(
-      status: AgentsStatus.loading,
-      clearFailure: true,
-    );
+    final hasStaleData = state.status == AgentsStatus.success;
+
+    if (hasStaleData) {
+      // SWR: keep status=success, signal refresh via isRefreshing.
+      state = state.copyWith(
+        isRefreshing: true,
+        clearFailure: true,
+      );
+    } else {
+      state = state.copyWith(
+        status: AgentsStatus.loading,
+        clearFailure: true,
+      );
+    }
 
     try {
       final repo = ref.read(agentsRepositoryProvider);
@@ -42,13 +52,22 @@ class AgentsStore extends AutoDisposeNotifier<AgentsState> {
         items: agents,
         machines: machines,
         activityLogs: _pruneActivityLogs(agentIds),
+        isRefreshing: false,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        status: AgentsStatus.failure,
-        failure: failure,
-      );
+      if (hasStaleData) {
+        // SWR: preserve success status, surface error as overlay.
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: failure,
+        );
+      } else {
+        state = state.copyWith(
+          status: AgentsStatus.failure,
+          failure: failure,
+        );
+      }
     }
   }
 
