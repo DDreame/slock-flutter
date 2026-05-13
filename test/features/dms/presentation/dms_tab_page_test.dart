@@ -21,6 +21,8 @@ import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -77,6 +79,20 @@ void main() {
     serverId: serverId,
     channels: [],
     directMessages: [dmAlice, dmBob],
+  );
+
+  const crossKindSnapshot = HomeWorkspaceSnapshot(
+    serverId: serverId,
+    channels: [
+      HomeChannelSummary(
+        scopeId: ChannelScopeId(
+          serverId: serverId,
+          value: 'general',
+        ),
+        name: 'general',
+      ),
+    ],
+    directMessages: [dmAlice],
   );
 
   const threeDmSnapshot = HomeWorkspaceSnapshot(
@@ -469,6 +485,64 @@ void main() {
   // Mark-all-read button (INV-MARK-ALL)
   // -----------------------------------------------------------------
 
+  /// Builds a [ProviderContainer] with inbox pre-loaded, then pumps
+  /// [DmsTabPage] via [UncontrolledProviderScope].
+  Future<ProviderContainer> pumpWithInbox(
+    WidgetTester tester, {
+    required HomeRepository homeRepository,
+    required _FakeInboxRepository inboxRepository,
+  }) async {
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(serverId),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        inboxRepositoryProvider.overrideWithValue(inboxRepository),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        sidebarOrderRepositoryProvider.overrideWithValue(
+          const _FakeSidebarOrderRepository(),
+        ),
+        agentsRepositoryProvider.overrideWithValue(
+          const _FakeAgentsRepository(),
+        ),
+        tasksRepositoryProvider.overrideWithValue(
+          const _FakeTasksRepository(),
+        ),
+        threadRepositoryProvider.overrideWithValue(
+          const _FakeThreadRepository(),
+        ),
+        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // Seed InboxStore so unreadSourceProjectionProvider computes.
+    await container.read(inboxStoreProvider.notifier).load();
+
+    final router = GoRouter(
+      initialLocation: '/dms',
+      routes: [
+        GoRoute(
+          path: '/dms',
+          builder: (_, __) => const DmsTabPage(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return container;
+  }
+
   testWidgets(
     'mark-all-read button visible when DM has unread (INV-MARK-ALL-1)',
     (tester) async {
@@ -488,11 +562,11 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(buildApp(
+      await pumpWithInbox(
+        tester,
         homeRepository: const _FakeHomeRepository(sampleSnapshot),
         inboxRepository: inboxRepo,
-      ));
-      await tester.pumpAndSettle();
+      );
 
       expect(
         find.byKey(const ValueKey('dms-tab-mark-all-read')),
@@ -521,11 +595,11 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(buildApp(
+      await pumpWithInbox(
+        tester,
         homeRepository: const _FakeHomeRepository(sampleSnapshot),
         inboxRepository: inboxRepo,
-      ));
-      await tester.pumpAndSettle();
+      );
 
       expect(
         find.byKey(const ValueKey('dms-tab-mark-all-read')),
@@ -554,11 +628,11 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(buildApp(
+      await pumpWithInbox(
+        tester,
         homeRepository: const _FakeHomeRepository(sampleSnapshot),
         inboxRepository: inboxRepo,
-      ));
-      await tester.pumpAndSettle();
+      );
 
       // Button should be visible before tap.
       expect(
@@ -583,6 +657,58 @@ void main() {
       // markAllRead should have been called.
       expect(inboxRepo.markAllReadCalled, isTrue,
           reason: 'markAllRead should have been called');
+    },
+  );
+
+  testWidgets(
+    'mark-all-read on DMs tab also clears channel unreads (global call)',
+    (tester) async {
+      final inboxRepo = _FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.dm,
+              channelId: 'dm-alice',
+              channelName: 'Alice',
+              unreadCount: 3,
+            ),
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'general',
+              channelName: 'general',
+              unreadCount: 2,
+            ),
+          ],
+          totalCount: 2,
+          totalUnreadCount: 5,
+          hasMore: false,
+        ),
+      );
+
+      final container = await pumpWithInbox(
+        tester,
+        homeRepository: const _FakeHomeRepository(crossKindSnapshot),
+        inboxRepository: inboxRepo,
+      );
+
+      // Verify both DM and channel unreads exist before tap.
+      final projection = container.read(unreadSourceProjectionProvider);
+      expect(projection.dmUnreadTotal, 3);
+      expect(projection.channelUnreadTotal, 2);
+
+      // Tap the button.
+      await tester.tap(
+        find.byKey(const ValueKey('dms-tab-mark-all-read')),
+      );
+      await tester.pumpAndSettle();
+
+      // Global markAllRead clears all kinds.
+      final afterProjection = container.read(unreadSourceProjectionProvider);
+      expect(afterProjection.dmUnreadTotal, 0,
+          reason: 'DM unreads should be zeroed');
+      expect(afterProjection.channelUnreadTotal, 0,
+          reason:
+              'Channel unreads should also be zeroed (global markAllRead clears all)');
     },
   );
 }
