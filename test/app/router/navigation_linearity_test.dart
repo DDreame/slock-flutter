@@ -3,11 +3,11 @@
 //
 // Invariants verified:
 // INV-NAV-LINEAR-1: Back from detail page returns to parent tab
-// INV-NAV-LINEAR-2: Deep link navigates to target page
+// INV-NAV-LINEAR-2: Mid-session deep link pushes onto stack, pop returns
 // INV-NAV-LINEAR-3: Tab switch does not push to navigation stack
 // INV-NAV-LINEAR-4: StatefulShellRoute with 5 per-tab branches
 // INV-NAV-LINEAR-5: Push from home → detail → pop returns to home
-// INV-NAV-LINEAR-6: Mid-session deep-link navigates via go (existing behavior)
+// INV-NAV-LINEAR-6: Mid-session deep-link push preserves stack (pop returns)
 // INV-NAV-LINEAR-7: New GoRouter routes for pinned & file preview
 // INV-NAV-LINEAR-8: PopScope on key detail pages for empty-stack fallback
 // ---------------------------------------------------------------------------
@@ -78,7 +78,11 @@ Future<void> _pumpAuthenticated(
       child: _buildRouterApp(router),
     ),
   );
-  await tester.pumpAndSettle();
+  // Use pump() instead of pumpAndSettle() — the StatefulShellRoute
+  // keeps all tab branches built simultaneously, and some may contain
+  // perpetual animations (CircularProgressIndicator) that prevent
+  // pumpAndSettle from returning.
+  await _pumpNavigation(tester);
 }
 
 /// Helper: pump a few frames to let the router settle after navigation.
@@ -135,10 +139,10 @@ void main() {
     );
 
     // -------------------------------------------------------------------
-    // INV-NAV-LINEAR-2: Mid-session deep link navigates to target
+    // INV-NAV-LINEAR-2: Mid-session deep link pushes onto stack
     // -------------------------------------------------------------------
     testWidgets(
-      'mid-session deep link navigates to target page '
+      'mid-session deep link pushes onto stack — pop returns to previous '
       '(INV-NAV-LINEAR-2)',
       (tester) async {
         final setup = _createAuthenticatedRouter(
@@ -162,20 +166,33 @@ void main() {
 
         // Load servers so the deep-link serverId check passes.
         await setup.container.read(serverListStoreProvider.notifier).load();
-        await tester.pumpAndSettle();
-
-        // Simulate a deep link arriving for a conversation.
-        setup.container.read(pendingDeepLinkProvider.notifier).state =
-            '/servers/s1/channels/deep-ch';
         await _pumpNavigation(tester);
 
-        // Deep link navigates to the target page.
+        // Simulate a mid-session deep link arriving for a conversation.
+        setup.container.read(pendingDeepLinkProvider.notifier).state =
+            '/servers/s1/channels/deep-ch';
+        // Extra pump for addPostFrameCallback + navigation settle.
+        await _pumpNavigation(tester);
+        await _pumpNavigation(tester);
+
+        // Deep link navigates to the target page via push.
         expect(
           setup.router.routeInformationProvider.value.uri.path,
           '/servers/s1/channels/deep-ch',
         );
         // Pending link is consumed.
         expect(setup.container.read(pendingDeepLinkProvider), isNull);
+        // Stack should be poppable (pushed, not replaced).
+        expect(setup.router.canPop(), isTrue,
+            reason: 'Deep-link push must leave stack poppable');
+
+        // Pop should return to previous screen (/home).
+        setup.router.pop();
+        await _pumpNavigation(tester);
+        expect(
+          setup.router.routeInformationProvider.value.uri.path,
+          '/home',
+        );
       },
     );
 

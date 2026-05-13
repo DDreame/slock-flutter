@@ -456,10 +456,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final serverId = extractDeepLinkServerId(next);
       final servers = ref.read(serverListStoreProvider).servers;
       if (serverId != null && servers.any((s) => s.id == serverId)) {
-        router.go(next);
+        // Push onto existing stack so back returns to the previous
+        // in-app screen instead of wiping the navigation stack.
+        // Scheduled via addPostFrameCallback to ensure the push
+        // executes outside the Riverpod notification phase.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          router.push(next);
+        });
       }
     } else if (isNotificationDeepLink(next)) {
-      router.go(next);
+      // Push onto existing stack so back returns to the previous
+      // in-app screen instead of wiping the navigation stack.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        router.push(next);
+      });
     }
   });
 
