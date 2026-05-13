@@ -408,7 +408,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Switch to messages scope to see the load-more button.
-    await tester.tap(find.text('Messages'));
+    await tester.tap(find.byKey(const ValueKey('search-scope-messages')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('search-load-more')), findsOneWidget,
@@ -445,6 +445,17 @@ void main() {
     // The initial search should have been called.
     expect(captureRepo.callCount, greaterThan(0),
         reason: 'INV-SEARCH-2: At least one search call should be made');
+
+    final countAfterInitial = captureRepo.callCount;
+
+    // Tap the sort chip to toggle from Newest → Oldest.
+    await tester.tap(find.byKey(const ValueKey('search-filter-sort')));
+    await tester.pumpAndSettle();
+
+    expect(captureRepo.callCount, greaterThan(countAfterInitial),
+        reason: 'INV-SEARCH-2: sort toggle should trigger a new search');
+    expect(captureRepo.lastSortBy, SearchSortBy.oldest,
+        reason: 'INV-SEARCH-2: sort param should be oldest after toggle');
   });
 }
 

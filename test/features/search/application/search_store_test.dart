@@ -168,10 +168,7 @@ void main() {
       await store().search();
       fakeSearchRepo.lastCallParams = null; // reset
 
-      store().setSenderFilter('user-42');
-      // setSenderFilter calls search() synchronously which is async.
-      // Await a microtask tick for the search() future to complete.
-      await Future<void>.delayed(Duration.zero);
+      await store().setSenderFilter('user-42');
 
       expect(state().senderFilter, 'user-42');
       expect(fakeSearchRepo.lastCallParams?.senderId, 'user-42',
@@ -191,8 +188,7 @@ void main() {
       await store().search();
       fakeSearchRepo.lastCallParams = null;
 
-      store().setSortBy(SearchSortBy.oldest);
-      await Future<void>.delayed(Duration.zero);
+      await store().setSortBy(SearchSortBy.oldest);
 
       expect(state().sortBy, SearchSortBy.oldest);
       expect(fakeSearchRepo.lastCallParams?.sortBy, SearchSortBy.oldest,
@@ -210,20 +206,16 @@ void main() {
       store().updateQuery('hello');
       await store().search();
 
-      store().setSenderFilter('user-42');
-      await Future<void>.delayed(Duration.zero);
-      store().setChannelFilter('general');
-      await Future<void>.delayed(Duration.zero);
-      store().setSortBy(SearchSortBy.oldest);
-      await Future<void>.delayed(Duration.zero);
+      await store().setSenderFilter('user-42');
+      await store().setChannelFilter('general');
+      await store().setSortBy(SearchSortBy.oldest);
 
       expect(state().senderFilter, 'user-42');
       expect(state().channelFilter, 'general');
       expect(state().sortBy, SearchSortBy.oldest);
 
       fakeSearchRepo.lastCallParams = null;
-      store().clearFilters();
-      await Future<void>.delayed(Duration.zero);
+      await store().clearFilters();
 
       expect(state().senderFilter, isNull,
           reason: 'INV-SEARCH-3: senderFilter reset');
