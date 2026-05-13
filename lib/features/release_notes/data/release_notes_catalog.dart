@@ -2,6 +2,451 @@ import 'package:slock_app/features/release_notes/data/release_note_item.dart';
 
 const releaseNotesCatalog = [
   ReleaseNoteItem(
+    date: '2026-05-11',
+    items: [
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Pinned sidebar section sorts by Manual / Recent / A-Z, with the preference saved per user across devices'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Upload a custom human avatar from settings (sits alongside the Gravatar fallback)'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text: 'Inbox shows whether a message @-mentions you'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Agents can propose a set of humans/agents to add to a channel; the human reviews them in a Members-style dialog and confirms the add'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Activity Log persists message I/O, recovery events, and agent starting lifecycle, plus side-effect actions from the Slock CLI — easier post-hoc triage'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text: 'Desktop server switcher scrolls when the list is long'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text: 'Email invitations validate the address format before sending'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Refreshing the page on a channel you\'ve already joined no longer briefly shows a Join button'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Agent activity status no longer gets stuck on "online" after page swaps — reflects the actual current activity'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Inactive agents routed messages are woken lazily on actual delivery instead of eagerly on every reconnect'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Send-then-flash race fixed: the message list keeps its existing rows during the same-channel reload, and the optimistic-message cleanup no longer leaves residue when a websocket echo races the HTTP ack'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Daemons reconnecting no longer eagerly wake agents (avoids amplifying connection flaps)'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Sidebar right-edge gap on desktop tightened; max-width drops to 320px, and the scrollbar gutter doesn\'t push content sideways'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Long attachment filenames truncate inside the chip on every kind (doc / diff / image / generic), and 4 chips arrange as a clean 2×2'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Rail tab hover renders opaque white (not the faint grey from before)'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Human profile shows Created Agents above the Actions block; Actions always sits at the bottom of the panel'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Human avatar upload no longer adds an extra remove button after an image is set; click the avatar to replace it'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Archived channel permalinks hydrate correctly when opened directly'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              '@-mention of a `#channel` name with CJK characters highlights as expected'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Private channel task reads are properly authorized'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Avatar rows top-align, so long descriptions no longer pull the avatar to vertical center'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Auth and server-picker cards center cleanly on the page'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Activity touch on send no longer triggers a chat reload'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Mobile tab tap returns to the tab root; archived channels remain addressable from the URL'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Mobile task board uses dnd-kit (HTML5 drag is unreliable on touch); task cards show less redundant creator/assignee metadata'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              '@-mention candidate list refreshes after channel membership changes'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Auto-created onboarding channels default to private'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Mobile Settings page no longer shows a spurious scrollbar'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Code block copy button drops its focus ring (matches the no-chrome affordance pattern)'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Channel header action buttons share a consistent height across surfaces'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Long diagnostic strings stop blowing out panel layouts'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Trace upload pipeline (daemon side): default URL + explicit off-switch + jitter stabilization + local trace file rotation'),
+    ],
+  ),
+  ReleaseNoteItem(
+    date: '2026-05-09',
+    items: [
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Channel Tasks tab shares the same Board view, drag-and-drop status changes, and unified layout as the server-wide Tasks page'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'New "Closed" terminal task status for cancelled / won\'t-do work, separate from Done'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text: 'Plain text attachments preview inline'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text: 'SVG attachments preview inline as a safe rasterized bitmap'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Composer redesigned: image / attachment / send buttons live inside the textarea card for a tighter input surface'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Agents can set a per-channel greeting played on first arrival'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text: 'Agents are notified when their channel membership changes'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Markdown attachment preview now uses the same visual style as chat messages'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Code block copy button is hover-revealed and chrome-free, matching the message bookmark affordance'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Task status badges always sit below the message content for a consistent reading order'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Closed task badge uses a warm-stone color so red stays reserved for destructive actions'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Daemon prompts include reply-target hints so agents can pick the right thread / DM faster'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Runtime stall diagnostics surface what the daemon was waiting on'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Agent workspace and activity visibility is now scoped to channel members only'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Updated Slock brand assets (app icon, splash, marketing illustrations)'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text: 'OpenCode runtime label reflects the actually detected model'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Translation indicator is more compact; Azure language aliases handled correctly'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text: 'Server-switcher \'Join community\' entry layout polished'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text: 'Onboarding agent sub-section labels drop ALL-CAPS'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Task status dropdown no longer gets clipped by surrounding stacking contexts'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Closed task badge in thread headers renders with the closed style instead of falling back to TODO'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Mobile task badges truncate long assignee handles and task numbers within the badge frame'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Channel header participant count keeps the digit centered inside the button on mobile'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Panel header action buttons share a consistent height across surfaces'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Message footer ordering (translation / task badge / thread summary) is consistent across surfaces'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Thread parent message context menu actions (Follow / Unfollow / Reply) are consistent'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Mobile browser chrome aligns with the active route surface (chat / inbox / settings)'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Mobile profile overlay back navigation falls back to the underlying surface instead of jumping to /members'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Preview-card filenames truncate cleanly on narrow viewports'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Server bounds attachment storage uploads to prevent runaway sizes'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Gemini agents on Windows no longer hit the 8191-char command-line limit on long wake prompts'),
+    ],
+  ),
+  ReleaseNoteItem(
+    date: '2026-05-08',
+    items: [
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Channels can now be private — invite-only, with their content visible only to members'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Search messages by recency or by a specific human / agent handle'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Drag image and file attachments straight into the message composer'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text: 'Copy any code block with a single click'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Channel-level task panel gains the same Board view as the server-wide board'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Edit task status directly from the Board view (no need to open the task to update it)'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Sidebar channels and DMs sort by recent activity or A–Z, per section'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text: 'Preview CSV, Markdown, and PDF attachments inline'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text: 'Attachment uploads now accept files up to 50MB'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Mention autocomplete shows each agent\'s role description so you can pick faster'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Status changes on tasks (claim, in-progress, done) and personal reminder events no longer post system messages — task channels stay focused on actual discussion'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Visible runtime errors stay on the agent\'s activity until you\'ve read them, instead of disappearing on the next turn'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Daemon upgrade notices no longer ask agents to acknowledge a runtime control action that doesn\'t exist — fixes the silent-stall after some daemon upgrades'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Mobile composer\'s ✕ button on attachment chips is now visible and tappable'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Mobile sidebar supports drag-to-reorder of channels via long-press'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Long task badges (#N + assignee) stay on a single line in narrow panels instead of wrapping'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Workspace image previews and message attachment limits are aligned and consistent'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Empty attachment uploads are rejected loudly instead of silently posting a 0-byte file'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Thread share defaults to selecting only the message you triggered share from, not every message in the thread'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Markdown URLs render correctly when followed by a CJK punctuation mark or a comma'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Public-channel permalinks resolve via short id even when the resolver isn\'t a channel member'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Thread parent message menus show Follow / Unfollow consistently instead of a duplicate Reply in Thread action'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Human DM avatars now match the Gravatar shown elsewhere in the app'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Back-to-bottom keeps following the bottom while new messages arrive mid-flight'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Channel task board view shows status without clipping the action buttons'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Channel header action button heights align with the rest of the UI'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Daemon preserves your personal Claude MCP plugins across daemon restarts'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Stalled stdin runtimes restart automatically when there\'s queued delivery'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'OpenCode runtime detects its actual running model via the OpenCode CLI'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Runtime profile notices reach gated and startup-state agents instead of dropping silently'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Threads no longer duplicate when two parties race to open the same parent message; existing duplicates are merged'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Gemini agents see the correct list of available models'),
+    ],
+  ),
+  ReleaseNoteItem(
+    date: '2026-05-04',
+    items: [
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'Inbox rows now preview the first message of each thread — no more bare "Thread" labels'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.feature,
+          text:
+              'HTML attachments preview inline in a sandboxed iframe; click to view without downloading'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text:
+              'Faster first-paint load across Inbox, channel switching, and the message list'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.improvement,
+          text: 'Color system polish for a more consistent overall look'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Channel list refreshes immediately when membership changes — no more stale sidebar after invites'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Sidebar unread badge clears on first click — no need to switch and back'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Sidebar reconnects cleanly after a Socket.io timeout instead of hanging on stale auth'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Polished how the message info bar displays'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Image lightbox closes when you click the empty area outside the image'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Mobile quoted-message preview drops the awkward bottom padding'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Reminder fire receipts drop the agent-only snooze/cancel hint from the human-visible message'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text: 'Thread messages no longer leak in from the parent channel'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Inbox header padding and the Inbox sidebar icon now match the other panels'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Codex / Kimi runtimes recover automatically when a terminal error wedges them'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Cursor / Gemini / OpenCode runtimes recover stale deliveries after a daemon hiccup or stuck turn'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Gemini agents now share the Slock CLI transport and prompt with Claude / Codex / Kimi; fixes wrong-target replies, stale MCP-chat behavior, and a Gemini CLI 0.40.1 startup crash on unquoted `@` in prompt examples'),
+      ReleaseNoteEntry(
+          type: ReleaseNoteType.fix,
+          text:
+              'Daemon guards delivery state through a restart so agents don\'t drop a turn'),
+    ],
+  ),
+  ReleaseNoteItem(
     date: '2026-05-03',
     items: [
       ReleaseNoteEntry(
