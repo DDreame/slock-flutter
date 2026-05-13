@@ -31,6 +31,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
 
   void updateQuery(String query) {
     _debounce?.cancel();
+    _requestToken++; // invalidate any in-flight search for the old query
     state = state.copyWith(query: query);
 
     if (query.trim().isEmpty) {
@@ -44,6 +45,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
 
   void clear() {
     _debounce?.cancel();
+    _requestToken++; // invalidate any in-flight search
     state = const SearchState();
   }
 

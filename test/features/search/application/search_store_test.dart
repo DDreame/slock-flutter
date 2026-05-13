@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -152,6 +154,46 @@ void main() {
   });
 
   // -----------------------------------------------------------------
+  // Stale-query race guard regression
+  // -----------------------------------------------------------------
+
+  test('query change during in-flight search discards old results', () async {
+    final completer = Completer<SearchResultsPage>();
+    fakeSearchRepo.completerOverride = completer;
+
+    store().updateQuery('abc');
+    // Start the search manually (bypassing debounce).
+    final searchFuture = store().search();
+
+    // While search for "abc" is in flight, user types "abcd".
+    store().updateQuery('abcd');
+
+    // Complete the old search with "abc" results.
+    completer.complete(SearchResultsPage(
+      messages: [
+        SearchResultMessage(
+          message: ConversationMessageSummary(
+            id: 'stale-1',
+            content: 'Stale result for abc',
+            createdAt: DateTime.parse('2026-04-21T10:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+          ),
+          channelId: 'ch1',
+        ),
+      ],
+      hasMore: false,
+    ));
+
+    await searchFuture;
+
+    // The old "abc" results must NOT be written into state
+    // because updateQuery("abcd") bumped _requestToken.
+    expect(state().remoteResults, isEmpty,
+        reason: 'Stale results from old query must be discarded');
+  });
+
+  // -----------------------------------------------------------------
   // Filter & pagination (INV-SEARCH)
   // -----------------------------------------------------------------
 
@@ -303,6 +345,10 @@ class _FakeSearchRepository implements SearchRepository {
   bool shouldFail = false;
   _SearchCallParams? lastCallParams;
 
+  /// When set, `searchMessages` awaits this completer instead of returning
+  /// immediately. Used to simulate in-flight requests that haven't completed.
+  Completer<SearchResultsPage>? completerOverride;
+
   @override
   Future<SearchResultsPage> searchMessages(
     ServerScopeId serverId,
@@ -323,6 +369,9 @@ class _FakeSearchRepository implements SearchRepository {
         message: 'Search failed',
         causeType: 'test',
       );
+    }
+    if (completerOverride != null) {
+      return completerOverride!.future;
     }
     return result ?? const SearchResultsPage(messages: [], hasMore: false);
   }
