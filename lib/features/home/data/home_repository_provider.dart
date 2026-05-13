@@ -198,6 +198,13 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
       for (final dm in directMessageSummaries) dm.scopeId.value: dm.isAgent,
     };
 
+    // Build a lookup for isPrivate from the parsed channels so we can
+    // carry the flag through the store round-trip (store schema does
+    // not persist isPrivate).
+    final parsedPrivateFlags = <String, bool>{
+      for (final ch in channelSummaries) ch.scopeId.value: ch.isPrivate,
+    };
+
     return HomeWorkspaceSnapshot(
       serverId: serverId,
       channels: storedChannels
@@ -210,6 +217,7 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
                 lastMessageId: row.lastMessageId,
                 lastMessagePreview: row.lastMessagePreview,
                 lastActivityAt: row.lastActivityAt,
+                isPrivate: parsedPrivateFlags[row.conversationId] ?? false,
               ))
           .toList(growable: false),
       directMessages: storedDirectMessages
@@ -347,6 +355,7 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
       lastMessageId: lastMessage?.id,
       lastMessagePreview: lastMessage?.content,
       lastActivityAt: lastMessage?.createdAt,
+      isPrivate: item['isPrivate'] == true || item['visibility'] == 'private',
     ));
   }
 

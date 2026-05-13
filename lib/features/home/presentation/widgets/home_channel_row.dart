@@ -55,7 +55,14 @@ class HomeChannelRow extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                isPinned ? Icons.push_pin : Icons.tag,
+                isPinned
+                    ? Icons.push_pin
+                    : channel.isPrivate
+                        ? Icons.lock
+                        : Icons.tag,
+                key: channel.isPrivate
+                    ? const ValueKey('channel-private-badge')
+                    : null,
                 size: 20,
                 color: hasUnread ? colors.primary : colors.textTertiary,
               ),
