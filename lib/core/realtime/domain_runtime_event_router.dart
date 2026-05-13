@@ -4,6 +4,8 @@ import 'dart:collection';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
+import 'package:slock_app/features/announcements/application/announcement_store.dart';
+import 'package:slock_app/features/announcements/data/announcement.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_identity_parser.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
@@ -44,6 +46,7 @@ const _channelDeletedEvent = 'channel:deleted';
 const _agentActivityEvent = 'agent:activity';
 const _agentCreatedEvent = 'agent:created';
 const _agentDeletedEvent = 'agent:deleted';
+const _announcementNewEvent = 'announcement:new';
 
 /// Maximum number of message events queued before Home reaches success
 /// state. Prevents unbounded memory growth.
@@ -273,6 +276,10 @@ final domainRuntimeEventRouterProvider = Provider<void>(
         case _agentCreatedEvent:
         case _agentDeletedEvent:
           _handleAgentCreatedOrDeleted(ref);
+
+        // — Announcement domain —
+        case _announcementNewEvent:
+          _handleAnnouncementNew(ref, event);
       }
     });
 
@@ -343,6 +350,7 @@ final domainRuntimeEventRouterProvider = Provider<void>(
     serverListStoreProvider,
     serverSelectionStoreProvider,
     agentsStoreProvider,
+    announcementStoreProvider,
   ],
 );
 
@@ -906,4 +914,19 @@ class _BufferedDmEvent {
   final ServerScopeId serverId;
   final String channelId;
   final Map<String, dynamic> payload;
+}
+
+// ---------------------------------------------------------------------------
+// Announcement domain handler
+// ---------------------------------------------------------------------------
+
+void _handleAnnouncementNew(Ref ref, RealtimeEventEnvelope event) {
+  final map = _asMap(event.payload);
+  if (map == null) return;
+  final announcement = Announcement.fromMap(map);
+  if (announcement == null) return;
+
+  try {
+    ref.read(announcementStoreProvider.notifier).addAnnouncement(announcement);
+  } catch (_) {}
 }
