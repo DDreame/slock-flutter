@@ -36,13 +36,18 @@ void main() {
   }
 
   group('InboxPage', () {
-    testWidgets('shows loading state initially', (tester) async {
+    testWidgets('shows skeleton loading state initially', (tester) async {
       repo.delayResponse = true;
       await tester.pumpWidget(buildApp());
       await tester.pump(); // trigger microtask load
       await tester.pump(); // allow state transition
 
-      expect(find.byKey(const ValueKey('inbox-loading')), findsOneWidget);
+      expect(find.byKey(const ValueKey('inbox-skeleton')), findsOneWidget);
+      expect(
+        find.byType(CircularProgressIndicator),
+        findsNothing,
+        reason: 'Skeleton replaces spinner',
+      );
     });
 
     testWidgets('shows items after load', (tester) async {

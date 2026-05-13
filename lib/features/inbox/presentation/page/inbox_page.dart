@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
@@ -74,10 +75,22 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   }
 
   Widget _buildBody(AppColors colors, InboxState inboxState) {
-    if (inboxState.status == InboxStatus.loading && inboxState.items.isEmpty) {
-      return const Center(
-        key: ValueKey('inbox-loading'),
-        child: CircularProgressIndicator(),
+    if ((inboxState.status == InboxStatus.initial ||
+            inboxState.status == InboxStatus.loading) &&
+        inboxState.items.isEmpty) {
+      return ListView(
+        key: const ValueKey('inbox-skeleton'),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.pageHorizontal,
+          vertical: AppSpacing.sm,
+        ),
+        children: const [
+          SkeletonListItem(key: ValueKey('inbox-skeleton-item-0')),
+          SkeletonListItem(key: ValueKey('inbox-skeleton-item-1')),
+          SkeletonListItem(key: ValueKey('inbox-skeleton-item-2')),
+          SkeletonListItem(key: ValueKey('inbox-skeleton-item-3')),
+          SkeletonListItem(key: ValueKey('inbox-skeleton-item-4')),
+        ],
       );
     }
 

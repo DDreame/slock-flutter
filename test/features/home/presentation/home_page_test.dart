@@ -2217,7 +2217,7 @@ void main() {
     );
 
     testWidgets(
-      'shows spinner on cold cache then renders after network',
+      'shows skeleton on cold cache then renders after network',
       (tester) async {
         final networkCompleter = Completer<HomeWorkspaceSnapshot>();
         final router = _buildRouter();
@@ -2236,8 +2236,12 @@ void main() {
         await tester.pump();
 
         expect(
-          find.byType(CircularProgressIndicator),
+          find.byKey(const ValueKey('home-skeleton')),
           findsOneWidget,
+        );
+        expect(
+          find.byType(CircularProgressIndicator),
+          findsNothing,
         );
         expect(
           find.byKey(const ValueKey('home-card-agents')),
@@ -2248,7 +2252,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.byType(CircularProgressIndicator),
+          find.byKey(const ValueKey('home-skeleton')),
           findsNothing,
         );
         expect(
