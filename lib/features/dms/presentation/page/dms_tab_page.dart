@@ -388,7 +388,9 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     );
 
     if (channelId != null && mounted && pageContext.mounted) {
-      pageContext.go('/servers/${serverId.value}/dms/$channelId');
+      // Push instead of go to preserve the DMs tab in the back stack.
+      // context.go() replaces the entire stack, making back exit the app.
+      pageContext.push('/servers/${serverId.value}/dms/$channelId');
     }
   }
 

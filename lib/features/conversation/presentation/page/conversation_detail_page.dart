@@ -28,8 +28,6 @@ import 'package:slock_app/features/conversation/data/attachment_repository_provi
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
-import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
@@ -250,22 +248,13 @@ class _ConversationDetailScreenState
               key: const ValueKey('conversation-pinned-messages'),
               icon: const Icon(Icons.push_pin_outlined),
               onPressed: () async {
-                final messageId = await Navigator.of(context).push<String>(
-                  MaterialPageRoute<String>(
-                    builder: (_) => ProviderScope(
-                      overrides: [
-                        currentConversationDetailTargetProvider
-                            .overrideWithValue(
-                          ref.read(currentConversationDetailTargetProvider),
-                        ),
-                      ],
-                      child: PinnedMessagesPage(
-                        onMessageTap: (id) {
-                          Navigator.of(context).pop(id);
-                        },
-                      ),
-                    ),
-                  ),
+                final target =
+                    ref.read(currentConversationDetailTargetProvider);
+                // Use GoRouter push instead of Navigator.push so the page
+                // is visible to GoRouter's navigation stack.
+                final messageId = await context.push<String>(
+                  '/servers/${target.serverId.value}/channels/${target.conversationId}/pinned',
+                  extra: target,
                 );
                 if (messageId != null && mounted) {
                   final currentState =
@@ -2377,11 +2366,9 @@ class _ImageAttachmentPreview extends StatelessWidget {
   }
 
   void _openFullScreen(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => FilePreviewPage(attachment: attachment),
-      ),
-    );
+    // Use GoRouter push instead of Navigator.push so the page
+    // is visible to GoRouter's navigation stack.
+    context.push('/file-preview', extra: attachment);
   }
 }
 
@@ -2698,11 +2685,9 @@ class _GenericFileAttachmentRow extends ConsumerWidget {
   }
 
   Future<void> _openFile(BuildContext context, WidgetRef ref) async {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => FilePreviewPage(attachment: attachment),
-      ),
-    );
+    // Use GoRouter push instead of Navigator.push so the page
+    // is visible to GoRouter's navigation stack.
+    context.push('/file-preview', extra: attachment);
   }
 }
 

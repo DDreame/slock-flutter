@@ -530,6 +530,8 @@ class _ScreenshotAnnotatePageState
       ),
     ]);
     ref.read(shareIntentStoreProvider.notifier).setContent(content);
-    context.go('/share-target');
+    // Push instead of go to preserve the originating conversation in the
+    // back stack. context.go() drops the screenshot source page.
+    context.push('/share-target');
   }
 }
