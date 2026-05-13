@@ -280,6 +280,77 @@ void main() {
           find.byKey(const ValueKey('ctx-action-create-task')), findsNothing);
     });
 
+    testWidgets('shows translate action when onTranslate is provided',
+        (tester) async {
+      bool translated = false;
+      await tester.pumpWidget(wrap(
+        Builder(builder: (context) {
+          return ElevatedButton(
+            onPressed: () {
+              showMessageContextMenu(
+                context: context,
+                message: makeMessage(),
+                isOwn: false,
+                isSaved: false,
+                isChannel: true,
+                onReply: () {},
+                onReact: () {},
+                onCopy: () {},
+                onSave: () {},
+                onPin: () {},
+                onForward: () {},
+                onTranslate: () => translated = true,
+              );
+            },
+            child: const Text('Open menu'),
+          );
+        }),
+      ));
+
+      await tester.tap(find.text('Open menu'));
+      await tester.pumpAndSettle();
+
+      expect(
+          find.byKey(const ValueKey('ctx-action-translate')), findsOneWidget);
+      expect(find.text('Translate'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('ctx-action-translate')));
+      await tester.pumpAndSettle();
+
+      expect(translated, isTrue);
+    });
+
+    testWidgets('hides translate action when onTranslate is null',
+        (tester) async {
+      await tester.pumpWidget(wrap(
+        Builder(builder: (context) {
+          return ElevatedButton(
+            onPressed: () {
+              showMessageContextMenu(
+                context: context,
+                message: makeMessage(),
+                isOwn: false,
+                isSaved: false,
+                isChannel: true,
+                onReply: () {},
+                onReact: () {},
+                onCopy: () {},
+                onSave: () {},
+                onPin: () {},
+                onForward: () {},
+              );
+            },
+            child: const Text('Open menu'),
+          );
+        }),
+      ));
+
+      await tester.tap(find.text('Open menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('ctx-action-translate')), findsNothing);
+    });
+
     testWidgets('dismisses after action tap', (tester) async {
       await tester.pumpWidget(wrap(
         Builder(builder: (context) {

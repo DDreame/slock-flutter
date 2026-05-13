@@ -44,6 +44,10 @@ import 'package:slock_app/features/voice/data/audio_player_service.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
+import 'package:slock_app/features/translation/application/translation_cache_store.dart';
+import 'package:slock_app/features/translation/application/translation_settings_store.dart';
+import 'package:slock_app/features/translation/data/translation_settings.dart';
+import 'package:slock_app/features/translation/presentation/widget/translated_content_overlay.dart';
 import 'package:slock_app/features/conversation/data/typing_realtime_binding.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
@@ -117,6 +121,7 @@ class _ConversationDetailScreenState
   late final ScrollController _scrollController;
   late final bool _restoredFromSession;
   ProviderSubscription<ConversationDetailState>? _stateSubscription;
+  ProviderSubscription<TranslationSettingsState>? _translationSettingsSub;
   bool _didApplyInitialLanding = false;
   double? _olderLoadAnchorOffset;
   double? _olderLoadAnchorMaxExtent;
@@ -149,6 +154,15 @@ class _ConversationDetailScreenState
     Future.microtask(
       () => ref.read(conversationDetailStoreProvider.notifier).ensureLoaded(),
     );
+    // Load translation settings so auto-translate and context menu work
+    // without requiring a prior visit to the settings page.
+    _translationSettingsSub = ref.listenManual<TranslationSettingsState>(
+      translationSettingsStoreProvider,
+      _handleTranslationSettingsLoaded,
+    );
+    Future.microtask(
+      () => ref.read(translationSettingsStoreProvider.notifier).ensureLoaded(),
+    );
   }
 
   @override
@@ -158,6 +172,7 @@ class _ConversationDetailScreenState
     _voiceElapsedSub?.cancel();
     _voiceRecorder?.dispose();
     _stateSubscription?.close();
+    _translationSettingsSub?.close();
     if (_scrollController.hasClients) {
       ref
           .read(conversationDetailStoreProvider.notifier)
@@ -559,6 +574,40 @@ class _ConversationDetailScreenState
     _voiceElapsedSub?.cancel();
   }
 
+  /// INV-TRANSLATE-3: auto-translate visible messages when mode is auto.
+  /// Called on first successful load and after loadOlder/loadNewer.
+  void _autoTranslateIfNeeded(List<ConversationMessageSummary> messages) {
+    final settingsState = ref.read(translationSettingsStoreProvider);
+    if (settingsState.settings.mode != TranslationMode.auto) return;
+    if (messages.isEmpty) return;
+
+    final messageIds = messages
+        .where((m) => !m.isDeleted && m.messageType != 'system')
+        .map((m) => m.id)
+        .toList();
+    if (messageIds.isEmpty) return;
+
+    ref
+        .read(translationCacheStoreProvider.notifier)
+        .translateMessages(messageIds);
+  }
+
+  /// Handles the race where conversation data arrives before translation
+  /// settings. When settings transition to success and conversation is
+  /// already loaded, re-trigger auto-translate.
+  void _handleTranslationSettingsLoaded(
+    TranslationSettingsState? previous,
+    TranslationSettingsState next,
+  ) {
+    if (previous?.status != TranslationSettingsStatus.success &&
+        next.status == TranslationSettingsStatus.success) {
+      final convState = ref.read(conversationDetailStoreProvider);
+      if (convState.status == ConversationDetailStatus.success) {
+        _autoTranslateIfNeeded(convState.messages);
+      }
+    }
+  }
+
   void _handleScroll() {
     if (!_scrollController.hasClients) {
       return;
@@ -608,6 +657,10 @@ class _ConversationDetailScreenState
             ref.read(markDmReadUseCaseProvider)(scopeId);
           }
       }
+
+      // INV-TRANSLATE-3: auto-translate visible messages on first load
+      // when translation mode is auto.
+      _autoTranslateIfNeeded(next.messages);
     }
 
     if (!_scrollController.hasClients) {
@@ -1672,20 +1725,16 @@ class _ConversationMessageCard extends ConsumerWidget {
                 ],
               ),
             ),
-          MessageContentWidget(
+          _buildMessageContent(
+            ref: ref,
             message: message,
-            isSystem: visualKind == _ConversationMessageVisualKind.system,
-            kind: switch (visualKind) {
-              _ConversationMessageVisualKind.self => MessageBubbleKind.self,
-              _ConversationMessageVisualKind.agent => MessageBubbleKind.agent,
-              _ => MessageBubbleKind.other,
-            },
+            visualKind: visualKind,
             highlightQuery: highlightQuery,
-            baseStyle: bodyStyle,
-            highlightColor: colors.primaryLight,
+            bodyStyle: bodyStyle,
+            colors: colors,
+            currentUserName: currentUserName,
             onLinkTap: (text, href, title) =>
                 _confirmAndLaunchUrl(context, href),
-            currentUserName: currentUserName,
           ),
           if (message.attachments != null && message.attachments!.isNotEmpty)
             _AttachmentSection(attachments: message.attachments!),
@@ -1869,6 +1918,46 @@ class _ConversationMessageCard extends ConsumerWidget {
     }
   }
 
+  /// Builds message content, wrapping with [TranslatedContentOverlay]
+  /// when a translation entry exists in the cache for this message.
+  Widget _buildMessageContent({
+    required WidgetRef ref,
+    required ConversationMessageSummary message,
+    required _ConversationMessageVisualKind visualKind,
+    required String highlightQuery,
+    required TextStyle bodyStyle,
+    required AppColors colors,
+    required String? currentUserName,
+    required void Function(String, String?, String) onLinkTap,
+  }) {
+    final contentWidget = MessageContentWidget(
+      message: message,
+      isSystem: visualKind == _ConversationMessageVisualKind.system,
+      kind: switch (visualKind) {
+        _ConversationMessageVisualKind.self => MessageBubbleKind.self,
+        _ConversationMessageVisualKind.agent => MessageBubbleKind.agent,
+        _ => MessageBubbleKind.other,
+      },
+      highlightQuery: highlightQuery,
+      baseStyle: bodyStyle,
+      highlightColor: colors.primaryLight,
+      onLinkTap: onLinkTap,
+      currentUserName: currentUserName,
+    );
+
+    // If translation is cached for this message, wrap with overlay.
+    final cacheState = ref.watch(translationCacheStoreProvider);
+    final entry = cacheState.translations[message.id];
+    if (entry == null) return contentWidget;
+
+    return TranslatedContentOverlay(
+      messageId: message.id,
+      originalChild: contentWidget,
+      translatedContent: entry.translatedContent,
+      entry: entry,
+    );
+  }
+
   void _showContextMenu(
     BuildContext context,
     WidgetRef ref,
@@ -1878,6 +1967,11 @@ class _ConversationMessageCard extends ConsumerWidget {
     final isOwn = visualKind == _ConversationMessageVisualKind.self;
     final notifier = ref.read(conversationDetailStoreProvider.notifier);
     final isChannel = target.surface == ConversationSurface.channel;
+
+    // Show translate action when translation mode is not off.
+    final translationMode =
+        ref.read(translationSettingsStoreProvider).settings.mode;
+    final canTranslate = translationMode != TranslationMode.off;
 
     showMessageContextMenu(
       context: context,
@@ -1930,6 +2024,11 @@ class _ConversationMessageCard extends ConsumerWidget {
           : null,
       onCreateTask:
           isChannel ? () => _convertMessageToTask(context, ref) : null,
+      onTranslate: canTranslate
+          ? () => ref
+              .read(translationCacheStoreProvider.notifier)
+              .translateMessage(message.id)
+          : null,
     );
   }
 

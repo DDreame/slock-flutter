@@ -26,6 +26,9 @@ import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_pai
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/translation/data/translation_repository.dart';
+import 'package:slock_app/features/translation/data/translation_settings.dart';
 
 void main() {
   testWidgets('ChannelPage wrapper rebuilds typed channel scope', (
@@ -1941,6 +1944,160 @@ void main() {
 
     container.dispose();
   });
+
+  // ----- Translation settings load regression (A1 blocker on 890bf7a) -----
+
+  testWidgets(
+      'auto-translate fires on conversation load without prior settings page visit',
+      (tester) async {
+    // Fake translation repo returns mode=auto, captures batch calls.
+    final translationRepo = _FakeTranslationRepository(
+      settings: const TranslationSettings(
+        mode: TranslationMode.auto,
+        preferredLanguage: 'ja',
+      ),
+      batchResults: [
+        const TranslationResult(
+          messageId: 'msg-1',
+          translatedContent: '翻訳',
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          status: TranslationStatus.translated,
+        ),
+      ],
+    );
+
+    final conversationRepo = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('srv-1'),
+            value: 'ch-1',
+          ),
+        ),
+        title: '#test',
+        messages: [
+          ConversationMessageSummary(
+            id: 'msg-1',
+            content: 'Hello',
+            createdAt: DateTime(2026, 1, 1),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(conversationRepo),
+          translationRepositoryProvider.overrideWithValue(translationRepo),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('srv-1')),
+          sessionStoreProvider.overrideWith(
+            () => _FixedSessionStore(const SessionState()),
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: _testGoRouter(
+            home: const ChannelPage(serverId: 'srv-1', channelId: 'ch-1'),
+          ),
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Settings store was loaded by conversation page (not settings page).
+    // Auto-translate should have fired via translateMessages.
+    expect(translationRepo.batchRequests, isNotEmpty,
+        reason:
+            'INV-TRANSLATE-3: batch translate must fire on conversation load '
+            'when mode=auto, without visiting settings page first');
+    expect(translationRepo.batchRequests.first.$2, contains('msg-1'));
+  });
+
+  testWidgets(
+      'manual mode shows Translate in context menu without prior settings page visit',
+      (tester) async {
+    // Fake translation repo returns mode=manual.
+    final translationRepo = _FakeTranslationRepository(
+      settings: const TranslationSettings(
+        mode: TranslationMode.manual,
+        preferredLanguage: 'ja',
+      ),
+    );
+
+    final conversationRepo = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: ConversationDetailTarget.channel(
+          const ChannelScopeId(
+            serverId: ServerScopeId('srv-1'),
+            value: 'ch-1',
+          ),
+        ),
+        title: '#test',
+        messages: [
+          ConversationMessageSummary(
+            id: 'msg-1',
+            content: 'Hello',
+            createdAt: DateTime(2026, 1, 1),
+            senderType: 'human',
+            messageType: 'message',
+            senderName: 'Alice',
+            seq: 1,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(conversationRepo),
+          translationRepositoryProvider.overrideWithValue(translationRepo),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('srv-1')),
+          sessionStoreProvider.overrideWith(
+            () => _FixedSessionStore(const SessionState()),
+          ),
+        ],
+        child: MaterialApp.router(
+          routerConfig: _testGoRouter(
+            home: const ChannelPage(serverId: 'srv-1', channelId: 'ch-1'),
+          ),
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Manual mode should NOT auto-translate.
+    expect(translationRepo.batchRequests, isEmpty,
+        reason: 'INV-TRANSLATE-4: manual mode must not auto-translate');
+
+    // Long-press a message to open context menu.
+    final messageCard = find.byKey(const ValueKey('message-msg-1'));
+    expect(messageCard, findsOneWidget);
+    await tester.longPress(messageCard);
+    await tester.pumpAndSettle();
+
+    // Translate action should be visible in context menu.
+    expect(find.byKey(const ValueKey('ctx-action-translate')), findsOneWidget,
+        reason:
+            'INV-TRANSLATE-4: Translate must appear in context menu when mode=manual, '
+            'without visiting settings page first');
+  });
 }
 
 Widget _buildApp({
@@ -2161,6 +2318,44 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
   }) async {
     throw UnimplementedError();
+  }
+}
+
+/// Fake translation repository for regression tests.
+/// Returns configurable settings and captures batch translate requests.
+class _FakeTranslationRepository implements TranslationRepository {
+  _FakeTranslationRepository({
+    this.settings = const TranslationSettings(),
+    this.batchResults = const [],
+  });
+
+  final TranslationSettings settings;
+  final List<TranslationResult> batchResults;
+
+  /// Captured batch requests: (serverId, messageIds, targetLanguage).
+  final List<(ServerScopeId, List<String>, String)> batchRequests = [];
+
+  @override
+  Future<TranslationSettings> getSettings(ServerScopeId serverId) async {
+    return settings;
+  }
+
+  @override
+  Future<TranslationSettings> updateSettings(
+    ServerScopeId serverId,
+    TranslationSettings settings,
+  ) async {
+    return settings;
+  }
+
+  @override
+  Future<List<TranslationResult>> translateBatch(
+    ServerScopeId serverId, {
+    required List<String> messageIds,
+    required String targetLanguage,
+  }) async {
+    batchRequests.add((serverId, messageIds, targetLanguage));
+    return batchResults.where((r) => messageIds.contains(r.messageId)).toList();
   }
 }
 
