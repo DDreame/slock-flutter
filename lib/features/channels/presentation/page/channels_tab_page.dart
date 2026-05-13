@@ -16,6 +16,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
@@ -60,6 +61,16 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       appBar: AppBar(
         title: Text(l10n.channelsTabTitle),
         actions: [
+          if (state.status == HomeListStatus.success &&
+              unreadState.channelUnreadTotal > 0)
+            IconButton(
+              key: const ValueKey('channels-tab-mark-all-read'),
+              icon: const Icon(Icons.done_all),
+              tooltip: 'Mark all read',
+              onPressed: () {
+                ref.read(inboxStoreProvider.notifier).markAllRead();
+              },
+            ),
           IconButton(
             key: const ValueKey('channels-tab-create-button'),
             icon: const Icon(Icons.add),

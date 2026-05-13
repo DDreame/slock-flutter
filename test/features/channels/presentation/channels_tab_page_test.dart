@@ -16,6 +16,11 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -57,6 +62,20 @@ void main() {
     directMessages: [],
   );
 
+  const crossKindSnapshot = HomeWorkspaceSnapshot(
+    serverId: serverId,
+    channels: [channelGeneral],
+    directMessages: [
+      HomeDirectMessageSummary(
+        scopeId: DirectMessageScopeId(
+          serverId: serverId,
+          value: 'dm-alice',
+        ),
+        title: 'Alice',
+      ),
+    ],
+  );
+
   const threeChannelSnapshot = HomeWorkspaceSnapshot(
     serverId: serverId,
     channels: [channelGeneral, channelRandom, channelDesign],
@@ -73,6 +92,7 @@ void main() {
     required HomeRepository homeRepository,
     ServerScopeId? activeServerId = serverId,
     ChannelManagementRepository? channelManagementRepository,
+    InboxRepository? inboxRepository,
     GoRouter? router,
   }) {
     final effectiveRouter = router ??
@@ -117,6 +137,8 @@ void main() {
           channelManagementRepositoryProvider.overrideWithValue(
             channelManagementRepository,
           ),
+        if (inboxRepository != null)
+          inboxRepositoryProvider.overrideWithValue(inboxRepository),
       ],
       child: MaterialApp.router(
         routerConfig: effectiveRouter,
@@ -420,6 +442,238 @@ void main() {
 
     expect(repo.loadCount, greaterThan(1));
   });
+
+  // -----------------------------------------------------------------
+  // Mark-all-read button (INV-MARK-ALL)
+  // -----------------------------------------------------------------
+
+  /// Builds a [ProviderContainer] with inbox pre-loaded, then pumps
+  /// [ChannelsTabPage] via [UncontrolledProviderScope].
+  Future<ProviderContainer> pumpWithInbox(
+    WidgetTester tester, {
+    required HomeRepository homeRepository,
+    required _FakeInboxRepository inboxRepository,
+  }) async {
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(serverId),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        inboxRepositoryProvider.overrideWithValue(inboxRepository),
+        sidebarOrderRepositoryProvider.overrideWithValue(
+          const _FakeSidebarOrderRepository(),
+        ),
+        agentsRepositoryProvider.overrideWithValue(
+          const _FakeAgentsRepository(),
+        ),
+        tasksRepositoryProvider.overrideWithValue(
+          const _FakeTasksRepository(),
+        ),
+        threadRepositoryProvider.overrideWithValue(
+          const _FakeThreadRepository(),
+        ),
+        homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    // Seed InboxStore so unreadSourceProjectionProvider computes.
+    await container.read(inboxStoreProvider.notifier).load();
+
+    final router = GoRouter(
+      initialLocation: '/channels',
+      routes: [
+        GoRoute(
+          path: '/channels',
+          builder: (_, __) => const ChannelsTabPage(),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp.router(
+          routerConfig: router,
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return container;
+  }
+
+  testWidgets(
+    'mark-all-read button visible when channel has unread (INV-MARK-ALL-1)',
+    (tester) async {
+      final inboxRepo = _FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'general',
+              channelName: 'general',
+              unreadCount: 3,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 3,
+          hasMore: false,
+        ),
+      );
+
+      await pumpWithInbox(
+        tester,
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        inboxRepository: inboxRepo,
+      );
+
+      expect(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+        findsOneWidget,
+        reason:
+            'INV-MARK-ALL-1: Button should be visible when channels have unread',
+      );
+    },
+  );
+
+  testWidgets(
+    'mark-all-read button hidden when no channel unreads (INV-MARK-ALL-1)',
+    (tester) async {
+      final inboxRepo = _FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'general',
+              channelName: 'general',
+              unreadCount: 0,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 0,
+          hasMore: false,
+        ),
+      );
+
+      await pumpWithInbox(
+        tester,
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        inboxRepository: inboxRepo,
+      );
+
+      expect(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+        findsNothing,
+        reason:
+            'INV-MARK-ALL-1: Button should be hidden when no channel unreads',
+      );
+    },
+  );
+
+  testWidgets(
+    'tapping mark-all-read zeroes unread and hides button (INV-MARK-ALL-2)',
+    (tester) async {
+      final inboxRepo = _FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'general',
+              channelName: 'general',
+              unreadCount: 5,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 5,
+          hasMore: false,
+        ),
+      );
+
+      await pumpWithInbox(
+        tester,
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        inboxRepository: inboxRepo,
+      );
+
+      // Button should be visible before tap.
+      expect(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+        findsOneWidget,
+      );
+
+      // Tap the button.
+      await tester.tap(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+      );
+      await tester.pumpAndSettle();
+
+      // Button should disappear after optimistic update.
+      expect(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+        findsNothing,
+        reason:
+            'INV-MARK-ALL-2: Button should disappear after tap (optimistic)',
+      );
+
+      // markAllRead should have been called.
+      expect(inboxRepo.markAllReadCalled, isTrue,
+          reason: 'markAllRead should have been called');
+    },
+  );
+
+  testWidgets(
+    'mark-all-read on channels tab also clears DM unreads (global call)',
+    (tester) async {
+      final inboxRepo = _FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'general',
+              channelName: 'general',
+              unreadCount: 3,
+            ),
+            InboxItem(
+              kind: InboxItemKind.dm,
+              channelId: 'dm-alice',
+              channelName: 'Alice',
+              unreadCount: 2,
+            ),
+          ],
+          totalCount: 2,
+          totalUnreadCount: 5,
+          hasMore: false,
+        ),
+      );
+
+      final container = await pumpWithInbox(
+        tester,
+        homeRepository: const _FakeHomeRepository(crossKindSnapshot),
+        inboxRepository: inboxRepo,
+      );
+
+      // Verify both channel and DM unreads exist before tap.
+      final projection = container.read(unreadSourceProjectionProvider);
+      expect(projection.channelUnreadTotal, 3);
+      expect(projection.dmUnreadTotal, 2);
+
+      // Tap the button.
+      await tester.tap(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+      );
+      await tester.pumpAndSettle();
+
+      // Global markAllRead clears all kinds.
+      final afterProjection = container.read(unreadSourceProjectionProvider);
+      expect(afterProjection.channelUnreadTotal, 0,
+          reason: 'Channel unreads should be zeroed');
+      expect(afterProjection.dmUnreadTotal, 0,
+          reason:
+              'DM unreads should also be zeroed (global markAllRead clears all)');
+    },
+  );
 }
 
 // ----  Fakes  ----
@@ -673,4 +927,37 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     ServerScopeId serverId, {
     required String channelId,
   }) async {}
+}
+
+class _FakeInboxRepository implements InboxRepository {
+  _FakeInboxRepository({required this.fetchResponse});
+
+  final InboxResponse fetchResponse;
+  bool markAllReadCalled = false;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async =>
+      fetchResponse;
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {
+    markAllReadCalled = true;
+  }
 }
