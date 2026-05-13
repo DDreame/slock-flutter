@@ -20,9 +20,17 @@ class SessionStore extends Notifier<SessionState> {
 
   Future<void> restoreSession() async {
     try {
-      final token = await _storage.read(key: SessionStorageKeys.token);
-      final refreshToken =
-          await _storage.read(key: SessionStorageKeys.refreshToken);
+      // Batch all storage reads in parallel instead of sequential awaits.
+      final results = await Future.wait([
+        _storage.read(key: SessionStorageKeys.token),
+        _storage.read(key: SessionStorageKeys.refreshToken),
+        _storage.read(key: SessionStorageKeys.userId),
+        _storage.read(key: SessionStorageKeys.displayName),
+      ]);
+      final token = results[0];
+      final refreshToken = results[1];
+      final userId = results[2];
+      final displayName = results[3];
 
       // Require both tokens for a valid session. If only one is present the
       // pair is incomplete and cannot recover from a 401, so clear it out.
@@ -33,9 +41,6 @@ class SessionStore extends Notifier<SessionState> {
           return;
         }
 
-        final userId = await _storage.read(key: SessionStorageKeys.userId);
-        final displayName =
-            await _storage.read(key: SessionStorageKeys.displayName);
         state = SessionState(
           status: AuthStatus.authenticated,
           token: token,
@@ -144,27 +149,30 @@ class SessionStore extends Notifier<SessionState> {
     required String refreshToken,
   }) async {
     state = state.copyWith(token: accessToken);
-    await _storage.write(key: SessionStorageKeys.token, value: accessToken);
-    await _storage.write(
-      key: SessionStorageKeys.refreshToken,
-      value: refreshToken,
-    );
+    // Batch both storage writes in parallel.
+    await Future.wait([
+      _storage.write(key: SessionStorageKeys.token, value: accessToken),
+      _storage.write(
+        key: SessionStorageKeys.refreshToken,
+        value: refreshToken,
+      ),
+    ]);
   }
 
   Future<void> _persistSession() async {
     final s = state;
-    if (s.token != null) {
-      await _storage.write(key: SessionStorageKeys.token, value: s.token!);
-    }
-    if (s.userId != null) {
-      await _storage.write(key: SessionStorageKeys.userId, value: s.userId!);
-    }
-    if (s.displayName != null) {
-      await _storage.write(
-        key: SessionStorageKeys.displayName,
-        value: s.displayName!,
-      );
-    }
+    // Batch all storage writes in parallel.
+    await Future.wait([
+      if (s.token != null)
+        _storage.write(key: SessionStorageKeys.token, value: s.token!),
+      if (s.userId != null)
+        _storage.write(key: SessionStorageKeys.userId, value: s.userId!),
+      if (s.displayName != null)
+        _storage.write(
+          key: SessionStorageKeys.displayName,
+          value: s.displayName!,
+        ),
+    ]);
   }
 
   Future<void> _hydrateAuthenticatedSession({
