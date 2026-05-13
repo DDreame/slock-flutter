@@ -22,14 +22,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('release-notes-list')), findsOneWidget);
-      expect(find.text('2026-05-03'), findsOneWidget);
+      expect(find.text('2026-05-11'), findsOneWidget);
     });
 
-    testWidgets('catalog has 59 versions from 2026-02-22 to 2026-05-03', (
+    testWidgets('catalog has 63 versions from 2026-02-22 to 2026-05-11', (
       tester,
     ) async {
-      expect(releaseNotesCatalog.length, 59);
-      expect(releaseNotesCatalog.first.date, '2026-05-03');
+      expect(releaseNotesCatalog.length, 63);
+      expect(releaseNotesCatalog.first.date, '2026-05-11');
       expect(releaseNotesCatalog.last.date, '2026-02-22');
     });
 
@@ -37,7 +37,7 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      // 2026-05-03 has feature, improvement, fix items
+      // 2026-05-11 has feature, improvement, fix items
       expect(find.text('NEW'), findsWidgets);
       expect(find.text('IMPROVED'), findsWidgets);
       expect(find.text('FIX'), findsWidgets);
@@ -48,9 +48,9 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      // First feature item from 2026-05-03
+      // First feature item from 2026-05-11
       expect(
-        find.textContaining('Inbox replaces the Threads tab'),
+        find.textContaining('Pinned sidebar section sorts by Manual'),
         findsOneWidget,
       );
     });
@@ -105,7 +105,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('release-notes-list')), findsOneWidget);
-      expect(find.text('2026-05-03'), findsOneWidget);
+      expect(find.text('2026-05-11'), findsOneWidget);
     });
 
     testWidgets('app bar shows localized title', (tester) async {
