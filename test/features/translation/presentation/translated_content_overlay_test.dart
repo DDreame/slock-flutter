@@ -69,9 +69,9 @@ void main() {
       status: TranslationEntryStatus.translated,
     );
 
-    final cacheState = TranslationCacheState(
+    const cacheState = TranslationCacheState(
       translations: {'msg-1': entry},
-      showTranslation: const {'msg-1': true},
+      showTranslation: {'msg-1': true},
     );
 
     await tester
