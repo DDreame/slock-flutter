@@ -231,6 +231,26 @@ void main() {
       expect(find.text('Hey, check this out!'), findsOneWidget);
     });
 
+    testWidgets('shows latestActivityPreview over preview when both present',
+        (tester) async {
+      repo.items = [
+        _makeItem(
+          channelId: 'ch-1',
+          channelName: '#general',
+          unread: 1,
+          senderName: 'Bob',
+          preview: 'Old message',
+          latestActivityPreview: 'Latest activity text',
+        ),
+      ];
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Latest activity text'), findsOneWidget);
+      expect(find.text('Old message'), findsNothing);
+    });
+
     testWidgets('pagination loads more on scroll to bottom', (tester) async {
       repo.items = List.generate(
         10,
@@ -271,6 +291,7 @@ InboxItem _makeItem({
   InboxItemKind kind = InboxItemKind.channel,
   String? senderName,
   String? preview,
+  String? latestActivityPreview,
 }) {
   return InboxItem(
     kind: kind,
@@ -279,6 +300,7 @@ InboxItem _makeItem({
     unreadCount: unread,
     senderName: senderName,
     preview: preview,
+    latestActivityPreview: latestActivityPreview,
     lastActivityAt: DateTime.now().subtract(const Duration(minutes: 5)),
   );
 }
