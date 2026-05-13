@@ -168,9 +168,79 @@ void main() {
       },
     );
   });
-}
 
-// ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // #494: Optimistic markDone with failure restore
+  // ---------------------------------------------------------------------------
+
+  group('ThreadsInboxStore markDone (#494)', () {
+    test(
+      'markDone optimistically removes item and restores on failure',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        // Initial load.
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        expect(
+          container.read(threadsInboxStoreProvider).items,
+          hasLength(1),
+        );
+
+        // Configure markThreadDone to fail.
+        repo.markDoneFailure = const ServerFailure(
+          message: 'Network error',
+          statusCode: 500,
+        );
+
+        // Call markDone — item should be optimistically removed, then
+        // restored when the async call fails.
+        await container
+            .read(threadsInboxStoreProvider.notifier)
+            .markDone(sampleItem);
+
+        final state = container.read(threadsInboxStoreProvider);
+        expect(state.items, hasLength(1),
+            reason: 'Item must be restored after markDone failure');
+        expect(state.items.first.routeTarget.threadChannelId, 'thread-ch-1');
+        expect(state.failure, isNotNull,
+            reason: 'Failure must be surfaced for UI feedback');
+        expect(state.failure, isA<ServerFailure>());
+      },
+    );
+
+    test(
+      'markDone removes item permanently on success',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        // Initial load.
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        expect(
+          container.read(threadsInboxStoreProvider).items,
+          hasLength(1),
+        );
+
+        // markDone succeeds (no failure configured).
+        await container
+            .read(threadsInboxStoreProvider.notifier)
+            .markDone(sampleItem);
+
+        final state = container.read(threadsInboxStoreProvider);
+        expect(state.items, isEmpty,
+            reason: 'Item must be permanently removed on success');
+        expect(state.failure, isNull);
+      },
+    );
+  });
+}
 // Fakes
 // ---------------------------------------------------------------------------
 
@@ -215,6 +285,7 @@ class _ControllableThreadRepository implements ThreadRepository {
 
   final List<ThreadInboxItem> initialItems;
   AppFailure? failure;
+  AppFailure? markDoneFailure;
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(
@@ -237,7 +308,9 @@ class _ControllableThreadRepository implements ThreadRepository {
   Future<void> markThreadDone(
     ServerScopeId serverId, {
     required String threadChannelId,
-  }) async {}
+  }) async {
+    if (markDoneFailure != null) throw markDoneFailure!;
+  }
 
   @override
   Future<void> markThreadRead(
