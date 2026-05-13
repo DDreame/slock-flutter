@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/scope/server_scope_id.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/settings/presentation/page/translation_settings_page.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
 import 'package:slock_app/features/translation/data/translation_settings.dart';
@@ -11,6 +13,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('srv-1')),
           translationSettingsStoreProvider.overrideWith(
             () => _PreloadedTranslationSettingsStore(
               const TranslationSettings(
@@ -56,6 +60,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('srv-1')),
           translationSettingsStoreProvider.overrideWith(
             () => _PreloadedTranslationSettingsStore(
               const TranslationSettings(
@@ -81,6 +87,8 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('srv-1')),
           translationSettingsStoreProvider.overrideWith(
             _LoadingTranslationSettingsStore.new,
           ),
@@ -95,6 +103,37 @@ void main() {
     await tester.pump();
 
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
+  });
+
+  testWidgets('shows no-server message when activeServerScopeId is null',
+      (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(null),
+          translationSettingsStoreProvider.overrideWith(
+            _InitialTranslationSettingsStore.new,
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const TranslationSettingsPage(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('translation-no-server')),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+          'No active workspace. Translation settings are workspace-level.'),
+      findsOneWidget,
+    );
+    // Settings body should not be rendered.
+    expect(find.text('Translation Mode'), findsNothing);
   });
 }
 
@@ -125,6 +164,18 @@ class _LoadingTranslationSettingsStore extends TranslationSettingsStore {
   TranslationSettingsState build() {
     return const TranslationSettingsState(
       status: TranslationSettingsStatus.loading,
+    );
+  }
+
+  @override
+  Future<void> load() async {}
+}
+
+class _InitialTranslationSettingsStore extends TranslationSettingsStore {
+  @override
+  TranslationSettingsState build() {
+    return const TranslationSettingsState(
+      status: TranslationSettingsStatus.initial,
     );
   }
 

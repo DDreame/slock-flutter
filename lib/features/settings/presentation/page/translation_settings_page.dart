@@ -4,6 +4,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
 import 'package:slock_app/features/translation/data/translation_settings.dart';
 
@@ -34,37 +35,61 @@ class _TranslationSettingsPageState
   Widget build(BuildContext context) {
     final state = ref.watch(translationSettingsStoreProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
+    final hasServer = ref.watch(activeServerScopeIdProvider) != null;
+
+    // Re-trigger load when store resets to initial (e.g. server switch).
+    ref.listen(translationSettingsStoreProvider, (prev, next) {
+      if (next.status == TranslationSettingsStatus.initial) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          ref.read(translationSettingsStoreProvider.notifier).ensureLoaded();
+        });
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Translation')),
-      body: state.status == TranslationSettingsStatus.loading
-          ? const Center(child: CircularProgressIndicator())
-          : state.status == TranslationSettingsStatus.failure
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        state.failure?.message ??
-                            'Failed to load translation settings.',
-                        style: AppTypography.body
-                            .copyWith(color: colors.textSecondary),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      FilledButton(
-                        key: const ValueKey('translation-retry'),
-                        onPressed: () => ref
-                            .read(translationSettingsStoreProvider.notifier)
-                            .load(),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : _SettingsBody(
-                  settings: state.settings,
-                  colors: colors,
+      body: !hasServer
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
+                child: Text(
+                  'No active workspace. Translation settings are workspace-level.',
+                  key: const ValueKey('translation-no-server'),
+                  style:
+                      AppTypography.body.copyWith(color: colors.textSecondary),
+                  textAlign: TextAlign.center,
                 ),
+              ),
+            )
+          : state.status == TranslationSettingsStatus.loading
+              ? const Center(child: CircularProgressIndicator())
+              : state.status == TranslationSettingsStatus.failure
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            state.failure?.message ??
+                                'Failed to load translation settings.',
+                            style: AppTypography.body
+                                .copyWith(color: colors.textSecondary),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          FilledButton(
+                            key: const ValueKey('translation-retry'),
+                            onPressed: () => ref
+                                .read(translationSettingsStoreProvider.notifier)
+                                .load(),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _SettingsBody(
+                      settings: state.settings,
+                      colors: colors,
+                    ),
     );
   }
 }

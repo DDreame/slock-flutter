@@ -42,6 +42,8 @@ class TranslationSettingsStore
     extends AutoDisposeNotifier<TranslationSettingsState> {
   @override
   TranslationSettingsState build() {
+    // Watch active server so the store resets when switching workspaces.
+    ref.watch(activeServerScopeIdProvider);
     return const TranslationSettingsState();
   }
 
@@ -86,16 +88,27 @@ class TranslationSettingsStore
   }
 
   /// Updates translation settings via the API.
+  ///
+  /// When no active server is available, the update is rejected and a
+  /// failure is surfaced (settings are server-scoped — cannot persist
+  /// without a workspace).
   Future<void> update(TranslationSettings settings) async {
+    final serverId = ref.read(activeServerScopeIdProvider);
+    if (serverId == null) {
+      state = state.copyWith(
+        failure: const UnknownFailure(
+          message: 'No active workspace — cannot save settings.',
+        ),
+      );
+      return;
+    }
+
     final previous = state;
 
     // Optimistically update local state.
     state = state.copyWith(settings: settings);
 
     try {
-      final serverId = ref.read(activeServerScopeIdProvider);
-      if (serverId == null) return;
-
       final repo = ref.read(translationRepositoryProvider);
       final updated = await repo.updateSettings(serverId, settings);
 
