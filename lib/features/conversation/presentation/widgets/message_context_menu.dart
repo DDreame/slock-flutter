@@ -26,6 +26,7 @@ void showMessageContextMenu({
   VoidCallback? onDelete,
   VoidCallback? onReplyInThread,
   VoidCallback? onCreateTask,
+  VoidCallback? onTranslate,
 }) {
   showModalBottomSheet<void>(
     context: context,
@@ -62,6 +63,16 @@ void showMessageContextMenu({
                 onReact();
               },
             ),
+            if (onTranslate != null)
+              ListTile(
+                key: const ValueKey('ctx-action-translate'),
+                leading: const Icon(Icons.translate),
+                title: const Text('Translate'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onTranslate();
+                },
+              ),
             ListTile(
               key: const ValueKey('ctx-action-copy'),
               leading: const Icon(Icons.copy_outlined),

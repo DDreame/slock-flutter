@@ -1,0 +1,159 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
+import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/features/translation/application/translation_cache_store.dart';
+
+/// Overlay widget that wraps message content and shows either the
+/// original or the translated version, with a status indicator and
+/// a toggle button.
+///
+/// INV-TRANSLATE-1: translation never replaces original — both are
+/// available via toggle.
+/// INV-TRANSLATE-2: translation status is always visible (spinner
+/// for pending, error icon for failed).
+class TranslatedContentOverlay extends ConsumerWidget {
+  const TranslatedContentOverlay({
+    super.key,
+    required this.messageId,
+    required this.originalChild,
+    required this.translatedContent,
+    required this.entry,
+  });
+
+  /// The message this overlay belongs to.
+  final String messageId;
+
+  /// The original message content widget (always available).
+  final Widget originalChild;
+
+  /// Pre-rendered translated content (null if not yet available).
+  final String? translatedContent;
+
+  /// The cached translation entry with status information.
+  final TranslationEntry entry;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final cacheState = ref.watch(translationCacheStoreProvider);
+    final isShowingTranslation = cacheState.showTranslation[messageId] ?? false;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Show original or translated content based on toggle state.
+        if (isShowingTranslation &&
+            entry.status == TranslationEntryStatus.translated &&
+            translatedContent != null)
+          Text(
+            translatedContent!,
+            key: const ValueKey('translated-content'),
+            style: AppTypography.body.copyWith(color: colors.text),
+          )
+        else
+          originalChild,
+
+        const SizedBox(height: AppSpacing.xs),
+
+        // Status indicator row.
+        _TranslationStatusRow(
+          key: ValueKey('translation-status-$messageId'),
+          messageId: messageId,
+          entry: entry,
+          isShowingTranslation: isShowingTranslation,
+          colors: colors,
+        ),
+      ],
+    );
+  }
+}
+
+class _TranslationStatusRow extends ConsumerWidget {
+  const _TranslationStatusRow({
+    super.key,
+    required this.messageId,
+    required this.entry,
+    required this.isShowingTranslation,
+    required this.colors,
+  });
+
+  final String messageId;
+  final TranslationEntry entry;
+  final bool isShowingTranslation;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Status icon.
+        if (entry.status == TranslationEntryStatus.pending)
+          SizedBox(
+            key: const ValueKey('translation-pending-spinner'),
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 1.5,
+              color: colors.textTertiary,
+            ),
+          )
+        else if (entry.status == TranslationEntryStatus.failed)
+          Icon(
+            Icons.error_outline,
+            key: const ValueKey('translation-failed-icon'),
+            size: 14,
+            color: colors.error,
+          )
+        else
+          Icon(
+            Icons.translate,
+            key: const ValueKey('translation-done-icon'),
+            size: 14,
+            color: colors.textTertiary,
+          ),
+
+        const SizedBox(width: 4),
+
+        // Toggle button.
+        if (entry.status == TranslationEntryStatus.translated)
+          GestureDetector(
+            key: const ValueKey('translation-toggle'),
+            onTap: () => ref
+                .read(translationCacheStoreProvider.notifier)
+                .toggleTranslation(messageId),
+            child: Text(
+              isShowingTranslation ? 'Show original' : 'Show translation',
+              style: AppTypography.caption.copyWith(
+                color: colors.primary,
+              ),
+            ),
+          )
+        else if (entry.status == TranslationEntryStatus.pending)
+          Text(
+            'Translating…',
+            key: const ValueKey('translation-pending-text'),
+            style: AppTypography.caption.copyWith(
+              color: colors.textTertiary,
+            ),
+          )
+        else
+          GestureDetector(
+            key: const ValueKey('translation-retry'),
+            onTap: () => ref
+                .read(translationCacheStoreProvider.notifier)
+                .translateMessage(messageId),
+            child: Text(
+              'Translation failed. Tap to retry.',
+              style: AppTypography.caption.copyWith(
+                color: colors.error,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
