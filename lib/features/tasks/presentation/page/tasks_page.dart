@@ -329,6 +329,7 @@ class _TasksSummaryHeader extends StatelessWidget {
     final progressCount = count('in_progress');
     final reviewCount = count('in_review');
     final doneCount = count('done');
+    final closedCount = count('closed');
 
     return Padding(
       key: const ValueKey('tasks-summary-header'),
@@ -363,6 +364,13 @@ class _TasksSummaryHeader extends StatelessWidget {
             count: doneCount,
             label: 'Done',
             color: colors.success,
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          _SummaryChip(
+            symbol: '✕',
+            count: closedCount,
+            label: 'Closed',
+            color: colors.textTertiary,
           ),
         ],
       ),
@@ -653,7 +661,7 @@ class _TasksListView extends StatelessWidget {
       (grouped[item.status] ??= []).add(item);
     }
 
-    const statusOrder = ['todo', 'in_progress', 'in_review', 'done'];
+    const statusOrder = ['todo', 'in_progress', 'in_review', 'done', 'closed'];
 
     return ListView(
       key: const ValueKey('tasks-list'),
@@ -713,6 +721,7 @@ class _TaskSectionLabel extends StatelessWidget {
       'in_progress' => 'In Progress',
       'in_review' => 'In Review',
       'done' => 'Done',
+      'closed' => '已关闭',
       _ => status,
     };
   }
@@ -729,6 +738,7 @@ String _statusSymbol(String status) {
     'in_progress' => '◐',
     'in_review' => '◑',
     'done' => '●',
+    'closed' => '✕',
     _ => '○',
   };
 }
@@ -740,6 +750,7 @@ Color _statusColor(String status, AppColors colors) {
     'in_progress' => colors.primary,
     'in_review' => colors.warning,
     'done' => colors.success,
+    'closed' => colors.textTertiary,
     _ => colors.textTertiary,
   };
 }
@@ -768,6 +779,8 @@ class _TaskRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDone = task.status == 'done';
+    final isClosed = task.status == 'closed';
+    final isTerminal = isDone || isClosed;
 
     Widget row = InkWell(
       key: ValueKey('task-${task.id}'),
@@ -795,7 +808,7 @@ class _TaskRow extends ConsumerWidget {
                 '#${task.taskNumber} ${task.title}',
                 style: AppTypography.body.copyWith(
                   color: colors.text,
-                  decoration: isDone ? TextDecoration.lineThrough : null,
+                  decoration: isTerminal ? TextDecoration.lineThrough : null,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -825,8 +838,8 @@ class _TaskRow extends ConsumerWidget {
       ),
     );
 
-    // Wrap with left-swipe "Done" action (only for non-done tasks).
-    if (!isDone) {
+    // Wrap with left-swipe "Done" action (only for active tasks).
+    if (!isTerminal) {
       row = SwipeActionWrapper(
         itemKey: task.id,
         enabled: true,
@@ -840,7 +853,7 @@ class _TaskRow extends ConsumerWidget {
       );
     }
 
-    if (isDone) {
+    if (isTerminal) {
       row = Opacity(
         key: ValueKey('task-row-opacity-${task.id}'),
         opacity: 0.5,
@@ -862,11 +875,17 @@ class _TaskRow extends ConsumerWidget {
 
   Future<void> _showTaskActions(BuildContext context) async {
     final actions = <ListActionItem>[
-      if (task.status != 'done')
+      if (task.status != 'done' && task.status != 'closed')
         const ListActionItem(
           key: 'task-action-done',
           label: 'Mark Done',
           icon: Icons.check_circle_outline,
+        ),
+      if (task.status != 'closed')
+        const ListActionItem(
+          key: 'task-action-close',
+          label: '关闭任务',
+          icon: Icons.close,
         ),
       if (task.status == 'todo')
         const ListActionItem(
@@ -880,7 +899,7 @@ class _TaskRow extends ConsumerWidget {
           label: 'Move to Review',
           icon: Icons.rate_review_outlined,
         ),
-      if (task.status == 'done')
+      if (task.status == 'done' || task.status == 'closed')
         const ListActionItem(
           key: 'task-action-reopen',
           label: 'Reopen',
@@ -928,6 +947,8 @@ class _TaskRow extends ConsumerWidget {
     switch (result) {
       case 'task-action-done':
         onStatusUpdate(task, 'done');
+      case 'task-action-close':
+        onStatusUpdate(task, 'closed');
       case 'task-action-start':
         onStatusUpdate(task, 'in_progress');
       case 'task-action-review':
