@@ -13,7 +13,7 @@ void main() {
   group('attachment inline preview routing', () {
     testWidgets('CSV attachment renders CsvPreviewWidget (INV-ATTACH-1)',
         (tester) async {
-      final attachment = MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'data.csv',
         type: 'text/csv',
         url: 'https://example.com/data.csv',
@@ -37,7 +37,7 @@ void main() {
 
     testWidgets('SVG attachment renders SvgPreviewWidget (INV-ATTACH-1)',
         (tester) async {
-      final attachment = MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'icon.svg',
         type: 'image/svg+xml',
         url: 'https://example.com/icon.svg',
@@ -63,7 +63,7 @@ void main() {
 
     testWidgets('Markdown attachment renders TextPreviewWidget (INV-ATTACH-1)',
         (tester) async {
-      final attachment = MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'readme.md',
         type: 'text/markdown',
         url: 'https://example.com/readme.md',
@@ -89,7 +89,7 @@ void main() {
     testWidgets(
         'Plain text attachment renders TextPreviewWidget (INV-ATTACH-1)',
         (tester) async {
-      final attachment = MessageAttachment(
+      const attachment = MessageAttachment(
         name: 'notes.txt',
         type: 'text/plain',
         url: 'https://example.com/notes.txt',
@@ -131,13 +131,13 @@ void main() {
 
     test('size gate constant is 1 MB (INV-ATTACH-3)', () {
       const oneMb = 1048576;
-      final small = MessageAttachment(
+      const small = MessageAttachment(
         name: 'small.csv',
         type: 'text/csv',
         url: 'https://example.com/small.csv',
         sizeBytes: oneMb - 1,
       );
-      final large = MessageAttachment(
+      const large = MessageAttachment(
         name: 'large.csv',
         type: 'text/csv',
         url: 'https://example.com/large.csv',

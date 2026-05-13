@@ -6,7 +6,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/csv_preview
 void main() {
   testWidgets('CSV preview renders table from fetched content (INV-ATTACH-1)',
       (tester) async {
-    final attachment = MessageAttachment(
+    const attachment = MessageAttachment(
       name: 'data.csv',
       type: 'text/csv',
       url: 'https://example.com/data.csv',
@@ -25,7 +25,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Should show the CSV table preview.
-    expect(find.byKey(ValueKey('csv-preview-data.csv')), findsOneWidget);
+    expect(find.byKey(const ValueKey('csv-preview-data.csv')), findsOneWidget);
     expect(find.text('Name'), findsOneWidget);
     expect(find.text('Alice'), findsOneWidget);
     expect(find.text('30'), findsOneWidget);
@@ -34,7 +34,7 @@ void main() {
   testWidgets('CSV preview shows fallback when fetch fails (INV-ATTACH-2)',
       (tester) async {
     final fallback = Container(key: const ValueKey('test-fallback'));
-    final attachment = MessageAttachment(
+    const attachment = MessageAttachment(
       name: 'broken.csv',
       type: 'text/csv',
       url: 'https://example.com/broken.csv',
@@ -60,7 +60,7 @@ void main() {
   testWidgets('CSV preview shows fallback when no URL (INV-ATTACH-2)',
       (tester) async {
     final fallback = Container(key: const ValueKey('test-fallback-no-url'));
-    final attachment = MessageAttachment(
+    const attachment = MessageAttachment(
       name: 'no-url.csv',
       type: 'text/csv',
     );

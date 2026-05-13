@@ -7,7 +7,7 @@ void main() {
   testWidgets(
       'SVG preview renders inline SVG from fetched content (INV-ATTACH-1)',
       (tester) async {
-    final attachment = MessageAttachment(
+    const attachment = MessageAttachment(
       name: 'icon.svg',
       type: 'image/svg+xml',
       url: 'https://example.com/icon.svg',
@@ -29,13 +29,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // Should show the SVG preview.
-    expect(find.byKey(ValueKey('svg-preview-icon.svg')), findsOneWidget);
+    expect(find.byKey(const ValueKey('svg-preview-icon.svg')), findsOneWidget);
   });
 
   testWidgets('SVG preview shows fallback when fetch fails (INV-ATTACH-2)',
       (tester) async {
     final fallback = Container(key: const ValueKey('test-fallback'));
-    final attachment = MessageAttachment(
+    const attachment = MessageAttachment(
       name: 'broken.svg',
       type: 'image/svg+xml',
       url: 'https://example.com/broken.svg',
@@ -60,7 +60,7 @@ void main() {
   testWidgets('SVG preview shows fallback when no URL (INV-ATTACH-2)',
       (tester) async {
     final fallback = Container(key: const ValueKey('test-fallback-no-url'));
-    final attachment = MessageAttachment(
+    const attachment = MessageAttachment(
       name: 'no-url.svg',
       type: 'image/svg+xml',
     );
