@@ -106,7 +106,7 @@ ConversationProjection projectInboxItem(
     id: _buildId(item),
     title: _buildTitle(item),
     previewText: MessagePreviewResolver.resolve(
-      content: item.preview,
+      content: item.latestActivityPreview ?? item.preview,
       messageType: item.messageType,
       isDeleted: item.isDeleted,
       attachments: item.attachments,

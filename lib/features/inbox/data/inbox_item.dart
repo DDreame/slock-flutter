@@ -39,6 +39,7 @@ class InboxItem {
     this.threadTitle,
     this.senderName,
     this.preview,
+    this.latestActivityPreview,
     this.unreadCount = 0,
     this.firstUnreadMessageId,
     this.lastActivityAt,
@@ -58,6 +59,7 @@ class InboxItem {
       threadTitle: json['threadTitle'] as String?,
       senderName: json['senderName'] as String?,
       preview: json['preview'] as String?,
+      latestActivityPreview: json['latestActivityPreview'] as String?,
       unreadCount: _parseInt(json['unreadCount']),
       firstUnreadMessageId: json['firstUnreadMessageId'] as String?,
       lastActivityAt: _parseDateTime(json['lastActivityAt']),
@@ -78,6 +80,11 @@ class InboxItem {
   final String? threadTitle;
   final String? senderName;
   final String? preview;
+
+  /// Preview text from the latest activity in the conversation.
+  /// When non-null, takes precedence over [preview] for display.
+  final String? latestActivityPreview;
+
   final int unreadCount;
   final String? firstUnreadMessageId;
   final DateTime? lastActivityAt;
@@ -112,6 +119,7 @@ class InboxItem {
       threadTitle: threadTitle,
       senderName: senderName,
       preview: preview,
+      latestActivityPreview: latestActivityPreview,
       unreadCount: unreadCount ?? this.unreadCount,
       firstUnreadMessageId: clearFirstUnreadMessageId
           ? null
@@ -137,6 +145,7 @@ class InboxItem {
             threadTitle == other.threadTitle &&
             senderName == other.senderName &&
             preview == other.preview &&
+            latestActivityPreview == other.latestActivityPreview &&
             unreadCount == other.unreadCount &&
             firstUnreadMessageId == other.firstUnreadMessageId &&
             lastActivityAt == other.lastActivityAt &&
@@ -155,6 +164,7 @@ class InboxItem {
         threadTitle,
         senderName,
         preview,
+        latestActivityPreview,
         unreadCount,
         firstUnreadMessageId,
         lastActivityAt,

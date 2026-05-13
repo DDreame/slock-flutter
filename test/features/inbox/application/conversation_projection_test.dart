@@ -271,6 +271,45 @@ void main() {
       final projection = projectInboxItem(item, serverId: serverId);
       expect(projection.title, 'Bug discussion');
     });
+
+    test('latestActivityPreview wins over preview when both non-null', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Old preview',
+        latestActivityPreview: 'Latest activity',
+        unreadCount: 1,
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, 'Latest activity');
+    });
+
+    test('falls back to preview when latestActivityPreview is null', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        preview: 'Regular preview',
+        unreadCount: 1,
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, 'Regular preview');
+    });
+
+    test('falls back to 新消息 when both previews are null', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        channelName: 'general',
+        unreadCount: 1,
+      );
+
+      final projection = projectInboxItem(item, serverId: serverId);
+      expect(projection.previewText, MessagePreviewResolver.fallbackPreview);
+    });
   });
 
   group('projectInboxItems', () {

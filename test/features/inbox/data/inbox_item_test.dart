@@ -22,6 +22,7 @@ void main() {
       expect(item.channelName, 'general');
       expect(item.senderName, 'Alice');
       expect(item.preview, 'Hello everyone');
+      expect(item.latestActivityPreview, isNull);
       expect(item.unreadCount, 5);
       expect(item.firstUnreadMessageId, 'msg-100');
       expect(item.lastActivityAt, DateTime.utc(2026, 5, 1, 12));
@@ -171,6 +172,36 @@ void main() {
 
       expect(item.lastActivityAt, isNull);
     });
+
+    test('parses latestActivityPreview from JSON', () {
+      final json = <String, dynamic>{
+        'kind': 'channel',
+        'channelId': 'ch-8',
+        'channelName': 'general',
+        'preview': 'Old preview',
+        'latestActivityPreview': 'Latest activity text',
+        'unreadCount': 2,
+      };
+
+      final item = InboxItem.fromJson(json);
+
+      expect(item.preview, 'Old preview');
+      expect(item.latestActivityPreview, 'Latest activity text');
+    });
+
+    test('latestActivityPreview is null when absent from JSON', () {
+      final json = <String, dynamic>{
+        'kind': 'channel',
+        'channelId': 'ch-9',
+        'channelName': 'general',
+        'preview': 'Some preview',
+        'unreadCount': 1,
+      };
+
+      final item = InboxItem.fromJson(json);
+
+      expect(item.latestActivityPreview, isNull);
+    });
   });
 
   group('InboxItem equality', () {
@@ -205,6 +236,39 @@ void main() {
         unreadCount: 5,
       );
       expect(a, isNot(equals(b)));
+    });
+
+    test('items with different latestActivityPreview are not equal', () {
+      const a = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        preview: 'Same',
+        latestActivityPreview: 'Activity A',
+        unreadCount: 1,
+      );
+      const b = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        preview: 'Same',
+        latestActivityPreview: 'Activity B',
+        unreadCount: 1,
+      );
+      expect(a, isNot(equals(b)));
+    });
+
+    test('copyWith preserves latestActivityPreview', () {
+      const item = InboxItem(
+        kind: InboxItemKind.channel,
+        channelId: 'ch-1',
+        preview: 'Old',
+        latestActivityPreview: 'Latest',
+        unreadCount: 5,
+      );
+
+      final copied = item.copyWith(unreadCount: 0);
+
+      expect(copied.latestActivityPreview, 'Latest');
+      expect(copied.unreadCount, 0);
     });
   });
 
