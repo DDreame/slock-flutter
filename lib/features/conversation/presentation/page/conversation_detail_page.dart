@@ -10,8 +10,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_content_widget.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/svg_preview_widget.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/text_preview_widget.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
@@ -2263,7 +2266,32 @@ class _AttachmentSection extends StatelessWidget {
     'text/html',
   };
 
+  static const _csvTypes = {
+    'text/csv',
+    'application/csv',
+  };
+
+  static const _svgTypes = {
+    'image/svg+xml',
+  };
+
+  static const _markdownTypes = {
+    'text/markdown',
+    'text/x-markdown',
+  };
+
+  static const _textTypes = {
+    'text/plain',
+  };
+
+  /// Size limit for inline previews (1 MB). Larger files fall back to the
+  /// generic attachment row (INV-ATTACH-3).
+  static const _inlinePreviewSizeLimit = 1048576;
+
   static bool _isAudioType(String mimeType) => mimeType.startsWith('audio/');
+
+  static bool _isMarkdownByExtension(String name) =>
+      name.endsWith('.md') || name.endsWith('.markdown');
 
   @override
   Widget build(BuildContext context) {
@@ -2300,6 +2328,29 @@ class _AttachmentSection extends StatelessWidget {
 
     if (_isAudioType(mimeType) && attachment.url != null) {
       return _AudioAttachmentRow(attachment: attachment);
+    }
+
+    // Size gate (INV-ATTACH-3): skip inline preview for large files.
+    if (attachment.sizeBytes != null &&
+        attachment.sizeBytes! > _inlinePreviewSizeLimit) {
+      return _GenericFileAttachmentRow(attachment: attachment);
+    }
+
+    if (_csvTypes.contains(mimeType)) {
+      return CsvPreviewWidget(attachment: attachment);
+    }
+
+    if (_svgTypes.contains(mimeType)) {
+      return SvgPreviewWidget(attachment: attachment);
+    }
+
+    if (_markdownTypes.contains(mimeType) ||
+        _isMarkdownByExtension(attachment.name)) {
+      return TextPreviewWidget(attachment: attachment, isMarkdown: true);
+    }
+
+    if (_textTypes.contains(mimeType)) {
+      return TextPreviewWidget(attachment: attachment, isMarkdown: false);
     }
 
     return _GenericFileAttachmentRow(attachment: attachment);
