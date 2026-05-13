@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/features/announcements/presentation/widget/announcement_banner.dart';
 import 'package:slock_app/features/inbox/application/inbox_unread_count_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -33,7 +34,12 @@ class AppShell extends ConsumerWidget {
     final homeUnreadTotal = ref.watch(inboxTotalUnreadCountProvider);
 
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          const AnnouncementBanner(),
+          Expanded(child: navigationShell),
+        ],
+      ),
       bottomNavigationBar: showBottomNavigation
           ? NavigationBar(
               key: const ValueKey('app-bottom-nav'),
