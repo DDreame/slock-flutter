@@ -158,6 +158,14 @@ int? readOptionalConversationPayloadInt(Object? value) {
   return null;
 }
 
+/// Safely parses a DateTime from an optional ISO 8601 string value.
+/// Returns null when the value is absent, empty, or malformed.
+DateTime? _tryParseDateTime(Object? value) {
+  final raw = readOptionalConversationPayloadString(value);
+  if (raw == null) return null;
+  return DateTime.tryParse(raw);
+}
+
 class MessageUpdatedPayload {
   const MessageUpdatedPayload({
     required this.id,
@@ -281,6 +289,7 @@ List<MessageAttachment>? parseAttachments(Object? value) {
       id: readOptionalConversationPayloadString(map['id']),
       sizeBytes: readOptionalConversationPayloadInt(map['sizeBytes']),
       thumbnailUrl: thumbnailUrl,
+      createdAt: _tryParseDateTime(map['createdAt']),
     ));
   }
   return results.isEmpty ? null : results;

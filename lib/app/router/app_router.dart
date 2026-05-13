@@ -17,6 +17,7 @@ import 'package:slock_app/features/channels/presentation/page/channel_page.dart'
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/page/channel_files_page.dart';
 import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
@@ -304,6 +305,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           );
         },
+      ),
+      GoRoute(
+        path: '/servers/:serverId/channels/:channelId/files',
+        redirect: syncServerSelection,
+        builder: (context, state) => ChannelFilesPage(
+          serverId: state.pathParameters['serverId']!,
+          channelId: state.pathParameters['channelId']!,
+        ),
       ),
       GoRoute(
         path: '/file-preview',
