@@ -14,6 +14,7 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -756,6 +757,38 @@ void main() {
       expect(find.byIcon(Icons.tag), findsOneWidget);
       expect(find.byIcon(Icons.lock), findsNothing,
           reason: 'INV-PRIVATE-3: Default isPrivate=false shows tag not lock');
+    },
+  );
+
+  testWidgets(
+    'pinned private channel still shows lock icon (INV-PRIVATE-1)',
+    (tester) async {
+      // Pinned channels come from SidebarOrder. To test the icon
+      // priority directly, we use HomeChannelRow in isolation.
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: HomeChannelRow(
+              channel: channelSecret,
+              isPinned: true,
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Private indicator must survive pinned state.
+      expect(
+        find.byKey(const ValueKey('channel-private-badge')),
+        findsOneWidget,
+        reason:
+            'INV-PRIVATE-1: Pinned private channel must still show lock icon',
+      );
+      expect(find.byIcon(Icons.lock), findsOneWidget);
+      expect(find.byIcon(Icons.push_pin), findsNothing,
+          reason: 'Lock takes priority over pin for private channels');
     },
   );
 }
