@@ -37,7 +37,7 @@ void main() {
 
   testWidgets('shows original content and toggle when translated',
       (tester) async {
-    final entry = const TranslationEntry(
+    const entry = TranslationEntry(
       messageId: 'msg-1',
       translatedContent: 'こんにちは',
       sourceLanguage: 'en',
@@ -61,7 +61,7 @@ void main() {
   });
 
   testWidgets('shows translated content when toggle is active', (tester) async {
-    final entry = const TranslationEntry(
+    const entry = TranslationEntry(
       messageId: 'msg-1',
       translatedContent: 'こんにちは',
       sourceLanguage: 'en',
@@ -88,7 +88,7 @@ void main() {
   });
 
   testWidgets('shows spinner when translation is pending', (tester) async {
-    final entry = const TranslationEntry(
+    const entry = TranslationEntry(
       messageId: 'msg-1',
       status: TranslationEntryStatus.pending,
     );
@@ -110,7 +110,7 @@ void main() {
 
   testWidgets('shows error icon and retry when translation failed',
       (tester) async {
-    final entry = const TranslationEntry(
+    const entry = TranslationEntry(
       messageId: 'msg-1',
       status: TranslationEntryStatus.failed,
     );
