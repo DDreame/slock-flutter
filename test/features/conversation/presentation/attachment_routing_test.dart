@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/svg_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/text_preview_widget.dart';
 
-/// These tests exercise the attachment routing logic in
-/// `_AttachmentSection._buildAttachmentWidget` via the public
-/// `_AttachmentSection` widget. They verify MIME-type branching
-/// and the 1 MB size gate.
-///
-/// Because `_AttachmentSection` is private to conversation_detail_page.dart,
-/// we test the individual preview widgets with known MIME types. The routing
-/// logic itself is validated by checking which widget type appears for each
-/// attachment configuration.
+/// Tests for the attachment routing logic in `_AttachmentSection`.
+/// Since `_AttachmentSection` is private, we verify each preview widget
+/// renders correctly for its MIME type, and test the size gate boundary
+/// via unit assertions.
 void main() {
   group('attachment inline preview routing', () {
     testWidgets('CSV attachment renders CsvPreviewWidget (INV-ATTACH-1)',
@@ -27,14 +21,16 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: CsvPreviewWidget(attachment: attachment),
+        MaterialApp(
+          home: Scaffold(
+            body: CsvPreviewWidget(
+              attachment: attachment,
+              contentFetcher: (url) async => 'a,b\n1,2',
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(CsvPreviewWidget), findsOneWidget);
     });
@@ -49,21 +45,24 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: SvgPreviewWidget(attachment: attachment),
+        MaterialApp(
+          home: Scaffold(
+            body: SvgPreviewWidget(
+              attachment: attachment,
+              contentFetcher: (url) async =>
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+                  '<rect width="10" height="10"/></svg>',
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(SvgPreviewWidget), findsOneWidget);
     });
 
-    testWidgets(
-        'Markdown attachment renders TextPreviewWidget with isMarkdown '
-        '(INV-ATTACH-1)', (tester) async {
+    testWidgets('Markdown attachment renders TextPreviewWidget (INV-ATTACH-1)',
+        (tester) async {
       final attachment = MessageAttachment(
         name: 'readme.md',
         type: 'text/markdown',
@@ -72,21 +71,24 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: TextPreviewWidget(attachment: attachment, isMarkdown: true),
+        MaterialApp(
+          home: Scaffold(
+            body: TextPreviewWidget(
+              attachment: attachment,
+              isMarkdown: true,
+              contentFetcher: (url) async => '# Title',
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(TextPreviewWidget), findsOneWidget);
     });
 
     testWidgets(
-        'Plain text attachment renders TextPreviewWidget without isMarkdown '
-        '(INV-ATTACH-1)', (tester) async {
+        'Plain text attachment renders TextPreviewWidget (INV-ATTACH-1)',
+        (tester) async {
       final attachment = MessageAttachment(
         name: 'notes.txt',
         type: 'text/plain',
@@ -95,39 +97,28 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body:
-                  TextPreviewWidget(attachment: attachment, isMarkdown: false),
+        MaterialApp(
+          home: Scaffold(
+            body: TextPreviewWidget(
+              attachment: attachment,
+              isMarkdown: false,
+              contentFetcher: (url) async => 'hello',
             ),
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.byType(TextPreviewWidget), findsOneWidget);
     });
 
     testWidgets('unknown type does not render any preview widget',
         (tester) async {
-      // This tests that unknown MIME types don't accidentally match a preview.
-      final attachment = MessageAttachment(
-        name: 'archive.zip',
-        type: 'application/zip',
-        url: 'https://example.com/archive.zip',
-        sizeBytes: 500000,
-      );
-
       await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: Builder(
-                builder: (context) {
-                  // Verify none of the preview widget types are returned.
-                  return const Text('no-preview');
-                },
-              ),
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => const Text('no-preview'),
             ),
           ),
         ),
@@ -139,37 +130,33 @@ void main() {
     });
 
     test('size gate constant is 1 MB (INV-ATTACH-3)', () {
-      // The _inlinePreviewSizeLimit constant is 1048576 (1 MB).
-      // This test documents the expected boundary for the size gate.
       const oneMb = 1048576;
-      final smallAttachment = MessageAttachment(
+      final small = MessageAttachment(
         name: 'small.csv',
         type: 'text/csv',
         url: 'https://example.com/small.csv',
         sizeBytes: oneMb - 1,
       );
-      final largeAttachment = MessageAttachment(
+      final large = MessageAttachment(
         name: 'large.csv',
         type: 'text/csv',
         url: 'https://example.com/large.csv',
         sizeBytes: oneMb + 1,
       );
 
-      // Small file should be eligible for inline preview.
-      expect(smallAttachment.sizeBytes! <= oneMb, isTrue,
+      expect(small.sizeBytes! <= oneMb, isTrue,
           reason: 'INV-ATTACH-3: files <= 1MB should get inline preview');
-      // Large file should be skipped.
-      expect(largeAttachment.sizeBytes! > oneMb, isTrue,
+      expect(large.sizeBytes! > oneMb, isTrue,
           reason: 'INV-ATTACH-3: files > 1MB should skip inline preview');
     });
 
     test('.md extension triggers markdown detection', () {
-      const mdExts = ['.md', '.markdown'];
-      for (final ext in mdExts) {
+      for (final ext in ['.md', '.markdown']) {
         expect(
-            'readme$ext'.endsWith('.md') || 'readme$ext'.endsWith('.markdown'),
-            isTrue,
-            reason: 'Extension $ext should be detected as markdown');
+          'readme$ext'.endsWith('.md') || 'readme$ext'.endsWith('.markdown'),
+          isTrue,
+          reason: 'Extension $ext should be detected as markdown',
+        );
       }
     });
   });

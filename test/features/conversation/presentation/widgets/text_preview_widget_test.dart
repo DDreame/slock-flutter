@@ -5,8 +5,8 @@ import 'package:slock_app/features/conversation/presentation/widgets/text_previe
 
 void main() {
   testWidgets(
-      'Markdown text preview shows loading then markdown body (INV-ATTACH-1)',
-      (tester) async {
+      'Markdown text preview renders MarkdownBody from fetched content '
+      '(INV-ATTACH-1)', (tester) async {
     final attachment = MessageAttachment(
       name: 'readme.md',
       type: 'text/markdown',
@@ -16,16 +16,21 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: TextPreviewWidget(attachment: attachment, isMarkdown: true),
+          body: TextPreviewWidget(
+            attachment: attachment,
+            isMarkdown: true,
+            contentFetcher: (url) async => '# Hello\n\nThis is **bold**.',
+          ),
         ),
       ),
     );
+    await tester.pumpAndSettle();
 
-    // Initially shows loading state.
-    expect(find.byKey(ValueKey('text-loading-readme.md')), findsOneWidget);
+    expect(find.byKey(ValueKey('text-preview-readme.md')), findsOneWidget);
+    expect(find.text('Hello'), findsOneWidget);
   });
 
-  testWidgets('Plain text preview shows loading initially (INV-ATTACH-1)',
+  testWidgets('Plain text preview renders monospace text (INV-ATTACH-1)',
       (tester) async {
     final attachment = MessageAttachment(
       name: 'notes.txt',
@@ -36,33 +41,67 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: TextPreviewWidget(attachment: attachment, isMarkdown: false),
+          body: TextPreviewWidget(
+            attachment: attachment,
+            isMarkdown: false,
+            contentFetcher: (url) async => 'plain text content here',
+          ),
         ),
       ),
     );
+    await tester.pumpAndSettle();
 
-    // Initially shows loading state.
-    expect(find.byKey(ValueKey('text-loading-notes.txt')), findsOneWidget);
+    expect(find.byKey(ValueKey('text-preview-notes.txt')), findsOneWidget);
+    expect(find.text('plain text content here'), findsOneWidget);
+  });
+
+  testWidgets('Text preview shows fallback when fetch fails (INV-ATTACH-2)',
+      (tester) async {
+    final fallback = Container(key: const ValueKey('test-fallback'));
+    final attachment = MessageAttachment(
+      name: 'broken.txt',
+      type: 'text/plain',
+      url: 'https://example.com/broken.txt',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TextPreviewWidget(
+            attachment: attachment,
+            isMarkdown: false,
+            fallback: fallback,
+            contentFetcher: (url) async => throw Exception('network error'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('test-fallback')), findsOneWidget);
   });
 
   testWidgets('Text preview shows fallback when no URL (INV-ATTACH-2)',
       (tester) async {
+    final fallback = Container(key: const ValueKey('test-fallback-no-url'));
     final attachment = MessageAttachment(
-      name: 'broken.txt',
+      name: 'no-url.txt',
       type: 'text/plain',
     );
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: TextPreviewWidget(attachment: attachment, isMarkdown: false),
+          body: TextPreviewWidget(
+            attachment: attachment,
+            isMarkdown: false,
+            fallback: fallback,
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Should show fallback with error.
-    expect(find.byKey(ValueKey('text-fallback-broken.txt')), findsOneWidget);
-    expect(find.text('No download URL'), findsOneWidget);
+    expect(find.byKey(const ValueKey('test-fallback-no-url')), findsOneWidget);
   });
 }

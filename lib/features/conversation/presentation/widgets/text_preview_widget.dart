@@ -3,22 +3,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
+/// Signature for the content-fetch callback.
+typedef ContentFetcher = Future<String> Function(String url);
+
+Future<String> _defaultFetcher(String url) async {
+  final response = await Dio().get<String>(
+    url,
+    options: Options(responseType: ResponseType.plain),
+  );
+  return response.data ?? '';
+}
+
 /// Inline preview for text-based attachments — Markdown or plain text
 /// (INV-ATTACH-1).
 ///
 /// When [isMarkdown] is true, renders with [MarkdownBody]. Otherwise
 /// renders plain text in a monospace font. Shows at most [_maxPreviewChars]
 /// characters; the rest is behind a "Show more" toggle.
-/// On error, shows a fallback row (INV-ATTACH-2).
+/// On error, renders [fallback] (INV-ATTACH-2).
 class TextPreviewWidget extends StatefulWidget {
   const TextPreviewWidget({
     super.key,
     required this.attachment,
     required this.isMarkdown,
+    this.fallback,
+    this.contentFetcher,
   });
 
   final MessageAttachment attachment;
   final bool isMarkdown;
+
+  /// Widget to render on failure. When provided from the attachment router,
+  /// this is `_GenericFileAttachmentRow` which preserves file-open behavior.
+  final Widget? fallback;
+
+  /// Injectable content fetcher for testing.
+  final ContentFetcher? contentFetcher;
 
   @override
   State<TextPreviewWidget> createState() => _TextPreviewWidgetState();
@@ -29,7 +49,7 @@ class _TextPreviewWidgetState extends State<TextPreviewWidget> {
 
   String? _content;
   bool _loading = true;
-  String? _error;
+  bool _error = false;
   bool _expanded = false;
 
   @override
@@ -41,16 +61,13 @@ class _TextPreviewWidgetState extends State<TextPreviewWidget> {
   Future<void> _fetchContent() async {
     final url = widget.attachment.url;
     if (url == null || url.isEmpty) {
-      if (mounted) setState(() => _error = 'No download URL');
+      if (mounted) setState(() => _error = true);
       return;
     }
     try {
-      final response = await Dio().get<String>(
-        url,
-        options: Options(responseType: ResponseType.plain),
-      );
+      final fetcher = widget.contentFetcher ?? _defaultFetcher;
+      final content = await fetcher(url);
       if (!mounted) return;
-      final content = response.data ?? '';
       setState(() {
         _content = content;
         _loading = false;
@@ -58,7 +75,7 @@ class _TextPreviewWidgetState extends State<TextPreviewWidget> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Failed to load content';
+        _error = true;
         _loading = false;
       });
     }
@@ -66,12 +83,12 @@ class _TextPreviewWidgetState extends State<TextPreviewWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) {
-      return _FallbackRow(
-        key: ValueKey('text-fallback-${widget.attachment.name}'),
-        attachment: widget.attachment,
-        errorHint: _error!,
-      );
+    if (_error) {
+      return widget.fallback ??
+          _DefaultFallback(
+            key: ValueKey('text-fallback-${widget.attachment.name}'),
+            name: widget.attachment.name,
+          );
     }
 
     if (_loading) {
@@ -158,16 +175,11 @@ class _TextPreviewWidgetState extends State<TextPreviewWidget> {
   }
 }
 
-/// Minimal fallback row shown when preview fails (INV-ATTACH-2).
-class _FallbackRow extends StatelessWidget {
-  const _FallbackRow({
-    super.key,
-    required this.attachment,
-    required this.errorHint,
-  });
+/// Simple fallback used when no [TextPreviewWidget.fallback] is provided.
+class _DefaultFallback extends StatelessWidget {
+  const _DefaultFallback({super.key, required this.name});
 
-  final MessageAttachment attachment;
-  final String errorHint;
+  final String name;
 
   @override
   Widget build(BuildContext context) {
@@ -175,25 +187,13 @@ class _FallbackRow extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.attach_file,
-          size: 16,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
+        Icon(Icons.attach_file,
+            size: 16, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(width: 4),
         Flexible(
-          child: Text(
-            attachment.name,
-            style: theme.textTheme.bodySmall,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          errorHint,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.error,
-          ),
+          child: Text(name,
+              style: theme.textTheme.bodySmall,
+              overflow: TextOverflow.ellipsis),
         ),
       ],
     );

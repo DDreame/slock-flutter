@@ -4,45 +4,79 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
 
 void main() {
-  testWidgets('CSV preview shows loading then table on success (INV-ATTACH-1)',
+  testWidgets('CSV preview renders table from fetched content (INV-ATTACH-1)',
       (tester) async {
-    // Use a data URI to avoid real HTTP calls.
     final attachment = MessageAttachment(
       name: 'data.csv',
       type: 'text/csv',
-      url: 'data:text/csv,Name%2CAge%0AAlice%2C30%0ABob%2C25',
+      url: 'https://example.com/data.csv',
     );
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: CsvPreviewWidget(attachment: attachment),
-        ),
-      ),
-    );
-
-    // Initially shows loading state.
-    expect(find.byKey(ValueKey('csv-loading-data.csv')), findsOneWidget);
-  });
-
-  testWidgets('CSV preview shows fallback when no URL (INV-ATTACH-2)',
-      (tester) async {
-    final attachment = MessageAttachment(
-      name: 'broken.csv',
-      type: 'text/csv',
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CsvPreviewWidget(attachment: attachment),
+          body: CsvPreviewWidget(
+            attachment: attachment,
+            contentFetcher: (url) async => 'Name,Age\nAlice,30\nBob,25',
+          ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    // Should show fallback with error.
-    expect(find.byKey(ValueKey('csv-fallback-broken.csv')), findsOneWidget);
-    expect(find.text('No download URL'), findsOneWidget);
+    // Should show the CSV table preview.
+    expect(find.byKey(ValueKey('csv-preview-data.csv')), findsOneWidget);
+    expect(find.text('Name'), findsOneWidget);
+    expect(find.text('Alice'), findsOneWidget);
+    expect(find.text('30'), findsOneWidget);
+  });
+
+  testWidgets('CSV preview shows fallback when fetch fails (INV-ATTACH-2)',
+      (tester) async {
+    final fallback = Container(key: const ValueKey('test-fallback'));
+    final attachment = MessageAttachment(
+      name: 'broken.csv',
+      type: 'text/csv',
+      url: 'https://example.com/broken.csv',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CsvPreviewWidget(
+            attachment: attachment,
+            fallback: fallback,
+            contentFetcher: (url) async => throw Exception('network error'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Should show the injected fallback widget.
+    expect(find.byKey(const ValueKey('test-fallback')), findsOneWidget);
+  });
+
+  testWidgets('CSV preview shows fallback when no URL (INV-ATTACH-2)',
+      (tester) async {
+    final fallback = Container(key: const ValueKey('test-fallback-no-url'));
+    final attachment = MessageAttachment(
+      name: 'no-url.csv',
+      type: 'text/csv',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CsvPreviewWidget(
+            attachment: attachment,
+            fallback: fallback,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('test-fallback-no-url')), findsOneWidget);
   });
 }

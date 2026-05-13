@@ -2336,21 +2336,37 @@ class _AttachmentSection extends StatelessWidget {
       return _GenericFileAttachmentRow(attachment: attachment);
     }
 
+    final genericFallback = _GenericFileAttachmentRow(attachment: attachment);
+
     if (_csvTypes.contains(mimeType)) {
-      return CsvPreviewWidget(attachment: attachment);
+      return CsvPreviewWidget(
+        attachment: attachment,
+        fallback: genericFallback,
+      );
     }
 
     if (_svgTypes.contains(mimeType)) {
-      return SvgPreviewWidget(attachment: attachment);
+      return SvgPreviewWidget(
+        attachment: attachment,
+        fallback: genericFallback,
+      );
     }
 
     if (_markdownTypes.contains(mimeType) ||
         _isMarkdownByExtension(attachment.name)) {
-      return TextPreviewWidget(attachment: attachment, isMarkdown: true);
+      return TextPreviewWidget(
+        attachment: attachment,
+        isMarkdown: true,
+        fallback: genericFallback,
+      );
     }
 
     if (_textTypes.contains(mimeType)) {
-      return TextPreviewWidget(attachment: attachment, isMarkdown: false);
+      return TextPreviewWidget(
+        attachment: attachment,
+        isMarkdown: false,
+        fallback: genericFallback,
+      );
     }
 
     return _GenericFileAttachmentRow(attachment: attachment);
