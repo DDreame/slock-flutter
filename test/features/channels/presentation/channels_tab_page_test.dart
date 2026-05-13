@@ -16,6 +16,9 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -73,6 +76,7 @@ void main() {
     required HomeRepository homeRepository,
     ServerScopeId? activeServerId = serverId,
     ChannelManagementRepository? channelManagementRepository,
+    InboxRepository? inboxRepository,
     GoRouter? router,
   }) {
     final effectiveRouter = router ??
@@ -117,6 +121,8 @@ void main() {
           channelManagementRepositoryProvider.overrideWithValue(
             channelManagementRepository,
           ),
+        if (inboxRepository != null)
+          inboxRepositoryProvider.overrideWithValue(inboxRepository),
       ],
       child: MaterialApp.router(
         routerConfig: effectiveRouter,
@@ -420,6 +426,129 @@ void main() {
 
     expect(repo.loadCount, greaterThan(1));
   });
+
+  // -----------------------------------------------------------------
+  // Mark-all-read button (INV-MARK-ALL)
+  // -----------------------------------------------------------------
+
+  testWidgets(
+    'mark-all-read button visible when channel has unread (INV-MARK-ALL-1)',
+    (tester) async {
+      final inboxRepo = _FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'general',
+              channelName: 'general',
+              unreadCount: 3,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 3,
+          hasMore: false,
+        ),
+      );
+
+      await tester.pumpWidget(buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        inboxRepository: inboxRepo,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+        findsOneWidget,
+        reason:
+            'INV-MARK-ALL-1: Button should be visible when channels have unread',
+      );
+    },
+  );
+
+  testWidgets(
+    'mark-all-read button hidden when no channel unreads (INV-MARK-ALL-1)',
+    (tester) async {
+      final inboxRepo = _FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'general',
+              channelName: 'general',
+              unreadCount: 0,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 0,
+          hasMore: false,
+        ),
+      );
+
+      await tester.pumpWidget(buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        inboxRepository: inboxRepo,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+        findsNothing,
+        reason:
+            'INV-MARK-ALL-1: Button should be hidden when no channel unreads',
+      );
+    },
+  );
+
+  testWidgets(
+    'tapping mark-all-read zeroes unread and hides button (INV-MARK-ALL-2)',
+    (tester) async {
+      final inboxRepo = _FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'general',
+              channelName: 'general',
+              unreadCount: 5,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 5,
+          hasMore: false,
+        ),
+      );
+
+      await tester.pumpWidget(buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        inboxRepository: inboxRepo,
+      ));
+      await tester.pumpAndSettle();
+
+      // Button should be visible before tap.
+      expect(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+        findsOneWidget,
+      );
+
+      // Tap the button.
+      await tester.tap(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+      );
+      await tester.pumpAndSettle();
+
+      // Button should disappear after optimistic update.
+      expect(
+        find.byKey(const ValueKey('channels-tab-mark-all-read')),
+        findsNothing,
+        reason:
+            'INV-MARK-ALL-2: Button should disappear after tap (optimistic)',
+      );
+
+      // markAllRead should have been called.
+      expect(inboxRepo.markAllReadCalled, isTrue,
+          reason: 'markAllRead should have been called');
+    },
+  );
 }
 
 // ----  Fakes  ----
@@ -673,4 +802,37 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     ServerScopeId serverId, {
     required String channelId,
   }) async {}
+}
+
+class _FakeInboxRepository implements InboxRepository {
+  _FakeInboxRepository({required this.fetchResponse});
+
+  final InboxResponse fetchResponse;
+  bool markAllReadCalled = false;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async =>
+      fetchResponse;
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {
+    markAllReadCalled = true;
+  }
 }

@@ -13,6 +13,7 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/persisted_agent_names.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
@@ -57,6 +58,16 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       appBar: AppBar(
         title: Text(l10n.dmsTabTitle),
         actions: [
+          if (state.status == HomeListStatus.success &&
+              unreadState.dmUnreadTotal > 0)
+            IconButton(
+              key: const ValueKey('dms-tab-mark-all-read'),
+              icon: const Icon(Icons.done_all),
+              tooltip: 'Mark all read',
+              onPressed: () {
+                ref.read(inboxStoreProvider.notifier).markAllRead();
+              },
+            ),
           IconButton(
             key: const ValueKey('dms-tab-create-button'),
             icon: const Icon(Icons.add),
