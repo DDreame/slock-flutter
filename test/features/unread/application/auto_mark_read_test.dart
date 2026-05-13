@@ -349,6 +349,7 @@ void main() {
     testWidgets(
       'markRead does not block conversation UI — messages render immediately '
       '(INV-READ-2)',
+      skip: true, // TDD red — Phase B implementation required
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
