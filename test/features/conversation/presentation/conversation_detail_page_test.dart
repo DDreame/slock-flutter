@@ -10,11 +10,14 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
@@ -1945,31 +1948,56 @@ Widget _buildApp({
   required Widget child,
   SessionState sessionState = const SessionState(),
 }) {
-  return InheritedGoRouter(
-    goRouter: _testGoRouter(),
-    child: ProviderScope(
-      overrides: [
-        conversationRepositoryProvider.overrideWithValue(repository),
-        sessionStoreProvider.overrideWith(
-          () => _FixedSessionStore(sessionState),
-        ),
-      ],
-      child: MaterialApp(
-        theme: AppTheme.light,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        home: child,
+  return ProviderScope(
+    overrides: [
+      conversationRepositoryProvider.overrideWithValue(repository),
+      sessionStoreProvider.overrideWith(
+        () => _FixedSessionStore(sessionState),
       ),
+    ],
+    child: MaterialApp.router(
+      routerConfig: _testGoRouter(home: child),
+      theme: AppTheme.light,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
     ),
   );
 }
 
-/// No-op GoRouter for tests.  Pages use GoRouter context extensions
-/// (context.push, context.canPop, etc.) which require a GoRouter ancestor.
-GoRouter _testGoRouter() => GoRouter(
+/// GoRouter for tests that includes the real route destinations pages push to.
+/// The initial route renders [home]; pushed pages (pinned messages, file
+/// preview) land on matching GoRoute builders so the pushed widget tree
+/// actually renders.
+GoRouter _testGoRouter({Widget? home}) => GoRouter(
       initialLocation: '/',
       routes: [
-        GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
+        GoRoute(
+          path: '/',
+          builder: (_, __) => home ?? const SizedBox.shrink(),
+        ),
+        GoRoute(
+          path: '/servers/:serverId/channels/:channelId/pinned',
+          builder: (context, state) {
+            final target = state.extra as ConversationDetailTarget?;
+            return ProviderScope(
+              overrides: [
+                if (target != null)
+                  currentConversationDetailTargetProvider
+                      .overrideWithValue(target),
+              ],
+              child: PinnedMessagesPage(
+                onMessageTap: (id) => context.pop(id),
+              ),
+            );
+          },
+        ),
+        GoRoute(
+          path: '/file-preview',
+          builder: (_, state) {
+            final attachment = state.extra as MessageAttachment;
+            return FilePreviewPage(attachment: attachment);
+          },
+        ),
       ],
     );
 

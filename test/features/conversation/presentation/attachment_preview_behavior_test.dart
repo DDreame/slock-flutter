@@ -12,6 +12,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -784,35 +785,44 @@ Widget _buildApp({
   required AttachmentRepository attachmentRepository,
   DiagnosticsCollector? diagnostics,
 }) {
-  return InheritedGoRouter(
-    goRouter: _testGoRouter(),
-    child: ProviderScope(
-      overrides: [
-        conversationRepositoryProvider.overrideWithValue(repository),
-        attachmentRepositoryProvider.overrideWithValue(attachmentRepository),
-        currentOpenConversationTargetProvider.overrideWith((ref) => target),
-        if (diagnostics != null)
-          diagnosticsCollectorProvider.overrideWithValue(diagnostics),
-        sessionStoreProvider.overrideWith(
-          () => _FixedSessionStore(const SessionState()),
-        ),
-      ],
-      child: MaterialApp(
-        theme: AppTheme.light,
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
-        home: ConversationDetailPage(target: target),
+  return ProviderScope(
+    overrides: [
+      conversationRepositoryProvider.overrideWithValue(repository),
+      attachmentRepositoryProvider.overrideWithValue(attachmentRepository),
+      currentOpenConversationTargetProvider.overrideWith((ref) => target),
+      if (diagnostics != null)
+        diagnosticsCollectorProvider.overrideWithValue(diagnostics),
+      sessionStoreProvider.overrideWith(
+        () => _FixedSessionStore(const SessionState()),
       ),
+    ],
+    child: MaterialApp.router(
+      routerConfig: _testGoRouter(target: target),
+      theme: AppTheme.light,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
     ),
   );
 }
 
-/// No-op GoRouter for tests.  Pages use GoRouter context extensions
-/// (context.push, context.canPop, etc.) which require a GoRouter ancestor.
-GoRouter _testGoRouter() => GoRouter(
+/// GoRouter for tests that includes the real route destinations pages push to.
+/// The initial route renders ConversationDetailPage; pushed pages (file
+/// preview, image viewer) land on matching GoRoute builders so the pushed
+/// widget tree actually renders.
+GoRouter _testGoRouter({required ConversationDetailTarget target}) => GoRouter(
       initialLocation: '/',
       routes: [
-        GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
+        GoRoute(
+          path: '/',
+          builder: (_, __) => ConversationDetailPage(target: target),
+        ),
+        GoRoute(
+          path: '/file-preview',
+          builder: (_, state) {
+            final attachment = state.extra as MessageAttachment;
+            return FilePreviewPage(attachment: attachment);
+          },
+        ),
       ],
     );
 
