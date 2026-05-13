@@ -75,8 +75,14 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
       return;
     }
 
+    // Optimistically remove the item from the list immediately so that
+    // the Dismissible animation and store state stay consistent.
+    final previousItems = state.items;
     state = state.copyWith(
-      completingThreadIds: [...state.completingThreadIds, threadChannelId],
+      items: state.items
+          .where(
+              (entry) => entry.routeTarget.threadChannelId != threadChannelId)
+          .toList(growable: false),
       clearFailure: true,
     );
 
@@ -85,21 +91,10 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
             state.serverId,
             threadChannelId: threadChannelId,
           );
-      state = state.copyWith(
-        items: state.items
-            .where(
-                (entry) => entry.routeTarget.threadChannelId != threadChannelId)
-            .toList(growable: false),
-        completingThreadIds: state.completingThreadIds
-            .where((id) => id != threadChannelId)
-            .toList(growable: false),
-        clearFailure: true,
-      );
     } on AppFailure catch (failure) {
+      // Restore the item on failure so the user can retry.
       state = state.copyWith(
-        completingThreadIds: state.completingThreadIds
-            .where((id) => id != threadChannelId)
-            .toList(growable: false),
+        items: previousItems,
         failure: failure,
       );
     }

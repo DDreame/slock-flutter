@@ -68,6 +68,7 @@ class SwipeActionWrapper extends StatefulWidget {
 
 class _SwipeActionWrapperState extends State<SwipeActionWrapper> {
   bool _hapticFired = false;
+  double? _dragStartX;
 
   @override
   Widget build(BuildContext context) {
@@ -78,9 +79,10 @@ class _SwipeActionWrapperState extends State<SwipeActionWrapper> {
     return Listener(
       // Track horizontal drag distance for haptic feedback.
       // We use Listener to avoid competing with Dismissible's gesture arena.
+      onPointerDown: _onPointerDown,
       onPointerMove: _onPointerMove,
-      onPointerUp: (_) => _hapticFired = false,
-      onPointerCancel: (_) => _hapticFired = false,
+      onPointerUp: (_) => _resetDrag(),
+      onPointerCancel: (_) => _resetDrag(),
       child: Dismissible(
         key: ValueKey('swipe-action-${widget.itemKey}'),
         direction: DismissDirection.endToStart,
@@ -114,31 +116,35 @@ class _SwipeActionWrapperState extends State<SwipeActionWrapper> {
     );
   }
 
-  /// Fires haptic feedback once when the swipe crosses the threshold.
-  /// The default Dismissible threshold is 0.4 of the widget width.
-  /// We fire haptic at ~0.15 (early threshold) for tactile confirmation,
-  /// matching the MessageGestureWrapper's 60px pattern.
+  void _onPointerDown(PointerDownEvent event) {
+    _dragStartX = event.position.dx;
+    _hapticFired = false;
+  }
+
+  void _resetDrag() {
+    _dragStartX = null;
+    _hapticFired = false;
+  }
+
+  /// Fires haptic feedback once when the leftward drag distance exceeds 15%
+  /// of the widget width.
+  ///
+  /// Uses the delta from the initial touch point (not the pointer's absolute
+  /// position) so the threshold is consistent regardless of where the finger
+  /// starts.
   void _onPointerMove(PointerMoveEvent event) {
-    if (_hapticFired || !widget.enabled) return;
-    // Negative delta.dx indicates a left-swipe (end-to-start).
-    // We track cumulative offset via the Dismissible's own gesture,
-    // but for haptic purposes we can use a simple position heuristic:
-    // if the pointer has moved more than 60px to the left, fire haptic.
-    // This is approximate but effective since the Listener sees raw events.
-    if (event.delta.dx < -2) {
-      // Check if we've moved far enough for haptic feedback.
-      // We use the localPosition approach: if the pointer is significantly
-      // left of center, the user has swiped past the feedback threshold.
-      final renderBox = context.findRenderObject() as RenderBox?;
-      if (renderBox != null) {
-        final width = renderBox.size.width;
-        final localX = renderBox.globalToLocal(event.position).dx;
-        // Fire haptic when the swipe reveals ~15% of the background.
-        if (localX < width * 0.85) {
-          _hapticFired = true;
-          HapticFeedback.mediumImpact();
-        }
-      }
+    if (_hapticFired || !widget.enabled || _dragStartX == null) return;
+
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final width = renderBox.size.width;
+    // Positive dragDelta = finger moved left (end-to-start).
+    final dragDelta = _dragStartX! - event.position.dx;
+
+    if (dragDelta > width * 0.15) {
+      _hapticFired = true;
+      HapticFeedback.mediumImpact();
     }
   }
 }

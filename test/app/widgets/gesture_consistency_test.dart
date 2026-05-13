@@ -5,12 +5,32 @@
 // ListActionSheet (standardized long-press bottom sheet).
 // ---------------------------------------------------------------------------
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 
 void main() {
+  // Capture HapticFeedback calls via the test platform channel.
+  final List<String> hapticLog = [];
+
+  setUp(() {
+    hapticLog.clear();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'HapticFeedback.vibrate') {
+        hapticLog.add(call.arguments as String);
+      }
+      return null;
+    });
+  });
+
+  tearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null);
+  });
+
   // -----------------------------------------------------------------------
   // SwipeActionWrapper
   // -----------------------------------------------------------------------
@@ -221,6 +241,69 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(actionCalled, isTrue);
+    });
+
+    testWidgets('haptic fires after drag exceeds 15% of width', (
+      tester,
+    ) async {
+      await tester.pumpWidget(buildApp(
+        enabled: true,
+        onAction: () {},
+      ));
+      await tester.pumpAndSettle();
+
+      final target = find.byKey(const ValueKey('swipe-action-test-item'));
+      final topLeft = tester.getTopLeft(target);
+      final size = tester.getSize(target);
+
+      // Drag 10% of width — should NOT fire haptic.
+      final shortDrag = Offset(-(size.width * 0.10), 0);
+      final gesture = await tester.startGesture(
+        topLeft + Offset(size.width * 0.9, size.height / 2),
+      );
+      await gesture.moveBy(shortDrag);
+      await tester.pump();
+
+      expect(hapticLog, isEmpty, reason: '10% drag should not fire haptic');
+
+      // Continue drag past 15% threshold from start point.
+      await gesture.moveBy(Offset(-(size.width * 0.10), 0));
+      await tester.pump();
+
+      expect(hapticLog, hasLength(1), reason: 'Haptic should fire at >15%');
+      expect(hapticLog.first, 'HapticFeedbackType.mediumImpact');
+
+      // Verify haptic doesn't fire again on further drag.
+      await gesture.moveBy(Offset(-(size.width * 0.10), 0));
+      await tester.pump();
+
+      expect(hapticLog, hasLength(1), reason: 'Haptic should fire only once');
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('haptic does not fire when disabled', (tester) async {
+      await tester.pumpWidget(buildApp(
+        enabled: false,
+        onAction: () {},
+      ));
+      await tester.pumpAndSettle();
+
+      // No Dismissible rendered — just drag on the child area.
+      final target = find.byKey(const ValueKey('inner-child'));
+      final topLeft = tester.getTopLeft(target);
+      final size = tester.getSize(target);
+
+      final gesture = await tester.startGesture(
+        topLeft + Offset(size.width * 0.9, size.height / 2),
+      );
+      await gesture.moveBy(Offset(-(size.width * 0.30), 0));
+      await tester.pump();
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(hapticLog, isEmpty, reason: 'Disabled wrapper should not haptic');
     });
   });
 
