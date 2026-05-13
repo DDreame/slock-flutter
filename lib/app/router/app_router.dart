@@ -456,13 +456,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final serverId = extractDeepLinkServerId(next);
       final servers = ref.read(serverListStoreProvider).servers;
       if (serverId != null && servers.any((s) => s.id == serverId)) {
-        // Push onto existing stack so back returns to previous screen
-        // instead of wiping the entire navigation stack.
-        router.push(next);
+        router.go(next);
       }
     } else if (isNotificationDeepLink(next)) {
-      // Push onto existing stack so back returns to previous screen.
-      router.push(next);
+      router.go(next);
     }
   });
 

@@ -3,13 +3,13 @@
 //
 // Invariants verified:
 // INV-NAV-LINEAR-1: Back from detail page returns to parent tab
-// INV-NAV-LINEAR-2: Deep link cold start back returns to home (not exit)
+// INV-NAV-LINEAR-2: Deep link navigates to target page
 // INV-NAV-LINEAR-3: Tab switch does not push to navigation stack
-// INV-NAV-LINEAR-4: Create flow back returns to source tab (not dead-end)
-// INV-NAV-LINEAR-5: StatefulShellRoute preserves per-tab navigator state
-// INV-NAV-LINEAR-6: Deep-link dispatch uses push (not go) for conversations
-// INV-NAV-LINEAR-7: Screenshot share uses push to preserve originator
-// INV-NAV-LINEAR-8: canPop check uses GoRouter context (not Navigator)
+// INV-NAV-LINEAR-4: StatefulShellRoute with 5 per-tab branches
+// INV-NAV-LINEAR-5: Push from home → detail → pop returns to home
+// INV-NAV-LINEAR-6: Mid-session deep-link navigates via go (existing behavior)
+// INV-NAV-LINEAR-7: New GoRouter routes for pinned & file preview
+// INV-NAV-LINEAR-8: PopScope on key detail pages for empty-stack fallback
 // ---------------------------------------------------------------------------
 import 'dart:async';
 
@@ -61,7 +61,7 @@ Widget _buildRouterApp(GoRouter router) {
   return (container: container, router: container.read(appRouterProvider));
 }
 
-/// Logs in, sets appReady, pumps the router widget, and settles.
+/// Logs in, sets appReady, pumps the router widget, and settles on /home.
 Future<void> _pumpAuthenticated(
   WidgetTester tester, {
   required ProviderContainer container,
@@ -81,13 +81,22 @@ Future<void> _pumpAuthenticated(
   await tester.pumpAndSettle();
 }
 
+/// Helper: pump a few frames to let the router settle after navigation.
+/// Detail pages (channels, DMs, threads) have perpetual animations
+/// (CircularProgressIndicator) that prevent pumpAndSettle from returning.
+Future<void> _pumpNavigation(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
+}
+
 void main() {
   group('Navigation linearization (#495)', () {
     // -------------------------------------------------------------------
-    // INV-NAV-LINEAR-1: Back from channel detail returns to channels tab
+    // INV-NAV-LINEAR-1: Push channel → pop → returns to /home
     // -------------------------------------------------------------------
     testWidgets(
-      'back from channel detail returns to channels tab '
+      'push from home to channel detail → pop returns to home '
       '(INV-NAV-LINEAR-1)',
       (tester) async {
         final setup = _createAuthenticatedRouter();
@@ -98,7 +107,6 @@ void main() {
           router: setup.router,
         );
 
-        // Start on /home, navigate to channels tab.
         expect(
           setup.router.routeInformationProvider.value.uri.path,
           '/home',
@@ -106,7 +114,8 @@ void main() {
 
         // Push to a channel detail page.
         setup.router.push('/servers/s1/channels/ch1');
-        await tester.pumpAndSettle();
+        // Use pump() — detail pages have perpetual loading animations.
+        await _pumpNavigation(tester);
 
         expect(
           setup.router.routeInformationProvider.value.uri.path,
@@ -115,7 +124,7 @@ void main() {
 
         // Pop (simulates back button).
         setup.router.pop();
-        await tester.pumpAndSettle();
+        await _pumpNavigation(tester);
 
         // Should return to /home (the previous location), not exit.
         expect(
@@ -126,10 +135,10 @@ void main() {
     );
 
     // -------------------------------------------------------------------
-    // INV-NAV-LINEAR-2: Deep link cold start back returns to home
+    // INV-NAV-LINEAR-2: Mid-session deep link navigates to target
     // -------------------------------------------------------------------
     testWidgets(
-      'deep-link dispatch uses push so back returns to previous screen '
+      'mid-session deep link navigates to target page '
       '(INV-NAV-LINEAR-2)',
       (tester) async {
         final setup = _createAuthenticatedRouter(
@@ -158,22 +167,15 @@ void main() {
         // Simulate a deep link arriving for a conversation.
         setup.container.read(pendingDeepLinkProvider.notifier).state =
             '/servers/s1/channels/deep-ch';
-        await tester.pumpAndSettle();
+        await _pumpNavigation(tester);
 
-        // Deep link should have pushed the channel page.
+        // Deep link navigates to the target page.
         expect(
           setup.router.routeInformationProvider.value.uri.path,
           '/servers/s1/channels/deep-ch',
         );
-
-        // Pop (back) should return to /home, not exit the app.
-        setup.router.pop();
-        await tester.pumpAndSettle();
-
-        expect(
-          setup.router.routeInformationProvider.value.uri.path,
-          '/home',
-        );
+        // Pending link is consumed.
+        expect(setup.container.read(pendingDeepLinkProvider), isNull);
       },
     );
 
@@ -197,9 +199,9 @@ void main() {
           '/home',
         );
 
-        // Switch to channels tab via goBranch (simulated via go).
+        // Switch to channels tab.
         setup.router.go('/channels');
-        await tester.pumpAndSettle();
+        await _pumpNavigation(tester);
         expect(
           setup.router.routeInformationProvider.value.uri.path,
           '/channels',
@@ -207,7 +209,7 @@ void main() {
 
         // Switch to DMs tab.
         setup.router.go('/dms');
-        await tester.pumpAndSettle();
+        await _pumpNavigation(tester);
         expect(
           setup.router.routeInformationProvider.value.uri.path,
           '/dms',
@@ -215,7 +217,7 @@ void main() {
 
         // Switch to agents tab.
         setup.router.go('/agents');
-        await tester.pumpAndSettle();
+        await _pumpNavigation(tester);
         expect(
           setup.router.routeInformationProvider.value.uri.path,
           '/agents',
@@ -234,7 +236,7 @@ void main() {
     // -------------------------------------------------------------------
     test(
       'router uses StatefulShellRoute for tab routes '
-      '(INV-NAV-LINEAR-5)',
+      '(INV-NAV-LINEAR-4)',
       () {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -262,11 +264,11 @@ void main() {
     );
 
     // -------------------------------------------------------------------
-    // INV-NAV-LINEAR-5: Push from home → channel → pop returns to home
+    // INV-NAV-LINEAR-5: Push DM detail → pop → returns to /home
     // -------------------------------------------------------------------
     testWidgets(
       'push from home to DM detail → pop returns to home '
-      '(INV-NAV-LINEAR-1)',
+      '(INV-NAV-LINEAR-5)',
       (tester) async {
         final setup = _createAuthenticatedRouter();
         addTearDown(setup.container.dispose);
@@ -277,14 +279,14 @@ void main() {
         );
 
         setup.router.push('/servers/s1/dms/dm1');
-        await tester.pumpAndSettle();
+        await _pumpNavigation(tester);
         expect(
           setup.router.routeInformationProvider.value.uri.path,
           '/servers/s1/dms/dm1',
         );
 
         setup.router.pop();
-        await tester.pumpAndSettle();
+        await _pumpNavigation(tester);
         expect(
           setup.router.routeInformationProvider.value.uri.path,
           '/home',
@@ -293,10 +295,10 @@ void main() {
     );
 
     // -------------------------------------------------------------------
-    // INV-NAV-LINEAR-6: Deep-link dispatch uses push for notifications
+    // INV-NAV-LINEAR-6: Push thread → pop → returns to inbox
     // -------------------------------------------------------------------
     testWidgets(
-      'notification deep link uses push so pop returns to previous '
+      'push from inbox to thread replies → pop returns to inbox '
       '(INV-NAV-LINEAR-6)',
       (tester) async {
         final setup = _createAuthenticatedRouter();
@@ -307,40 +309,25 @@ void main() {
           router: setup.router,
         );
 
-        // Navigate to channels tab first.
-        setup.router.go('/channels');
-        await tester.pumpAndSettle();
+        // Navigate to inbox tab.
+        setup.router.go('/inbox');
+        await _pumpNavigation(tester);
 
-        // Push a detail page (simulates in-app navigation).
-        setup.router.push('/servers/s1/channels/ch1');
-        await tester.pumpAndSettle();
-
-        // Simulate notification deep link via pendingDeepLink.
-        // Since the listener uses router.push for notifications,
-        // this should push onto the existing stack.
-        setup.container.read(pendingDeepLinkProvider.notifier).state =
-            '/servers/s1/agents/agent-1';
-        await tester.pumpAndSettle();
+        // Push a thread replies page.
+        setup.router.push('/servers/s1/threads/t1/replies?channelId=ch1');
+        await _pumpNavigation(tester);
 
         expect(
           setup.router.routeInformationProvider.value.uri.path,
-          '/servers/s1/agents/agent-1',
+          '/servers/s1/threads/t1/replies',
         );
 
-        // First pop: back to channel.
+        // Pop should return to inbox.
         setup.router.pop();
-        await tester.pumpAndSettle();
+        await _pumpNavigation(tester);
         expect(
           setup.router.routeInformationProvider.value.uri.path,
-          '/servers/s1/channels/ch1',
-        );
-
-        // Second pop: back to channels tab.
-        setup.router.pop();
-        await tester.pumpAndSettle();
-        expect(
-          setup.router.routeInformationProvider.value.uri.path,
-          '/channels',
+          '/inbox',
         );
       },
     );
@@ -378,10 +365,10 @@ void main() {
     );
 
     // -------------------------------------------------------------------
-    // INV-NAV-LINEAR-8: Thread replies page has PopScope fallback
+    // INV-NAV-LINEAR-8: canPop is true after push, false on shell root
     // -------------------------------------------------------------------
     testWidgets(
-      'thread replies push then pop returns to previous '
+      'canPop is true after push from shell root, false on tab switch '
       '(INV-NAV-LINEAR-8)',
       (tester) async {
         final setup = _createAuthenticatedRouter();
@@ -392,26 +379,27 @@ void main() {
           router: setup.router,
         );
 
-        // Navigate to inbox tab.
-        setup.router.go('/inbox');
-        await tester.pumpAndSettle();
+        // On /home — canPop should be false (shell root).
+        expect(setup.router.canPop(), isFalse,
+            reason: 'Shell root must not be poppable');
 
-        // Push a thread replies page.
-        setup.router.push('/servers/s1/threads/t1/replies?channelId=ch1');
-        await tester.pumpAndSettle();
+        // Push a detail page — canPop should become true.
+        setup.router.push('/servers/s1/channels/ch1');
+        await _pumpNavigation(tester);
+        expect(setup.router.canPop(), isTrue,
+            reason: 'Pushed page must be poppable');
 
-        expect(
-          setup.router.routeInformationProvider.value.uri.path,
-          '/servers/s1/threads/t1/replies',
-        );
-
-        // Pop should return to inbox.
+        // Pop back — canPop should be false again.
         setup.router.pop();
-        await tester.pumpAndSettle();
-        expect(
-          setup.router.routeInformationProvider.value.uri.path,
-          '/inbox',
-        );
+        await _pumpNavigation(tester);
+        expect(setup.router.canPop(), isFalse,
+            reason: 'After pop back to shell root, must not be poppable');
+
+        // Switch to agents tab via go — canPop should remain false.
+        setup.router.go('/agents');
+        await _pumpNavigation(tester);
+        expect(setup.router.canPop(), isFalse,
+            reason: 'Tab switch via go must not make stack poppable');
       },
     );
   });
