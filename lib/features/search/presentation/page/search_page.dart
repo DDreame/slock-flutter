@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
@@ -111,6 +112,8 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
                 state.status == SearchStatus.idle ? null : state.contactCount,
             onScopeChanged: ref.read(searchStoreProvider.notifier).setScope,
           ),
+          if (state.status != SearchStatus.idle)
+            _FilterChipBar(state: state, ref: ref),
           Expanded(
             child: _buildBody(state),
           ),
@@ -239,6 +242,14 @@ class _SearchAllResultsList extends StatelessWidget {
                 ),
               ),
             ),
+          if (state.hasMore && !state.isRemoteSearching)
+            _LoadMoreButton(
+              onTap: () {
+                final store = ProviderScope.containerOf(context)
+                    .read(searchStoreProvider.notifier);
+                store.loadMore();
+              },
+            ),
         ],
       ],
     );
@@ -339,22 +350,33 @@ class _SearchMessageResultsList extends StatelessWidget {
         child: Text('No results found.'),
       );
     }
+    final hasTrailer =
+        state.isRemoteSearching || (state.hasMore && !state.isRemoteSearching);
     return ListView.separated(
       key: const ValueKey('search-results'),
       padding: const EdgeInsets.all(16),
-      itemCount: results.length + (state.isRemoteSearching ? 1 : 0),
+      itemCount: results.length + (hasTrailer ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == results.length) {
-          return const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+          if (state.isRemoteSearching) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
               ),
-            ),
+            );
+          }
+          return _LoadMoreButton(
+            onTap: () {
+              final store = ProviderScope.containerOf(context)
+                  .read(searchStoreProvider.notifier);
+              store.loadMore();
+            },
           );
         }
         final result = results[index];
@@ -524,6 +546,181 @@ class _ViewAllButton extends StatelessWidget {
           'View all',
           style: AppTypography.label.copyWith(
             color: colors?.primary ?? Theme.of(context).colorScheme.primary,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Filter chip bar displayed below scope tabs when results are visible.
+class _FilterChipBar extends StatelessWidget {
+  const _FilterChipBar({required this.state, required this.ref});
+
+  final SearchState state;
+  final WidgetRef ref;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = ref.read(searchStoreProvider.notifier);
+    final colors = Theme.of(context).extension<AppColors>();
+
+    return Padding(
+      key: const ValueKey('search-filter-bar'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.pageHorizontal,
+        vertical: AppSpacing.xs,
+      ),
+      child: Wrap(
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.xs,
+        children: [
+          // Sender filter chip.
+          FilterChip(
+            key: const ValueKey('search-filter-sender'),
+            label: Text(
+              state.senderFilter != null
+                  ? 'From: ${state.senderFilter}'
+                  : 'Sender',
+            ),
+            selected: state.senderFilter != null,
+            onSelected: (_) => _showSenderInput(context, store),
+            onDeleted: state.senderFilter != null
+                ? () => store.setSenderFilter(null)
+                : null,
+          ),
+
+          // Sort toggle chip.
+          ChoiceChip(
+            key: const ValueKey('search-filter-sort'),
+            label: Text(
+              state.sortBy == SearchSortBy.newest ? 'Newest' : 'Oldest',
+            ),
+            selected: state.sortBy != SearchSortBy.newest,
+            onSelected: (_) {
+              store.setSortBy(
+                state.sortBy == SearchSortBy.newest
+                    ? SearchSortBy.oldest
+                    : SearchSortBy.newest,
+              );
+            },
+          ),
+
+          // Channel filter chip.
+          FilterChip(
+            key: const ValueKey('search-filter-channel'),
+            label: Text(
+              state.channelFilter != null
+                  ? 'In: ${state.channelFilter}'
+                  : 'Channel',
+            ),
+            selected: state.channelFilter != null,
+            onSelected: (_) => _showChannelInput(context, store),
+            onDeleted: state.channelFilter != null
+                ? () => store.setChannelFilter(null)
+                : null,
+          ),
+
+          // Clear all filters.
+          if (state.hasActiveFilters)
+            ActionChip(
+              key: const ValueKey('search-filter-clear'),
+              label: const Text('Clear'),
+              avatar: Icon(
+                Icons.clear,
+                size: 16,
+                color: colors?.textTertiary,
+              ),
+              onPressed: store.clearFilters,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showSenderInput(
+    BuildContext context,
+    SearchStore store,
+  ) async {
+    final result = await _showTextInputDialog(
+      context: context,
+      title: 'Filter by sender',
+      hintText: 'Enter sender name…',
+      initialValue: state.senderFilter,
+    );
+    if (result != null) {
+      store.setSenderFilter(result.isEmpty ? null : result);
+    }
+  }
+
+  Future<void> _showChannelInput(
+    BuildContext context,
+    SearchStore store,
+  ) async {
+    final result = await _showTextInputDialog(
+      context: context,
+      title: 'Filter by channel',
+      hintText: 'Enter channel name…',
+      initialValue: state.channelFilter,
+    );
+    if (result != null) {
+      store.setChannelFilter(result.isEmpty ? null : result);
+    }
+  }
+}
+
+/// Simple text input dialog for filter values.
+Future<String?> _showTextInputDialog({
+  required BuildContext context,
+  required String title,
+  required String hintText,
+  String? initialValue,
+}) {
+  final controller = TextEditingController(text: initialValue);
+  return showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text(title),
+      content: TextField(
+        key: const ValueKey('search-filter-input'),
+        controller: controller,
+        autofocus: true,
+        decoration: InputDecoration(hintText: hintText),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, controller.text),
+          child: const Text('Apply'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// "Load more" button shown when `hasMore` is true.
+class _LoadMoreButton extends StatelessWidget {
+  const _LoadMoreButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>();
+    return Center(
+      key: const ValueKey('search-load-more'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: TextButton(
+          onPressed: onTap,
+          child: Text(
+            'Load more',
+            style: AppTypography.label.copyWith(
+              color: colors?.primary ?? Theme.of(context).colorScheme.primary,
+            ),
           ),
         ),
       ),

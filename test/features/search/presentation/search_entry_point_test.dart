@@ -135,8 +135,12 @@ class _StaticSearchRepository implements SearchRepository {
   @override
   Future<SearchResultsPage> searchMessages(
     ServerScopeId serverId,
-    String query,
-  ) async {
+    String query, {
+    String? senderId,
+    SearchSortBy? sortBy,
+    String? channelId,
+    int offset = 0,
+  }) async {
     return const SearchResultsPage(messages: [], hasMore: false);
   }
 }

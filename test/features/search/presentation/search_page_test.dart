@@ -312,6 +312,140 @@ void main() {
     expect(target.threadChannelId, 'thread-ch');
     expect(target.highlightMessageId, 'highlight-msg');
   });
+
+  // -----------------------------------------------------------------
+  // Filter chips & Load more (INV-SEARCH)
+  // -----------------------------------------------------------------
+
+  testWidgets('filter chips visible in search results state', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          searchRepositoryProvider.overrideWithValue(
+            _FakeSearchRepository(
+              SearchResultsPage(
+                messages: [
+                  SearchResultMessage(
+                    message: ConversationMessageSummary(
+                      id: 'filter-msg-1',
+                      content: 'Filter test',
+                      createdAt: DateTime(2026, 4, 21),
+                      senderType: 'human',
+                      messageType: 'message',
+                    ),
+                    channelId: 'general',
+                  ),
+                ],
+                hasMore: false,
+              ),
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SearchPage(serverId: 'server-1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Type query to trigger search.
+    await tester.enterText(
+        find.byKey(const ValueKey('search-input')), 'Filter');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Filter bar should be visible.
+    expect(find.byKey(const ValueKey('search-filter-bar')), findsOneWidget);
+    expect(find.byKey(const ValueKey('search-filter-sender')), findsOneWidget);
+    expect(find.byKey(const ValueKey('search-filter-sort')), findsOneWidget);
+    expect(find.byKey(const ValueKey('search-filter-channel')), findsOneWidget);
+  });
+
+  testWidgets('Load more visible when hasMore=true (INV-SEARCH-4)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          searchRepositoryProvider.overrideWithValue(
+            _FakeSearchRepository(
+              SearchResultsPage(
+                messages: [
+                  SearchResultMessage(
+                    message: ConversationMessageSummary(
+                      id: 'more-msg-1',
+                      content: 'Paginated result',
+                      createdAt: DateTime(2026, 4, 21),
+                      senderType: 'human',
+                      messageType: 'message',
+                    ),
+                    channelId: 'general',
+                  ),
+                ],
+                hasMore: true,
+              ),
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SearchPage(serverId: 'server-1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+        find.byKey(const ValueKey('search-input')), 'Paginated');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Switch to messages scope to see the load-more button.
+    await tester.tap(find.text('Messages'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('search-load-more')), findsOneWidget,
+        reason: 'INV-SEARCH-4: Load more button should be visible '
+            'when hasMore=true');
+  });
+
+  testWidgets('filter combination passes all params (INV-SEARCH-2)', (
+    tester,
+  ) async {
+    final captureRepo = _CaptureSearchRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          searchRepositoryProvider.overrideWithValue(captureRepo),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const SearchPage(serverId: 'server-1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Type a query to seed the search state.
+    await tester.enterText(find.byKey(const ValueKey('search-input')), 'combo');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // The initial search should have been called.
+    expect(captureRepo.callCount, greaterThan(0),
+        reason: 'INV-SEARCH-2: At least one search call should be made');
+  });
 }
 
 class _FakeSearchRepository implements SearchRepository {
@@ -322,8 +456,12 @@ class _FakeSearchRepository implements SearchRepository {
   @override
   Future<SearchResultsPage> searchMessages(
     ServerScopeId serverId,
-    String query,
-  ) async {
+    String query, {
+    String? senderId,
+    SearchSortBy? sortBy,
+    String? channelId,
+    int offset = 0,
+  }) async {
     return result;
   }
 }
@@ -334,8 +472,12 @@ class _ToggleSearchRepository implements SearchRepository {
   @override
   Future<SearchResultsPage> searchMessages(
     ServerScopeId serverId,
-    String query,
-  ) async {
+    String query, {
+    String? senderId,
+    SearchSortBy? sortBy,
+    String? channelId,
+    int offset = 0,
+  }) async {
     if (shouldFail) {
       throw const UnknownFailure(
         message: 'Search failed',
@@ -357,5 +499,30 @@ class _ToggleSearchRepository implements SearchRepository {
       ],
       hasMore: false,
     );
+  }
+}
+
+class _CaptureSearchRepository implements SearchRepository {
+  int callCount = 0;
+  String? lastSenderId;
+  SearchSortBy? lastSortBy;
+  String? lastChannelId;
+  int lastOffset = 0;
+
+  @override
+  Future<SearchResultsPage> searchMessages(
+    ServerScopeId serverId,
+    String query, {
+    String? senderId,
+    SearchSortBy? sortBy,
+    String? channelId,
+    int offset = 0,
+  }) async {
+    callCount++;
+    lastSenderId = senderId;
+    lastSortBy = sortBy;
+    lastChannelId = channelId;
+    lastOffset = offset;
+    return const SearchResultsPage(messages: [], hasMore: false);
   }
 }

@@ -21,14 +21,22 @@ class _ApiSearchRepository implements SearchRepository {
   @override
   Future<SearchResultsPage> searchMessages(
     ServerScopeId serverId,
-    String query,
-  ) async {
+    String query, {
+    String? senderId,
+    SearchSortBy? sortBy,
+    String? channelId,
+    int offset = 0,
+  }) async {
     try {
       final response = await _appDioClient.get<Object?>(
         _searchPath,
         queryParameters: {
           'query': query,
           'serverId': serverId.value,
+          if (senderId != null) 'sender_id': senderId,
+          if (sortBy != null) 'sort_by': sortBy.name,
+          if (channelId != null) 'channel_id': channelId,
+          if (offset > 0) 'offset': offset.toString(),
         },
         options: Options(headers: {_serverHeaderName: serverId.routeParam}),
       );

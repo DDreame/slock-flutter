@@ -2,11 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
+/// Sort order for search results.
+enum SearchSortBy { newest, oldest }
+
 abstract class SearchRepository {
   Future<SearchResultsPage> searchMessages(
     ServerScopeId serverId,
-    String query,
-  );
+    String query, {
+    String? senderId,
+    SearchSortBy? sortBy,
+    String? channelId,
+    int offset,
+  });
 }
 
 @immutable

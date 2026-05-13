@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
 
+export 'package:slock_app/features/search/data/search_repository.dart'
+    show SearchSortBy;
+
 enum SearchStatus { idle, searching, success, failure }
 
 /// Scope tabs for the search page.
@@ -81,6 +84,9 @@ class SearchState {
     this.hasMore = false,
     this.isRemoteSearching = false,
     this.failure,
+    this.senderFilter,
+    this.sortBy = SearchSortBy.newest,
+    this.channelFilter,
   });
 
   final String query;
@@ -93,6 +99,9 @@ class SearchState {
   final bool hasMore;
   final bool isRemoteSearching;
   final AppFailure? failure;
+  final String? senderFilter;
+  final SearchSortBy sortBy;
+  final String? channelFilter;
 
   List<SearchResultMessage> get mergedResults {
     if (remoteResults.isEmpty) return localResults;
@@ -129,6 +138,12 @@ class SearchState {
   /// Count of contact results.
   int get contactCount => contactResults.length;
 
+  /// Whether any filter is active.
+  bool get hasActiveFilters =>
+      senderFilter != null ||
+      sortBy != SearchSortBy.newest ||
+      channelFilter != null;
+
   SearchState copyWith({
     String? query,
     SearchStatus? status,
@@ -141,6 +156,11 @@ class SearchState {
     bool? isRemoteSearching,
     AppFailure? failure,
     bool clearFailure = false,
+    String? senderFilter,
+    bool clearSenderFilter = false,
+    SearchSortBy? sortBy,
+    String? channelFilter,
+    bool clearChannelFilter = false,
   }) {
     return SearchState(
       query: query ?? this.query,
@@ -153,6 +173,11 @@ class SearchState {
       hasMore: hasMore ?? this.hasMore,
       isRemoteSearching: isRemoteSearching ?? this.isRemoteSearching,
       failure: clearFailure ? null : (failure ?? this.failure),
+      senderFilter:
+          clearSenderFilter ? null : (senderFilter ?? this.senderFilter),
+      sortBy: sortBy ?? this.sortBy,
+      channelFilter:
+          clearChannelFilter ? null : (channelFilter ?? this.channelFilter),
     );
   }
 
@@ -170,7 +195,10 @@ class SearchState {
             listEquals(contactResults, other.contactResults) &&
             hasMore == other.hasMore &&
             isRemoteSearching == other.isRemoteSearching &&
-            failure == other.failure;
+            failure == other.failure &&
+            senderFilter == other.senderFilter &&
+            sortBy == other.sortBy &&
+            channelFilter == other.channelFilter;
   }
 
   @override
@@ -185,5 +213,8 @@ class SearchState {
         hasMore,
         isRemoteSearching,
         failure,
+        senderFilter,
+        sortBy,
+        channelFilter,
       );
 }
