@@ -29,6 +29,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
@@ -584,19 +585,25 @@ class _ConversationDetailScreenState
     ConversationDetailState? previous,
     ConversationDetailState next,
   ) {
-    // Fire markRead exactly once on first successful load.
+    // Fire markRead exactly once on first successful load,
+    // only when there are actually unread messages (INV-READ-4).
     if (previous?.status != ConversationDetailStatus.success &&
         next.status == ConversationDetailStatus.success) {
       final t = ref.read(currentConversationDetailTargetProvider);
+      final projection = ref.read(unreadSourceProjectionProvider);
       switch (t.surface) {
         case ConversationSurface.channel:
-          ref.read(markChannelReadUseCaseProvider)(
-            ChannelScopeId(serverId: t.serverId, value: t.conversationId),
-          );
+          final scopeId =
+              ChannelScopeId(serverId: t.serverId, value: t.conversationId);
+          if (projection.channelUnreadCount(scopeId) > 0) {
+            ref.read(markChannelReadUseCaseProvider)(scopeId);
+          }
         case ConversationSurface.directMessage:
-          ref.read(markDmReadUseCaseProvider)(
-            DirectMessageScopeId(serverId: t.serverId, value: t.conversationId),
-          );
+          final scopeId = DirectMessageScopeId(
+              serverId: t.serverId, value: t.conversationId);
+          if (projection.dmUnreadCount(scopeId) > 0) {
+            ref.read(markDmReadUseCaseProvider)(scopeId);
+          }
       }
     }
 

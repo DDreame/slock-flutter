@@ -406,6 +406,9 @@ void main() {
           reason:
               'INV-READ-2: Messages must render without waiting for markRead',
         );
+
+        // Drain the pending markRead timer so teardown doesn't report a leak.
+        await tester.pump(const Duration(seconds: 30));
       },
     );
 
