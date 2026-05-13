@@ -170,6 +170,27 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           const SizedBox(height: AppSpacing.sectionGap),
 
+          // --- Translation section ---
+          Text(
+            'Language',
+            key: const ValueKey('settings-section-language'),
+            style: AppTypography.title.copyWith(color: colors.text),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          SectionCard(
+            padding: EdgeInsets.zero,
+            child: _SettingsTile(
+              key: const ValueKey('settings-translation-link'),
+              icon: Icons.translate,
+              iconColor: colors.primary,
+              title: 'Translation',
+              subtitle: 'Preferred language and translation mode.',
+              colors: colors,
+              onTap: () => context.push('/settings/translation'),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sectionGap),
+
           // --- Security section (only shown when biometric hardware available) ---
           if (biometricState.availability ==
               BiometricAvailability.available) ...[

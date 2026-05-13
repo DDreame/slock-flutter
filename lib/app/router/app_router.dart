@@ -37,6 +37,7 @@ import 'package:slock_app/features/settings/presentation/page/diagnostics_page.d
 import 'package:slock_app/features/settings/presentation/page/appearance_settings_page.dart';
 import 'package:slock_app/features/settings/presentation/page/notification_settings_page.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
+import 'package:slock_app/features/settings/presentation/page/translation_settings_page.dart';
 import 'package:slock_app/features/splash/presentation/page/splash_page.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
@@ -430,6 +431,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/settings/appearance',
         builder: (context, state) => const AppearanceSettingsPage(),
+      ),
+      GoRoute(
+        path: '/settings/translation',
+        builder: (context, state) => const TranslationSettingsPage(),
       ),
       GoRoute(
         path: '/settings/notifications',
