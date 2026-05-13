@@ -42,6 +42,9 @@ final announcementStoreProvider =
 class AnnouncementStore extends AutoDisposeNotifier<AnnouncementState> {
   @override
   AnnouncementState build() {
+    // Auto-trigger load so the banner is populated without callers
+    // needing to call ensureLoaded() explicitly (INV-ANNOUNCE-1).
+    Future.microtask(load);
     return const AnnouncementState();
   }
 
@@ -116,6 +119,8 @@ class AnnouncementStore extends AutoDisposeNotifier<AnnouncementState> {
 
   /// Adds a new announcement from a WebSocket event (INV-ANNOUNCE-4).
   /// Skips if already dismissed or already in the list.
+  /// Promotes status to [AnnouncementStatus.success] so the banner renders
+  /// even if the initial API load hasn't completed yet.
   void addAnnouncement(Announcement announcement) {
     final dismissed = ref.read(dismissedAnnouncementIdsProvider);
     if (dismissed.contains(announcement.id)) return;
@@ -124,6 +129,7 @@ class AnnouncementStore extends AutoDisposeNotifier<AnnouncementState> {
     if (exists) return;
 
     state = state.copyWith(
+      status: AnnouncementStatus.success,
       announcements: [...state.announcements, announcement],
     );
   }
