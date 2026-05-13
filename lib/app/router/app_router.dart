@@ -15,6 +15,10 @@ import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_members_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/home/presentation/page/unread_list_page.dart';
@@ -100,6 +104,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     }
     return null;
   }
+
+  // Enable URL updates for push() / pushReplacement() so the address bar
+  // and routeInformationProvider reflect the pushed route.  Without this,
+  // GoRouter v14 defaults to keeping the URL at the shell's location,
+  // which breaks deep-link back-stack verification and browser history.
+  GoRouter.optionURLReflectsImperativeAPIs = true;
 
   final router = GoRouter(
     initialLocation: '/splash',
@@ -211,25 +221,49 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) =>
             VerifyEmailPage(initialToken: state.uri.queryParameters['verify']),
       ),
-      ShellRoute(
-        builder: (context, state, child) => AppShell(child: child),
-        routes: [
-          GoRoute(path: '/home', builder: (context, state) => const HomePage()),
-          GoRoute(
-            path: '/channels',
-            builder: (context, state) => const ChannelsTabPage(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (context, state) => const HomePage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/dms',
-            builder: (context, state) => const DmsTabPage(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/channels',
+                builder: (context, state) => const ChannelsTabPage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/agents',
-            builder: (context, state) => const AgentsPage(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dms',
+                builder: (context, state) => const DmsTabPage(),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/inbox',
-            builder: (context, state) => const InboxPage(),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/agents',
+                builder: (context, state) => const AgentsPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/inbox',
+                builder: (context, state) => const InboxPage(),
+              ),
+            ],
           ),
         ],
       ),
@@ -253,6 +287,30 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           serverId: state.pathParameters['serverId']!,
           channelId: state.pathParameters['channelId']!,
         ),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/channels/:channelId/pinned',
+        redirect: syncServerSelection,
+        builder: (context, state) {
+          final target = state.extra as ConversationDetailTarget?;
+          return ProviderScope(
+            overrides: [
+              if (target != null)
+                currentConversationDetailTargetProvider
+                    .overrideWithValue(target),
+            ],
+            child: PinnedMessagesPage(
+              onMessageTap: (id) => context.pop(id),
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/file-preview',
+        builder: (context, state) {
+          final attachment = state.extra as MessageAttachment;
+          return FilePreviewPage(attachment: attachment);
+        },
       ),
       GoRoute(
         path: '/servers/:serverId/dms/:channelId',
@@ -404,10 +462,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final serverId = extractDeepLinkServerId(next);
       final servers = ref.read(serverListStoreProvider).servers;
       if (serverId != null && servers.any((s) => s.id == serverId)) {
-        router.go(next);
+        // Push onto existing stack so back returns to the previous
+        // in-app screen instead of wiping the navigation stack.
+        // Scheduled via addPostFrameCallback to ensure the push
+        // executes outside the Riverpod notification phase.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          router.push(next);
+        });
       }
     } else if (isNotificationDeepLink(next)) {
-      router.go(next);
+      // Push onto existing stack so back returns to the previous
+      // in-app screen instead of wiping the navigation stack.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        router.push(next);
+      });
     }
   });
 

@@ -48,17 +48,28 @@ class ChannelPage extends ConsumerWidget {
           .refresh(reason: 'channelUpdated'));
     });
 
-    return ConversationDetailPage(
-      target: target,
-      highlightMessageId: highlightMessageId,
-      appBarActionsBuilder: (context, ref, state) => [
-        IconButton(
-          icon: const Icon(Icons.group),
-          onPressed: () => context.push(
-            '/servers/$serverId/channels/$channelId/members',
+    return PopScope(
+      // Allow normal pop when there's a page to go back to.
+      // Intercept only when this is the sole page (deep link with empty stack).
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          // Fallback: navigate to home instead of exiting the app.
+          context.go('/home');
+        }
+      },
+      child: ConversationDetailPage(
+        target: target,
+        highlightMessageId: highlightMessageId,
+        appBarActionsBuilder: (context, ref, state) => [
+          IconButton(
+            icon: const Icon(Icons.group),
+            onPressed: () => context.push(
+              '/servers/$serverId/channels/$channelId/members',
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

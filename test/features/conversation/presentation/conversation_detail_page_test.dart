@@ -10,11 +10,14 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
@@ -565,13 +568,16 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -645,13 +651,16 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -747,13 +756,16 @@ void main() {
 
     Future<void> pumpDetailPage() async {
       await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            theme: AppTheme.light,
-            supportedLocales: AppLocalizations.supportedLocales,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            home: ConversationDetailPage(target: target),
+        InheritedGoRouter(
+          goRouter: _testGoRouter(),
+          child: UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              theme: AppTheme.light,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              home: ConversationDetailPage(target: target),
+            ),
           ),
         ),
       );
@@ -1727,20 +1739,23 @@ void main() {
 
     late ProviderContainer container;
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container = ProviderContainer(
-          overrides: [
-            conversationRepositoryProvider.overrideWithValue(repository),
-            sessionStoreProvider.overrideWith(
-              () => _FixedSessionStore(const SessionState()),
-            ),
-          ],
-        ),
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container = ProviderContainer(
+            overrides: [
+              conversationRepositoryProvider.overrideWithValue(repository),
+              sessionStoreProvider.overrideWith(
+                () => _FixedSessionStore(const SessionState()),
+              ),
+            ],
+          ),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -1813,25 +1828,28 @@ void main() {
     // recording made in this session (own recording path).
     late ProviderContainer container;
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container = ProviderContainer(
-          overrides: [
-            conversationRepositoryProvider.overrideWithValue(repository),
-            sessionStoreProvider.overrideWith(
-              () => _FixedSessionStore(const SessionState()),
-            ),
-            voiceWaveformCacheProvider.overrideWith(
-              (ref) => {
-                'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
-              },
-            ),
-          ],
-        ),
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container = ProviderContainer(
+            overrides: [
+              conversationRepositoryProvider.overrideWithValue(repository),
+              sessionStoreProvider.overrideWith(
+                () => _FixedSessionStore(const SessionState()),
+              ),
+              voiceWaveformCacheProvider.overrideWith(
+                (ref) => {
+                  'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
+                },
+              ),
+            ],
+          ),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -1885,13 +1903,16 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -1934,14 +1955,51 @@ Widget _buildApp({
         () => _FixedSessionStore(sessionState),
       ),
     ],
-    child: MaterialApp(
+    child: MaterialApp.router(
+      routerConfig: _testGoRouter(home: child),
       theme: AppTheme.light,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      home: child,
     ),
   );
 }
+
+/// GoRouter for tests that includes the real route destinations pages push to.
+/// The initial route renders [home]; pushed pages (pinned messages, file
+/// preview) land on matching GoRoute builders so the pushed widget tree
+/// actually renders.
+GoRouter _testGoRouter({Widget? home}) => GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, __) => home ?? const SizedBox.shrink(),
+        ),
+        GoRoute(
+          path: '/servers/:serverId/channels/:channelId/pinned',
+          builder: (context, state) {
+            final target = state.extra as ConversationDetailTarget?;
+            return ProviderScope(
+              overrides: [
+                if (target != null)
+                  currentConversationDetailTargetProvider
+                      .overrideWithValue(target),
+              ],
+              child: PinnedMessagesPage(
+                onMessageTap: (id) => context.pop(id),
+              ),
+            );
+          },
+        ),
+        GoRoute(
+          path: '/file-preview',
+          builder: (_, state) {
+            final attachment = state.extra as MessageAttachment;
+            return FilePreviewPage(attachment: attachment);
+          },
+        ),
+      ],
+    );
 
 class _FixedSessionStore extends SessionStore {
   _FixedSessionStore(this._state);

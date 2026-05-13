@@ -632,21 +632,24 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            agentsRepositoryProvider.overrideWithValue(fakeRepo),
-            agentsMachinesLoaderProvider
-                .overrideWithValue(() async => const []),
-            sharedPreferencesProvider.overrideWithValue(prefs),
-            realtimeReductionIngressProvider.overrideWithValue(
-              RealtimeReductionIngress(),
-            ),
-          ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const TickerMode(
-              enabled: false,
-              child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+        InheritedGoRouter(
+          goRouter: _testGoRouter(),
+          child: ProviderScope(
+            overrides: [
+              agentsRepositoryProvider.overrideWithValue(fakeRepo),
+              agentsMachinesLoaderProvider
+                  .overrideWithValue(() async => const []),
+              sharedPreferencesProvider.overrideWithValue(prefs),
+              realtimeReductionIngressProvider.overrideWithValue(
+                RealtimeReductionIngress(),
+              ),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const TickerMode(
+                enabled: false,
+                child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
+              ),
             ),
           ),
         ),
@@ -1419,3 +1422,12 @@ class _FakeServerListRepository implements ServerListRepository {
   @override
   Future<List<ServerSummary>> loadServers() async => const [];
 }
+
+/// No-op GoRouter for tests.  Pages use GoRouter context extensions
+/// (context.canPop, context.pop, etc.) which require a GoRouter ancestor.
+GoRouter _testGoRouter() => GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
+      ],
+    );

@@ -280,7 +280,9 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
 
     if (channelId != null && mounted && pageContext.mounted) {
       _showSnackBar(l10n.homeChannelCreated);
-      pageContext.go(
+      // Push instead of go to preserve the channels tab in the back stack.
+      // context.go() replaces the entire stack, making back exit the app.
+      pageContext.push(
         '/servers/${serverId.routeParam}/channels/$channelId',
       );
     }

@@ -26,11 +26,19 @@ class ThreadRepliesPage extends StatelessWidget {
       );
     }
 
-    return ProviderScope(
-      overrides: [
-        currentThreadRouteTargetProvider.overrideWithValue(target),
-      ],
-      child: const _ThreadRepliesScreen(),
+    return PopScope(
+      canPop: context.canPop(),
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.go('/home');
+        }
+      },
+      child: ProviderScope(
+        overrides: [
+          currentThreadRouteTargetProvider.overrideWithValue(target),
+        ],
+        child: const _ThreadRepliesScreen(),
+      ),
     );
   }
 }

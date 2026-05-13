@@ -262,9 +262,10 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       _showSnackBar('Agent deleted.');
 
       if (widget.agentId != null) {
-        final navigator = Navigator.of(context);
-        if (navigator.canPop()) {
-          navigator.pop();
+        // Use GoRouter's canPop instead of Navigator.canPop so the check
+        // is consistent with the GoRouter-managed navigation stack.
+        if (context.canPop()) {
+          context.pop();
         } else {
           final router = GoRouter.maybeOf(context);
           if (router != null) {

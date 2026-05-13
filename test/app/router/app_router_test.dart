@@ -65,7 +65,7 @@ void main() {
         if (route is GoRoute) {
           paths.add(route.path);
         }
-        if (route is ShellRoute) {
+        if (route is ShellRouteBase) {
           collectPaths(route.routes);
         }
       }
@@ -88,6 +88,8 @@ void main() {
       '/settings',
       '/servers/:serverId/channels/:channelId',
       '/servers/:serverId/channels/:channelId/members',
+      '/servers/:serverId/channels/:channelId/pinned',
+      '/file-preview',
       '/servers/:serverId/dms/:channelId',
       '/servers/:serverId/threads',
       '/servers/:serverId/threads/:threadId/replies',

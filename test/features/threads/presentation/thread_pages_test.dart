@@ -492,20 +492,30 @@ void main() {
   });
 }
 
+/// No-op GoRouter for tests.  Pages use GoRouter context extensions
+/// (context.canPop, context.push, etc.) which require a GoRouter ancestor.
+GoRouter _testGoRouter() => GoRouter(
+      initialLocation: '/',
+      routes: [GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink())],
+    );
+
 Widget _buildApp({
   ThreadRepository? threadRepository,
   ConversationRepository? conversationRepository,
   required Widget child,
 }) {
-  return ProviderScope(
-    overrides: [
-      if (threadRepository != null)
-        threadRepositoryProvider.overrideWithValue(threadRepository),
-      if (conversationRepository != null)
-        conversationRepositoryProvider
-            .overrideWithValue(conversationRepository),
-    ],
-    child: MaterialApp(theme: AppTheme.light, home: child),
+  return InheritedGoRouter(
+    goRouter: _testGoRouter(),
+    child: ProviderScope(
+      overrides: [
+        if (threadRepository != null)
+          threadRepositoryProvider.overrideWithValue(threadRepository),
+        if (conversationRepository != null)
+          conversationRepositoryProvider
+              .overrideWithValue(conversationRepository),
+      ],
+      child: MaterialApp(theme: AppTheme.light, home: child),
+    ),
   );
 }
 
@@ -513,9 +523,12 @@ Widget _buildAppWithContainer({
   required ProviderContainer container,
   required Widget child,
 }) {
-  return UncontrolledProviderScope(
-    container: container,
-    child: MaterialApp(theme: AppTheme.light, home: child),
+  return InheritedGoRouter(
+    goRouter: _testGoRouter(),
+    child: UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(theme: AppTheme.light, home: child),
+    ),
   );
 }
 

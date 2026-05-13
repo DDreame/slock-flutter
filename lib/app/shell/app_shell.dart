@@ -13,18 +13,9 @@ const _hiddenBottomNavPaths = {
 };
 
 class AppShell extends ConsumerWidget {
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
 
-  const AppShell({super.key, required this.child});
-
-  int _currentIndex(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
-    if (location.startsWith('/channels')) return 1;
-    if (location.startsWith('/dms')) return 2;
-    if (location.startsWith('/agents')) return 3;
-    if (location.startsWith('/inbox')) return 4;
-    return 0;
-  }
+  const AppShell({super.key, required this.navigationShell});
 
   bool _showBottomNavigation(BuildContext context) {
     final path = GoRouterState.of(context).uri.path;
@@ -33,7 +24,7 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final index = _currentIndex(context);
+    final index = navigationShell.currentIndex;
     final showBottomNavigation = _showBottomNavigation(context);
     final l10n = context.l10n;
 
@@ -42,24 +33,20 @@ class AppShell extends ConsumerWidget {
     final homeUnreadTotal = ref.watch(inboxTotalUnreadCountProvider);
 
     return Scaffold(
-      body: child,
+      body: navigationShell,
       bottomNavigationBar: showBottomNavigation
           ? NavigationBar(
               key: const ValueKey('app-bottom-nav'),
               selectedIndex: index,
               onDestinationSelected: (i) {
-                switch (i) {
-                  case 0:
-                    context.go('/home');
-                  case 1:
-                    context.go('/channels');
-                  case 2:
-                    context.go('/dms');
-                  case 3:
-                    context.go('/agents');
-                  case 4:
-                    context.go('/inbox');
-                }
+                // goBranch switches to the branch's navigator, preserving
+                // its in-tab navigation state (scroll position, sub-pages).
+                navigationShell.goBranch(
+                  i,
+                  // When tapping the already-selected tab, go to its
+                  // initial location (e.g. scroll-to-top behavior).
+                  initialLocation: i == navigationShell.currentIndex,
+                );
               },
               destinations: [
                 NavigationDestination(
