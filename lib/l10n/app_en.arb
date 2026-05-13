@@ -230,5 +230,8 @@
 
   "attachmentOpenInBrowser": "Open in browser",
   "attachmentUnableToLoadImage": "Unable to load image",
-  "attachmentHtmlOpensInBrowser": "HTML • Opens in browser"
+  "attachmentHtmlOpensInBrowser": "HTML • Opens in browser",
+
+  "refreshFailedSnackbar": "Could not refresh. Showing cached data.",
+  "refreshFailedRetry": "Retry"
 }

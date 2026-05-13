@@ -40,6 +40,19 @@ class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
+    // refresh completes with failure — not on mutation errors.
+    ref.listen(
+      homeListStoreProvider.select((s) => s.isRefreshing),
+      (prev, next) {
+        if (prev == true && next == false) {
+          final s = ref.read(homeListStoreProvider);
+          if (s.failure != null && s.status == HomeListStatus.success) {
+            _showRefreshFailedSnackBar();
+          }
+        }
+      },
+    );
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final l10n = context.l10n;
 
@@ -144,6 +157,19 @@ class _HomePageState extends ConsumerState<HomePage> {
     final serverId = ref.read(activeServerScopeIdProvider)?.value;
     if (serverId == null) return;
     context.push('/servers/$serverId/$routeSuffix');
+  }
+
+  void _showRefreshFailedSnackBar() {
+    final l10n = context.l10n;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.refreshFailedSnackbar),
+        action: SnackBarAction(
+          label: l10n.refreshFailedRetry,
+          onPressed: () => ref.read(homeListStoreProvider.notifier).refresh(),
+        ),
+      ));
   }
 }
 

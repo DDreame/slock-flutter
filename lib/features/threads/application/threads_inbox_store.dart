@@ -53,9 +53,14 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
       if (ref.read(currentThreadsServerIdProvider) != serverId) {
         return;
       }
+      // INV-NET-DEGRADE-1: preserve stale data on refresh failure.
+      // Only clear items on first-load failure (no existing data).
+      final hasExistingData = state.items.isNotEmpty;
       state = state.copyWith(
-        status: ThreadsInboxStatus.failure,
-        items: const [],
+        status: hasExistingData
+            ? ThreadsInboxStatus.success
+            : ThreadsInboxStatus.failure,
+        items: hasExistingData ? null : const [],
         completingThreadIds: const [],
         failure: failure,
       );

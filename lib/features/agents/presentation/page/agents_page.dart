@@ -42,6 +42,19 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(agentsStoreProvider);
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
+    // refresh completes with failure — not on mutation errors (create/update).
+    ref.listen(
+      agentsStoreProvider.select((s) => s.isRefreshing),
+      (prev, next) {
+        if (prev == true && next == false) {
+          final s = ref.read(agentsStoreProvider);
+          if (s.failure != null && s.status == AgentsStatus.success) {
+            _showRefreshFailedSnackBar();
+          }
+        }
+      },
+    );
 
     if (widget.agentId != null) {
       AgentItem? agent;
@@ -374,6 +387,19 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showRefreshFailedSnackBar() {
+    final l10n = context.l10n;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.refreshFailedSnackbar),
+        action: SnackBarAction(
+          label: l10n.refreshFailedRetry,
+          onPressed: () => ref.read(agentsStoreProvider.notifier).load(),
+        ),
+      ));
   }
 }
 

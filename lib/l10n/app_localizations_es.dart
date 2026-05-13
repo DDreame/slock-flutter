@@ -630,4 +630,11 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get attachmentHtmlOpensInBrowser => 'HTML · Abrir en navegador';
+
+  @override
+  String get refreshFailedSnackbar =>
+      'No se pudo actualizar. Mostrando datos en cache.';
+
+  @override
+  String get refreshFailedRetry => 'Reintentar';
 }

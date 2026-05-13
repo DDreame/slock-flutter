@@ -425,10 +425,11 @@ class HomeListStore extends Notifier<HomeListState> {
         // Tier 2: supplemental data — load independently, merge as
         // each completes. Failures are silently absorbed.
         unawaited(_loadAndMergeSupplemental(serverScopeId));
-      } on AppFailure {
+      } on AppFailure catch (failure) {
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
-        // Keep existing data visible on refresh failure.
-        state = state.copyWith(isRefreshing: false);
+        // Keep existing data visible on refresh failure, but surface
+        // the failure so the UI can show a snackbar (INV-NET-DEGRADE-2).
+        state = state.copyWith(isRefreshing: false, failure: failure);
       }
     });
   }

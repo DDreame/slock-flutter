@@ -621,4 +621,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attachmentHtmlOpensInBrowser => 'HTML • Opens in browser';
+
+  @override
+  String get refreshFailedSnackbar => 'Could not refresh. Showing cached data.';
+
+  @override
+  String get refreshFailedRetry => 'Retry';
 }

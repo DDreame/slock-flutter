@@ -178,6 +178,20 @@ class _ConversationDetailScreenState
       );
     }
     final state = ref.watch(conversationDetailStoreProvider);
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
+    // refresh completes with failure — not on pagination or mutation errors.
+    ref.listen(
+      conversationDetailStoreProvider.select((s) => s.isRefreshing),
+      (prev, next) {
+        if (prev == true && next == false) {
+          final s = ref.read(conversationDetailStoreProvider);
+          if (s.failure != null &&
+              s.status == ConversationDetailStatus.success) {
+            _showRefreshFailedSnackBar();
+          }
+        }
+      },
+    );
     final voiceState = ref.watch(voiceMessageStoreProvider);
     final isRecording =
         voiceState.recordingState == VoiceRecorderState.recording;
@@ -658,6 +672,20 @@ class _ConversationDetailScreenState
     final estimatedOffset =
         messages.isEmpty ? 0.0 : (idx + 1) / (messages.length + 1) * maxExtent;
     _scrollController.jumpTo(estimatedOffset.clamp(0.0, maxExtent));
+  }
+
+  void _showRefreshFailedSnackBar() {
+    final l10n = context.l10n;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.refreshFailedSnackbar),
+        action: SnackBarAction(
+          label: l10n.refreshFailedRetry,
+          onPressed: () =>
+              ref.read(conversationDetailStoreProvider.notifier).refresh(),
+        ),
+      ));
   }
 }
 

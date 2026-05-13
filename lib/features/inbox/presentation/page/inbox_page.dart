@@ -10,6 +10,7 @@ import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Full-screen inbox page.
 ///
@@ -39,6 +40,19 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final inboxState = ref.watch(inboxStoreProvider);
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
+    // refresh completes with failure — not on mutation errors.
+    ref.listen(
+      inboxStoreProvider.select((s) => s.isRefreshing),
+      (prev, next) {
+        if (prev == true && next == false) {
+          final s = ref.read(inboxStoreProvider);
+          if (s.failure != null && s.status == InboxStatus.success) {
+            _showRefreshFailedSnackBar();
+          }
+        }
+      },
+    );
 
     return Scaffold(
       key: const ValueKey('inbox-page'),
@@ -226,6 +240,19 @@ class _InboxPageState extends ConsumerState<InboxPage> {
       final dmId = projection.dmScopeId!.value;
       context.push('/servers/$sid/dms/$dmId');
     }
+  }
+
+  void _showRefreshFailedSnackBar() {
+    final l10n = context.l10n;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.refreshFailedSnackbar),
+        action: SnackBarAction(
+          label: l10n.refreshFailedRetry,
+          onPressed: () => ref.read(inboxStoreProvider.notifier).refresh(),
+        ),
+      ));
   }
 }
 
