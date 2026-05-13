@@ -593,4 +593,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get attachmentHtmlOpensInBrowser => 'HTML · 在浏览器中打开';
+
+  @override
+  String get refreshFailedSnackbar => '刷新失败，显示缓存数据。';
+
+  @override
+  String get refreshFailedRetry => '重试';
 }

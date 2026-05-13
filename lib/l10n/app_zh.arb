@@ -198,5 +198,8 @@
 
   "attachmentOpenInBrowser": "在浏览器中打开",
   "attachmentUnableToLoadImage": "无法加载图片",
-  "attachmentHtmlOpensInBrowser": "HTML · 在浏览器中打开"
+  "attachmentHtmlOpensInBrowser": "HTML · 在浏览器中打开",
+
+  "refreshFailedSnackbar": "刷新失败，显示缓存数据。",
+  "refreshFailedRetry": "重试"
 }

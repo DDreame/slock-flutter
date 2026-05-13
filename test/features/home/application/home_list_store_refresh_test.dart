@@ -227,6 +227,11 @@ void main() {
           reason: 'DMs must be preserved on refresh failure');
       expect(state.isRefreshing, isFalse,
           reason: 'isRefreshing must clear on failure');
+      // INV-NET-DEGRADE-1: failure must be surfaced, not silently dropped.
+      expect(state.failure, isNotNull,
+          reason: 'INV-NET-DEGRADE-1: failure must be set so UI can '
+              'show error feedback');
+      expect(state.failure, isA<ServerFailure>());
     });
 
     test('falls back to load() when no prior data exists', () async {

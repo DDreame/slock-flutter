@@ -12,6 +12,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // -- Filter chip Z2 spec tokens --
 const double _kFilterChipHeight = 32.0;
@@ -77,6 +78,17 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     });
 
     final state = ref.watch(tasksStoreProvider);
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar when stale
+    // data remains visible (status == success, failure != null).
+    ref.listen(
+      tasksStoreProvider.select((s) => s.failure),
+      (prev, next) {
+        if (next != null &&
+            ref.read(tasksStoreProvider).status == TasksStatus.success) {
+          _showRefreshFailedSnackBar();
+        }
+      },
+    );
     final colors = Theme.of(context).extension<AppColors>()!;
     final homeState = ref.watch(homeListStoreProvider);
     final channels = homeState.status == HomeListStatus.success
@@ -233,6 +245,19 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showRefreshFailedSnackBar() {
+    final l10n = context.l10n;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.refreshFailedSnackbar),
+        action: SnackBarAction(
+          label: l10n.refreshFailedRetry,
+          onPressed: () => ref.read(tasksStoreProvider.notifier).load(),
+        ),
+      ));
   }
 }
 

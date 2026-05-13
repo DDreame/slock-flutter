@@ -42,6 +42,17 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(agentsStoreProvider);
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar when stale
+    // data remains visible (status == success, failure != null).
+    ref.listen(
+      agentsStoreProvider.select((s) => s.failure),
+      (prev, next) {
+        if (next != null &&
+            ref.read(agentsStoreProvider).status == AgentsStatus.success) {
+          _showRefreshFailedSnackBar();
+        }
+      },
+    );
 
     if (widget.agentId != null) {
       AgentItem? agent;
@@ -374,6 +385,19 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showRefreshFailedSnackBar() {
+    final l10n = context.l10n;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.refreshFailedSnackbar),
+        action: SnackBarAction(
+          label: l10n.refreshFailedRetry,
+          onPressed: () => ref.read(agentsStoreProvider.notifier).load(),
+        ),
+      ));
   }
 }
 

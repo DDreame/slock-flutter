@@ -197,5 +197,8 @@
 
   "attachmentOpenInBrowser": "Abrir en navegador",
   "attachmentUnableToLoadImage": "No se pudo cargar la imagen",
-  "attachmentHtmlOpensInBrowser": "HTML · Abrir en navegador"
+  "attachmentHtmlOpensInBrowser": "HTML · Abrir en navegador",
+
+  "refreshFailedSnackbar": "No se pudo actualizar. Mostrando datos en cache.",
+  "refreshFailedRetry": "Reintentar"
 }

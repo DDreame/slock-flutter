@@ -36,6 +36,17 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar when stale
+    // data remains visible (status == success, failure != null).
+    ref.listen(
+      homeListStoreProvider.select((s) => s.failure),
+      (prev, next) {
+        if (next != null &&
+            ref.read(homeListStoreProvider).status == HomeListStatus.success) {
+          _showRefreshFailedSnackBar();
+        }
+      },
+    );
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final unreadState = ref.watch(unreadSourceProjectionProvider);
     final l10n = context.l10n;
@@ -377,6 +388,19 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     if (channelId != null && mounted && pageContext.mounted) {
       pageContext.go('/servers/${serverId.value}/dms/$channelId');
     }
+  }
+
+  void _showRefreshFailedSnackBar() {
+    final l10n = context.l10n;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(l10n.refreshFailedSnackbar),
+        action: SnackBarAction(
+          label: l10n.refreshFailedRetry,
+          onPressed: () => ref.read(homeListStoreProvider.notifier).refresh(),
+        ),
+      ));
   }
 }
 

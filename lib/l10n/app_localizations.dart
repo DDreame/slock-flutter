@@ -1209,6 +1209,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'HTML • Opens in browser'**
   String get attachmentHtmlOpensInBrowser;
+
+  /// No description provided for @refreshFailedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not refresh. Showing cached data.'**
+  String get refreshFailedSnackbar;
+
+  /// No description provided for @refreshFailedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get refreshFailedRetry;
 }
 
 class _AppLocalizationsDelegate
