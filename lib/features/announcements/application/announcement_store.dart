@@ -37,6 +37,9 @@ class AnnouncementState {
 /// App-level (keepAlive) announcement store. Watches
 /// [activeServerScopeIdProvider] so switching servers rebuilds the
 /// store with fresh state (INV-ANNOUNCE-1 / INV-ANNOUNCE-3).
+///
+/// Load is triggered by [AnnouncementBanner] calling [ensureLoaded]
+/// in its build method — no fire-and-forget microtask.
 final announcementStoreProvider =
     NotifierProvider<AnnouncementStore, AnnouncementState>(
   AnnouncementStore.new,
@@ -45,19 +48,13 @@ final announcementStoreProvider =
 class AnnouncementStore extends Notifier<AnnouncementState> {
   @override
   AnnouncementState build() {
-    // Watch server scope so a server switch triggers rebuild → fresh load.
+    // Watch server scope so a server switch triggers rebuild → fresh state.
     ref.watch(activeServerScopeIdProvider);
-
-    // Auto-trigger load. Safe because this is a keepAlive Notifier —
-    // the container outlives the microtask.
-    Future.microtask(() {
-      if (state.status == AnnouncementStatus.initial) {
-        load();
-      }
-    });
     return const AnnouncementState();
   }
 
+  /// Triggers [load] if not already loading or loaded. Called by
+  /// [AnnouncementBanner] on every build so the banner self-populates.
   Future<void> ensureLoaded() async {
     if (state.status == AnnouncementStatus.loading ||
         state.status == AnnouncementStatus.success) {

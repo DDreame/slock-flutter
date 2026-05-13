@@ -11,6 +11,11 @@ class AnnouncementBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(announcementStoreProvider);
 
+    // Trigger load on every build so the banner self-populates after
+    // provider creation or server-switch rebuild. ensureLoaded() is a
+    // no-op when already loading or loaded (INV-ANNOUNCE-1).
+    ref.read(announcementStoreProvider.notifier).ensureLoaded();
+
     if (state.status != AnnouncementStatus.success ||
         state.announcements.isEmpty) {
       return const SizedBox.shrink();

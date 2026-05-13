@@ -32,8 +32,8 @@ void main() {
     );
   }
 
-  group('AnnouncementStore auto-load (INV-ANNOUNCE-1)', () {
-    test('build() auto-triggers load and transitions to success', () async {
+  group('AnnouncementStore load (INV-ANNOUNCE-1)', () {
+    test('load() transitions to success with announcements', () async {
       final container = createContainer(
         serverId: const ServerScopeId('srv-1'),
         apiAnnouncements: [
@@ -42,25 +42,26 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // Read the provider to trigger build().
-      final state = container.read(announcementStoreProvider);
-      // Initially starts at initial (or loading if microtask fires synchronously).
-      expect(
-        state.status,
-        anyOf(AnnouncementStatus.initial, AnnouncementStatus.loading),
-      );
+      // Initial state before any load.
+      final initial = container.read(announcementStoreProvider);
+      expect(initial.status, AnnouncementStatus.initial);
 
-      // Wait for the microtask-triggered load() to complete.
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+      // Explicit load (mirrors banner calling ensureLoaded).
+      await container.read(announcementStoreProvider.notifier).load();
 
       final loaded = container.read(announcementStoreProvider);
       expect(loaded.status, AnnouncementStatus.success);
       expect(loaded.announcements, hasLength(1));
       expect(loaded.announcements.first.id, 'a1');
+
+      // ensureLoaded() is a no-op once already loaded.
+      await container.read(announcementStoreProvider.notifier).ensureLoaded();
+      final afterEnsure = container.read(announcementStoreProvider);
+      expect(afterEnsure.status, AnnouncementStatus.success);
+      expect(afterEnsure.announcements, hasLength(1));
     });
 
-    test('auto-load with null server returns empty success', () async {
+    test('load() with null server returns empty success', () async {
       final container = createContainer(
         serverId: null,
         apiAnnouncements: [
@@ -69,16 +70,14 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      container.read(announcementStoreProvider);
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+      await container.read(announcementStoreProvider.notifier).load();
 
       final loaded = container.read(announcementStoreProvider);
       expect(loaded.status, AnnouncementStatus.success);
       expect(loaded.announcements, isEmpty);
     });
 
-    test('auto-load filters out dismissed announcements', () async {
+    test('load() filters out dismissed announcements', () async {
       // Pre-populate dismissed IDs for srv-1.
       await prefs.setStringList('dismissed_announcements_srv-1', ['a2']);
 
@@ -91,9 +90,7 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      container.read(announcementStoreProvider);
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+      await container.read(announcementStoreProvider.notifier).load();
 
       final loaded = container.read(announcementStoreProvider);
       expect(loaded.status, AnnouncementStatus.success);
@@ -127,43 +124,46 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // Initial load for server A.
-      container.read(announcementStoreProvider);
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+      // Keep a listener alive so rebuilds propagate reactively.
+      final sub = container.listen(announcementStoreProvider, (_, __) {});
+
+      // Load for server A.
+      await container.read(announcementStoreProvider.notifier).load();
 
       final stateA = container.read(announcementStoreProvider);
       expect(stateA.status, AnnouncementStatus.success);
       expect(stateA.announcements, hasLength(1));
       expect(stateA.announcements.first.id, 'a1');
 
-      // Switch to server B.
+      // Switch to server B — triggers rebuild via ref.watch.
       container.read(serverOverride.notifier).state = serverB;
 
-      // Allow rebuild + microtask auto-load.
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+      // After rebuild, state resets to initial.
+      final stateAfterSwitch = container.read(announcementStoreProvider);
+      expect(stateAfterSwitch.status, AnnouncementStatus.initial);
+
+      // Explicit load for server B.
+      await container.read(announcementStoreProvider.notifier).load();
 
       final stateB = container.read(announcementStoreProvider);
       expect(stateB.status, AnnouncementStatus.success);
       expect(stateB.announcements, hasLength(1));
       expect(stateB.announcements.first.id, 'b1');
+
+      sub.close();
     });
   });
 
   group('addAnnouncement (INV-ANNOUNCE-4)', () {
-    test('promotes status to success from initial', () async {
+    test('promotes status to success from initial', () {
       final container = createContainer(
         serverId: const ServerScopeId('srv-1'),
       );
       addTearDown(container.dispose);
 
-      // Read state before auto-load fires.
+      // State starts at initial (no auto-load).
       final initial = container.read(announcementStoreProvider);
-      expect(
-        initial.status,
-        anyOf(AnnouncementStatus.initial, AnnouncementStatus.loading),
-      );
+      expect(initial.status, AnnouncementStatus.initial);
 
       container.read(announcementStoreProvider.notifier).addAnnouncement(
             const Announcement(id: 'ws-1', title: 'From WebSocket'),
@@ -200,10 +200,8 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // Wait for auto-load.
-      container.read(announcementStoreProvider);
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+      // Explicit load.
+      await container.read(announcementStoreProvider.notifier).load();
 
       container.read(announcementStoreProvider.notifier).addAnnouncement(
             const Announcement(id: 'a1', title: 'Duplicate'),
@@ -225,10 +223,8 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // Wait for auto-load.
-      container.read(announcementStoreProvider);
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+      // Explicit load.
+      await container.read(announcementStoreProvider.notifier).load();
 
       await container.read(announcementStoreProvider.notifier).dismiss('a1');
 
