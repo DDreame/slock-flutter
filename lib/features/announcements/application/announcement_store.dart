@@ -38,8 +38,8 @@ class AnnouncementState {
 /// [activeServerScopeIdProvider] so switching servers rebuilds the
 /// store with fresh state (INV-ANNOUNCE-1 / INV-ANNOUNCE-3).
 ///
-/// Load is triggered by [AnnouncementBanner] calling [ensureLoaded]
-/// in its build method — no fire-and-forget microtask.
+/// Load is triggered by [AnnouncementBanner] from a post-frame
+/// callback in initState — never during widget build.
 final announcementStoreProvider =
     NotifierProvider<AnnouncementStore, AnnouncementState>(
   AnnouncementStore.new,
