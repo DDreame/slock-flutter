@@ -126,7 +126,6 @@ void main() {
     testWidgets(
       'entering channel with unread auto-marks read on successful load '
       '(INV-READ-1)',
-      skip: true, // TDD red — Phase B implementation required
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
@@ -211,7 +210,6 @@ void main() {
     testWidgets(
       'entering DM with unread auto-marks read on successful load '
       '(INV-READ-1)',
-      skip: true, // TDD red — Phase B implementation required
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
@@ -349,7 +347,6 @@ void main() {
     testWidgets(
       'markRead does not block conversation UI — messages render immediately '
       '(INV-READ-2)',
-      skip: true, // TDD red — Phase B implementation required
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
@@ -418,7 +415,6 @@ void main() {
     testWidgets(
       'markRead API failure does not affect conversation UI '
       '(INV-READ-3)',
-      skip: true, // TDD red — Phase B implementation required
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
@@ -492,7 +488,6 @@ void main() {
     testWidgets(
       'quick enter and exit still triggers markRead '
       '(INV-READ-5)',
-      skip: true, // TDD red — Phase B implementation required
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(

@@ -28,6 +28,7 @@ import 'package:slock_app/features/conversation/data/attachment_repository_provi
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
@@ -583,6 +584,22 @@ class _ConversationDetailScreenState
     ConversationDetailState? previous,
     ConversationDetailState next,
   ) {
+    // Fire markRead exactly once on first successful load.
+    if (previous?.status != ConversationDetailStatus.success &&
+        next.status == ConversationDetailStatus.success) {
+      final t = ref.read(currentConversationDetailTargetProvider);
+      switch (t.surface) {
+        case ConversationSurface.channel:
+          ref.read(markChannelReadUseCaseProvider)(
+            ChannelScopeId(serverId: t.serverId, value: t.conversationId),
+          );
+        case ConversationSurface.directMessage:
+          ref.read(markDmReadUseCaseProvider)(
+            DirectMessageScopeId(serverId: t.serverId, value: t.conversationId),
+          );
+      }
+    }
+
     if (!_scrollController.hasClients) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) {
