@@ -53,6 +53,9 @@ void main() async {
       savedBaseUrlSettings: savedBaseUrls,
     );
   } catch (error) {
+    // Prevent connectivityFuture from becoming an unhandled async error
+    // on the fatal-bootstrap path where nothing will ever await it.
+    connectivityFuture.ignore();
     runApp(FatalBootstrapScreen(error: error));
     return;
   }
