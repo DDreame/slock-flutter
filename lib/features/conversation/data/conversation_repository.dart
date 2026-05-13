@@ -182,6 +182,7 @@ class MessageAttachment {
     this.id,
     this.sizeBytes,
     this.thumbnailUrl,
+    this.createdAt,
   });
 
   final String name;
@@ -193,6 +194,10 @@ class MessageAttachment {
   /// Thumbnail/preview URL from the new API payload (`thumbnailUrl` field).
   /// Used for inline image previews before fetching a full signed URL.
   final String? thumbnailUrl;
+
+  /// Timestamp when the attachment was created/uploaded.
+  /// Used for sorting in file list pages. May be absent for older payloads.
+  final DateTime? createdAt;
 
   /// Formats [sizeBytes] into a human-readable string (e.g. "2.4 MB").
   /// Returns `null` when [sizeBytes] is absent.
@@ -216,11 +221,13 @@ class MessageAttachment {
             url == other.url &&
             id == other.id &&
             sizeBytes == other.sizeBytes &&
-            thumbnailUrl == other.thumbnailUrl;
+            thumbnailUrl == other.thumbnailUrl &&
+            createdAt == other.createdAt;
   }
 
   @override
-  int get hashCode => Object.hash(name, type, url, id, sizeBytes, thumbnailUrl);
+  int get hashCode =>
+      Object.hash(name, type, url, id, sizeBytes, thumbnailUrl, createdAt);
 }
 
 @immutable

@@ -35,6 +35,17 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
   bool _loading = true;
   String? _error;
 
+  /// Sort newest-first by [createdAt]. Files without a timestamp sort last,
+  /// preserving their original relative order (INV-FILES-1).
+  static int _newestFirst(MessageAttachment a, MessageAttachment b) {
+    final aTime = a.createdAt;
+    final bTime = b.createdAt;
+    if (aTime == null && bTime == null) return 0;
+    if (aTime == null) return 1;
+    if (bTime == null) return -1;
+    return bTime.compareTo(aTime);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -110,7 +121,7 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
       );
     }
 
-    final files = _files ?? [];
+    final files = List<MessageAttachment>.of(_files ?? [])..sort(_newestFirst);
     if (files.isEmpty) {
       final colors = Theme.of(context).extension<AppColors>()!;
       return Center(

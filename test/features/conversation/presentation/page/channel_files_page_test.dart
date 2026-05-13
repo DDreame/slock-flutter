@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/page/channel_files_page.dart';
@@ -8,34 +9,65 @@ import 'package:slock_app/features/conversation/presentation/page/channel_files_
 import '../../../conversation/data/channel_files_repository_test.dart';
 
 void main() {
-  Widget buildSubject({required FakeChannelFilesRepository repo}) {
-    return ProviderScope(
-      child: MaterialApp(
-        theme: AppTheme.light,
-        home: ChannelFilesPage(
-          serverId: 'server-1',
-          channelId: 'channel-1',
-          repositoryOverride: repo,
+  /// Builds a test harness with a real GoRouter so context.push works.
+  Widget buildSubject({
+    required FakeChannelFilesRepository repo,
+    void Function(MessageAttachment)? onFilePreview,
+  }) {
+    final router = GoRouter(
+      initialLocation: '/files',
+      routes: [
+        GoRoute(
+          path: '/files',
+          builder: (context, state) => ChannelFilesPage(
+            serverId: 'server-1',
+            channelId: 'channel-1',
+            repositoryOverride: repo,
+          ),
         ),
+        GoRoute(
+          path: '/file-preview',
+          builder: (context, state) {
+            final attachment = state.extra as MessageAttachment;
+            onFilePreview?.call(attachment);
+            return Scaffold(
+              body: Text('preview:${attachment.name}'),
+            );
+          },
+        ),
+      ],
+    );
+
+    return ProviderScope(
+      child: MaterialApp.router(
+        theme: AppTheme.light,
+        routerConfig: router,
       ),
     );
   }
 
-  testWidgets('file list renders sorted by newest (INV-FILES-1)',
+  testWidgets('file list sorts by createdAt newest-first (INV-FILES-1)',
       (tester) async {
+    // Provide files in oldest-first order — page should reverse to newest-first.
     final repo = FakeChannelFilesRepository(
-      files: const [
+      files: [
         MessageAttachment(
-          name: 'report.pdf',
+          name: 'old.pdf',
           type: 'application/pdf',
-          url: 'https://example.com/report.pdf',
-          sizeBytes: 2048,
+          url: 'https://example.com/old.pdf',
+          createdAt: DateTime(2026, 1, 1),
         ),
         MessageAttachment(
-          name: 'photo.png',
+          name: 'new.png',
           type: 'image/png',
-          url: 'https://example.com/photo.png',
-          sizeBytes: 4096,
+          url: 'https://example.com/new.png',
+          createdAt: DateTime(2026, 5, 10),
+        ),
+        MessageAttachment(
+          name: 'mid.txt',
+          type: 'text/plain',
+          url: 'https://example.com/mid.txt',
+          createdAt: DateTime(2026, 3, 15),
         ),
       ],
     );
@@ -44,18 +76,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('channel-files-list')), findsOneWidget);
-    expect(find.text('report.pdf'), findsOneWidget);
-    expect(find.text('photo.png'), findsOneWidget);
 
-    // Verify ordering: report.pdf should appear before photo.png.
-    final reportCenter = tester.getCenter(find.text('report.pdf'));
-    final photoCenter = tester.getCenter(find.text('photo.png'));
-    expect(reportCenter.dy, lessThan(photoCenter.dy),
-        reason: 'INV-FILES-1: files should maintain server-returned order');
+    // Verify newest→oldest order: new.png, mid.txt, old.pdf.
+    final newCenter = tester.getCenter(find.text('new.png'));
+    final midCenter = tester.getCenter(find.text('mid.txt'));
+    final oldCenter = tester.getCenter(find.text('old.pdf'));
+    expect(newCenter.dy, lessThan(midCenter.dy),
+        reason: 'INV-FILES-1: newest file should appear first');
+    expect(midCenter.dy, lessThan(oldCenter.dy),
+        reason: 'INV-FILES-1: files should be sorted newest→oldest');
   });
 
-  testWidgets('tap file pushes /file-preview with attachment (INV-FILES-2)',
+  testWidgets(
+      'tap file navigates to /file-preview with attachment (INV-FILES-2)',
       (tester) async {
+    MessageAttachment? capturedAttachment;
+
     final repo = FakeChannelFilesRepository(
       files: const [
         MessageAttachment(
@@ -66,21 +102,24 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(buildSubject(repo: repo));
+    await tester.pumpWidget(
+      buildSubject(
+        repo: repo,
+        onFilePreview: (attachment) => capturedAttachment = attachment,
+      ),
+    );
     await tester.pumpAndSettle();
 
-    // Verify the tile rendered and is tappable.
-    // The actual navigation uses go_router context.push which requires a full
-    // GoRouter setup. We verify the list tile rendered with the right key.
-    expect(
-      find.byKey(const ValueKey('channel-file-doc.txt-0')),
-      findsOneWidget,
-      reason: 'INV-FILES-2: file tile should render and be tappable',
-    );
-
-    // Tap the file tile — should not throw.
+    // Tap the file tile.
     await tester.tap(find.text('doc.txt'));
     await tester.pumpAndSettle();
+
+    // Should navigate to file-preview and pass the attachment.
+    expect(find.text('preview:doc.txt'), findsOneWidget,
+        reason: 'INV-FILES-2: tap should navigate to /file-preview');
+    expect(capturedAttachment?.name, 'doc.txt',
+        reason: 'INV-FILES-2: attachment should be passed as extra');
+    expect(capturedAttachment?.type, 'text/plain');
   });
 
   testWidgets('empty response shows empty state (INV-FILES-3)', (tester) async {
