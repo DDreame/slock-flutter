@@ -36,14 +36,16 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(homeListStoreProvider);
-    // INV-NET-DEGRADE-2: surface refresh failure via snackbar when stale
-    // data remains visible (status == success, failure != null).
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
+    // refresh completes with failure — not on mutation errors.
     ref.listen(
-      homeListStoreProvider.select((s) => s.failure),
+      homeListStoreProvider.select((s) => s.isRefreshing),
       (prev, next) {
-        if (next != null &&
-            ref.read(homeListStoreProvider).status == HomeListStatus.success) {
-          _showRefreshFailedSnackBar();
+        if (prev == true && next == false) {
+          final s = ref.read(homeListStoreProvider);
+          if (s.failure != null && s.status == HomeListStatus.success) {
+            _showRefreshFailedSnackBar();
+          }
         }
       },
     );

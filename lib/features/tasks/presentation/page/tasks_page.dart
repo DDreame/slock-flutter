@@ -78,14 +78,16 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     });
 
     final state = ref.watch(tasksStoreProvider);
-    // INV-NET-DEGRADE-2: surface refresh failure via snackbar when stale
-    // data remains visible (status == success, failure != null).
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
+    // refresh completes with failure — not on mutation errors.
     ref.listen(
-      tasksStoreProvider.select((s) => s.failure),
+      tasksStoreProvider.select((s) => s.isRefreshing),
       (prev, next) {
-        if (next != null &&
-            ref.read(tasksStoreProvider).status == TasksStatus.success) {
-          _showRefreshFailedSnackBar();
+        if (prev == true && next == false) {
+          final s = ref.read(tasksStoreProvider);
+          if (s.failure != null && s.status == TasksStatus.success) {
+            _showRefreshFailedSnackBar();
+          }
         }
       },
     );

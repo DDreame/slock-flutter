@@ -42,14 +42,16 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(agentsStoreProvider);
-    // INV-NET-DEGRADE-2: surface refresh failure via snackbar when stale
-    // data remains visible (status == success, failure != null).
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
+    // refresh completes with failure — not on mutation errors (create/update).
     ref.listen(
-      agentsStoreProvider.select((s) => s.failure),
+      agentsStoreProvider.select((s) => s.isRefreshing),
       (prev, next) {
-        if (next != null &&
-            ref.read(agentsStoreProvider).status == AgentsStatus.success) {
-          _showRefreshFailedSnackBar();
+        if (prev == true && next == false) {
+          final s = ref.read(agentsStoreProvider);
+          if (s.failure != null && s.status == AgentsStatus.success) {
+            _showRefreshFailedSnackBar();
+          }
         }
       },
     );

@@ -40,14 +40,16 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final inboxState = ref.watch(inboxStoreProvider);
-    // INV-NET-DEGRADE-2: surface refresh failure via snackbar when stale
-    // data remains visible (status == success, failure != null).
+    // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
+    // refresh completes with failure — not on mutation errors.
     ref.listen(
-      inboxStoreProvider.select((s) => s.failure),
+      inboxStoreProvider.select((s) => s.isRefreshing),
       (prev, next) {
-        if (next != null &&
-            ref.read(inboxStoreProvider).status == InboxStatus.success) {
-          _showRefreshFailedSnackBar();
+        if (prev == true && next == false) {
+          final s = ref.read(inboxStoreProvider);
+          if (s.failure != null && s.status == InboxStatus.success) {
+            _showRefreshFailedSnackBar();
+          }
         }
       },
     );
