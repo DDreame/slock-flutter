@@ -105,6 +105,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     return null;
   }
 
+  // Enable URL updates for push() / pushReplacement() so the address bar
+  // and routeInformationProvider reflect the pushed route.  Without this,
+  // GoRouter v14 defaults to keeping the URL at the shell's location,
+  // which breaks deep-link back-stack verification and browser history.
+  GoRouter.optionURLReflectsImperativeAPIs = true;
+
   final router = GoRouter(
     initialLocation: '/splash',
     refreshListenable: notifier,
