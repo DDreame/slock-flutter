@@ -128,15 +128,15 @@ class NotificationStore extends Notifier<NotificationState> {
   }
 
   Future<void> restorePushToken() async {
-    final token = await _storage.read(
-      key: NotificationStorageKeys.pushToken,
-    );
-    final platform = await _storage.read(
-      key: NotificationStorageKeys.pushTokenPlatform,
-    );
-    final updatedAtStr = await _storage.read(
-      key: NotificationStorageKeys.pushTokenUpdatedAt,
-    );
+    // Batch all storage reads in parallel instead of sequential awaits.
+    final results = await Future.wait([
+      _storage.read(key: NotificationStorageKeys.pushToken),
+      _storage.read(key: NotificationStorageKeys.pushTokenPlatform),
+      _storage.read(key: NotificationStorageKeys.pushTokenUpdatedAt),
+    ]);
+    final token = results[0];
+    final platform = results[1];
+    final updatedAtStr = results[2];
     if (token != null) {
       state = state.copyWith(
         pushToken: token,
@@ -241,19 +241,21 @@ class NotificationStore extends Notifier<NotificationState> {
     DateTime updatedAt, {
     String? platform,
   }) async {
-    await _storage.write(
-      key: NotificationStorageKeys.pushToken,
-      value: token,
-    );
-    await _storage.write(
-      key: NotificationStorageKeys.pushTokenUpdatedAt,
-      value: updatedAt.toIso8601String(),
-    );
-    if (platform != null) {
-      await _storage.write(
-        key: NotificationStorageKeys.pushTokenPlatform,
-        value: platform,
-      );
-    }
+    // Batch all storage writes in parallel instead of sequential awaits.
+    await Future.wait([
+      _storage.write(
+        key: NotificationStorageKeys.pushToken,
+        value: token,
+      ),
+      _storage.write(
+        key: NotificationStorageKeys.pushTokenUpdatedAt,
+        value: updatedAt.toIso8601String(),
+      ),
+      if (platform != null)
+        _storage.write(
+          key: NotificationStorageKeys.pushTokenPlatform,
+          value: platform,
+        ),
+    ]);
   }
 }

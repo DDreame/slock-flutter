@@ -42,12 +42,20 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final savedBaseUrls = SharedPrefsBaseUrlRepository(prefs: prefs).load();
 
+  // Start connectivity check before bootstrap so both run concurrently.
+  // Connectivity init is a read-only platform channel call — safe to
+  // overlap with reporter.init() inside appBootstrap().
+  final connectivityFuture = initConnectivityService();
+
   final AppBootstrapResult bootstrap;
   try {
     bootstrap = await appBootstrap(
       savedBaseUrlSettings: savedBaseUrls,
     );
   } catch (error) {
+    // Prevent connectivityFuture from becoming an unhandled async error
+    // on the fatal-bootstrap path where nothing will ever await it.
+    connectivityFuture.ignore();
     runApp(FatalBootstrapScreen(error: error));
     return;
   }
@@ -56,9 +64,8 @@ void main() async {
     storage: FlutterSecureStorageImpl(),
   );
 
-  // Initialize connectivity service with actual device state before
-  // building the provider tree so cold-start offline is detected.
-  final connectivityService = await initConnectivityService();
+  // Await connectivity (likely already resolved during bootstrap).
+  final connectivityService = await connectivityFuture;
 
   installErrorHandlers(
     bootstrap.reporter,
