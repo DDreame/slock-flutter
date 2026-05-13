@@ -121,6 +121,7 @@ class _ConversationDetailScreenState
   late final ScrollController _scrollController;
   late final bool _restoredFromSession;
   ProviderSubscription<ConversationDetailState>? _stateSubscription;
+  ProviderSubscription<TranslationSettingsState>? _translationSettingsSub;
   bool _didApplyInitialLanding = false;
   double? _olderLoadAnchorOffset;
   double? _olderLoadAnchorMaxExtent;
@@ -153,6 +154,15 @@ class _ConversationDetailScreenState
     Future.microtask(
       () => ref.read(conversationDetailStoreProvider.notifier).ensureLoaded(),
     );
+    // Load translation settings so auto-translate and context menu work
+    // without requiring a prior visit to the settings page.
+    _translationSettingsSub = ref.listenManual<TranslationSettingsState>(
+      translationSettingsStoreProvider,
+      _handleTranslationSettingsLoaded,
+    );
+    Future.microtask(
+      () => ref.read(translationSettingsStoreProvider.notifier).ensureLoaded(),
+    );
   }
 
   @override
@@ -162,6 +172,7 @@ class _ConversationDetailScreenState
     _voiceElapsedSub?.cancel();
     _voiceRecorder?.dispose();
     _stateSubscription?.close();
+    _translationSettingsSub?.close();
     if (_scrollController.hasClients) {
       ref
           .read(conversationDetailStoreProvider.notifier)
@@ -579,6 +590,22 @@ class _ConversationDetailScreenState
     ref
         .read(translationCacheStoreProvider.notifier)
         .translateMessages(messageIds);
+  }
+
+  /// Handles the race where conversation data arrives before translation
+  /// settings. When settings transition to success and conversation is
+  /// already loaded, re-trigger auto-translate.
+  void _handleTranslationSettingsLoaded(
+    TranslationSettingsState? previous,
+    TranslationSettingsState next,
+  ) {
+    if (previous?.status != TranslationSettingsStatus.success &&
+        next.status == TranslationSettingsStatus.success) {
+      final convState = ref.read(conversationDetailStoreProvider);
+      if (convState.status == ConversationDetailStatus.success) {
+        _autoTranslateIfNeeded(convState.messages);
+      }
+    }
   }
 
   void _handleScroll() {
