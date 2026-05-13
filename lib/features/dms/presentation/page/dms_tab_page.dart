@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
@@ -55,9 +56,20 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
         HomeListStatus.noActiveServer => _DmsNoServerState(
             message: l10n.dmsTabEmpty,
           ),
-        HomeListStatus.initial ||
-        HomeListStatus.loading =>
-          const Center(child: CircularProgressIndicator()),
+        HomeListStatus.initial || HomeListStatus.loading => ListView(
+            key: const ValueKey('dms-skeleton'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pageHorizontal,
+              vertical: AppSpacing.sm,
+            ),
+            children: const [
+              SkeletonListItem(key: ValueKey('dms-skeleton-item-0')),
+              SkeletonListItem(key: ValueKey('dms-skeleton-item-1')),
+              SkeletonListItem(key: ValueKey('dms-skeleton-item-2')),
+              SkeletonListItem(key: ValueKey('dms-skeleton-item-3')),
+              SkeletonListItem(key: ValueKey('dms-skeleton-item-4')),
+            ],
+          ),
         HomeListStatus.failure => _DmsErrorState(
             message: state.failure?.message ?? l10n.homeLoadFailedFallback,
             onRetry: homeStore.retry,

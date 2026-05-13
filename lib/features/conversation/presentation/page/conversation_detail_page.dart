@@ -16,6 +16,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
+import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
@@ -300,9 +301,29 @@ class _ConversationDetailScreenState
             child: switch (state.status) {
               ConversationDetailStatus.initial ||
               ConversationDetailStatus.loading =>
-                const Center(
-                  key: ValueKey('conversation-loading'),
-                  child: CircularProgressIndicator(),
+                ListView(
+                  key: const ValueKey('conversation-skeleton'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.pageHorizontal,
+                    vertical: AppSpacing.sm,
+                  ),
+                  children: const [
+                    SkeletonListItem(
+                      key: ValueKey('conversation-skeleton-item-0'),
+                    ),
+                    SkeletonListItem(
+                      key: ValueKey('conversation-skeleton-item-1'),
+                    ),
+                    SkeletonListItem(
+                      key: ValueKey('conversation-skeleton-item-2'),
+                    ),
+                    SkeletonListItem(
+                      key: ValueKey('conversation-skeleton-item-3'),
+                    ),
+                    SkeletonListItem(
+                      key: ValueKey('conversation-skeleton-item-4'),
+                    ),
+                  ],
                 ),
               ConversationDetailStatus.failure => _ConversationFailureView(
                   state: state,

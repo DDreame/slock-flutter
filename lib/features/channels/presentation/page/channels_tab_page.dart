@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
@@ -58,9 +59,20 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         HomeListStatus.noActiveServer => _ChannelsNoServerState(
             message: l10n.channelsTabEmpty,
           ),
-        HomeListStatus.initial ||
-        HomeListStatus.loading =>
-          const Center(child: CircularProgressIndicator()),
+        HomeListStatus.initial || HomeListStatus.loading => ListView(
+            key: const ValueKey('channels-skeleton'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pageHorizontal,
+              vertical: AppSpacing.sm,
+            ),
+            children: const [
+              SkeletonListItem(key: ValueKey('channels-skeleton-item-0')),
+              SkeletonListItem(key: ValueKey('channels-skeleton-item-1')),
+              SkeletonListItem(key: ValueKey('channels-skeleton-item-2')),
+              SkeletonListItem(key: ValueKey('channels-skeleton-item-3')),
+              SkeletonListItem(key: ValueKey('channels-skeleton-item-4')),
+            ],
+          ),
         HomeListStatus.failure => _ChannelsErrorState(
             message: state.failure?.message ?? l10n.homeLoadFailedFallback,
             onRetry: homeStore.retry,
