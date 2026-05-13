@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
@@ -783,25 +784,37 @@ Widget _buildApp({
   required AttachmentRepository attachmentRepository,
   DiagnosticsCollector? diagnostics,
 }) {
-  return ProviderScope(
-    overrides: [
-      conversationRepositoryProvider.overrideWithValue(repository),
-      attachmentRepositoryProvider.overrideWithValue(attachmentRepository),
-      currentOpenConversationTargetProvider.overrideWith((ref) => target),
-      if (diagnostics != null)
-        diagnosticsCollectorProvider.overrideWithValue(diagnostics),
-      sessionStoreProvider.overrideWith(
-        () => _FixedSessionStore(const SessionState()),
+  return InheritedGoRouter(
+    goRouter: _testGoRouter(),
+    child: ProviderScope(
+      overrides: [
+        conversationRepositoryProvider.overrideWithValue(repository),
+        attachmentRepositoryProvider.overrideWithValue(attachmentRepository),
+        currentOpenConversationTargetProvider.overrideWith((ref) => target),
+        if (diagnostics != null)
+          diagnosticsCollectorProvider.overrideWithValue(diagnostics),
+        sessionStoreProvider.overrideWith(
+          () => _FixedSessionStore(const SessionState()),
+        ),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: ConversationDetailPage(target: target),
       ),
-    ],
-    child: MaterialApp(
-      theme: AppTheme.light,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      home: ConversationDetailPage(target: target),
     ),
   );
 }
+
+/// No-op GoRouter for tests.  Pages use GoRouter context extensions
+/// (context.push, context.canPop, etc.) which require a GoRouter ancestor.
+GoRouter _testGoRouter() => GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
+      ],
+    );
 
 class _FixedSessionStore extends SessionStore {
   _FixedSessionStore(this._state);

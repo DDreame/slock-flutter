@@ -565,13 +565,16 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -645,13 +648,16 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -747,13 +753,16 @@ void main() {
 
     Future<void> pumpDetailPage() async {
       await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            theme: AppTheme.light,
-            supportedLocales: AppLocalizations.supportedLocales,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            home: ConversationDetailPage(target: target),
+        InheritedGoRouter(
+          goRouter: _testGoRouter(),
+          child: UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              theme: AppTheme.light,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              home: ConversationDetailPage(target: target),
+            ),
           ),
         ),
       );
@@ -1727,20 +1736,23 @@ void main() {
 
     late ProviderContainer container;
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container = ProviderContainer(
-          overrides: [
-            conversationRepositoryProvider.overrideWithValue(repository),
-            sessionStoreProvider.overrideWith(
-              () => _FixedSessionStore(const SessionState()),
-            ),
-          ],
-        ),
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container = ProviderContainer(
+            overrides: [
+              conversationRepositoryProvider.overrideWithValue(repository),
+              sessionStoreProvider.overrideWith(
+                () => _FixedSessionStore(const SessionState()),
+              ),
+            ],
+          ),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -1813,25 +1825,28 @@ void main() {
     // recording made in this session (own recording path).
     late ProviderContainer container;
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container = ProviderContainer(
-          overrides: [
-            conversationRepositoryProvider.overrideWithValue(repository),
-            sessionStoreProvider.overrideWith(
-              () => _FixedSessionStore(const SessionState()),
-            ),
-            voiceWaveformCacheProvider.overrideWith(
-              (ref) => {
-                'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
-              },
-            ),
-          ],
-        ),
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container = ProviderContainer(
+            overrides: [
+              conversationRepositoryProvider.overrideWithValue(repository),
+              sessionStoreProvider.overrideWith(
+                () => _FixedSessionStore(const SessionState()),
+              ),
+              voiceWaveformCacheProvider.overrideWith(
+                (ref) => {
+                  'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
+                },
+              ),
+            ],
+          ),
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -1885,13 +1900,16 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          theme: AppTheme.light,
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: ConversationDetailPage(target: target),
+      InheritedGoRouter(
+        goRouter: _testGoRouter(),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: ConversationDetailPage(target: target),
+          ),
         ),
       ),
     );
@@ -1927,21 +1945,33 @@ Widget _buildApp({
   required Widget child,
   SessionState sessionState = const SessionState(),
 }) {
-  return ProviderScope(
-    overrides: [
-      conversationRepositoryProvider.overrideWithValue(repository),
-      sessionStoreProvider.overrideWith(
-        () => _FixedSessionStore(sessionState),
+  return InheritedGoRouter(
+    goRouter: _testGoRouter(),
+    child: ProviderScope(
+      overrides: [
+        conversationRepositoryProvider.overrideWithValue(repository),
+        sessionStoreProvider.overrideWith(
+          () => _FixedSessionStore(sessionState),
+        ),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: child,
       ),
-    ],
-    child: MaterialApp(
-      theme: AppTheme.light,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      home: child,
     ),
   );
 }
+
+/// No-op GoRouter for tests.  Pages use GoRouter context extensions
+/// (context.push, context.canPop, etc.) which require a GoRouter ancestor.
+GoRouter _testGoRouter() => GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(path: '/', builder: (_, __) => const SizedBox.shrink()),
+      ],
+    );
 
 class _FixedSessionStore extends SessionStore {
   _FixedSessionStore(this._state);
