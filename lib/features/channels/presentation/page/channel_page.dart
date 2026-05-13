@@ -63,6 +63,12 @@ class ChannelPage extends ConsumerWidget {
         highlightMessageId: highlightMessageId,
         appBarActionsBuilder: (context, ref, state) => [
           IconButton(
+            icon: const Icon(Icons.attach_file),
+            onPressed: () => context.push(
+              '/servers/$serverId/channels/$channelId/files',
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.group),
             onPressed: () => context.push(
               '/servers/$serverId/channels/$channelId/members',
