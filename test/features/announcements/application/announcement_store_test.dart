@@ -102,6 +102,55 @@ void main() {
     });
   });
 
+  group('server switch rebuilds store (INV-ANNOUNCE-1 + INV-ANNOUNCE-3)', () {
+    test('switching servers resets state to initial and reloads', () async {
+      const serverA = ServerScopeId('srv-A');
+      const serverB = ServerScopeId('srv-B');
+
+      final fakeRepo = _ServerAwareFakeRepository({
+        'srv-A': [const Announcement(id: 'a1', title: 'Server A')],
+        'srv-B': [const Announcement(id: 'b1', title: 'Server B')],
+      });
+
+      final serverOverride = StateProvider<ServerScopeId?>(
+        (ref) => serverA,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          activeServerScopeIdProvider.overrideWith(
+            (ref) => ref.watch(serverOverride),
+          ),
+          announcementRepositoryProvider.overrideWithValue(fakeRepo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Initial load for server A.
+      container.read(announcementStoreProvider);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final stateA = container.read(announcementStoreProvider);
+      expect(stateA.status, AnnouncementStatus.success);
+      expect(stateA.announcements, hasLength(1));
+      expect(stateA.announcements.first.id, 'a1');
+
+      // Switch to server B.
+      container.read(serverOverride.notifier).state = serverB;
+
+      // Allow rebuild + microtask auto-load.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final stateB = container.read(announcementStoreProvider);
+      expect(stateB.status, AnnouncementStatus.success);
+      expect(stateB.announcements, hasLength(1));
+      expect(stateB.announcements.first.id, 'b1');
+    });
+  });
+
   group('addAnnouncement (INV-ANNOUNCE-4)', () {
     test('promotes status to success from initial', () async {
       final container = createContainer(
@@ -212,4 +261,22 @@ class _FakeAnnouncementRepository implements AnnouncementRepository {
   }) async {
     dismissedIds.add(announcementId);
   }
+}
+
+/// A fake repository that returns different announcements per server.
+class _ServerAwareFakeRepository implements AnnouncementRepository {
+  _ServerAwareFakeRepository(this._perServer);
+
+  final Map<String, List<Announcement>> _perServer;
+
+  @override
+  Future<List<Announcement>> getActive(ServerScopeId serverId) async {
+    return _perServer[serverId.value] ?? const [];
+  }
+
+  @override
+  Future<void> dismiss(
+    ServerScopeId serverId, {
+    required String announcementId,
+  }) async {}
 }

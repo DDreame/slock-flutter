@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/announcements/application/dismissed_announcement_ids.dart';
-import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/announcements/data/announcement.dart';
 import 'package:slock_app/features/announcements/data/announcement_repository.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 
 enum AnnouncementStatus { initial, loading, success, failure }
 
@@ -34,17 +34,27 @@ class AnnouncementState {
   }
 }
 
+/// App-level (keepAlive) announcement store. Watches
+/// [activeServerScopeIdProvider] so switching servers rebuilds the
+/// store with fresh state (INV-ANNOUNCE-1 / INV-ANNOUNCE-3).
 final announcementStoreProvider =
-    AutoDisposeNotifierProvider<AnnouncementStore, AnnouncementState>(
+    NotifierProvider<AnnouncementStore, AnnouncementState>(
   AnnouncementStore.new,
 );
 
-class AnnouncementStore extends AutoDisposeNotifier<AnnouncementState> {
+class AnnouncementStore extends Notifier<AnnouncementState> {
   @override
   AnnouncementState build() {
-    // Auto-trigger load so the banner is populated without callers
-    // needing to call ensureLoaded() explicitly (INV-ANNOUNCE-1).
-    Future.microtask(load);
+    // Watch server scope so a server switch triggers rebuild → fresh load.
+    ref.watch(activeServerScopeIdProvider);
+
+    // Auto-trigger load. Safe because this is a keepAlive Notifier —
+    // the container outlives the microtask.
+    Future.microtask(() {
+      if (state.status == AnnouncementStatus.initial) {
+        load();
+      }
+    });
     return const AnnouncementState();
   }
 
