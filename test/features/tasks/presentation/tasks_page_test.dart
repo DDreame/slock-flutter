@@ -307,6 +307,247 @@ void main() {
 
     expect(store.statusUpdates, [('task-1', 'todo')]);
   });
+
+  // -------------------------------------------------------------------------
+  // #498: Closed task status support
+  // -------------------------------------------------------------------------
+
+  testWidgets(
+    'closed task displays in 已关闭 section with ✕ symbol '
+    '(INV-TASK-CLOSED-1)',
+    (tester) async {
+      final store = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [
+            _taskItem(id: 'task-closed', status: 'closed'),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(store));
+      await tester.pumpAndSettle();
+
+      // Section label should say "已关闭"
+      expect(
+        find.byKey(const ValueKey('task-section-closed')),
+        findsOneWidget,
+        reason: 'INV-TASK-CLOSED-1: Closed tasks should have their own section',
+      );
+      expect(find.text('已关闭'), findsOneWidget);
+
+      // Status symbol should be ✕
+      expect(find.text('✕'), findsWidgets);
+
+      // Row should be rendered with opacity (terminal state)
+      expect(
+        find.byKey(const ValueKey('task-row-opacity-task-closed')),
+        findsOneWidget,
+        reason: 'Closed tasks should render with reduced opacity',
+      );
+    },
+  );
+
+  testWidgets(
+    'long-press on todo task shows 关闭任务 action '
+    '(INV-TASK-CLOSED-2)',
+    (tester) async {
+      final store = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [_taskItem(status: 'todo')],
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tasksStoreProvider.overrideWith(() => store),
+            tasksRealtimeBindingProvider.overrideWith((ref) {}),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TasksPage(serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('关闭任务'),
+        findsOneWidget,
+        reason:
+            'INV-TASK-CLOSED-2: Action sheet should include Close Task option',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('task-action-close')));
+      await tester.pumpAndSettle();
+
+      expect(store.statusUpdates, [('task-1', 'closed')]);
+    },
+  );
+
+  testWidgets(
+    'long-press on done task shows 关闭任务 is absent — already terminal',
+    (tester) async {
+      final store = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [_taskItem(status: 'done')],
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tasksStoreProvider.overrideWith(() => store),
+            tasksRealtimeBindingProvider.overrideWith((ref) {}),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TasksPage(serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('关闭任务'),
+        findsNothing,
+        reason: 'Done tasks should not show Close Task option',
+      );
+    },
+  );
+
+  testWidgets(
+    'long-press on closed task shows Reopen action',
+    (tester) async {
+      final store = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [_taskItem(status: 'closed')],
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            tasksStoreProvider.overrideWith(() => store),
+            tasksRealtimeBindingProvider.overrideWith((ref) {}),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: const TasksPage(serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reopen'), findsOneWidget);
+      expect(
+        find.text('Mark Done'),
+        findsNothing,
+        reason: 'Closed tasks should not show Mark Done',
+      );
+      expect(
+        find.text('关闭任务'),
+        findsNothing,
+        reason: 'Closed tasks should not show Close Task',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('task-action-reopen')));
+      await tester.pumpAndSettle();
+
+      expect(store.statusUpdates, [('task-1', 'todo')]);
+    },
+  );
+
+  testWidgets(
+    'closed tasks not counted in active summary — separate Closed column '
+    '(INV-TASK-CLOSED-3)',
+    (tester) async {
+      final store = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [
+            _taskItem(id: 'task-todo', status: 'todo'),
+            _taskItem(id: 'task-ip', status: 'in_progress'),
+            _taskItem(id: 'task-closed-1', status: 'closed'),
+            _taskItem(id: 'task-closed-2', status: 'closed'),
+          ],
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(store));
+      await tester.pumpAndSettle();
+
+      // Summary header should show: To Do=1, In Progress=1, Review=0, Done=0, Closed=2
+      final summaryHeader = find.byKey(const ValueKey('tasks-summary-header'));
+      expect(summaryHeader, findsOneWidget);
+
+      // Verify closed count is 2 and shown separately
+      expect(
+        find.text('Closed'),
+        findsOneWidget,
+        reason: 'INV-TASK-CLOSED-3: Summary should have a Closed column',
+      );
+    },
+  );
+
+  testWidgets(
+    'closed task has lineThrough decoration',
+    (tester) async {
+      final store = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [_taskItem(id: 'task-closed', status: 'closed')],
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(store));
+      await tester.pumpAndSettle();
+
+      final titleText = tester.widget<Text>(
+        find.text('#1 Investigate loading surface'),
+      );
+      expect(
+        titleText.style?.decoration,
+        TextDecoration.lineThrough,
+        reason: 'Closed tasks should show strikethrough text',
+      );
+    },
+  );
+
+  testWidgets(
+    'closed task status symbol uses textTertiary color in dark theme',
+    (tester) async {
+      final store = _FakeTasksStore(
+        initialState: TasksState(
+          status: TasksStatus.success,
+          items: [_taskItem(id: 'task-closed', status: 'closed')],
+        ),
+      );
+
+      await tester.pumpWidget(_buildApp(store, theme: AppTheme.dark));
+      await tester.pumpAndSettle();
+
+      final closedSymbol = tester.widget<Text>(find.text('✕'));
+      expect(
+        closedSymbol.style?.color,
+        AppColors.dark.textTertiary,
+        reason: 'Closed symbol should use textTertiary color',
+      );
+    },
+  );
 }
 
 Widget _buildApp(_FakeTasksStore store, {ThemeData? theme}) {
