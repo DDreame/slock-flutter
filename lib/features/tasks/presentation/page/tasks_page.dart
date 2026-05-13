@@ -5,6 +5,8 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/list_action_sheet.dart';
+import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -823,6 +825,21 @@ class _TaskRow extends ConsumerWidget {
       ),
     );
 
+    // Wrap with left-swipe "Done" action (only for non-done tasks).
+    if (!isDone) {
+      row = SwipeActionWrapper(
+        itemKey: task.id,
+        enabled: true,
+        action: SwipeActionConfig(
+          label: 'Done',
+          icon: Icons.check_circle_outline,
+          color: colors.success,
+        ),
+        onAction: () => onStatusUpdate(task, 'done'),
+        child: row,
+      );
+    }
+
     if (isDone) {
       row = Opacity(
         key: ValueKey('task-row-opacity-${task.id}'),
@@ -843,110 +860,91 @@ class _TaskRow extends ConsumerWidget {
     }
   }
 
-  void _showTaskActions(BuildContext context) {
-    final theme = Theme.of(context);
-    showModalBottomSheet<void>(
+  Future<void> _showTaskActions(BuildContext context) async {
+    final actions = <ListActionItem>[
+      if (task.status != 'done')
+        const ListActionItem(
+          key: 'task-action-done',
+          label: 'Mark Done',
+          icon: Icons.check_circle_outline,
+        ),
+      if (task.status == 'todo')
+        const ListActionItem(
+          key: 'task-action-start',
+          label: 'Start',
+          icon: Icons.play_arrow,
+        ),
+      if (task.status == 'in_progress')
+        const ListActionItem(
+          key: 'task-action-review',
+          label: 'Move to Review',
+          icon: Icons.rate_review_outlined,
+        ),
+      if (task.status == 'done')
+        const ListActionItem(
+          key: 'task-action-reopen',
+          label: 'Reopen',
+          icon: Icons.replay,
+        ),
+      if (task.status == 'in_review')
+        const ListActionItem(
+          key: 'task-action-revert-in-progress',
+          label: 'Revert to In Progress',
+          icon: Icons.undo,
+        ),
+      if (task.status == 'in_progress')
+        const ListActionItem(
+          key: 'task-action-revert-todo',
+          label: 'Revert to To Do',
+          icon: Icons.undo,
+        ),
+      if (task.claimedById == null)
+        const ListActionItem(
+          key: 'task-action-claim',
+          label: 'Claim',
+          icon: Icons.person_add,
+        ),
+      if (task.claimedById != null)
+        const ListActionItem(
+          key: 'task-action-unclaim',
+          label: 'Unclaim',
+          icon: Icons.person_remove,
+        ),
+      if (!task.isLegacy)
+        const ListActionItem(
+          key: 'task-action-delete',
+          label: 'Delete',
+          icon: Icons.delete_outline,
+          isDestructive: true,
+        ),
+    ];
+
+    final result = await showListActionSheet(
       context: context,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (task.status != 'done')
-                ListTile(
-                  leading: const Icon(Icons.check_circle_outline),
-                  title: const Text('Mark Done'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onStatusUpdate(task, 'done');
-                  },
-                ),
-              if (task.status == 'todo')
-                ListTile(
-                  leading: const Icon(Icons.play_arrow),
-                  title: const Text('Start'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onStatusUpdate(task, 'in_progress');
-                  },
-                ),
-              if (task.status == 'in_progress')
-                ListTile(
-                  leading: const Icon(Icons.rate_review_outlined),
-                  title: const Text('Move to Review'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onStatusUpdate(task, 'in_review');
-                  },
-                ),
-              if (task.status == 'done')
-                ListTile(
-                  key: const ValueKey('task-action-reopen'),
-                  leading: const Icon(Icons.replay),
-                  title: const Text('Reopen'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onStatusUpdate(task, 'todo');
-                  },
-                ),
-              if (task.status == 'in_review')
-                ListTile(
-                  key: const ValueKey('task-action-revert-in-progress'),
-                  leading: const Icon(Icons.undo),
-                  title: const Text('Revert to In Progress'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onStatusUpdate(task, 'in_progress');
-                  },
-                ),
-              if (task.status == 'in_progress')
-                ListTile(
-                  key: const ValueKey('task-action-revert-todo'),
-                  leading: const Icon(Icons.undo),
-                  title: const Text('Revert to To Do'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onStatusUpdate(task, 'todo');
-                  },
-                ),
-              if (task.claimedById == null)
-                ListTile(
-                  leading: const Icon(Icons.person_add),
-                  title: const Text('Claim'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onClaim(task);
-                  },
-                ),
-              if (task.claimedById != null)
-                ListTile(
-                  leading: const Icon(Icons.person_remove),
-                  title: const Text('Unclaim'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onUnclaim(task);
-                  },
-                ),
-              if (!task.isLegacy)
-                ListTile(
-                  leading: Icon(
-                    Icons.delete_outline,
-                    color: theme.colorScheme.error,
-                  ),
-                  title: Text(
-                    'Delete',
-                    style: TextStyle(color: theme.colorScheme.error),
-                  ),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onDelete(task);
-                  },
-                ),
-            ],
-          ),
-        );
-      },
+      actions: actions,
+      title: '#${task.taskNumber} ${task.title}',
     );
+
+    switch (result) {
+      case 'task-action-done':
+        onStatusUpdate(task, 'done');
+      case 'task-action-start':
+        onStatusUpdate(task, 'in_progress');
+      case 'task-action-review':
+        onStatusUpdate(task, 'in_review');
+      case 'task-action-reopen':
+        onStatusUpdate(task, 'todo');
+      case 'task-action-revert-in-progress':
+        onStatusUpdate(task, 'in_progress');
+      case 'task-action-revert-todo':
+        onStatusUpdate(task, 'todo');
+      case 'task-action-claim':
+        onClaim(task);
+      case 'task-action-unclaim':
+        onUnclaim(task);
+      case 'task-action-delete':
+        onDelete(task);
+    }
   }
 }
 

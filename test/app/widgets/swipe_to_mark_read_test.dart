@@ -41,9 +41,9 @@ void main() {
 
       // Child is visible.
       expect(find.byKey(const ValueKey('inner-child')), findsOneWidget);
-      // No Dismissible wrapper present.
+      // No Dismissible wrapper present (SwipeActionWrapper not rendered).
       expect(
-        find.byKey(const ValueKey('swipe-mark-read-test-item')),
+        find.byKey(const ValueKey('swipe-action-test-item')),
         findsNothing,
       );
     });
@@ -57,7 +57,7 @@ void main() {
 
       expect(find.byKey(const ValueKey('inner-child')), findsOneWidget);
       expect(
-        find.byKey(const ValueKey('swipe-mark-read-test-item')),
+        find.byKey(const ValueKey('swipe-action-test-item')),
         findsOneWidget,
       );
     });
@@ -73,7 +73,7 @@ void main() {
 
       // Swipe left (end-to-start). Use fling to exceed dismiss threshold.
       await tester.fling(
-        find.byKey(const ValueKey('swipe-mark-read-test-item')),
+        find.byKey(const ValueKey('swipe-action-test-item')),
         const Offset(-500, 0),
         1000,
       );
@@ -92,13 +92,13 @@ void main() {
 
       // Fling left to exceed dismiss threshold.
       await tester.fling(
-        find.byKey(const ValueKey('swipe-mark-read-test-item')),
+        find.byKey(const ValueKey('swipe-action-test-item')),
         const Offset(-500, 0),
         1000,
       );
       await tester.pumpAndSettle();
 
-      // The child should still be present (confirmDismiss returns false).
+      // The child should still be present (dismisses: false).
       expect(find.byKey(const ValueKey('inner-child')), findsOneWidget);
     });
 
@@ -112,7 +112,7 @@ void main() {
 
       // Verify the Dismissible is configured correctly.
       final dismissible = tester.widget<Dismissible>(
-        find.byKey(const ValueKey('swipe-mark-read-test-item')),
+        find.byKey(const ValueKey('swipe-action-test-item')),
       );
       expect(dismissible.direction, DismissDirection.endToStart);
       expect(dismissible.secondaryBackground, isNotNull);
@@ -144,7 +144,7 @@ void main() {
 
       // Use fling to exceed dismiss threshold.
       await tester.fling(
-        find.byKey(const ValueKey('swipe-mark-read-dark-item')),
+        find.byKey(const ValueKey('swipe-action-dark-item')),
         const Offset(-500, 0),
         1000,
       );

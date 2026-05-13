@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
-
-enum _HomeChannelAction { edit, delete, leave, togglePin, moveUp, moveDown }
 
 class HomeChannelRow extends StatelessWidget {
   const HomeChannelRow({
@@ -46,6 +45,8 @@ class HomeChannelRow extends StatelessWidget {
       color: hasUnread ? colors.primaryLight : Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress:
+            _hasActions && !isMutating ? () => _showActionSheet(context) : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.pageHorizontal,
@@ -103,7 +104,6 @@ class HomeChannelRow extends StatelessWidget {
                   ],
                 ],
               ),
-              if (_showMenu) _buildMenu(context),
             ],
           ),
         ),
@@ -111,7 +111,7 @@ class HomeChannelRow extends StatelessWidget {
     );
   }
 
-  bool get _showMenu =>
+  bool get _hasActions =>
       onEdit != null ||
       onDelete != null ||
       onLeave != null ||
@@ -119,59 +119,66 @@ class HomeChannelRow extends StatelessWidget {
       onMoveUp != null ||
       onMoveDown != null;
 
-  Widget _buildMenu(BuildContext context) {
-    return PopupMenuButton<_HomeChannelAction>(
-      key: ValueKey('channel-menu-${channel.scopeId.routeParam}'),
-      enabled: !isMutating,
-      tooltip: 'Channel actions',
-      onSelected: (action) {
-        switch (action) {
-          case _HomeChannelAction.edit:
-            onEdit?.call();
-          case _HomeChannelAction.delete:
-            onDelete?.call();
-          case _HomeChannelAction.leave:
-            onLeave?.call();
-          case _HomeChannelAction.togglePin:
-            onTogglePin?.call();
-          case _HomeChannelAction.moveUp:
-            onMoveUp?.call();
-          case _HomeChannelAction.moveDown:
-            onMoveDown?.call();
-        }
-      },
-      itemBuilder: (context) => [
-        if (onMoveUp != null)
-          const PopupMenuItem<_HomeChannelAction>(
-            value: _HomeChannelAction.moveUp,
-            child: Text('Move up'),
-          ),
-        if (onMoveDown != null)
-          const PopupMenuItem<_HomeChannelAction>(
-            value: _HomeChannelAction.moveDown,
-            child: Text('Move down'),
-          ),
-        if (onTogglePin != null)
-          PopupMenuItem<_HomeChannelAction>(
-            value: _HomeChannelAction.togglePin,
-            child: Text(isPinned ? 'Unpin channel' : 'Pin channel'),
-          ),
-        if (onEdit != null)
-          const PopupMenuItem<_HomeChannelAction>(
-            value: _HomeChannelAction.edit,
-            child: Text('Edit channel'),
-          ),
-        if (onDelete != null)
-          const PopupMenuItem<_HomeChannelAction>(
-            value: _HomeChannelAction.delete,
-            child: Text('Delete channel'),
-          ),
-        if (onLeave != null)
-          const PopupMenuItem<_HomeChannelAction>(
-            value: _HomeChannelAction.leave,
-            child: Text('Leave channel'),
-          ),
-      ],
+  Future<void> _showActionSheet(BuildContext context) async {
+    final actions = <ListActionItem>[
+      if (onMoveUp != null)
+        const ListActionItem(
+          key: 'channel-action-move-up',
+          label: 'Move up',
+          icon: Icons.arrow_upward,
+        ),
+      if (onMoveDown != null)
+        const ListActionItem(
+          key: 'channel-action-move-down',
+          label: 'Move down',
+          icon: Icons.arrow_downward,
+        ),
+      if (onTogglePin != null)
+        ListActionItem(
+          key: 'channel-action-toggle-pin',
+          label: isPinned ? 'Unpin channel' : 'Pin channel',
+          icon: isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+        ),
+      if (onEdit != null)
+        const ListActionItem(
+          key: 'channel-action-edit',
+          label: 'Edit channel',
+          icon: Icons.edit_outlined,
+        ),
+      if (onLeave != null)
+        const ListActionItem(
+          key: 'channel-action-leave',
+          label: 'Leave channel',
+          icon: Icons.exit_to_app,
+        ),
+      if (onDelete != null)
+        const ListActionItem(
+          key: 'channel-action-delete',
+          label: 'Delete channel',
+          icon: Icons.delete_outline,
+          isDestructive: true,
+        ),
+    ];
+
+    final result = await showListActionSheet(
+      context: context,
+      actions: actions,
+      title: channel.name,
     );
+
+    switch (result) {
+      case 'channel-action-move-up':
+        onMoveUp?.call();
+      case 'channel-action-move-down':
+        onMoveDown?.call();
+      case 'channel-action-toggle-pin':
+        onTogglePin?.call();
+      case 'channel-action-edit':
+        onEdit?.call();
+      case 'channel-action-leave':
+        onLeave?.call();
+      case 'channel-action-delete':
+        onDelete?.call();
+    }
   }
 }

@@ -227,7 +227,7 @@ void main() {
 
       // The Dismissible wrapper should be present.
       expect(
-        find.byKey(const ValueKey('swipe-mark-read-dm-alice')),
+        find.byKey(const ValueKey('swipe-action-dm-alice')),
         findsOneWidget,
       );
     });

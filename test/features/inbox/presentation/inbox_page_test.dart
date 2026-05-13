@@ -122,7 +122,7 @@ void main() {
 
       // Swipe endToStart (right-to-left in LTR layout) = mark done
       await tester.drag(
-        find.byKey(const ValueKey('inbox-dismiss-ch-1')),
+        find.byKey(const ValueKey('swipe-action-ch-1')),
         const Offset(-500, 0),
       );
       await tester.pumpAndSettle();
@@ -131,7 +131,7 @@ void main() {
       expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsNothing);
     });
 
-    testWidgets('swipe right on item clears unread badge', (tester) async {
+    testWidgets('long-press mark read clears unread badge', (tester) async {
       repo.items = [
         _makeItem(channelId: 'ch-1', channelName: '#general', unread: 5),
       ];
@@ -139,15 +139,17 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      // Badge visible before swipe.
+      // Badge visible before action.
       expect(find.byKey(const ValueKey('inbox-unread-badge-ch-1')),
           findsOneWidget);
 
-      // Swipe startToEnd (left-to-right in LTR layout) = mark read
-      await tester.drag(
-        find.byKey(const ValueKey('inbox-dismiss-ch-1')),
-        const Offset(500, 0),
+      // Long-press opens action sheet, tap "Mark Read".
+      await tester.longPress(
+        find.byKey(const ValueKey('inbox-item-ch-1')),
       );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('inbox-action-mark-read')));
       await tester.pumpAndSettle();
 
       // Item stays in the list but unread badge is gone (optimistic zeroing).

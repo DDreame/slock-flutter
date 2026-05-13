@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -168,9 +170,90 @@ void main() {
       },
     );
   });
-}
 
-// ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // #494: Optimistic markDone with failure restore
+  // ---------------------------------------------------------------------------
+
+  group('ThreadsInboxStore markDone (#494)', () {
+    test(
+      'markDone optimistically removes item, then restores on delayed failure',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        // Initial load.
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        expect(
+          container.read(threadsInboxStoreProvider).items,
+          hasLength(1),
+        );
+
+        // Configure markThreadDone to hang on a Completer so we can
+        // observe the mid-flight optimistic removal.
+        final completer = Completer<void>();
+        repo.markDoneCompleter = completer;
+
+        // Fire markDone without awaiting — observe mid-flight state.
+        final future = container
+            .read(threadsInboxStoreProvider.notifier)
+            .markDone(sampleItem);
+
+        // Mid-flight: item must already be removed (optimistic removal).
+        final midState = container.read(threadsInboxStoreProvider);
+        expect(midState.items, isEmpty,
+            reason: 'Item must be optimistically removed before async '
+                'markThreadDone completes');
+
+        // Complete the Completer with failure — triggers restore.
+        completer.completeError(
+          const ServerFailure(message: 'Network error', statusCode: 500),
+        );
+        await future;
+
+        // After failure: item must be restored.
+        final endState = container.read(threadsInboxStoreProvider);
+        expect(endState.items, hasLength(1),
+            reason: 'Item must be restored after markDone failure');
+        expect(endState.items.first.routeTarget.threadChannelId, 'thread-ch-1');
+        expect(endState.failure, isNotNull,
+            reason: 'Failure must be surfaced for UI feedback');
+        expect(endState.failure, isA<ServerFailure>());
+      },
+    );
+
+    test(
+      'markDone removes item permanently on success',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        );
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        // Initial load.
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        expect(
+          container.read(threadsInboxStoreProvider).items,
+          hasLength(1),
+        );
+
+        // markDone succeeds (no failure configured).
+        await container
+            .read(threadsInboxStoreProvider.notifier)
+            .markDone(sampleItem);
+
+        final state = container.read(threadsInboxStoreProvider);
+        expect(state.items, isEmpty,
+            reason: 'Item must be permanently removed on success');
+        expect(state.failure, isNull);
+      },
+    );
+  });
+}
 // Fakes
 // ---------------------------------------------------------------------------
 
@@ -215,6 +298,11 @@ class _ControllableThreadRepository implements ThreadRepository {
 
   final List<ThreadInboxItem> initialItems;
   AppFailure? failure;
+  AppFailure? markDoneFailure;
+
+  /// When set, `markThreadDone` awaits this completer before returning.
+  /// Allows tests to observe mid-flight optimistic state.
+  Completer<void>? markDoneCompleter;
 
   @override
   Future<List<ThreadInboxItem>> loadFollowedThreads(
@@ -237,7 +325,13 @@ class _ControllableThreadRepository implements ThreadRepository {
   Future<void> markThreadDone(
     ServerScopeId serverId, {
     required String threadChannelId,
-  }) async {}
+  }) async {
+    if (markDoneCompleter != null) {
+      await markDoneCompleter!.future;
+      return;
+    }
+    if (markDoneFailure != null) throw markDoneFailure!;
+  }
 
   @override
   Future<void> markThreadRead(

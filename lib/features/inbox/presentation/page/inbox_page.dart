@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
+import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
@@ -359,34 +361,19 @@ class _InboxListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    return Dismissible(
-      key: ValueKey('inbox-dismiss-${item.channelId ?? item.id}'),
-      background: _swipeBackground(
-        colors: colors,
-        alignment: Alignment.centerLeft,
-        icon: Icons.mark_email_read,
-        color: colors.primary,
-        label: 'Read',
-      ),
-      secondaryBackground: _swipeBackground(
-        colors: colors,
-        alignment: Alignment.centerRight,
+    return SwipeActionWrapper(
+      itemKey: item.channelId ?? item.id,
+      enabled: true,
+      action: SwipeActionConfig(
+        label: 'Done',
         icon: Icons.done,
         color: colors.success,
-        label: 'Done',
+        dismisses: true,
       ),
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.startToEnd) {
-          onMarkRead();
-        } else {
-          onMarkDone();
-        }
-        // Return true only for mark-done (removes from list).
-        // Mark-read keeps the item visible.
-        return direction == DismissDirection.endToStart;
-      },
+      onAction: onMarkDone,
       child: GestureDetector(
         onTap: onTap,
+        onLongPress: () => _showActionSheet(context),
         behavior: HitTestBehavior.opaque,
         child: Padding(
           padding: const EdgeInsets.symmetric(
@@ -481,6 +468,35 @@ class _InboxListTile extends StatelessWidget {
     );
   }
 
+  Future<void> _showActionSheet(BuildContext context) async {
+    final actions = <ListActionItem>[
+      if (item.unreadCount > 0)
+        const ListActionItem(
+          key: 'inbox-action-mark-read',
+          label: 'Mark Read',
+          icon: Icons.mark_email_read,
+        ),
+      const ListActionItem(
+        key: 'inbox-action-mark-done',
+        label: 'Done',
+        icon: Icons.done,
+      ),
+    ];
+
+    final result = await showListActionSheet(
+      context: context,
+      actions: actions,
+      title: item.title,
+    );
+
+    switch (result) {
+      case 'inbox-action-mark-read':
+        onMarkRead();
+      case 'inbox-action-mark-done':
+        onMarkDone();
+    }
+  }
+
   Widget _kindIcon(AppColors colors) {
     final (icon, color) = switch (item.kind) {
       ConversationProjectionKind.channel => (Icons.tag, colors.success),
@@ -503,34 +519,6 @@ class _InboxListTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
       ),
       child: Icon(icon, size: 18, color: color),
-    );
-  }
-
-  static Widget _swipeBackground({
-    required AppColors colors,
-    required AlignmentGeometry alignment,
-    required IconData icon,
-    required Color color,
-    required String label,
-  }) {
-    return Container(
-      alignment: alignment,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: AppTypography.label.copyWith(color: color),
-          ),
-        ],
-      ),
     );
   }
 

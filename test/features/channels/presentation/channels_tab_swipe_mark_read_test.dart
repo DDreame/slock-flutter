@@ -207,7 +207,7 @@ void main() {
 
       // The Dismissible wrapper should be present for the unread channel.
       expect(
-        find.byKey(const ValueKey('swipe-mark-read-general')),
+        find.byKey(const ValueKey('swipe-action-general')),
         findsOneWidget,
       );
     });

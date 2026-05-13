@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/role_badge.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
@@ -794,46 +795,42 @@ class _AgentRow extends StatelessWidget {
     return row;
   }
 
-  void _showAgentActions(BuildContext context) {
-    showModalBottomSheet<void>(
+  Future<void> _showAgentActions(BuildContext context) async {
+    final actions = <ListActionItem>[
+      if (agent.isStopped)
+        const ListActionItem(
+          key: 'agent-action-start',
+          label: 'Start',
+          icon: Icons.play_arrow,
+        ),
+      if (agent.isActive)
+        const ListActionItem(
+          key: 'agent-action-stop',
+          label: 'Stop',
+          icon: Icons.stop,
+        ),
+      if (agent.isActive)
+        const ListActionItem(
+          key: 'agent-action-reset',
+          label: 'Reset Session',
+          icon: Icons.refresh,
+        ),
+    ];
+
+    final result = await showListActionSheet(
       context: context,
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (agent.isStopped)
-                ListTile(
-                  leading: const Icon(Icons.play_arrow),
-                  title: const Text('Start'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onStart(agent);
-                  },
-                ),
-              if (agent.isActive)
-                ListTile(
-                  leading: const Icon(Icons.stop),
-                  title: const Text('Stop'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onStop(agent);
-                  },
-                ),
-              if (agent.isActive)
-                ListTile(
-                  leading: const Icon(Icons.refresh),
-                  title: const Text('Reset Session'),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    onReset(agent);
-                  },
-                ),
-            ],
-          ),
-        );
-      },
+      actions: actions,
+      title: agent.label,
     );
+
+    switch (result) {
+      case 'agent-action-start':
+        onStart(agent);
+      case 'agent-action-stop':
+        onStop(agent);
+      case 'agent-action-reset':
+        onReset(agent);
+    }
   }
 }
 
