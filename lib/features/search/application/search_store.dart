@@ -21,6 +21,7 @@ final searchStoreProvider =
 
 class SearchStore extends AutoDisposeNotifier<SearchState> {
   Timer? _debounce;
+  int _requestToken = 0;
 
   @override
   SearchState build() {
@@ -30,6 +31,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
 
   void updateQuery(String query) {
     _debounce?.cancel();
+    _requestToken++; // invalidate any in-flight search for the old query
     state = state.copyWith(query: query);
 
     if (query.trim().isEmpty) {
@@ -43,6 +45,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
 
   void clear() {
     _debounce?.cancel();
+    _requestToken++; // invalidate any in-flight search
     state = const SearchState();
   }
 
@@ -51,12 +54,82 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     state = state.copyWith(scope: scope);
   }
 
+  /// Set sender filter and re-search (INV-SEARCH-1).
+  Future<void> setSenderFilter(String? senderId) async {
+    state = senderId == null
+        ? state.copyWith(clearSenderFilter: true, remoteResults: const [])
+        : state.copyWith(senderFilter: senderId, remoteResults: const []);
+    if (state.query.trim().isNotEmpty) await search();
+  }
+
+  /// Set sort order and re-search (INV-SEARCH-1).
+  Future<void> setSortBy(SearchSortBy sortBy) async {
+    state = state.copyWith(sortBy: sortBy, remoteResults: const []);
+    if (state.query.trim().isNotEmpty) await search();
+  }
+
+  /// Set channel filter and re-search (INV-SEARCH-1).
+  Future<void> setChannelFilter(String? channelId) async {
+    state = channelId == null
+        ? state.copyWith(clearChannelFilter: true, remoteResults: const [])
+        : state.copyWith(channelFilter: channelId, remoteResults: const []);
+    if (state.query.trim().isNotEmpty) await search();
+  }
+
+  /// Reset all filters to defaults and re-search (INV-SEARCH-3).
+  Future<void> clearFilters() async {
+    state = state.copyWith(
+      clearSenderFilter: true,
+      sortBy: SearchSortBy.newest,
+      clearChannelFilter: true,
+      remoteResults: const [],
+    );
+    if (state.query.trim().isNotEmpty) await search();
+  }
+
   Future<void> retry() => search();
+
+  /// Load more results at the current offset (INV-SEARCH-4).
+  Future<void> loadMore() async {
+    final query = state.query.trim();
+    if (query.isEmpty || !state.hasMore) return;
+
+    final token = ++_requestToken;
+    final serverId = ref.read(currentSearchServerIdProvider);
+    final offset = state.remoteResults.length;
+
+    state = state.copyWith(isRemoteSearching: true);
+
+    try {
+      final repo = ref.read(searchRepositoryProvider);
+      final page = await repo.searchMessages(
+        serverId,
+        query,
+        senderId: state.senderFilter,
+        sortBy: state.sortBy,
+        channelId: state.channelFilter,
+        offset: offset,
+      );
+      if (_requestToken != token) return;
+      state = state.copyWith(
+        remoteResults: [...state.remoteResults, ...page.messages],
+        hasMore: page.hasMore,
+        isRemoteSearching: false,
+      );
+    } on AppFailure catch (failure) {
+      if (_requestToken != token) return;
+      state = state.copyWith(
+        isRemoteSearching: false,
+        failure: failure,
+      );
+    }
+  }
 
   Future<void> search() async {
     final query = state.query.trim();
     if (query.isEmpty) return;
 
+    final token = ++_requestToken;
     final serverId = ref.read(currentSearchServerIdProvider);
     state = state.copyWith(
       status: SearchStatus.searching,
@@ -122,7 +195,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         ),
     ];
 
-    if (state.query.trim() != query) return;
+    if (_requestToken != token) return;
     state = state.copyWith(
       localResults: localResults,
       channelResults: channelResults,
@@ -133,8 +206,14 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     // --- Remote search: messages ---
     try {
       final repo = ref.read(searchRepositoryProvider);
-      final page = await repo.searchMessages(serverId, query);
-      if (state.query.trim() != query) return;
+      final page = await repo.searchMessages(
+        serverId,
+        query,
+        senderId: state.senderFilter,
+        sortBy: state.sortBy,
+        channelId: state.channelFilter,
+      );
+      if (_requestToken != token) return;
       state = state.copyWith(
         remoteResults: page.messages,
         hasMore: page.hasMore,
@@ -143,7 +222,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
-      if (state.query.trim() != query) return;
+      if (_requestToken != token) return;
       state = state.copyWith(
         isRemoteSearching: false,
         status: localResults.isNotEmpty ||

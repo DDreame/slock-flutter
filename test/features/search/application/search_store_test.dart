@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -150,22 +152,226 @@ void main() {
       expect(state().mergedResults, isNotEmpty);
     });
   });
+
+  // -----------------------------------------------------------------
+  // Stale-query race guard regression
+  // -----------------------------------------------------------------
+
+  test('query change during in-flight search discards old results', () async {
+    final completer = Completer<SearchResultsPage>();
+    fakeSearchRepo.completerOverride = completer;
+
+    store().updateQuery('abc');
+    // Start the search manually (bypassing debounce).
+    final searchFuture = store().search();
+
+    // While search for "abc" is in flight, user types "abcd".
+    store().updateQuery('abcd');
+
+    // Complete the old search with "abc" results.
+    completer.complete(SearchResultsPage(
+      messages: [
+        SearchResultMessage(
+          message: ConversationMessageSummary(
+            id: 'stale-1',
+            content: 'Stale result for abc',
+            createdAt: DateTime.parse('2026-04-21T10:00:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+          ),
+          channelId: 'ch1',
+        ),
+      ],
+      hasMore: false,
+    ));
+
+    await searchFuture;
+
+    // The old "abc" results must NOT be written into state
+    // because updateQuery("abcd") bumped _requestToken.
+    expect(state().remoteResults, isEmpty,
+        reason: 'Stale results from old query must be discarded');
+  });
+
+  // -----------------------------------------------------------------
+  // Filter & pagination (INV-SEARCH)
+  // -----------------------------------------------------------------
+
+  group('search filters', () {
+    test(
+        'setSenderFilter triggers new search with senderId param '
+        '(INV-SEARCH-1)', () async {
+      fakeSearchRepo.result = const SearchResultsPage(
+        messages: [],
+        hasMore: false,
+      );
+
+      store().updateQuery('hello');
+      await store().search();
+      fakeSearchRepo.lastCallParams = null; // reset
+
+      await store().setSenderFilter('user-42');
+
+      expect(state().senderFilter, 'user-42');
+      expect(fakeSearchRepo.lastCallParams?.senderId, 'user-42',
+          reason: 'INV-SEARCH-1: setSenderFilter must trigger search '
+              'with senderId');
+    });
+
+    test(
+        'setSortBy triggers new search with sortBy param '
+        '(INV-SEARCH-1)', () async {
+      fakeSearchRepo.result = const SearchResultsPage(
+        messages: [],
+        hasMore: false,
+      );
+
+      store().updateQuery('hello');
+      await store().search();
+      fakeSearchRepo.lastCallParams = null;
+
+      await store().setSortBy(SearchSortBy.oldest);
+
+      expect(state().sortBy, SearchSortBy.oldest);
+      expect(fakeSearchRepo.lastCallParams?.sortBy, SearchSortBy.oldest,
+          reason: 'INV-SEARCH-1: setSortBy must trigger search '
+              'with sortBy');
+    });
+
+    test('clearFilters resets all filters and searches (INV-SEARCH-3)',
+        () async {
+      fakeSearchRepo.result = const SearchResultsPage(
+        messages: [],
+        hasMore: false,
+      );
+
+      store().updateQuery('hello');
+      await store().search();
+
+      await store().setSenderFilter('user-42');
+      await store().setChannelFilter('general');
+      await store().setSortBy(SearchSortBy.oldest);
+
+      expect(state().senderFilter, 'user-42');
+      expect(state().channelFilter, 'general');
+      expect(state().sortBy, SearchSortBy.oldest);
+
+      fakeSearchRepo.lastCallParams = null;
+      await store().clearFilters();
+
+      expect(state().senderFilter, isNull,
+          reason: 'INV-SEARCH-3: senderFilter reset');
+      expect(state().channelFilter, isNull,
+          reason: 'INV-SEARCH-3: channelFilter reset');
+      expect(state().sortBy, SearchSortBy.newest,
+          reason: 'INV-SEARCH-3: sortBy reset to newest');
+      expect(fakeSearchRepo.lastCallParams?.senderId, isNull);
+      expect(fakeSearchRepo.lastCallParams?.sortBy, SearchSortBy.newest);
+      expect(fakeSearchRepo.lastCallParams?.channelId, isNull);
+    });
+
+    test('loadMore appends results at current offset (INV-SEARCH-4)', () async {
+      final page1 = SearchResultsPage(
+        messages: [
+          SearchResultMessage(
+            message: ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-21T10:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: true,
+      );
+
+      final page2 = SearchResultsPage(
+        messages: [
+          SearchResultMessage(
+            message: ConversationMessageSummary(
+              id: 'msg-2',
+              content: 'Second',
+              createdAt: DateTime.parse('2026-04-21T11:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: false,
+      );
+
+      fakeSearchRepo.result = page1;
+
+      store().updateQuery('test');
+      await store().search();
+
+      expect(state().remoteResults, hasLength(1));
+      expect(state().hasMore, isTrue);
+
+      fakeSearchRepo.result = page2;
+      await store().loadMore();
+
+      expect(state().remoteResults, hasLength(2));
+      expect(state().remoteResults[0].message.id, 'msg-1');
+      expect(state().remoteResults[1].message.id, 'msg-2');
+      expect(state().hasMore, isFalse,
+          reason: 'INV-SEARCH-4: hasMore should update after last page');
+      expect(fakeSearchRepo.lastCallParams?.offset, 1,
+          reason: 'INV-SEARCH-4: offset should equal existing result count');
+    });
+  });
+}
+
+/// Captures the parameters from the last `searchMessages` call.
+class _SearchCallParams {
+  const _SearchCallParams({
+    this.senderId,
+    this.sortBy,
+    this.channelId,
+    this.offset = 0,
+  });
+
+  final String? senderId;
+  final SearchSortBy? sortBy;
+  final String? channelId;
+  final int offset;
 }
 
 class _FakeSearchRepository implements SearchRepository {
   SearchResultsPage? result;
   bool shouldFail = false;
+  _SearchCallParams? lastCallParams;
+
+  /// When set, `searchMessages` awaits this completer instead of returning
+  /// immediately. Used to simulate in-flight requests that haven't completed.
+  Completer<SearchResultsPage>? completerOverride;
 
   @override
   Future<SearchResultsPage> searchMessages(
     ServerScopeId serverId,
-    String query,
-  ) async {
+    String query, {
+    String? senderId,
+    SearchSortBy? sortBy,
+    String? channelId,
+    int offset = 0,
+  }) async {
+    lastCallParams = _SearchCallParams(
+      senderId: senderId,
+      sortBy: sortBy,
+      channelId: channelId,
+      offset: offset,
+    );
     if (shouldFail) {
       throw const UnknownFailure(
         message: 'Search failed',
         causeType: 'test',
       );
+    }
+    if (completerOverride != null) {
+      return completerOverride!.future;
     }
     return result ?? const SearchResultsPage(messages: [], hasMore: false);
   }

@@ -270,8 +270,12 @@ class _FakeSearchRepository implements SearchRepository {
   @override
   Future<SearchResultsPage> searchMessages(
     ServerScopeId serverId,
-    String query,
-  ) async {
+    String query, {
+    String? senderId,
+    SearchSortBy? sortBy,
+    String? channelId,
+    int offset = 0,
+  }) async {
     if (shouldFail) {
       throw const UnknownFailure(
         message: 'Search failed',
