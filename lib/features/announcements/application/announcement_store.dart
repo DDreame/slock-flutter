@@ -53,11 +53,12 @@ class AnnouncementStore extends Notifier<AnnouncementState> {
     return const AnnouncementState();
   }
 
-  /// Triggers [load] if not already loading or loaded. Called by
+  /// Triggers [load] if not already loading, loaded, or failed. Called by
   /// [AnnouncementBanner] on every build so the banner self-populates.
+  /// Treats [AnnouncementStatus.failure] as terminal to prevent unbounded
+  /// retry loops on persistent backend errors.
   Future<void> ensureLoaded() async {
-    if (state.status == AnnouncementStatus.loading ||
-        state.status == AnnouncementStatus.success) {
+    if (state.status != AnnouncementStatus.initial) {
       return;
     }
     await load();

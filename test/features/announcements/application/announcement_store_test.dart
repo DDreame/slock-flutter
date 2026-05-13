@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:slock_app/core/scope/server_scope_id.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/announcements/application/announcement_store.dart';
 import 'package:slock_app/features/announcements/application/dismissed_announcement_ids.dart';
 import 'package:slock_app/features/announcements/data/announcement.dart';
@@ -237,6 +237,38 @@ void main() {
       expect(dismissed, contains('a1'));
     });
   });
+
+  group('failure stability', () {
+    test('ensureLoaded does not retry after failure', () async {
+      final failingRepo = _FailingAnnouncementRepository();
+
+      final container = ProviderContainer(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('srv-1')),
+          announcementRepositoryProvider.overrideWithValue(failingRepo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // First load fails.
+      await container.read(announcementStoreProvider.notifier).load();
+      expect(
+        container.read(announcementStoreProvider).status,
+        AnnouncementStatus.failure,
+      );
+      expect(failingRepo.callCount, 1);
+
+      // ensureLoaded must be a no-op — failure is terminal.
+      await container.read(announcementStoreProvider.notifier).ensureLoaded();
+      expect(
+        container.read(announcementStoreProvider).status,
+        AnnouncementStatus.failure,
+      );
+      expect(failingRepo.callCount, 1);
+    });
+  });
 }
 
 class _FakeAnnouncementRepository implements AnnouncementRepository {
@@ -268,6 +300,23 @@ class _ServerAwareFakeRepository implements AnnouncementRepository {
   @override
   Future<List<Announcement>> getActive(ServerScopeId serverId) async {
     return _perServer[serverId.value] ?? const [];
+  }
+
+  @override
+  Future<void> dismiss(
+    ServerScopeId serverId, {
+    required String announcementId,
+  }) async {}
+}
+
+/// A fake repository that always throws to simulate backend failure.
+class _FailingAnnouncementRepository implements AnnouncementRepository {
+  int callCount = 0;
+
+  @override
+  Future<List<Announcement>> getActive(ServerScopeId serverId) async {
+    callCount++;
+    throw const ServerFailure(message: 'backend down');
   }
 
   @override
