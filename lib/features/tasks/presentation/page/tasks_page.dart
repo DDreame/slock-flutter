@@ -881,7 +881,7 @@ class _TaskRow extends ConsumerWidget {
           label: 'Mark Done',
           icon: Icons.check_circle_outline,
         ),
-      if (task.status != 'done' && task.status != 'closed')
+      if (task.status != 'closed')
         const ListActionItem(
           key: 'task-action-close',
           label: '关闭任务',

@@ -391,7 +391,8 @@ void main() {
   );
 
   testWidgets(
-    'long-press on done task shows 关闭任务 is absent — already terminal',
+    'long-press on done task shows 关闭任务 and transitions to closed '
+    '(INV-TASK-CLOSED-2)',
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -419,9 +420,20 @@ void main() {
 
       expect(
         find.text('关闭任务'),
-        findsNothing,
-        reason: 'Done tasks should not show Close Task option',
+        findsOneWidget,
+        reason:
+            'INV-TASK-CLOSED-2: Done tasks must also show Close Task option',
       );
+      expect(
+        find.text('Mark Done'),
+        findsNothing,
+        reason: 'Done tasks should not show Mark Done',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('task-action-close')));
+      await tester.pumpAndSettle();
+
+      expect(store.statusUpdates, [('task-1', 'closed')]);
     },
   );
 
