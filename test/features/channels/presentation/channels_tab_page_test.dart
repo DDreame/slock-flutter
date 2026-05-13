@@ -14,6 +14,7 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -54,6 +55,15 @@ void main() {
       value: 'design',
     ),
     name: 'design',
+  );
+
+  const channelSecret = HomeChannelSummary(
+    scopeId: ChannelScopeId(
+      serverId: serverId,
+      value: 'secret',
+    ),
+    name: 'secret',
+    isPrivate: true,
   );
 
   const sampleSnapshot = HomeWorkspaceSnapshot(
@@ -672,6 +682,113 @@ void main() {
       expect(afterProjection.dmUnreadTotal, 0,
           reason:
               'DM unreads should also be zeroed (global markAllRead clears all)');
+    },
+  );
+
+  // -----------------------------------------------------------------
+  // Private channel badge (INV-PRIVATE)
+  // -----------------------------------------------------------------
+
+  testWidgets(
+    'private channel shows lock icon (INV-PRIVATE-1)',
+    (tester) async {
+      const privateSnapshot = HomeWorkspaceSnapshot(
+        serverId: serverId,
+        channels: [channelGeneral, channelSecret],
+        directMessages: [],
+      );
+
+      await tester.pumpWidget(
+        buildApp(
+          homeRepository: const _FakeHomeRepository(privateSnapshot),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Private channel should show lock icon.
+      expect(
+        find.byKey(const ValueKey('channel-private-badge')),
+        findsOneWidget,
+        reason: 'INV-PRIVATE-1: Private channel should show lock icon',
+      );
+      // Lock icon should be present.
+      expect(find.byIcon(Icons.lock), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'non-private channel does not show lock icon (INV-PRIVATE-2)',
+    (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // No private channels — no lock icon.
+      expect(
+        find.byKey(const ValueKey('channel-private-badge')),
+        findsNothing,
+        reason: 'INV-PRIVATE-2: Non-private channels should not show lock icon',
+      );
+      expect(find.byIcon(Icons.lock), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'isPrivate defaults to false when not specified (INV-PRIVATE-3)',
+    (tester) async {
+      // channelGeneral has no explicit isPrivate — defaults to false.
+      const defaultSnapshot = HomeWorkspaceSnapshot(
+        serverId: serverId,
+        channels: [channelGeneral],
+        directMessages: [],
+      );
+
+      await tester.pumpWidget(
+        buildApp(
+          homeRepository: const _FakeHomeRepository(defaultSnapshot),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Should show tag icon, not lock.
+      expect(find.byIcon(Icons.tag), findsOneWidget);
+      expect(find.byIcon(Icons.lock), findsNothing,
+          reason: 'INV-PRIVATE-3: Default isPrivate=false shows tag not lock');
+    },
+  );
+
+  testWidgets(
+    'pinned private channel still shows lock icon (INV-PRIVATE-1)',
+    (tester) async {
+      // Pinned channels come from SidebarOrder. To test the icon
+      // priority directly, we use HomeChannelRow in isolation.
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: HomeChannelRow(
+              channel: channelSecret,
+              isPinned: true,
+              onTap: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Private indicator must survive pinned state.
+      expect(
+        find.byKey(const ValueKey('channel-private-badge')),
+        findsOneWidget,
+        reason:
+            'INV-PRIVATE-1: Pinned private channel must still show lock icon',
+      );
+      expect(find.byIcon(Icons.lock), findsOneWidget);
+      expect(find.byIcon(Icons.push_pin), findsNothing,
+          reason: 'Lock takes priority over pin for private channels');
     },
   );
 }

@@ -55,6 +55,7 @@ class ChannelBuilder {
   String? _lastMessageId;
   String? _lastMessagePreview;
   DateTime? _lastActivityAt;
+  bool _isPrivate = false;
 
   ChannelBuilder withName(String name) {
     _name = name;
@@ -72,6 +73,11 @@ class ChannelBuilder {
     return this;
   }
 
+  ChannelBuilder withPrivate([bool value = true]) {
+    _isPrivate = value;
+    return this;
+  }
+
   ChannelScopeId get scopeId => ChannelScopeId(serverId: _serverId, value: _id);
 
   HomeChannelSummary build() => HomeChannelSummary(
@@ -80,6 +86,7 @@ class ChannelBuilder {
         lastMessageId: _lastMessageId,
         lastMessagePreview: _lastMessagePreview,
         lastActivityAt: _lastActivityAt,
+        isPrivate: _isPrivate,
       );
 }
 

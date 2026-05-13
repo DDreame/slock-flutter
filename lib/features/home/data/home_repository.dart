@@ -194,6 +194,7 @@ class HomeChannelSummary {
     this.lastMessageId,
     this.lastMessagePreview,
     this.lastActivityAt,
+    this.isPrivate = false,
   });
 
   final ChannelScopeId scopeId;
@@ -202,10 +203,14 @@ class HomeChannelSummary {
   final String? lastMessagePreview;
   final DateTime? lastActivityAt;
 
+  /// Whether this channel has restricted (private) visibility.
+  final bool isPrivate;
+
   HomeChannelSummary copyWith({
     String? lastMessageId,
     String? lastMessagePreview,
     DateTime? lastActivityAt,
+    bool? isPrivate,
   }) {
     return HomeChannelSummary(
       scopeId: scopeId,
@@ -213,6 +218,7 @@ class HomeChannelSummary {
       lastMessageId: lastMessageId ?? this.lastMessageId,
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
       lastActivityAt: lastActivityAt ?? this.lastActivityAt,
+      isPrivate: isPrivate ?? this.isPrivate,
     );
   }
 
@@ -225,7 +231,8 @@ class HomeChannelSummary {
             name == other.name &&
             lastMessageId == other.lastMessageId &&
             lastMessagePreview == other.lastMessagePreview &&
-            lastActivityAt == other.lastActivityAt;
+            lastActivityAt == other.lastActivityAt &&
+            isPrivate == other.isPrivate;
   }
 
   @override
@@ -235,6 +242,7 @@ class HomeChannelSummary {
         lastMessageId,
         lastMessagePreview,
         lastActivityAt,
+        isPrivate,
       );
 }
 
