@@ -7,6 +7,7 @@ import 'package:slock_app/features/threads/application/threads_inbox_state.dart'
 import 'package:slock_app/features/threads/application/threads_inbox_store.dart';
 import 'package:slock_app/features/threads/application/threads_realtime_binding.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 
 void main() {
@@ -25,7 +26,9 @@ void main() {
           threadsInboxStoreProvider.overrideWith(() => store),
           threadsInboxRealtimeBindingProvider.overrideWith((ref) {}),
         ],
-        child: const MaterialApp(home: ThreadsPage(serverId: 'server-1')),
+        child: MaterialApp(
+            theme: AppTheme.light,
+            home: const ThreadsPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();

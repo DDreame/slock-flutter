@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/widgets/list_action_sheet.dart';
+import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/threads/application/threads_realtime_binding.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_state.dart';
@@ -161,45 +164,83 @@ class _ThreadInboxCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = Theme.of(context).extension<AppColors>()!;
     final threadChannelId = item.routeTarget.threadChannelId;
+    final canMarkDone = threadChannelId != null && !isCompleting;
 
-    return Card(
-      key: ValueKey('thread-item-${item.routeTarget.parentMessageId}'),
-      child: ListTile(
-        onTap: onOpen,
-        title: Text(item.resolvedTitle),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (item.senderName != null)
+    return SwipeActionWrapper(
+      itemKey: item.routeTarget.parentMessageId,
+      enabled: canMarkDone,
+      action: SwipeActionConfig(
+        label: 'Done',
+        icon: Icons.done,
+        color: colors.success,
+        dismisses: true,
+      ),
+      onAction: onDone,
+      child: Card(
+        key: ValueKey('thread-item-${item.routeTarget.parentMessageId}'),
+        child: ListTile(
+          onTap: onOpen,
+          onLongPress: threadChannelId != null
+              ? () => _showThreadActions(context)
+              : null,
+          title: Text(item.resolvedTitle),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (item.senderName != null)
+                Text(
+                  item.senderName!,
+                  style: theme.textTheme.labelMedium,
+                ),
+              if (item.preview != null && item.preview!.isNotEmpty)
+                Text(
+                  item.preview!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              const SizedBox(height: 4),
               Text(
-                item.senderName!,
-                style: theme.textTheme.labelMedium,
+                '${item.replyCount} replies'
+                '${item.unreadCount > 0 ? ' \u2022 ${item.unreadCount} unread' : ''}',
+                style: theme.textTheme.bodySmall,
               ),
-            if (item.preview != null && item.preview!.isNotEmpty)
-              Text(
-                item.preview!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            const SizedBox(height: 4),
-            Text(
-              '${item.replyCount} replies'
-              '${item.unreadCount > 0 ? ' • ${item.unreadCount} unread' : ''}',
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
+            ],
+          ),
+          trailing: const Icon(Icons.chevron_right),
         ),
-        trailing: threadChannelId == null
-            ? const Icon(Icons.chevron_right)
-            : FilledButton.tonal(
-                key:
-                    ValueKey('thread-done-${item.routeTarget.parentMessageId}'),
-                onPressed: isCompleting ? null : onDone,
-                child: Text(isCompleting ? '...' : 'Done'),
-              ),
       ),
     );
+  }
+
+  Future<void> _showThreadActions(BuildContext context) async {
+    final actions = <ListActionItem>[
+      const ListActionItem(
+        key: 'thread-action-open',
+        label: 'Open thread',
+        icon: Icons.open_in_new,
+      ),
+      if (!isCompleting)
+        const ListActionItem(
+          key: 'thread-action-done',
+          label: 'Done',
+          icon: Icons.done,
+        ),
+    ];
+
+    final result = await showListActionSheet(
+      context: context,
+      actions: actions,
+      title: item.resolvedTitle,
+    );
+
+    switch (result) {
+      case 'thread-action-open':
+        onOpen();
+      case 'thread-action-done':
+        onDone();
+    }
   }
 }

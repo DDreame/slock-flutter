@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
-
-enum _HomeDmAction { togglePin, hide, moveUp, moveDown }
 
 class HomeDirectMessageRow extends StatelessWidget {
   const HomeDirectMessageRow({
@@ -45,6 +44,7 @@ class HomeDirectMessageRow extends StatelessWidget {
       color: hasUnread ? colors.primaryLight : Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: _hasActions ? () => _showActionSheet(context) : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.pageHorizontal,
@@ -207,7 +207,6 @@ class HomeDirectMessageRow extends StatelessWidget {
                   ],
                 ],
               ),
-              if (_showMenu) _buildMenu(context),
             ],
           ),
         ),
@@ -215,51 +214,56 @@ class HomeDirectMessageRow extends StatelessWidget {
     );
   }
 
-  bool get _showMenu =>
+  bool get _hasActions =>
       onTogglePin != null ||
       onHide != null ||
       onMoveUp != null ||
       onMoveDown != null;
 
-  Widget _buildMenu(BuildContext context) {
-    return PopupMenuButton<_HomeDmAction>(
-      key: ValueKey('dm-menu-${directMessage.scopeId.routeParam}'),
-      tooltip: 'Message actions',
-      onSelected: (action) {
-        switch (action) {
-          case _HomeDmAction.togglePin:
-            onTogglePin?.call();
-          case _HomeDmAction.hide:
-            onHide?.call();
-          case _HomeDmAction.moveUp:
-            onMoveUp?.call();
-          case _HomeDmAction.moveDown:
-            onMoveDown?.call();
-        }
-      },
-      itemBuilder: (context) => [
-        if (onMoveUp != null)
-          const PopupMenuItem<_HomeDmAction>(
-            value: _HomeDmAction.moveUp,
-            child: Text('Move up'),
-          ),
-        if (onMoveDown != null)
-          const PopupMenuItem<_HomeDmAction>(
-            value: _HomeDmAction.moveDown,
-            child: Text('Move down'),
-          ),
-        if (onTogglePin != null)
-          PopupMenuItem<_HomeDmAction>(
-            value: _HomeDmAction.togglePin,
-            child: Text(isPinned ? 'Unpin conversation' : 'Pin conversation'),
-          ),
-        if (onHide != null)
-          const PopupMenuItem<_HomeDmAction>(
-            value: _HomeDmAction.hide,
-            child: Text('Close conversation'),
-          ),
-      ],
+  Future<void> _showActionSheet(BuildContext context) async {
+    final actions = <ListActionItem>[
+      if (onMoveUp != null)
+        const ListActionItem(
+          key: 'dm-action-move-up',
+          label: 'Move up',
+          icon: Icons.arrow_upward,
+        ),
+      if (onMoveDown != null)
+        const ListActionItem(
+          key: 'dm-action-move-down',
+          label: 'Move down',
+          icon: Icons.arrow_downward,
+        ),
+      if (onTogglePin != null)
+        ListActionItem(
+          key: 'dm-action-toggle-pin',
+          label: isPinned ? 'Unpin conversation' : 'Pin conversation',
+          icon: isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+        ),
+      if (onHide != null)
+        const ListActionItem(
+          key: 'dm-action-hide',
+          label: 'Close conversation',
+          icon: Icons.close,
+        ),
+    ];
+
+    final result = await showListActionSheet(
+      context: context,
+      actions: actions,
+      title: directMessage.title,
     );
+
+    switch (result) {
+      case 'dm-action-move-up':
+        onMoveUp?.call();
+      case 'dm-action-move-down':
+        onMoveDown?.call();
+      case 'dm-action-toggle-pin':
+        onTogglePin?.call();
+      case 'dm-action-hide':
+        onHide?.call();
+    }
   }
 
   static String _initials(String title) {

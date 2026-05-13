@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
-import 'package:slock_app/app/theme/app_spacing.dart';
-import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 
-/// A wrapper that adds a left-swipe (end-to-start) "Mark Read" gesture to its
-/// child widget.
+/// A convenience wrapper that provides a left-swipe "Mark Read" gesture.
 ///
-/// Consistent with the Inbox swipe pattern: the item remains in the list after
-/// the swipe action (confirmDismiss returns false), and the swipe reveals a
-/// tinted background with a checkmark icon and "Mark Read" label.
+/// Delegates to [SwipeActionWrapper] with a pre-configured [SwipeActionConfig]
+/// for the "Mark Read" action. The item stays in the list after the swipe.
 ///
 /// Only active when [enabled] is true (i.e. the item actually has unread
 /// messages). When disabled, the child is rendered without any Dismissible
@@ -37,39 +34,17 @@ class SwipeToMarkRead extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!enabled) return child;
-
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    return Dismissible(
-      key: ValueKey('swipe-mark-read-$itemKey'),
-      direction: DismissDirection.endToStart,
-      background: const SizedBox.shrink(),
-      secondaryBackground: Container(
-        key: const ValueKey('swipe-mark-read-background'),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-        decoration: BoxDecoration(
-          color: colors.primary.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.mark_email_read, color: colors.primary, size: 20),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              'Mark Read',
-              style: AppTypography.label.copyWith(color: colors.primary),
-            ),
-          ],
-        ),
+    return SwipeActionWrapper(
+      itemKey: itemKey,
+      enabled: enabled,
+      action: SwipeActionConfig(
+        label: 'Mark Read',
+        icon: Icons.mark_email_read,
+        color: colors.primary,
       ),
-      confirmDismiss: (direction) async {
-        onMarkRead();
-        // Always return false: the item stays in the list.
-        return false;
-      },
+      onAction: onMarkRead,
       child: child,
     );
   }

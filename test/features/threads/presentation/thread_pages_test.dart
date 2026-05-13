@@ -53,9 +53,14 @@ void main() {
     expect(find.byKey(const ValueKey('threads-success')), findsOneWidget);
     expect(find.text('general'), findsOneWidget);
     expect(find.text('Please review this thread.'), findsOneWidget);
-    expect(find.text('2 replies • 1 unread'), findsOneWidget);
+    expect(find.text('2 replies \u2022 1 unread'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('thread-done-message-1')));
+    // Swipe left on the thread card to mark it done.
+    await tester.fling(
+      find.byKey(const ValueKey('swipe-action-message-1')),
+      const Offset(-500, 0),
+      1000,
+    );
     await tester.pumpAndSettle();
 
     expect(threadRepository.doneThreadIds, ['thread-1']);
