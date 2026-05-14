@@ -3,6 +3,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
@@ -22,7 +23,9 @@ import 'package:slock_app/features/unread/application/unread_source_projection.d
 final unreadSourceProjectionProvider =
     Provider<UnreadSourceProjectionState>((ref) {
   final inboxState = ref.watch(inboxStoreProvider);
-  final homeState = ref.watch(homeListStoreProvider);
+  // INV-PROJ-OPT-2: select() only the fields _visibilityContext() reads
+  // so tier-2 loads (agents/tasks/machines/threads) don't trigger rebuilds.
+  final homeVis = ref.watch(homeListStoreProvider.select(_selectVisibility));
   final serverId = ref.watch(activeServerScopeIdProvider);
 
   // Guard: only block projection for initial (no data yet) and failure.
@@ -36,7 +39,7 @@ final unreadSourceProjectionProvider =
     return const UnreadSourceProjectionState();
   }
 
-  final ctx = _visibilityContext(homeState);
+  final ctx = _visibilityContextFromSelected(homeVis);
 
   return _projectSources(
     inboxState.items,
@@ -55,7 +58,9 @@ final unreadSourceProjectionProvider =
 /// of 0 are included (unlike [unreadSourceProjectionProvider]).
 final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   final inboxState = ref.watch(inboxStoreProvider);
-  final homeState = ref.watch(homeListStoreProvider);
+  // INV-PROJ-OPT-2: select() only the fields _visibilityContext() reads
+  // so tier-2 loads (agents/tasks/machines/threads) don't trigger rebuilds.
+  final homeVis = ref.watch(homeListStoreProvider.select(_selectVisibility));
   final serverId = ref.watch(activeServerScopeIdProvider);
 
   // Guard: only block projection for initial (no data yet) and failure.
@@ -69,7 +74,7 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
     return const [];
   }
 
-  final ctx = _visibilityContext(homeState);
+  final ctx = _visibilityContextFromSelected(homeVis);
 
   return [
     for (final item in inboxState.items)
@@ -89,24 +94,46 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
 // Shared helpers
 // ---------------------------------------------------------------------------
 
-/// Collects visible channel/DM IDs from [HomeListState] for
-/// visibility resolution.
+/// Record type for the subset of [HomeListState] that visibility resolution
+/// needs. Used as the select() output so tier-2 field changes (agents, tasks,
+/// machines, threads) don't trigger projection rebuilds (INV-PROJ-OPT-2).
+typedef _HomeVisibility = ({
+  HomeListStatus status,
+  List<HomeChannelSummary> pinnedChannels,
+  List<HomeChannelSummary> channels,
+  List<HomeDirectMessageSummary> pinnedDirectMessages,
+  List<HomeDirectMessageSummary> directMessages,
+});
+
+/// Selector that extracts only the visibility-relevant fields from
+/// [HomeListState]. Riverpod compares the previous and next record by
+/// equality; since all inner lists are immutable value objects, identity
+/// equality is sufficient to detect changes.
+_HomeVisibility _selectVisibility(HomeListState s) => (
+      status: s.status,
+      pinnedChannels: s.pinnedChannels,
+      channels: s.channels,
+      pinnedDirectMessages: s.pinnedDirectMessages,
+      directMessages: s.directMessages,
+    );
+
+/// Builds visibility context from the selected [_HomeVisibility] record.
 ({Set<String> channelIds, Set<String> dmIds, bool homeLoaded})
-    _visibilityContext(HomeListState homeState) {
+    _visibilityContextFromSelected(_HomeVisibility vis) {
   final channelIds = <String>{};
   final dmIds = <String>{};
 
-  if (homeState.status == HomeListStatus.success) {
-    for (final ch in homeState.pinnedChannels) {
+  if (vis.status == HomeListStatus.success) {
+    for (final ch in vis.pinnedChannels) {
       channelIds.add(ch.scopeId.value);
     }
-    for (final ch in homeState.channels) {
+    for (final ch in vis.channels) {
       channelIds.add(ch.scopeId.value);
     }
-    for (final dm in homeState.pinnedDirectMessages) {
+    for (final dm in vis.pinnedDirectMessages) {
       dmIds.add(dm.scopeId.value);
     }
-    for (final dm in homeState.directMessages) {
+    for (final dm in vis.directMessages) {
       dmIds.add(dm.scopeId.value);
     }
   }
@@ -114,7 +141,7 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   return (
     channelIds: channelIds,
     dmIds: dmIds,
-    homeLoaded: homeState.status == HomeListStatus.success,
+    homeLoaded: vis.status == HomeListStatus.success,
   );
 }
 
