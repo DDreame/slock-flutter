@@ -42,7 +42,8 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     final state = ref.read(inboxStoreProvider);
     if (state.status == InboxStatus.initial) {
       Future.microtask(
-        () => ref.read(inboxStoreProvider.notifier).load(),
+        () =>
+            ref.read(inboxStoreProvider.notifier).setFilter(InboxFilter.unread),
       );
     }
   }

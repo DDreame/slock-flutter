@@ -81,6 +81,12 @@ void main() {
         findsOneWidget,
         reason: 'Unread item must be visible in Unread filter',
       );
+      // Regression: read item must NOT be visible in Unread filter.
+      expect(
+        find.byKey(const ValueKey('inbox-item-ch-2')),
+        findsNothing,
+        reason: 'Read item must NOT be visible in default Unread filter',
+      );
 
       // Tap "All" filter tab.
       await tester.tap(find.byKey(const ValueKey('inbox-filter-all')));
@@ -276,9 +282,15 @@ class _FakeInboxRepository implements InboxRepository {
         hasMore: false,
       );
     }
+    // Filter-aware: simulate server-side filtering for unread/mentions.
+    final filtered = switch (filter) {
+      InboxFilter.unread => items.where((i) => i.unreadCount > 0).toList(),
+      InboxFilter.mentions => items.where((i) => i.isMentioned).toList(),
+      InboxFilter.all => items,
+    };
     return InboxResponse(
-      items: items,
-      totalCount: items.length,
+      items: filtered,
+      totalCount: filtered.length,
       totalUnreadCount: totalUnreadCount > 0 ? totalUnreadCount : _calcUnread(),
       hasMore: false,
     );

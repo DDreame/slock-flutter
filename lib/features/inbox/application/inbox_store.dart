@@ -131,12 +131,13 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
-    // Optimistic: zero out unreadCount for the item.
+    // Optimistic: zero out unreadCount and clear isMentioned for the item.
     final updatedItems = state.items.map((item) {
       if (item.channelId == channelId) {
         return item.copyWith(
           unreadCount: 0,
           clearFirstUnreadMessageId: true,
+          isMentioned: false,
         );
       }
       return item;
@@ -147,8 +148,9 @@ class InboxStore extends Notifier<InboxState> {
             .where((i) => i.channelId == channelId)
             .fold<int>(0, (sum, i) => sum + i.unreadCount));
 
-    // In unread filter mode, remove items that are now read.
-    final filteredItems = state.filter == InboxFilter.unread
+    // In unread or mentions filter mode, remove items that are now read.
+    final filteredItems = state.filter == InboxFilter.unread ||
+            state.filter == InboxFilter.mentions
         ? updatedItems
             .where((i) => i.channelId != channelId)
             .toList(growable: false)
@@ -208,20 +210,23 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
-    // Optimistic: zero all unread counts.
+    // Optimistic: zero all unread counts and clear isMentioned.
     final updatedItems = state.items.map((item) {
-      if (item.unreadCount > 0) {
+      if (item.unreadCount > 0 || item.isMentioned) {
         return item.copyWith(
           unreadCount: 0,
           clearFirstUnreadMessageId: true,
+          isMentioned: false,
         );
       }
       return item;
     }).toList(growable: false);
 
-    // In unread filter mode, all items become read → empty the list.
-    final filteredItems =
-        state.filter == InboxFilter.unread ? <InboxItem>[] : updatedItems;
+    // In unread or mentions filter mode, all items become read → empty the list.
+    final filteredItems = state.filter == InboxFilter.unread ||
+            state.filter == InboxFilter.mentions
+        ? <InboxItem>[]
+        : updatedItems;
 
     // Adjust pagination cursor by number of removed items.
     final removed = state.items.length - filteredItems.length;
