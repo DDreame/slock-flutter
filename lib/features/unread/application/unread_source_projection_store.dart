@@ -25,7 +25,14 @@ final unreadSourceProjectionProvider =
   final homeState = ref.watch(homeListStoreProvider);
   final serverId = ref.watch(activeServerScopeIdProvider);
 
-  if (inboxState.status != InboxStatus.success || serverId == null) {
+  // Guard: only block projection for initial (no data yet) and failure.
+  // During loading, pass through current items (may be empty after filter
+  // switch, or stale during same-filter SWR refresh). This prevents the
+  // provider from returning empty during filter-switch loading, which
+  // caused a full-screen spinner in UnreadListPage (#510 BUG 2).
+  if (serverId == null ||
+      inboxState.status == InboxStatus.initial ||
+      inboxState.status == InboxStatus.failure) {
     return const UnreadSourceProjectionState();
   }
 
@@ -51,7 +58,14 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   final homeState = ref.watch(homeListStoreProvider);
   final serverId = ref.watch(activeServerScopeIdProvider);
 
-  if (inboxState.status != InboxStatus.success || serverId == null) {
+  // Guard: only block projection for initial (no data yet) and failure.
+  // During loading, project whatever items exist (empty after filter
+  // switch due to InboxStore.load() clearing items, or stale during
+  // same-filter refresh). This ensures skeleton-compatible empty state
+  // instead of blanking the UI (#510 BUG 1).
+  if (serverId == null ||
+      inboxState.status == InboxStatus.initial ||
+      inboxState.status == InboxStatus.failure) {
     return const [];
   }
 

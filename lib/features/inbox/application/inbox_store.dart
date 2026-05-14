@@ -33,6 +33,11 @@ class InboxStore extends Notifier<InboxState> {
 
     state = state.copyWith(
       status: hasExistingData ? null : InboxStatus.loading,
+      // Clear stale items on filter switch so skeleton guard works.
+      // Without this, stale items from the previous filter remain,
+      // items.isEmpty is false, and the UI shows a blank page instead
+      // of skeleton (#510 BUG 1).
+      items: hasExistingData ? null : const [],
       isRefreshing: hasExistingData,
       filter: activeFilter,
       offset: 0,

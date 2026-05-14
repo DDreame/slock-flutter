@@ -55,7 +55,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'UnreadListPage: filter switch does not show full-screen spinner',
-    skip: true,
     (tester) async {
       final repo = _ControllableInboxRepository();
 
