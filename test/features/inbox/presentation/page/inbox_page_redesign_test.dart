@@ -16,6 +16,10 @@ import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
 // Tests 5–6 skip: true until Phase B implements 3-tab filter + swipe-read.
 // Test 7 passes on current codebase (empty state already implemented).
 //
+// Phase B dependencies (data layer, scoped by S2):
+//   - inbox_repository.dart: add InboxFilter.mentions (test 5)
+//   - inbox_page.dart: 3-tab filter UI + swipe-left mark-read action
+//
 // Design: Z2 inbox-redesign mockup
 //   - 3 filter tabs: Unread (default) | @Mentions | All
 //   - Swipe left: mark read (blue reveal + checkmark)
@@ -25,6 +29,9 @@ import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
 void main() {
   // -----------------------------------------------------------------------
   // 5. Filter tabs switch between Unread, @Mentions, and All
+  //
+  // Phase B: requires InboxFilter.mentions in inbox_repository.dart
+  //          (data-layer widening scoped by S2).
   // -----------------------------------------------------------------------
   testWidgets(
     'filter tabs switch between Unread, Mentions, and All',
@@ -107,6 +114,9 @@ void main() {
 
   // -----------------------------------------------------------------------
   // 6. Swipe left marks item as read (not done)
+  //
+  // Tests under All filter so the item stays visible after mark-read
+  // (InboxStore removes read items from Unread filter).
   // -----------------------------------------------------------------------
   testWidgets(
     'swipe left on unread item marks it as read',
@@ -127,6 +137,11 @@ void main() {
       await tester.pumpWidget(_buildApp(repo));
       await tester.pumpAndSettle();
 
+      // Ensure we are on All filter (default) so item stays after mark-read.
+      // Production InboxStore removes read items from Unread filter.
+      await tester.tap(find.byKey(const ValueKey('inbox-filter-all')));
+      await tester.pumpAndSettle();
+
       // Unread badge visible before swipe.
       expect(
         find.byKey(const ValueKey('inbox-unread-badge-ch-1')),
@@ -134,20 +149,21 @@ void main() {
         reason: 'Unread badge must be visible before swipe',
       );
 
-      // Swipe left (start-to-end in LTR = right swipe for mark-read).
-      // Phase B: SwipeActionWrapper will have a secondary left-swipe action
+      // Swipe left (endToStart in LTR layout) for mark-read action.
+      // Phase B: SwipeActionWrapper will add a left-swipe action
       // for mark-read with blue reveal + checkmark icon.
       await tester.drag(
         find.byKey(const ValueKey('inbox-item-ch-1')),
-        const Offset(300, 0),
+        const Offset(-300, 0),
       );
       await tester.pumpAndSettle();
 
-      // Item stays in the list but unread badge is gone (optimistic zeroing).
+      // Item stays in the list (All filter keeps read items)
+      // but unread badge is gone (optimistic zeroing).
       expect(
         find.byKey(const ValueKey('inbox-item-ch-1')),
         findsOneWidget,
-        reason: 'Item must stay in list after mark-read swipe',
+        reason: 'Item must stay in list after mark-read swipe (All filter)',
       );
       expect(
         find.byKey(const ValueKey('inbox-unread-badge-ch-1')),

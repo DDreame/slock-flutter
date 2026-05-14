@@ -16,6 +16,10 @@ import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
 // InboxItemTile widget contract tests — item anatomy, visual states, @mention.
 // All 4 tests skip: true until Phase B implements the redesigned InboxItemTile.
 //
+// Phase B dependencies (data layer, scoped by S2):
+//   - inbox_item.dart: add `isMentioned` field (test 4)
+//   - inbox_repository.dart: add InboxFilter.mentions (page test 5)
+//
 // Invariants:
 //   INV-INBOX-REDESIGN-1: Each inbox item shows sender avatar + name + preview + time
 //   INV-INBOX-REDESIGN-2: @mention messages have "@you" badge
@@ -210,8 +214,9 @@ void main() {
           senderName: 'Dave',
           preview: 'Can you review this PR?',
           unread: 2,
-          // Phase B will add `isMentioned: true` to InboxItem and
-          // propagate it through ConversationProjection → InboxItemTile.
+          // Phase B will add `isMentioned` field to InboxItem
+          // (inbox_item.dart, scoped by S2) and propagate it through
+          // ConversationProjection → InboxItemTile.
         ),
       ];
       repo.totalUnreadCount = 2;
