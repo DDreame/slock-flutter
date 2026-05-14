@@ -39,13 +39,15 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   @override
   void initState() {
     super.initState();
-    final state = ref.read(inboxStoreProvider);
-    if (state.status == InboxStatus.initial) {
-      Future.microtask(
-        () =>
-            ref.read(inboxStoreProvider.notifier).setFilter(InboxFilter.unread),
-      );
-    }
+    // Always reset to unread filter when InboxPage opens.
+    // INV-FILTER-RACE-1: Home may pre-load inbox with filter=all
+    // (status != initial), so the old guard (status == initial)
+    // would skip setFilter → inbox stuck on All.
+    // INV-FILTER-RACE-2: Re-opening after manual filter switch
+    // must also reset to unread.
+    Future.microtask(
+      () => ref.read(inboxStoreProvider.notifier).setFilter(InboxFilter.unread),
+    );
   }
 
   @override

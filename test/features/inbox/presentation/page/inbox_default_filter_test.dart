@@ -44,7 +44,6 @@ void main() {
   testWidgets(
     'InboxPage: Home pre-loaded (status=success, filter=all) → '
     'activeFilter must be unread (INV-FILTER-RACE-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
@@ -155,7 +154,6 @@ void main() {
   testWidgets(
     'InboxPage: user switches filter → leave → re-open → '
     'filter resets to unread (INV-FILTER-RACE-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
