@@ -38,7 +38,6 @@ void main() {
   // -----------------------------------------------------------------------
   test(
     'InboxStore: filter switch clears items and sets loading status',
-    skip: true,
     () async {
       final repo = _ControllableInboxRepository();
       final container = ProviderContainer(overrides: [
@@ -108,7 +107,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'InboxPage: skeleton visible during filter-switch loading',
-    skip: true,
     (tester) async {
       final repo = _ControllableInboxRepository();
       // Initial load: succeeds immediately with 1 unread item.
