@@ -67,7 +67,7 @@ void main() {
       expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
       expect(find.byKey(const ValueKey('inbox-item-dm-1')), findsOneWidget);
       expect(find.text('#general'), findsOneWidget);
-      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Alice'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('shows empty state when no items', (tester) async {
@@ -109,7 +109,8 @@ void main() {
       expect(repo.lastFilter, InboxFilter.unread);
     });
 
-    testWidgets('swipe left on item removes it from list', (tester) async {
+    testWidgets('swipe right on item removes it from list (mark done)',
+        (tester) async {
       repo.items = [
         _makeItem(channelId: 'ch-1', channelName: '#general', unread: 1),
       ];
@@ -120,10 +121,10 @@ void main() {
       // Item visible before swipe.
       expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
 
-      // Swipe endToStart (right-to-left in LTR layout) = mark done
+      // Swipe startToEnd (left-to-right in LTR layout) = mark done
       await tester.drag(
         find.byKey(const ValueKey('swipe-action-ch-1')),
-        const Offset(-500, 0),
+        const Offset(500, 0),
       );
       await tester.pumpAndSettle();
 
@@ -227,7 +228,7 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Bob: '), findsOneWidget);
+      expect(find.text('Bob'), findsOneWidget);
       expect(find.text('Hey, check this out!'), findsOneWidget);
     });
 

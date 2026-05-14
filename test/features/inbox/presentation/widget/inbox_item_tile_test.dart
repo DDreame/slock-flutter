@@ -33,7 +33,6 @@ void main() {
   testWidgets(
     'inbox item shows sender avatar, name, preview, and time '
     '(INV-INBOX-REDESIGN-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
@@ -87,7 +86,6 @@ void main() {
   testWidgets(
     'unread item has accent background and left bar indicator '
     '(INV-INBOX-REDESIGN-3)',
-    skip: true,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
@@ -148,7 +146,6 @@ void main() {
   testWidgets(
     'read item has no accent background and no left bar '
     '(INV-INBOX-REDESIGN-3)',
-    skip: true,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
@@ -204,7 +201,6 @@ void main() {
   testWidgets(
     '@mention item shows @you badge '
     '(INV-INBOX-REDESIGN-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
@@ -214,9 +210,10 @@ void main() {
           senderName: 'Dave',
           preview: 'Can you review this PR?',
           unread: 2,
-          // Phase B will add `isMentioned` field to InboxItem
-          // (inbox_item.dart, scoped by S2) and propagate it through
-          // ConversationProjection → InboxItemTile.
+          isMentioned: true,
+          // Phase B added `isMentioned` field to InboxItem
+          // (inbox_item.dart, scoped by S2) and propagates it through
+          // InboxPage → InboxItemTile.
         ),
       ];
       repo.totalUnreadCount = 2;
@@ -267,6 +264,7 @@ InboxItem _makeItem({
   String? senderName,
   String? preview,
   DateTime? lastActivityAt,
+  bool isMentioned = false,
 }) {
   return InboxItem(
     kind: kind,
@@ -275,6 +273,7 @@ InboxItem _makeItem({
     unreadCount: unread,
     senderName: senderName,
     preview: preview,
+    isMentioned: isMentioned,
     lastActivityAt:
         lastActivityAt ?? DateTime.now().subtract(const Duration(minutes: 5)),
   );

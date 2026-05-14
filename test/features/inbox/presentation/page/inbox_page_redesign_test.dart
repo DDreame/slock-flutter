@@ -35,7 +35,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'filter tabs switch between Unread, Mentions, and All',
-    skip: true,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
@@ -120,7 +119,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'swipe left on unread item marks it as read',
-    skip: true,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
