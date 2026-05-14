@@ -85,7 +85,7 @@ void main() {
     await tester.pumpWidget(_buildApp(store, theme: theme));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+    await tester.tap(find.byKey(const ValueKey('task-actions-task-1')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
@@ -184,7 +184,7 @@ void main() {
     );
   });
 
-  testWidgets('long-press on done task opens bottom sheet with Reopen', (
+  testWidgets('action menu on done task opens bottom sheet with Reopen', (
     tester,
   ) async {
     final store = _FakeTasksStore(
@@ -206,7 +206,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+    await tester.tap(find.byKey(const ValueKey('task-actions-task-1')));
     await tester.pumpAndSettle();
 
     expect(find.text('Reopen'), findsOneWidget);
@@ -232,7 +232,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+    await tester.tap(find.byKey(const ValueKey('task-actions-task-1')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('task-action-reopen')));
@@ -241,7 +241,7 @@ void main() {
     expect(store.statusUpdates, [('task-1', 'todo')]);
   });
 
-  testWidgets('long-press on in_review task shows Revert to In Progress', (
+  testWidgets('action menu on in_review task shows Revert to In Progress', (
     tester,
   ) async {
     final store = _FakeTasksStore(
@@ -263,7 +263,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+    await tester.tap(find.byKey(const ValueKey('task-actions-task-1')));
     await tester.pumpAndSettle();
 
     expect(find.text('Revert to In Progress'), findsOneWidget);
@@ -275,7 +275,7 @@ void main() {
     expect(store.statusUpdates, [('task-1', 'in_progress')]);
   });
 
-  testWidgets('long-press on in_progress task shows Revert to To Do', (
+  testWidgets('action menu on in_progress task shows Revert to To Do', (
     tester,
   ) async {
     final store = _FakeTasksStore(
@@ -297,7 +297,7 @@ void main() {
     );
     await tester.pump();
 
-    await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+    await tester.tap(find.byKey(const ValueKey('task-actions-task-1')));
     await tester.pumpAndSettle();
 
     expect(find.text('Revert to To Do'), findsOneWidget);
@@ -349,7 +349,7 @@ void main() {
   );
 
   testWidgets(
-    'long-press on todo task shows 关闭任务 action '
+    'action menu on todo task shows 关闭任务 action '
     '(INV-TASK-CLOSED-2)',
     (tester) async {
       final store = _FakeTasksStore(
@@ -373,7 +373,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+      await tester.tap(find.byKey(const ValueKey('task-actions-task-1')));
       await tester.pumpAndSettle();
 
       expect(
@@ -391,7 +391,7 @@ void main() {
   );
 
   testWidgets(
-    'long-press on done task shows 关闭任务 and transitions to closed '
+    'action menu on done task shows 关闭任务 and transitions to closed '
     '(INV-TASK-CLOSED-2)',
     (tester) async {
       final store = _FakeTasksStore(
@@ -415,7 +415,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+      await tester.tap(find.byKey(const ValueKey('task-actions-task-1')));
       await tester.pumpAndSettle();
 
       expect(
@@ -438,7 +438,7 @@ void main() {
   );
 
   testWidgets(
-    'long-press on closed task shows Reopen action',
+    'action menu on closed task shows Reopen action',
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -461,7 +461,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.longPress(find.byKey(const ValueKey('task-task-1')));
+      await tester.tap(find.byKey(const ValueKey('task-actions-task-1')));
       await tester.pumpAndSettle();
 
       expect(find.text('Reopen'), findsOneWidget);

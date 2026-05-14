@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -14,6 +15,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/presentation/widget/task_status_overlay.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 // -- Filter chip Z2 spec tokens --
@@ -185,7 +187,15 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
           );
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      _showSnackBar(failure.message ?? 'Failed to update task.');
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text(failure.message ?? 'Failed to update task.'),
+          action: SnackBarAction(
+            label: 'RETRY',
+            onPressed: () => _updateStatus(task, newStatus),
+          ),
+        ));
     }
   }
 
@@ -759,7 +769,7 @@ Color _statusColor(String status, AppColors colors) {
 // Task row
 // ---------------------------------------------------------------------------
 
-class _TaskRow extends ConsumerWidget {
+class _TaskRow extends ConsumerStatefulWidget {
   const _TaskRow({
     required this.task,
     required this.colors,
@@ -777,15 +787,52 @@ class _TaskRow extends ConsumerWidget {
   final Future<void> Function(TaskItem) onUnclaim;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_TaskRow> createState() => _TaskRowState();
+}
+
+class _TaskRowState extends ConsumerState<_TaskRow> {
+  OverlayEntry? _overlayEntry;
+
+  @override
+  void dispose() {
+    _removeOverlay();
+    super.dispose();
+  }
+
+  void _insertOverlay() {
+    HapticFeedback.mediumImpact();
+    final task = widget.task;
+    _overlayEntry = OverlayEntry(
+      builder: (_) => TaskStatusOverlay(
+        key: const ValueKey('task-status-overlay'),
+        currentStatus: task.status,
+        onStatusAccepted: (newStatus) {
+          _removeOverlay();
+          widget.onStatusUpdate(task, newStatus);
+        },
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final task = widget.task;
+    final colors = widget.colors;
     final isDone = task.status == 'done';
     final isClosed = task.status == 'closed';
     final isTerminal = isDone || isClosed;
+    // All non-closed tasks support drag-to-change-status.
+    final isDraggable = !isClosed;
 
     Widget row = InkWell(
       key: ValueKey('task-${task.id}'),
-      onTap: () => _onPrimaryTap(context, ref),
-      onLongPress: () => _showTaskActions(context),
+      onTap: () => _onPrimaryTap(),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.pageHorizontal,
@@ -833,10 +880,66 @@ class _TaskRow extends ConsumerWidget {
                 ),
               ),
             ],
+
+            // Action sheet button
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: IconButton(
+                key: ValueKey('task-actions-${task.id}'),
+                icon: Icon(
+                  Icons.more_horiz,
+                  size: 20,
+                  color: colors.textTertiary,
+                ),
+                padding: EdgeInsets.zero,
+                onPressed: () => _showTaskActions(context),
+              ),
+            ),
           ],
         ),
       ),
     );
+
+    // Wrap in LongPressDraggable for non-closed tasks.
+    if (isDraggable) {
+      row = LongPressDraggable<TaskItem>(
+        data: task,
+        delay: const Duration(milliseconds: 400),
+        onDragStarted: _insertOverlay,
+        onDragEnd: (_) => _removeOverlay(),
+        feedback: _buildDragGhost(),
+        childWhenDragging: Opacity(
+          opacity: 0.3,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pageHorizontal,
+              vertical: AppSpacing.sm,
+            ),
+            child: Row(
+              children: [
+                Text(
+                  _statusSymbol(task.status),
+                  style: AppTypography.title.copyWith(
+                    color: _statusColor(task.status, colors),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    '#${task.taskNumber} ${task.title}',
+                    style: AppTypography.body.copyWith(color: colors.text),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        child: row,
+      );
+    }
 
     // Wrap with left-swipe "Done" action (only for active tasks).
     if (!isTerminal) {
@@ -848,7 +951,7 @@ class _TaskRow extends ConsumerWidget {
           icon: Icons.check_circle_outline,
           color: colors.success,
         ),
-        onAction: () => onStatusUpdate(task, 'done'),
+        onAction: () => widget.onStatusUpdate(task, 'done'),
         child: row,
       );
     }
@@ -864,16 +967,58 @@ class _TaskRow extends ConsumerWidget {
     return row;
   }
 
-  void _onPrimaryTap(BuildContext context, WidgetRef ref) {
+  /// Drag ghost: elevated rotated card showing task title.
+  Widget _buildDragGhost() {
+    final task = widget.task;
+    final colors = widget.colors;
+    return Transform.scale(
+      scale: 1.03,
+      child: Transform.rotate(
+        angle: -0.026,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(12),
+          color: colors.surfaceAlt,
+          child: Container(
+            width: 280,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _statusSymbol(task.status),
+                  style: AppTypography.title.copyWith(
+                    color: _statusColor(task.status, colors),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '#${task.taskNumber} ${task.title}',
+                    style: AppTypography.body.copyWith(color: colors.text),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onPrimaryTap() {
     final serverId = ref.read(currentTasksServerIdProvider).value;
-    if (task.channelType == 'dm') {
-      context.push('/servers/$serverId/dms/${task.channelId}');
+    if (widget.task.channelType == 'dm') {
+      context.push('/servers/$serverId/dms/${widget.task.channelId}');
     } else {
-      context.push('/servers/$serverId/channels/${task.channelId}');
+      context.push('/servers/$serverId/channels/${widget.task.channelId}');
     }
   }
 
   Future<void> _showTaskActions(BuildContext context) async {
+    final task = widget.task;
     final actions = <ListActionItem>[
       if (task.status != 'done' && task.status != 'closed')
         const ListActionItem(
@@ -946,25 +1091,25 @@ class _TaskRow extends ConsumerWidget {
 
     switch (result) {
       case 'task-action-done':
-        onStatusUpdate(task, 'done');
+        widget.onStatusUpdate(task, 'done');
       case 'task-action-close':
-        onStatusUpdate(task, 'closed');
+        widget.onStatusUpdate(task, 'closed');
       case 'task-action-start':
-        onStatusUpdate(task, 'in_progress');
+        widget.onStatusUpdate(task, 'in_progress');
       case 'task-action-review':
-        onStatusUpdate(task, 'in_review');
+        widget.onStatusUpdate(task, 'in_review');
       case 'task-action-reopen':
-        onStatusUpdate(task, 'todo');
+        widget.onStatusUpdate(task, 'todo');
       case 'task-action-revert-in-progress':
-        onStatusUpdate(task, 'in_progress');
+        widget.onStatusUpdate(task, 'in_progress');
       case 'task-action-revert-todo':
-        onStatusUpdate(task, 'todo');
+        widget.onStatusUpdate(task, 'todo');
       case 'task-action-claim':
-        onClaim(task);
+        widget.onClaim(task);
       case 'task-action-unclaim':
-        onUnclaim(task);
+        widget.onUnclaim(task);
       case 'task-action-delete':
-        onDelete(task);
+        widget.onDelete(task);
     }
   }
 }

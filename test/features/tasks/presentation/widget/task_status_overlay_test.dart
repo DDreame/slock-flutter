@@ -12,19 +12,12 @@ import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 
 // ---------------------------------------------------------------------------
-// #508: Task panel drag interaction — Phase A (test-only)
+// #508: Task panel drag interaction — Phase A + B
 //
 // 6 tests covering INV-TASK-DRAG-1 through INV-TASK-DRAG-5.
 //
-// Tests 1–5 are skipped: they define the widget-level contract for
-// LongPressDraggable + Overlay + DragTarget that Phase B will implement.
-// They will be un-skipped when Phase B lands the lib code.
-//
-// Test 6 exercises the production rollback path through the real TasksStore
-// with a failing fake repository — NOT skipped, CI-green now.
-//
-// TODO(Phase B): un-skip tests 1–5 and add widget-level snackbar assertion
-// for INV-TASK-DRAG-5 (drag → drop on target → API fail → snackbar + RETRY).
+// Tests 1–5: widget-level contract for LongPressDraggable + Overlay + DragTarget.
+// Test 6: production rollback path through the real TasksStore.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -34,8 +27,6 @@ void main() {
   testWidgets(
     'long press task item shows 4 status drop zones '
     '(INV-TASK-DRAG-1)',
-    // skip: Phase B will provide LongPressDraggable + Overlay implementation
-    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -54,8 +45,9 @@ void main() {
       final taskFinder = find.byKey(const ValueKey('task-task-a'));
       expect(taskFinder, findsOneWidget);
 
-      await tester.longPress(taskFinder);
-      await tester.pumpAndSettle();
+      // Use startGesture + pump to keep the finger down (overlay stays).
+      final gesture = await tester.startGesture(tester.getCenter(taskFinder));
+      await tester.pump(const Duration(milliseconds: 500));
 
       // Overlay should appear with all 4 status drop zones.
       expect(
@@ -71,6 +63,10 @@ void main() {
           reason: 'INV-TASK-DRAG-1: Drop zone for "$status" must be present',
         );
       }
+
+      // Clean up: release gesture.
+      await gesture.up();
+      await tester.pumpAndSettle();
     },
   );
 
@@ -80,8 +76,6 @@ void main() {
   testWidgets(
     'current status zone is visually distinct with reduced opacity and badge '
     '(INV-TASK-DRAG-2)',
-    // skip: Phase B will provide LongPressDraggable + Overlay implementation
-    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -95,9 +89,11 @@ void main() {
       await tester.pumpWidget(_buildApp(store));
       await tester.pumpAndSettle();
 
-      // Long press to open overlay.
-      await tester.longPress(find.byKey(const ValueKey('task-task-ip')));
-      await tester.pumpAndSettle();
+      // Use startGesture + pump to keep the finger down (overlay stays).
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(const ValueKey('task-task-ip'))),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
 
       // The "in_progress" zone should be marked as current.
       final currentBadge = find.byKey(
@@ -133,6 +129,10 @@ void main() {
         lessThan(1.0),
         reason: 'INV-TASK-DRAG-2: Current zone opacity must be < 1.0',
       );
+
+      // Clean up: release gesture.
+      await gesture.up();
+      await tester.pumpAndSettle();
     },
   );
 
@@ -142,8 +142,6 @@ void main() {
   testWidgets(
     'drag to target zone triggers status update '
     '(INV-TASK-DRAG-3)',
-    // skip: Phase B will provide LongPressDraggable + Overlay implementation
-    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -197,8 +195,6 @@ void main() {
   testWidgets(
     'drag to current status zone is no-op '
     '(INV-TASK-DRAG-4)',
-    // skip: Phase B will provide LongPressDraggable + Overlay implementation
-    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -250,8 +246,6 @@ void main() {
   testWidgets(
     'release outside drop zones cancels drag without state change '
     '(INV-TASK-DRAG-4)',
-    // skip: Phase B will provide LongPressDraggable + Overlay implementation
-    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -307,11 +301,6 @@ void main() {
   // This test exercises the REAL TasksStore.updateTaskStatus() production
   // code with a _FailingTasksRepository. The optimistic update → rollback
   // path runs through the same seam that the app uses at runtime.
-  //
-  // NOT skipped — CI-green now.
-  //
-  // TODO(Phase B): add widget-level test asserting that the drag overlay
-  // surfaces a SnackBar with RETRY action after API failure.
   // -----------------------------------------------------------------------
   test(
     'real TasksStore rolls back optimistic update on API failure '
@@ -403,7 +392,7 @@ TaskItem _taskItem({
 }
 
 // ---------------------------------------------------------------------------
-// Fake store (used by skipped widget tests 1–5)
+// Fake store (used by widget tests 1–5)
 // ---------------------------------------------------------------------------
 
 class _FakeTasksStore extends TasksStore {
