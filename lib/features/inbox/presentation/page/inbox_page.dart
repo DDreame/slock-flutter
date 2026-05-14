@@ -101,6 +101,11 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   }
 
   Widget _buildBody(AppColors colors, InboxState inboxState) {
+    // Skeleton: loading/initial with no items to display.
+    // Uses items.isEmpty (not projections.isEmpty) to avoid triggering
+    // inboxProjectionProvider → homeListStoreProvider during initial load.
+    // After #510 fix 1 (InboxStore clears items on filter switch),
+    // items.isEmpty is true during filter-switch loading.
     if ((inboxState.status == InboxStatus.initial ||
             inboxState.status == InboxStatus.loading) &&
         inboxState.items.isEmpty) {

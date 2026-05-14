@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
@@ -77,9 +78,18 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
     if (inboxState.status == InboxStatus.loading &&
         items.isEmpty &&
         hiddenItems.isEmpty) {
-      return const Center(
-        key: ValueKey('unread-list-loading'),
-        child: CircularProgressIndicator(),
+      // Skeleton instead of spinner during filter-switch loading.
+      // Previously showed CircularProgressIndicator which gave no
+      // indication of content structure (#510 BUG 2).
+      return ListView(
+        key: const ValueKey('unread-list-skeleton'),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        children: const [
+          SkeletonListItem(key: ValueKey('unread-list-skeleton-0')),
+          SkeletonListItem(key: ValueKey('unread-list-skeleton-1')),
+          SkeletonListItem(key: ValueKey('unread-list-skeleton-2')),
+          SkeletonListItem(key: ValueKey('unread-list-skeleton-3')),
+        ],
       );
     }
 
