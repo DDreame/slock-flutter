@@ -61,7 +61,6 @@ void main() {
   test(
     'inboxProjectionProvider: tier-2 homeListStore changes do not '
     'trigger rebuild (INV-PROJ-OPT-2)',
-    skip: true,
     () {
       final homeStore = _ControllableHomeListStore(const HomeListState(
         status: HomeListStatus.success,
@@ -241,7 +240,6 @@ void main() {
   test(
     'inboxProjectionProvider: startup sequence rebuild count ≤ 2 '
     '(INV-PROJ-OPT-1)',
-    skip: true,
     () {
       // Start with initial homeListStore (not yet loaded).
       final homeStore = _ControllableHomeListStore(const HomeListState());
