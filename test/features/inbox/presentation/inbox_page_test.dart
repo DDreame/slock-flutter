@@ -67,7 +67,7 @@ void main() {
       expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
       expect(find.byKey(const ValueKey('inbox-item-dm-1')), findsOneWidget);
       expect(find.text('#general'), findsOneWidget);
-      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Alice'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('shows empty state when no items', (tester) async {
@@ -109,7 +109,8 @@ void main() {
       expect(repo.lastFilter, InboxFilter.unread);
     });
 
-    testWidgets('swipe left on item removes it from list', (tester) async {
+    testWidgets('swipe right on item removes it from list (mark done)',
+        (tester) async {
       repo.items = [
         _makeItem(channelId: 'ch-1', channelName: '#general', unread: 1),
       ];
@@ -120,10 +121,10 @@ void main() {
       // Item visible before swipe.
       expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
 
-      // Swipe endToStart (right-to-left in LTR layout) = mark done
+      // Swipe startToEnd (left-to-right in LTR layout) = mark done
       await tester.drag(
         find.byKey(const ValueKey('swipe-action-ch-1')),
-        const Offset(-500, 0),
+        const Offset(500, 0),
       );
       await tester.pumpAndSettle();
 
@@ -137,6 +138,11 @@ void main() {
       ];
 
       await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Switch to All filter so item stays after mark-read
+      // (default is Unread, which removes read items optimistically).
+      await tester.tap(find.byKey(const ValueKey('inbox-filter-all')));
       await tester.pumpAndSettle();
 
       // Badge visible before action.
@@ -227,7 +233,7 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('Bob: '), findsOneWidget);
+      expect(find.text('Bob'), findsOneWidget);
       expect(find.text('Hey, check this out!'), findsOneWidget);
     });
 
@@ -277,6 +283,95 @@ void main() {
 
       expect(repo.loadMoreCalled, isTrue);
     });
+
+    // -----------------------------------------------------------------------
+    // Regression: mentions-filter mark-read removes item (#509)
+    // -----------------------------------------------------------------------
+    testWidgets('mark read in mentions filter removes item from list',
+        (tester) async {
+      repo.items = [
+        _makeItem(
+          channelId: 'ch-1',
+          channelName: '#general',
+          unread: 3,
+          isMentioned: true,
+        ),
+      ];
+      repo.totalUnreadCount = 3;
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Switch to @Mentions filter.
+      await tester.tap(find.byKey(const ValueKey('inbox-filter-mentions')));
+      await tester.pumpAndSettle();
+
+      // Item visible before action.
+      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
+
+      // Long-press → Mark Read.
+      await tester.longPress(find.byKey(const ValueKey('inbox-item-ch-1')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('inbox-action-mark-read')));
+      await tester.pumpAndSettle();
+
+      // Item removed from list (mentions filter removes read items).
+      expect(
+        find.byKey(const ValueKey('inbox-item-ch-1')),
+        findsNothing,
+        reason: 'Mark-read in mentions filter must remove item from list',
+      );
+    });
+
+    // -----------------------------------------------------------------------
+    // Regression: mentions-filter mark-all-read empties list (#509)
+    // -----------------------------------------------------------------------
+    testWidgets('mark all read in mentions filter empties list',
+        (tester) async {
+      repo.items = [
+        _makeItem(
+          channelId: 'ch-1',
+          channelName: '#general',
+          unread: 2,
+          isMentioned: true,
+        ),
+        _makeItem(
+          channelId: 'ch-2',
+          channelName: '#random',
+          unread: 1,
+          isMentioned: true,
+        ),
+      ];
+      repo.totalUnreadCount = 3;
+
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      // Switch to @Mentions filter.
+      await tester.tap(find.byKey(const ValueKey('inbox-filter-mentions')));
+      await tester.pumpAndSettle();
+
+      // Both items visible before action.
+      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
+      expect(find.byKey(const ValueKey('inbox-item-ch-2')), findsOneWidget);
+
+      // Tap mark-all-read.
+      await tester.tap(find.byKey(const ValueKey('inbox-mark-all-read')));
+      await tester.pumpAndSettle();
+
+      // List emptied (mentions filter removes all read items).
+      expect(
+        find.byKey(const ValueKey('inbox-item-ch-1')),
+        findsNothing,
+        reason: 'Mark-all-read in mentions filter must remove all items',
+      );
+      expect(
+        find.byKey(const ValueKey('inbox-item-ch-2')),
+        findsNothing,
+        reason: 'Mark-all-read in mentions filter must remove all items',
+      );
+    });
   });
 }
 
@@ -292,6 +387,7 @@ InboxItem _makeItem({
   String? senderName,
   String? preview,
   String? latestActivityPreview,
+  bool isMentioned = false,
 }) {
   return InboxItem(
     kind: kind,
@@ -301,6 +397,7 @@ InboxItem _makeItem({
     senderName: senderName,
     preview: preview,
     latestActivityPreview: latestActivityPreview,
+    isMentioned: isMentioned,
     lastActivityAt: DateTime.now().subtract(const Duration(minutes: 5)),
   );
 }

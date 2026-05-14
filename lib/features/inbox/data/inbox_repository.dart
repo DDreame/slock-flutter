@@ -4,7 +4,8 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 /// Filter mode for inbox queries.
 enum InboxFilter {
   all,
-  unread;
+  unread,
+  mentions;
 
   String get queryValue {
     switch (this) {
@@ -12,6 +13,8 @@ enum InboxFilter {
         return 'all';
       case InboxFilter.unread:
         return 'unread';
+      case InboxFilter.mentions:
+        return 'mentions';
     }
   }
 }

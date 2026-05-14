@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -6,19 +7,27 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
-import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/presentation/widget/empty_inbox_widget.dart';
+import 'package:slock_app/features/inbox/presentation/widget/inbox_item_tile.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
+// ---------------------------------------------------------------------------
+// #509: Inbox page redesign — Z2 mockup.
+//
+// 3-tab filter (Unread | @Mentions | All), redesigned InboxItemTile,
+// bidirectional swipe (left=mark read, right=done), EmptyInboxWidget.
+// ---------------------------------------------------------------------------
+
 /// Full-screen inbox page.
 ///
-/// Shows all inbox items with filter tabs (All / Unread), swipe gestures
-/// (right = mark read, left = mark done), pagination, pull-to-refresh,
-/// mark-all-read action, and an empty state.
+/// Shows all inbox items with filter tabs (Unread / @Mentions / All),
+/// swipe gestures (left = mark read, right = mark done), pagination,
+/// pull-to-refresh, mark-all-read action, and an empty state.
 class InboxPage extends ConsumerStatefulWidget {
   const InboxPage({super.key});
 
@@ -33,7 +42,8 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     final state = ref.read(inboxStoreProvider);
     if (state.status == InboxStatus.initial) {
       Future.microtask(
-        () => ref.read(inboxStoreProvider.notifier).load(),
+        () =>
+            ref.read(inboxStoreProvider.notifier).setFilter(InboxFilter.unread),
       );
     }
   }
@@ -137,32 +147,11 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     }
 
     if (inboxState.items.isEmpty) {
-      return Center(
-        key: const ValueKey('inbox-empty'),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 56,
-              color: colors.textTertiary,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'All caught up!',
-              style: AppTypography.title.copyWith(color: colors.text),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              'No messages in your inbox',
-              style: AppTypography.body.copyWith(color: colors.textTertiary),
-            ),
-          ],
-        ),
-      );
+      return const EmptyInboxWidget(key: ValueKey('inbox-empty'));
     }
 
     final projections = ref.watch(inboxProjectionProvider);
+    final items = inboxState.items;
 
     return Column(
       children: [
@@ -185,10 +174,7 @@ class _InboxPageState extends ConsumerState<InboxPage> {
               },
               child: ListView.builder(
                 key: const ValueKey('inbox-list-view'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.pageHorizontal,
-                  vertical: AppSpacing.sm,
-                ),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                 itemCount: projections.length + (inboxState.hasMore ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (index >= projections.length) {
@@ -200,26 +186,29 @@ class _InboxPageState extends ConsumerState<InboxPage> {
                     );
                   }
                   final projection = projections[index];
-                  return _InboxListTile(
-                    key: ValueKey(
-                      'inbox-item-${projection.channelId ?? projection.id}',
-                    ),
-                    item: projection,
-                    onMarkDone: () {
-                      if (projection.channelId != null) {
-                        ref
-                            .read(inboxStoreProvider.notifier)
-                            .markDone(channelId: projection.channelId!);
-                      }
-                    },
+                  final channelId = projection.channelId ?? projection.id;
+                  // Look up isMentioned from the original InboxItem.
+                  final isMentioned =
+                      index < items.length ? items[index].isMentioned : false;
+
+                  return _SwipeableInboxItem(
+                    key: ValueKey('inbox-item-$channelId'),
+                    channelId: channelId,
+                    projection: projection,
+                    isMentioned: isMentioned,
                     onMarkRead: () {
-                      if (projection.channelId != null) {
-                        ref
-                            .read(inboxStoreProvider.notifier)
-                            .markRead(channelId: projection.channelId!);
-                      }
+                      ref
+                          .read(inboxStoreProvider.notifier)
+                          .markRead(channelId: channelId);
+                    },
+                    onMarkDone: () {
+                      ref
+                          .read(inboxStoreProvider.notifier)
+                          .markDone(channelId: channelId);
                     },
                     onTap: () => _navigateToProjection(projection),
+                    onLongPress: () =>
+                        _showActionSheet(context, projection, channelId),
                   );
                 },
               ),
@@ -244,6 +233,39 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     }
   }
 
+  Future<void> _showActionSheet(
+    BuildContext context,
+    ConversationProjection projection,
+    String channelId,
+  ) async {
+    final actions = <ListActionItem>[
+      if (projection.unreadCount > 0)
+        const ListActionItem(
+          key: 'inbox-action-mark-read',
+          label: 'Mark Read',
+          icon: Icons.mark_email_read,
+        ),
+      const ListActionItem(
+        key: 'inbox-action-mark-done',
+        label: 'Done',
+        icon: Icons.done,
+      ),
+    ];
+
+    final result = await showListActionSheet(
+      context: context,
+      actions: actions,
+      title: projection.title,
+    );
+
+    switch (result) {
+      case 'inbox-action-mark-read':
+        ref.read(inboxStoreProvider.notifier).markRead(channelId: channelId);
+      case 'inbox-action-mark-done':
+        ref.read(inboxStoreProvider.notifier).markDone(channelId: channelId);
+    }
+  }
+
   void _showRefreshFailedSnackBar() {
     final l10n = context.l10n;
     ScaffoldMessenger.of(context)
@@ -257,6 +279,151 @@ class _InboxPageState extends ConsumerState<InboxPage> {
       ));
   }
 }
+
+// ---------------------------------------------------------------------------
+// Swipeable inbox item — bidirectional swipe
+// ---------------------------------------------------------------------------
+
+class _SwipeableInboxItem extends StatefulWidget {
+  const _SwipeableInboxItem({
+    super.key,
+    required this.channelId,
+    required this.projection,
+    required this.isMentioned,
+    required this.onMarkRead,
+    required this.onMarkDone,
+    required this.onTap,
+    required this.onLongPress,
+  });
+
+  final String channelId;
+  final ConversationProjection projection;
+  final bool isMentioned;
+  final VoidCallback onMarkRead;
+  final VoidCallback onMarkDone;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
+
+  @override
+  State<_SwipeableInboxItem> createState() => _SwipeableInboxItemState();
+}
+
+class _SwipeableInboxItemState extends State<_SwipeableInboxItem> {
+  bool _hapticFired = false;
+  double? _dragStartX;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: (_) => _resetDrag(),
+      onPointerCancel: (_) => _resetDrag(),
+      child: Dismissible(
+        key: ValueKey('swipe-action-${widget.channelId}'),
+        direction: DismissDirection.horizontal,
+        dismissThresholds: const {
+          DismissDirection.endToStart: 0.25,
+          DismissDirection.startToEnd: 0.25,
+        },
+        // Right swipe background (startToEnd): mark done — green
+        background: _swipeBackground(
+          alignment: Alignment.centerLeft,
+          color: colors.success,
+          icon: Icons.done,
+          label: 'Done',
+        ),
+        // Left swipe background (endToStart): mark read — blue
+        secondaryBackground: _swipeBackground(
+          alignment: Alignment.centerRight,
+          color: colors.primary,
+          icon: Icons.mark_email_read,
+          label: 'Read',
+        ),
+        confirmDismiss: (direction) async {
+          if (direction == DismissDirection.endToStart) {
+            // Left swipe → mark read (stays in list)
+            widget.onMarkRead();
+            return false;
+          } else {
+            // Right swipe → mark done (dismisses)
+            widget.onMarkDone();
+            return true;
+          }
+        },
+        child: GestureDetector(
+          onTap: widget.onTap,
+          onLongPress: widget.onLongPress,
+          behavior: HitTestBehavior.opaque,
+          child: InboxItemTile(
+            projection: widget.projection,
+            isMentioned: widget.isMentioned,
+            channelId: widget.channelId,
+            onTap: widget.onTap,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _swipeBackground({
+    required AlignmentGeometry alignment,
+    required Color color,
+    required IconData icon,
+    required String label,
+  }) {
+    return Container(
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            label,
+            style: AppTypography.label.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    _dragStartX = event.position.dx;
+    _hapticFired = false;
+  }
+
+  void _resetDrag() {
+    _dragStartX = null;
+    _hapticFired = false;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (_hapticFired || _dragStartX == null) return;
+
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+
+    final width = renderBox.size.width;
+    final dragDelta = (_dragStartX! - event.position.dx).abs();
+
+    if (dragDelta > width * 0.15) {
+      _hapticFired = true;
+      HapticFeedback.mediumImpact();
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Filter tabs (3-tab: Unread | @Mentions | All)
+// ---------------------------------------------------------------------------
 
 class _InboxFilterTabs extends StatelessWidget {
   const _InboxFilterTabs({
@@ -279,19 +446,27 @@ class _InboxFilterTabs extends StatelessWidget {
       child: Row(
         children: [
           _FilterTab(
-            key: const ValueKey('inbox-filter-all'),
-            label: 'All',
-            isSelected: currentFilter == InboxFilter.all,
-            colors: colors,
-            onTap: () => onFilterChanged(InboxFilter.all),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          _FilterTab(
             key: const ValueKey('inbox-filter-unread'),
             label: 'Unread',
             isSelected: currentFilter == InboxFilter.unread,
             colors: colors,
             onTap: () => onFilterChanged(InboxFilter.unread),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          _FilterTab(
+            key: const ValueKey('inbox-filter-mentions'),
+            label: '@Mentions',
+            isSelected: currentFilter == InboxFilter.mentions,
+            colors: colors,
+            onTap: () => onFilterChanged(InboxFilter.mentions),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          _FilterTab(
+            key: const ValueKey('inbox-filter-all'),
+            label: 'All',
+            isSelected: currentFilter == InboxFilter.all,
+            colors: colors,
+            onTap: () => onFilterChanged(InboxFilter.all),
           ),
         ],
       ),
@@ -340,195 +515,5 @@ class _FilterTab extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _InboxListTile extends StatelessWidget {
-  const _InboxListTile({
-    super.key,
-    required this.item,
-    required this.onMarkDone,
-    required this.onMarkRead,
-    required this.onTap,
-  });
-
-  final ConversationProjection item;
-  final VoidCallback onMarkDone;
-  final VoidCallback onMarkRead;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    return SwipeActionWrapper(
-      itemKey: item.channelId ?? item.id,
-      enabled: true,
-      action: SwipeActionConfig(
-        label: 'Done',
-        icon: Icons.done,
-        color: colors.success,
-        dismisses: true,
-      ),
-      onAction: onMarkDone,
-      child: GestureDetector(
-        onTap: onTap,
-        onLongPress: () => _showActionSheet(context),
-        behavior: HitTestBehavior.opaque,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: AppSpacing.listItemVertical,
-          ),
-          child: Row(
-            children: [
-              _kindIcon(colors),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.title,
-                            style: AppTypography.body.copyWith(
-                              color: colors.text,
-                              fontWeight: item.unreadCount > 0
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (item.lastActivityAt != null)
-                          Text(
-                            _formatTime(item.lastActivityAt!),
-                            style: AppTypography.caption.copyWith(
-                              color: colors.textTertiary,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        if (item.senderName != null)
-                          Text(
-                            '${item.senderName}: ',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: colors.textSecondary,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                          ),
-                        Expanded(
-                          child: Text(
-                            item.previewText,
-                            style: AppTypography.bodySmall.copyWith(
-                              color: colors.textTertiary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (item.unreadCount > 0) ...[
-                const SizedBox(width: AppSpacing.sm),
-                Container(
-                  key: ValueKey(
-                      'inbox-unread-badge-${item.channelId ?? item.id}'),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.primary,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    item.unreadCount > 99 ? '99+' : '${item.unreadCount}',
-                    style: AppTypography.caption.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showActionSheet(BuildContext context) async {
-    final actions = <ListActionItem>[
-      if (item.unreadCount > 0)
-        const ListActionItem(
-          key: 'inbox-action-mark-read',
-          label: 'Mark Read',
-          icon: Icons.mark_email_read,
-        ),
-      const ListActionItem(
-        key: 'inbox-action-mark-done',
-        label: 'Done',
-        icon: Icons.done,
-      ),
-    ];
-
-    final result = await showListActionSheet(
-      context: context,
-      actions: actions,
-      title: item.title,
-    );
-
-    switch (result) {
-      case 'inbox-action-mark-read':
-        onMarkRead();
-      case 'inbox-action-mark-done':
-        onMarkDone();
-    }
-  }
-
-  Widget _kindIcon(AppColors colors) {
-    final (icon, color) = switch (item.kind) {
-      ConversationProjectionKind.channel => (Icons.tag, colors.success),
-      ConversationProjectionKind.dm => (
-          Icons.chat_bubble_outline,
-          colors.warning
-        ),
-      ConversationProjectionKind.thread => (
-          Icons.subdirectory_arrow_right,
-          colors.primary
-        ),
-    };
-
-    return Container(
-      width: 36,
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-      ),
-      child: Icon(icon, size: 18, color: color),
-    );
-  }
-
-  static String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return '${time.month}/${time.day}';
   }
 }

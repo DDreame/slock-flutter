@@ -45,6 +45,7 @@ class InboxItem {
     this.lastActivityAt,
     this.messageType,
     this.isDeleted = false,
+    this.isMentioned = false,
     this.attachments,
   });
 
@@ -67,6 +68,7 @@ class InboxItem {
       isDeleted: json['isDeleted'] == true ||
           (json['deletedAt'] is String &&
               (json['deletedAt'] as String).isNotEmpty),
+      isMentioned: json['isMentioned'] == true,
       attachments: parseAttachments(json['attachments']),
     );
   }
@@ -96,6 +98,9 @@ class InboxItem {
   /// Whether the last message was deleted.
   final bool isDeleted;
 
+  /// Whether any unread message in this conversation @mentions the current user.
+  final bool isMentioned;
+
   /// Parsed attachments from the last message.
   /// Null when the inbox API does not include attachment metadata.
   final List<MessageAttachment>? attachments;
@@ -108,6 +113,7 @@ class InboxItem {
     int? unreadCount,
     String? firstUnreadMessageId,
     bool clearFirstUnreadMessageId = false,
+    bool? isMentioned,
   }) {
     return InboxItem(
       kind: kind,
@@ -127,6 +133,7 @@ class InboxItem {
       lastActivityAt: lastActivityAt,
       messageType: messageType,
       isDeleted: isDeleted,
+      isMentioned: isMentioned ?? this.isMentioned,
       attachments: attachments,
     );
   }
@@ -150,7 +157,8 @@ class InboxItem {
             firstUnreadMessageId == other.firstUnreadMessageId &&
             lastActivityAt == other.lastActivityAt &&
             messageType == other.messageType &&
-            isDeleted == other.isDeleted;
+            isDeleted == other.isDeleted &&
+            isMentioned == other.isMentioned;
   }
 
   @override
@@ -170,6 +178,7 @@ class InboxItem {
         lastActivityAt,
         messageType,
         isDeleted,
+        isMentioned,
       );
 
   static int _parseInt(Object? value) {
