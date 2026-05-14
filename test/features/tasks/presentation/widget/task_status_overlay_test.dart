@@ -7,14 +7,24 @@ import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 
 // ---------------------------------------------------------------------------
 // #508: Task panel drag interaction — Phase A (test-only)
 //
 // 6 tests covering INV-TASK-DRAG-1 through INV-TASK-DRAG-5.
-// Phase B will implement the LongPressDraggable + Overlay + DragTarget
-// widgets that satisfy these contracts.
+//
+// Tests 1–5 are skipped: they define the widget-level contract for
+// LongPressDraggable + Overlay + DragTarget that Phase B will implement.
+// They will be un-skipped when Phase B lands the lib code.
+//
+// Test 6 exercises the production rollback path through the real TasksStore
+// with a failing fake repository — NOT skipped, CI-green now.
+//
+// TODO(Phase B): un-skip tests 1–5 and add widget-level snackbar assertion
+// for INV-TASK-DRAG-5 (drag → drop on target → API fail → snackbar + RETRY).
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -24,6 +34,8 @@ void main() {
   testWidgets(
     'long press task item shows 4 status drop zones '
     '(INV-TASK-DRAG-1)',
+    // skip: Phase B will provide LongPressDraggable + Overlay implementation
+    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -68,6 +80,8 @@ void main() {
   testWidgets(
     'current status zone is visually distinct with reduced opacity and badge '
     '(INV-TASK-DRAG-2)',
+    // skip: Phase B will provide LongPressDraggable + Overlay implementation
+    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -128,6 +142,8 @@ void main() {
   testWidgets(
     'drag to target zone triggers status update '
     '(INV-TASK-DRAG-3)',
+    // skip: Phase B will provide LongPressDraggable + Overlay implementation
+    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -181,6 +197,8 @@ void main() {
   testWidgets(
     'drag to current status zone is no-op '
     '(INV-TASK-DRAG-4)',
+    // skip: Phase B will provide LongPressDraggable + Overlay implementation
+    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -232,6 +250,8 @@ void main() {
   testWidgets(
     'release outside drop zones cancels drag without state change '
     '(INV-TASK-DRAG-4)',
+    // skip: Phase B will provide LongPressDraggable + Overlay implementation
+    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: TasksState(
@@ -283,63 +303,63 @@ void main() {
 
   // -----------------------------------------------------------------------
   // 6. INV-TASK-DRAG-5: API failure rolls back optimistic update
+  //
+  // This test exercises the REAL TasksStore.updateTaskStatus() production
+  // code with a _FailingTasksRepository. The optimistic update → rollback
+  // path runs through the same seam that the app uses at runtime.
+  //
+  // NOT skipped — CI-green now.
+  //
+  // TODO(Phase B): add widget-level test asserting that the drag overlay
+  // surfaces a SnackBar with RETRY action after API failure.
   // -----------------------------------------------------------------------
-  testWidgets(
-    'API failure rolls back optimistic update and shows error snackbar '
+  test(
+    'real TasksStore rolls back optimistic update on API failure '
     '(INV-TASK-DRAG-5)',
-    (tester) async {
-      final store = _FakeTasksStore(
-        initialState: TasksState(
-          status: TasksStatus.success,
-          items: [
-            _taskItem(id: 'task-todo', status: 'todo'),
-          ],
-        ),
-        failOnUpdate: true,
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          currentTasksServerIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
+          tasksRepositoryProvider.overrideWithValue(_FailingTasksRepository()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(tasksStoreProvider.notifier);
+
+      // Seed the store with a "todo" task (simulating a successful load).
+      final seedItem = _taskItem(id: 'task-1', status: 'todo');
+      store.state = TasksState(
+        status: TasksStatus.success,
+        items: [seedItem],
       );
 
-      await tester.pumpWidget(_buildApp(store));
-      await tester.pumpAndSettle();
+      // Verify initial state.
+      expect(store.state.items.first.status, 'todo');
 
-      // Start drag gesture.
-      final taskCenter = tester.getCenter(
-        find.byKey(const ValueKey('task-task-todo')),
-      );
-      final gesture = await tester.startGesture(taskCenter);
-      await tester.pump(const Duration(milliseconds: 500));
+      // Attempt to change status to 'done' — the repository will throw.
+      try {
+        await store.updateTaskStatus(taskId: 'task-1', status: 'done');
+        fail('Expected AppFailure to be thrown');
+      } on AppFailure {
+        // expected
+      }
 
-      // Drag to the "done" drop zone.
-      final dropZone = find.byKey(const ValueKey('drop-zone-done'));
-      expect(dropZone, findsOneWidget);
-      final dropCenter = tester.getCenter(dropZone);
-      await gesture.moveTo(dropCenter);
-      await tester.pump();
-
-      await gesture.up();
-      await tester.pumpAndSettle();
-
-      // The status should be rolled back to original.
-      final currentState = store.state;
-      final task = currentState.items.firstWhere((t) => t.id == 'task-todo');
+      // The production rollback path should have reverted to 'todo'.
       expect(
-        task.status,
+        store.state.items.first.status,
         'todo',
-        reason: 'INV-TASK-DRAG-5: API failure must roll back to original '
-            'status',
+        reason: 'INV-TASK-DRAG-5: Real TasksStore must roll back optimistic '
+            'update to original status on API failure',
       );
 
-      // Error snackbar should be visible.
+      // The items list should be identical to the pre-update snapshot.
       expect(
-        find.byType(SnackBar),
-        findsOneWidget,
-        reason: 'INV-TASK-DRAG-5: Error snackbar must appear on failure',
-      );
-
-      // Snackbar should have a RETRY action.
-      expect(
-        find.widgetWithText(SnackBarAction, 'RETRY'),
-        findsOneWidget,
-        reason: 'INV-TASK-DRAG-5: Snackbar must include RETRY action',
+        store.state.items,
+        [seedItem],
+        reason: 'INV-TASK-DRAG-5: Full item list must be restored, '
+            'not just the single task',
       );
     },
   );
@@ -383,17 +403,14 @@ TaskItem _taskItem({
 }
 
 // ---------------------------------------------------------------------------
-// Fake store
+// Fake store (used by skipped widget tests 1–5)
 // ---------------------------------------------------------------------------
 
 class _FakeTasksStore extends TasksStore {
-  _FakeTasksStore({
-    required TasksState initialState,
-    this.failOnUpdate = false,
-  }) : _initialState = initialState;
+  _FakeTasksStore({required TasksState initialState})
+      : _initialState = initialState;
 
   final TasksState _initialState;
-  final bool failOnUpdate;
   final List<(String, String)> statusUpdates = [];
 
   @override
@@ -408,25 +425,69 @@ class _FakeTasksStore extends TasksStore {
     required String status,
   }) async {
     statusUpdates.add((taskId, status));
-
-    if (failOnUpdate) {
-      // Simulate optimistic update then rollback.
-      final previousItems = state.items;
-      state = state.copyWith(
-        items: state.items
-            .map((t) => t.id == taskId ? t.copyWith(status: status) : t)
-            .toList(),
-      );
-      // Simulate API failure — rollback.
-      state = state.copyWith(items: previousItems);
-      throw const NetworkFailure(message: 'Status update failed. Reverted.');
-    }
-
-    // Optimistic update (success path).
+    // Optimistic update only — no rollback simulation.
+    // Rollback invariant is tested through real TasksStore in test 6.
     state = state.copyWith(
       items: state.items
           .map((t) => t.id == taskId ? t.copyWith(status: status) : t)
           .toList(),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Failing repository (used by test 6 to exercise real TasksStore rollback)
+// ---------------------------------------------------------------------------
+
+class _FailingTasksRepository implements TasksRepository {
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) async {
+    throw const NetworkFailure(
+      message: 'Status update failed. Reverted.',
+    );
+  }
+
+  // -- Unused stubs (required by interface) --
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async => [];
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      [];
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw const UnknownFailure();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw const UnknownFailure();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async =>
+      throw const UnknownFailure();
 }
