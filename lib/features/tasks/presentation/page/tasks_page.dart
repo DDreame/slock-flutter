@@ -187,6 +187,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
           );
     } on AppFailure catch (failure) {
       if (!mounted) return;
+      HapticFeedback.errorNotification();
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(
@@ -792,6 +793,7 @@ class _TaskRow extends ConsumerStatefulWidget {
 
 class _TaskRowState extends ConsumerState<_TaskRow> {
   OverlayEntry? _overlayEntry;
+  bool _dropAccepted = false;
 
   @override
   void dispose() {
@@ -800,12 +802,19 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
   }
 
   void _insertOverlay() {
+    _dropAccepted = false;
     HapticFeedback.mediumImpact();
     final task = widget.task;
     _overlayEntry = OverlayEntry(
       builder: (_) => TaskStatusOverlay(
         key: const ValueKey('task-status-overlay'),
         currentStatus: task.status,
+        onDropAccepted: () {
+          // Prevents onDragEnd from removing the overlay during success
+          // animation — the overlay will call onStatusAccepted after the
+          // animation completes.
+          _dropAccepted = true;
+        },
         onStatusAccepted: (newStatus) {
           _removeOverlay();
           widget.onStatusUpdate(task, newStatus);
@@ -907,7 +916,13 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
         data: task,
         delay: const Duration(milliseconds: 400),
         onDragStarted: _insertOverlay,
-        onDragEnd: (_) => _removeOverlay(),
+        onDragEnd: (_) {
+          // If a drop was accepted, the overlay handles its own dismissal
+          // after the success animation completes.
+          if (!_dropAccepted) {
+            _removeOverlay();
+          }
+        },
         feedback: _buildDragGhost(),
         childWhenDragging: Opacity(
           opacity: 0.3,
