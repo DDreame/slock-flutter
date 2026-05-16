@@ -157,9 +157,27 @@ void main() {
       final fabFinder = find.byKey(const ValueKey('scroll-to-bottom-fab'));
       expect(fabFinder, findsOneWidget, reason: 'FAB must be visible to tap');
 
+      // Read scroll position before tap — must be > 300.
+      final listFinder = find.byKey(const ValueKey('conversation-success'));
+      final listWidget = tester.widget<ListView>(listFinder);
+      final controller = listWidget.controller!;
+      expect(
+        controller.position.pixels,
+        greaterThan(300),
+        reason: 'Scroll offset must be > 300 before FAB tap (INV-FAB-3)',
+      );
+
       // Tap FAB.
       await tester.tap(fabFinder);
       await tester.pumpAndSettle();
+
+      // After animation, scroll position must be back at bottom (~0).
+      expect(
+        controller.position.pixels,
+        closeTo(0.0, 1.0),
+        reason: 'FAB tap must animate scroll position back to bottom '
+            '(offset 0 in reverse:true) (INV-FAB-3)',
+      );
 
       // After animation, FAB must be hidden (back at bottom).
       expect(
