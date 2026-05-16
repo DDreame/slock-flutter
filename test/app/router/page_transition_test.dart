@@ -46,17 +46,60 @@ import '../../stores/session/session_store_persistence_test.dart'
 
 /// Paths that are navigated via push() and should have animated transitions.
 /// These are detail/overlay routes — not tab roots or auth redirects.
-const _pushTargetPaths = [
-  '/servers/:serverId/channels/:channelId',
-  '/servers/:serverId/channels/:channelId/members',
-  '/servers/:serverId/channels/:channelId/pinned',
-  '/servers/:serverId/channels/:channelId/files',
-  '/servers/:serverId/dms/:channelId',
-  '/servers/:serverId/threads/:threadId/replies',
-  '/servers/:serverId/tasks',
-  '/servers/:serverId/search',
-  '/settings',
-  '/profile',
+///
+/// Each entry maps a route path to its concrete test URI and pathParameters,
+/// so pageBuilder(...) can be called without throwing on missing params.
+const _pushTargetRoutes = <_RouteTestSpec>[
+  _RouteTestSpec(
+    path: '/servers/:serverId/channels/:channelId',
+    testUri: '/servers/s1/channels/ch1',
+    pathParameters: {'serverId': 's1', 'channelId': 'ch1'},
+  ),
+  _RouteTestSpec(
+    path: '/servers/:serverId/channels/:channelId/members',
+    testUri: '/servers/s1/channels/ch1/members',
+    pathParameters: {'serverId': 's1', 'channelId': 'ch1'},
+  ),
+  _RouteTestSpec(
+    path: '/servers/:serverId/channels/:channelId/pinned',
+    testUri: '/servers/s1/channels/ch1/pinned',
+    pathParameters: {'serverId': 's1', 'channelId': 'ch1'},
+  ),
+  _RouteTestSpec(
+    path: '/servers/:serverId/channels/:channelId/files',
+    testUri: '/servers/s1/channels/ch1/files',
+    pathParameters: {'serverId': 's1', 'channelId': 'ch1'},
+  ),
+  _RouteTestSpec(
+    path: '/servers/:serverId/dms/:channelId',
+    testUri: '/servers/s1/dms/dm1',
+    pathParameters: {'serverId': 's1', 'channelId': 'dm1'},
+  ),
+  _RouteTestSpec(
+    path: '/servers/:serverId/threads/:threadId/replies',
+    testUri: '/servers/s1/threads/t1/replies?channelId=ch1',
+    pathParameters: {'serverId': 's1', 'threadId': 't1'},
+  ),
+  _RouteTestSpec(
+    path: '/servers/:serverId/tasks',
+    testUri: '/servers/s1/tasks',
+    pathParameters: {'serverId': 's1'},
+  ),
+  _RouteTestSpec(
+    path: '/servers/:serverId/search',
+    testUri: '/servers/s1/search',
+    pathParameters: {'serverId': 's1'},
+  ),
+  _RouteTestSpec(
+    path: '/settings',
+    testUri: '/settings',
+    pathParameters: {},
+  ),
+  _RouteTestSpec(
+    path: '/profile',
+    testUri: '/profile',
+    pathParameters: {},
+  ),
 ];
 
 /// Recursively finds a GoRoute matching [path] in the route tree.
@@ -94,8 +137,9 @@ class _ConstantRoutingConfig extends ValueListenable<RoutingConfig> {
   final RoutingConfig value;
 }
 
-/// Creates a minimal GoRouterState suitable for calling route.pageBuilder.
-GoRouterState _makeTestState(String path) {
+/// Creates a GoRouterState with concrete pathParameters and URI
+/// suitable for calling route.pageBuilder without missing-param errors.
+GoRouterState _makeTestState(_RouteTestSpec spec) {
   final configuration = RouteConfiguration(
     _ConstantRoutingConfig(
       RoutingConfig(
@@ -111,11 +155,11 @@ GoRouterState _makeTestState(String path) {
   );
   return GoRouterState(
     configuration,
-    uri: Uri.parse(path),
-    matchedLocation: path,
-    fullPath: path,
-    pathParameters: const {},
-    pageKey: ValueKey<String>(path),
+    uri: Uri.parse(spec.testUri),
+    matchedLocation: spec.testUri.split('?').first,
+    fullPath: spec.path,
+    pathParameters: spec.pathParameters,
+    pageKey: ValueKey<String>(spec.testUri),
   );
 }
 
@@ -147,24 +191,24 @@ void main() {
       final router = container.read(appRouterProvider);
       final routes = router.configuration.routes;
 
-      for (final path in _pushTargetPaths) {
-        final route = _findRoute(routes, path);
+      for (final spec in _pushTargetRoutes) {
+        final route = _findRoute(routes, spec.path);
         expect(route, isNotNull,
-            reason: 'Route $path must exist in production router');
+            reason: 'Route ${spec.path} must exist in production router');
         expect(route!.pageBuilder, isNotNull,
-            reason: 'Route $path must use pageBuilder (not builder) '
+            reason: 'Route ${spec.path} must use pageBuilder (not builder) '
                 '(INV-TRANSITION-1)');
 
         // Call pageBuilder and verify the returned page type + duration.
-        final state = _makeTestState(path);
+        final state = _makeTestState(spec);
         final page = route.pageBuilder!(context, state);
         expect(page, isA<CustomTransitionPage>(),
-            reason: 'Route $path pageBuilder must return '
+            reason: 'Route ${spec.path} pageBuilder must return '
                 'CustomTransitionPage (INV-TRANSITION-1)');
 
         final customPage = page as CustomTransitionPage;
         expect(customPage.transitionDuration, greaterThan(Duration.zero),
-            reason: 'Route $path must have transitionDuration > 0 '
+            reason: 'Route ${spec.path} must have transitionDuration > 0 '
                 'for animated push (INV-TRANSITION-1)');
       }
     },
@@ -195,38 +239,82 @@ void main() {
       final routes = router.configuration.routes;
 
       // Representative subset for pop assertions.
-      const popTargets = [
-        '/servers/:serverId/channels/:channelId',
-        '/servers/:serverId/dms/:channelId',
-        '/servers/:serverId/threads/:threadId/replies',
-        '/settings',
-        '/profile',
+      const popTargetSpecs = [
+        _RouteTestSpec(
+          path: '/servers/:serverId/channels/:channelId',
+          testUri: '/servers/s1/channels/ch1',
+          pathParameters: {'serverId': 's1', 'channelId': 'ch1'},
+        ),
+        _RouteTestSpec(
+          path: '/servers/:serverId/dms/:channelId',
+          testUri: '/servers/s1/dms/dm1',
+          pathParameters: {'serverId': 's1', 'channelId': 'dm1'},
+        ),
+        _RouteTestSpec(
+          path: '/servers/:serverId/threads/:threadId/replies',
+          testUri: '/servers/s1/threads/t1/replies?channelId=ch1',
+          pathParameters: {'serverId': 's1', 'threadId': 't1'},
+        ),
+        _RouteTestSpec(
+          path: '/settings',
+          testUri: '/settings',
+          pathParameters: {},
+        ),
+        _RouteTestSpec(
+          path: '/profile',
+          testUri: '/profile',
+          pathParameters: {},
+        ),
       ];
 
-      for (final path in popTargets) {
-        final route = _findRoute(routes, path);
+      for (final spec in popTargetSpecs) {
+        final route = _findRoute(routes, spec.path);
         expect(route, isNotNull,
-            reason: 'Route $path must exist in production router');
+            reason: 'Route ${spec.path} must exist in production router');
         expect(route!.pageBuilder, isNotNull,
-            reason: 'Route $path must use pageBuilder (not builder) '
+            reason: 'Route ${spec.path} must use pageBuilder (not builder) '
                 '(INV-TRANSITION-2)');
 
-        final state = _makeTestState(path);
+        final state = _makeTestState(spec);
         final page = route.pageBuilder!(context, state);
         expect(page, isA<CustomTransitionPage>(),
-            reason: 'Route $path pageBuilder must return '
+            reason: 'Route ${spec.path} pageBuilder must return '
                 'CustomTransitionPage (INV-TRANSITION-2)');
 
         final customPage = page as CustomTransitionPage;
         expect(
           customPage.reverseTransitionDuration,
           greaterThan(Duration.zero),
-          reason: 'Route $path must have reverseTransitionDuration > 0 '
+          reason: 'Route ${spec.path} must have '
+              'reverseTransitionDuration > 0 '
               'for animated pop (INV-TRANSITION-2)',
         );
       }
     },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Route test specification — maps a route path to concrete test parameters
+// so pageBuilder can be called with valid pathParameters/uri.
+// ---------------------------------------------------------------------------
+
+class _RouteTestSpec {
+  const _RouteTestSpec({
+    required this.path,
+    required this.testUri,
+    required this.pathParameters,
+  });
+
+  /// The GoRoute path pattern (e.g. '/servers/:serverId/channels/:channelId').
+  final String path;
+
+  /// Concrete URI for constructing GoRouterState
+  /// (e.g. '/servers/s1/channels/ch1').
+  final String testUri;
+
+  /// Concrete path parameters matching the route's :param placeholders.
+  final Map<String, String> pathParameters;
 }
 
 // ---------------------------------------------------------------------------
