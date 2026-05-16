@@ -17,6 +17,7 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -143,6 +144,7 @@ void main() {
           const _FakeThreadRepository(),
         ),
         homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        channelMutedIdsProvider.overrideWith((ref) => <String>{}),
         if (channelManagementRepository != null)
           channelManagementRepositoryProvider.overrideWithValue(
             channelManagementRepository,
@@ -482,6 +484,7 @@ void main() {
           const _FakeThreadRepository(),
         ),
         homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        channelMutedIdsProvider.overrideWith((ref) => <String>{}),
       ],
     );
     addTearDown(container.dispose);
