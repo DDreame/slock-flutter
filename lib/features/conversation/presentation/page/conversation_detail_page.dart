@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
@@ -128,6 +129,7 @@ class _ConversationDetailScreenState
   double? _olderLoadAnchorMaxExtent;
   final GlobalKey _screenshotBoundaryKey = GlobalKey();
   bool _isFormattingToolbarVisible = false;
+  bool _isEmojiPickerVisible = false;
   bool _showScrollToBottom = false;
   Timer? _scrollThrottleTimer;
 
@@ -412,9 +414,15 @@ class _ConversationDetailScreenState
               state: state,
               isRecording: isRecording,
               isFormattingToolbarVisible: _isFormattingToolbarVisible,
+              isEmojiPickerVisible: _isEmojiPickerVisible,
               onToggleFormattingToolbar: () {
                 setState(() {
                   _isFormattingToolbarVisible = !_isFormattingToolbarVisible;
+                });
+              },
+              onToggleEmojiPicker: () {
+                setState(() {
+                  _isEmojiPickerVisible = !_isEmojiPickerVisible;
                 });
               },
               onChanged: (value) {
@@ -1275,7 +1283,9 @@ class _ConversationComposer extends StatelessWidget {
     required this.state,
     required this.isRecording,
     required this.isFormattingToolbarVisible,
+    required this.isEmojiPickerVisible,
     required this.onToggleFormattingToolbar,
+    required this.onToggleEmojiPicker,
     required this.onChanged,
     required this.onSend,
     required this.onPickAttachment,
@@ -1292,7 +1302,9 @@ class _ConversationComposer extends StatelessWidget {
   final ConversationDetailState state;
   final bool isRecording;
   final bool isFormattingToolbarVisible;
+  final bool isEmojiPickerVisible;
   final VoidCallback onToggleFormattingToolbar;
+  final VoidCallback onToggleEmojiPicker;
   final ValueChanged<String> onChanged;
   final Future<void> Function() onSend;
   final ValueChanged<PendingAttachment> onPickAttachment;
@@ -1412,6 +1424,27 @@ class _ConversationComposer extends StatelessWidget {
                       onPressed: onToggleFormattingToolbar,
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Container(
+                    key: const ValueKey('composer-emoji'),
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isEmojiPickerVisible
+                          ? colors.primaryLight
+                          : colors.surfaceAlt,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.emoji_emotions_outlined,
+                        size: 20,
+                        color: isEmojiPickerVisible ? colors.primary : null,
+                      ),
+                      padding: EdgeInsets.zero,
+                      onPressed: onToggleEmojiPicker,
+                    ),
+                  ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: TextField(
@@ -1488,6 +1521,40 @@ class _ConversationComposer extends StatelessWidget {
                 ],
               ),
             ],
+            if (isEmojiPickerVisible)
+              SizedBox(
+                key: const ValueKey('composer-emoji-picker'),
+                height: 256,
+                child: EmojiPicker(
+                  textEditingController: controller,
+                  onEmojiSelected: (_, __) {
+                    // Sync controller text to store draft so send() sees
+                    // emoji insertions made by the package.
+                    onChanged(controller.text);
+                  },
+                  config: Config(
+                    height: 256,
+                    checkPlatformCompatibility: false,
+                    emojiViewConfig: EmojiViewConfig(
+                      emojiSizeMax: 28,
+                      backgroundColor: colors.surface,
+                    ),
+                    categoryViewConfig: CategoryViewConfig(
+                      backgroundColor: colors.surface,
+                      indicatorColor: colors.primary,
+                      iconColorSelected: colors.primary,
+                      recentTabBehavior: RecentTabBehavior.NONE,
+                    ),
+                    bottomActionBarConfig: const BottomActionBarConfig(
+                      showBackspaceButton: false,
+                      showSearchViewButton: true,
+                    ),
+                    searchViewConfig: SearchViewConfig(
+                      backgroundColor: colors.surface,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

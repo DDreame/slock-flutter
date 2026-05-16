@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,37 +14,30 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #524: Composer Emoji Picker — Phase A (test-only)
+// #524: Composer Emoji Picker — Phase B
 //
 // Verifies that the conversation composer toolbar includes an emoji button
-// and that tapping it opens an emoji picker overlay, and selecting an emoji
-// inserts it into the composer text field.
+// and that tapping it opens an emoji picker panel (emoji_picker_flutter),
+// and selecting an emoji inserts it into the composer text field.
 //
 // Invariants:
 //   INV-EMOJI-1: Emoji button visible in composer toolbar
-//   INV-EMOJI-2: Tap emoji button → picker overlay opens
+//   INV-EMOJI-2: Tap emoji button → picker panel opens
 //   INV-EMOJI-3: Select emoji → inserted at cursor position in TextField
 //
-// All three tests skip: true until Phase B adds the emoji button + picker.
-//
-// Phase B write set:
-//   lib/features/conversation/presentation/page/conversation_detail_page.dart
-//   pubspec.yaml (add emoji_picker_flutter dependency)
+// Phase B enabled — all tests un-skipped.
 // ---------------------------------------------------------------------------
 
 void main() {
   // -----------------------------------------------------------------------
   // INV-EMOJI-1: Emoji button visible in composer toolbar
   //
-  // The composer toolbar currently has: attach, format-toggle, [input],
-  // send/mic. Phase B adds an emoji button (key: 'composer-emoji') between
-  // format-toggle and the text field.
-  //
-  // Currently FAILS: no widget with ValueKey('composer-emoji') exists.
+  // The composer toolbar has: attach, format-toggle, emoji, [input], send/mic.
+  // The emoji button (key: 'composer-emoji') sits between format-toggle and
+  // the text field.
   // -----------------------------------------------------------------------
   testWidgets(
     'Composer toolbar shows emoji button (INV-EMOJI-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -70,16 +64,13 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
-  // INV-EMOJI-2: Tap emoji button → picker overlay opens
+  // INV-EMOJI-2: Tap emoji button → picker panel opens
   //
-  // Tapping the emoji button should open an emoji picker overlay/panel
-  // within or below the composer area.
-  //
-  // Currently FAILS: no emoji button exists to tap.
+  // Tapping the emoji button toggles the emoji picker panel
+  // (keyed 'composer-emoji-picker') below the composer toolbar.
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap emoji button opens emoji picker (INV-EMOJI-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -88,6 +79,13 @@ void main() {
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
 
+      // Picker should not be visible initially.
+      expect(
+        find.byKey(const ValueKey('composer-emoji-picker')),
+        findsNothing,
+        reason: 'Emoji picker must not be visible before tapping button',
+      );
+
       // Tap the emoji button.
       final emojiButton = find.byKey(const ValueKey('composer-emoji'));
       expect(emojiButton, findsOneWidget,
@@ -95,7 +93,7 @@ void main() {
       await tester.tap(emojiButton);
       await tester.pumpAndSettle();
 
-      // Emoji picker panel/overlay must appear.
+      // Emoji picker panel must appear.
       expect(
         find.byKey(const ValueKey('composer-emoji-picker')),
         findsOneWidget,
@@ -110,12 +108,11 @@ void main() {
   //
   // After opening the picker and selecting an emoji, that emoji must be
   // inserted into the composer TextField at the current cursor position.
-  //
-  // Currently FAILS: no emoji button or picker exists.
+  // The emoji_picker_flutter package renders EmojiCell widgets; we find
+  // one and tap it, then verify the controller text.
   // -----------------------------------------------------------------------
   testWidgets(
     'Select emoji inserts it at cursor position (INV-EMOJI-3)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -150,21 +147,25 @@ void main() {
         reason: 'Emoji picker must be open',
       );
 
-      // Tap the first emoji cell. Phase B must render a known emoji
-      // (e.g. 😀) in cell-0 so we can assert the exact inserted value.
-      final emojiFinder = find.byKey(const ValueKey('emoji-cell-0'));
-      expect(emojiFinder, findsOneWidget,
-          reason: 'Emoji picker must contain at least one emoji cell');
+      // Find the first EmojiCell rendered by emoji_picker_flutter.
+      final emojiCellFinder = find.byType(EmojiCell);
+      expect(emojiCellFinder, findsAtLeastNWidgets(1),
+          reason: 'Emoji picker must contain at least one EmojiCell');
 
-      // Read the emoji text from the cell before tapping.
-      final emojiWidget = tester.widget<Text>(
-        find.descendant(of: emojiFinder, matching: find.byType(Text)),
+      // Read the emoji text from the first cell before tapping.
+      final firstCell = emojiCellFinder.first;
+      final emojiTextFinder = find.descendant(
+        of: firstCell,
+        matching: find.byType(Text),
       );
+      expect(emojiTextFinder, findsAtLeastNWidgets(1),
+          reason: 'EmojiCell must contain a Text widget with the emoji');
+      final emojiWidget = tester.widget<Text>(emojiTextFinder.first);
       final selectedEmoji = emojiWidget.data!;
       expect(selectedEmoji.isNotEmpty, isTrue,
-          reason: 'Emoji cell must contain non-empty text');
+          reason: 'EmojiCell must contain non-empty emoji text');
 
-      await tester.tap(emojiFinder);
+      await tester.tap(firstCell);
       await tester.pumpAndSettle();
 
       // The emoji must be inserted at the cursor position (offset 5).
