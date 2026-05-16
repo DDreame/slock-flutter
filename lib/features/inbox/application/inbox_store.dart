@@ -153,9 +153,10 @@ class InboxStore extends Notifier<InboxState> {
             .where((i) => i.channelId == channelId)
             .fold<int>(0, (sum, i) => sum + i.unreadCount));
 
-    // In unread or mentions filter mode, remove items that are now read.
+    // In unread, mentions, or dms filter mode, remove items that are now read.
     final filteredItems = state.filter == InboxFilter.unread ||
-            state.filter == InboxFilter.mentions
+            state.filter == InboxFilter.mentions ||
+            state.filter == InboxFilter.dms
         ? updatedItems
             .where((i) => i.channelId != channelId)
             .toList(growable: false)
@@ -227,9 +228,10 @@ class InboxStore extends Notifier<InboxState> {
       return item;
     }).toList(growable: false);
 
-    // In unread or mentions filter mode, all items become read → empty the list.
+    // In unread, mentions, or dms filter mode, all items become read → empty the list.
     final filteredItems = state.filter == InboxFilter.unread ||
-            state.filter == InboxFilter.mentions
+            state.filter == InboxFilter.mentions ||
+            state.filter == InboxFilter.dms
         ? <InboxItem>[]
         : updatedItems;
 

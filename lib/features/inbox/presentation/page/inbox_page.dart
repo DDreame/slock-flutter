@@ -469,6 +469,14 @@ class _InboxFilterTabs extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           _FilterTab(
+            key: const ValueKey('inbox-filter-dms'),
+            label: 'DMs',
+            isSelected: currentFilter == InboxFilter.dms,
+            colors: colors,
+            onTap: () => onFilterChanged(InboxFilter.dms),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          _FilterTab(
             key: const ValueKey('inbox-filter-all'),
             label: 'All',
             isSelected: currentFilter == InboxFilter.all,

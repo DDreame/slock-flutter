@@ -258,6 +258,8 @@ class _FakeInboxRepository implements InboxRepository {
     final filtered = switch (filter) {
       InboxFilter.unread => items.where((i) => i.unreadCount > 0).toList(),
       InboxFilter.mentions => items.where((i) => i.isMentioned).toList(),
+      InboxFilter.dms =>
+        items.where((i) => i.kind == InboxItemKind.dm).toList(),
       InboxFilter.all => items,
     };
     return InboxResponse(

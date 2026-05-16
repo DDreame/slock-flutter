@@ -342,6 +342,8 @@ class _FilterAwareInboxRepository implements InboxRepository {
     final filtered = switch (filter) {
       InboxFilter.unread => allItems.where((i) => i.unreadCount > 0).toList(),
       InboxFilter.mentions => allItems.where((i) => i.isMentioned).toList(),
+      InboxFilter.dms =>
+        allItems.where((i) => i.kind == InboxItemKind.dm).toList(),
       InboxFilter.all => allItems,
     };
     return InboxResponse(
