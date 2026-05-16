@@ -2,12 +2,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -16,27 +18,33 @@ import 'package:slock_app/stores/session/session_store.dart';
 // #527: Full-screen Media Viewer — Phase A
 //
 // Verifies that tapping an image attachment in the chat message list opens
-// a full-screen viewer with pinch-to-zoom support, and that the viewer can
-// be dismissed via a close button or swipe-down gesture.
+// the production FilePreviewPage via GoRouter, shows InteractiveViewer for
+// pinch-to-zoom, and can be dismissed.
+//
+// The test harness uses MaterialApp.router with a GoRouter that includes
+// both the conversation page (/) and the file preview route (/file-preview),
+// matching the production routing seam.
 //
 // Invariants:
-//   INV-MEDIA-1: Tap image attachment → full-screen viewer opens
+//   INV-MEDIA-1: Tap image attachment → FilePreviewPage opens
 //   INV-MEDIA-2: Viewer uses InteractiveViewer for pinch-to-zoom
-//   INV-MEDIA-3: Close button or swipe down dismisses the viewer
+//   INV-MEDIA-3: Back navigation dismisses the viewer
 //
 // Phase A — all tests skip:true (no implementation yet).
 // ---------------------------------------------------------------------------
 
 void main() {
   // -----------------------------------------------------------------------
-  // INV-MEDIA-1: Tapping an image attachment in a message opens a
-  // full-screen media viewer overlay/page.
+  // INV-MEDIA-1: Tapping an image attachment in a message opens
+  // FilePreviewPage via GoRouter push to /file-preview.
   //
-  // Setup: One message with an image attachment. Tap the image preview →
-  // expect 'media-viewer-overlay' to appear.
+  // Production key for image tap target:
+  //   ValueKey('image-preview-${attachment.id ?? attachment.name}')
+  // Production key for the viewer page:
+  //   ValueKey('file-preview-page')
   // -----------------------------------------------------------------------
   testWidgets(
-    'Tapping image attachment opens full-screen viewer (INV-MEDIA-1)',
+    'Tapping image attachment opens FilePreviewPage (INV-MEDIA-1)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -46,36 +54,36 @@ void main() {
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
 
-      // The image attachment preview must be rendered in the message.
+      // The image attachment preview must be rendered with production key.
+      // Production key: 'image-preview-${attachment.id ?? attachment.name}'
+      // For att-1: 'image-preview-att-1'
       final imageThumbnailFinder =
-          find.byKey(const ValueKey('image-attachment-att-1'));
+          find.byKey(const ValueKey('image-preview-att-1'));
       expect(imageThumbnailFinder, findsOneWidget,
-          reason: 'Image attachment thumbnail must be rendered in the '
-              'message bubble');
+          reason: 'Image attachment thumbnail must be rendered with '
+              'production key image-preview-att-1');
 
-      // Tap the image thumbnail.
+      // Tap the image thumbnail — production calls context.push('/file-preview').
       await tester.tap(imageThumbnailFinder);
       await tester.pumpAndSettle();
 
-      // Full-screen viewer must appear.
+      // FilePreviewPage must be pushed via GoRouter.
       expect(
-        find.byKey(const ValueKey('media-viewer-overlay')),
+        find.byKey(const ValueKey('file-preview-page')),
         findsOneWidget,
-        reason: 'Tapping image attachment must open full-screen media '
-            'viewer (INV-MEDIA-1)',
+        reason: 'Tapping image attachment must open FilePreviewPage '
+            'via GoRouter /file-preview route (INV-MEDIA-1)',
       );
     },
   );
 
   // -----------------------------------------------------------------------
-  // INV-MEDIA-2: The full-screen viewer shows the image inside an
-  // InteractiveViewer widget, enabling pinch-to-zoom.
-  //
-  // Verify that an InteractiveViewer descendant is present within the
-  // viewer overlay.
+  // INV-MEDIA-2: FilePreviewPage shows the image inside an
+  // InteractiveViewer widget (keyed 'image-viewer-interactive'),
+  // enabling pinch-to-zoom.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Viewer uses InteractiveViewer for pinch-to-zoom (INV-MEDIA-2)',
+    'FilePreviewPage uses InteractiveViewer for pinch-to-zoom (INV-MEDIA-2)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -87,37 +95,38 @@ void main() {
 
       // Open the viewer by tapping the image thumbnail.
       final imageThumbnailFinder =
-          find.byKey(const ValueKey('image-attachment-att-1'));
+          find.byKey(const ValueKey('image-preview-att-1'));
       expect(imageThumbnailFinder, findsOneWidget);
       await tester.tap(imageThumbnailFinder);
       await tester.pumpAndSettle();
 
-      // Viewer must be open.
-      final viewerFinder = find.byKey(const ValueKey('media-viewer-overlay'));
-      expect(viewerFinder, findsOneWidget, reason: 'Media viewer must be open');
-
-      // InteractiveViewer must be a descendant of the viewer.
+      // FilePreviewPage must be open.
       expect(
-        find.descendant(
-          of: viewerFinder,
-          matching: find.byType(InteractiveViewer),
-        ),
+        find.byKey(const ValueKey('file-preview-page')),
         findsOneWidget,
-        reason: 'Media viewer must use InteractiveViewer for '
-            'pinch-to-zoom support (INV-MEDIA-2)',
+        reason: 'FilePreviewPage must be open',
+      );
+
+      // InteractiveViewer must be rendered with production key.
+      expect(
+        find.byKey(const ValueKey('image-viewer-interactive')),
+        findsOneWidget,
+        reason: 'FilePreviewPage must use InteractiveViewer '
+            '(keyed image-viewer-interactive) for pinch-to-zoom '
+            '(INV-MEDIA-2)',
       );
     },
   );
 
   // -----------------------------------------------------------------------
-  // INV-MEDIA-3: The viewer can be dismissed via a close button, returning
-  // to the conversation.
+  // INV-MEDIA-3: Navigating back from FilePreviewPage returns to the
+  // conversation. The AppBar back button (or system back gesture)
+  // dismisses the viewer.
   //
-  // After opening the viewer, tap the close button (keyed
-  // 'media-viewer-close') → viewer disappears, conversation is visible.
+  // Production AppBar key: 'file-preview-toolbar'
   // -----------------------------------------------------------------------
   testWidgets(
-    'Close button dismisses the viewer (INV-MEDIA-3)',
+    'Back navigation dismisses the viewer (INV-MEDIA-3)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -129,31 +138,30 @@ void main() {
 
       // Open the viewer.
       final imageThumbnailFinder =
-          find.byKey(const ValueKey('image-attachment-att-1'));
+          find.byKey(const ValueKey('image-preview-att-1'));
       expect(imageThumbnailFinder, findsOneWidget);
       await tester.tap(imageThumbnailFinder);
       await tester.pumpAndSettle();
 
-      // Viewer must be open.
+      // FilePreviewPage must be open.
       expect(
-        find.byKey(const ValueKey('media-viewer-overlay')),
+        find.byKey(const ValueKey('file-preview-page')),
         findsOneWidget,
-        reason: 'Media viewer must be open before dismissal',
+        reason: 'FilePreviewPage must be open before dismissal',
       );
 
-      // Tap the close button.
-      final closeButtonFinder =
-          find.byKey(const ValueKey('media-viewer-close'));
-      expect(closeButtonFinder, findsOneWidget,
-          reason: 'Close button must be visible in the media viewer');
-      await tester.tap(closeButtonFinder);
+      // Navigate back — tap the AppBar back button.
+      final backButton = find.byType(BackButton);
+      expect(backButton, findsOneWidget,
+          reason: 'AppBar back button must be visible in FilePreviewPage');
+      await tester.tap(backButton);
       await tester.pumpAndSettle();
 
-      // Viewer must be gone.
+      // FilePreviewPage must be dismissed.
       expect(
-        find.byKey(const ValueKey('media-viewer-overlay')),
+        find.byKey(const ValueKey('file-preview-page')),
         findsNothing,
-        reason: 'Media viewer must close after tapping close button '
+        reason: 'FilePreviewPage must close after back navigation '
             '(INV-MEDIA-3)',
       );
 
@@ -206,6 +214,26 @@ ConversationDetailSnapshot _makeSnapshotWithImage() {
   );
 }
 
+/// GoRouter for tests that includes the real route destinations the page
+/// pushes to. Initial route renders ConversationDetailPage; the pushed
+/// /file-preview route renders the production FilePreviewPage.
+GoRouter _testGoRouter({required ConversationDetailTarget target}) => GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, __) => ConversationDetailPage(target: target),
+        ),
+        GoRoute(
+          path: '/file-preview',
+          builder: (_, state) {
+            final attachment = state.extra as MessageAttachment;
+            return FilePreviewPage(attachment: attachment);
+          },
+        ),
+      ],
+    );
+
 Widget _buildConversationApp(_FakeConversationRepository repo) {
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
@@ -219,9 +247,9 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
     ],
-    child: MaterialApp(
+    child: MaterialApp.router(
+      routerConfig: _testGoRouter(target: target),
       theme: AppTheme.light,
-      home: ConversationDetailPage(target: target),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
     ),
