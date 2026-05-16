@@ -877,8 +877,10 @@ class _ConversationMessageList extends StatelessWidget {
     final totalCount = state.messages.length + pendingCount + 1;
     // Compute maxBubbleWidth once at the list level instead of per-message
     // LayoutBuilder to avoid unnecessary layout passes.
+    // Subtract horizontal list padding (16 each side) to match the inner
+    // width that LayoutBuilder previously provided.
     final maxBubbleWidth =
-        MediaQuery.of(context).size.width * _bubbleMaxWidthFraction;
+        (MediaQuery.of(context).size.width - 32) * _bubbleMaxWidthFraction;
 
     return ListView.separated(
       key: const ValueKey('conversation-success'),
