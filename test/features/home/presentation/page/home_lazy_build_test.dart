@@ -33,7 +33,6 @@ import 'package:slock_app/l10n/app_localizations.dart';
 // 1 test for lazy build invariant:
 //   INV-HOME-LAZY-1: Off-screen sections not built until scrolled into view
 //
-// skip: true until Phase B migrates ListView to lazy builder.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -47,7 +46,7 @@ void main() {
   testWidgets(
     'Home: off-screen sections not built until scrolled into view '
     '(INV-HOME-LAZY-1)',
-    skip: true,
+    skip: false,
     (tester) async {
       // Use a small viewport to guarantee the agents section starts
       // off-screen (tasks + unread fill the visible area).
