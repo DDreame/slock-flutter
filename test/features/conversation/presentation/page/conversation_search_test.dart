@@ -107,13 +107,16 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-CONV-SEARCH-3: Current search match has bubble-level highlight.
   //
-  // Typing a query that matches one message must:
-  // (a) render a highlight decoration on the current-match message bubble
-  //     (keyed 'search-current-match-$msgId')
-  // (b) NOT render that decoration on non-matching messages
+  // Typing a query that matches one message must render a highlight
+  // decoration as a descendant of the matched message's shell widget
+  // (production key: 'message-shell-$msgId' at conversation_detail_page.dart
+  // line 2279). Non-matching message shells must NOT contain the
+  // highlight decoration.
   //
-  // Production key for current match wrapper:
-  //   ValueKey('search-current-match-$msgId')
+  // Production keys:
+  //   Message shell: ValueKey('message-shell-$msgId')
+  //   Current-match highlight: ValueKey('search-current-match-highlight')
+  //     rendered as a descendant of the matched message shell.
   //
   // skip:true — bubble-level current-match decoration is NOT yet
   // implemented. Text-level highlight via highlightQuery exists, but
@@ -146,27 +149,49 @@ void main() {
       await tester.enterText(searchInput, 'Hello');
       await tester.pumpAndSettle();
 
-      // Current-match message (msg-1) must have a bubble-level highlight
-      // decoration widget keyed 'search-current-match-msg-1'.
+      // The matched message shell (msg-1) must contain a highlight
+      // decoration descendant.
+      final matchedShell = find.byKey(const ValueKey('message-shell-msg-1'));
+      expect(matchedShell, findsOneWidget,
+          reason: 'Matched message shell must be rendered');
+
+      final highlightInMatchedShell = find.descendant(
+        of: matchedShell,
+        matching: find.byKey(const ValueKey('search-current-match-highlight')),
+      );
       expect(
-        find.byKey(const ValueKey('search-current-match-msg-1')),
+        highlightInMatchedShell,
         findsOneWidget,
-        reason: 'Current search match (msg-1) must have bubble-level '
-            'highlight decoration (INV-CONV-SEARCH-3)',
+        reason: 'Current search match (msg-1) must have a '
+            'search-current-match-highlight descendant inside '
+            'message-shell-msg-1 (INV-CONV-SEARCH-3)',
       );
 
-      // Non-matching messages must NOT have the decoration.
+      // Non-matching message shells must NOT contain the decoration.
+      final nonMatchShell2 = find.byKey(const ValueKey('message-shell-msg-2'));
+      expect(nonMatchShell2, findsOneWidget);
       expect(
-        find.byKey(const ValueKey('search-current-match-msg-2')),
+        find.descendant(
+          of: nonMatchShell2,
+          matching:
+              find.byKey(const ValueKey('search-current-match-highlight')),
+        ),
         findsNothing,
         reason: 'Non-matching message (msg-2) must not have '
-            'current-match highlight',
+            'current-match highlight inside its shell',
       );
+
+      final nonMatchShell3 = find.byKey(const ValueKey('message-shell-msg-3'));
+      expect(nonMatchShell3, findsOneWidget);
       expect(
-        find.byKey(const ValueKey('search-current-match-msg-3')),
+        find.descendant(
+          of: nonMatchShell3,
+          matching:
+              find.byKey(const ValueKey('search-current-match-highlight')),
+        ),
         findsNothing,
         reason: 'Non-matching message (msg-3) must not have '
-            'current-match highlight',
+            'current-match highlight inside its shell',
       );
     },
   );
