@@ -1060,6 +1060,9 @@ class _ConversationMessageList extends StatelessWidget {
           final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
           final showHeader =
               olderMsg == null || !_shouldGroupWith(message, olderMsg);
+          final isCurrentSearchMatch = state.searchMatchIds.isNotEmpty &&
+              state.currentSearchMatchIndex < state.searchMatchIds.length &&
+              state.searchMatchIds[state.currentSearchMatchIndex] == message.id;
           return RepaintBoundary(
             key: ValueKey('repaint-boundary-${message.id}'),
             child: _ConversationMessageCard(
@@ -1068,6 +1071,7 @@ class _ConversationMessageList extends StatelessWidget {
               maxBubbleWidth: maxBubbleWidth,
               showHeader: showHeader,
               highlightQuery: state.searchQuery,
+              isCurrentSearchMatch: isCurrentSearchMatch,
               onScrollToMessage: onScrollToMessage != null
                   ? (messageId) => onScrollToMessage!(messageId, state.messages)
                   : null,
@@ -1944,6 +1948,7 @@ class _ConversationMessageCard extends ConsumerWidget {
     required this.maxBubbleWidth,
     this.showHeader = true,
     this.highlightQuery = '',
+    this.isCurrentSearchMatch = false,
     this.onScrollToMessage,
   });
 
@@ -1952,6 +1957,7 @@ class _ConversationMessageCard extends ConsumerWidget {
   final double maxBubbleWidth;
   final bool showHeader;
   final String highlightQuery;
+  final bool isCurrentSearchMatch;
   final ValueChanged<String>? onScrollToMessage;
 
   @override
@@ -2275,14 +2281,30 @@ class _ConversationMessageCard extends ConsumerWidget {
 
     // Build the message layout (Align → Column with sender label, bubble,
     // reactions, and thread indicator).
-    final shell = Align(
-      key: ValueKey('message-shell-${message.id}'),
-      alignment: shellAlignment,
-      child: switch (visualKind) {
-        _ConversationMessageVisualKind.system => Column(
+    Widget shellContent = switch (visualKind) {
+      _ConversationMessageVisualKind.system => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(width: double.infinity, child: bubble),
+            _ReactionRow(
+              reactions: message.reactions,
+              messageId: message.id,
+              currentUserId: ref.watch(sessionStoreProvider).userId,
+            ),
+            threadIndicator,
+          ],
+        ),
+      _ => ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment:
+                visualKind == _ConversationMessageVisualKind.self
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
             children: [
-              SizedBox(width: double.infinity, child: bubble),
+              senderLabelWidget,
+              bubble,
               _ReactionRow(
                 reactions: message.reactions,
                 messageId: message.id,
@@ -2291,27 +2313,27 @@ class _ConversationMessageCard extends ConsumerWidget {
               threadIndicator,
             ],
           ),
-        _ => ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment:
-                  visualKind == _ConversationMessageVisualKind.self
-                      ? CrossAxisAlignment.end
-                      : CrossAxisAlignment.start,
-              children: [
-                senderLabelWidget,
-                bubble,
-                _ReactionRow(
-                  reactions: message.reactions,
-                  messageId: message.id,
-                  currentUserId: ref.watch(sessionStoreProvider).userId,
-                ),
-                threadIndicator,
-              ],
-            ),
-          ),
-      },
+        ),
+    };
+
+    // Wrap with current-search-match highlight decoration when this message
+    // is the actively focused search result.
+    if (isCurrentSearchMatch) {
+      shellContent = Container(
+        key: const ValueKey('search-current-match-highlight'),
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(BubbleTokens.radiusLarge),
+        ),
+        padding: const EdgeInsets.all(4),
+        child: shellContent,
+      );
+    }
+
+    final shell = Align(
+      key: ValueKey('message-shell-${message.id}'),
+      alignment: shellAlignment,
+      child: shellContent,
     );
 
     // Wrap the entire message shell in a gesture wrapper for double-tap
