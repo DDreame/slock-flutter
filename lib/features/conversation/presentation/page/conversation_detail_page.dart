@@ -413,15 +413,9 @@ class _ConversationDetailScreenState
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        ),
+                                        Icon(Icons.info_outline, size: 16),
                                         SizedBox(width: 12),
-                                        Text('Loading original message…'),
+                                        Text('Message not available'),
                                       ],
                                     ),
                                   ),
