@@ -269,15 +269,23 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
     }
 
     // Per-channel mute: suppress notifications for individually muted
-    // channels/DMs.
-    final mutedIds = ref.read(channelMutedIdsProvider);
-    if (mutedIds.contains(channelId)) {
-      diagnostics.info(
-        _tag,
-        'source=realtime, suppressed=channelMuted, '
-        'channelId=$channelId',
+    // channels/DMs. Uses composite key to avoid cross-server collisions.
+    final homeState = ref.read(homeListStoreProvider);
+    final serverId = homeState.serverScopeId?.value;
+    if (serverId != null) {
+      final mutedIds = ref.read(channelMutedIdsProvider);
+      final key = ChannelNotificationPreferenceRepository.compositeKey(
+        serverId,
+        channelId,
       );
-      return;
+      if (mutedIds.contains(key)) {
+        diagnostics.info(
+          _tag,
+          'source=realtime, suppressed=channelMuted, '
+          'channelId=$channelId',
+        );
+        return;
+      }
     }
 
     // Resolve notification target from app state.

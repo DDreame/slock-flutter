@@ -33,16 +33,23 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
     }
 
     // Per-channel mute: suppress notifications for individually muted
-    // channels/DMs.
+    // channels/DMs. Uses composite key to avoid cross-server collisions.
     if (channelId != null) {
-      final mutedIds = ref.read(channelMutedIdsProvider);
-      if (mutedIds.contains(channelId)) {
-        diagnostics.info(
-          _tag,
-          'source=iosRemotePush, suppressed=channelMuted, '
-          'channelId=$channelId',
+      final serverId = payload['serverId'] as String?;
+      if (serverId != null) {
+        final mutedIds = ref.read(channelMutedIdsProvider);
+        final key = ChannelNotificationPreferenceRepository.compositeKey(
+          serverId,
+          channelId,
         );
-        return;
+        if (mutedIds.contains(key)) {
+          diagnostics.info(
+            _tag,
+            'source=iosRemotePush, suppressed=channelMuted, '
+            'channelId=$channelId',
+          );
+          return;
+        }
       }
     }
 

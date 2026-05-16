@@ -79,16 +79,22 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
                 muted: value,
               );
               // Update in-memory muted IDs for suppression bindings.
+              // Use composite key to avoid cross-server collisions.
+              final compositeKey =
+                  ChannelNotificationPreferenceRepository.compositeKey(
+                widget.target.serverId.value,
+                widget.target.conversationId,
+              );
               final mutedIds = ref.read(channelMutedIdsProvider.notifier).state;
               if (value) {
                 ref.read(channelMutedIdsProvider.notifier).state = {
                   ...mutedIds,
-                  widget.target.conversationId,
+                  compositeKey,
                 };
               } else {
                 ref.read(channelMutedIdsProvider.notifier).state = {
                   ...mutedIds,
-                }..remove(widget.target.conversationId);
+                }..remove(compositeKey);
               }
               setState(() => _isMuted = value);
             },

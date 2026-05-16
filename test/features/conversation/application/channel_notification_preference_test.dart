@@ -145,12 +145,25 @@ void main() {
       expect(parsed, equals(NotificationPreference.mute),
           reason: 'Stored value must roundtrip to NotificationPreference.mute');
 
+      // Composite key + hydration: getAllMutedCompositeKeys must return the
+      // muted channel's composite key for hydrating channelMutedIdsProvider.
+      final compositeKey = ChannelNotificationPreferenceRepository.compositeKey(
+        serverId,
+        channelId,
+      );
+      expect(compositeKey, equals('server-1_ch-1'),
+          reason: 'Composite key must be {serverId}_{channelId}');
+      expect(repo.getAllMutedCompositeKeys(), contains(compositeKey),
+          reason: 'getAllMutedCompositeKeys must include the muted channel');
+
       // Unmute the channel.
       await repo.setChannelMuted(serverId, channelId, muted: false);
       expect(prefs.getString(storageKey), isNull,
           reason: 'Unmuting must remove the storage key');
       expect(repo.isChannelMuted(serverId, channelId), isFalse,
           reason: 'Channel must report unmuted after clearing');
+      expect(repo.getAllMutedCompositeKeys(), isEmpty,
+          reason: 'Hydration set must be empty after unmuting all channels');
     },
   );
 
@@ -175,8 +188,15 @@ void main() {
         overrides: [
           notificationInitializerProvider.overrideWithValue(fakeInitializer),
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
-          // Seed the in-memory muted IDs with 'ch-1'.
-          channelMutedIdsProvider.overrideWith((ref) => {'ch-1'}),
+          // Seed the in-memory muted IDs with composite key 'server-1_ch-1'.
+          channelMutedIdsProvider.overrideWith(
+            (ref) => {
+              ChannelNotificationPreferenceRepository.compositeKey(
+                'server-1',
+                'ch-1',
+              ),
+            },
+          ),
         ],
       );
       addTearDown(() async {

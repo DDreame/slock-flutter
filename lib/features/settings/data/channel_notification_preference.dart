@@ -22,14 +22,36 @@ class ChannelNotificationPreferenceRepository {
 
   final SharedPreferences _prefs;
 
+  static const _keyPrefix = 'channel_notif_pref_';
+
   /// Storage key for a given server+channel pair.
   static String storageKey(String serverId, String channelId) =>
-      'channel_notif_pref_${serverId}_$channelId';
+      '$_keyPrefix${serverId}_$channelId';
+
+  /// Composite key for the in-memory muted IDs set.
+  ///
+  /// Uses `{serverId}_{channelId}` to avoid cross-server collisions
+  /// (muting `ch-1` on server A must not suppress `ch-1` on server B).
+  static String compositeKey(String serverId, String channelId) =>
+      '${serverId}_$channelId';
 
   /// Returns `true` if the channel is muted.
   bool isChannelMuted(String serverId, String channelId) {
     final value = _prefs.getString(storageKey(serverId, channelId));
     return value == 'mute';
+  }
+
+  /// Returns all muted composite keys (`{serverId}_{channelId}`) from
+  /// persisted storage. Used to hydrate [channelMutedIdsProvider] on
+  /// startup so mutes survive app relaunch.
+  Set<String> getAllMutedCompositeKeys() {
+    final result = <String>{};
+    for (final key in _prefs.getKeys()) {
+      if (key.startsWith(_keyPrefix) && _prefs.getString(key) == 'mute') {
+        result.add(key.substring(_keyPrefix.length));
+      }
+    }
+    return result;
   }
 
   /// Sets the mute state for a channel.
@@ -56,10 +78,15 @@ final channelNotificationPreferenceRepositoryProvider =
   );
 });
 
-/// In-memory set of muted channel IDs for synchronous access in the
-/// notification suppression hot path.
+/// In-memory set of muted composite keys (`{serverId}_{channelId}`)
+/// for synchronous access in the notification suppression hot path.
 ///
-/// The suppression bindings read this provider (synchronous) rather
-/// than going through SharedPreferences in the hot path. Updated
-/// when the user toggles mute on/off in [ConversationInfoPage].
-final channelMutedIdsProvider = StateProvider<Set<String>>((ref) => {});
+/// Hydrated from [SharedPreferences] on first read so mutes survive
+/// app relaunch. Updated when the user toggles mute on/off in
+/// [ConversationInfoPage]. The suppression bindings read this
+/// provider (synchronous) rather than going through SharedPreferences
+/// in the hot path.
+final channelMutedIdsProvider = StateProvider<Set<String>>((ref) {
+  final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
+  return repo.getAllMutedCompositeKeys();
+});
