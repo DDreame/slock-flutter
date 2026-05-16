@@ -24,6 +24,17 @@ class ChannelMember {
   bool get isAgent => agentId != null;
   String get displayName =>
       (isHuman ? userName : agentName) ?? userId ?? agentId ?? id;
+
+  /// A mention-safe handle derived from [displayName].
+  ///
+  /// Strips characters that the mention parser (`@([\w][\w.\-]*)`) would not
+  /// match, so the inserted `@handle` text round-trips through rendering.
+  String get mentionHandle {
+    // Replace any character that isn't [\w.\-] with empty string.
+    final sanitized = displayName.replaceAll(RegExp(r'[^\w.\-]'), '');
+    return sanitized.isEmpty ? id : sanitized;
+  }
+
   String? get memberEntityId => userId ?? agentId;
 
   ChannelMember copyWith({

@@ -1,11 +1,12 @@
-import 'dart:math' as math;
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/data/channel_member.dart';
+import 'package:slock_app/features/channels/data/channel_member_repository.dart';
+import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -15,7 +16,7 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #525: @Mention Autocomplete — Phase A (test-only)
+// #525: @Mention Autocomplete — Phase B
 //
 // Verifies that typing '@' in the composer triggers a member suggestion
 // overlay, selecting a suggestion inserts '@username', and typing partial
@@ -26,29 +27,40 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-MENTION-2: Tap suggestion → '@username' inserted into TextField
 //   INV-MENTION-3: Type '@par' → filtered suggestions matching "par"
 //
-// All three tests skip: true until Phase B adds @ detection + overlay.
-//
-// Phase B write set:
-//   lib/features/conversation/presentation/page/conversation_detail_page.dart
-//   lib/features/conversation/presentation/widgets/mention_suggestion_overlay.dart (NEW)
+// Phase B enabled — all tests un-skipped.
 // ---------------------------------------------------------------------------
+
+/// Test members used across all tests.
+/// member-3 has a multi-word agentName to exercise the mention-safe handle.
+const _testMembers = [
+  ChannelMember(
+    id: 'member-1',
+    channelId: 'ch-1',
+    userId: 'user-alice',
+    userName: 'Alice',
+  ),
+  ChannelMember(
+    id: 'member-2',
+    channelId: 'ch-1',
+    userId: 'user-parker',
+    userName: 'Parker',
+  ),
+  ChannelMember(
+    id: 'member-3',
+    channelId: 'ch-1',
+    agentId: 'agent-bob',
+    agentName: 'Bob Smith',
+  ),
+];
 
 void main() {
   // -----------------------------------------------------------------------
   // INV-MENTION-1: Type '@' in composer → member suggestion overlay appears
-  //
-  // The composer currently has no @ detection. Phase B adds onChanged logic
-  // to detect '@' and show an overlay with channel members.
-  //
-  // Currently FAILS: typing '@' does not produce any suggestion overlay.
   // -----------------------------------------------------------------------
   testWidgets(
     'Typing @ in composer shows member suggestion overlay (INV-MENTION-1)',
-    skip: true,
     (tester) async {
-      final repo = _FakeConversationRepository(
-        snapshot: _makeSnapshot(),
-      );
+      final repo = _FakeConversationRepository(snapshot: _makeSnapshot());
 
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
@@ -60,7 +72,7 @@ void main() {
 
       // Type '@' in the composer.
       await tester.enterText(inputFinder, '@');
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Member suggestion overlay must appear.
       expect(
@@ -74,19 +86,11 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-MENTION-2: Tap suggestion → '@username' inserted into TextField
-  //
-  // After the suggestion overlay appears, tapping a member name should
-  // replace the '@' trigger text with '@username ' (with trailing space).
-  //
-  // Currently FAILS: no suggestion overlay exists to tap.
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap mention suggestion inserts @username into composer (INV-MENTION-2)',
-    skip: true,
     (tester) async {
-      final repo = _FakeConversationRepository(
-        snapshot: _makeSnapshot(),
-      );
+      final repo = _FakeConversationRepository(snapshot: _makeSnapshot());
 
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
@@ -95,7 +99,7 @@ void main() {
       final inputFinder = find.byKey(const ValueKey('composer-input'));
       expect(inputFinder, findsOneWidget);
       await tester.enterText(inputFinder, '@');
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Suggestion overlay must be visible.
       expect(
@@ -111,9 +115,13 @@ void main() {
           reason: 'At least one member suggestion must be shown');
 
       // Read the username from the suggestion before tapping.
-      final suggestionLabel = tester.widget<Text>(
-        find.descendant(of: suggestionFinder, matching: find.byType(Text)),
+      // The suggestion item contains two Text widgets: avatar initial + name.
+      // We want the name (last Text child).
+      final textFinder = find.descendant(
+        of: suggestionFinder,
+        matching: find.byType(Text),
       );
+      final suggestionLabel = tester.widget<Text>(textFinder.last);
       final selectedUsername = suggestionLabel.data!;
       expect(selectedUsername.isNotEmpty, isTrue,
           reason: 'Suggestion label must contain a username');
@@ -141,19 +149,11 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-MENTION-3: Type '@par' → filtered suggestions matching "par"
-  //
-  // After typing '@' followed by partial text, the suggestion list should
-  // filter to show only members whose name contains the partial text.
-  //
-  // Currently FAILS: no @ detection or filtering logic exists.
   // -----------------------------------------------------------------------
   testWidgets(
     'Typing @par filters suggestions to matching members (INV-MENTION-3)',
-    skip: true,
     (tester) async {
-      final repo = _FakeConversationRepository(
-        snapshot: _makeSnapshot(),
-      );
+      final repo = _FakeConversationRepository(snapshot: _makeSnapshot());
 
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
@@ -162,7 +162,7 @@ void main() {
       final inputFinder = find.byKey(const ValueKey('composer-input'));
       expect(inputFinder, findsOneWidget);
       await tester.enterText(inputFinder, '@');
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Suggestion overlay must appear with multiple members.
       expect(
@@ -184,37 +184,9 @@ void main() {
             '(need ≥2 members to test filter)',
       );
 
-      // Read member names from the unfiltered list to identify a
-      // matching and non-matching member for the filter query.
-      final label0 = tester
-          .widget<Text>(
-            find.descendant(
-              of: find.byKey(const ValueKey('mention-suggestion-0')),
-              matching: find.byType(Text),
-            ),
-          )
-          .data!;
-      final label1 = tester
-          .widget<Text>(
-            find.descendant(
-              of: find.byKey(const ValueKey('mention-suggestion-1')),
-              matching: find.byType(Text),
-            ),
-          )
-          .data!;
-
-      // Pick a filter prefix from label0 (first 3 chars) that does NOT
-      // match label1. If they share a prefix, use a longer portion.
-      final filterPrefix =
-          label0.substring(0, math.min(3, label0.length)).toLowerCase();
-      final label1Lower = label1.toLowerCase();
-      // Sanity: the two labels must differ so filtering is meaningful.
-      expect(label0.toLowerCase(), isNot(equals(label1Lower)),
-          reason: 'Need distinct member names to test filtering');
-
-      // Now type '@<filterPrefix>' to filter.
-      await tester.enterText(inputFinder, '@$filterPrefix');
-      await tester.pump();
+      // Type '@par' to filter — should match "Parker" but not "Alice" or "Bob".
+      await tester.enterText(inputFinder, '@par');
+      await tester.pumpAndSettle();
 
       // Overlay must still be visible (not dismissed by partial text).
       expect(
@@ -224,33 +196,82 @@ void main() {
             'typing partial match',
       );
 
-      // At least one suggestion matching the filter must be visible.
-      // The matching member's name must contain the filter prefix.
-      final filteredSuggestion =
-          find.byKey(const ValueKey('mention-suggestion-0'));
-      expect(filteredSuggestion, findsOneWidget,
-          reason: 'At least one filtered suggestion must remain');
-      final filteredLabel = tester
-          .widget<Text>(
-            find.descendant(
-              of: filteredSuggestion,
-              matching: find.byType(Text),
-            ),
-          )
-          .data!;
-      expect(filteredLabel.toLowerCase(), contains(filterPrefix),
-          reason: 'Visible suggestion must match the filter prefix '
-              '"$filterPrefix" (INV-MENTION-3)');
+      // "Parker" must remain visible.
+      expect(
+        find.text('Parker'),
+        findsOneWidget,
+        reason: 'Member "Parker" must be visible when filtering by '
+            '"par" (INV-MENTION-3)',
+      );
 
-      // If label1 does not match the filter, it must be absent.
-      if (!label1Lower.contains(filterPrefix)) {
-        expect(
-          find.text(label1),
-          findsNothing,
-          reason: 'Non-matching member "$label1" must be filtered out '
-              'when typing @$filterPrefix (INV-MENTION-3)',
-        );
-      }
+      // "Alice" must be filtered out.
+      expect(
+        find.text('Alice'),
+        findsNothing,
+        reason: 'Non-matching member "Alice" must be filtered out '
+            'when typing @par (INV-MENTION-3)',
+      );
+
+      // "Bob Smith" must be filtered out.
+      expect(
+        find.text('Bob Smith'),
+        findsNothing,
+        reason: 'Non-matching member "Bob Smith" must be filtered out '
+            'when typing @par (INV-MENTION-3)',
+      );
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-MENTION-4: Multi-word display name → mention-safe handle inserted
+  //
+  // Regression: member with displayName "Bob Smith" must be inserted as
+  // '@BobSmith ' (spaces stripped) so it round-trips through MentionSyntax
+  // which only recognizes @([\w][\w.\-]*).
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Multi-word display name inserts mention-safe handle (INV-MENTION-4)',
+    (tester) async {
+      final repo = _FakeConversationRepository(snapshot: _makeSnapshot());
+
+      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpAndSettle();
+
+      // Type '@bob' to filter to "Bob Smith".
+      final inputFinder = find.byKey(const ValueKey('composer-input'));
+      expect(inputFinder, findsOneWidget);
+      await tester.enterText(inputFinder, '@bob');
+      await tester.pumpAndSettle();
+
+      // Suggestion overlay must appear.
+      expect(
+        find.byKey(const ValueKey('mention-suggestion-overlay')),
+        findsOneWidget,
+        reason: 'Suggestion overlay must appear after typing @bob',
+      );
+
+      // "Bob Smith" must be visible in overlay (displayed by displayName).
+      expect(
+        find.text('Bob Smith'),
+        findsOneWidget,
+        reason: 'Member "Bob Smith" must be visible when filtering by '
+            '"bob"',
+      );
+
+      // Tap the "Bob Smith" suggestion.
+      final suggestionFinder =
+          find.byKey(const ValueKey('mention-suggestion-0'));
+      expect(suggestionFinder, findsOneWidget);
+      await tester.tap(suggestionFinder);
+      await tester.pumpAndSettle();
+
+      // The composer must contain '@BobSmith ' (mention-safe, no space).
+      final textField = tester.widget<TextField>(inputFinder);
+      final text = textField.controller!.text;
+      expect(text, equals('@BobSmith '),
+          reason: 'Multi-word display name "Bob Smith" must be inserted '
+              'as mention-safe handle "@BobSmith" (spaces stripped) so '
+              'it round-trips through MentionSyntax (INV-MENTION-4)');
     },
   );
 }
@@ -295,6 +316,8 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      channelMemberRepositoryProvider
+          .overrideWithValue(const _FakeChannelMemberRepository()),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -308,6 +331,46 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
+
+class _FakeChannelMemberRepository implements ChannelMemberRepository {
+  const _FakeChannelMemberRepository();
+
+  @override
+  Future<List<ChannelMember>> listMembers(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    return _testMembers;
+  }
+
+  @override
+  Future<void> addHumanMember(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<void> addAgentMember(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String agentId,
+  }) async {}
+
+  @override
+  Future<void> removeHumanMember(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String userId,
+  }) async {}
+
+  @override
+  Future<void> removeAgentMember(
+    ServerScopeId serverId, {
+    required String channelId,
+    required String agentId,
+  }) async {}
+}
 
 class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({required this.snapshot});

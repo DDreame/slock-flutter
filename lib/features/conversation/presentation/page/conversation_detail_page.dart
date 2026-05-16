@@ -24,6 +24,8 @@ import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/features/channels/data/channel_member.dart';
+import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
@@ -132,6 +134,13 @@ class _ConversationDetailScreenState
   bool _isEmojiPickerVisible = false;
   bool _showScrollToBottom = false;
   Timer? _scrollThrottleTimer;
+
+  // Mention autocomplete state.
+  bool _showMentionOverlay = false;
+  String _mentionQuery = '';
+  int _mentionTriggerOffset = -1;
+  List<ChannelMember> _mentionMembers = [];
+  bool _mentionMembersLoaded = false;
 
   // Voice recording.
   VoiceRecorderService? _voiceRecorder;
@@ -407,6 +416,14 @@ class _ConversationDetailScreenState
           ),
           if (state.status == ConversationDetailStatus.success)
             const TypingIndicatorWidget(),
+          if (state.status == ConversationDetailStatus.success &&
+              _showMentionOverlay &&
+              _filteredMentionMembers.isNotEmpty)
+            _MentionSuggestionOverlay(
+              key: const ValueKey('mention-suggestion-overlay'),
+              members: _filteredMentionMembers,
+              onSelect: _insertMention,
+            ),
           if (state.status == ConversationDetailStatus.success)
             _ConversationComposer(
               controller: _composerController,
@@ -432,6 +449,7 @@ class _ConversationDetailScreenState
                 if (value.trim().isNotEmpty) {
                   _emitTyping();
                 }
+                _detectMentionTrigger(value);
               },
               onSend: _handleSend,
               onPickAttachment: ref
@@ -471,6 +489,106 @@ class _ConversationDetailScreenState
     final typingScopeKey =
         'server:${target.serverId.value}/${target.surface == ConversationSurface.channel ? 'channel' : 'dm'}:${target.conversationId}';
     ref.read(typingRealtimeBindingProvider(typingScopeKey)).emitTyping();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Mention autocomplete
+  // ---------------------------------------------------------------------------
+
+  void _detectMentionTrigger(String text) {
+    final cursorOffset = _composerController.selection.baseOffset;
+    if (cursorOffset < 0) {
+      _closeMentionOverlay();
+      return;
+    }
+
+    // Walk backwards from cursor to find '@' trigger.
+    final textBeforeCursor = text.substring(0, cursorOffset);
+    final atIndex = textBeforeCursor.lastIndexOf('@');
+    if (atIndex < 0) {
+      _closeMentionOverlay();
+      return;
+    }
+
+    // '@' must be at start of text or preceded by a whitespace character.
+    if (atIndex > 0 && textBeforeCursor[atIndex - 1] != ' ') {
+      _closeMentionOverlay();
+      return;
+    }
+
+    // Extract query after '@' (up to cursor).
+    final query = textBeforeCursor.substring(atIndex + 1);
+
+    // Query must not contain spaces (would mean user moved past the mention).
+    if (query.contains(' ')) {
+      _closeMentionOverlay();
+      return;
+    }
+
+    setState(() {
+      _showMentionOverlay = true;
+      _mentionQuery = query;
+      _mentionTriggerOffset = atIndex;
+    });
+
+    if (!_mentionMembersLoaded) {
+      _loadMentionMembers();
+    }
+  }
+
+  void _closeMentionOverlay() {
+    if (_showMentionOverlay) {
+      setState(() {
+        _showMentionOverlay = false;
+        _mentionQuery = '';
+        _mentionTriggerOffset = -1;
+      });
+    }
+  }
+
+  Future<void> _loadMentionMembers() async {
+    try {
+      final target = ref.read(currentConversationDetailTargetProvider);
+      final repo = ref.read(channelMemberRepositoryProvider);
+      final members = await repo.listMembers(
+        target.serverId,
+        channelId: target.conversationId,
+      );
+      if (mounted) {
+        setState(() {
+          _mentionMembers = members;
+          _mentionMembersLoaded = true;
+        });
+      }
+    } catch (_) {
+      // Silently fail — mention suggestions are optional.
+    }
+  }
+
+  List<ChannelMember> get _filteredMentionMembers {
+    if (_mentionQuery.isEmpty) return _mentionMembers;
+    final queryLower = _mentionQuery.toLowerCase();
+    return _mentionMembers
+        .where((m) => m.displayName.toLowerCase().contains(queryLower))
+        .toList();
+  }
+
+  void _insertMention(ChannelMember member) {
+    final text = _composerController.text;
+    final mention = '@${member.mentionHandle} ';
+    final before = text.substring(0, _mentionTriggerOffset);
+    final cursorOffset = _composerController.selection.baseOffset;
+    final after = text.substring(cursorOffset);
+    final newText = '$before$mention$after';
+    _composerController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: before.length + mention.length,
+      ),
+    );
+    // Notify the store about draft change.
+    ref.read(conversationDetailStoreProvider.notifier).updateDraft(newText);
+    _closeMentionOverlay();
   }
 
   Future<void> _captureAndAnnotate() async {
@@ -1271,6 +1389,78 @@ class _PendingMessageCard extends ConsumerWidget {
             statusRow,
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Mention suggestion overlay — shows channel members matching '@query'
+// ---------------------------------------------------------------------------
+
+class _MentionSuggestionOverlay extends StatelessWidget {
+  const _MentionSuggestionOverlay({
+    super.key,
+    required this.members,
+    required this.onSelect,
+  });
+
+  final List<ChannelMember> members;
+  final ValueChanged<ChannelMember> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 200),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(
+          top: BorderSide(color: colors.border, width: 0.5),
+        ),
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+        itemCount: members.length,
+        itemBuilder: (context, index) {
+          final member = members[index];
+          return InkWell(
+            key: ValueKey('mention-suggestion-$index'),
+            onTap: () => onSelect(member),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: colors.surfaceAlt,
+                    child: Text(
+                      member.displayName.isNotEmpty
+                          ? member.displayName[0].toUpperCase()
+                          : '?',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    member.displayName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: colors.text,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
