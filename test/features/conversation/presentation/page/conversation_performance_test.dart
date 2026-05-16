@@ -14,7 +14,7 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #519: Chat Performance Optimization — Phase A (test-only)
+// #519: Chat Performance Optimization
 //
 // 4 tests for performance invariants:
 //   INV-PERF-1: updateViewportOffset calls ≤ 10 during 1s of rapid scrolling
@@ -22,7 +22,6 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-PERF-3: No per-message LayoutBuilder in the message list
 //   INV-PERF-4: ListView cacheExtent set to 500
 //
-// skip: true until Phase B implements performance optimizations.
 // ---------------------------------------------------------------------------
 
 /// Generate a list of messages for a scrollable conversation.
@@ -76,7 +75,6 @@ void main() {
   testWidgets(
     'Conversation: updateViewportOffset throttled during rapid scroll '
     '(INV-PERF-1)',
-    skip: true,
     (tester) async {
       final sessionSpy = _CountingSessionStore();
       final repo = _FakeConversationRepository(
@@ -136,7 +134,6 @@ void main() {
   testWidgets(
     'Conversation: each message card wrapped in RepaintBoundary '
     '(INV-PERF-2)',
-    skip: true,
     (tester) async {
       await pumpScrollableConversation(tester);
 
@@ -183,7 +180,6 @@ void main() {
   testWidgets(
     'Conversation: no per-message LayoutBuilder in message list '
     '(INV-PERF-3)',
-    skip: true,
     (tester) async {
       await pumpScrollableConversation(tester);
 
@@ -215,7 +211,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: ListView cacheExtent is 500 (INV-PERF-4)',
-    skip: true,
     (tester) async {
       await pumpScrollableConversation(tester);
 

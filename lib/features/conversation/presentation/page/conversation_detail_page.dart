@@ -129,6 +129,7 @@ class _ConversationDetailScreenState
   final GlobalKey _screenshotBoundaryKey = GlobalKey();
   bool _isFormattingToolbarVisible = false;
   bool _showScrollToBottom = false;
+  Timer? _scrollThrottleTimer;
 
   // Voice recording.
   VoiceRecorderService? _voiceRecorder;
@@ -175,6 +176,7 @@ class _ConversationDetailScreenState
     _voiceRecorder?.dispose();
     _stateSubscription?.close();
     _translationSettingsSub?.close();
+    _scrollThrottleTimer?.cancel();
     if (_scrollController.hasClients) {
       ref
           .read(conversationDetailStoreProvider.notifier)
@@ -646,9 +648,17 @@ class _ConversationDetailScreenState
       });
     }
 
-    ref
-        .read(conversationDetailStoreProvider.notifier)
-        .updateViewportOffset(_scrollController.offset);
+    // Throttle updateViewportOffset writes to avoid 60+ state writes/sec
+    // during rapid scrolling. Timer-based: at most one write per 100ms.
+    if (_scrollThrottleTimer == null || !_scrollThrottleTimer!.isActive) {
+      _scrollThrottleTimer = Timer(const Duration(milliseconds: 100), () {
+        if (mounted && _scrollController.hasClients) {
+          ref
+              .read(conversationDetailStoreProvider.notifier)
+              .updateViewportOffset(_scrollController.offset);
+        }
+      });
+    }
 
     // With reverse:true, offset 0 = bottom (newest), maxScrollExtent = top
     // (oldest). Load older messages when near the top (oldest end).
@@ -865,11 +875,16 @@ class _ConversationMessageList extends StatelessWidget {
   Widget build(BuildContext context) {
     final pendingCount = state.pendingMessages.length;
     final totalCount = state.messages.length + pendingCount + 1;
+    // Compute maxBubbleWidth once at the list level instead of per-message
+    // LayoutBuilder to avoid unnecessary layout passes.
+    final maxBubbleWidth =
+        MediaQuery.of(context).size.width * _bubbleMaxWidthFraction;
 
     return ListView.separated(
       key: const ValueKey('conversation-success'),
       controller: controller,
       reverse: true,
+      cacheExtent: 500,
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(16),
       itemCount: totalCount,
@@ -905,6 +920,7 @@ class _ConversationMessageList extends StatelessWidget {
           return _PendingMessageCard(
             key: ValueKey('pending-${pending.localId}'),
             pending: pending,
+            maxBubbleWidth: maxBubbleWidth,
           );
         }
         final adjustedIndex = index - pendingCount;
@@ -916,14 +932,18 @@ class _ConversationMessageList extends StatelessWidget {
           final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
           final showHeader =
               olderMsg == null || !_shouldGroupWith(message, olderMsg);
-          return _ConversationMessageCard(
-            target: state.target,
-            message: message,
-            showHeader: showHeader,
-            highlightQuery: state.searchQuery,
-            onScrollToMessage: onScrollToMessage != null
-                ? (messageId) => onScrollToMessage!(messageId, state.messages)
-                : null,
+          return RepaintBoundary(
+            key: ValueKey('repaint-boundary-${message.id}'),
+            child: _ConversationMessageCard(
+              target: state.target,
+              message: message,
+              maxBubbleWidth: maxBubbleWidth,
+              showHeader: showHeader,
+              highlightQuery: state.searchQuery,
+              onScrollToMessage: onScrollToMessage != null
+                  ? (messageId) => onScrollToMessage!(messageId, state.messages)
+                  : null,
+            ),
           );
         }
         // Last item (top of screen) = history header.
@@ -1071,9 +1091,14 @@ class _ConversationHistoryHeader extends StatelessWidget {
 }
 
 class _PendingMessageCard extends ConsumerWidget {
-  const _PendingMessageCard({super.key, required this.pending});
+  const _PendingMessageCard({
+    super.key,
+    required this.pending,
+    required this.maxBubbleWidth,
+  });
 
   final PendingMessage pending;
+  final double maxBubbleWidth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1224,24 +1249,19 @@ class _PendingMessageCard extends ConsumerWidget {
       ),
     );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxBubbleWidth = constraints.maxWidth * _bubbleMaxWidthFraction;
-        return Align(
-          alignment: Alignment.centerRight,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                bubble,
-                statusRow,
-              ],
-            ),
-          ),
-        );
-      },
+    return Align(
+      alignment: Alignment.centerRight,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            bubble,
+            statusRow,
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1662,6 +1682,7 @@ class _ConversationMessageCard extends ConsumerWidget {
   const _ConversationMessageCard({
     required this.target,
     required this.message,
+    required this.maxBubbleWidth,
     this.showHeader = true,
     this.highlightQuery = '',
     this.onScrollToMessage,
@@ -1669,6 +1690,7 @@ class _ConversationMessageCard extends ConsumerWidget {
 
   final ConversationDetailTarget target;
   final ConversationMessageSummary message;
+  final double maxBubbleWidth;
   final bool showHeader;
   final String highlightQuery;
   final ValueChanged<String>? onScrollToMessage;
@@ -1994,47 +2016,42 @@ class _ConversationMessageCard extends ConsumerWidget {
 
     // Build the message layout (Align → Column with sender label, bubble,
     // reactions, and thread indicator).
-    final shell = LayoutBuilder(
-      builder: (context, constraints) {
-        final maxBubbleWidth = constraints.maxWidth * _bubbleMaxWidthFraction;
-        return Align(
-          key: ValueKey('message-shell-${message.id}'),
-          alignment: shellAlignment,
-          child: switch (visualKind) {
-            _ConversationMessageVisualKind.system => Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(width: double.infinity, child: bubble),
-                  _ReactionRow(
-                    reactions: message.reactions,
-                    messageId: message.id,
-                    currentUserId: ref.watch(sessionStoreProvider).userId,
-                  ),
-                  threadIndicator,
-                ],
+    final shell = Align(
+      key: ValueKey('message-shell-${message.id}'),
+      alignment: shellAlignment,
+      child: switch (visualKind) {
+        _ConversationMessageVisualKind.system => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(width: double.infinity, child: bubble),
+              _ReactionRow(
+                reactions: message.reactions,
+                messageId: message.id,
+                currentUserId: ref.watch(sessionStoreProvider).userId,
               ),
-            _ => ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment:
-                      visualKind == _ConversationMessageVisualKind.self
-                          ? CrossAxisAlignment.end
-                          : CrossAxisAlignment.start,
-                  children: [
-                    senderLabelWidget,
-                    bubble,
-                    _ReactionRow(
-                      reactions: message.reactions,
-                      messageId: message.id,
-                      currentUserId: ref.watch(sessionStoreProvider).userId,
-                    ),
-                    threadIndicator,
-                  ],
+              threadIndicator,
+            ],
+          ),
+        _ => ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment:
+                  visualKind == _ConversationMessageVisualKind.self
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+              children: [
+                senderLabelWidget,
+                bubble,
+                _ReactionRow(
+                  reactions: message.reactions,
+                  messageId: message.id,
+                  currentUserId: ref.watch(sessionStoreProvider).userId,
                 ),
-              ),
-          },
-        );
+                threadIndicator,
+              ],
+            ),
+          ),
       },
     );
 
