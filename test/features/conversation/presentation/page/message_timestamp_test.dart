@@ -74,15 +74,20 @@ void main() {
             'message (INV-TIMESTAMP-1)',
       );
 
-      // The timestamp should contain the date (2026-05-16) or a
-      // recognizable date+time format.
+      // The timestamp should contain the precise date + time (HH:mm:ss)
+      // derived from msg-1's createdAt (2026-05-16T14:30:45Z).
+      final expectedLocal = DateTime.parse('2026-05-16T14:30:45Z').toLocal();
+      final expectedHms = '${expectedLocal.hour.toString().padLeft(2, '0')}:'
+          '${expectedLocal.minute.toString().padLeft(2, '0')}:'
+          '${expectedLocal.second.toString().padLeft(2, '0')}';
       final timestampFinder = find.byKey(const ValueKey('precise-timestamp'));
       final textInTimestamp = find.descendant(
         of: timestampFinder,
-        matching: find.byType(Text),
+        matching: find.textContaining(expectedHms),
       );
-      expect(textInTimestamp, findsAtLeastNWidgets(1),
-          reason: 'Precise timestamp must contain text');
+      expect(textInTimestamp, findsOneWidget,
+          reason: 'Precise timestamp must contain the full HH:mm:ss '
+              '($expectedHms) from the seeded createdAt');
     },
   );
 
