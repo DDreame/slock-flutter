@@ -376,31 +376,24 @@ class _ConversationDetailScreenState
                               onScrollToMessage: _scrollToMessageId,
                             ),
                           ),
-                          Positioned(
-                            right: 16,
-                            bottom: 16,
-                            child: AnimatedOpacity(
-                              opacity: _showScrollToBottom ? 1.0 : 0.0,
-                              duration: const Duration(milliseconds: 200),
-                              child: IgnorePointer(
-                                ignoring: !_showScrollToBottom,
-                                child: FloatingActionButton.small(
-                                  key: const ValueKey('scroll-to-bottom-fab'),
-                                  onPressed: () {
-                                    _scrollController.animateTo(
-                                      0,
-                                      duration:
-                                          const Duration(milliseconds: 300),
-                                      curve: Curves.easeOut,
-                                    );
-                                  },
-                                  child: const Icon(
-                                    Icons.keyboard_double_arrow_down,
-                                  ),
+                          if (_showScrollToBottom)
+                            Positioned(
+                              right: 16,
+                              bottom: 16,
+                              child: FloatingActionButton.small(
+                                key: const ValueKey('scroll-to-bottom-fab'),
+                                onPressed: () {
+                                  _scrollController.animateTo(
+                                    0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeOut,
+                                  );
+                                },
+                                child: const Icon(
+                                  Icons.keyboard_double_arrow_down,
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),
