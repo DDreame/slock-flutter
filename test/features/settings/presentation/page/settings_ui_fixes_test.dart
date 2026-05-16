@@ -32,7 +32,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-PROFILE-1:  Edit button tap → visible user feedback (not no-op)
 //   INV-SETTINGS-1: Account card never shows raw UUID to user
 //
-// Tests 2 & 3: skip: true until Phase B fixes profile_page.dart and
+// Tests 2, 3 & 4: Phase B applied — all tests enabled.
 // settings_page.dart. Tests 1 & 4 pass on current codebase.
 // ---------------------------------------------------------------------------
 
@@ -116,7 +116,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Profile: Edit button tap shows snackbar (INV-PROFILE-1)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -165,7 +164,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Settings: account card shows displayName, not UUID (INV-SETTINGS-1)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -242,11 +240,10 @@ void main() {
   //
   // Tests the real ConversationDetailPage with hasOlder: true to verify
   // the static hint text is present (current behavior).
-  // skip: true — Phase B will remove this text, un-skip to validate.
+  // Phase B applied — static text removed, test un-skipped.
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: no static pull-up hint text when hasOlder is true (U3)',
-    skip: true,
     (tester) async {
       final target = ConversationDetailTarget.channel(
         const ChannelScopeId(

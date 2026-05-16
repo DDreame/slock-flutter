@@ -274,7 +274,11 @@ class _ProfileSuccessBody extends StatelessWidget {
                   child: OutlinedButton.icon(
                     key: const ValueKey('profile-edit-button'),
                     onPressed: () {
-                      // TODO: navigate to edit profile screen
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Profile editing coming soon'),
+                        ),
+                      );
                     },
                     icon: const Icon(Icons.edit_outlined),
                     label: const Text('Edit Profile'),
