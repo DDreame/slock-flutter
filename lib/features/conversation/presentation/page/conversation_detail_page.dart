@@ -861,12 +861,21 @@ class _ConversationDetailScreenState
         next.messages.isNotEmpty) {
       _didApplyInitialLanding = true;
       final targetMsgId = widget.highlightMessageId;
+      // Compute the first unread message ID for auto-scroll.
+      final unreadCount = _unreadCountForTarget(ref, next.target);
+      final firstUnreadMsgId =
+          unreadCount > 0 && unreadCount <= next.messages.length
+              ? next.messages[next.messages.length - unreadCount].id
+              : null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_scrollController.hasClients) {
           return;
         }
         if (targetMsgId != null) {
           _scrollToMessageId(targetMsgId, next.messages);
+        } else if (firstUnreadMsgId != null) {
+          // Auto-scroll to the first unread message (unread divider area).
+          _scrollToMessageId(firstUnreadMsgId, next.messages);
         } else {
           _scrollController.jumpTo(0);
         }
@@ -984,7 +993,7 @@ class _ConversationEmptyView extends StatelessWidget {
   }
 }
 
-class _ConversationMessageList extends StatelessWidget {
+class _ConversationMessageList extends ConsumerWidget {
   const _ConversationMessageList({
     required this.controller,
     required this.state,
@@ -998,7 +1007,7 @@ class _ConversationMessageList extends StatelessWidget {
       onScrollToMessage;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final pendingCount = state.pendingMessages.length;
     final totalCount = state.messages.length + pendingCount + 1;
     // Compute maxBubbleWidth once at the list level instead of per-message
@@ -1007,6 +1016,16 @@ class _ConversationMessageList extends StatelessWidget {
     // width that LayoutBuilder previously provided.
     final maxBubbleWidth =
         (MediaQuery.of(context).size.width - 32) * _bubbleMaxWidthFraction;
+
+    // Compute unread divider position from the production unread projection.
+    // The divider separator index is pendingCount + unreadCount - 1, i.e.
+    // between the last unread message (item[pendingCount + unreadCount - 1])
+    // and the first read message (item[pendingCount + unreadCount]).
+    final unreadCount = _unreadCountForTarget(ref, state.target);
+    final unreadSepIndex =
+        unreadCount > 0 && unreadCount <= state.messages.length
+            ? pendingCount + unreadCount - 1
+            : -1;
 
     return ListView.separated(
       key: const ValueKey('conversation-success'),
@@ -1022,14 +1041,37 @@ class _ConversationMessageList extends StatelessWidget {
         // older (above). Show a date chip when they fall on different days.
         final newerDate = _dateForItemAt(index, pendingCount, state);
         final olderDate = _dateForItemAt(index + 1, pendingCount, state);
+
+        // Check if this separator is the unread boundary.
+        final isUnreadBoundary = index == unreadSepIndex;
+
+        // Date separator takes priority — wrap with unread divider if needed.
         if (newerDate != null &&
             olderDate != null &&
             !_isSameDay(newerDate, olderDate)) {
+          if (isUnreadBoundary) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _UnreadDivider(),
+                _DateSeparatorWidget(
+                  key: const ValueKey('date-separator'),
+                  date: newerDate,
+                ),
+              ],
+            );
+          }
           return _DateSeparatorWidget(
             key: const ValueKey('date-separator'),
             date: newerDate,
           );
         }
+
+        // Unread divider at this separator position.
+        if (isUnreadBoundary) {
+          return const _UnreadDivider();
+        }
+
         // Grouped messages (same sender, <5min, same day) get a tighter gap.
         final newerMsg = _messageForItemAt(index, pendingCount, state);
         final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
@@ -1077,6 +1119,64 @@ class _ConversationMessageList extends StatelessWidget {
         // Last item (top of screen) = history header.
         return _ConversationHistoryHeader(state: state);
       },
+    );
+  }
+}
+
+/// Returns the unread message count for [target] from the projection store.
+int _unreadCountForTarget(WidgetRef ref, ConversationDetailTarget target) {
+  final projection = ref.watch(unreadSourceProjectionProvider);
+  switch (target.surface) {
+    case ConversationSurface.channel:
+      final scopeId = ChannelScopeId(
+          serverId: target.serverId, value: target.conversationId);
+      return projection.channelUnreadCount(scopeId);
+    case ConversationSurface.directMessage:
+      final scopeId = DirectMessageScopeId(
+          serverId: target.serverId, value: target.conversationId);
+      return projection.dmUnreadCount(scopeId);
+  }
+}
+
+/// "New messages" divider inserted at the boundary between read and unread
+/// messages in the conversation list.
+class _UnreadDivider extends StatelessWidget {
+  const _UnreadDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    return Padding(
+      key: const ValueKey('unread-divider'),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Divider(
+              color: colors.primary,
+              thickness: 1,
+              height: 1,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              'New messages',
+              style: AppTypography.caption.copyWith(
+                color: colors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Divider(
+              color: colors.primary,
+              thickness: 1,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
