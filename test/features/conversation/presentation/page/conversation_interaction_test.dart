@@ -229,6 +229,10 @@ void main() {
         reason: 'With reverse:true, scroll position 0 = bottom (newest) — '
             'no flash to top position (INV-SCROLL-1)',
       );
+
+      // Drain pending async operations (saved-messages refresh, etc.)
+      // to avoid teardown failures from pending timers.
+      await tester.pumpAndSettle();
     },
   );
 
@@ -295,8 +299,12 @@ void main() {
       final msgFinder = find.byKey(const ValueKey('message-msg-haptic'));
       expect(msgFinder, findsOneWidget, reason: 'Message must be rendered');
 
-      // Long-press to open context menu.
-      await tester.longPress(msgFinder);
+      // Long-press to open context menu. Target the top-left corner of the
+      // message shell (sender label area), NOT the MarkdownBody text — the
+      // SelectableText inside MarkdownBody(selectable: true) wins the gesture
+      // arena when the press lands on rendered text characters.
+      final msgTopLeft = tester.getTopLeft(msgFinder);
+      await tester.longPressAt(msgTopLeft + const Offset(10, 10));
       await tester.pumpAndSettle();
 
       // Tap "Delete message" in the context menu.
