@@ -307,10 +307,14 @@ void main() {
       await tester.longPressAt(msgTopLeft + const Offset(10, 10));
       await tester.pumpAndSettle();
 
-      // Tap "Delete message" in the context menu.
-      final deleteFinder = find.text('Delete message');
+      // Tap "Delete message" in the context menu. The action is the last
+      // ListTile in the bottom sheet — scroll it into view first since the
+      // sheet may not be tall enough to show all 10 actions.
+      final deleteFinder = find.byKey(const ValueKey('ctx-action-delete'));
       expect(deleteFinder, findsOneWidget,
-          reason: 'Delete option must be visible for own message');
+          reason: 'Delete option must exist for own message');
+      await tester.ensureVisible(deleteFinder);
+      await tester.pumpAndSettle();
       await tester.tap(deleteFinder);
       await tester.pumpAndSettle();
 
