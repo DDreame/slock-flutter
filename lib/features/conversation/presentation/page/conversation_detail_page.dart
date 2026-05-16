@@ -2620,7 +2620,7 @@ class _ConversationMessageCardState
 
     // Wrap with quote-jump highlight when this message was just scrolled to
     // via a quoted-message tap.
-    if (isQuoteJumpHighlighted) {
+    if (widget.isQuoteJumpHighlighted) {
       shellContent = Container(
         key: const ValueKey('quote-jump-highlight'),
         decoration: BoxDecoration(
