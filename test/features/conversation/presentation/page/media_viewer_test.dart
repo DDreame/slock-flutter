@@ -5,6 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
+import 'package:slock_app/features/conversation/data/attachment_repository.dart';
+import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart'
+    show attachmentRepositoryProvider;
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -19,7 +23,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //
 // Verifies that tapping an image attachment in the chat message list opens
 // the production FilePreviewPage via GoRouter, shows InteractiveViewer for
-// pinch-to-zoom, and can be dismissed.
+// pinch-to-zoom, and supports swipe-to-dismiss.
 //
 // The test harness uses MaterialApp.router with a GoRouter that includes
 // both the conversation page (/) and the file preview route (/file-preview),
@@ -28,9 +32,11 @@ import 'package:slock_app/stores/session/session_store.dart';
 // Invariants:
 //   INV-MEDIA-1: Tap image attachment → FilePreviewPage opens
 //   INV-MEDIA-2: Viewer uses InteractiveViewer for pinch-to-zoom
-//   INV-MEDIA-3: Back navigation dismisses the viewer
+//   INV-MEDIA-3: Swipe down dismisses the viewer (swipe-to-dismiss)
 //
-// Phase A — all tests skip:true (no implementation yet).
+// INV-1 and INV-2 are active (already pass on production code).
+// INV-3 is skip:true — targets the gap: swipe-to-dismiss gesture
+// (not yet implemented).
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -45,7 +51,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Tapping image attachment opens FilePreviewPage (INV-MEDIA-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshotWithImage(),
@@ -84,7 +89,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'FilePreviewPage uses InteractiveViewer for pinch-to-zoom (INV-MEDIA-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshotWithImage(),
@@ -119,14 +123,15 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
-  // INV-MEDIA-3: Navigating back from FilePreviewPage returns to the
-  // conversation. The AppBar back button (or system back gesture)
-  // dismisses the viewer.
+  // INV-MEDIA-3: Swiping down on the viewer dismisses it and returns to
+  // the conversation. Production must add a swipe-to-dismiss gesture
+  // handler (keyed 'media-viewer-dismiss-area') wrapping the viewer
+  // content. A vertical drag beyond threshold dismisses the page.
   //
-  // Production AppBar key: 'file-preview-toolbar'
+  // skip:true — swipe-to-dismiss gesture is NOT yet implemented.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Back navigation dismisses the viewer (INV-MEDIA-3)',
+    'Swipe down dismisses the viewer (INV-MEDIA-3)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -147,21 +152,25 @@ void main() {
       expect(
         find.byKey(const ValueKey('file-preview-page')),
         findsOneWidget,
-        reason: 'FilePreviewPage must be open before dismissal',
+        reason: 'FilePreviewPage must be open before swipe dismiss',
       );
 
-      // Navigate back — tap the AppBar back button.
-      final backButton = find.byType(BackButton);
-      expect(backButton, findsOneWidget,
-          reason: 'AppBar back button must be visible in FilePreviewPage');
-      await tester.tap(backButton);
+      // Swipe-to-dismiss area must exist in the viewer.
+      final dismissArea =
+          find.byKey(const ValueKey('media-viewer-dismiss-area'));
+      expect(dismissArea, findsOneWidget,
+          reason: 'FilePreviewPage must have a swipe-to-dismiss '
+              'gesture area (INV-MEDIA-3)');
+
+      // Perform a vertical drag down (300 px) to trigger dismiss.
+      await tester.drag(dismissArea, const Offset(0, 300));
       await tester.pumpAndSettle();
 
       // FilePreviewPage must be dismissed.
       expect(
         find.byKey(const ValueKey('file-preview-page')),
         findsNothing,
-        reason: 'FilePreviewPage must close after back navigation '
+        reason: 'Swiping down must dismiss FilePreviewPage '
             '(INV-MEDIA-3)',
       );
 
@@ -246,6 +255,11 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      attachmentRepositoryProvider
+          .overrideWithValue(_FakeAttachmentRepository()),
+      currentOpenConversationTargetProvider.overrideWith(
+        (ref) => null,
+      ),
     ],
     child: MaterialApp.router(
       routerConfig: _testGoRouter(target: target),
@@ -259,6 +273,24 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
+
+class _FakeAttachmentRepository implements AttachmentRepository {
+  @override
+  Future<String> getSignedUrl(
+    ServerScopeId serverId, {
+    required String attachmentId,
+  }) async {
+    return 'https://signed.example.com/$attachmentId';
+  }
+
+  @override
+  Future<String> getHtmlPreviewUrl(
+    ServerScopeId serverId, {
+    required String attachmentId,
+  }) async {
+    return 'https://preview.example.com/$attachmentId';
+  }
+}
 
 class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({required this.snapshot});
