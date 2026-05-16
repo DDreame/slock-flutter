@@ -2787,16 +2787,27 @@ class _ConversationMessageCardState
                           value: target.scopeId,
                         ),
                       );
-                await ref
-                    .read(conversationRepositoryProvider)
-                    .sendMessage(forwardTarget, messageContent);
-                if (!context.mounted) return;
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(content: Text('Message forwarded')),
-                  );
+                try {
+                  await ref
+                      .read(conversationRepositoryProvider)
+                      .sendMessage(forwardTarget, messageContent);
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(content: Text('Message forwarded')),
+                    );
+                } catch (_) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to send. Please try again.'),
+                      ),
+                    );
+                }
               },
               onCancel: () => Navigator.of(context).pop(),
             ),
