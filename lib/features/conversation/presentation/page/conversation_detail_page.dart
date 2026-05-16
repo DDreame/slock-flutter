@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -840,7 +841,22 @@ class _ConversationMessageList extends StatelessWidget {
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(16),
       itemCount: totalCount,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) {
+        // Resolve timestamps for the items on both sides of this separator.
+        // With reverse:true, item[index] is newer (below), item[index+1] is
+        // older (above). Show a date chip when they fall on different days.
+        final newerDate = _dateForItemAt(index, pendingCount, state);
+        final olderDate = _dateForItemAt(index + 1, pendingCount, state);
+        if (newerDate != null &&
+            olderDate != null &&
+            !_isSameDay(newerDate, olderDate)) {
+          return _DateSeparatorWidget(
+            key: const ValueKey('date-separator'),
+            date: newerDate,
+          );
+        }
+        return const SizedBox(height: 12);
+      },
       itemBuilder: (context, index) {
         // With reverse:true, index 0 = bottom of screen.
         // Order: pending (newest first) → messages (newest first) → header.
@@ -868,6 +884,73 @@ class _ConversationMessageList extends StatelessWidget {
         return _ConversationHistoryHeader(state: state);
       },
     );
+  }
+}
+
+/// Normalizes a [DateTime] to the user's local timezone for day-boundary
+/// comparison. Override in tests to simulate non-UTC timezones.
+@visibleForTesting
+DateTime Function(DateTime) dateSeparatorToLocal = (dt) => dt.toLocal();
+
+/// Resolve the [DateTime] for the list item at [index], or null for the header.
+DateTime? _dateForItemAt(
+  int index,
+  int pendingCount,
+  ConversationDetailState state,
+) {
+  if (index < pendingCount) {
+    return state.pendingMessages[pendingCount - 1 - index].createdAt;
+  }
+  final adjustedIndex = index - pendingCount;
+  if (adjustedIndex < state.messages.length) {
+    return state.messages[state.messages.length - 1 - adjustedIndex].createdAt;
+  }
+  // Header item — no date.
+  return null;
+}
+
+/// True when [a] and [b] fall on the same local calendar day.
+bool _isSameDay(DateTime a, DateTime b) {
+  final la = dateSeparatorToLocal(a);
+  final lb = dateSeparatorToLocal(b);
+  return la.year == lb.year && la.month == lb.month && la.day == lb.day;
+}
+
+class _DateSeparatorWidget extends StatelessWidget {
+  const _DateSeparatorWidget({super.key, required this.date});
+
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            _formatDateLabel(date),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _formatDateLabel(DateTime date) {
+    final local = dateSeparatorToLocal(date);
+    final now = DateTime.now();
+    if (_isSameDay(local, now)) return 'Today';
+    final yesterday = now.subtract(const Duration(days: 1));
+    if (_isSameDay(local, yesterday)) return 'Yesterday';
+    return DateFormat.MMMEd().format(local);
   }
 }
 
