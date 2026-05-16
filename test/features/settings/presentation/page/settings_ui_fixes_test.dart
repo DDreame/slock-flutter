@@ -202,23 +202,34 @@ void main() {
       final accountHeader =
           find.byKey(const ValueKey('settings-account-header'));
 
-      // The secondary text (subtitle) must NOT be a raw UUID.
-      final secondaryTextFinder = find.descendant(
+      // No UUID-pattern text may appear anywhere in the account header.
+      // This catches the subtitle rendering session.userId regardless of
+      // what specific UUID value is used.
+      final uuidPattern = RegExp(r'[0-9a-f]{8}-[0-9a-f]{4}-');
+      final uuidTextFinder = find.descendant(
         of: accountHeader,
-        matching: find.text('550e8400-e29b-41d4-a716-446655440000'),
+        matching: find.byWidgetPredicate(
+          (w) => w is Text && uuidPattern.hasMatch(w.data ?? ''),
+          description: 'Text widget containing UUID pattern',
+        ),
       );
       expect(
-        secondaryTextFinder,
+        uuidTextFinder,
         findsNothing,
-        reason: 'Account card subtitle must NOT show raw userId UUID — '
-            'should show displayName or email instead (INV-SETTINGS-1)',
+        reason: 'Account card must NOT contain any UUID-pattern text — '
+            'subtitle should show displayName or email (INV-SETTINGS-1)',
       );
 
-      // The account header must show the displayName prominently.
+      // Positive contract: after Phase B replaces session.userId with
+      // session.displayName in the subtitle, the account header Column
+      // contains two Text widgets showing 'Alice' — the primary title
+      // (L57-59) and the subtitle (L62-63). If Phase B blanks the
+      // subtitle or uses an unrelated placeholder, this fails.
       expect(
         find.descendant(of: accountHeader, matching: find.text('Alice')),
-        findsOneWidget,
-        reason: 'Account card must show displayName',
+        findsNWidgets(2),
+        reason: 'Account card must show displayName in both primary '
+            'title and subtitle (INV-SETTINGS-1)',
       );
     },
   );
