@@ -12,23 +12,73 @@ import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 // ---------------------------------------------------------------------------
 // #515: Tasks 页面 Skeleton Screen — Phase A (test-only)
 //
-// 1 test for skeleton screen behavior:
-//   INV-SKEL-1: Tasks loading state with empty items → shows SkeletonListItem
-//               list, never CircularProgressIndicator.
+// 2 tests for skeleton screen behavior:
+//   INV-SKEL-1a: Tasks loading state with empty items → shows SkeletonListItem
+//                list, never CircularProgressIndicator.
+//   INV-SKEL-1b: Tasks initial state with empty items → shows SkeletonListItem
+//                list, never CircularProgressIndicator.
+//
+// Production branch: `TasksStatus.initial || TasksStatus.loading when
+// state.items.isEmpty` — both paths must render skeleton.
 //
 // skip: true until Phase B replaces CircularProgressIndicator with skeleton.
 // ---------------------------------------------------------------------------
 
 void main() {
   // -----------------------------------------------------------------------
-  // 1. Loading state shows skeleton items, not spinner (INV-SKEL-1)
-  //
-  // Phase B: tasks_page.dart L106-108 must replace
-  //   `const Center(child: CircularProgressIndicator())`
-  // with a ListView of SkeletonListItem widgets.
+  // Helper: pump TasksPage with a given fake store.
+  // -----------------------------------------------------------------------
+  Future<void> pumpTasksPage(
+    WidgetTester tester, {
+    required _FakeTasksStore store,
+  }) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          tasksStoreProvider.overrideWith(() => store),
+          tasksRealtimeBindingProvider.overrideWith((ref) {}),
+        ],
+        child: MaterialApp.router(
+          theme: AppTheme.light,
+          routerConfig: GoRouter(
+            initialLocation: '/servers/server-1/tasks',
+            routes: [
+              GoRoute(
+                path: '/servers/:serverId/tasks',
+                builder: (context, state) => TasksPage(
+                  serverId: state.pathParameters['serverId']!,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+  }
+
+  // -----------------------------------------------------------------------
+  // Helper: assert skeleton items shown, no spinner.
+  // -----------------------------------------------------------------------
+  void expectSkeletonNotSpinner(String tag) {
+    expect(
+      find.byType(CircularProgressIndicator),
+      findsNothing,
+      reason: '$tag must NOT show CircularProgressIndicator — '
+          'should use SkeletonListItem instead',
+    );
+    expect(
+      find.byType(SkeletonListItem),
+      findsAtLeastNWidgets(3),
+      reason: '$tag must show skeleton placeholder items',
+    );
+  }
+
+  // -----------------------------------------------------------------------
+  // 1. Loading + empty items → skeleton (INV-SKEL-1a)
   // -----------------------------------------------------------------------
   testWidgets(
-    'Tasks: loading state shows skeleton items, not spinner (INV-SKEL-1)',
+    'Tasks: loading state shows skeleton items, not spinner (INV-SKEL-1a)',
     skip: true,
     (tester) async {
       final store = _FakeTasksStore(
@@ -37,47 +87,29 @@ void main() {
           items: [],
         ),
       );
+      await pumpTasksPage(tester, store: store);
+      expectSkeletonNotSpinner('INV-SKEL-1a');
+    },
+  );
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            tasksStoreProvider.overrideWith(() => store),
-            tasksRealtimeBindingProvider.overrideWith((ref) {}),
-          ],
-          child: MaterialApp.router(
-            theme: AppTheme.light,
-            routerConfig: GoRouter(
-              initialLocation: '/servers/server-1/tasks',
-              routes: [
-                GoRoute(
-                  path: '/servers/:serverId/tasks',
-                  builder: (context, state) => TasksPage(
-                    serverId: state.pathParameters['serverId']!,
-                  ),
-                ),
-              ],
-            ),
-          ),
+  // -----------------------------------------------------------------------
+  // 2. Initial + empty items → skeleton (INV-SKEL-1b)
+  //
+  // Production: `TasksStatus.initial || TasksStatus.loading when
+  // state.items.isEmpty` both hit the same branch.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Tasks: initial state shows skeleton items, not spinner (INV-SKEL-1b)',
+    skip: true,
+    (tester) async {
+      final store = _FakeTasksStore(
+        initialState: const TasksState(
+          status: TasksStatus.initial,
+          items: [],
         ),
       );
-      await tester.pump();
-
-      // Currently FAILS: CircularProgressIndicator is shown instead of
-      // skeleton items. Phase B must replace the spinner with skeleton.
-      expect(
-        find.byType(CircularProgressIndicator),
-        findsNothing,
-        reason: 'Loading state must NOT show CircularProgressIndicator — '
-            'should use SkeletonListItem instead (INV-SKEL-1)',
-      );
-
-      // Skeleton items must be rendered (at least 3).
-      expect(
-        find.byType(SkeletonListItem),
-        findsAtLeastNWidgets(3),
-        reason: 'Loading state must show skeleton placeholder items '
-            '(INV-SKEL-1)',
-      );
+      await pumpTasksPage(tester, store: store);
+      expectSkeletonNotSpinner('INV-SKEL-1b');
     },
   );
 }
