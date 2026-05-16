@@ -12,6 +12,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/features/conversation/presentation/page/conversation_info_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/markdown_message_body.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_content_widget.dart';
@@ -314,8 +315,19 @@ class _ConversationDetailScreenState
           if (state.status == ConversationDetailStatus.success)
             IconButton(
               key: const ValueKey('conversation-members-toggle'),
-              icon: const Icon(Icons.people_outline),
-              onPressed: () {},
+              icon: const Icon(Icons.info_outline),
+              onPressed: () {
+                final target =
+                    ref.read(currentConversationDetailTargetProvider);
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ConversationInfoPage(
+                      target: target,
+                      title: state.resolvedTitle,
+                    ),
+                  ),
+                );
+              },
             ),
           if (state.status == ConversationDetailStatus.success)
             IconButton(

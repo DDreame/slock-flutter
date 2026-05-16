@@ -29,8 +29,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-CONV-INFO-3: Info page shows shared files section
 //   INV-CONV-INFO-4: DM info page shows user profile info
 //
-// Phase A — All invariants are skip:true (conversation info page does not
-// exist yet). Tests target the production keys that Phase B will implement.
+// Phase A → Phase B: All invariants are now active (info page implemented).
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -46,7 +45,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap members toggle navigates to conversation info page (INV-CONV-INFO-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeChannelSnapshot(),
@@ -86,7 +84,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Info page shows members section for channel (INV-CONV-INFO-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeChannelSnapshot(),
@@ -123,7 +120,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Info page shows shared files section for channel (INV-CONV-INFO-3)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeChannelSnapshot(),
@@ -161,7 +157,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'DM info page shows user profile info (INV-CONV-INFO-4)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeDmSnapshot(),
