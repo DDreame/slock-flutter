@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
+import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
@@ -105,7 +106,20 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       body: switch (state.status) {
         TasksStatus.initial ||
         TasksStatus.loading when state.items.isEmpty =>
-          const Center(child: CircularProgressIndicator()),
+          ListView(
+            key: const ValueKey('tasks-skeleton'),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pageHorizontal,
+              vertical: AppSpacing.sm,
+            ),
+            children: const [
+              SkeletonListItem(key: ValueKey('tasks-skeleton-item-0')),
+              SkeletonListItem(key: ValueKey('tasks-skeleton-item-1')),
+              SkeletonListItem(key: ValueKey('tasks-skeleton-item-2')),
+              SkeletonListItem(key: ValueKey('tasks-skeleton-item-3')),
+              SkeletonListItem(key: ValueKey('tasks-skeleton-item-4')),
+            ],
+          ),
         TasksStatus.loading => _TasksListSurface(
             items: state.items,
             colors: colors,
