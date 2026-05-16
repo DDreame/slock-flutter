@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -16,19 +18,24 @@ import '../../stores/session/session_store_persistence_test.dart'
 // ---------------------------------------------------------------------------
 // #523: 页面转场动画 — Phase A (test-only)
 //
-// Structural assertions on the production GoRouter configuration:
-// verifies that push-target routes use pageBuilder (CustomTransitionPage)
-// instead of plain builder (instant swap).
+// Verifies that push-target GoRoute definitions in the real appRouterProvider
+// use pageBuilder → CustomTransitionPage with non-zero transition durations.
 //
-// Tests exercise the real appRouterProvider — not a test-supplied harness —
-// so they fail until Phase B converts routes in lib/app/router/app_router.dart
-// from builder: to pageBuilder: + CustomTransitionPage.
+// Tests exercise the real appRouterProvider — not a test-supplied harness.
+// They call each route's pageBuilder and verify:
+//   1. pageBuilder != null (not plain builder:)
+//   2. Returned page is CustomTransitionPage
+//   3. transitionDuration > Duration.zero (INV-TRANSITION-1)
+//   4. reverseTransitionDuration > Duration.zero (INV-TRANSITION-2)
+//
+// Currently all routes use builder: (0 pageBuilder:), so tests fail when
+// un-skipped. Phase B converts them to pageBuilder: + CustomTransitionPage.
 //
 // Invariants:
-//   INV-TRANSITION-1: Push-target routes use pageBuilder with
-//                     CustomTransitionPage (non-zero forward transition)
-//   INV-TRANSITION-2: Push-target routes have reverseTransitionDuration > 0
-//                     (animated pop, not instant removal)
+//   INV-TRANSITION-1: Push-target routes → CustomTransitionPage with
+//                     transitionDuration > 0 (animated forward push)
+//   INV-TRANSITION-2: Push-target routes → CustomTransitionPage with
+//                     reverseTransitionDuration > 0 (animated pop)
 //
 // Both tests skip: true until Phase B converts routes.
 //
@@ -75,20 +82,66 @@ ProviderContainer _createContainer() {
   );
 }
 
+/// Minimal ValueListenable wrapper for RouteConfiguration construction.
+/// Needed to create GoRouterState for calling pageBuilder.
+class _ConstantRoutingConfig extends ValueListenable<RoutingConfig> {
+  const _ConstantRoutingConfig(this.value);
+  @override
+  void addListener(VoidCallback listener) {}
+  @override
+  void removeListener(VoidCallback listener) {}
+  @override
+  final RoutingConfig value;
+}
+
+/// Creates a minimal GoRouterState suitable for calling route.pageBuilder.
+GoRouterState _makeTestState(String path) {
+  final configuration = RouteConfiguration(
+    _ConstantRoutingConfig(
+      RoutingConfig(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, __) => const SizedBox(),
+          ),
+        ],
+      ),
+    ),
+    navigatorKey: GlobalKey<NavigatorState>(),
+  );
+  return GoRouterState(
+    configuration,
+    uri: Uri.parse(path),
+    matchedLocation: path,
+    fullPath: path,
+    pathParameters: const {},
+    pageKey: ValueKey<String>(path),
+  );
+}
+
 void main() {
   // -----------------------------------------------------------------------
-  // INV-TRANSITION-1: Push-target routes must use pageBuilder
-  //                   (CustomTransitionPage) — not plain builder.
+  // INV-TRANSITION-1: Push-target routes produce CustomTransitionPage with
+  //                   transitionDuration > Duration.zero.
   //
-  // Reads the real appRouterProvider configuration and checks each
-  // push-target path. Currently all routes use builder: → this test
-  // fails when un-skipped. Phase B converts them to pageBuilder:.
+  // For each push-target path:
+  //   1. Find the GoRoute in the real appRouterProvider configuration
+  //   2. Assert pageBuilder is not null (not plain builder:)
+  //   3. Call pageBuilder and assert the returned page is CustomTransitionPage
+  //   4. Assert transitionDuration > Duration.zero
+  //
+  // Currently FAILS: all routes use builder: (pageBuilder is null).
+  // Phase B converts them to pageBuilder: + CustomTransitionPage.
   // -----------------------------------------------------------------------
-  test(
-    'push-target routes use pageBuilder for animated transitions '
-    '(INV-TRANSITION-1)',
+  testWidgets(
+    'push-target routes use CustomTransitionPage with non-zero '
+    'transitionDuration (INV-TRANSITION-1)',
     skip: true,
-    () {
+    (tester) async {
+      // Need tester.pumpWidget for a valid BuildContext.
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      final context = tester.element(find.byType(SizedBox));
+
       final container = _createContainer();
       addTearDown(container.dispose);
       final router = container.read(appRouterProvider);
@@ -100,60 +153,77 @@ void main() {
             reason: 'Route $path must exist in production router');
         expect(route!.pageBuilder, isNotNull,
             reason: 'Route $path must use pageBuilder (not builder) '
-                'for CustomTransitionPage with animated push transition '
-                '(INV-TRANSITION-1). Currently uses plain builder: '
-                'which produces instant page swap.');
+                '(INV-TRANSITION-1)');
+
+        // Call pageBuilder and verify the returned page type + duration.
+        final state = _makeTestState(path);
+        final page = route.pageBuilder!(context, state);
+        expect(page, isA<CustomTransitionPage>(),
+            reason: 'Route $path pageBuilder must return '
+                'CustomTransitionPage (INV-TRANSITION-1)');
+
+        final customPage = page as CustomTransitionPage;
+        expect(customPage.transitionDuration, greaterThan(Duration.zero),
+            reason: 'Route $path must have transitionDuration > 0 '
+                'for animated push (INV-TRANSITION-1)');
       }
     },
   );
 
   // -----------------------------------------------------------------------
-  // INV-TRANSITION-2: Push-target routes must NOT use builder-only
-  //                   (which produces NoTransitionPage on pop).
+  // INV-TRANSITION-2: Push-target routes produce CustomTransitionPage with
+  //                   reverseTransitionDuration > Duration.zero.
   //
-  // When a GoRoute uses builder: (no pageBuilder:), GoRouter wraps the
-  // widget in a platform-default page that may have zero reverse duration.
-  // CustomTransitionPage with reverseTransitionDuration > 0 ensures pop
-  // is animated.
+  // Same structural check as INV-TRANSITION-1 but focused on reverse
+  // (pop) animation. CustomTransitionPage with reverseTransitionDuration > 0
+  // ensures pop is animated, not instant.
   //
-  // This test verifies the same structural property from a pop perspective:
-  // routes with pageBuilder will use CustomTransitionPage which provides
-  // explicit reverseTransitionDuration control.
-  //
-  // Phase B: After converting to pageBuilder: + CustomTransitionPage with
-  // reverseTransitionDuration: Duration(milliseconds: 300), this test
-  // verifies the configuration includes animated pop.
+  // Currently FAILS: all routes use builder: (pageBuilder is null).
+  // Phase B converts them to pageBuilder: + CustomTransitionPage.
   // -----------------------------------------------------------------------
-  test(
-    'push-target routes have pageBuilder for animated pop transitions '
-    '(INV-TRANSITION-2)',
+  testWidgets(
+    'push-target routes use CustomTransitionPage with non-zero '
+    'reverseTransitionDuration (INV-TRANSITION-2)',
     skip: true,
-    () {
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: SizedBox()));
+      final context = tester.element(find.byType(SizedBox));
+
       final container = _createContainer();
       addTearDown(container.dispose);
       final router = container.read(appRouterProvider);
       final routes = router.configuration.routes;
 
-      // Check a representative subset to keep the test focused.
+      // Representative subset for pop assertions.
       const popTargets = [
         '/servers/:serverId/channels/:channelId',
         '/servers/:serverId/dms/:channelId',
+        '/servers/:serverId/threads/:threadId/replies',
         '/settings',
+        '/profile',
       ];
 
       for (final path in popTargets) {
         final route = _findRoute(routes, path);
         expect(route, isNotNull,
             reason: 'Route $path must exist in production router');
-
-        // builder-only routes produce pages with no explicit reverse
-        // transition control → instant pop. pageBuilder with
-        // CustomTransitionPage gives explicit reverse animation.
         expect(route!.pageBuilder, isNotNull,
             reason: 'Route $path must use pageBuilder (not builder) '
-                'for CustomTransitionPage with animated pop transition '
-                '(INV-TRANSITION-2). builder-only routes produce '
-                'instant pop with no reverse animation.');
+                '(INV-TRANSITION-2)');
+
+        final state = _makeTestState(path);
+        final page = route.pageBuilder!(context, state);
+        expect(page, isA<CustomTransitionPage>(),
+            reason: 'Route $path pageBuilder must return '
+                'CustomTransitionPage (INV-TRANSITION-2)');
+
+        final customPage = page as CustomTransitionPage;
+        expect(
+          customPage.reverseTransitionDuration,
+          greaterThan(Duration.zero),
+          reason: 'Route $path must have reverseTransitionDuration > 0 '
+              'for animated pop (INV-TRANSITION-2)',
+        );
       }
     },
   );
