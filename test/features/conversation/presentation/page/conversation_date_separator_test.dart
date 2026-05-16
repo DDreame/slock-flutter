@@ -146,15 +146,19 @@ void main() {
   // 3. Regression: timestamps that cross UTC midnight but fall on the same
   //    local calendar day must NOT produce a separator (INV-DATE-2b).
   //
-  //    In the test environment local == UTC, so we use same-UTC-day
-  //    timestamps to exercise the .toLocal() path. In production, the
-  //    .toLocal() conversion in _isSameDay / _formatDateLabel ensures that
-  //    e.g. 2026-05-16T00:30:00Z and 2026-05-15T23:30:00Z (same local day
-  //    in UTC-7) are not split.
+  //    Uses the @visibleForTesting `dateSeparatorToLocal` seam to simulate
+  //    a UTC-7 timezone. Without the .toLocal() fix, these two UTC
+  //    timestamps (May 15 vs May 16) would be split; with the fix they
+  //    both resolve to May 15 local → no separator.
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: same local day, no separator — UTC regression (INV-DATE-2b)',
     (tester) async {
+      // Simulate UTC-7: subtract 7 hours from UTC to get local time.
+      final originalToLocal = dateSeparatorToLocal;
+      dateSeparatorToLocal = (dt) => dt.subtract(const Duration(hours: 7));
+      addTearDown(() => dateSeparatorToLocal = originalToLocal);
+
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
           target: ConversationDetailTarget.channel(
@@ -165,18 +169,20 @@ void main() {
           ),
           title: '#general',
           messages: [
+            // UTC May 15 23:30 → local May 15 16:30 (UTC-7)
             ConversationMessageSummary(
               id: 'msg-utc-a',
-              content: 'Late night message',
-              createdAt: DateTime.parse('2026-05-16T00:30:00Z'),
+              content: 'Late evening UTC message',
+              createdAt: DateTime.parse('2026-05-15T23:30:00Z'),
               senderType: 'human',
               messageType: 'message',
               seq: 1,
             ),
+            // UTC May 16 00:30 → local May 15 17:30 (UTC-7) — same local day
             ConversationMessageSummary(
               id: 'msg-utc-b',
-              content: 'Early morning message',
-              createdAt: DateTime.parse('2026-05-16T06:00:00Z'),
+              content: 'Early morning UTC message',
+              createdAt: DateTime.parse('2026-05-16T00:30:00Z'),
               senderType: 'human',
               messageType: 'message',
               seq: 2,
@@ -193,12 +199,12 @@ void main() {
       expect(find.byKey(const ValueKey('message-msg-utc-a')), findsOneWidget);
       expect(find.byKey(const ValueKey('message-msg-utc-b')), findsOneWidget);
 
-      // Same local day — no separator.
+      // Different UTC days but same local day in UTC-7 → no separator.
       expect(
         find.byKey(const ValueKey('date-separator')),
         findsNothing,
-        reason: 'Same local-day messages must NOT have a date separator — '
-            'timestamps must be compared in local time (INV-DATE-2b)',
+        reason: 'Messages on different UTC days but same local day must NOT '
+            'have a date separator (INV-DATE-2b)',
       );
     },
   );

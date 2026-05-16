@@ -887,6 +887,11 @@ class _ConversationMessageList extends StatelessWidget {
   }
 }
 
+/// Normalizes a [DateTime] to the user's local timezone for day-boundary
+/// comparison. Override in tests to simulate non-UTC timezones.
+@visibleForTesting
+DateTime Function(DateTime) dateSeparatorToLocal = (dt) => dt.toLocal();
+
 /// Resolve the [DateTime] for the list item at [index], or null for the header.
 DateTime? _dateForItemAt(
   int index,
@@ -906,8 +911,8 @@ DateTime? _dateForItemAt(
 
 /// True when [a] and [b] fall on the same local calendar day.
 bool _isSameDay(DateTime a, DateTime b) {
-  final la = a.toLocal();
-  final lb = b.toLocal();
+  final la = dateSeparatorToLocal(a);
+  final lb = dateSeparatorToLocal(b);
   return la.year == lb.year && la.month == lb.month && la.day == lb.day;
 }
 
@@ -940,7 +945,7 @@ class _DateSeparatorWidget extends StatelessWidget {
   }
 
   static String _formatDateLabel(DateTime date) {
-    final local = date.toLocal();
+    final local = dateSeparatorToLocal(date);
     final now = DateTime.now();
     if (_isSameDay(local, now)) return 'Today';
     final yesterday = now.subtract(const Duration(days: 1));
