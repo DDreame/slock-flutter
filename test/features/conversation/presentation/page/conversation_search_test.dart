@@ -117,14 +117,9 @@ void main() {
   //   Message shell: ValueKey('message-shell-$msgId')
   //   Current-match highlight: ValueKey('search-current-match-highlight')
   //     rendered as a descendant of the matched message shell.
-  //
-  // skip:true — bubble-level current-match decoration is NOT yet
-  // implemented. Text-level highlight via highlightQuery exists, but
-  // no per-bubble visual distinction for the CURRENT match.
   // -----------------------------------------------------------------------
   testWidgets(
     'Current search match has bubble-level highlight (INV-CONV-SEARCH-3)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
