@@ -34,8 +34,9 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
@@ -2767,7 +2768,41 @@ class _ConversationMessageCardState
           ..hideCurrentSnackBar()
           ..showSnackBar(const SnackBar(content: Text('Copied to clipboard.')));
       },
-      onForward: () => Share.share(widget.message.content),
+      onForward: () {
+        final messageContent = widget.message.content;
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ShareTargetPickerPage(
+              onTargetSelected: (target) async {
+                final forwardTarget = target.isChannel
+                    ? ConversationDetailTarget.channel(
+                        ChannelScopeId(
+                          serverId: target.serverId,
+                          value: target.scopeId,
+                        ),
+                      )
+                    : ConversationDetailTarget.directMessage(
+                        DirectMessageScopeId(
+                          serverId: target.serverId,
+                          value: target.scopeId,
+                        ),
+                      );
+                await ref
+                    .read(conversationRepositoryProvider)
+                    .sendMessage(forwardTarget, messageContent);
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(content: Text('Message forwarded')),
+                  );
+              },
+              onCancel: () => Navigator.of(context).pop(),
+            ),
+          ),
+        );
+      },
       onSave: () => notifier.toggleSaveMessage(widget.message.id),
       onPin: () async {
         try {
