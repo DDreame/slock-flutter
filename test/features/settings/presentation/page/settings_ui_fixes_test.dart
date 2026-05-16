@@ -1,13 +1,15 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
-import 'package:slock_app/core/notifications/notification_initializer.dart';
-import 'package:slock_app/core/scope/server_scope_id.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
-import 'package:slock_app/features/profile/data/profile_repository.dart';
-import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
+import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
@@ -191,74 +193,101 @@ void main() {
         findsOneWidget,
       );
 
-      // Primary text: displayName shown correctly.
-      expect(find.text('Alice'), findsAtLeastNWidgets(1),
-          reason: 'Display name must be visible');
+      // Find the secondary text within the account header.
+      // settings_page.dart L62-63 renders session.userId as the subtitle.
+      // With _FakeSessionStoreWithUUID, userId is the UUID below.
+      //
+      // Currently FAILS: the secondary text IS the raw UUID.
+      // Phase B must replace it with displayName or email.
+      final accountHeader =
+          find.byKey(const ValueKey('settings-account-header'));
 
-      // Secondary text: must NOT show raw UUID.
-      // Currently FAILS: settings_page.dart L63 shows session.userId
-      // which is a UUID like "550e8400-e29b-41d4-a716-446655440000".
+      // The secondary text (subtitle) must NOT be a raw UUID.
+      final secondaryTextFinder = find.descendant(
+        of: accountHeader,
+        matching: find.text('550e8400-e29b-41d4-a716-446655440000'),
+      );
       expect(
-        find.text('550e8400-e29b-41d4-a716-446655440000'),
+        secondaryTextFinder,
         findsNothing,
-        reason: 'Account card must NOT show raw userId UUID '
-            '(INV-SETTINGS-1)',
+        reason: 'Account card subtitle must NOT show raw userId UUID — '
+            'should show displayName or email instead (INV-SETTINGS-1)',
       );
 
-      // Should show displayName or email instead.
-      // After Phase B: secondary text should be displayName or email.
+      // The account header must show the displayName prominently.
+      expect(
+        find.descendant(of: accountHeader, matching: find.text('Alice')),
+        findsOneWidget,
+        reason: 'Account card must show displayName',
+      );
     },
   );
 
   // -----------------------------------------------------------------------
-  // 4. Conversation: no static "Pull up to load older messages" text (U3)
+  // 4. Conversation: "Pull up to load older messages" must not appear (U3)
   //
-  // Passes on current codebase when hasOlder is false. The concern is that
-  // the static text provides no interaction affordance — Phase B will
-  // remove it or replace with a tappable "Load earlier" button.
+  // Phase B: Remove the static text from conversation_detail_page.dart
+  //          L887-892, or replace it with a tappable "Load earlier" button.
   //
-  // This test validates the _ConversationHistoryHeader renders
-  // SizedBox.shrink (no text) when hasOlder is false and not loading.
+  // Tests the real ConversationDetailPage with hasOlder: true to verify
+  // the static hint text is present (current behavior).
+  // skip: true — Phase B will remove this text, un-skip to validate.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Conversation: no pull-up hint text when history is complete',
+    'Conversation: no static pull-up hint text when hasOlder is true (U3)',
+    skip: true,
     (tester) async {
-      // This tests that when there's no older history, no misleading
-      // hint text is shown. Build a minimal widget that mimics the
-      // _ConversationHistoryHeader behavior: when hasOlder=false and
-      // not loading and not historyLimited, renders SizedBox.shrink.
-      //
-      // Since _ConversationHistoryHeader is private, we test by
-      // searching for the text in a full page render — but that requires
-      // complex setup. Instead, verify the key contract: the text
-      // "Pull up to load older messages" should not be present in a
-      // conversation with no older history.
-      //
-      // We use a simple stateless widget that represents the expected
-      // post-fix behavior.
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: Center(
-              // The _ConversationHistoryHeader with hasOlder=false
-              // should render SizedBox.shrink, not text.
-              child: SizedBox.shrink(
-                key: ValueKey('conversation-history-complete'),
-              ),
-            ),
-          ),
+      final target = ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'ch-u3',
         ),
       );
 
+      final repo = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-u3',
+              content: 'Test message for U3',
+              createdAt: DateTime.parse('2026-05-16T00:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: true, // <-- triggers the static hint text
+        ),
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            conversationRepositoryProvider.overrideWithValue(repo),
+            sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            home: ConversationDetailPage(target: target),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Currently FAILS: conversation_detail_page.dart L887-892 renders
+      // "Pull up to load older messages" when hasOlder is true.
+      // Phase B must remove this static text or replace with a
+      // tappable control.
       expect(
         find.text('Pull up to load older messages'),
         findsNothing,
-        reason: 'No "Pull up to load older messages" hint when '
-            'history is complete',
-      );
-      expect(
-        find.byKey(const ValueKey('conversation-history-complete')),
-        findsOneWidget,
+        reason: 'Static "Pull up to load older messages" hint must '
+            'not be shown — should use tappable control instead (U3)',
       );
     },
   );
@@ -314,4 +343,140 @@ class _FakeNotificationStore extends NotificationStore {
 
   @override
   Future<void> refreshToken({String? platform}) async {}
+}
+
+/// Fake conversation repository for U3 test (real ConversationDetailPage).
+class _FakeConversationRepository implements ConversationRepository {
+  _FakeConversationRepository({required this.snapshot});
+
+  final ConversationDetailSnapshot snapshot;
+
+  @override
+  Future<ConversationDetailSnapshot> loadConversation(
+    ConversationDetailTarget target,
+  ) async {
+    return snapshot;
+  }
+
+  @override
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+    );
+  }
+
+  @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+      hasNewer: false,
+    );
+  }
+
+  @override
+  Future<String> uploadAttachment(
+    ConversationDetailTarget target,
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
+    return 'attachment-1';
+  }
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content, {
+    List<String>? attachmentIds,
+    String? replyToId,
+    CancelToken? cancelToken,
+  }) async {
+    return ConversationMessageSummary(
+      id: 'sent-1',
+      content: content,
+      createdAt: DateTime.now(),
+      senderType: 'human',
+      messageType: 'message',
+      seq: 999,
+    );
+  }
+
+  @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async {
+    return message;
+  }
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> editMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {}
+
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      [];
+
+  @override
+  Future<void> addReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
 }
