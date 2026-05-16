@@ -13,7 +13,7 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #518: Scroll-to-bottom FAB — Phase A (test-only)
+// #518: Scroll-to-bottom FAB
 //
 // 3 tests for scroll-to-bottom FAB behavior:
 //   INV-FAB-1: offset > 300 from bottom → FAB visible
@@ -22,8 +22,6 @@ import 'package:slock_app/stores/session/session_store.dart';
 //
 // With reverse:true, offset 0 = bottom (newest messages).
 // FAB appears when user scrolls up (offset > 300).
-//
-// skip: true until Phase B adds scroll-to-bottom FAB widget.
 // ---------------------------------------------------------------------------
 
 /// Generate a list of messages large enough to make the list scrollable.
@@ -76,7 +74,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: scroll up past 300px shows scroll-to-bottom FAB (INV-FAB-1)',
-    skip: true,
     (tester) async {
       await pumpScrollableConversation(tester);
 
@@ -115,7 +112,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: at bottom of list FAB is hidden (INV-FAB-2)',
-    skip: true,
     (tester) async {
       await pumpScrollableConversation(tester);
 
@@ -137,7 +133,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: FAB tap scrolls to bottom and hides FAB (INV-FAB-3)',
-    skip: true,
     (tester) async {
       await pumpScrollableConversation(tester);
 
