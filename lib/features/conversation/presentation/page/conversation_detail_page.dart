@@ -861,12 +861,21 @@ class _ConversationDetailScreenState
         next.messages.isNotEmpty) {
       _didApplyInitialLanding = true;
       final targetMsgId = widget.highlightMessageId;
+      // Compute the first unread message ID for auto-scroll.
+      final unreadCount = _unreadCountForTarget(ref, next.target);
+      final firstUnreadMsgId =
+          unreadCount > 0 && unreadCount <= next.messages.length
+              ? next.messages[next.messages.length - unreadCount].id
+              : null;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_scrollController.hasClients) {
           return;
         }
         if (targetMsgId != null) {
           _scrollToMessageId(targetMsgId, next.messages);
+        } else if (firstUnreadMsgId != null) {
+          // Auto-scroll to the first unread message (unread divider area).
+          _scrollToMessageId(firstUnreadMsgId, next.messages);
         } else {
           _scrollController.jumpTo(0);
         }
