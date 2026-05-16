@@ -617,7 +617,10 @@ class _ConversationDetailScreenState
         .read(conversationDetailStoreProvider.notifier)
         .updateViewportOffset(_scrollController.offset);
 
-    if (_scrollController.offset > 80) {
+    // With reverse:true, offset 0 = bottom (newest), maxScrollExtent = top
+    // (oldest). Load older messages when near the top (oldest end).
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    if (_scrollController.offset < maxExtent - 80) {
       return;
     }
 
@@ -696,7 +699,7 @@ class _ConversationDetailScreenState
         if (targetMsgId != null) {
           _scrollToMessageId(targetMsgId, next.messages);
         } else {
-          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          _scrollController.jumpTo(0);
         }
       });
     }
@@ -724,22 +727,23 @@ class _ConversationDetailScreenState
 
   /// Scroll to a specific message by ID.
   ///
-  /// Uses proportional offset estimation: if the target is at index N out of
-  /// total messages, scroll to N/total * maxScrollExtent.
+  /// Uses proportional offset estimation: with reverse:true, position 0 is
+  /// the bottom (newest), maxScrollExtent is the top (oldest / header).
   void _scrollToMessageId(
     String messageId,
     List<ConversationMessageSummary> messages,
   ) {
     final idx = messages.indexWhere((m) => m.id == messageId);
     if (idx < 0) {
-      // Message not loaded — fall back to bottom.
-      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+      // Message not loaded — fall back to bottom (newest).
+      _scrollController.jumpTo(0);
       return;
     }
     final maxExtent = _scrollController.position.maxScrollExtent;
-    // +1 accounts for the header at index 0 in the list view.
-    final estimatedOffset =
-        messages.isEmpty ? 0.0 : (idx + 1) / (messages.length + 1) * maxExtent;
+    // idx 0 = oldest → near maxExtent (top). idx N = newest → near 0 (bottom).
+    final estimatedOffset = messages.isEmpty
+        ? 0.0
+        : (messages.length - idx) / (messages.length + 1) * maxExtent;
     _scrollController.jumpTo(estimatedOffset.clamp(0.0, maxExtent));
   }
 
@@ -832,16 +836,25 @@ class _ConversationMessageList extends StatelessWidget {
     return ListView.separated(
       key: const ValueKey('conversation-success'),
       controller: controller,
+      reverse: true,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(16),
       itemCount: totalCount,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        if (index == 0) {
-          return _ConversationHistoryHeader(state: state);
+        // With reverse:true, index 0 = bottom of screen.
+        // Order: pending (newest first) → messages (newest first) → header.
+        if (index < pendingCount) {
+          final pending = state.pendingMessages[pendingCount - 1 - index];
+          return _PendingMessageCard(
+            key: ValueKey('pending-${pending.localId}'),
+            pending: pending,
+          );
         }
-        final messageIndex = index - 1;
-        if (messageIndex < state.messages.length) {
-          final message = state.messages[messageIndex];
+        final adjustedIndex = index - pendingCount;
+        if (adjustedIndex < state.messages.length) {
+          final message =
+              state.messages[state.messages.length - 1 - adjustedIndex];
           return _ConversationMessageCard(
             target: state.target,
             message: message,
@@ -851,13 +864,8 @@ class _ConversationMessageList extends StatelessWidget {
                 : null,
           );
         }
-        // Pending messages
-        final pendingIndex = messageIndex - state.messages.length;
-        final pending = state.pendingMessages[pendingIndex];
-        return _PendingMessageCard(
-          key: ValueKey('pending-${pending.localId}'),
-          pending: pending,
-        );
+        // Last item (top of screen) = history header.
+        return _ConversationHistoryHeader(state: state);
       },
     );
   }
@@ -2100,6 +2108,7 @@ class _ConversationMessageCard extends ConsumerWidget {
         ) ??
         false;
     if (!confirmed) return;
+    HapticFeedback.mediumImpact();
 
     try {
       await ref
@@ -2212,12 +2221,20 @@ class _MessageLinkedTaskBadge extends StatelessWidget {
   }
 }
 
-/// Shows a confirmation dialog before launching an external URL.
+/// Launches an external URL. For http/https links, launches directly without
+/// confirmation dialog. Non-http schemes show a confirmation dialog first.
 Future<void> _confirmAndLaunchUrl(BuildContext context, String? href) async {
   if (href == null || href.isEmpty) return;
   final uri = Uri.tryParse(href);
   if (uri == null) return;
 
+  // http/https links launch directly — no confirmation needed.
+  if (uri.scheme == 'http' || uri.scheme == 'https') {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+    return;
+  }
+
+  // Non-http schemes (mailto:, tel:, custom://) show confirmation.
   final colors = Theme.of(context).extension<AppColors>()!;
   final confirmed = await showDialog<bool>(
     context: context,
