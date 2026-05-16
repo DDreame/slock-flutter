@@ -2246,7 +2246,7 @@ class _ConversationMessageCardState
               replyTo: message.replyTo!,
               isSelf: visualKind == _ConversationMessageVisualKind.self,
               onTap: onScrollToMessage != null
-                  ? () => onScrollToMessage!(message.replyTo!.id)
+                  ? () => onScrollToMessage(message.replyTo!.id)
                   : null,
             ),
           if (showHeader && visualKind == _ConversationMessageVisualKind.self)
