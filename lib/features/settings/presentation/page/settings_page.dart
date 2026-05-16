@@ -60,7 +60,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        session.userId ?? 'Account details unavailable',
+                        session.displayName ?? 'Account details unavailable',
                         style: AppTypography.bodySmall.copyWith(
                           color: colors.textSecondary,
                         ),

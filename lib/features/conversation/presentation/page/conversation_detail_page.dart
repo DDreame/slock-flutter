@@ -885,12 +885,8 @@ class _ConversationHistoryHeader extends StatelessWidget {
     }
 
     if (state.hasOlder) {
-      return const Center(
+      return const SizedBox.shrink(
         key: ValueKey('conversation-has-older'),
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
-          child: Text('Pull up to load older messages'),
-        ),
       );
     }
 
