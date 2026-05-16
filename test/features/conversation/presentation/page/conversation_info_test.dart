@@ -19,8 +19,12 @@ import 'package:slock_app/stores/session/session_store.dart';
 // conversation detail app bar, and that it contains the expected sections
 // (members, files, pinned messages) for channels and user info for DMs.
 //
+// The production entry point is the existing placeholder IconButton keyed
+// 'conversation-members-toggle' in the conversation detail app bar.
+// Phase B will wire this button to navigate to the info page.
+//
 // Invariants:
-//   INV-CONV-INFO-1: Tap conversation title bar → navigates to info page
+//   INV-CONV-INFO-1: Tap members toggle → navigates to info page
 //   INV-CONV-INFO-2: Info page shows members list section
 //   INV-CONV-INFO-3: Info page shows shared files section
 //   INV-CONV-INFO-4: DM info page shows user profile info
@@ -31,17 +35,17 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   // -----------------------------------------------------------------------
-  // INV-CONV-INFO-1: Tapping the conversation title area in the app bar
+  // INV-CONV-INFO-1: Tapping the members toggle button in the app bar
   // navigates to a ConversationInfoPage.
   //
-  // Setup: Render conversation detail page, tap the title area (keyed
-  // 'conversation-title-tap'). After navigation, a widget keyed
+  // Setup: Render conversation detail page, tap the members toggle (keyed
+  // 'conversation-members-toggle'). After navigation, a widget keyed
   // 'conversation-info-page' should appear.
   //
-  // skip:true — no tap handler on title and no info page exist.
+  // skip:true — onPressed is empty stub and no info page exists.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Tap title bar navigates to conversation info page (INV-CONV-INFO-1)',
+    'Tap members toggle navigates to conversation info page (INV-CONV-INFO-1)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -51,13 +55,14 @@ void main() {
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
 
-      // Title tap target must be present in the app bar.
-      final titleTap = find.byKey(const ValueKey('conversation-title-tap'));
-      expect(titleTap, findsOneWidget,
-          reason: 'Conversation title tap target must be in app bar');
+      // Members toggle must be present in the app bar.
+      final membersToggle =
+          find.byKey(const ValueKey('conversation-members-toggle'));
+      expect(membersToggle, findsOneWidget,
+          reason: 'Members toggle must be in app bar');
 
-      // Tap the title area to navigate.
-      await tester.tap(titleTap);
+      // Tap the members toggle to navigate.
+      await tester.tap(membersToggle);
       await tester.pumpAndSettle();
 
       // Conversation info page must appear.
@@ -91,9 +96,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to info page.
-      final titleTap = find.byKey(const ValueKey('conversation-title-tap'));
-      expect(titleTap, findsOneWidget);
-      await tester.tap(titleTap);
+      final membersToggle =
+          find.byKey(const ValueKey('conversation-members-toggle'));
+      expect(membersToggle, findsOneWidget);
+      await tester.tap(membersToggle);
       await tester.pumpAndSettle();
 
       // Members section must be present.
@@ -127,9 +133,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to info page.
-      final titleTap = find.byKey(const ValueKey('conversation-title-tap'));
-      expect(titleTap, findsOneWidget);
-      await tester.tap(titleTap);
+      final membersToggle =
+          find.byKey(const ValueKey('conversation-members-toggle'));
+      expect(membersToggle, findsOneWidget);
+      await tester.tap(membersToggle);
       await tester.pumpAndSettle();
 
       // Files section must be present.
@@ -167,9 +174,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Navigate to info page.
-      final titleTap = find.byKey(const ValueKey('conversation-title-tap'));
-      expect(titleTap, findsOneWidget);
-      await tester.tap(titleTap);
+      final membersToggle =
+          find.byKey(const ValueKey('conversation-members-toggle'));
+      expect(membersToggle, findsOneWidget);
+      await tester.tap(membersToggle);
       await tester.pumpAndSettle();
 
       // User profile section must be present.
