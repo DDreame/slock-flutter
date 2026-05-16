@@ -35,8 +35,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-MEDIA-3: Swipe down dismisses the viewer (swipe-to-dismiss)
 //
 // INV-1 and INV-2 are active (already pass on production code).
-// INV-3 is skip:true — targets the gap: swipe-to-dismiss gesture
-// (not yet implemented).
+// INV-3 is active — swipe-to-dismiss gesture (Phase B implemented).
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -129,10 +128,10 @@ void main() {
   // content. A vertical drag beyond threshold dismisses the page.
   //
   // skip:true — swipe-to-dismiss gesture is NOT yet implemented.
+  // Phase B — un-skipped (implementation complete).
   // -----------------------------------------------------------------------
   testWidgets(
     'Swipe down dismisses the viewer (INV-MEDIA-3)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshotWithImage(),

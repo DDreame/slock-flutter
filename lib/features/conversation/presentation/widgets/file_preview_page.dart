@@ -49,10 +49,21 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
   bool _sharing = false;
   final List<String> _tempFiles = [];
 
+  // Swipe-to-dismiss state for image viewer.
+  double _dragOffset = 0;
+  final TransformationController _transformationController =
+      TransformationController();
+  static const _dismissThreshold = 150.0;
+
   bool get _isPdf => widget.attachment.type.toLowerCase() == 'application/pdf';
 
   bool get _isImage =>
       _imageMimeTypes.contains(widget.attachment.type.toLowerCase());
+
+  bool get _isAtDefaultScale {
+    final scale = _transformationController.value.getMaxScaleOnAxis();
+    return scale <= 1.05; // epsilon for float comparison
+  }
 
   @override
   void initState() {
@@ -62,6 +73,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
 
   @override
   void dispose() {
+    _transformationController.dispose();
     _cleanupTempFiles();
     super.dispose();
   }
@@ -428,31 +440,54 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       );
     }
 
-    return Center(
-      child: InteractiveViewer(
-        key: const ValueKey('image-viewer-interactive'),
-        minScale: 0.5,
-        maxScale: 4.0,
-        child: Image.network(
-          displayUrl,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stack) {
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.broken_image_outlined,
-                  color: Colors.white54,
-                  size: 48,
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  'Unable to load image.',
-                  style: AppTypography.body.copyWith(color: Colors.white54),
-                ),
-              ],
-            );
-          },
+    return GestureDetector(
+      key: const ValueKey('media-viewer-dismiss-area'),
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragUpdate: (details) {
+        if (!_isAtDefaultScale) return;
+        setState(() => _dragOffset += details.delta.dy);
+      },
+      onVerticalDragEnd: (details) {
+        if (_dragOffset.abs() > _dismissThreshold) {
+          Navigator.of(context).pop();
+        } else {
+          setState(() => _dragOffset = 0);
+        }
+      },
+      child: Transform.translate(
+        offset: Offset(0, _dragOffset),
+        child: Opacity(
+          opacity: (1 - (_dragOffset.abs() / 500)).clamp(0.3, 1.0),
+          child: Center(
+            child: InteractiveViewer(
+              key: const ValueKey('image-viewer-interactive'),
+              transformationController: _transformationController,
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                displayUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stack) {
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Unable to load image.',
+                        style:
+                            AppTypography.body.copyWith(color: Colors.white54),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
         ),
       ),
     );
