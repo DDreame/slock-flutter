@@ -2108,7 +2108,7 @@ class _ConversationMessageCard extends ConsumerWidget {
         ) ??
         false;
     if (!confirmed) return;
-    await HapticFeedback.mediumImpact();
+    HapticFeedback.mediumImpact();
 
     try {
       await ref
