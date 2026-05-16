@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:dio/dio.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
@@ -1528,6 +1527,11 @@ class _ConversationComposer extends StatelessWidget {
                 height: 256,
                 child: EmojiPicker(
                   textEditingController: controller,
+                  onEmojiSelected: (_, __) {
+                    // Sync controller text to store draft so send() sees
+                    // emoji insertions made by the package.
+                    onChanged(controller.text);
+                  },
                   config: Config(
                     height: 256,
                     checkPlatformCompatibility: false,
