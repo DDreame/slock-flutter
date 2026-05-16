@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -77,32 +78,49 @@ void main() {
     '(INV-PERF-1)',
     skip: true,
     (tester) async {
-      await pumpScrollableConversation(tester);
+      final sessionSpy = _CountingSessionStore();
+      final repo = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: ConversationDetailTarget.channel(
+            const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+          ),
+          title: '#general',
+          messages: _generateMessages(50),
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
 
-      // Perform many rapid drags to simulate fast scrolling (10 drags).
-      for (var i = 0; i < 10; i++) {
+      await tester.pumpWidget(
+        _buildConversationAppWithSessionSpy(repo, sessionSpy),
+      );
+      await tester.pumpAndSettle();
+
+      // Reset counter after initial load (which may trigger writes).
+      sessionSpy.saveScrollOffsetCount = 0;
+
+      // Perform many rapid drags to simulate fast scrolling (20 drags,
+      // each 16ms apart ≈ 60fps for ~320ms of scrolling).
+      for (var i = 0; i < 20; i++) {
         await tester.drag(
           find.byKey(const ValueKey('conversation-success')),
-          const Offset(0, 50),
+          const Offset(0, 30),
         );
         await tester.pump(const Duration(milliseconds: 16));
       }
       await tester.pumpAndSettle();
 
-      // Phase B must ensure that despite many scroll events, the
-      // updateViewportOffset call count stays ≤ 10 per second of scrolling.
-      // The throttle timer (100ms debounce) limits the write frequency.
-      //
-      // Verification approach: after Phase B adds the throttle timer,
-      // this test can inspect the session store's saved scroll offset
-      // to confirm writes are batched, not per-frame.
-      //
-      // For now, we verify the conversation list is still functional
-      // after rapid scrolling (no exceptions from throttle logic).
+      // With a 100ms throttle, 320ms of scrolling should produce at most
+      // ~4 writes (320/100 + 1 trailing). Allow ≤ 10 for safety margin.
+      // Without throttle, every scroll event fires a write (20+).
       expect(
-        find.byKey(const ValueKey('conversation-success')),
-        findsOneWidget,
-        reason: 'Conversation list must remain stable after rapid scrolling '
+        sessionSpy.saveScrollOffsetCount,
+        lessThanOrEqualTo(10),
+        reason: 'updateViewportOffset must be throttled to ≤ 10 writes '
+            'during rapid scrolling, not 20+ per-frame writes '
             '(INV-PERF-1)',
       );
     },
@@ -122,41 +140,34 @@ void main() {
     (tester) async {
       await pumpScrollableConversation(tester);
 
-      // Find a visible message card.
+      // Check a specific visible message card (index 49 = newest, at bottom
+      // with reverse:true so it renders first).
       final msgFinder = find.byKey(const ValueKey('message-msg-49'));
       expect(msgFinder, findsOneWidget, reason: 'Message must be rendered');
 
-      // The message card must have a RepaintBoundary ancestor within the
-      // list (not counting the screenshot RepaintBoundary that wraps the
-      // entire list).
-      final listFinder = find.byKey(const ValueKey('conversation-success'));
-      final repaintBoundaries = find.descendant(
-        of: listFinder,
-        matching: find.byType(RepaintBoundary),
+      // Walk up from the message card. The immediate wrapper inside the
+      // ListView must be a RepaintBoundary keyed per message item.
+      // This must NOT be the screenshot RepaintBoundary that wraps the
+      // entire list (which already exists at the Stack level).
+      //
+      // Phase B wraps each _ConversationMessageCard return in itemBuilder
+      // with RepaintBoundary(key: ValueKey('repaint-boundary-${msg.id}')).
+      expect(
+        find.byKey(const ValueKey('repaint-boundary-msg-49')),
+        findsOneWidget,
+        reason: 'Each message must have its own keyed RepaintBoundary '
+            'wrapper (INV-PERF-2)',
       );
 
-      // With 50 messages, there should be at least one RepaintBoundary
-      // per visible message card.
+      // Verify the message card is a descendant of its per-item boundary.
       expect(
-        repaintBoundaries,
-        findsWidgets,
-        reason: 'Message cards must be wrapped in RepaintBoundary '
-            '(INV-PERF-2)',
-      );
-
-      // Verify by checking a specific message has a RepaintBoundary ancestor
-      // between it and the ListView.
-      expect(
-        find.ancestor(
-          of: msgFinder,
-          matching: find.descendant(
-            of: listFinder,
-            matching: find.byType(RepaintBoundary),
-          ),
+        find.descendant(
+          of: find.byKey(const ValueKey('repaint-boundary-msg-49')),
+          matching: msgFinder,
         ),
-        findsWidgets,
-        reason: 'Each message must have a RepaintBoundary ancestor inside '
-            'the list (INV-PERF-2)',
+        findsOneWidget,
+        reason: 'Message card must be inside its own per-item '
+            'RepaintBoundary (INV-PERF-2)',
       );
     },
   );
@@ -237,6 +248,32 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+    ],
+    child: MaterialApp(
+      theme: AppTheme.light,
+      home: ConversationDetailPage(target: target),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+    ),
+  );
+}
+
+Widget _buildConversationAppWithSessionSpy(
+  _FakeConversationRepository repo,
+  _CountingSessionStore sessionSpy,
+) {
+  final target = ConversationDetailTarget.channel(
+    const ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'ch-1',
+    ),
+  );
+
+  return ProviderScope(
+    overrides: [
+      conversationRepositoryProvider.overrideWithValue(repo),
+      sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      conversationDetailSessionStoreProvider.overrideWith(() => sessionSpy),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -397,4 +434,19 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   Future<void> logout() async {}
+}
+
+/// Spy on [ConversationDetailSessionStore] that counts `saveScrollOffset`
+/// calls to verify throttle behavior (INV-PERF-1).
+class _CountingSessionStore extends ConversationDetailSessionStore {
+  int saveScrollOffsetCount = 0;
+
+  @override
+  void saveScrollOffset(
+    ConversationDetailTarget target,
+    double scrollOffset,
+  ) {
+    saveScrollOffsetCount++;
+    super.saveScrollOffset(target, scrollOffset);
+  }
 }
