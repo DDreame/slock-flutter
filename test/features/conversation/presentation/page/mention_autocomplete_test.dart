@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -102,21 +104,30 @@ void main() {
         reason: 'Suggestion overlay must appear after typing @',
       );
 
-      // Tap the first suggestion item.
+      // Tap the first suggestion item and read its label.
       final suggestionFinder =
           find.byKey(const ValueKey('mention-suggestion-0'));
       expect(suggestionFinder, findsOneWidget,
           reason: 'At least one member suggestion must be shown');
+
+      // Read the username from the suggestion before tapping.
+      final suggestionLabel = tester.widget<Text>(
+        find.descendant(of: suggestionFinder, matching: find.byType(Text)),
+      );
+      final selectedUsername = suggestionLabel.data!;
+      expect(selectedUsername.isNotEmpty, isTrue,
+          reason: 'Suggestion label must contain a username');
+
       await tester.tap(suggestionFinder);
       await tester.pumpAndSettle();
 
-      // The composer text must contain '@username ' (with trailing space).
+      // The composer text must be exactly '@selectedUsername '
+      // (with trailing space for continued typing).
       final textField = tester.widget<TextField>(inputFinder);
       final text = textField.controller!.text;
-      expect(text, contains('@'),
-          reason: 'Text must contain @ after suggestion tap');
-      expect(text.endsWith(' '), isTrue,
-          reason: 'Inserted @username must be followed by a space '
+      expect(text, equals('@$selectedUsername '),
+          reason: 'Tapping suggestion must insert exactly '
+              '@$selectedUsername followed by a space '
               '(INV-MENTION-2)');
 
       // Suggestion overlay should be dismissed after selection.
@@ -160,8 +171,49 @@ void main() {
         reason: 'Suggestion overlay must appear after typing @',
       );
 
-      // Now type partial text to filter.
-      await tester.enterText(inputFinder, '@par');
+      // Before filtering, at least 2 suggestions must be visible.
+      expect(
+        find.byKey(const ValueKey('mention-suggestion-0')),
+        findsOneWidget,
+        reason: 'First suggestion must be visible before filtering',
+      );
+      expect(
+        find.byKey(const ValueKey('mention-suggestion-1')),
+        findsOneWidget,
+        reason: 'Second suggestion must be visible before filtering '
+            '(need ≥2 members to test filter)',
+      );
+
+      // Read member names from the unfiltered list to identify a
+      // matching and non-matching member for the filter query.
+      final label0 = tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(const ValueKey('mention-suggestion-0')),
+              matching: find.byType(Text),
+            ),
+          )
+          .data!;
+      final label1 = tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(const ValueKey('mention-suggestion-1')),
+              matching: find.byType(Text),
+            ),
+          )
+          .data!;
+
+      // Pick a filter prefix from label0 (first 3 chars) that does NOT
+      // match label1. If they share a prefix, use a longer portion.
+      final filterPrefix =
+          label0.substring(0, math.min(3, label0.length)).toLowerCase();
+      final label1Lower = label1.toLowerCase();
+      // Sanity: the two labels must differ so filtering is meaningful.
+      expect(label0.toLowerCase(), isNot(equals(label1Lower)),
+          reason: 'Need distinct member names to test filtering');
+
+      // Now type '@<filterPrefix>' to filter.
+      await tester.enterText(inputFinder, '@$filterPrefix');
       await tester.pump();
 
       // Overlay must still be visible (not dismissed by partial text).
@@ -172,14 +224,33 @@ void main() {
             'typing partial match',
       );
 
-      // Filtered suggestions should only show members matching "par".
-      // The overlay content should be reduced compared to unfiltered state.
-      // Phase B determines exact widget keys; we check the overlay
-      // remains visible and the filter text is reflected.
-      final textField = tester.widget<TextField>(inputFinder);
-      expect(textField.controller!.text, equals('@par'),
-          reason: 'Composer must contain the partial @mention text '
-              '(INV-MENTION-3)');
+      // At least one suggestion matching the filter must be visible.
+      // The matching member's name must contain the filter prefix.
+      final filteredSuggestion =
+          find.byKey(const ValueKey('mention-suggestion-0'));
+      expect(filteredSuggestion, findsOneWidget,
+          reason: 'At least one filtered suggestion must remain');
+      final filteredLabel = tester
+          .widget<Text>(
+            find.descendant(
+              of: filteredSuggestion,
+              matching: find.byType(Text),
+            ),
+          )
+          .data!;
+      expect(filteredLabel.toLowerCase(), contains(filterPrefix),
+          reason: 'Visible suggestion must match the filter prefix '
+              '"$filterPrefix" (INV-MENTION-3)');
+
+      // If label1 does not match the filter, it must be absent.
+      if (!label1Lower.contains(filterPrefix)) {
+        expect(
+          find.text(label1),
+          findsNothing,
+          reason: 'Non-matching member "$label1" must be filtered out '
+              'when typing @$filterPrefix (INV-MENTION-3)',
+        );
+      }
     },
   );
 }
