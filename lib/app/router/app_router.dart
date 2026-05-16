@@ -68,6 +68,38 @@ const _publicRoutes = {
   '/settings/base-url',
 };
 
+/// Default transition duration for push/pop page animations.
+const _transitionDuration = Duration(milliseconds: 300);
+
+/// Wraps [child] in a [CustomTransitionPage] with an iOS-style slide-in
+/// transition (right-to-left on push, left-to-right on pop).
+///
+/// Used by push-target routes to provide animated navigation instead of
+/// the instant page swap produced by plain `builder:`.
+CustomTransitionPage<void> _slideTransitionPage({
+  required LocalKey key,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: key,
+    child: child,
+    transitionDuration: _transitionDuration,
+    reverseTransitionDuration: _transitionDuration,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeInOut,
+        )),
+        child: child,
+      );
+    },
+  );
+}
+
 @visibleForTesting
 String? authRedirect(SessionState session, String path) {
   final isSplash = path == '/splash';
@@ -271,38 +303,50 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/settings',
-        builder: (context, state) => const SettingsPage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          child: const SettingsPage(),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/channels/:channelId',
         redirect: syncServerSelection,
-        builder: (context, state) => ChannelPage(
-          serverId: state.pathParameters['serverId']!,
-          channelId: state.pathParameters['channelId']!,
-          highlightMessageId: state.uri.queryParameters['messageId'],
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          child: ChannelPage(
+            serverId: state.pathParameters['serverId']!,
+            channelId: state.pathParameters['channelId']!,
+            highlightMessageId: state.uri.queryParameters['messageId'],
+          ),
         ),
       ),
       GoRoute(
         path: '/servers/:serverId/channels/:channelId/members',
         redirect: syncServerSelection,
-        builder: (context, state) => ChannelMembersPage(
-          serverId: state.pathParameters['serverId']!,
-          channelId: state.pathParameters['channelId']!,
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          child: ChannelMembersPage(
+            serverId: state.pathParameters['serverId']!,
+            channelId: state.pathParameters['channelId']!,
+          ),
         ),
       ),
       GoRoute(
         path: '/servers/:serverId/channels/:channelId/pinned',
         redirect: syncServerSelection,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final target = state.extra as ConversationDetailTarget?;
-          return ProviderScope(
-            overrides: [
-              if (target != null)
-                currentConversationDetailTargetProvider
-                    .overrideWithValue(target),
-            ],
-            child: PinnedMessagesPage(
-              onMessageTap: (id) => context.pop(id),
+          return _slideTransitionPage(
+            key: state.pageKey,
+            child: ProviderScope(
+              overrides: [
+                if (target != null)
+                  currentConversationDetailTargetProvider
+                      .overrideWithValue(target),
+              ],
+              child: PinnedMessagesPage(
+                onMessageTap: (id) => context.pop(id),
+              ),
             ),
           );
         },
@@ -310,9 +354,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/servers/:serverId/channels/:channelId/files',
         redirect: syncServerSelection,
-        builder: (context, state) => ChannelFilesPage(
-          serverId: state.pathParameters['serverId']!,
-          channelId: state.pathParameters['channelId']!,
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          child: ChannelFilesPage(
+            serverId: state.pathParameters['serverId']!,
+            channelId: state.pathParameters['channelId']!,
+          ),
         ),
       ),
       GoRoute(
@@ -325,10 +372,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/servers/:serverId/dms/:channelId',
         redirect: syncServerSelection,
-        builder: (context, state) => MessagesPage(
-          serverId: state.pathParameters['serverId']!,
-          channelId: state.pathParameters['channelId']!,
-          highlightMessageId: state.uri.queryParameters['messageId'],
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          child: MessagesPage(
+            serverId: state.pathParameters['serverId']!,
+            channelId: state.pathParameters['channelId']!,
+            highlightMessageId: state.uri.queryParameters['messageId'],
+          ),
         ),
       ),
       GoRoute(
@@ -346,16 +396,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/servers/:serverId/threads/:threadId/replies',
         redirect: syncServerSelection,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final target = tryParseThreadRouteTarget(state.uri);
-          return ThreadRepliesPage(routeTarget: target);
+          return _slideTransitionPage(
+            key: state.pageKey,
+            child: ThreadRepliesPage(routeTarget: target),
+          );
         },
       ),
       GoRoute(
         path: '/servers/:serverId/tasks',
         redirect: syncServerSelection,
-        builder: (context, state) =>
-            TasksPage(serverId: state.pathParameters['serverId']!),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          child: TasksPage(serverId: state.pathParameters['serverId']!),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/agents',
@@ -385,8 +440,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/servers/:serverId/search',
         redirect: syncServerSelection,
-        builder: (context, state) =>
-            SearchPage(serverId: state.pathParameters['serverId']!),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          child: SearchPage(serverId: state.pathParameters['serverId']!),
+        ),
       ),
       GoRoute(
         path: '/servers/:serverId/settings',
@@ -409,7 +466,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const ProfilePage(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          child: const ProfilePage(),
+        ),
       ),
       GoRoute(
         path: '/profile/:userId',
