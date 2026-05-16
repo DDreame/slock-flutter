@@ -43,7 +43,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap non-system message shows precise timestamp (INV-TIMESTAMP-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -64,7 +63,11 @@ void main() {
       expect(msgShell, findsOneWidget,
           reason: 'Message shell must be rendered');
       await tester.tap(msgShell);
-      await tester.pumpAndSettle();
+      // Advance past the 300ms double-tap window so the deferred single-tap
+      // fires, but NOT past the 3-second auto-dismiss timer.
+      // pumpAndSettle() would advance through all timers (including the 3s
+      // auto-dismiss), hiding the timestamp before the assertion.
+      await tester.pump(const Duration(milliseconds: 500));
 
       // Precise timestamp must appear.
       expect(
@@ -102,7 +105,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Precise timestamp dismisses on second tap (INV-TIMESTAMP-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -114,7 +116,8 @@ void main() {
       // Tap to show timestamp.
       final msgShell = find.byKey(const ValueKey('message-shell-msg-1'));
       await tester.tap(msgShell);
-      await tester.pumpAndSettle();
+      // Advance past 300ms double-tap window but not 3s auto-dismiss.
+      await tester.pump(const Duration(milliseconds: 500));
 
       // Timestamp must be visible.
       expect(
@@ -123,9 +126,14 @@ void main() {
         reason: 'Precise timestamp must appear after first tap',
       );
 
-      // Tap again to dismiss.
+      // Tap again to dismiss. The second tap arrives within 300ms of the
+      // previous tap-timer completing, so it's treated as a fresh single-tap
+      // (not a double-tap). Wait 400ms for the double-tap window to elapse
+      // before the second tap so it's a clean single-tap toggle.
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.tap(msgShell);
-      await tester.pumpAndSettle();
+      // Advance past the 300ms deferred tap window.
+      await tester.pump(const Duration(milliseconds: 500));
 
       // Timestamp must disappear.
       expect(
