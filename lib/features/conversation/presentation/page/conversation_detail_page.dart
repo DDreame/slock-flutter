@@ -617,7 +617,10 @@ class _ConversationDetailScreenState
         .read(conversationDetailStoreProvider.notifier)
         .updateViewportOffset(_scrollController.offset);
 
-    if (_scrollController.offset > 80) {
+    // With reverse:true, offset 0 = bottom (newest), maxScrollExtent = top
+    // (oldest). Load older messages when near the top (oldest end).
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    if (_scrollController.offset < maxExtent - 80) {
       return;
     }
 

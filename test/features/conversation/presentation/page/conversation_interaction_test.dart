@@ -150,11 +150,11 @@ void main() {
       expect(textField.focusNode?.hasFocus ?? false, isTrue,
           reason: 'Composer must have focus after tap');
 
-      // Drag the message list to scroll.
+      // Drag the message list to scroll (positive Y = toward older in reversed list).
       final listFinder = find.byKey(const ValueKey('conversation-success'));
       expect(listFinder, findsOneWidget,
           reason: 'Message list must be visible');
-      await tester.drag(listFinder, const Offset(0, -200));
+      await tester.drag(listFinder, const Offset(0, 200));
       await tester.pumpAndSettle();
 
       // Phase B applied: keyboardDismissBehavior.onDrag dismisses keyboard.
@@ -299,8 +299,8 @@ void main() {
       await tester.longPress(msgFinder);
       await tester.pumpAndSettle();
 
-      // Tap "Delete" in the context menu.
-      final deleteFinder = find.text('Delete');
+      // Tap "Delete message" in the context menu.
+      final deleteFinder = find.text('Delete message');
       expect(deleteFinder, findsOneWidget,
           reason: 'Delete option must be visible for own message');
       await tester.tap(deleteFinder);
