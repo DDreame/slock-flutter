@@ -31,6 +31,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 // ---------------------------------------------------------------------------
 
 /// Test members used across all tests.
+/// member-3 has a multi-word agentName to exercise the mention-safe handle.
 const _testMembers = [
   ChannelMember(
     id: 'member-1',
@@ -48,7 +49,7 @@ const _testMembers = [
     id: 'member-3',
     channelId: 'ch-1',
     agentId: 'agent-bob',
-    agentName: 'Bob',
+    agentName: 'Bob Smith',
   ),
 ];
 
@@ -211,13 +212,66 @@ void main() {
             'when typing @par (INV-MENTION-3)',
       );
 
-      // "Bob" must be filtered out.
+      // "Bob Smith" must be filtered out.
       expect(
-        find.text('Bob'),
+        find.text('Bob Smith'),
         findsNothing,
-        reason: 'Non-matching member "Bob" must be filtered out '
+        reason: 'Non-matching member "Bob Smith" must be filtered out '
             'when typing @par (INV-MENTION-3)',
       );
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-MENTION-4: Multi-word display name → mention-safe handle inserted
+  //
+  // Regression: member with displayName "Bob Smith" must be inserted as
+  // '@BobSmith ' (spaces stripped) so it round-trips through MentionSyntax
+  // which only recognizes @([\w][\w.\-]*).
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Multi-word display name inserts mention-safe handle (INV-MENTION-4)',
+    (tester) async {
+      final repo = _FakeConversationRepository(snapshot: _makeSnapshot());
+
+      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpAndSettle();
+
+      // Type '@bob' to filter to "Bob Smith".
+      final inputFinder = find.byKey(const ValueKey('composer-input'));
+      expect(inputFinder, findsOneWidget);
+      await tester.enterText(inputFinder, '@bob');
+      await tester.pumpAndSettle();
+
+      // Suggestion overlay must appear.
+      expect(
+        find.byKey(const ValueKey('mention-suggestion-overlay')),
+        findsOneWidget,
+        reason: 'Suggestion overlay must appear after typing @bob',
+      );
+
+      // "Bob Smith" must be visible in overlay (displayed by displayName).
+      expect(
+        find.text('Bob Smith'),
+        findsOneWidget,
+        reason: 'Member "Bob Smith" must be visible when filtering by '
+            '"bob"',
+      );
+
+      // Tap the "Bob Smith" suggestion.
+      final suggestionFinder =
+          find.byKey(const ValueKey('mention-suggestion-0'));
+      expect(suggestionFinder, findsOneWidget);
+      await tester.tap(suggestionFinder);
+      await tester.pumpAndSettle();
+
+      // The composer must contain '@BobSmith ' (mention-safe, no space).
+      final textField = tester.widget<TextField>(inputFinder);
+      final text = textField.controller!.text;
+      expect(text, equals('@BobSmith '),
+          reason: 'Multi-word display name "Bob Smith" must be inserted '
+              'as mention-safe handle "@BobSmith" (spaces stripped) so '
+              'it round-trips through MentionSyntax (INV-MENTION-4)');
     },
   );
 }

@@ -567,7 +567,7 @@ class _ConversationDetailScreenState
 
   void _insertMention(ChannelMember member) {
     final text = _composerController.text;
-    final mention = '@${member.displayName} ';
+    final mention = '@${member.mentionHandle} ';
     final before = text.substring(0, _mentionTriggerOffset);
     final cursorOffset = _composerController.selection.baseOffset;
     final after = text.substring(cursorOffset);
