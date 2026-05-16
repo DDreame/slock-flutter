@@ -448,7 +448,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
         setState(() => _dragOffset += details.delta.dy);
       },
       onVerticalDragEnd: (details) {
-        if (_dragOffset.abs() > _dismissThreshold) {
+        if (_dragOffset > _dismissThreshold) {
           Navigator.of(context).pop();
         } else {
           setState(() => _dragOffset = 0);
