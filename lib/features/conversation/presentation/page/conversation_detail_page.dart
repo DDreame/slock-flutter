@@ -904,9 +904,12 @@ DateTime? _dateForItemAt(
   return null;
 }
 
-/// True when [a] and [b] fall on the same calendar day (UTC).
-bool _isSameDay(DateTime a, DateTime b) =>
-    a.year == b.year && a.month == b.month && a.day == b.day;
+/// True when [a] and [b] fall on the same local calendar day.
+bool _isSameDay(DateTime a, DateTime b) {
+  final la = a.toLocal();
+  final lb = b.toLocal();
+  return la.year == lb.year && la.month == lb.month && la.day == lb.day;
+}
 
 class _DateSeparatorWidget extends StatelessWidget {
   const _DateSeparatorWidget({super.key, required this.date});
@@ -937,11 +940,12 @@ class _DateSeparatorWidget extends StatelessWidget {
   }
 
   static String _formatDateLabel(DateTime date) {
+    final local = date.toLocal();
     final now = DateTime.now();
-    if (_isSameDay(date, now)) return 'Today';
+    if (_isSameDay(local, now)) return 'Today';
     final yesterday = now.subtract(const Duration(days: 1));
-    if (_isSameDay(date, yesterday)) return 'Yesterday';
-    return DateFormat.MMMEd().format(date);
+    if (_isSameDay(local, yesterday)) return 'Yesterday';
+    return DateFormat.MMMEd().format(local);
   }
 }
 

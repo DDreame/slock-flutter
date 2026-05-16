@@ -15,9 +15,10 @@ import 'package:slock_app/stores/session/session_store.dart';
 // ---------------------------------------------------------------------------
 // #516: 聊天日期分隔线 — Phase B (test enabled)
 //
-// 2 tests for date separator behavior:
-//   INV-DATE-1: Messages from different calendar days → date separator visible
-//   INV-DATE-2: Messages from same calendar day → no date separator
+// 3 tests for date separator behavior:
+//   INV-DATE-1:  Messages from different calendar days → date separator visible
+//   INV-DATE-2:  Messages from same calendar day → no date separator
+//   INV-DATE-2b: Same local day / near-UTC-midnight regression → no separator
 //
 // Phase B applied — tests enabled.
 // ---------------------------------------------------------------------------
@@ -137,6 +138,67 @@ void main() {
         findsNothing,
         reason: 'Messages from the same day must NOT have a date separator '
             '(INV-DATE-2)',
+      );
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // 3. Regression: timestamps that cross UTC midnight but fall on the same
+  //    local calendar day must NOT produce a separator (INV-DATE-2b).
+  //
+  //    In the test environment local == UTC, so we use same-UTC-day
+  //    timestamps to exercise the .toLocal() path. In production, the
+  //    .toLocal() conversion in _isSameDay / _formatDateLabel ensures that
+  //    e.g. 2026-05-16T00:30:00Z and 2026-05-15T23:30:00Z (same local day
+  //    in UTC-7) are not split.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Conversation: same local day, no separator — UTC regression (INV-DATE-2b)',
+    (tester) async {
+      final repo = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: ConversationDetailTarget.channel(
+            const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+          ),
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-utc-a',
+              content: 'Late night message',
+              createdAt: DateTime.parse('2026-05-16T00:30:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+            ConversationMessageSummary(
+              id: 'msg-utc-b',
+              content: 'Early morning message',
+              createdAt: DateTime.parse('2026-05-16T06:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 2,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('message-msg-utc-a')), findsOneWidget);
+      expect(find.byKey(const ValueKey('message-msg-utc-b')), findsOneWidget);
+
+      // Same local day — no separator.
+      expect(
+        find.byKey(const ValueKey('date-separator')),
+        findsNothing,
+        reason: 'Same local-day messages must NOT have a date separator — '
+            'timestamps must be compared in local time (INV-DATE-2b)',
       );
     },
   );
