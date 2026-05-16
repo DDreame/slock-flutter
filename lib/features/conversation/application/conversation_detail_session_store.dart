@@ -19,6 +19,8 @@ class ConversationDetailSessionEntry {
     required this.hasOlder,
     required this.scrollOffset,
     this.failedPendingMessages = const [],
+    this.draft = '',
+    this.replyToMessage,
   });
 
   final String? title;
@@ -30,6 +32,12 @@ class ConversationDetailSessionEntry {
   /// Failed and queued pending messages preserved across session restore.
   final List<PendingMessage> failedPendingMessages;
 
+  /// Composer draft text preserved across conversation switches.
+  final String draft;
+
+  /// Reply-to context preserved alongside the draft.
+  final ConversationMessageSummary? replyToMessage;
+
   ConversationDetailState toState(ConversationDetailTarget target) {
     return ConversationDetailState(
       target: target,
@@ -39,6 +47,8 @@ class ConversationDetailSessionEntry {
       pendingMessages: failedPendingMessages,
       historyLimited: historyLimited,
       hasOlder: hasOlder,
+      draft: draft,
+      replyToMessage: replyToMessage,
     );
   }
 
@@ -49,6 +59,9 @@ class ConversationDetailSessionEntry {
     bool? hasOlder,
     double? scrollOffset,
     List<PendingMessage>? failedPendingMessages,
+    String? draft,
+    ConversationMessageSummary? replyToMessage,
+    bool clearReplyToMessage = false,
   }) {
     return ConversationDetailSessionEntry(
       title: title ?? this.title,
@@ -58,6 +71,9 @@ class ConversationDetailSessionEntry {
       scrollOffset: scrollOffset ?? this.scrollOffset,
       failedPendingMessages:
           failedPendingMessages ?? this.failedPendingMessages,
+      draft: draft ?? this.draft,
+      replyToMessage:
+          clearReplyToMessage ? null : (replyToMessage ?? this.replyToMessage),
     );
   }
 
@@ -80,6 +96,8 @@ class ConversationDetailSessionEntry {
               ? m.copyWith(status: MessageSendStatus.queued)
               : m)
           .toList(growable: false),
+      draft: state.draft,
+      replyToMessage: state.replyToMessage,
     );
   }
 }
