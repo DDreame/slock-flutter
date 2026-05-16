@@ -16,14 +16,17 @@ import 'package:slock_app/stores/session/session_store.dart';
 // #528: Conversation Search — Phase A
 //
 // Verifies that the conversation app bar has a search button, tapping it
-// shows a search field, and typing a query highlights matching messages.
+// shows a search field, and typing a query highlights the current match
+// message with a bubble-level decoration.
 //
 // Invariants:
 //   INV-CONV-SEARCH-1: Search button visible in conversation app bar
 //   INV-CONV-SEARCH-2: Tap search button → search field appears
-//   INV-CONV-SEARCH-3: Typing query → matching messages highlighted
+//   INV-CONV-SEARCH-3: Current search match has bubble-level highlight
 //
-// Phase A — all tests skip:true (no implementation yet).
+// INV-1 and INV-2 are active (already pass on production code).
+// INV-3 is skip:true — targets the gap: current-match bubble decoration
+// (not yet implemented).
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -35,7 +38,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Search button visible in conversation app bar (INV-CONV-SEARCH-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -63,7 +65,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap search button shows search field (INV-CONV-SEARCH-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -104,14 +105,22 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
-  // INV-CONV-SEARCH-3: Typing a query filters/highlights matching messages.
+  // INV-CONV-SEARCH-3: Current search match has bubble-level highlight.
   //
-  // Setup: 3 messages with known content. Type a query that matches one
-  // message. The match count must show "1/N" and the matching message
-  // must have searchMatchIds populated.
+  // Typing a query that matches one message must:
+  // (a) render a highlight decoration on the current-match message bubble
+  //     (keyed 'search-current-match-$msgId')
+  // (b) NOT render that decoration on non-matching messages
+  //
+  // Production key for current match wrapper:
+  //   ValueKey('search-current-match-$msgId')
+  //
+  // skip:true — bubble-level current-match decoration is NOT yet
+  // implemented. Text-level highlight via highlightQuery exists, but
+  // no per-bubble visual distinction for the CURRENT match.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Typing query highlights matching messages (INV-CONV-SEARCH-3)',
+    'Current search match has bubble-level highlight (INV-CONV-SEARCH-3)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -133,17 +142,31 @@ void main() {
           find.byKey(const ValueKey('conversation-search-input'));
       expect(searchInput, findsOneWidget);
 
-      // Type a query that matches "Hello world" (msg-1).
+      // Type a query that matches "Hello world" (msg-1 only).
       await tester.enterText(searchInput, 'Hello');
       await tester.pumpAndSettle();
 
-      // Match count indicator must show "1/1" (only msg-1 matches).
-      // The search bar shows "${currentMatch + 1}/$matchCount".
+      // Current-match message (msg-1) must have a bubble-level highlight
+      // decoration widget keyed 'search-current-match-msg-1'.
       expect(
-        find.text('1/1'),
+        find.byKey(const ValueKey('search-current-match-msg-1')),
         findsOneWidget,
-        reason: 'Match count must show 1/1 for query "Hello" which '
-            'matches exactly one message (INV-CONV-SEARCH-3)',
+        reason: 'Current search match (msg-1) must have bubble-level '
+            'highlight decoration (INV-CONV-SEARCH-3)',
+      );
+
+      // Non-matching messages must NOT have the decoration.
+      expect(
+        find.byKey(const ValueKey('search-current-match-msg-2')),
+        findsNothing,
+        reason: 'Non-matching message (msg-2) must not have '
+            'current-match highlight',
+      );
+      expect(
+        find.byKey(const ValueKey('search-current-match-msg-3')),
+        findsNothing,
+        reason: 'Non-matching message (msg-3) must not have '
+            'current-match highlight',
       );
     },
   );
