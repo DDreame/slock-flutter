@@ -45,7 +45,6 @@ void main() {
   // -----------------------------------------------------------------------
   test(
     'Draft text survives session roundtrip (INV-DRAFT-1)',
-    skip: true,
     () {
       final state = ConversationDetailState(
         target: _target,
@@ -113,7 +112,6 @@ void main() {
   // -----------------------------------------------------------------------
   test(
     'replyToMessage survives session roundtrip with draft (INV-DRAFT-3)',
-    skip: true,
     () {
       final replyTarget = _makeMessage('msg-1', 'Original message');
 
