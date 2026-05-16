@@ -140,8 +140,9 @@ void main() {
   // INV-QUOTE-JUMP-3: After a quote-jump, normal scrolling continues
   // to work (the scroll controller is not in a broken state).
   //
-  // Setup: 5 messages with reply. Tap quoted block to jump, then verify
-  // the scroll controller is still attached and can scroll.
+  // Setup: 5 messages with reply. Record scroll offset before tap,
+  // tap quoted block to jump (offset changes), then perform a drag
+  // gesture to prove the Scrollable still responds post-jump.
   //
   // Active — basic scrolling should continue working after jumpTo.
   // -----------------------------------------------------------------------
@@ -155,12 +156,12 @@ void main() {
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
 
-      // Verify messages are rendered.
-      expect(
-        find.byKey(const ValueKey('repaint-boundary-msg-5')),
-        findsOneWidget,
-        reason: 'msg-5 must be rendered',
-      );
+      // Find the scrollable list.
+      final scrollable = find.byType(Scrollable).first;
+
+      // Record scroll offset before quote-jump.
+      final scrollPosition = tester.state<ScrollableState>(scrollable).position;
+      final offsetBeforeTap = scrollPosition.pixels;
 
       // Tap quoted block to trigger a jump.
       final quotedBlock = find.byKey(const ValueKey('quoted-msg-5'));
@@ -168,13 +169,25 @@ void main() {
       await tester.tap(quotedBlock);
       await tester.pumpAndSettle();
 
-      // After the jump, the message list should still render messages
-      // (not a blank/error state).
+      // Scroll offset must have changed after the quote-jump.
+      final offsetAfterTap = scrollPosition.pixels;
       expect(
-        find.byKey(const ValueKey('repaint-boundary-msg-1')),
-        findsOneWidget,
-        reason: 'Messages must still be rendered after quote-jump '
-            '(INV-QUOTE-JUMP-3)',
+        offsetAfterTap,
+        isNot(equals(offsetBeforeTap)),
+        reason: 'Scroll offset must change after tapping quoted block '
+            '(proving the jump happened) (INV-QUOTE-JUMP-3)',
+      );
+
+      // Perform a drag gesture to prove scrolling still works post-jump.
+      await tester.drag(scrollable, const Offset(0, -100));
+      await tester.pumpAndSettle();
+
+      final offsetAfterDrag = scrollPosition.pixels;
+      expect(
+        offsetAfterDrag,
+        isNot(equals(offsetAfterTap)),
+        reason: 'Scroll offset must change after drag gesture post-jump, '
+            'proving the Scrollable still responds (INV-QUOTE-JUMP-3)',
       );
     },
   );
