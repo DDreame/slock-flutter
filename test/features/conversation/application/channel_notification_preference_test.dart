@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,8 +11,11 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -147,9 +152,10 @@ void main() {
   // `channelId` from the notification payload. Phase B will add a
   // per-channel check alongside the global preference check.
   //
-  // Setup: Configure per-channel mute for 'ch-1'. Simulate a
-  // notification payload with channelId='ch-1'. Assert the notification
-  // is suppressed (showLocalNotification not called).
+  // Setup: Create ProviderContainer with _FakeNotificationInitializer
+  // (same pattern as notification_foreground_suppression_binding_test).
+  // Configure per-channel mute for 'ch-1'. Push a notification payload
+  // with channelId='ch-1'. Assert showLocalNotification is NOT called.
   //
   // skip:true — no per-channel suppression logic exists.
   // -----------------------------------------------------------------------
@@ -157,38 +163,46 @@ void main() {
     'Muted channel suppresses local notifications (INV-MUTE-3)',
     skip: true,
     () async {
-      // Phase B will:
-      // 1. Create ChannelNotificationPreferenceRepository with
-      //    mute=true for channel 'ch-1' on server 'server-1'
-      // 2. Wire it into notificationForegroundSuppressionBindingProvider
-      //    and realtimeNotificationBridgeProvider
-      // 3. Simulate incoming notification payload:
-      //    {'channelId': 'ch-1', 'senderId': 'other-user', ...}
-      // 4. Assert showLocalNotification is NOT called
-      //
-      // The test will use the existing test pattern from
-      // notification_foreground_suppression_binding_test.dart which
-      // already mocks the notification initializer and captures
-      // showLocalNotification calls.
+      // Use real suppression binding test pattern: FakeNotificationInitializer
+      // captures showLocalNotification calls via displayedPayloads list.
+      final fakeInitializer = _FakeNotificationInitializer();
 
-      SharedPreferences.setMockInitialValues({
-        'channel_notif_pref_server-1_ch-1': 'mute',
+      final container = ProviderContainer(
+        overrides: [
+          notificationInitializerProvider.overrideWithValue(fakeInitializer),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          // Phase B: add channelNotificationPreferenceProvider override
+          // with mute=true for channel 'ch-1' on server 'server-1'.
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await fakeInitializer.foregroundController.close();
       });
-      final prefs = await SharedPreferences.getInstance();
 
-      // Verify the per-channel mute state is readable.
-      final storedValue = prefs.getString('channel_notif_pref_server-1_ch-1');
-      expect(storedValue, equals('mute'),
-          reason: 'Per-channel mute must be readable from storage');
+      // Activate the suppression binding (same as production).
+      container.read(notificationForegroundSuppressionBindingProvider);
 
-      // Phase B assertion: after processing a notification payload with
-      // channelId='ch-1', the suppression binding should NOT call
-      // showLocalNotification. This requires wiring the per-channel
-      // preference into the suppression provider chain.
-      final parsed = NotificationPreference.fromStorageValue(storedValue);
-      expect(parsed, equals(NotificationPreference.mute),
-          reason: 'Muted channel must suppress local notifications '
-              '(INV-MUTE-3)');
+      // Simulate incoming notification for muted channel 'ch-1'.
+      fakeInitializer.foregroundController.add({
+        'type': 'channel',
+        'serverId': 'server-1',
+        'channelId': 'ch-1',
+        'title': 'New message in #general',
+        'body': 'Hello world',
+        'senderId': 'other-user',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      // Per-channel mute must suppress the notification.
+      // Phase B will wire the per-channel preference into the suppression
+      // provider chain so this assertion passes.
+      expect(
+        fakeInitializer.displayedPayloads,
+        isEmpty,
+        reason: 'Notification for muted channel must be suppressed '
+            '(INV-MUTE-3)',
+      );
     },
   );
 
@@ -196,44 +210,60 @@ void main() {
   // INV-MUTE-4: The conversation list shows a visual indicator (mute
   // icon) for muted channels.
   //
-  // Setup: Render the channels tab page with a muted channel. The
-  // channel row (keyed 'channels-tab-{scopeId}') must contain a mute
-  // indicator icon (Icons.notifications_off or similar).
+  // Setup: Render a HomeChannelRow with a muted channel. The row
+  // (keyed 'channels-tab-{scopeId.routeParam}' in production) must
+  // contain a mute indicator icon (Icons.notifications_off).
   //
-  // The production channel row widget is HomeChannelRow, rendered
-  // inside ChannelsTabPage with key 'channels-tab-{scopeId.routeParam}'.
-  // Phase B will add a mute icon to HomeChannelRow when the channel's
-  // per-channel preference is mute.
+  // HomeChannelRow is the real production widget used in
+  // ChannelsTabPage._buildChannelRow. Phase B will add a mute icon
+  // when the channel's per-channel preference is mute.
   //
-  // skip:true — no mute visual indicator exists.
+  // skip:true — no mute visual indicator exists in HomeChannelRow.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Muted channel shows mute indicator in channel row (INV-MUTE-4)',
+    'Muted channel shows mute indicator in HomeChannelRow (INV-MUTE-4)',
     skip: true,
     (tester) async {
-      final repo = _FakeConversationRepository(
-        snapshot: _makeChannelSnapshot(),
+      // Render a HomeChannelRow for a muted channel.
+      const channel = HomeChannelSummary(
+        scopeId: ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'ch-1',
+        ),
+        name: 'general',
+        isPrivate: false,
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: HomeChannelRow(
+              key: ValueKey('channels-tab-${channel.scopeId.value}'),
+              channel: channel,
+              onTap: () {},
+              // Phase B: add isMuted parameter or read from provider
+            ),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
-      // Phase B will render the channels tab and check for a mute
-      // indicator icon within the channel row. The channel row key
-      // pattern is 'channels-tab-{scopeId.routeParam}'.
-      //
-      // For now, verify the conversation detail page renders and
-      // assert the production key pattern for the channel row that
-      // Phase B will augment with a mute indicator.
-      //
-      // After Phase B: navigate to channels tab, find the channel row,
-      // and verify it contains Icons.notifications_off.
-      final muteIcon = find.byIcon(Icons.notifications_off);
+      // Mute indicator icon must be present within the channel row.
+      final channelRow =
+          find.byKey(ValueKey('channels-tab-${channel.scopeId.value}'));
+      expect(channelRow, findsOneWidget,
+          reason: 'Channel row must be rendered');
+
+      final muteIcon = find.descendant(
+        of: channelRow,
+        matching: find.byIcon(Icons.notifications_off),
+      );
       expect(
         muteIcon,
         findsOneWidget,
         reason: 'Muted channel row must show notifications_off icon '
-            'in the conversation list (INV-MUTE-4)',
+            '(INV-MUTE-4)',
       );
     },
   );
@@ -439,4 +469,58 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   Future<void> logout() async {}
+}
+
+// ---------------------------------------------------------------------------
+// Notification fakes (same pattern as
+// notification_foreground_suppression_binding_test.dart)
+// ---------------------------------------------------------------------------
+
+class _FakeNotificationInitializer implements NotificationInitializer {
+  final StreamController<Map<String, dynamic>> foregroundController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final List<Map<String, dynamic>> displayedPayloads = [];
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<NotificationPermissionStatus> requestPermission() async =>
+      NotificationPermissionStatus.unknown;
+
+  @override
+  Future<NotificationPermissionStatus> getPermissionStatus() async =>
+      NotificationPermissionStatus.unknown;
+
+  @override
+  Future<String?> getToken() async => null;
+
+  @override
+  Future<Map<String, dynamic>?> getInitialNotification() async => null;
+
+  @override
+  Stream<Map<String, dynamic>> get onNotificationTapped => const Stream.empty();
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage =>
+      foregroundController.stream;
+
+  @override
+  Stream<String> get onTokenChanged => const Stream.empty();
+
+  @override
+  Future<void> showLocalNotification(Map<String, dynamic> payload) async {
+    displayedPayloads.add(payload);
+  }
+}
+
+class _FakeSecureStorage implements SecureStorage {
+  @override
+  Future<String?> read({required String key}) async => null;
+
+  @override
+  Future<void> write({required String key, required String value}) async {}
+
+  @override
+  Future<void> delete({required String key}) async {}
 }
