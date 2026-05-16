@@ -180,7 +180,7 @@ void main() {
   testWidgets(
     'push-target routes use CustomTransitionPage with non-zero '
     'transitionDuration (INV-TRANSITION-1)',
-    skip: true,
+    skip: false,
     (tester) async {
       // Need tester.pumpWidget for a valid BuildContext.
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
@@ -228,7 +228,7 @@ void main() {
   testWidgets(
     'push-target routes use CustomTransitionPage with non-zero '
     'reverseTransitionDuration (INV-TRANSITION-2)',
-    skip: true,
+    skip: false,
     (tester) async {
       await tester.pumpWidget(const MaterialApp(home: SizedBox()));
       final context = tester.element(find.byType(SizedBox));
