@@ -128,6 +128,7 @@ class _ConversationDetailScreenState
   double? _olderLoadAnchorMaxExtent;
   final GlobalKey _screenshotBoundaryKey = GlobalKey();
   bool _isFormattingToolbarVisible = false;
+  bool _showScrollToBottom = false;
 
   // Voice recording.
   VoiceRecorderService? _voiceRecorder;
@@ -365,13 +366,42 @@ class _ConversationDetailScreenState
                         minHeight: 2,
                       ),
                     Expanded(
-                      child: RepaintBoundary(
-                        key: _screenshotBoundaryKey,
-                        child: _ConversationMessageList(
-                          controller: _scrollController,
-                          state: state,
-                          onScrollToMessage: _scrollToMessageId,
-                        ),
+                      child: Stack(
+                        children: [
+                          RepaintBoundary(
+                            key: _screenshotBoundaryKey,
+                            child: _ConversationMessageList(
+                              controller: _scrollController,
+                              state: state,
+                              onScrollToMessage: _scrollToMessageId,
+                            ),
+                          ),
+                          Positioned(
+                            right: 16,
+                            bottom: 16,
+                            child: AnimatedOpacity(
+                              opacity: _showScrollToBottom ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: IgnorePointer(
+                                ignoring: !_showScrollToBottom,
+                                child: FloatingActionButton.small(
+                                  key: const ValueKey('scroll-to-bottom-fab'),
+                                  onPressed: () {
+                                    _scrollController.animateTo(
+                                      0,
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeOut,
+                                    );
+                                  },
+                                  child: const Icon(
+                                    Icons.keyboard_double_arrow_down,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -612,6 +642,15 @@ class _ConversationDetailScreenState
   void _handleScroll() {
     if (!_scrollController.hasClients) {
       return;
+    }
+
+    // Show/hide scroll-to-bottom FAB based on scroll offset.
+    // With reverse:true, offset 0 = bottom (newest), offset > 300 = scrolled up.
+    final shouldShow = _scrollController.offset > 300;
+    if (shouldShow != _showScrollToBottom) {
+      setState(() {
+        _showScrollToBottom = shouldShow;
+      });
     }
 
     ref
