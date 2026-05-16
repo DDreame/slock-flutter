@@ -31,6 +31,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-UNREAD-DIV-3: No divider when unreadCount = 0
 //
 // Phase A — all tests skip:true (no implementation yet).
+// Phase B — all tests un-skipped (implementation complete).
 // ---------------------------------------------------------------------------
 
 /// Channel scope ID used across all tests.
@@ -50,7 +51,6 @@ void main() {
   testWidgets(
     'Unread divider visible when conversation has unread messages '
     '(INV-UNREAD-DIV-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(messageCount: 5),
@@ -94,7 +94,6 @@ void main() {
   testWidgets(
     'Divider positioned between last read and first unread message '
     '(INV-UNREAD-DIV-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(messageCount: 5),
@@ -111,12 +110,12 @@ void main() {
           reason: 'Unread divider must be present');
 
       // msg-3 (last read) must be rendered.
-      final msg3Finder = find.byKey(const ValueKey('message-msg-3'));
+      final msg3Finder = find.byKey(const ValueKey('repaint-boundary-msg-3'));
       expect(msg3Finder, findsOneWidget,
           reason: 'Last read message (msg-3) must be rendered');
 
       // msg-4 (first unread) must be rendered.
-      final msg4Finder = find.byKey(const ValueKey('message-msg-4'));
+      final msg4Finder = find.byKey(const ValueKey('repaint-boundary-msg-4'));
       expect(msg4Finder, findsOneWidget,
           reason: 'First unread message (msg-4) must be rendered');
 
@@ -154,7 +153,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'No divider when all messages are read (INV-UNREAD-DIV-3)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(messageCount: 5),
@@ -167,7 +165,7 @@ void main() {
 
       // Messages must be rendered (sanity check).
       expect(
-        find.byKey(const ValueKey('message-msg-1')),
+        find.byKey(const ValueKey('repaint-boundary-msg-1')),
         findsOneWidget,
         reason: 'Messages must be rendered',
       );
