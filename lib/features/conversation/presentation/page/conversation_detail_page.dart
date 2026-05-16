@@ -1185,6 +1185,36 @@ class _UnreadDivider extends StatelessWidget {
   }
 }
 
+/// Precise timestamp label shown below a message bubble when tapped.
+/// Displays the full date and time in HH:mm:ss format.
+class _PreciseTimestampLabel extends StatelessWidget {
+  const _PreciseTimestampLabel({required this.createdAt});
+
+  final DateTime createdAt;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final local = createdAt.toLocal();
+    final formatted = '${local.year}-${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')} '
+        '${local.hour.toString().padLeft(2, '0')}:'
+        '${local.minute.toString().padLeft(2, '0')}:'
+        '${local.second.toString().padLeft(2, '0')}';
+    return Padding(
+      key: const ValueKey('precise-timestamp'),
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        formatted,
+        style: AppTypography.caption.copyWith(
+          color: colors.textSecondary,
+          fontSize: 11,
+        ),
+      ),
+    );
+  }
+}
+
 /// Normalizes a [DateTime] to the user's local timezone for day-boundary
 /// comparison. Override in tests to simulate non-UTC timezones.
 @visibleForTesting
@@ -2041,7 +2071,7 @@ _ConversationMessageVisualKind _resolveConversationMessageVisualKind(
 /// Maximum bubble width as a fraction of available space.
 const _bubbleMaxWidthFraction = 0.78;
 
-class _ConversationMessageCard extends ConsumerWidget {
+class _ConversationMessageCard extends ConsumerStatefulWidget {
   const _ConversationMessageCard({
     required this.target,
     required this.message,
@@ -2061,7 +2091,42 @@ class _ConversationMessageCard extends ConsumerWidget {
   final ValueChanged<String>? onScrollToMessage;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ConversationMessageCard> createState() =>
+      _ConversationMessageCardState();
+}
+
+class _ConversationMessageCardState
+    extends ConsumerState<_ConversationMessageCard> {
+  bool _showPreciseTimestamp = false;
+  Timer? _timestampTimer;
+
+  @override
+  void dispose() {
+    _timestampTimer?.cancel();
+    super.dispose();
+  }
+
+  void _togglePreciseTimestamp() {
+    setState(() {
+      _showPreciseTimestamp = !_showPreciseTimestamp;
+    });
+    _timestampTimer?.cancel();
+    if (_showPreciseTimestamp) {
+      _timestampTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _showPreciseTimestamp = false);
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final message = widget.message;
+    final target = widget.target;
+    final maxBubbleWidth = widget.maxBubbleWidth;
+    final showHeader = widget.showHeader;
+    final highlightQuery = widget.highlightQuery;
+    final isCurrentSearchMatch = widget.isCurrentSearchMatch;
+    final onScrollToMessage = widget.onScrollToMessage;
     final timestamp = formatRelativeTime(message.createdAt);
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
@@ -2411,6 +2476,8 @@ class _ConversationMessageCard extends ConsumerWidget {
                 currentUserId: ref.watch(sessionStoreProvider).userId,
               ),
               threadIndicator,
+              if (_showPreciseTimestamp)
+                _PreciseTimestampLabel(createdAt: message.createdAt),
             ],
           ),
         ),
@@ -2446,7 +2513,9 @@ class _ConversationMessageCard extends ConsumerWidget {
     if (isNonSystem) {
       return MessageGestureWrapper(
         enablePressFeedback: enableTapToThread,
-        onTap: enableTapToThread ? () => _navigateToThread(context) : null,
+        onTap: enableTapToThread
+            ? () => _navigateToThread(context)
+            : _togglePreciseTimestamp,
         onDoubleTap: () => _quickReact(context, ref),
         enableSwipeReply: !message.content.contains('```'),
         onSwipeReply: () => ref
@@ -2469,7 +2538,7 @@ class _ConversationMessageCard extends ConsumerWidget {
     try {
       await ref
           .read(conversationDetailStoreProvider.notifier)
-          .addReaction(message.id, '👍');
+          .addReaction(widget.message.id, '👍');
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
@@ -2530,7 +2599,7 @@ class _ConversationMessageCard extends ConsumerWidget {
   ) {
     final isOwn = visualKind == _ConversationMessageVisualKind.self;
     final notifier = ref.read(conversationDetailStoreProvider.notifier);
-    final isChannel = target.surface == ConversationSurface.channel;
+    final isChannel = widget.target.surface == ConversationSurface.channel;
 
     // Show translate action when translation mode is not off.
     final translationMode =
@@ -2539,26 +2608,26 @@ class _ConversationMessageCard extends ConsumerWidget {
 
     showMessageContextMenu(
       context: context,
-      message: message,
+      message: widget.message,
       isOwn: isOwn,
       isSaved: isSaved,
       isChannel: isChannel,
-      onReply: () => notifier.setReplyTo(message),
+      onReply: () => notifier.setReplyTo(widget.message),
       onReact: () => _showEmojiPicker(context, ref),
       onCopy: () {
-        Clipboard.setData(ClipboardData(text: message.content));
+        Clipboard.setData(ClipboardData(text: widget.message.content));
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(const SnackBar(content: Text('Copied to clipboard.')));
       },
-      onForward: () => Share.share(message.content),
-      onSave: () => notifier.toggleSaveMessage(message.id),
+      onForward: () => Share.share(widget.message.content),
+      onSave: () => notifier.toggleSaveMessage(widget.message.id),
       onPin: () async {
         try {
-          if (message.isPinned) {
-            await notifier.unpinMessage(message.id);
+          if (widget.message.isPinned) {
+            await notifier.unpinMessage(widget.message.id);
           } else {
-            await notifier.pinMessage(message.id);
+            await notifier.pinMessage(widget.message.id);
           }
         } on AppFailure catch (failure) {
           if (!context.mounted) return;
@@ -2567,7 +2636,7 @@ class _ConversationMessageCard extends ConsumerWidget {
             ..showSnackBar(
               SnackBar(
                 content: Text(failure.message ??
-                    'Failed to ${message.isPinned ? 'unpin' : 'pin'} message.'),
+                    'Failed to ${widget.message.isPinned ? 'unpin' : 'pin'} message.'),
               ),
             );
         }
@@ -2578,10 +2647,10 @@ class _ConversationMessageCard extends ConsumerWidget {
           ? () {
               context.push(
                 ThreadRouteTarget(
-                  serverId: target.serverId.value,
-                  parentChannelId: target.conversationId,
-                  parentMessageId: message.id,
-                  threadChannelId: message.threadId,
+                  serverId: widget.target.serverId.value,
+                  parentChannelId: widget.target.conversationId,
+                  parentMessageId: widget.message.id,
+                  threadChannelId: widget.message.threadId,
                 ).toLocation(),
               );
             }
@@ -2591,7 +2660,7 @@ class _ConversationMessageCard extends ConsumerWidget {
       onTranslate: canTranslate
           ? () => ref
               .read(translationCacheStoreProvider.notifier)
-              .translateMessage(message.id)
+              .translateMessage(widget.message.id)
           : null,
     );
   }
@@ -2600,11 +2669,11 @@ class _ConversationMessageCard extends ConsumerWidget {
     await showDialog<void>(
       context: context,
       builder: (_) => _EditMessageDialog(
-        initialContent: message.content,
+        initialContent: widget.message.content,
         onSave: (newContent) async {
           await ref
               .read(conversationDetailStoreProvider.notifier)
-              .editMessage(message.id, newContent);
+              .editMessage(widget.message.id, newContent);
         },
       ),
     );
@@ -2620,7 +2689,7 @@ class _ConversationMessageCard extends ConsumerWidget {
     try {
       await ref
           .read(conversationDetailStoreProvider.notifier)
-          .addReaction(message.id, emoji);
+          .addReaction(widget.message.id, emoji);
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
@@ -2636,10 +2705,10 @@ class _ConversationMessageCard extends ConsumerWidget {
   void _navigateToThread(BuildContext context) {
     context.push(
       ThreadRouteTarget(
-        serverId: target.serverId.value,
-        parentChannelId: target.conversationId,
-        parentMessageId: message.id,
-        threadChannelId: message.threadId,
+        serverId: widget.target.serverId.value,
+        parentChannelId: widget.target.conversationId,
+        parentMessageId: widget.message.id,
+        threadChannelId: widget.message.threadId,
       ).toLocation(),
     );
   }
@@ -2673,7 +2742,7 @@ class _ConversationMessageCard extends ConsumerWidget {
     try {
       await ref
           .read(conversationDetailStoreProvider.notifier)
-          .deleteMessage(message.id);
+          .deleteMessage(widget.message.id);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
@@ -2697,8 +2766,8 @@ class _ConversationMessageCard extends ConsumerWidget {
     try {
       final repo = ref.read(tasksRepositoryProvider);
       await repo.convertMessageToTask(
-        target.serverId,
-        messageId: message.id,
+        widget.target.serverId,
+        messageId: widget.message.id,
       );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)

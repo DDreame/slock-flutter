@@ -43,7 +43,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap non-system message shows precise timestamp (INV-TIMESTAMP-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -102,7 +101,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Precise timestamp dismisses on second tap (INV-TIMESTAMP-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
