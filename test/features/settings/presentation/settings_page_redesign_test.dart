@@ -89,7 +89,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(ProfileAvatar), findsOneWidget);
-      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Alice'), findsNWidgets(2));
     });
 
     testWidgets('settings groups use SectionCard instead of raw Card', (
