@@ -5,7 +5,8 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 enum InboxFilter {
   all,
   unread,
-  mentions;
+  mentions,
+  dms;
 
   String get queryValue {
     switch (this) {
@@ -15,6 +16,8 @@ enum InboxFilter {
         return 'unread';
       case InboxFilter.mentions:
         return 'mentions';
+      case InboxFilter.dms:
+        return 'dms';
     }
   }
 }

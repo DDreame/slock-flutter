@@ -107,7 +107,7 @@ void main() {
   testWidgets(
     'Inbox: DMs tab filters to only DM source items '
     '(INV-FILTER-2)',
-    skip: true,
+    skip: false,
     (tester) async {
       final repo = _FakeInboxRepository();
       repo.items = [
@@ -248,6 +248,8 @@ class _FakeInboxRepository implements InboxRepository {
     final filtered = switch (filter) {
       InboxFilter.unread => items.where((i) => i.unreadCount > 0).toList(),
       InboxFilter.mentions => items.where((i) => i.isMentioned).toList(),
+      InboxFilter.dms =>
+        items.where((i) => i.kind == InboxItemKind.dm).toList(),
       InboxFilter.all => items,
     };
     return InboxResponse(

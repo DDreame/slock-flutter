@@ -282,10 +282,12 @@ class _FakeInboxRepository implements InboxRepository {
         hasMore: false,
       );
     }
-    // Filter-aware: simulate server-side filtering for unread/mentions.
+    // Filter-aware: simulate server-side filtering for unread/mentions/dms.
     final filtered = switch (filter) {
       InboxFilter.unread => items.where((i) => i.unreadCount > 0).toList(),
       InboxFilter.mentions => items.where((i) => i.isMentioned).toList(),
+      InboxFilter.dms =>
+        items.where((i) => i.kind == InboxItemKind.dm).toList(),
       InboxFilter.all => items,
     };
     return InboxResponse(
