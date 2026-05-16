@@ -1876,8 +1876,9 @@ class _ConversationMessageCard extends ConsumerWidget {
     );
 
     // Sender label is placed ABOVE the bubble for other/agent messages.
+    // Hidden when message is grouped (showHeader == false).
     Widget senderLabelWidget = const SizedBox.shrink();
-    if (showSenderLabel) {
+    if (showSenderLabel && showHeader) {
       senderLabelWidget = Padding(
         key: const ValueKey('sender-label-row'),
         padding: const EdgeInsets.only(bottom: AppSpacing.xs),

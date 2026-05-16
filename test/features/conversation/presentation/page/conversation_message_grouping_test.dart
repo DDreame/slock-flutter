@@ -101,6 +101,15 @@ void main() {
         reason: 'Consecutive same-sender message within 5min must hide '
             'header (INV-GROUP-1)',
       );
+
+      // The sender name must appear only once (from the first message).
+      // The grouped second message must not render the sender label at all.
+      expect(
+        find.text('Alice'),
+        findsOneWidget,
+        reason: 'Grouped message must not render sender name — only the '
+            'first message in the group shows it (INV-GROUP-1)',
+      );
     },
   );
 
