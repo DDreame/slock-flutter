@@ -9,6 +9,7 @@ import 'package:slock_app/core/realtime/providers.dart'
     show realtimeReductionIngressProvider;
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
@@ -262,6 +263,18 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
       diagnostics.info(
         _tag,
         'source=realtime, suppressed=muted, '
+        'channelId=$channelId',
+      );
+      return;
+    }
+
+    // Per-channel mute: suppress notifications for individually muted
+    // channels/DMs.
+    final mutedIds = ref.read(channelMutedIdsProvider);
+    if (mutedIds.contains(channelId)) {
+      diagnostics.info(
+        _tag,
+        'source=realtime, suppressed=channelMuted, '
         'channelId=$channelId',
       );
       return;

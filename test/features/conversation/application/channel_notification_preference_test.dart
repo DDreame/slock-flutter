@@ -13,23 +13,28 @@ import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 // ---------------------------------------------------------------------------
-// #534: Conversation Notification Settings — Phase A
+// #534: Conversation Notification Settings — Phase B
 //
 // Verifies per-channel/DM notification preference (mute/unmute).
 //
-// Storage pattern (from global NotificationPreferenceRepository):
+// Storage pattern:
 //   SharedPreferences keyed channel_notif_pref_{serverId}_{channelId}
+//   with value 'mute' when muted.
 //
-// Suppression enforcement points (already extract channelId from payload):
+// Suppression enforcement points:
 //   - notification_foreground_suppression_binding.dart (iOS push)
 //   - realtime_notification_bridge.dart (WebSocket)
+//   Both check channelMutedIdsProvider (in-memory Set<String>).
 //
 // Invariants:
 //   INV-MUTE-1: Conversation info page has notification toggle
@@ -37,30 +42,29 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-MUTE-3: Muted channel suppresses local notifications
 //   INV-MUTE-4: Muted channel shows visual indicator in conversation list
 //
-// Phase A — All invariants are skip:true (no per-channel mute exists).
-// Tests target real production surfaces and seams.
+// Phase B — All invariants active.
 // ---------------------------------------------------------------------------
 
 void main() {
   // -----------------------------------------------------------------------
   // INV-MUTE-1: The conversation info page includes a notification/mute
-  // toggle in the channel sections.
+  // toggle (SwitchListTile with "Mute" or "Notifications" in its title).
   //
   // Setup: Render ConversationDetailPage, tap conversation-members-toggle
-  // to navigate to the info page (ConversationInfoPage). The info page
-  // must contain a mute/notification toggle (SwitchListTile or similar).
-  //
-  // skip:true — no mute toggle in ConversationInfoPage.
+  // to navigate to ConversationInfoPage. The info page must contain a
+  // mute/notification SwitchListTile.
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation info page shows mute toggle (INV-MUTE-1)',
-    skip: true,
     (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
       final repo = _FakeConversationRepository(
         snapshot: _makeChannelSnapshot(),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(_buildConversationApp(repo, prefs));
       await tester.pumpAndSettle();
 
       // Navigate to info page via the production entry point.
@@ -100,33 +104,32 @@ void main() {
   // SharedPreferences with key pattern
   // channel_notif_pref_{serverId}_{channelId}.
   //
-  // Setup: Initialize SharedPreferences mock. Toggle the mute switch.
+  // Setup: Initialize SharedPreferences mock. Use
+  // ChannelNotificationPreferenceRepository to set mute preference.
   // Read back the stored preference via SharedPreferences API.
-  // The persisted value must reflect the muted state.
-  //
-  // skip:true — no per-channel preference storage exists.
   // -----------------------------------------------------------------------
   test(
     'Toggle mute persists to SharedPreferences (INV-MUTE-2)',
-    skip: true,
     () async {
       // Initialize mock SharedPreferences with empty state.
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
-      // Phase B will create a ChannelNotificationPreferenceRepository
-      // that reads/writes with this key pattern.
+      final repo = ChannelNotificationPreferenceRepository(prefs: prefs);
+
       const serverId = 'server-1';
       const channelId = 'ch-1';
-      const storageKey = 'channel_notif_pref_${serverId}_$channelId';
+      final storageKey = ChannelNotificationPreferenceRepository.storageKey(
+          serverId, channelId);
 
       // Before muting: no stored preference.
       expect(prefs.getString(storageKey), isNull,
           reason: 'No preference should be stored initially');
+      expect(repo.isChannelMuted(serverId, channelId), isFalse,
+          reason: 'Channel should not be muted initially');
 
-      // Phase B: call repo.setPreference(serverId, channelId, mute)
-      // Simulated by direct write for Phase A assertion structure:
-      await prefs.setString(storageKey, 'mute');
+      // Mute the channel via the repository.
+      await repo.setChannelMuted(serverId, channelId, muted: true);
 
       // Read back: preference must be persisted.
       final stored = prefs.getString(storageKey);
@@ -134,11 +137,20 @@ void main() {
           reason: 'Mute preference must be persisted to SharedPreferences '
               'with key pattern channel_notif_pref_{serverId}_{channelId} '
               '(INV-MUTE-2)');
+      expect(repo.isChannelMuted(serverId, channelId), isTrue,
+          reason: 'Repository must report channel as muted');
 
       // Roundtrip: parse stored value back to enum using existing pattern.
       final parsed = NotificationPreference.fromStorageValue(stored);
       expect(parsed, equals(NotificationPreference.mute),
           reason: 'Stored value must roundtrip to NotificationPreference.mute');
+
+      // Unmute the channel.
+      await repo.setChannelMuted(serverId, channelId, muted: false);
+      expect(prefs.getString(storageKey), isNull,
+          reason: 'Unmuting must remove the storage key');
+      expect(repo.isChannelMuted(serverId, channelId), isFalse,
+          reason: 'Channel must report unmuted after clearing');
     },
   );
 
@@ -146,33 +158,25 @@ void main() {
   // INV-MUTE-3: When a channel is muted, local notifications for that
   // channel are suppressed by the foreground suppression binding.
   //
-  // The real suppression seam is in
-  // notification_foreground_suppression_binding.dart which already
-  // checks `preference == NotificationPreference.mute` and extracts
-  // `channelId` from the notification payload. Phase B will add a
-  // per-channel check alongside the global preference check.
+  // The suppression binding checks channelMutedIdsProvider (in-memory
+  // Set<String>) for the channelId from the notification payload.
   //
   // Setup: Create ProviderContainer with _FakeNotificationInitializer
-  // (same pattern as notification_foreground_suppression_binding_test).
-  // Configure per-channel mute for 'ch-1'. Push a notification payload
-  // with channelId='ch-1'. Assert showLocalNotification is NOT called.
-  //
-  // skip:true — no per-channel suppression logic exists.
+  // and channelMutedIdsProvider seeded with 'ch-1'. Push a notification
+  // payload with channelId='ch-1'. Assert showLocalNotification is NOT
+  // called.
   // -----------------------------------------------------------------------
   test(
     'Muted channel suppresses local notifications (INV-MUTE-3)',
-    skip: true,
     () async {
-      // Use real suppression binding test pattern: FakeNotificationInitializer
-      // captures showLocalNotification calls via displayedPayloads list.
       final fakeInitializer = _FakeNotificationInitializer();
 
       final container = ProviderContainer(
         overrides: [
           notificationInitializerProvider.overrideWithValue(fakeInitializer),
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
-          // Phase B: add channelNotificationPreferenceProvider override
-          // with mute=true for channel 'ch-1' on server 'server-1'.
+          // Seed the in-memory muted IDs with 'ch-1'.
+          channelMutedIdsProvider.overrideWith((ref) => {'ch-1'}),
         ],
       );
       addTearDown(() async {
@@ -195,8 +199,6 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       // Per-channel mute must suppress the notification.
-      // Phase B will wire the per-channel preference into the suppression
-      // provider chain so this assertion passes.
       expect(
         fakeInitializer.displayedPayloads,
         isEmpty,
@@ -210,21 +212,12 @@ void main() {
   // INV-MUTE-4: The conversation list shows a visual indicator (mute
   // icon) for muted channels.
   //
-  // Setup: Render a HomeChannelRow with a muted channel. The row
-  // (keyed 'channels-tab-{scopeId.routeParam}' in production) must
-  // contain a mute indicator icon (Icons.notifications_off).
-  //
-  // HomeChannelRow is the real production widget used in
-  // ChannelsTabPage._buildChannelRow. Phase B will add a mute icon
-  // when the channel's per-channel preference is mute.
-  //
-  // skip:true — no mute visual indicator exists in HomeChannelRow.
+  // Setup: Render a HomeChannelRow with isMuted=true. The row must
+  // contain a notifications_off icon.
   // -----------------------------------------------------------------------
   testWidgets(
     'Muted channel shows mute indicator in HomeChannelRow (INV-MUTE-4)',
-    skip: true,
     (tester) async {
-      // Render a HomeChannelRow for a muted channel.
       const channel = HomeChannelSummary(
         scopeId: ChannelScopeId(
           serverId: ServerScopeId('server-1'),
@@ -242,7 +235,7 @@ void main() {
               key: ValueKey('channels-tab-${channel.scopeId.value}'),
               channel: channel,
               onTap: () {},
-              // Phase B: add isMuted parameter or read from provider
+              isMuted: true,
             ),
           ),
         ),
@@ -297,7 +290,10 @@ ConversationDetailSnapshot _makeChannelSnapshot() {
   );
 }
 
-Widget _buildConversationApp(_FakeConversationRepository repo) {
+Widget _buildConversationApp(
+  _FakeConversationRepository repo,
+  SharedPreferences prefs,
+) {
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
       serverId: ServerScopeId('server-1'),
@@ -309,6 +305,7 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      sharedPreferencesProvider.overrideWithValue(prefs),
     ],
     child: MaterialApp(
       theme: AppTheme.light,

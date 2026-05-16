@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 
 /// Aggregation page showing conversation details: members, shared files,
 /// pinned messages (for channels), or user profile info (for DMs).
@@ -12,7 +14,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 /// - [ChannelMembersPage] via `/servers/:sid/channels/:cid/members`
 /// - [ChannelFilesPage] via `/servers/:sid/channels/:cid/files`
 /// - [PinnedMessagesPage] via `/servers/:sid/channels/:cid/pinned`
-class ConversationInfoPage extends StatelessWidget {
+class ConversationInfoPage extends ConsumerStatefulWidget {
   const ConversationInfoPage({
     super.key,
     required this.target,
@@ -22,20 +24,75 @@ class ConversationInfoPage extends StatelessWidget {
   final ConversationDetailTarget target;
   final String title;
 
-  bool get _isChannel => target.surface == ConversationSurface.channel;
+  @override
+  ConsumerState<ConversationInfoPage> createState() =>
+      _ConversationInfoPageState();
+}
+
+class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
+  late bool _isMuted;
+
+  bool get _isChannel => widget.target.surface == ConversationSurface.channel;
+
+  @override
+  void initState() {
+    super.initState();
+    final repo = ref.read(channelNotificationPreferenceRepositoryProvider);
+    _isMuted = repo.isChannelMuted(
+      widget.target.serverId.value,
+      widget.target.conversationId,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: const ValueKey('conversation-info-page'),
       appBar: AppBar(
-        title: Text(title),
+        title: Text(widget.title),
       ),
       body: ListView(
         children: [
           // ── Header ──
-          _InfoHeader(title: title, isChannel: _isChannel),
+          _InfoHeader(title: widget.title, isChannel: _isChannel),
           const Divider(),
+
+          // ── Notifications / Mute Toggle ──
+          SwitchListTile(
+            key: const ValueKey('conversation-info-mute-toggle'),
+            title: const Text('Mute Notifications'),
+            subtitle: Text(
+              _isMuted
+                  ? 'Notifications are silenced'
+                  : 'Receiving all notifications',
+            ),
+            secondary: Icon(
+              _isMuted ? Icons.notifications_off : Icons.notifications_active,
+            ),
+            value: _isMuted,
+            onChanged: (value) async {
+              final repo =
+                  ref.read(channelNotificationPreferenceRepositoryProvider);
+              await repo.setChannelMuted(
+                widget.target.serverId.value,
+                widget.target.conversationId,
+                muted: value,
+              );
+              // Update in-memory muted IDs for suppression bindings.
+              final mutedIds = ref.read(channelMutedIdsProvider.notifier).state;
+              if (value) {
+                ref.read(channelMutedIdsProvider.notifier).state = {
+                  ...mutedIds,
+                  widget.target.conversationId,
+                };
+              } else {
+                ref.read(channelMutedIdsProvider.notifier).state = {
+                  ...mutedIds,
+                }..remove(widget.target.conversationId);
+              }
+              setState(() => _isMuted = value);
+            },
+          ),
 
           if (_isChannel) ...[
             // ── Members Section ──
@@ -45,7 +102,7 @@ class ConversationInfoPage extends StatelessWidget {
               label: 'Members',
               onTap: () {
                 context.push(
-                  '/servers/${target.serverId.value}/channels/${target.conversationId}/members',
+                  '/servers/${widget.target.serverId.value}/channels/${widget.target.conversationId}/members',
                 );
               },
             ),
@@ -57,7 +114,7 @@ class ConversationInfoPage extends StatelessWidget {
               label: 'Shared files',
               onTap: () {
                 context.push(
-                  '/servers/${target.serverId.value}/channels/${target.conversationId}/files',
+                  '/servers/${widget.target.serverId.value}/channels/${widget.target.conversationId}/files',
                 );
               },
             ),
@@ -69,8 +126,8 @@ class ConversationInfoPage extends StatelessWidget {
               label: 'Pinned messages',
               onTap: () {
                 context.push(
-                  '/servers/${target.serverId.value}/channels/${target.conversationId}/pinned',
-                  extra: target,
+                  '/servers/${widget.target.serverId.value}/channels/${widget.target.conversationId}/pinned',
+                  extra: widget.target,
                 );
               },
             ),
@@ -78,7 +135,7 @@ class ConversationInfoPage extends StatelessWidget {
             // ── DM User Profile Section ──
             _DmUserProfile(
               key: const ValueKey('conversation-info-user-profile'),
-              displayName: title,
+              displayName: widget.title,
             ),
           ],
         ],
