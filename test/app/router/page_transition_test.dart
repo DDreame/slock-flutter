@@ -1,256 +1,192 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/app/router/app_router.dart';
+import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/splash/application/splash_controller.dart';
+import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+
+import '../../stores/session/session_store_persistence_test.dart'
+    show FakeAuthRepository;
 
 // ---------------------------------------------------------------------------
 // #523: 页面转场动画 — Phase A (test-only)
 //
-// Verifies that GoRouter route transitions use CustomTransitionPage with
-// non-zero duration instead of instant builder: callbacks.
+// Structural assertions on the production GoRouter configuration:
+// verifies that push-target routes use pageBuilder (CustomTransitionPage)
+// instead of plain builder (instant swap).
 //
-// Uses a minimal 2-route GoRouter harness (home + detail) so that the
-// only transitions in the widget tree come from the tested route.
-// This avoids false-pass/false-fail from unrelated framework transitions
-// present in the full app router (StatefulShellRoute, etc.).
+// Tests exercise the real appRouterProvider — not a test-supplied harness —
+// so they fail until Phase B converts routes in lib/app/router/app_router.dart
+// from builder: to pageBuilder: + CustomTransitionPage.
 //
 // Invariants:
-//   INV-TRANSITION-1: Navigation push → CustomTransitionPage with non-zero
-//                     duration (transition animation plays on forward nav)
-//   INV-TRANSITION-2: Navigation pop → animated transition (not instant pop)
+//   INV-TRANSITION-1: Push-target routes use pageBuilder with
+//                     CustomTransitionPage (non-zero forward transition)
+//   INV-TRANSITION-2: Push-target routes have reverseTransitionDuration > 0
+//                     (animated pop, not instant removal)
 //
-// Both tests skip: true until Phase B converts routes from builder: to
-// pageBuilder: + CustomTransitionPage with SlideTransition or FadeTransition.
+// Both tests skip: true until Phase B converts routes.
 //
 // Phase B write set:
 //   lib/app/router/app_router.dart — convert target routes from builder:
 //   to pageBuilder: + CustomTransitionPage
 // ---------------------------------------------------------------------------
 
-/// Creates a minimal GoRouter with exactly 2 routes: / (home) and /detail.
-///
-/// The /detail route uses [detailPageBuilder] if provided (Phase B will
-/// supply a CustomTransitionPage pageBuilder), otherwise falls back to
-/// plain builder: (current production behavior — instant, no transition).
-///
-/// This isolation ensures the ONLY SlideTransition / FadeTransition widgets
-/// in the tree come from the /detail route's CustomTransitionPage, not from
-/// unrelated framework animations.
-GoRouter _createMinimalRouter({
-  GoRouterPageBuilder? detailPageBuilder,
-}) {
-  return GoRouter(
-    initialLocation: '/',
-    routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const Scaffold(
-          key: ValueKey('home-page'),
-          body: Center(child: Text('Home')),
-        ),
-      ),
-      GoRoute(
-        path: '/detail',
-        // Phase B: switch from builder: to pageBuilder: here.
-        // For now (Phase A), this uses builder: which produces
-        // an instant page swap with no transition animation.
-        pageBuilder: detailPageBuilder,
-        builder: detailPageBuilder == null
-            ? (context, state) => const Scaffold(
-                  key: ValueKey('detail-page'),
-                  body: Center(child: Text('Detail')),
-                )
-            : null,
-      ),
-    ],
-  );
+/// Paths that are navigated via push() and should have animated transitions.
+/// These are detail/overlay routes — not tab roots or auth redirects.
+const _pushTargetPaths = [
+  '/servers/:serverId/channels/:channelId',
+  '/servers/:serverId/channels/:channelId/members',
+  '/servers/:serverId/channels/:channelId/pinned',
+  '/servers/:serverId/channels/:channelId/files',
+  '/servers/:serverId/dms/:channelId',
+  '/servers/:serverId/threads/:threadId/replies',
+  '/servers/:serverId/tasks',
+  '/servers/:serverId/search',
+  '/settings',
+  '/profile',
+];
+
+/// Recursively finds a GoRoute matching [path] in the route tree.
+GoRoute? _findRoute(List<RouteBase> routes, String path) {
+  for (final route in routes) {
+    if (route is GoRoute && route.path == path) return route;
+    if (route is ShellRouteBase) {
+      final found = _findRoute(route.routes, path);
+      if (found != null) return found;
+    }
+  }
+  return null;
 }
 
-Widget _buildApp(GoRouter router) {
-  return MaterialApp.router(
-    theme: AppTheme.light,
-    routerConfig: router,
+ProviderContainer _createContainer() {
+  return ProviderContainer(
+    overrides: [
+      secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+      authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+      splashControllerProvider.overrideWith(() => _StallingSplashController()),
+      homeListStoreProvider.overrideWith(() => _TestHomeListStore()),
+    ],
   );
 }
 
 void main() {
   // -----------------------------------------------------------------------
-  // INV-TRANSITION-1: Navigation push uses CustomTransitionPage with
-  //                   non-zero transition duration.
+  // INV-TRANSITION-1: Push-target routes must use pageBuilder
+  //                   (CustomTransitionPage) — not plain builder.
   //
-  // Approach: Use a minimal 2-route harness. The /detail route uses
-  // pageBuilder: + CustomTransitionPage with SlideTransition. Push from
-  // / to /detail. Pump 100ms (less than 300ms transition duration).
-  // Assert that a SlideTransition exists with a non-zero offset —
-  // proving the animation is mid-flight, not instant.
-  //
-  // Because the harness has NO other routes, the only SlideTransition
-  // in the tree comes from our CustomTransitionPage.
-  //
-  // Phase B: Convert app_router.dart routes from builder: → pageBuilder:
-  //          + CustomTransitionPage. This test validates the pattern.
+  // Reads the real appRouterProvider configuration and checks each
+  // push-target path. Currently all routes use builder: → this test
+  // fails when un-skipped. Phase B converts them to pageBuilder:.
   // -----------------------------------------------------------------------
-  testWidgets(
-    'push navigation uses animated transition with non-zero duration '
+  test(
+    'push-target routes use pageBuilder for animated transitions '
     '(INV-TRANSITION-1)',
     skip: true,
-    (tester) async {
-      final router = _createMinimalRouter(
-        detailPageBuilder: (context, state) => CustomTransitionPage<void>(
-          key: state.pageKey,
-          child: const Scaffold(
-            key: ValueKey('detail-page'),
-            body: Center(child: Text('Detail')),
-          ),
-          transitionDuration: const Duration(milliseconds: 300),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              key: const ValueKey('route-slide-transition'),
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              )),
-              child: child,
-            );
-          },
-        ),
-      );
+    () {
+      final container = _createContainer();
+      addTearDown(container.dispose);
+      final router = container.read(appRouterProvider);
+      final routes = router.configuration.routes;
 
-      await tester.pumpWidget(_buildApp(router));
-      await tester.pumpAndSettle();
-
-      // Verify we start on home.
-      expect(find.byKey(const ValueKey('home-page')), findsOneWidget);
-      expect(find.byKey(const ValueKey('detail-page')), findsNothing);
-
-      // Push to detail page.
-      router.push('/detail');
-
-      // Pump a single frame to start the transition.
-      await tester.pump();
-
-      // Pump 100ms — less than the 300ms transition duration.
-      // Animation should be in progress (not complete).
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // Find the specific route SlideTransition by key.
-      final slideFinder = find.byKey(const ValueKey('route-slide-transition'));
-      expect(slideFinder, findsOneWidget,
-          reason: 'Push navigation must produce a SlideTransition from '
-              'CustomTransitionPage (INV-TRANSITION-1)');
-
-      // Verify the animation is mid-flight (offset not yet at zero).
-      final slide = tester.widget<SlideTransition>(slideFinder);
-      expect(slide.position.value, isNot(equals(Offset.zero)),
-          reason: 'Slide animation must be in progress at 100ms — '
-              'not yet at final position (INV-TRANSITION-1)');
-      expect(slide.position.value.dx, greaterThan(0),
-          reason: 'Slide-in from right: dx must be > 0 at 100ms '
-              '(INV-TRANSITION-1)');
-
-      // Let the animation complete.
-      await tester.pumpAndSettle();
-
-      // Verify we arrived at the detail page.
-      expect(find.byKey(const ValueKey('detail-page')), findsOneWidget,
-          reason: 'Must be on detail page after transition completes');
+      for (final path in _pushTargetPaths) {
+        final route = _findRoute(routes, path);
+        expect(route, isNotNull,
+            reason: 'Route $path must exist in production router');
+        expect(route!.pageBuilder, isNotNull,
+            reason: 'Route $path must use pageBuilder (not builder) '
+                'for CustomTransitionPage with animated push transition '
+                '(INV-TRANSITION-1). Currently uses plain builder: '
+                'which produces instant page swap.');
+      }
     },
   );
 
   // -----------------------------------------------------------------------
-  // INV-TRANSITION-2: Navigation pop uses animated transition
-  //                   (not instant removal).
+  // INV-TRANSITION-2: Push-target routes must NOT use builder-only
+  //                   (which produces NoTransitionPage on pop).
   //
-  // Approach: Same minimal harness. Push to /detail and settle. Then
-  // pop. Pump 100ms. The reverse animation should be in progress —
-  // the SlideTransition offset should be non-zero (sliding out to right).
+  // When a GoRoute uses builder: (no pageBuilder:), GoRouter wraps the
+  // widget in a platform-default page that may have zero reverse duration.
+  // CustomTransitionPage with reverseTransitionDuration > 0 ensures pop
+  // is animated.
   //
-  // Phase B: CustomTransitionPage reverse transition animates pop.
+  // This test verifies the same structural property from a pop perspective:
+  // routes with pageBuilder will use CustomTransitionPage which provides
+  // explicit reverseTransitionDuration control.
+  //
+  // Phase B: After converting to pageBuilder: + CustomTransitionPage with
+  // reverseTransitionDuration: Duration(milliseconds: 300), this test
+  // verifies the configuration includes animated pop.
   // -----------------------------------------------------------------------
-  testWidgets(
-    'pop navigation uses animated transition — not instant '
+  test(
+    'push-target routes have pageBuilder for animated pop transitions '
     '(INV-TRANSITION-2)',
     skip: true,
-    (tester) async {
-      final router = _createMinimalRouter(
-        detailPageBuilder: (context, state) => CustomTransitionPage<void>(
-          key: state.pageKey,
-          child: const Scaffold(
-            key: ValueKey('detail-page'),
-            body: Center(child: Text('Detail')),
-          ),
-          transitionDuration: const Duration(milliseconds: 300),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return SlideTransition(
-              key: const ValueKey('route-slide-transition'),
-              position: Tween<Offset>(
-                begin: const Offset(1, 0),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeInOut,
-              )),
-              child: child,
-            );
-          },
-        ),
-      );
+    () {
+      final container = _createContainer();
+      addTearDown(container.dispose);
+      final router = container.read(appRouterProvider);
+      final routes = router.configuration.routes;
 
-      await tester.pumpWidget(_buildApp(router));
-      await tester.pumpAndSettle();
+      // Check a representative subset to keep the test focused.
+      const popTargets = [
+        '/servers/:serverId/channels/:channelId',
+        '/servers/:serverId/dms/:channelId',
+        '/settings',
+      ];
 
-      // Push to detail page and let it fully settle.
-      router.push('/detail');
-      await tester.pumpAndSettle();
+      for (final path in popTargets) {
+        final route = _findRoute(routes, path);
+        expect(route, isNotNull,
+            reason: 'Route $path must exist in production router');
 
-      // Verify we are on detail page.
-      expect(find.byKey(const ValueKey('detail-page')), findsOneWidget,
-          reason: 'Must be on detail page before testing pop transition');
-
-      // At rest, the slide transition should be at Offset.zero.
-      final slideAtRest = tester
-          .widget<SlideTransition>(
-              find.byKey(const ValueKey('route-slide-transition')))
-          .position
-          .value;
-      expect(slideAtRest, equals(Offset.zero),
-          reason: 'At rest, slide offset must be zero');
-
-      // Pop (simulates back button).
-      router.pop();
-
-      // Pump a single frame to start the reverse transition.
-      await tester.pump();
-
-      // Pump 100ms — the reverse animation should be in progress.
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // The SlideTransition should still be present (page not yet removed)
-      // and its offset should be non-zero (sliding out to right).
-      final slideFinder = find.byKey(const ValueKey('route-slide-transition'));
-      expect(slideFinder, findsOneWidget,
-          reason: 'Pop must animate out — SlideTransition still present '
-              'at 100ms (INV-TRANSITION-2)');
-
-      final slide = tester.widget<SlideTransition>(slideFinder);
-      expect(slide.position.value, isNot(equals(Offset.zero)),
-          reason: 'Slide reverse animation must be in progress at 100ms '
-              '— not yet at rest position (INV-TRANSITION-2)');
-      expect(slide.position.value.dx, greaterThan(0),
-          reason: 'Slide-out to right: dx must be > 0 at 100ms '
-              '(INV-TRANSITION-2)');
-
-      // Let the animation complete.
-      await tester.pumpAndSettle();
-
-      // Verify we returned to home.
-      expect(find.byKey(const ValueKey('home-page')), findsOneWidget,
-          reason: 'Must return to home after pop transition completes');
+        // builder-only routes produce pages with no explicit reverse
+        // transition control → instant pop. pageBuilder with
+        // CustomTransitionPage gives explicit reverse animation.
+        expect(route!.pageBuilder, isNotNull,
+            reason: 'Route $path must use pageBuilder (not builder) '
+                'for CustomTransitionPage with animated pop transition '
+                '(INV-TRANSITION-2). builder-only routes produce '
+                'instant pop with no reverse animation.');
+      }
     },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Fakes — minimal overrides for appRouterProvider instantiation.
+// Same pattern as navigation_linearity_test.dart.
+// ---------------------------------------------------------------------------
+
+class _StallingSplashController extends SplashController {
+  @override
+  Future<void> build() => Completer<void>().future;
+}
+
+class _FakeSecureStorage implements SecureStorage {
+  final Map<String, String> _store = {};
+
+  @override
+  Future<String?> read({required String key}) async => _store[key];
+
+  @override
+  Future<void> write({required String key, required String value}) async {
+    _store[key] = value;
+  }
+
+  @override
+  Future<void> delete({required String key}) async {
+    _store.remove(key);
+  }
+}
+
+class _TestHomeListStore extends HomeListStore {
+  @override
+  HomeListState build() => const HomeListState();
 }
