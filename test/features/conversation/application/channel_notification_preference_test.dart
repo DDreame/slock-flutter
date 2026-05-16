@@ -1,0 +1,526 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
+import 'package:slock_app/features/settings/data/notification_preference.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
+
+// ---------------------------------------------------------------------------
+// #534: Conversation Notification Settings — Phase A
+//
+// Verifies per-channel/DM notification preference (mute/unmute).
+//
+// Storage pattern (from global NotificationPreferenceRepository):
+//   SharedPreferences keyed channel_notif_pref_{serverId}_{channelId}
+//
+// Suppression enforcement points (already extract channelId from payload):
+//   - notification_foreground_suppression_binding.dart (iOS push)
+//   - realtime_notification_bridge.dart (WebSocket)
+//
+// Invariants:
+//   INV-MUTE-1: Conversation info page has notification toggle
+//   INV-MUTE-2: Toggle mute persists to local storage
+//   INV-MUTE-3: Muted channel suppresses local notifications
+//   INV-MUTE-4: Muted channel shows visual indicator in conversation list
+//
+// Phase A — All invariants are skip:true (no per-channel mute exists).
+// Tests target real production surfaces and seams.
+// ---------------------------------------------------------------------------
+
+void main() {
+  // -----------------------------------------------------------------------
+  // INV-MUTE-1: The conversation info page includes a notification/mute
+  // toggle in the channel sections.
+  //
+  // Setup: Render ConversationDetailPage, tap conversation-members-toggle
+  // to navigate to the info page (ConversationInfoPage). The info page
+  // must contain a mute/notification toggle (SwitchListTile or similar).
+  //
+  // skip:true — no mute toggle in ConversationInfoPage.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Conversation info page shows mute toggle (INV-MUTE-1)',
+    skip: true,
+    (tester) async {
+      final repo = _FakeConversationRepository(
+        snapshot: _makeChannelSnapshot(),
+      );
+
+      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpAndSettle();
+
+      // Navigate to info page via the production entry point.
+      final membersToggle =
+          find.byKey(const ValueKey('conversation-members-toggle'));
+      expect(membersToggle, findsOneWidget,
+          reason: 'Members toggle must be in app bar');
+      await tester.tap(membersToggle);
+      await tester.pumpAndSettle();
+
+      // Info page must be visible.
+      expect(
+          find.byKey(const ValueKey('conversation-info-page')), findsOneWidget,
+          reason: 'Info page must appear after tapping toggle');
+
+      // Mute toggle (SwitchListTile with "Mute" or "Notifications" label)
+      // must be present in the info page.
+      final muteSwitch = find.byWidgetPredicate(
+        (widget) =>
+            widget is SwitchListTile &&
+            (widget.title is Text &&
+                ((widget.title! as Text).data?.contains('Mute') == true ||
+                    (widget.title! as Text).data?.contains('Notifications') ==
+                        true)),
+      );
+      expect(
+        muteSwitch,
+        findsOneWidget,
+        reason: 'Conversation info page must show a Mute/Notifications '
+            'SwitchListTile (INV-MUTE-1)',
+      );
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-MUTE-2: Toggling the mute switch persists the preference to
+  // SharedPreferences with key pattern
+  // channel_notif_pref_{serverId}_{channelId}.
+  //
+  // Setup: Initialize SharedPreferences mock. Toggle the mute switch.
+  // Read back the stored preference via SharedPreferences API.
+  // The persisted value must reflect the muted state.
+  //
+  // skip:true — no per-channel preference storage exists.
+  // -----------------------------------------------------------------------
+  test(
+    'Toggle mute persists to SharedPreferences (INV-MUTE-2)',
+    skip: true,
+    () async {
+      // Initialize mock SharedPreferences with empty state.
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      // Phase B will create a ChannelNotificationPreferenceRepository
+      // that reads/writes with this key pattern.
+      const serverId = 'server-1';
+      const channelId = 'ch-1';
+      const storageKey = 'channel_notif_pref_${serverId}_$channelId';
+
+      // Before muting: no stored preference.
+      expect(prefs.getString(storageKey), isNull,
+          reason: 'No preference should be stored initially');
+
+      // Phase B: call repo.setPreference(serverId, channelId, mute)
+      // Simulated by direct write for Phase A assertion structure:
+      await prefs.setString(storageKey, 'mute');
+
+      // Read back: preference must be persisted.
+      final stored = prefs.getString(storageKey);
+      expect(stored, equals('mute'),
+          reason: 'Mute preference must be persisted to SharedPreferences '
+              'with key pattern channel_notif_pref_{serverId}_{channelId} '
+              '(INV-MUTE-2)');
+
+      // Roundtrip: parse stored value back to enum using existing pattern.
+      final parsed = NotificationPreference.fromStorageValue(stored);
+      expect(parsed, equals(NotificationPreference.mute),
+          reason: 'Stored value must roundtrip to NotificationPreference.mute');
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-MUTE-3: When a channel is muted, local notifications for that
+  // channel are suppressed by the foreground suppression binding.
+  //
+  // The real suppression seam is in
+  // notification_foreground_suppression_binding.dart which already
+  // checks `preference == NotificationPreference.mute` and extracts
+  // `channelId` from the notification payload. Phase B will add a
+  // per-channel check alongside the global preference check.
+  //
+  // Setup: Create ProviderContainer with _FakeNotificationInitializer
+  // (same pattern as notification_foreground_suppression_binding_test).
+  // Configure per-channel mute for 'ch-1'. Push a notification payload
+  // with channelId='ch-1'. Assert showLocalNotification is NOT called.
+  //
+  // skip:true — no per-channel suppression logic exists.
+  // -----------------------------------------------------------------------
+  test(
+    'Muted channel suppresses local notifications (INV-MUTE-3)',
+    skip: true,
+    () async {
+      // Use real suppression binding test pattern: FakeNotificationInitializer
+      // captures showLocalNotification calls via displayedPayloads list.
+      final fakeInitializer = _FakeNotificationInitializer();
+
+      final container = ProviderContainer(
+        overrides: [
+          notificationInitializerProvider.overrideWithValue(fakeInitializer),
+          secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+          // Phase B: add channelNotificationPreferenceProvider override
+          // with mute=true for channel 'ch-1' on server 'server-1'.
+        ],
+      );
+      addTearDown(() async {
+        container.dispose();
+        await fakeInitializer.foregroundController.close();
+      });
+
+      // Activate the suppression binding (same as production).
+      container.read(notificationForegroundSuppressionBindingProvider);
+
+      // Simulate incoming notification for muted channel 'ch-1'.
+      fakeInitializer.foregroundController.add({
+        'type': 'channel',
+        'serverId': 'server-1',
+        'channelId': 'ch-1',
+        'title': 'New message in #general',
+        'body': 'Hello world',
+        'senderId': 'other-user',
+      });
+      await Future<void>.delayed(Duration.zero);
+
+      // Per-channel mute must suppress the notification.
+      // Phase B will wire the per-channel preference into the suppression
+      // provider chain so this assertion passes.
+      expect(
+        fakeInitializer.displayedPayloads,
+        isEmpty,
+        reason: 'Notification for muted channel must be suppressed '
+            '(INV-MUTE-3)',
+      );
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-MUTE-4: The conversation list shows a visual indicator (mute
+  // icon) for muted channels.
+  //
+  // Setup: Render a HomeChannelRow with a muted channel. The row
+  // (keyed 'channels-tab-{scopeId.routeParam}' in production) must
+  // contain a mute indicator icon (Icons.notifications_off).
+  //
+  // HomeChannelRow is the real production widget used in
+  // ChannelsTabPage._buildChannelRow. Phase B will add a mute icon
+  // when the channel's per-channel preference is mute.
+  //
+  // skip:true — no mute visual indicator exists in HomeChannelRow.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Muted channel shows mute indicator in HomeChannelRow (INV-MUTE-4)',
+    skip: true,
+    (tester) async {
+      // Render a HomeChannelRow for a muted channel.
+      const channel = HomeChannelSummary(
+        scopeId: ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'ch-1',
+        ),
+        name: 'general',
+        isPrivate: false,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: HomeChannelRow(
+              key: ValueKey('channels-tab-${channel.scopeId.value}'),
+              channel: channel,
+              onTap: () {},
+              // Phase B: add isMuted parameter or read from provider
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Mute indicator icon must be present within the channel row.
+      final channelRow =
+          find.byKey(ValueKey('channels-tab-${channel.scopeId.value}'));
+      expect(channelRow, findsOneWidget,
+          reason: 'Channel row must be rendered');
+
+      final muteIcon = find.descendant(
+        of: channelRow,
+        matching: find.byIcon(Icons.notifications_off),
+      );
+      expect(
+        muteIcon,
+        findsOneWidget,
+        reason: 'Muted channel row must show notifications_off icon '
+            '(INV-MUTE-4)',
+      );
+    },
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+ConversationDetailSnapshot _makeChannelSnapshot() {
+  return ConversationDetailSnapshot(
+    target: ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'ch-1',
+      ),
+    ),
+    title: '#general',
+    messages: [
+      ConversationMessageSummary(
+        id: 'msg-1',
+        content: 'Hello world',
+        createdAt: DateTime.parse('2026-05-16T14:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      ),
+    ],
+    historyLimited: false,
+    hasOlder: false,
+  );
+}
+
+Widget _buildConversationApp(_FakeConversationRepository repo) {
+  final target = ConversationDetailTarget.channel(
+    const ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'ch-1',
+    ),
+  );
+
+  return ProviderScope(
+    overrides: [
+      conversationRepositoryProvider.overrideWithValue(repo),
+      sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+    ],
+    child: MaterialApp(
+      theme: AppTheme.light,
+      home: ConversationDetailPage(target: target),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+    ),
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fakes
+// ---------------------------------------------------------------------------
+
+class _FakeConversationRepository implements ConversationRepository {
+  _FakeConversationRepository({required this.snapshot});
+
+  final ConversationDetailSnapshot snapshot;
+
+  @override
+  Future<ConversationDetailSnapshot> loadConversation(
+    ConversationDetailTarget target,
+  ) async {
+    return snapshot;
+  }
+
+  @override
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+    );
+  }
+
+  @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+      hasNewer: false,
+    );
+  }
+
+  @override
+  Future<String> uploadAttachment(
+    ConversationDetailTarget target,
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
+    return 'attachment-1';
+  }
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content, {
+    List<String>? attachmentIds,
+    String? replyToId,
+    CancelToken? cancelToken,
+  }) async {
+    return ConversationMessageSummary(
+      id: 'sent-1',
+      content: content,
+      createdAt: DateTime.now(),
+      senderType: 'human',
+      messageType: 'message',
+      seq: 999,
+    );
+  }
+
+  @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async {
+    return message;
+  }
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> editMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {}
+
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      [];
+
+  @override
+  Future<void> addReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+}
+
+class _FakeSessionStore extends SessionStore {
+  @override
+  SessionState build() => const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'user-1',
+        displayName: 'Alice',
+        token: 'test-token',
+      );
+
+  @override
+  Future<void> logout() async {}
+}
+
+// ---------------------------------------------------------------------------
+// Notification fakes (same pattern as
+// notification_foreground_suppression_binding_test.dart)
+// ---------------------------------------------------------------------------
+
+class _FakeNotificationInitializer implements NotificationInitializer {
+  final StreamController<Map<String, dynamic>> foregroundController =
+      StreamController<Map<String, dynamic>>.broadcast();
+  final List<Map<String, dynamic>> displayedPayloads = [];
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  Future<NotificationPermissionStatus> requestPermission() async =>
+      NotificationPermissionStatus.unknown;
+
+  @override
+  Future<NotificationPermissionStatus> getPermissionStatus() async =>
+      NotificationPermissionStatus.unknown;
+
+  @override
+  Future<String?> getToken() async => null;
+
+  @override
+  Future<Map<String, dynamic>?> getInitialNotification() async => null;
+
+  @override
+  Stream<Map<String, dynamic>> get onNotificationTapped => const Stream.empty();
+
+  @override
+  Stream<Map<String, dynamic>> get onForegroundMessage =>
+      foregroundController.stream;
+
+  @override
+  Stream<String> get onTokenChanged => const Stream.empty();
+
+  @override
+  Future<void> showLocalNotification(Map<String, dynamic> payload) async {
+    displayedPayloads.add(payload);
+  }
+}
+
+class _FakeSecureStorage implements SecureStorage {
+  @override
+  Future<String?> read({required String key}) async => null;
+
+  @override
+  Future<void> write({required String key, required String value}) async {}
+
+  @override
+  Future<void> delete({required String key}) async {}
+}
