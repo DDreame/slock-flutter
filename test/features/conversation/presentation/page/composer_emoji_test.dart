@@ -150,24 +150,30 @@ void main() {
         reason: 'Emoji picker must be open',
       );
 
-      // Find and tap an emoji in the picker. Phase B will render emoji
-      // cells; we look for any tappable emoji text. The first emoji in
-      // the grid should be selectable.
+      // Tap the first emoji cell. Phase B must render a known emoji
+      // (e.g. 😀) in cell-0 so we can assert the exact inserted value.
       final emojiFinder = find.byKey(const ValueKey('emoji-cell-0'));
       expect(emojiFinder, findsOneWidget,
           reason: 'Emoji picker must contain at least one emoji cell');
+
+      // Read the emoji text from the cell before tapping.
+      final emojiWidget = tester.widget<Text>(
+        find.descendant(of: emojiFinder, matching: find.byType(Text)),
+      );
+      final selectedEmoji = emojiWidget.data!;
+      expect(selectedEmoji.isNotEmpty, isTrue,
+          reason: 'Emoji cell must contain non-empty text');
+
       await tester.tap(emojiFinder);
       await tester.pumpAndSettle();
 
       // The emoji must be inserted at the cursor position (offset 5).
+      // Expected result: 'hello<emoji> world'
       final controller = textField.controller!;
       final text = controller.text;
-      expect(text.length, greaterThan('hello world'.length),
-          reason: 'Text must be longer after emoji insertion');
-      expect(text.startsWith('hello'), isTrue,
-          reason: 'Text before cursor must be preserved');
-      expect(text.endsWith(' world'), isTrue,
-          reason: 'Text after cursor must be preserved '
+      expect(text, equals('hello$selectedEmoji world'),
+          reason: 'Selected emoji must be inserted exactly at cursor '
+              'position between "hello" and " world" '
               '(INV-EMOJI-3)');
     },
   );
