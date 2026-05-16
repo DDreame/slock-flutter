@@ -28,7 +28,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-SCROLL-1: Enter conversation → no visible flash/jump
 //   INV-HAPTIC-1: Status-changing actions emit haptic feedback
 //
-// All 4 tests: skip: true until Phase B fixes conversation_detail_page.dart.
+// Phase B applied — all 4 tests enabled.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -40,7 +40,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: http link tap does not show AlertDialog (INV-LINK-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -87,8 +86,8 @@ void main() {
       await tester.tap(linkFinder.first);
       await tester.pumpAndSettle();
 
-      // Currently FAILS: AlertDialog appears with "Open Link" title.
-      // Phase B must skip dialog for http/https and launch directly.
+      // Phase B applied: _confirmAndLaunchUrl skips dialog for http/https.
+      // No AlertDialog should appear.
       expect(
         find.byType(AlertDialog),
         findsNothing,
@@ -109,7 +108,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: scroll message list dismisses keyboard (INV-KB-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -159,9 +157,8 @@ void main() {
       await tester.drag(listFinder, const Offset(0, -200));
       await tester.pumpAndSettle();
 
-      // Currently FAILS: keyboard stays open because
-      // keyboardDismissBehavior defaults to manual.
-      // Phase B adds onDrag behavior to dismiss keyboard on scroll.
+      // Phase B applied: keyboardDismissBehavior.onDrag dismisses keyboard.
+      // Focus must be lost after dragging the list.
       expect(textField.focusNode?.hasFocus ?? true, isFalse,
           reason: 'Scrolling the message list must dismiss keyboard '
               '(INV-KB-1)');
@@ -181,7 +178,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: initial scroll at bottom, no flash (INV-SCROLL-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -218,13 +214,8 @@ void main() {
       expect(listFinder, findsOneWidget,
           reason: 'Message list must be rendered');
 
-      // After the first frame, the scroll position must already be
-      // at the bottom. On current code, jumpTo fires in a
-      // postFrameCallback, so the first frame renders at position 0
-      // (top of list) — this is the visible flash/jump.
-      //
-      // Phase B must ensure that the list starts at the bottom
-      // without an intermediate frame at the top.
+      // After the first frame, with reverse:true the scroll position
+      // starts at 0 (bottom = newest messages). No jumpTo flash needed.
       final scrollable = tester.widget<ListView>(listFinder);
       final controller = scrollable.controller;
       expect(controller, isNotNull, reason: 'ListView must have a controller');
@@ -234,9 +225,9 @@ void main() {
       final position = controller.position;
       expect(
         position.pixels,
-        closeTo(position.maxScrollExtent, 1.0),
-        reason: 'After first frame, scroll must already be at '
-            'bottom — no flash to top position (INV-SCROLL-1)',
+        closeTo(0.0, 1.0),
+        reason: 'With reverse:true, scroll position 0 = bottom (newest) — '
+            'no flash to top position (INV-SCROLL-1)',
       );
     },
   );
@@ -252,7 +243,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: delete confirm triggers haptic (INV-HAPTIC-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -324,9 +314,8 @@ void main() {
       await tester.tap(confirmFinder);
       await tester.pumpAndSettle();
 
-      // Currently FAILS: no HapticFeedback call in the delete confirm path.
-      // Phase B must add HapticFeedback.mediumImpact() to
-      // _confirmAndDeleteMessage when confirmed == true.
+      // Phase B applied: HapticFeedback.mediumImpact() called after confirm.
+      // The haptic call must be intercepted.
       expect(
         hapticCalls,
         contains('HapticFeedbackType.mediumImpact'),
