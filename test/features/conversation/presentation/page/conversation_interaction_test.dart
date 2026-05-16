@@ -228,30 +228,30 @@ void main() {
       final scrollable = tester.widget<ListView>(listFinder);
       final controller = scrollable.controller;
       expect(controller, isNotNull, reason: 'ListView must have a controller');
-      if (controller != null && controller.hasClients) {
-        final position = controller.position;
-        expect(
-          position.pixels,
-          closeTo(position.maxScrollExtent, 1.0),
-          reason: 'After first frame, scroll must already be at '
-              'bottom — no flash to top position (INV-SCROLL-1)',
-        );
-      }
+      expect(controller!.hasClients, isTrue,
+          reason: 'ScrollController must be attached after first pump');
+
+      final position = controller.position;
+      expect(
+        position.pixels,
+        closeTo(position.maxScrollExtent, 1.0),
+        reason: 'After first frame, scroll must already be at '
+            'bottom — no flash to top position (INV-SCROLL-1)',
+      );
     },
   );
 
   // -----------------------------------------------------------------------
-  // 4. Long-press message triggers haptic feedback (INV-HAPTIC-1)
+  // 4. Delete confirmation emits haptic feedback (INV-HAPTIC-1)
   //
-  // Phase B: _showContextMenu (or onLongPress) in _ConversationMessageCard
-  //          must call HapticFeedback.mediumImpact() before showing the
-  //          context menu.
+  // Phase B: _confirmAndDeleteMessage must call
+  //          HapticFeedback.mediumImpact() when the user confirms deletion.
   //
-  // Behavioral test: render page with message, intercept HapticFeedback
-  // platform channel, long-press the message, assert haptic was triggered.
+  // Behavioral test: render page with own message, open context menu,
+  // tap Delete, confirm in dialog, assert haptic was emitted.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Conversation: long-press message triggers haptic (INV-HAPTIC-1)',
+    'Conversation: delete confirm triggers haptic (INV-HAPTIC-1)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -266,9 +266,10 @@ void main() {
           messages: [
             ConversationMessageSummary(
               id: 'msg-haptic',
-              content: 'Long press me for haptic',
+              content: 'Delete me for haptic',
               createdAt: DateTime.parse('2026-05-16T00:00:00Z'),
               senderType: 'human',
+              senderId: 'user-1', // Must match session userId for isOwn
               messageType: 'message',
               seq: 1,
             ),
@@ -300,22 +301,36 @@ void main() {
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
 
-      // Message must be rendered.
+      // Own message must be rendered.
       final msgFinder = find.byKey(const ValueKey('message-msg-haptic'));
       expect(msgFinder, findsOneWidget, reason: 'Message must be rendered');
 
-      // Long-press the message to trigger the context menu.
+      // Long-press to open context menu.
       await tester.longPress(msgFinder);
       await tester.pumpAndSettle();
 
-      // Currently FAILS: no HapticFeedback call exists in the
-      // long-press / context menu code path.
-      // Phase B must add HapticFeedback.mediumImpact() to the
-      // message long-press action.
+      // Tap "Delete" in the context menu.
+      final deleteFinder = find.text('Delete');
+      expect(deleteFinder, findsOneWidget,
+          reason: 'Delete option must be visible for own message');
+      await tester.tap(deleteFinder);
+      await tester.pumpAndSettle();
+
+      // Confirm deletion in the AlertDialog.
+      final confirmFinder =
+          find.byKey(const ValueKey('delete-message-confirm'));
+      expect(confirmFinder, findsOneWidget,
+          reason: 'Delete confirmation dialog must appear');
+      await tester.tap(confirmFinder);
+      await tester.pumpAndSettle();
+
+      // Currently FAILS: no HapticFeedback call in the delete confirm path.
+      // Phase B must add HapticFeedback.mediumImpact() to
+      // _confirmAndDeleteMessage when confirmed == true.
       expect(
         hapticCalls,
         contains('HapticFeedbackType.mediumImpact'),
-        reason: 'Long-pressing a message must emit haptic feedback '
+        reason: 'Confirming message deletion must emit haptic feedback '
             '(INV-HAPTIC-1)',
       );
     },
