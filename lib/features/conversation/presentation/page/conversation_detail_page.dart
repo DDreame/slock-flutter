@@ -855,6 +855,14 @@ class _ConversationMessageList extends StatelessWidget {
             date: newerDate,
           );
         }
+        // Grouped messages (same sender, <5min, same day) get a tighter gap.
+        final newerMsg = _messageForItemAt(index, pendingCount, state);
+        final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
+        if (newerMsg != null &&
+            olderMsg != null &&
+            _shouldGroupWith(newerMsg, olderMsg)) {
+          return const SizedBox(height: 3);
+        }
         return const SizedBox(height: 12);
       },
       itemBuilder: (context, index) {
@@ -871,9 +879,15 @@ class _ConversationMessageList extends StatelessWidget {
         if (adjustedIndex < state.messages.length) {
           final message =
               state.messages[state.messages.length - 1 - adjustedIndex];
+          // Determine if this message should show its header by checking
+          // the chronologically-previous message (index+1 in reversed list).
+          final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
+          final showHeader =
+              olderMsg == null || !_shouldGroupWith(message, olderMsg);
           return _ConversationMessageCard(
             target: state.target,
             message: message,
+            showHeader: showHeader,
             highlightQuery: state.searchQuery,
             onScrollToMessage: onScrollToMessage != null
                 ? (messageId) => onScrollToMessage!(messageId, state.messages)
@@ -891,6 +905,34 @@ class _ConversationMessageList extends StatelessWidget {
 /// comparison. Override in tests to simulate non-UTC timezones.
 @visibleForTesting
 DateTime Function(DateTime) dateSeparatorToLocal = (dt) => dt.toLocal();
+
+/// Resolve the [ConversationMessageSummary] at [index], or null for pending/header.
+ConversationMessageSummary? _messageForItemAt(
+  int index,
+  int pendingCount,
+  ConversationDetailState state,
+) {
+  if (index < pendingCount) return null; // pending message
+  final adjustedIndex = index - pendingCount;
+  if (adjustedIndex < state.messages.length) {
+    return state.messages[state.messages.length - 1 - adjustedIndex];
+  }
+  return null; // header
+}
+
+/// Whether [newer] should be grouped with [older] (same sender, <5min, same
+/// day, neither is a system message).
+bool _shouldGroupWith(
+  ConversationMessageSummary newer,
+  ConversationMessageSummary older,
+) {
+  if (newer.isSystem || older.isSystem) return false;
+  if (newer.senderId == null || newer.senderId != older.senderId) return false;
+  final diff = newer.createdAt.difference(older.createdAt).abs();
+  if (diff > const Duration(minutes: 5)) return false;
+  if (!_isSameDay(newer.createdAt, older.createdAt)) return false;
+  return true;
+}
 
 /// Resolve the [DateTime] for the list item at [index], or null for the header.
 DateTime? _dateForItemAt(
@@ -1588,12 +1630,14 @@ class _ConversationMessageCard extends ConsumerWidget {
   const _ConversationMessageCard({
     required this.target,
     required this.message,
+    this.showHeader = true,
     this.highlightQuery = '',
     this.onScrollToMessage,
   });
 
   final ConversationDetailTarget target;
   final ConversationMessageSummary message;
+  final bool showHeader;
   final String highlightQuery;
   final ValueChanged<String>? onScrollToMessage;
 
@@ -1721,8 +1765,9 @@ class _ConversationMessageCard extends ConsumerWidget {
                   ? () => onScrollToMessage!(message.replyTo!.id)
                   : null,
             ),
-          if (visualKind == _ConversationMessageVisualKind.self)
+          if (showHeader && visualKind == _ConversationMessageVisualKind.self)
             Padding(
+              key: ValueKey('message-header-${message.id}'),
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Row(
                 children: [
@@ -1768,8 +1813,9 @@ class _ConversationMessageCard extends ConsumerWidget {
                 ],
               ),
             ),
-          if (visualKind != _ConversationMessageVisualKind.self)
+          if (showHeader && visualKind != _ConversationMessageVisualKind.self)
             Padding(
+              key: ValueKey('message-header-${message.id}'),
               padding: const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Row(
                 children: [

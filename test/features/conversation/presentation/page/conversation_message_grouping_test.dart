@@ -13,17 +13,14 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #517: 聊天消息合并显示 — Phase A (test-only)
+// #517: 聊天消息合并显示 — Phase B (test enabled)
 //
 // 3 tests for message grouping behavior:
 //   INV-GROUP-1: Consecutive same-sender within 5min → header hidden on 2nd+
 //   INV-GROUP-2: Different sender → always show header
 //   INV-GROUP-3: Same sender across day boundary → always show header
 //
-// Phase B must add showHeader logic to _ConversationMessageCard and
-// wrap each header row in a widget keyed 'message-header-{msgId}'.
-//
-// skip: true until Phase B implements message grouping.
+// Phase B applied — tests enabled.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -62,7 +59,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: same sender within 5min hides header (INV-GROUP-1)',
-    skip: true,
     (tester) async {
       await pumpConversation(tester, messages: [
         ConversationMessageSummary(
@@ -113,7 +109,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: different sender always shows header (INV-GROUP-2)',
-    skip: true,
     (tester) async {
       await pumpConversation(tester, messages: [
         ConversationMessageSummary(
@@ -165,7 +160,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: same sender across day boundary shows header (INV-GROUP-3)',
-    skip: true,
     (tester) async {
       await pumpConversation(tester, messages: [
         ConversationMessageSummary(
