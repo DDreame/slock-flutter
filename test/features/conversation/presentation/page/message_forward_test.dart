@@ -80,16 +80,17 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-FORWARD-2: Tapping the "Forward" action in the context menu
-  // navigates to a ShareTargetPickerPage (or forward target picker)
-  // instead of invoking the OS share sheet.
+  // navigates to ShareTargetPickerPage instead of invoking the OS share
+  // sheet.
   //
   // Setup: Long-press message → open context menu → tap Forward. After
-  // navigation, a widget keyed 'forward-target-picker' must appear.
+  // navigation, the ShareTargetPickerPage must appear (identified by its
+  // app bar title "Share to...").
   //
   // skip:true — currently wired to Share.share() (OS share sheet).
   // -----------------------------------------------------------------------
   testWidgets(
-    'Tap Forward opens target picker (INV-FORWARD-2)',
+    'Tap Forward opens ShareTargetPickerPage (INV-FORWARD-2)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -111,23 +112,26 @@ void main() {
       await tester.tap(forwardAction);
       await tester.pumpAndSettle();
 
-      // Target picker must appear.
+      // ShareTargetPickerPage must appear (real title: "Share to...").
       expect(
-        find.byKey(const ValueKey('forward-target-picker')),
+        find.text('Share to...'),
         findsOneWidget,
-        reason: 'Forward target picker must appear after tapping Forward '
+        reason: 'ShareTargetPickerPage must appear after tapping Forward '
             '(INV-FORWARD-2)',
       );
     },
   );
 
   // -----------------------------------------------------------------------
-  // INV-FORWARD-3: After selecting a target in the forward picker, the
-  // original message content is sent to the selected conversation.
+  // INV-FORWARD-3: After selecting a target in the ShareTargetPickerPage,
+  // the original message content is sent to the selected conversation.
   //
-  // Setup: Navigate to forward picker, select a target. The repository's
-  // sendMessage must be called with the original message content and the
-  // selected target.
+  // Setup: Navigate to picker, tap a channel/DM ListTile. The message
+  // content must be forwarded via sendMessage API.
+  //
+  // The picker renders _ChannelTile / _DmTile ListTiles from the home
+  // list state. In Phase B, selecting a tile triggers sendMessage with
+  // the original message content.
   //
   // skip:true — no in-app forward send implemented.
   // -----------------------------------------------------------------------
@@ -151,11 +155,16 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('ctx-action-forward')));
       await tester.pumpAndSettle();
 
-      // Select the first target in the picker.
-      final targetItem = find.byKey(const ValueKey('forward-target-item-0'));
-      expect(targetItem, findsOneWidget,
-          reason: 'At least one forward target must be listed');
-      await tester.tap(targetItem);
+      // ShareTargetPickerPage must be visible.
+      expect(find.text('Share to...'), findsOneWidget,
+          reason: 'Picker must be visible before selecting target');
+
+      // Select the first channel tile in the picker list.
+      // _ChannelTile renders as ListTile with "# channel-name" text.
+      final channelTiles = find.byType(ListTile);
+      expect(channelTiles, findsWidgets,
+          reason: 'At least one target ListTile must be listed');
+      await tester.tap(channelTiles.first);
       await tester.pumpAndSettle();
 
       // Verify message was sent — the fake repo tracks calls.
@@ -170,10 +179,10 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-FORWARD-4: After a successful forward, the user sees feedback
-  // (e.g. a SnackBar saying "Message forwarded").
+  // (SnackBar with "Message forwarded" text).
   //
-  // Setup: Complete the forward flow. A SnackBar or feedback widget
-  // keyed 'forward-success-feedback' must appear.
+  // Setup: Complete the forward flow (long-press → Forward → select
+  // target). A SnackBar with confirmation text must appear.
   //
   // skip:true — no success feedback implemented.
   // -----------------------------------------------------------------------
@@ -197,22 +206,18 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('ctx-action-forward')));
       await tester.pumpAndSettle();
 
-      final targetItem = find.byKey(const ValueKey('forward-target-item-0'));
-      expect(targetItem, findsOneWidget);
-      await tester.tap(targetItem);
+      // Select a target from the picker.
+      final channelTiles = find.byType(ListTile);
+      expect(channelTiles, findsWidgets);
+      await tester.tap(channelTiles.first);
       await tester.pumpAndSettle();
 
-      // Success feedback must appear.
-      final snackBarText = find.text('Message forwarded');
-      final feedbackWidget =
-          find.byKey(const ValueKey('forward-success-feedback'));
-
+      // Success feedback SnackBar must appear.
       expect(
-        snackBarText.evaluate().isNotEmpty ||
-            feedbackWidget.evaluate().isNotEmpty,
-        isTrue,
-        reason: 'Success feedback must appear after forwarding message '
-            '(INV-FORWARD-4)',
+        find.text('Message forwarded'),
+        findsOneWidget,
+        reason: 'SnackBar with "Message forwarded" must appear after '
+            'successful forward (INV-FORWARD-4)',
       );
     },
   );
