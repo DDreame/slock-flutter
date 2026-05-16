@@ -7,7 +7,7 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
-import 'package:slock_app/features/conversation/data/pending_attachment.dart'; // Used by uploadAttachment
+import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -28,8 +28,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-SCROLL-1: Enter conversation → no visible flash/jump
 //   INV-HAPTIC-1: Status-changing actions emit haptic feedback
 //
-// Tests 1 & 2: skip: true until Phase B fixes conversation_detail_page.dart.
-// Tests 3 & 4: pass on current codebase (contract verification).
+// All 4 tests: skip: true until Phase B fixes conversation_detail_page.dart.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -70,12 +69,23 @@ void main() {
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
 
-      // Tap the link in the message.
-      final linkFinder = find.text('https://example.com');
-      if (linkFinder.evaluate().isNotEmpty) {
-        await tester.tap(linkFinder);
-        await tester.pumpAndSettle();
-      }
+      // Message with link must be rendered.
+      expect(
+        find.byKey(const ValueKey('message-msg-link')),
+        findsOneWidget,
+        reason: 'Message containing link must be rendered',
+      );
+
+      // The link surface must exist and be tappable.
+      // MarkdownBody renders links as RichText with recognizers.
+      // Find the link text — it must resolve (no vacuous skip).
+      final linkFinder = find.textContaining('https://example.com');
+      expect(linkFinder, findsAtLeastNWidgets(1),
+          reason: 'Link text must be rendered in the message');
+
+      // Tap the first link occurrence.
+      await tester.tap(linkFinder.first);
+      await tester.pumpAndSettle();
 
       // Currently FAILS: AlertDialog appears with "Open Link" title.
       // Phase B must skip dialog for http/https and launch directly.
@@ -93,9 +103,12 @@ void main() {
   //
   // Phase B: ListView.separated in _ConversationMessageList must set
   //          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag
+  //
+  // Behavioral test: focus the composer input, then drag the message list,
+  // and assert focus is dismissed (keyboard closed).
   // -----------------------------------------------------------------------
   testWidgets(
-    'Conversation: message list has onDrag keyboard dismiss (INV-KB-1)',
+    'Conversation: scroll message list dismisses keyboard (INV-KB-1)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
@@ -127,31 +140,119 @@ void main() {
       await tester.pumpWidget(_buildConversationApp(repo));
       await tester.pumpAndSettle();
 
-      // Find the ListView used for messages.
-      final listViewFinder = find.byKey(const ValueKey('conversation-success'));
-      expect(listViewFinder, findsOneWidget,
-          reason: 'Message list must be visible');
+      // Find and tap the composer TextField to open the keyboard.
+      final textFieldFinder = find.byType(TextField);
+      expect(textFieldFinder, findsAtLeastNWidgets(1),
+          reason: 'Composer TextField must be visible');
+      await tester.tap(textFieldFinder.first);
+      await tester.pumpAndSettle();
 
-      // Check keyboardDismissBehavior property.
-      // Currently FAILS: default is manual (no keyboard dismiss on scroll).
-      final listView = tester.widget<ListView>(listViewFinder);
-      expect(
-        listView.keyboardDismissBehavior,
-        ScrollViewKeyboardDismissBehavior.onDrag,
-        reason: 'Message list must dismiss keyboard on scroll '
-            '(INV-KB-1)',
-      );
+      // Verify the composer has focus (keyboard is open).
+      final textField = tester.widget<TextField>(textFieldFinder.first);
+      expect(textField.focusNode?.hasFocus ?? false, isTrue,
+          reason: 'Composer must have focus after tap');
+
+      // Drag the message list to scroll.
+      final listFinder = find.byKey(const ValueKey('conversation-success'));
+      expect(listFinder, findsOneWidget,
+          reason: 'Message list must be visible');
+      await tester.drag(listFinder, const Offset(0, -200));
+      await tester.pumpAndSettle();
+
+      // Currently FAILS: keyboard stays open because
+      // keyboardDismissBehavior defaults to manual.
+      // Phase B adds onDrag behavior to dismiss keyboard on scroll.
+      expect(textField.focusNode?.hasFocus ?? true, isFalse,
+          reason: 'Scrolling the message list must dismiss keyboard '
+              '(INV-KB-1)');
     },
   );
 
   // -----------------------------------------------------------------------
-  // 3. Conversation detail page renders without crash (baseline)
+  // 3. Enter conversation → scroll position at bottom, no flash (INV-SCROLL-1)
   //
-  // Passes on current codebase. Validates the test infrastructure works
-  // and conversation page renders with messages.
+  // Phase B: Replace jumpTo(maxScrollExtent) in postFrameCallback with a
+  //          solution that avoids the initial frame rendering at position 0
+  //          (e.g., reverse: true, or initialScrollOffset).
+  //
+  // Behavioral test: render page with messages, verify that after initial
+  // layout the scroll position is at the bottom. Tests that the latest
+  // messages are visible immediately without a visible flash/jump.
   // -----------------------------------------------------------------------
   testWidgets(
-    'Conversation: renders messages successfully (baseline)',
+    'Conversation: initial scroll at bottom, no flash (INV-SCROLL-1)',
+    skip: true,
+    (tester) async {
+      final repo = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: ConversationDetailTarget.channel(
+            const ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-1',
+            ),
+          ),
+          title: '#general',
+          messages: [
+            for (int i = 0; i < 30; i++)
+              ConversationMessageSummary(
+                id: 'msg-$i',
+                content: 'Message $i content that fills the viewport',
+                createdAt: DateTime.parse('2026-05-16T00:00:00Z')
+                    .add(Duration(minutes: i)),
+                senderType: 'human',
+                messageType: 'message',
+                seq: i + 1,
+              ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+
+      await tester.pumpWidget(_buildConversationApp(repo));
+      // Single pump: render the first frame only.
+      await tester.pump();
+
+      // Find the scrollable message list.
+      final listFinder = find.byKey(const ValueKey('conversation-success'));
+      expect(listFinder, findsOneWidget,
+          reason: 'Message list must be rendered');
+
+      // After the first frame, the scroll position must already be
+      // at the bottom. On current code, jumpTo fires in a
+      // postFrameCallback, so the first frame renders at position 0
+      // (top of list) — this is the visible flash/jump.
+      //
+      // Phase B must ensure that the list starts at the bottom
+      // without an intermediate frame at the top.
+      final scrollable = tester.widget<ListView>(listFinder);
+      final controller = scrollable.controller;
+      expect(controller, isNotNull, reason: 'ListView must have a controller');
+      if (controller != null && controller.hasClients) {
+        final position = controller.position;
+        expect(
+          position.pixels,
+          closeTo(position.maxScrollExtent, 1.0),
+          reason: 'After first frame, scroll must already be at '
+              'bottom — no flash to top position (INV-SCROLL-1)',
+        );
+      }
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // 4. Long-press message triggers haptic feedback (INV-HAPTIC-1)
+  //
+  // Phase B: _showContextMenu (or onLongPress) in _ConversationMessageCard
+  //          must call HapticFeedback.mediumImpact() before showing the
+  //          context menu.
+  //
+  // Behavioral test: render page with message, intercept HapticFeedback
+  // platform channel, long-press the message, assert haptic was triggered.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Conversation: long-press message triggers haptic (INV-HAPTIC-1)',
+    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -164,8 +265,8 @@ void main() {
           title: '#general',
           messages: [
             ConversationMessageSummary(
-              id: 'msg-1',
-              content: 'Hello world',
+              id: 'msg-haptic',
+              content: 'Long press me for haptic',
               createdAt: DateTime.parse('2026-05-16T00:00:00Z'),
               senderType: 'human',
               messageType: 'message',
@@ -177,28 +278,6 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
-      await tester.pumpAndSettle();
-
-      // Page renders with the conversation title and message.
-      expect(find.text('#general'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('message-msg-1')),
-        findsOneWidget,
-        reason: 'Message must be rendered',
-      );
-    },
-  );
-
-  // -----------------------------------------------------------------------
-  // 4. HapticFeedback method channel contract (INV-HAPTIC-1)
-  //
-  // Passes on current codebase. Validates that HapticFeedback.mediumImpact()
-  // is callable and sends the correct platform message.
-  // -----------------------------------------------------------------------
-  testWidgets(
-    'HapticFeedback.mediumImpact sends platform message (INV-HAPTIC-1)',
-    (tester) async {
       final hapticCalls = <String>[];
 
       // Intercept HapticFeedback platform channel calls.
@@ -218,12 +297,27 @@ void main() {
         );
       });
 
-      // Trigger haptic feedback.
-      await HapticFeedback.mediumImpact();
+      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpAndSettle();
 
-      expect(hapticCalls, contains('HapticFeedbackType.mediumImpact'),
-          reason: 'HapticFeedback.mediumImpact must send platform '
-              'message (INV-HAPTIC-1)');
+      // Message must be rendered.
+      final msgFinder = find.byKey(const ValueKey('message-msg-haptic'));
+      expect(msgFinder, findsOneWidget, reason: 'Message must be rendered');
+
+      // Long-press the message to trigger the context menu.
+      await tester.longPress(msgFinder);
+      await tester.pumpAndSettle();
+
+      // Currently FAILS: no HapticFeedback call exists in the
+      // long-press / context menu code path.
+      // Phase B must add HapticFeedback.mediumImpact() to the
+      // message long-press action.
+      expect(
+        hapticCalls,
+        contains('HapticFeedbackType.mediumImpact'),
+        reason: 'Long-pressing a message must emit haptic feedback '
+            '(INV-HAPTIC-1)',
+      );
     },
   );
 }
