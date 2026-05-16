@@ -10,7 +10,7 @@ import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 
 // ---------------------------------------------------------------------------
-// #515: Tasks 页面 Skeleton Screen — Phase A (test-only)
+// #515: Tasks 页面 Skeleton Screen — Phase B (test enabled)
 //
 // 2 tests for skeleton screen behavior:
 //   INV-SKEL-1a: Tasks loading state with empty items → shows SkeletonListItem
@@ -21,7 +21,7 @@ import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 // Production branch: `TasksStatus.initial || TasksStatus.loading when
 // state.items.isEmpty` — both paths must render skeleton.
 //
-// skip: true until Phase B replaces CircularProgressIndicator with skeleton.
+// Phase B applied — tests enabled.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -79,7 +79,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Tasks: loading state shows skeleton items, not spinner (INV-SKEL-1a)',
-    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: const TasksState(
@@ -100,7 +99,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Tasks: initial state shows skeleton items, not spinner (INV-SKEL-1b)',
-    skip: true,
     (tester) async {
       final store = _FakeTasksStore(
         initialState: const TasksState(
