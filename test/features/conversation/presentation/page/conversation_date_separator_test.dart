@@ -13,13 +13,13 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #516: 聊天日期分隔线 — Phase A (test-only)
+// #516: 聊天日期分隔线 — Phase B (test enabled)
 //
 // 2 tests for date separator behavior:
 //   INV-DATE-1: Messages from different calendar days → date separator visible
 //   INV-DATE-2: Messages from same calendar day → no date separator
 //
-// skip: true until Phase B adds _DateSeparatorWidget to separatorBuilder.
+// Phase B applied — tests enabled.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -32,7 +32,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: cross-day messages show date separator (INV-DATE-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -92,7 +91,6 @@ void main() {
   // -----------------------------------------------------------------------
   testWidgets(
     'Conversation: same-day messages have no date separator (INV-DATE-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
