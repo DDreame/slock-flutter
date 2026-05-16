@@ -8,19 +8,23 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/share/application/share_intent_store.dart';
+import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #533: Message Forward — Phase A
+// #533: Message Forward — Phase B
 //
 // Verifies that the message forward flow works end-to-end: from the
 // context menu "Forward" action to target selection and message delivery.
 //
-// Current state: Forward action exists in context menu but is wired to
-// Share.share(message.content) (OS share sheet) instead of in-app
-// ShareTargetPickerPage → sendMessage().
+// Phase B implementation replaces Share.share(message.content) (OS share
+// sheet) with in-app ShareTargetPickerPage → sendMessage() flow.
 //
 // Invariants:
 //   INV-FORWARD-1: Long-press message → context menu shows "Forward"
@@ -28,11 +32,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-FORWARD-3: Select target → message content sent to target
 //   INV-FORWARD-4: After forward → success feedback shown
 //
-// Phase A:
-//   INV-FORWARD-1: active (Forward action already exists)
-//   INV-FORWARD-2: skip:true (currently uses OS Share.share)
-//   INV-FORWARD-3: skip:true (no in-app send)
-//   INV-FORWARD-4: skip:true (no success feedback)
+// Phase B — All invariants active.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -43,8 +43,6 @@ void main() {
   // Setup: Render conversation detail page with a human message. Long-press
   // the message shell to open the context menu. The Forward ListTile must
   // be present.
-  //
-  // Active — Forward action already exists in showMessageContextMenu.
   // -----------------------------------------------------------------------
   testWidgets(
     'Long-press message shows Forward action in context menu '
@@ -86,12 +84,9 @@ void main() {
   // Setup: Long-press message → open context menu → tap Forward. After
   // navigation, the ShareTargetPickerPage must appear (identified by its
   // app bar title "Share to...").
-  //
-  // skip:true — currently wired to Share.share() (OS share sheet).
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap Forward opens ShareTargetPickerPage (INV-FORWARD-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -130,14 +125,11 @@ void main() {
   // content must be forwarded via sendMessage API.
   //
   // The picker renders _ChannelTile / _DmTile ListTiles from the home
-  // list state. In Phase B, selecting a tile triggers sendMessage with
-  // the original message content.
-  //
-  // skip:true — no in-app forward send implemented.
+  // list state. Selecting a tile triggers sendMessage with the original
+  // message content.
   // -----------------------------------------------------------------------
   testWidgets(
     'Select target sends message content to target (INV-FORWARD-3)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -159,12 +151,11 @@ void main() {
       expect(find.text('Share to...'), findsOneWidget,
           reason: 'Picker must be visible before selecting target');
 
-      // Select the first channel tile in the picker list.
-      // _ChannelTile renders as ListTile with "# channel-name" text.
-      final channelTiles = find.byType(ListTile);
-      expect(channelTiles, findsWidgets,
-          reason: 'At least one target ListTile must be listed');
-      await tester.tap(channelTiles.first);
+      // Select the first channel tile — rendered as "# forward-target".
+      final targetTile = find.text('# forward-target');
+      expect(targetTile, findsOneWidget,
+          reason: 'Forward target channel must be listed');
+      await tester.tap(targetTile);
       await tester.pumpAndSettle();
 
       // Verify message was sent — the fake repo tracks calls.
@@ -183,12 +174,9 @@ void main() {
   //
   // Setup: Complete the forward flow (long-press → Forward → select
   // target). A SnackBar with confirmation text must appear.
-  //
-  // skip:true — no success feedback implemented.
   // -----------------------------------------------------------------------
   testWidgets(
     'Forward success shows feedback (INV-FORWARD-4)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshot(),
@@ -207,9 +195,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Select a target from the picker.
-      final channelTiles = find.byType(ListTile);
-      expect(channelTiles, findsWidgets);
-      await tester.tap(channelTiles.first);
+      final targetTile = find.text('# forward-target');
+      expect(targetTile, findsOneWidget);
+      await tester.tap(targetTile);
       await tester.pumpAndSettle();
 
       // Success feedback SnackBar must appear.
@@ -260,6 +248,23 @@ ConversationDetailSnapshot _makeSnapshot() {
   );
 }
 
+/// Home list state with a single channel available as a forward target.
+HomeListState _makeHomeState() {
+  return const HomeListState(
+    serverScopeId: ServerScopeId('server-1'),
+    status: HomeListStatus.success,
+    channels: [
+      HomeChannelSummary(
+        scopeId: ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'ch-forward',
+        ),
+        name: 'forward-target',
+      ),
+    ],
+  );
+}
+
 Widget _buildConversationApp(_FakeConversationRepository repo) {
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
@@ -272,6 +277,12 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      homeListStoreProvider.overrideWith(() {
+        return _FixedHomeListStore(_makeHomeState());
+      }),
+      shareIntentStoreProvider.overrideWith(() {
+        return _FixedShareIntentStore(null);
+      }),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -436,4 +447,20 @@ class _FakeSessionStore extends SessionStore {
 
   @override
   Future<void> logout() async {}
+}
+
+class _FixedHomeListStore extends HomeListStore {
+  _FixedHomeListStore(this._fixedState);
+  final HomeListState _fixedState;
+
+  @override
+  HomeListState build() => _fixedState;
+}
+
+class _FixedShareIntentStore extends ShareIntentStore {
+  _FixedShareIntentStore(this._fixedState);
+  final SharedContent? _fixedState;
+
+  @override
+  SharedContent? build() => _fixedState;
 }
