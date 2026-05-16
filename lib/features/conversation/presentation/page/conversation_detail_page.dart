@@ -135,6 +135,16 @@ class _ConversationDetailScreenState
   bool _showScrollToBottom = false;
   Timer? _scrollThrottleTimer;
 
+  // Quote-jump highlight state.
+  String? _highlightedMessageId;
+  Timer? _highlightTimer;
+  bool _isQuoteJumpLoading = false;
+  final Map<String, GlobalKey> _messageGlobalKeys = {};
+
+  GlobalKey _getMessageKey(String messageId) {
+    return _messageGlobalKeys.putIfAbsent(messageId, () => GlobalKey());
+  }
+
   // Mention autocomplete state.
   bool _showMentionOverlay = false;
   String _mentionQuery = '';
@@ -188,6 +198,7 @@ class _ConversationDetailScreenState
     _stateSubscription?.close();
     _translationSettingsSub?.close();
     _scrollThrottleTimer?.cancel();
+    _highlightTimer?.cancel();
     if (_scrollController.hasClients) {
       ref
           .read(conversationDetailStoreProvider.notifier)
@@ -387,8 +398,30 @@ class _ConversationDetailScreenState
                               controller: _scrollController,
                               state: state,
                               onScrollToMessage: _scrollToMessageId,
+                              highlightedMessageId: _highlightedMessageId,
+                              messageKeyBuilder: _getMessageKey,
                             ),
                           ),
+                          if (_isQuoteJumpLoading)
+                            const Positioned.fill(
+                              child: Align(
+                                alignment: Alignment.center,
+                                child: Card(
+                                  key: ValueKey('quote-jump-loading'),
+                                  child: Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.info_outline, size: 16),
+                                        SizedBox(width: 12),
+                                        Text('Message not available'),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           if (_showScrollToBottom)
                             Positioned(
                               right: 16,
@@ -903,26 +936,96 @@ class _ConversationDetailScreenState
     }
   }
 
-  /// Scroll to a specific message by ID.
+  /// Scroll to a specific message by ID and show a highlight flash.
   ///
-  /// Uses proportional offset estimation: with reverse:true, position 0 is
-  /// the bottom (newest), maxScrollExtent is the top (oldest / header).
+  /// When the target message is in the loaded list, scrolls to it using
+  /// GlobalKey-based [Scrollable.ensureVisible] and shows a brief highlight.
+  /// When the target is not loaded, attempts to load older messages via API;
+  /// if still not found, shows a [quote-jump-loading] feedback widget.
   void _scrollToMessageId(
     String messageId,
     List<ConversationMessageSummary> messages,
   ) {
     final idx = messages.indexWhere((m) => m.id == messageId);
     if (idx < 0) {
-      // Message not loaded — fall back to bottom (newest).
-      _scrollController.jumpTo(0);
+      // Message not in loaded window — attempt async load.
+      _handleQuoteJumpMissing(messageId);
       return;
     }
-    final maxExtent = _scrollController.position.maxScrollExtent;
-    // idx 0 = oldest → near maxExtent (top). idx N = newest → near 0 (bottom).
-    final estimatedOffset = messages.isEmpty
-        ? 0.0
-        : (messages.length - idx) / (messages.length + 1) * maxExtent;
-    _scrollController.jumpTo(estimatedOffset.clamp(0.0, maxExtent));
+    _scrollToAndHighlight(messageId);
+  }
+
+  /// Scrolls to a message using GlobalKey-based ensureVisible and applies
+  /// a highlight flash that auto-dismisses after 1.5 seconds.
+  void _scrollToAndHighlight(String messageId) {
+    // Clear any existing highlight first.
+    _highlightTimer?.cancel();
+
+    // Set the highlight immediately so the widget tree rebuilds with it.
+    setState(() {
+      _highlightedMessageId = messageId;
+      _isQuoteJumpLoading = false;
+    });
+
+    // Use post-frame callback to ensure the widget is built before scrolling.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final key = _getMessageKey(messageId);
+      if (key.currentContext != null) {
+        Scrollable.ensureVisible(
+          key.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          alignment: 0.3,
+          curve: Curves.easeInOut,
+        );
+      } else {
+        // GlobalKey not yet in viewport — fall back to proportional estimate.
+        final state = ref.read(conversationDetailStoreProvider);
+        final idx = state.messages.indexWhere((m) => m.id == messageId);
+        if (idx >= 0 && _scrollController.hasClients) {
+          final maxExtent = _scrollController.position.maxScrollExtent;
+          final estimatedOffset = state.messages.isEmpty
+              ? 0.0
+              : (state.messages.length - idx) /
+                  (state.messages.length + 1) *
+                  maxExtent;
+          _scrollController.jumpTo(estimatedOffset.clamp(0.0, maxExtent));
+        }
+      }
+    });
+
+    // Auto-dismiss highlight after 1.5 seconds.
+    _highlightTimer = Timer(const Duration(milliseconds: 1500), () {
+      if (mounted) setState(() => _highlightedMessageId = null);
+    });
+  }
+
+  /// Handles quote-jump when the target message is not in the loaded window.
+  /// Attempts to load older messages; if the target is still not found,
+  /// shows a persistent feedback widget keyed [quote-jump-loading].
+  Future<void> _handleQuoteJumpMissing(String messageId) async {
+    setState(() => _isQuoteJumpLoading = true);
+
+    final notifier = ref.read(conversationDetailStoreProvider.notifier);
+    final state = ref.read(conversationDetailStoreProvider);
+
+    if (state.hasOlder) {
+      await notifier.loadOlder();
+      if (!mounted) return;
+
+      // Re-check after loading.
+      final updatedState = ref.read(conversationDetailStoreProvider);
+      final idx = updatedState.messages.indexWhere((m) => m.id == messageId);
+      if (idx >= 0) {
+        _scrollToAndHighlight(messageId);
+        return;
+      }
+    }
+
+    // Still not found — show persistent feedback.
+    if (mounted) {
+      setState(() => _isQuoteJumpLoading = true);
+    }
   }
 
   void _showRefreshFailedSnackBar() {
@@ -998,6 +1101,8 @@ class _ConversationMessageList extends ConsumerWidget {
     required this.controller,
     required this.state,
     this.onScrollToMessage,
+    this.highlightedMessageId,
+    this.messageKeyBuilder,
   });
 
   final ScrollController controller;
@@ -1005,6 +1110,13 @@ class _ConversationMessageList extends ConsumerWidget {
   final void Function(
           String messageId, List<ConversationMessageSummary> messages)?
       onScrollToMessage;
+
+  /// The message ID currently highlighted from a quote-jump.
+  final String? highlightedMessageId;
+
+  /// Returns a [GlobalKey] for a given message ID, used for
+  /// [Scrollable.ensureVisible]-based scroll targeting.
+  final GlobalKey Function(String messageId)? messageKeyBuilder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1105,18 +1217,25 @@ class _ConversationMessageList extends ConsumerWidget {
           final isCurrentSearchMatch = state.searchMatchIds.isNotEmpty &&
               state.currentSearchMatchIndex < state.searchMatchIds.length &&
               state.searchMatchIds[state.currentSearchMatchIndex] == message.id;
+          final isQuoteJumpHighlighted = highlightedMessageId == message.id;
+          final messageKey = messageKeyBuilder?.call(message.id);
           return RepaintBoundary(
             key: ValueKey('repaint-boundary-${message.id}'),
-            child: _ConversationMessageCard(
-              target: state.target,
-              message: message,
-              maxBubbleWidth: maxBubbleWidth,
-              showHeader: showHeader,
-              highlightQuery: state.searchQuery,
-              isCurrentSearchMatch: isCurrentSearchMatch,
-              onScrollToMessage: onScrollToMessage != null
-                  ? (messageId) => onScrollToMessage!(messageId, state.messages)
-                  : null,
+            child: KeyedSubtree(
+              key: messageKey,
+              child: _ConversationMessageCard(
+                target: state.target,
+                message: message,
+                maxBubbleWidth: maxBubbleWidth,
+                showHeader: showHeader,
+                highlightQuery: state.searchQuery,
+                isCurrentSearchMatch: isCurrentSearchMatch,
+                isQuoteJumpHighlighted: isQuoteJumpHighlighted,
+                onScrollToMessage: onScrollToMessage != null
+                    ? (messageId) =>
+                        onScrollToMessage!(messageId, state.messages)
+                    : null,
+              ),
             ),
           );
         }
@@ -2079,6 +2198,7 @@ class _ConversationMessageCard extends ConsumerStatefulWidget {
     this.showHeader = true,
     this.highlightQuery = '',
     this.isCurrentSearchMatch = false,
+    this.isQuoteJumpHighlighted = false,
     this.onScrollToMessage,
   });
 
@@ -2088,6 +2208,7 @@ class _ConversationMessageCard extends ConsumerStatefulWidget {
   final bool showHeader;
   final String highlightQuery;
   final bool isCurrentSearchMatch;
+  final bool isQuoteJumpHighlighted;
   final ValueChanged<String>? onScrollToMessage;
 
   @override
@@ -2490,6 +2611,20 @@ class _ConversationMessageCardState
         key: const ValueKey('search-current-match-highlight'),
         decoration: BoxDecoration(
           color: colors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(BubbleTokens.radiusLarge),
+        ),
+        padding: const EdgeInsets.all(4),
+        child: shellContent,
+      );
+    }
+
+    // Wrap with quote-jump highlight when this message was just scrolled to
+    // via a quoted-message tap.
+    if (isQuoteJumpHighlighted) {
+      shellContent = Container(
+        key: const ValueKey('quote-jump-highlight'),
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(BubbleTokens.radiusLarge),
         ),
         padding: const EdgeInsets.all(4),

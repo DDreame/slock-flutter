@@ -53,7 +53,6 @@ void main() {
   testWidgets(
     'Tap quoted block scrolls to original and shows highlight '
     '(INV-QUOTE-JUMP-1)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshotWithReply(),
@@ -102,7 +101,6 @@ void main() {
   testWidgets(
     'Quoted message not loaded triggers load or feedback '
     '(INV-QUOTE-JUMP-2)',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: _makeSnapshotMissingTarget(),
