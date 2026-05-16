@@ -8,6 +8,8 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -19,6 +21,10 @@ import 'package:slock_app/stores/session/session_store.dart';
 // at the boundary between read and unread messages, positioned correctly,
 // and hidden when there are no unread messages.
 //
+// The unread state is wired through unreadSourceProjectionProvider — the
+// production seam that ConversationDetailPage already reads to determine
+// whether the conversation has unread messages.
+//
 // Invariants:
 //   INV-UNREAD-DIV-1: Unread divider visible when conversation has unread msgs
 //   INV-UNREAD-DIV-2: Divider between last read and first unread (correct pos)
@@ -27,29 +33,32 @@ import 'package:slock_app/stores/session/session_store.dart';
 // Phase A — all tests skip:true (no implementation yet).
 // ---------------------------------------------------------------------------
 
+/// Channel scope ID used across all tests.
+const _channelScopeId = ChannelScopeId(
+  serverId: ServerScopeId('server-1'),
+  value: 'ch-1',
+);
+
 void main() {
   // -----------------------------------------------------------------------
   // INV-UNREAD-DIV-1: When conversation has unread messages, a "New messages"
   // divider widget is visible in the message list.
   //
-  // Setup: 5 messages total, 2 unread (newest 2). The divider widget keyed
-  // 'unread-divider' must appear somewhere in the rendered list.
+  // Setup: 5 messages total, unreadCount=2 (newest 2 are unread).
+  // The divider widget keyed 'unread-divider' must appear.
   // -----------------------------------------------------------------------
   testWidgets(
     'Unread divider visible when conversation has unread messages '
     '(INV-UNREAD-DIV-1)',
     skip: true,
     (tester) async {
-      // 5 messages: msg-1..msg-5, with 2 unread (msg-4, msg-5).
-      // firstUnreadMessageId = 'msg-4'.
       final repo = _FakeConversationRepository(
-        snapshot: _makeSnapshot(
-          messageCount: 5,
-          firstUnreadMessageId: 'msg-4',
-        ),
+        snapshot: _makeSnapshot(messageCount: 5),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(
+        _buildConversationApp(repo, unreadCount: 2),
+      );
       await tester.pumpAndSettle();
 
       // The unread divider must be rendered.
@@ -75,10 +84,12 @@ void main() {
   // INV-UNREAD-DIV-2: The divider appears between the last read message and
   // the first unread message — correct boundary position.
   //
-  // Setup: 5 messages (msg-1..msg-5), 2 unread (msg-4, msg-5).
+  // Setup: 5 messages (msg-1..msg-5), unreadCount=2 (msg-4, msg-5 unread).
   // The divider must appear between msg-3 (last read) and msg-4 (first
-  // unread). We verify by checking vertical ordering of widgets:
-  // msg-3 < divider < msg-4 in the scroll direction.
+  // unread).
+  //
+  // In a reverse ListView (newest at bottom), screen y-coordinates are:
+  //   msg-1.dy < msg-2.dy < msg-3.dy < DIVIDER.dy < msg-4.dy < msg-5.dy
   // -----------------------------------------------------------------------
   testWidgets(
     'Divider positioned between last read and first unread message '
@@ -86,13 +97,12 @@ void main() {
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
-        snapshot: _makeSnapshot(
-          messageCount: 5,
-          firstUnreadMessageId: 'msg-4',
-        ),
+        snapshot: _makeSnapshot(messageCount: 5),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(
+        _buildConversationApp(repo, unreadCount: 2),
+      );
       await tester.pumpAndSettle();
 
       // Divider must exist.
@@ -110,32 +120,28 @@ void main() {
       expect(msg4Finder, findsOneWidget,
           reason: 'First unread message (msg-4) must be rendered');
 
-      // In a reverse ListView, newer messages appear lower (closer to
-      // bottom). The divider should sit between msg-3 and msg-4 in
-      // screen coordinates.
+      // Spatial ordering check.
+      // In reverse ListView: older messages at top (small dy),
+      // newer messages at bottom (large dy).
+      // msg-3 (older/read) is above msg-4 (newer/unread).
+      // Divider sits between: msg3.dy < divider.dy < msg4.dy
       final dividerTop = tester.getTopLeft(dividerFinder).dy;
       final msg3Top = tester.getTopLeft(msg3Finder).dy;
       final msg4Top = tester.getTopLeft(msg4Finder).dy;
 
-      // In reverse list: msg-4 (newer/unread) is below msg-3 (older/read).
-      // Divider sits between them, so:
-      //   msg3Top < dividerTop < msg4Top  (in reverse list with newest at
-      //   bottom, older messages scroll upward).
-      // Note: actual ordering depends on reverse ListView layout — the
-      // implementation must place the divider so this spatial relationship
-      // holds.
       expect(
         dividerTop,
-        greaterThan(msg4Top),
-        reason: 'Unread divider must appear above first unread message '
-            '(msg-4) in reverse list layout — i.e. between read and '
-            'unread boundary (INV-UNREAD-DIV-2)',
+        greaterThan(msg3Top),
+        reason: 'Unread divider must be below last read message '
+            '(msg-3) — divider.dy > msg-3.dy in reverse list '
+            '(INV-UNREAD-DIV-2)',
       );
       expect(
         dividerTop,
-        lessThan(msg3Top),
-        reason: 'Unread divider must appear below last read message '
-            '(msg-3) in reverse list layout (INV-UNREAD-DIV-2)',
+        lessThan(msg4Top),
+        reason: 'Unread divider must be above first unread message '
+            '(msg-4) — divider.dy < msg-4.dy in reverse list '
+            '(INV-UNREAD-DIV-2)',
       );
     },
   );
@@ -144,20 +150,19 @@ void main() {
   // INV-UNREAD-DIV-3: When all messages are read (unreadCount = 0), no
   // divider is shown.
   //
-  // Setup: 5 messages, no firstUnreadMessageId — all read.
+  // Setup: 5 messages, unreadCount=0 — all read.
   // -----------------------------------------------------------------------
   testWidgets(
     'No divider when all messages are read (INV-UNREAD-DIV-3)',
     skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
-        snapshot: _makeSnapshot(
-          messageCount: 5,
-          firstUnreadMessageId: null,
-        ),
+        snapshot: _makeSnapshot(messageCount: 5),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(
+        _buildConversationApp(repo, unreadCount: 0),
+      );
       await tester.pumpAndSettle();
 
       // Messages must be rendered (sanity check).
@@ -184,12 +189,9 @@ void main() {
 
 /// Creates a snapshot with [messageCount] messages (msg-1..msg-N).
 ///
-/// If [firstUnreadMessageId] is provided, the implementation should use it
-/// to position the unread divider. Messages are ordered chronologically
-/// (msg-1 oldest, msg-N newest).
+/// Messages are ordered chronologically (msg-1 oldest, msg-N newest).
 ConversationDetailSnapshot _makeSnapshot({
   required int messageCount,
-  String? firstUnreadMessageId,
 }) {
   final messages = List.generate(
     messageCount,
@@ -205,12 +207,7 @@ ConversationDetailSnapshot _makeSnapshot({
   );
 
   return ConversationDetailSnapshot(
-    target: ConversationDetailTarget.channel(
-      const ChannelScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'ch-1',
-      ),
-    ),
+    target: ConversationDetailTarget.channel(_channelScopeId),
     title: '#general',
     messages: messages,
     historyLimited: false,
@@ -218,18 +215,27 @@ ConversationDetailSnapshot _makeSnapshot({
   );
 }
 
-Widget _buildConversationApp(_FakeConversationRepository repo) {
-  final target = ConversationDetailTarget.channel(
-    const ChannelScopeId(
-      serverId: ServerScopeId('server-1'),
-      value: 'ch-1',
-    ),
-  );
+/// Builds the app with a conversation page and the unread projection
+/// seam overridden to provide [unreadCount] for the test channel.
+Widget _buildConversationApp(
+  _FakeConversationRepository repo, {
+  required int unreadCount,
+}) {
+  final target = ConversationDetailTarget.channel(_channelScopeId);
 
   return ProviderScope(
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      // Wire the unread state through the production seam.
+      unreadSourceProjectionProvider.overrideWithValue(
+        UnreadSourceProjectionState(
+          channelUnreadCounts: {
+            if (unreadCount > 0) _channelScopeId: unreadCount,
+          },
+          isLoaded: true,
+        ),
+      ),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
