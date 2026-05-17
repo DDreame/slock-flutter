@@ -78,7 +78,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Use bounded pump instead of pumpAndSettle — the RuntimeAppFixture
+      // stores have timers that prevent pumpAndSettle from completing.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       final iconButtons = find.byType(IconButton);
       final count = iconButtons.evaluate().length;
@@ -171,7 +175,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Use bounded pump instead of pumpAndSettle — the RuntimeAppFixture
+      // stores have timers that prevent pumpAndSettle from completing.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       final iconButtons = find.byType(IconButton);
       final count = iconButtons.evaluate().length;
@@ -235,7 +243,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Use bounded pump instead of pumpAndSettle — the RuntimeAppFixture
+      // stores have timers that prevent pumpAndSettle from completing.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       final iconButtons = find.byType(IconButton);
       final count = iconButtons.evaluate().length;
@@ -383,7 +395,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Use bounded pump instead of pumpAndSettle — the RuntimeAppFixture
+      // stores have timers that prevent pumpAndSettle from completing.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       // Traverse the actual semantics tree (not widget tree) to verify
       // at least one node with a non-empty label exists for the message
@@ -442,7 +458,11 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      // Use bounded pump instead of pumpAndSettle — the RuntimeAppFixture
+      // stores have timers that prevent pumpAndSettle from completing.
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
       // Traverse the actual semantics tree (not widget tree) to verify
       // at least one node with a non-empty label exists — proves screen
