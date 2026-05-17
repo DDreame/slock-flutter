@@ -888,19 +888,19 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
       key: ValueKey('task-row-${task.id}'),
       label: combinedLabel,
       onLongPress: !isClosed ? () => _showTaskActions(context) : null,
-      child: ExcludeSemantics(
-        child: InkWell(
-          key: ValueKey('task-${task.id}'),
-          onTap: () => _onPrimaryTap(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.pageHorizontal,
-              vertical: AppSpacing.sm,
-            ),
-            child: Row(
-              children: [
-                // Status symbol
-                Semantics(
+      child: InkWell(
+        key: ValueKey('task-${task.id}'),
+        onTap: () => _onPrimaryTap(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pageHorizontal,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              // Status symbol — excluded (covered by combined row label)
+              ExcludeSemantics(
+                child: Semantics(
                   label: statusLabel,
                   child: Text(
                     _statusSymbol(task.status),
@@ -909,10 +909,12 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
+              ),
+              const SizedBox(width: AppSpacing.md),
 
-                // Task number + title
-                Expanded(
+              // Task number + title — excluded (covered by combined row label)
+              Expanded(
+                child: ExcludeSemantics(
                   child: Text(
                     '#${task.taskNumber} ${task.title}',
                     style: AppTypography.body.copyWith(
@@ -924,11 +926,13 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
+              ),
 
-                // Assignee avatar
-                if (task.claimedByName != null) ...[
-                  const SizedBox(width: AppSpacing.sm),
-                  CircleAvatar(
+              // Assignee avatar — excluded (covered by combined row label)
+              if (task.claimedByName != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                ExcludeSemantics(
+                  child: CircleAvatar(
                     key: ValueKey('task-assignee-${task.id}'),
                     radius: 14,
                     backgroundColor: colors.surfaceAlt,
@@ -942,26 +946,27 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
                       ),
                     ),
                   ),
-                ],
-
-                // Action sheet button
-                SizedBox(
-                  width: 32,
-                  height: 32,
-                  child: IconButton(
-                    key: ValueKey('task-actions-${task.id}'),
-                    tooltip: 'Task actions',
-                    icon: Icon(
-                      Icons.more_horiz,
-                      size: 20,
-                      color: colors.textTertiary,
-                    ),
-                    padding: EdgeInsets.zero,
-                    onPressed: () => _showTaskActions(context),
-                  ),
                 ),
               ],
-            ),
+
+              // Action sheet button — NOT excluded, remains separately
+              // focusable for screen readers.
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  key: ValueKey('task-actions-${task.id}'),
+                  tooltip: 'Task actions',
+                  icon: Icon(
+                    Icons.more_horiz,
+                    size: 20,
+                    color: colors.textTertiary,
+                  ),
+                  padding: EdgeInsets.zero,
+                  onPressed: () => _showTaskActions(context),
+                ),
+              ),
+            ],
           ),
         ),
       ),
