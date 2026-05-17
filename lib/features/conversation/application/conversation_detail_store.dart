@@ -1299,12 +1299,28 @@ class ConversationDetailStore
 
     unawaited(() async {
       final prevMaxSeq = _maxSeq(state.messages);
-      final persisted =
-          await ref.read(conversationRepositoryProvider).persistMessage(
-                target,
-                message: incoming.message,
-                senderId: incoming.senderId,
-              );
+      ConversationMessageSummary? persisted;
+      try {
+        persisted =
+            await ref.read(conversationRepositoryProvider).persistMessage(
+                  target,
+                  message: incoming.message,
+                  senderId: incoming.senderId,
+                );
+      } catch (e, st) {
+        ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+      }
+      if (persisted == null) {
+        // Persistence failed — still attempt gap recovery if needed.
+        if (gapDetected) {
+          try {
+            await _recoverGap(target, afterSeq: prevMaxSeq);
+          } catch (e, st) {
+            ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+          }
+        }
+        return;
+      }
       if (ref.read(currentConversationDetailTargetProvider) != target ||
           state.status != ConversationDetailStatus.success) {
         return;
@@ -1315,7 +1331,11 @@ class ConversationDetailStore
       _persistSession();
 
       if (gapDetected) {
-        await _recoverGap(target, afterSeq: prevMaxSeq);
+        try {
+          await _recoverGap(target, afterSeq: prevMaxSeq);
+        } catch (e, st) {
+          ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+        }
       }
     }());
   }
