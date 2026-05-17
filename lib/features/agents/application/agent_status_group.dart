@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 /// A group of agents that share the same [AgentDisplayStatus].
 ///
@@ -28,13 +29,14 @@ class AgentStatusGroup {
       displayStatus != AgentDisplayStatus.offline &&
       displayStatus != AgentDisplayStatus.stopped;
 
-  /// Merged summary string: "A、B 思考中".
+  /// Merged summary string: "A, B Thinking" (en) or "A、B 思考中" (zh).
   ///
-  /// Agent labels joined with `、` (Chinese enumeration comma),
-  /// followed by the status label.
-  String get mergedSummary {
-    final names = agents.map((a) => a.label).join('、');
-    final label = displayStatusLabel(displayStatus);
+  /// When [l10n] is provided, uses locale-aware separator and status label.
+  /// When null, falls back to Chinese format (legacy behavior).
+  String mergedSummary({AppLocalizations? l10n}) {
+    final sep = l10n != null ? ', ' : '、';
+    final names = agents.map((a) => a.label).join(sep);
+    final label = displayStatusLabel(displayStatus, l10n: l10n);
     return '$names $label';
   }
 

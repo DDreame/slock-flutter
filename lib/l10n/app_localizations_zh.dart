@@ -666,4 +666,54 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get workspaceSettingsLeaveFailed => '退出工作区失败。';
+
+  @override
+  String get previewDeleted => '消息已删除';
+
+  @override
+  String get previewSending => '正在发送...';
+
+  @override
+  String get previewFailed => '未发送，点击重试';
+
+  @override
+  String get previewSystem => '系统消息';
+
+  @override
+  String get previewLink => '链接';
+
+  @override
+  String get previewVoice => '语音消息';
+
+  @override
+  String get previewImage => '图片';
+
+  @override
+  String get previewVideo => '视频';
+
+  @override
+  String get previewFallback => '新消息';
+
+  @override
+  String previewAttachment(String name) {
+    return '附件: $name';
+  }
+
+  @override
+  String get agentStatusThinking => '思考中';
+
+  @override
+  String get agentStatusWorking => '工作中';
+
+  @override
+  String get agentStatusError => '错误';
+
+  @override
+  String get agentStatusOnline => '在线';
+
+  @override
+  String get agentStatusOffline => '离线';
+
+  @override
+  String get agentStatusStopped => '已停止';
 }

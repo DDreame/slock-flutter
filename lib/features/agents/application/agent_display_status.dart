@@ -1,4 +1,5 @@
 import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 /// Standardized display status for agent UI surfaces.
 ///
@@ -35,8 +36,10 @@ int displayStatusPriority(AgentDisplayStatus status) => status.index;
 
 /// Returns the Chinese display label for a status.
 ///
-/// Hardcoded per PM decision — will be extracted to l10n later.
-String displayStatusLabel(AgentDisplayStatus status) {
+/// When [l10n] is provided, resolves the label through the ARB l10n system.
+/// When null, falls back to hardcoded Chinese labels (legacy behavior).
+/// Phase B will wire the l10n path.
+String displayStatusLabel(AgentDisplayStatus status, {AppLocalizations? l10n}) {
   return switch (status) {
     AgentDisplayStatus.thinking => '思考中',
     AgentDisplayStatus.working => '工作中',

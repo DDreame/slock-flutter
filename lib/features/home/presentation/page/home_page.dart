@@ -408,7 +408,7 @@ class _AgentGroupRow extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              group.mergedSummary,
+              group.mergedSummary(),
               style: AppTypography.bodySmall.copyWith(
                 color: colors.text,
                 fontWeight: FontWeight.w500,

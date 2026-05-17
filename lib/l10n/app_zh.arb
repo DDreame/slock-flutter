@@ -237,5 +237,23 @@
     }
   },
   "workspaceSettingsLeaveConfirmLabel": "退出",
-  "workspaceSettingsLeaveFailed": "退出工作区失败。"
+  "workspaceSettingsLeaveFailed": "退出工作区失败。",
+
+  "previewDeleted": "消息已删除",
+  "previewSending": "正在发送...",
+  "previewFailed": "未发送，点击重试",
+  "previewSystem": "系统消息",
+  "previewLink": "链接",
+  "previewVoice": "语音消息",
+  "previewImage": "图片",
+  "previewVideo": "视频",
+  "previewFallback": "新消息",
+  "previewAttachment": "附件: {name}",
+
+  "agentStatusThinking": "思考中",
+  "agentStatusWorking": "工作中",
+  "agentStatusError": "错误",
+  "agentStatusOnline": "在线",
+  "agentStatusOffline": "离线",
+  "agentStatusStopped": "已停止"
 }
