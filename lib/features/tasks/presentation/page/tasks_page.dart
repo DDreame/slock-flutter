@@ -508,9 +508,6 @@ class _TasksListSurfaceState extends State<_TasksListSurface> {
   }
 
   bool get _showFilterBar {
-    // Show filter bar when multiple channels exist in the server,
-    // even if tasks only span one channel — user may want to verify
-    // other channels have no tasks.
     return _filterChannelIds().length > 1;
   }
 
@@ -632,25 +629,34 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: _kFilterChipHeight,
-        padding: const EdgeInsets.symmetric(
-          horizontal: _kFilterChipHorizontalPadding,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? colors.primary : colors.surfaceAlt,
-          borderRadius: BorderRadius.circular(_kFilterChipRadius),
-          border: isSelected ? null : Border.all(color: colors.border),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: _kFilterChipFontSize,
-            fontWeight: _kFilterChipFontWeight,
-            color: isSelected ? colors.primaryForeground : colors.textSecondary,
+    return Semantics(
+      label: label,
+      selected: isSelected,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          height: _kFilterChipHeight,
+          padding: const EdgeInsets.symmetric(
+            horizontal: _kFilterChipHorizontalPadding,
+          ),
+          decoration: BoxDecoration(
+            color: isSelected ? colors.primary : colors.surfaceAlt,
+            borderRadius: BorderRadius.circular(_kFilterChipRadius),
+            border: isSelected ? null : Border.all(color: colors.border),
+          ),
+          alignment: Alignment.center,
+          child: ExcludeSemantics(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: _kFilterChipFontSize,
+                fontWeight: _kFilterChipFontWeight,
+                color: isSelected
+                    ? colors.primaryForeground
+                    : colors.textSecondary,
+              ),
+            ),
           ),
         ),
       ),
@@ -780,6 +786,21 @@ Color _statusColor(String status, AppColors colors) {
   };
 }
 
+/// Returns the accessible label for a task status symbol.
+///
+/// Used for screen reader announcements on status indicators and
+/// combined task row descriptions.
+String _statusAccessibilityLabel(String status) {
+  return switch (status) {
+    'todo' => 'To Do',
+    'in_progress' => 'In Progress',
+    'in_review' => 'In Review',
+    'done' => 'Done',
+    'closed' => 'Cancelled',
+    _ => status,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Task row
 // ---------------------------------------------------------------------------
@@ -853,73 +874,97 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
     // All non-closed tasks support drag-to-change-status.
     final isDraggable = !isClosed;
 
-    Widget row = InkWell(
-      key: ValueKey('task-${task.id}'),
-      onTap: () => _onPrimaryTap(),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.pageHorizontal,
-          vertical: AppSpacing.sm,
-        ),
-        child: Row(
-          children: [
-            // Status symbol
-            Text(
-              _statusSymbol(task.status),
-              style: AppTypography.title.copyWith(
-                color: _statusColor(task.status, colors),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
+    // Build combined accessibility label for screen readers.
+    final statusLabel = _statusAccessibilityLabel(task.status);
+    final assigneePart =
+        task.claimedByName != null ? ', ${task.claimedByName}' : '';
+    final combinedLabel =
+        '#${task.taskNumber} ${task.title}, $statusLabel$assigneePart';
 
-            // Task number + title
-            Expanded(
-              child: Text(
-                '#${task.taskNumber} ${task.title}',
-                style: AppTypography.body.copyWith(
-                  color: colors.text,
-                  decoration: isTerminal ? TextDecoration.lineThrough : null,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-
-            // Assignee avatar
-            if (task.claimedByName != null) ...[
-              const SizedBox(width: AppSpacing.sm),
-              CircleAvatar(
-                key: ValueKey('task-assignee-${task.id}'),
-                radius: 14,
-                backgroundColor: colors.surfaceAlt,
-                child: Text(
-                  task.claimedByName!.isNotEmpty
-                      ? task.claimedByName![0].toUpperCase()
-                      : '?',
-                  style: AppTypography.caption.copyWith(
-                    color: colors.text,
-                    fontWeight: FontWeight.w600,
+    Widget row = Semantics(
+      key: ValueKey('task-row-${task.id}'),
+      label: combinedLabel,
+      onLongPress: !isClosed ? () => _showTaskActions(context) : null,
+      child: InkWell(
+        key: ValueKey('task-${task.id}'),
+        onTap: () => _onPrimaryTap(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pageHorizontal,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              // Status symbol — excluded (covered by combined row label)
+              ExcludeSemantics(
+                child: Semantics(
+                  label: statusLabel,
+                  child: Text(
+                    _statusSymbol(task.status),
+                    style: AppTypography.title.copyWith(
+                      color: _statusColor(task.status, colors),
+                    ),
                   ),
                 ),
               ),
-            ],
+              const SizedBox(width: AppSpacing.md),
 
-            // Action sheet button
-            SizedBox(
-              width: 32,
-              height: 32,
-              child: IconButton(
-                key: ValueKey('task-actions-${task.id}'),
-                icon: Icon(
-                  Icons.more_horiz,
-                  size: 20,
-                  color: colors.textTertiary,
+              // Task number + title — excluded (covered by combined row label)
+              Expanded(
+                child: ExcludeSemantics(
+                  child: Text(
+                    '#${task.taskNumber} ${task.title}',
+                    style: AppTypography.body.copyWith(
+                      color: colors.text,
+                      decoration:
+                          isTerminal ? TextDecoration.lineThrough : null,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                padding: EdgeInsets.zero,
-                onPressed: () => _showTaskActions(context),
               ),
-            ),
-          ],
+
+              // Assignee avatar — excluded (covered by combined row label)
+              if (task.claimedByName != null) ...[
+                const SizedBox(width: AppSpacing.sm),
+                ExcludeSemantics(
+                  child: CircleAvatar(
+                    key: ValueKey('task-assignee-${task.id}'),
+                    radius: 14,
+                    backgroundColor: colors.surfaceAlt,
+                    child: Text(
+                      task.claimedByName!.isNotEmpty
+                          ? task.claimedByName![0].toUpperCase()
+                          : '?',
+                      style: AppTypography.caption.copyWith(
+                        color: colors.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+
+              // Action sheet button — NOT excluded, remains separately
+              // focusable for screen readers.
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: IconButton(
+                  key: ValueKey('task-actions-${task.id}'),
+                  tooltip: 'Task actions',
+                  icon: Icon(
+                    Icons.more_horiz,
+                    size: 20,
+                    color: colors.textTertiary,
+                  ),
+                  padding: EdgeInsets.zero,
+                  onPressed: () => _showTaskActions(context),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
