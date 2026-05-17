@@ -236,5 +236,23 @@
     }
   },
   "workspaceSettingsLeaveConfirmLabel": "Abandonar",
-  "workspaceSettingsLeaveFailed": "Error al abandonar el espacio de trabajo."
+  "workspaceSettingsLeaveFailed": "Error al abandonar el espacio de trabajo.",
+
+  "previewDeleted": "Mensaje eliminado",
+  "previewSending": "Enviando…",
+  "previewFailed": "No enviado, toca para reintentar",
+  "previewSystem": "Mensaje del sistema",
+  "previewLink": "Enlace",
+  "previewVoice": "Mensaje de voz",
+  "previewImage": "Imagen",
+  "previewVideo": "Video",
+  "previewFallback": "Nuevo mensaje",
+  "previewAttachment": "Adjunto: {name}",
+
+  "agentStatusThinking": "Pensando",
+  "agentStatusWorking": "Trabajando",
+  "agentStatusError": "Error",
+  "agentStatusOnline": "En línea",
+  "agentStatusOffline": "Desconectado",
+  "agentStatusStopped": "Detenido"
 }

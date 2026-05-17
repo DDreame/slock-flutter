@@ -269,5 +269,30 @@
     }
   },
   "workspaceSettingsLeaveConfirmLabel": "Leave",
-  "workspaceSettingsLeaveFailed": "Failed to leave workspace."
+  "workspaceSettingsLeaveFailed": "Failed to leave workspace.",
+
+  "previewDeleted": "Message deleted",
+  "previewSending": "Sending…",
+  "previewFailed": "Not sent, tap to retry",
+  "previewSystem": "System message",
+  "previewLink": "Link",
+  "previewVoice": "Voice message",
+  "previewImage": "Image",
+  "previewVideo": "Video",
+  "previewFallback": "New message",
+  "previewAttachment": "Attachment: {name}",
+  "@previewAttachment": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+
+  "agentStatusThinking": "Thinking",
+  "agentStatusWorking": "Working",
+  "agentStatusError": "Error",
+  "agentStatusOnline": "Online",
+  "agentStatusOffline": "Offline",
+  "agentStatusStopped": "Stopped"
 }

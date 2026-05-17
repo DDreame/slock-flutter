@@ -1347,6 +1347,102 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to leave workspace.'**
   String get workspaceSettingsLeaveFailed;
+
+  /// No description provided for @previewDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Message deleted'**
+  String get previewDeleted;
+
+  /// No description provided for @previewSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending…'**
+  String get previewSending;
+
+  /// No description provided for @previewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Not sent, tap to retry'**
+  String get previewFailed;
+
+  /// No description provided for @previewSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'System message'**
+  String get previewSystem;
+
+  /// No description provided for @previewLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get previewLink;
+
+  /// No description provided for @previewVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get previewVoice;
+
+  /// No description provided for @previewImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Image'**
+  String get previewImage;
+
+  /// No description provided for @previewVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get previewVideo;
+
+  /// No description provided for @previewFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'New message'**
+  String get previewFallback;
+
+  /// No description provided for @previewAttachment.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment: {name}'**
+  String previewAttachment(String name);
+
+  /// No description provided for @agentStatusThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking'**
+  String get agentStatusThinking;
+
+  /// No description provided for @agentStatusWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working'**
+  String get agentStatusWorking;
+
+  /// No description provided for @agentStatusError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get agentStatusError;
+
+  /// No description provided for @agentStatusOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get agentStatusOnline;
+
+  /// No description provided for @agentStatusOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get agentStatusOffline;
+
+  /// No description provided for @agentStatusStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Stopped'**
+  String get agentStatusStopped;
 }
 
 class _AppLocalizationsDelegate

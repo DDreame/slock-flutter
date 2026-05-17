@@ -712,4 +712,54 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get workspaceSettingsLeaveFailed =>
       'Error al abandonar el espacio de trabajo.';
+
+  @override
+  String get previewDeleted => 'Mensaje eliminado';
+
+  @override
+  String get previewSending => 'Enviando…';
+
+  @override
+  String get previewFailed => 'No enviado, toca para reintentar';
+
+  @override
+  String get previewSystem => 'Mensaje del sistema';
+
+  @override
+  String get previewLink => 'Enlace';
+
+  @override
+  String get previewVoice => 'Mensaje de voz';
+
+  @override
+  String get previewImage => 'Imagen';
+
+  @override
+  String get previewVideo => 'Video';
+
+  @override
+  String get previewFallback => 'Nuevo mensaje';
+
+  @override
+  String previewAttachment(String name) {
+    return 'Adjunto: $name';
+  }
+
+  @override
+  String get agentStatusThinking => 'Pensando';
+
+  @override
+  String get agentStatusWorking => 'Trabajando';
+
+  @override
+  String get agentStatusError => 'Error';
+
+  @override
+  String get agentStatusOnline => 'En línea';
+
+  @override
+  String get agentStatusOffline => 'Desconectado';
+
+  @override
+  String get agentStatusStopped => 'Detenido';
 }
