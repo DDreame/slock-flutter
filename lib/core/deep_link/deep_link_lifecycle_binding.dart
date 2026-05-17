@@ -4,15 +4,14 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/router/app_router.dart';
 import 'package:slock_app/core/deep_link/deep_link_handler.dart';
-import 'package:slock_app/stores/session/session_state.dart';
-import 'package:slock_app/stores/session/session_store.dart';
 
 /// Lifecycle binding that listens for incoming deep links via `app_links`
 /// and dispatches them through [DeepLinkHandler].
 ///
 /// Watched in [SlockApp.build] so it lives for the app's lifetime.
-/// On auth state change (unauthenticated → authenticated), dispatches
-/// any pending deep link that was deferred before login.
+/// Handles incoming deep links only (stream + cold-start). Pending
+/// deferred links are consumed by `app_router.dart`'s existing redirect
+/// logic which has full bootstrap/server guards.
 final deepLinkLifecycleBindingProvider = Provider<void>((ref) {
   final router = ref.watch(appRouterProvider);
   final container = ref.container;
@@ -38,12 +37,10 @@ final deepLinkLifecycleBindingProvider = Provider<void>((ref) {
     }
   }));
 
-  // Dispatch pending deep link after login.
-  ref.listen<SessionState>(sessionStoreProvider, (prev, next) {
-    if (prev?.isAuthenticated != true && next.isAuthenticated) {
-      handler.dispatchPendingDeepLink();
-    }
-  });
+  // NOTE: Pending deep link dispatch after login is handled by
+  // app_router.dart's existing redirect logic, which waits for
+  // appReadyProvider + server membership before dispatching.
+  // This binding only receives and stores incoming links.
 
   ref.onDispose(() {
     unawaited(linkSub?.cancel());
