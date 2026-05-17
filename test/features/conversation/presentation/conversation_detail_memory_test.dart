@@ -45,7 +45,7 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-KEY-DISPOSE-1: GlobalKeys cleared on dispose', () {
     testWidgets(
-      'navigating away from ConversationDetailPage does not retain stale keys',
+      'GlobalKey currentContext is null after page dispose',
       (tester) async {
         final target = ConversationDetailTarget.channel(
           const ChannelScopeId(
@@ -57,17 +57,16 @@ void main() {
           snapshot: ConversationDetailSnapshot(
             target: target,
             title: '#general',
-            messages: List.generate(
-              20,
-              (i) => ConversationMessageSummary(
-                id: 'msg-$i',
-                content: 'Message $i',
-                createdAt: DateTime(2026, 5, 1, 10, i),
+            messages: [
+              ConversationMessageSummary(
+                id: 'msg-1',
+                content: 'Hello',
+                createdAt: DateTime(2026, 5, 1, 10, 0),
                 senderType: 'human',
                 messageType: 'message',
-                seq: i + 1,
+                seq: 1,
               ),
-            ),
+            ],
             historyLimited: false,
             hasOlder: false,
           ),
@@ -81,8 +80,20 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Verify some messages rendered (keys created).
-        expect(find.byType(ConversationDetailPage), findsOneWidget);
+        // Extract the GlobalKey from the KeyedSubtree wrapping msg-1.
+        // The _getMessageKey callback generates a GlobalKey per message
+        // and wraps each message in KeyedSubtree(key: globalKey).
+        final subtrees = find.byType(KeyedSubtree).evaluate();
+        final msgSubtree = subtrees.where((e) {
+          final widget = e.widget as KeyedSubtree;
+          return widget.key is GlobalKey;
+        }).toList();
+        expect(msgSubtree, isNotEmpty,
+            reason: 'At least one message should have a GlobalKey');
+
+        final capturedKey = msgSubtree.first.widget.key as GlobalKey;
+        expect(capturedKey.currentContext, isNotNull,
+            reason: 'Key should be attached while page is mounted');
 
         // Navigate away — triggers dispose.
         final context = tester.element(find.byType(ConversationDetailPage));
@@ -93,12 +104,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // After dispose, the _messageGlobalKeys map should be cleared
-        // so orphaned GlobalKeys don't leak. Phase B will add
+        // After dispose + clear, the captured GlobalKey should be
+        // detached (currentContext is null). Phase B adds
         // `_messageGlobalKeys.clear()` in dispose().
-        // We verify indirectly: re-pump the page and check that keys
-        // are fresh (tested in INV-KEY-REGEN-1).
-        expect(find.text('gone'), findsOneWidget);
+        expect(capturedKey.currentContext, isNull,
+            reason: 'GlobalKey must be detached after page dispose');
       },
       skip:
           true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
@@ -110,7 +120,7 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-KEY-REGEN-1: key regeneration after dispose', () {
     testWidgets(
-      'recreated page generates fresh GlobalKeys for same message IDs',
+      'recreated page generates different GlobalKey instance for same message',
       (tester) async {
         final target = ConversationDetailTarget.channel(
           const ChannelScopeId(
@@ -145,9 +155,14 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Capture the GlobalKey identity for msg-1.
-        final firstKey = find.byKey(const ValueKey('message-msg-1'));
-        expect(firstKey, findsOneWidget);
+        // Extract GlobalKey from the first incarnation.
+        final firstSubtrees = find.byType(KeyedSubtree).evaluate();
+        final firstGlobalKeys = firstSubtrees
+            .where((e) => (e.widget as KeyedSubtree).key is GlobalKey)
+            .map((e) => (e.widget as KeyedSubtree).key as GlobalKey)
+            .toList();
+        expect(firstGlobalKeys, isNotEmpty);
+        final firstKeyIdentity = firstGlobalKeys.first;
 
         // Navigate away (dispose).
         final context = tester.element(find.byType(ConversationDetailPage));
@@ -157,7 +172,6 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(find.text('gone'), findsOneWidget);
 
         // Re-mount with same messages.
         await tester.pumpWidget(
@@ -168,10 +182,23 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // The key for msg-1 should be freshly generated via putIfAbsent
-        // (no stale reference from previous incarnation).
-        final secondKey = find.byKey(const ValueKey('message-msg-1'));
-        expect(secondKey, findsOneWidget);
+        // Extract GlobalKey from the second incarnation.
+        final secondSubtrees = find.byType(KeyedSubtree).evaluate();
+        final secondGlobalKeys = secondSubtrees
+            .where((e) => (e.widget as KeyedSubtree).key is GlobalKey)
+            .map((e) => (e.widget as KeyedSubtree).key as GlobalKey)
+            .toList();
+        expect(secondGlobalKeys, isNotEmpty);
+        final secondKeyIdentity = secondGlobalKeys.first;
+
+        // After dispose+clear+recreate, the GlobalKey instance should
+        // be a fresh one (different identity), proving putIfAbsent
+        // regenerated it from an empty map.
+        expect(
+          identical(firstKeyIdentity, secondKeyIdentity),
+          isFalse,
+          reason: 'After dispose+recreate, GlobalKey must be a fresh instance',
+        );
       },
       skip:
           true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
@@ -314,16 +341,16 @@ void main() {
 
         // Find the CachedNetworkImage in the full-screen viewer.
         final images = find.byType(CachedNetworkImage);
-        // Note: the image may not render immediately if the page shows
-        // a loading state first. We check any CachedNetworkImage found.
-        if (images.evaluate().isNotEmpty) {
-          for (final element in images.evaluate()) {
-            final img = element.widget as CachedNetworkImage;
-            expect(img.memCacheWidth, isNull,
-                reason: 'Full-screen viewer must NOT constrain memCacheWidth');
-            expect(img.memCacheHeight, isNull,
-                reason: 'Full-screen viewer must NOT constrain memCacheHeight');
-          }
+        expect(images, findsWidgets,
+            reason:
+                'Full-screen viewer must render at least one CachedNetworkImage');
+
+        for (final element in images.evaluate()) {
+          final img = element.widget as CachedNetworkImage;
+          expect(img.memCacheWidth, isNull,
+              reason: 'Full-screen viewer must NOT constrain memCacheWidth');
+          expect(img.memCacheHeight, isNull,
+              reason: 'Full-screen viewer must NOT constrain memCacheHeight');
         }
       },
       skip:
