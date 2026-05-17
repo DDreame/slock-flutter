@@ -14,7 +14,6 @@ import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/home/presentation/page/home_page.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
-import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -28,6 +27,7 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 
 /// TDD tests for Z2 three-line unread UI spec:
 /// - Type pill per kind (THREAD/CHANNEL/DM) with correct color
@@ -38,6 +38,11 @@ import 'package:slock_app/l10n/app_localizations.dart';
 /// - Mark all read removed from home unread section
 /// - Header "View all →" links to inbox
 void main() {
+  late AppLocalizations l10n;
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+  });
+
   group('ConversationProjection model', () {
     test('senderName field is available and nullable', () {
       const item = ConversationProjection(
@@ -53,11 +58,11 @@ void main() {
     });
 
     test('senderName can be null', () {
-      const item = ConversationProjection(
+      final item = ConversationProjection(
         kind: ConversationProjectionKind.channel,
         id: 'channel:general',
         title: 'general',
-        previewText: MessagePreviewResolver.fallbackPreview,
+        previewText: l10n.previewFallback,
         unreadCount: 1,
       );
       expect(item.senderName, isNull);
@@ -78,6 +83,7 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
       expect(result.senderName, 'Bob');
@@ -95,6 +101,7 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
       expect(result.senderName, isNull);
@@ -117,6 +124,7 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
       expect(result.senderName, 'Carol');
@@ -137,6 +145,7 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
       expect(result.unreadCount, 42);
@@ -155,6 +164,7 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
       expect(result.lastActivityAt, now);
@@ -171,6 +181,7 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
       expect(result.channelScopeId, isNotNull);
@@ -191,6 +202,7 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
       expect(result.dmScopeId, isNotNull);
@@ -215,6 +227,7 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
       expect(result.threadRouteTarget, isNotNull);
@@ -236,9 +249,10 @@ void main() {
       final result = projectInboxItem(
         item,
         serverId: const ServerScopeId('server-1'),
+        l10n: l10n,
       );
 
-      expect(result.previewText, MessagePreviewResolver.fallbackPreview);
+      expect(result.previewText, l10n.previewFallback);
     });
   });
 
@@ -410,8 +424,10 @@ void main() {
         findsOneWidget,
         reason: 'Line 3 should always be rendered via ConversationProjection',
       );
+      // The fallback preview is resolved at runtime via l10n in the widget,
+      // so we check for the Chinese fallback string directly.
       expect(
-        find.text(MessagePreviewResolver.fallbackPreview),
+        find.text('新消息'),
         findsOneWidget,
         reason: 'Missing preview should show fallback preview',
       );
@@ -783,10 +799,14 @@ Future<void> _pumpHomeWithInboxItems(
         homeMachineCountLoaderProvider.overrideWithValue(
           (_) async => 0,
         ),
+        appLocalizationsProvider.overrideWithValue(
+          lookupAppLocalizations(const Locale('zh')),
+        ),
       ],
       child: MaterialApp.router(
         routerConfig: router,
         theme: AppTheme.light,
+        locale: const Locale('zh'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
       ),

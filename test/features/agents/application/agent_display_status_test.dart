@@ -1,8 +1,16 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
+  late AppLocalizations l10n;
+
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+  });
+
   AgentItem makeAgent({
     String status = 'active',
     String activity = 'online',
@@ -120,27 +128,28 @@ void main() {
 
   group('displayStatusLabel', () {
     test('thinking → 思考中', () {
-      expect(displayStatusLabel(AgentDisplayStatus.thinking), '思考中');
+      expect(
+          displayStatusLabel(AgentDisplayStatus.thinking, l10n: l10n), '思考中');
     });
 
     test('working → 工作中', () {
-      expect(displayStatusLabel(AgentDisplayStatus.working), '工作中');
+      expect(displayStatusLabel(AgentDisplayStatus.working, l10n: l10n), '工作中');
     });
 
     test('online → 在线', () {
-      expect(displayStatusLabel(AgentDisplayStatus.online), '在线');
+      expect(displayStatusLabel(AgentDisplayStatus.online, l10n: l10n), '在线');
     });
 
     test('error → 错误', () {
-      expect(displayStatusLabel(AgentDisplayStatus.error), '错误');
+      expect(displayStatusLabel(AgentDisplayStatus.error, l10n: l10n), '错误');
     });
 
     test('offline → 离线', () {
-      expect(displayStatusLabel(AgentDisplayStatus.offline), '离线');
+      expect(displayStatusLabel(AgentDisplayStatus.offline, l10n: l10n), '离线');
     });
 
     test('stopped → 已停止', () {
-      expect(displayStatusLabel(AgentDisplayStatus.stopped), '已停止');
+      expect(displayStatusLabel(AgentDisplayStatus.stopped, l10n: l10n), '已停止');
     });
   });
 }

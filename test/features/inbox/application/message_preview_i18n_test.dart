@@ -70,7 +70,6 @@ void main() {
         expect(enResult, isNot(equals(zhResult)),
             reason: 'Locales must produce different results');
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
@@ -92,7 +91,6 @@ void main() {
         expect(zhResult, equals(zhL10n.previewSending));
         expect(enResult, isNot(equals(zhResult)));
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
@@ -114,7 +112,6 @@ void main() {
         expect(zhResult, equals(zhL10n.previewFailed));
         expect(enResult, isNot(equals(zhResult)));
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
@@ -132,7 +129,6 @@ void main() {
         expect(zhResult, equals(zhL10n.previewSystem));
         expect(enResult, isNot(equals(zhResult)));
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
@@ -154,7 +150,6 @@ void main() {
         expect(zhResult, equals(zhL10n.previewLink));
         expect(enResult, isNot(equals(zhResult)));
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
@@ -185,7 +180,6 @@ void main() {
         expect(zhResult, equals(zhL10n.previewVoice));
         expect(enResult, isNot(equals(zhResult)));
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
@@ -216,7 +210,6 @@ void main() {
         expect(zhResult, equals(zhL10n.previewImage));
         expect(enResult, isNot(equals(zhResult)));
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
@@ -247,7 +240,6 @@ void main() {
         expect(zhResult, equals(zhL10n.previewVideo));
         expect(enResult, isNot(equals(zhResult)));
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
@@ -263,7 +255,6 @@ void main() {
         expect(zhResult, equals(zhL10n.previewFallback));
         expect(enResult, isNot(equals(zhResult)));
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
   });
 
@@ -307,7 +298,6 @@ void main() {
         expect(enResult, isNot(equals(zhResult)),
             reason: 'Locales must produce different templates');
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
   });
 
@@ -348,7 +338,6 @@ void main() {
                   '${status.name} must produce different results per locale');
         }
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
   });
 
@@ -406,7 +395,6 @@ void main() {
         expect(enSummary, isNot(equals(zhSummary)),
             reason: 'Locales must produce different summaries');
       },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
   });
 }

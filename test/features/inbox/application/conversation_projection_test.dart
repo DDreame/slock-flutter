@@ -1,30 +1,36 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
-import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
+  late AppLocalizations l10n;
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+  });
+
   group('resolvePreviewText', () {
     test('returns raw preview when non-null and non-empty', () {
-      expect(resolvePreviewText('Hello world'), 'Hello world');
+      expect(resolvePreviewText('Hello world', l10n: l10n), 'Hello world');
     });
 
     test('returns fallback when preview is null', () {
-      expect(resolvePreviewText(null), MessagePreviewResolver.fallbackPreview);
+      expect(resolvePreviewText(null, l10n: l10n), l10n.previewFallback);
     });
 
     test('returns fallback when preview is empty string', () {
-      expect(resolvePreviewText(''), MessagePreviewResolver.fallbackPreview);
+      expect(resolvePreviewText('', l10n: l10n), l10n.previewFallback);
     });
 
     test('returns fallback when preview is whitespace-only', () {
-      expect(resolvePreviewText('   '), MessagePreviewResolver.fallbackPreview);
+      expect(resolvePreviewText('   ', l10n: l10n), l10n.previewFallback);
     });
 
     test('preserves leading/trailing whitespace in non-empty preview', () {
-      expect(resolvePreviewText('  hello  '), '  hello  ');
+      expect(resolvePreviewText('  hello  ', l10n: l10n), '  hello  ');
     });
   });
 
@@ -99,7 +105,7 @@ void main() {
         lastActivityAt: DateTime.parse('2026-05-09T10:00:00Z'),
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
 
       expect(projection.kind, ConversationProjectionKind.channel);
       expect(projection.id, 'channel:ch-1');
@@ -121,9 +127,9 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
 
-      expect(projection.previewText, MessagePreviewResolver.fallbackPreview);
+      expect(projection.previewText, l10n.previewFallback);
     });
 
     test('projects DM item', () {
@@ -136,7 +142,7 @@ void main() {
         unreadCount: 2,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
 
       expect(projection.kind, ConversationProjectionKind.dm);
       expect(projection.id, 'dm:dm-1');
@@ -161,7 +167,7 @@ void main() {
         unreadCount: 3,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
 
       expect(projection.kind, ConversationProjectionKind.thread);
       expect(projection.id, 'thread:thread-ch-1');
@@ -186,7 +192,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
 
       expect(projection.kind, ConversationProjectionKind.thread);
       expect(projection.threadRouteTarget, isNull);
@@ -201,7 +207,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
 
       expect(projection.kind, ConversationProjectionKind.channel);
       expect(projection.channelScopeId, isNotNull);
@@ -216,7 +222,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
       expect(projection.sourceLabel, '#general');
     });
 
@@ -229,7 +235,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
       expect(projection.sourceLabel, 'Alice');
     });
 
@@ -242,7 +248,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
       expect(projection.sourceLabel, '#general');
     });
 
@@ -254,7 +260,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
       expect(projection.title, 'ch-no-name');
     });
 
@@ -268,7 +274,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
       expect(projection.title, 'Bug discussion');
     });
 
@@ -282,7 +288,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
       expect(projection.previewText, 'Latest activity');
     });
 
@@ -295,7 +301,7 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
       expect(projection.previewText, 'Regular preview');
     });
 
@@ -307,8 +313,8 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
-      expect(projection.previewText, MessagePreviewResolver.fallbackPreview);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
+      expect(projection.previewText, l10n.previewFallback);
     });
   });
 
@@ -333,7 +339,8 @@ void main() {
         ),
       ];
 
-      final projections = projectInboxItems(items, serverId: serverId);
+      final projections =
+          projectInboxItems(items, serverId: serverId, l10n: l10n);
 
       expect(projections, hasLength(2));
       expect(projections[0].title, 'first');
@@ -341,7 +348,7 @@ void main() {
     });
 
     test('empty list returns empty list', () {
-      final projections = projectInboxItems([], serverId: serverId);
+      final projections = projectInboxItems([], serverId: serverId, l10n: l10n);
       expect(projections, isEmpty);
     });
 
@@ -369,16 +376,15 @@ void main() {
         ),
       ];
 
-      final projections = projectInboxItems(items, serverId: serverId);
+      final projections =
+          projectInboxItems(items, serverId: serverId, l10n: l10n);
 
       for (final p in projections) {
         expect(p.previewText, isNotEmpty);
       }
       expect(projections[0].previewText, 'Hello');
-      expect(
-          projections[1].previewText, MessagePreviewResolver.fallbackPreview);
-      expect(
-          projections[2].previewText, MessagePreviewResolver.fallbackPreview);
+      expect(projections[1].previewText, l10n.previewFallback);
+      expect(projections[2].previewText, l10n.previewFallback);
     });
   });
 
@@ -395,8 +401,8 @@ void main() {
         isDeleted: true,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
-      expect(projection.previewText, MessagePreviewResolver.deletedPreview);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
+      expect(projection.previewText, l10n.previewDeleted);
     });
 
     test('system inbox item shows 系统消息', () {
@@ -409,8 +415,8 @@ void main() {
         messageType: 'system',
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
-      expect(projection.previewText, MessagePreviewResolver.systemPreview);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
+      expect(projection.previewText, l10n.previewSystem);
     });
 
     test('attachment inbox item with no preview shows semantic type', () {
@@ -424,8 +430,8 @@ void main() {
         ],
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
-      expect(projection.previewText, MessagePreviewResolver.imagePreview);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
+      expect(projection.previewText, l10n.previewImage);
     });
 
     test('voice attachment inbox item shows 语音消息', () {
@@ -439,8 +445,8 @@ void main() {
         ],
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
-      expect(projection.previewText, MessagePreviewResolver.voicePreview);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
+      expect(projection.previewText, l10n.previewVoice);
     });
 
     test('text preview takes priority over attachment metadata', () {
@@ -455,7 +461,7 @@ void main() {
         ],
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
       expect(projection.previewText, 'Check this image');
     });
 
@@ -468,8 +474,8 @@ void main() {
         unreadCount: 1,
       );
 
-      final projection = projectInboxItem(item, serverId: serverId);
-      expect(projection.previewText, MessagePreviewResolver.linkPreview);
+      final projection = projectInboxItem(item, serverId: serverId, l10n: l10n);
+      expect(projection.previewText, l10n.previewLink);
     });
   });
 
@@ -536,10 +542,11 @@ void main() {
         unreadCount: 0,
         clearFirstUnreadMessageId: true,
       );
-      final projection = projectInboxItem(readItem, serverId: serverId);
+      final projection =
+          projectInboxItem(readItem, serverId: serverId, l10n: l10n);
 
       // isDeleted is preserved → semantic preview should be 消息已删除.
-      expect(projection.previewText, MessagePreviewResolver.deletedPreview);
+      expect(projection.previewText, l10n.previewDeleted);
       expect(projection.unreadCount, 0);
     });
   });

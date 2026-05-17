@@ -1,15 +1,21 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 
 ProviderContainer _createContainer(_FakeAppDioClient appDioClient) {
   return ProviderContainer(
     overrides: [
+      appLocalizationsProvider.overrideWithValue(
+        lookupAppLocalizations(const Locale('en')),
+      ),
       appDioClientProvider.overrideWithValue(appDioClient),
       conversationLocalStoreProvider.overrideWithValue(
         FakeConversationLocalStore(),
@@ -314,6 +320,9 @@ void main() {
         );
         final container = ProviderContainer(
           overrides: [
+            appLocalizationsProvider.overrideWithValue(
+              lookupAppLocalizations(const Locale('en')),
+            ),
             appDioClientProvider.overrideWithValue(appDioClient),
             conversationLocalStoreProvider.overrideWithValue(localStore),
           ],
@@ -592,7 +601,7 @@ void main() {
 
         // Non-string content → resolves through MessagePreviewResolver fallback.
         expect(snapshot.channels[0].lastMessageId, 'msg-1');
-        expect(snapshot.channels[0].lastMessagePreview, '新消息');
+        expect(snapshot.channels[0].lastMessagePreview, 'New message');
         expect(
           snapshot.channels[0].lastActivityAt,
           DateTime.utc(2026, 5, 1, 12),
@@ -600,7 +609,7 @@ void main() {
 
         // Object content → resolves through MessagePreviewResolver fallback.
         expect(snapshot.channels[1].lastMessageId, 'msg-2');
-        expect(snapshot.channels[1].lastMessagePreview, '新消息');
+        expect(snapshot.channels[1].lastMessagePreview, 'New message');
 
         // Missing id → lastMessage treated as absent.
         expect(snapshot.channels[2].lastMessageId, isNull);
@@ -682,6 +691,9 @@ void main() {
     );
     final container = ProviderContainer(
       overrides: [
+        appLocalizationsProvider.overrideWithValue(
+          lookupAppLocalizations(const Locale('en')),
+        ),
         appDioClientProvider.overrideWithValue(appDioClient),
         conversationLocalStoreProvider.overrideWithValue(
           _ThrowingConversationLocalStore(),

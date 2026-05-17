@@ -16,6 +16,7 @@ import 'package:slock_app/features/home/presentation/widgets/home_channel_row.da
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -250,6 +251,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: HomeChannelRow(
               key: ValueKey('channels-tab-${channel.scopeId.value}'),
@@ -323,12 +327,16 @@ Widget _buildConversationApp(
 
   return ProviderScope(
     overrides: [
+      appLocalizationsProvider.overrideWithValue(
+        lookupAppLocalizations(const Locale('en')),
+      ),
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
       sharedPreferencesProvider.overrideWithValue(prefs),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
+      locale: const Locale('en'),
       home: ConversationDetailPage(target: target),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

@@ -8,6 +8,8 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_name_resolver.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
@@ -47,6 +49,7 @@ final unreadSourceProjectionProvider =
   return _projectSources(
     inboxState.items,
     serverId: serverId,
+    l10n: ref.read(appLocalizationsProvider),
     visibleChannelIds: ctx.channelIds,
     visibleDmIds: ctx.dmIds,
     homeLoaded: ctx.homeLoaded,
@@ -84,7 +87,12 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   return [
     for (final item in inboxState.items)
       UnreadSourceProjection.fromProjection(
-        projectInboxItem(item, serverId: serverId, nameResolver: nameResolver),
+        projectInboxItem(
+          item,
+          serverId: serverId,
+          l10n: ref.read(appLocalizationsProvider),
+          nameResolver: nameResolver,
+        ),
         visibility: _resolveVisibility(
           item,
           visibleChannelIds: ctx.channelIds,
@@ -205,6 +213,7 @@ InboxNameResolver _buildNameResolver(_HomeVisibility vis) {
 UnreadSourceProjectionState _projectSources(
   List<InboxItem> items, {
   required ServerScopeId serverId,
+  required AppLocalizations l10n,
   required Set<String> visibleChannelIds,
   required Set<String> visibleDmIds,
   required bool homeLoaded,
@@ -220,6 +229,7 @@ UnreadSourceProjectionState _projectSources(
     final projection = projectInboxItem(
       item,
       serverId: serverId,
+      l10n: l10n,
       nameResolver: nameResolver,
     );
     final visibility = _resolveVisibility(

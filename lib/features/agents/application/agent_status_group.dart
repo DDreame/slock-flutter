@@ -31,10 +31,9 @@ class AgentStatusGroup {
 
   /// Merged summary string: "A, B Thinking" (en) or "A、B 思考中" (zh).
   ///
-  /// When [l10n] is provided, uses locale-aware separator and status label.
-  /// When null, falls back to Chinese format (legacy behavior).
-  String mergedSummary({AppLocalizations? l10n}) {
-    final sep = l10n != null ? ', ' : '、';
+  /// Uses locale-aware separator and status label from the l10n system.
+  String mergedSummary({required AppLocalizations l10n}) {
+    final sep = l10n.localeName == 'zh' ? '、' : ', ';
     final names = agents.map((a) => a.label).join(sep);
     final label = displayStatusLabel(displayStatus, l10n: l10n);
     return '$names $label';

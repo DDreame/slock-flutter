@@ -5,6 +5,8 @@ import 'package:slock_app/features/conversation/data/conversation_identity_parse
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 
 const _channelsPath = '/channels';
 const _directMessageChannelsPath = '/channels/dm';
@@ -16,10 +18,12 @@ final homeWorkspaceSnapshotLoaderProvider =
     Provider<HomeWorkspaceSnapshotLoader>((ref) {
   final appDioClient = ref.watch(appDioClientProvider);
   final localStore = ref.watch(conversationLocalStoreProvider);
+  final l10n = ref.watch(appLocalizationsProvider);
   return (serverId) => _loadHomeWorkspaceSnapshot(
         appDioClient: appDioClient,
         localStore: localStore,
         serverId: serverId,
+        l10n: l10n,
       );
 });
 
@@ -116,6 +120,7 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
   required AppDioClient appDioClient,
   required ConversationLocalStore localStore,
   required ServerScopeId serverId,
+  required AppLocalizations l10n,
 }) async {
   final responses = await Future.wait([
     appDioClient.get<Object?>(
@@ -131,12 +136,14 @@ Future<HomeWorkspaceSnapshot> _loadHomeWorkspaceSnapshot({
   final channelParseResult = _parseChannelSummaries(
     responses[0].data,
     serverId: serverId,
+    l10n: l10n,
   );
   final channelSummaries = channelParseResult.channels;
   final threadChannelIds = channelParseResult.threadChannelIds;
   final directMessageSummaries = _parseDirectMessageSummaries(
     responses[1].data,
     serverId: serverId,
+    l10n: l10n,
   );
   final channelUnreadCounts = _parseUnreadCounts(responses[0].data);
   final dmUnreadCounts = _parseUnreadCounts(responses[1].data);
@@ -311,6 +318,7 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
 }) _parseChannelSummaries(
   Object? payload, {
   required ServerScopeId serverId,
+  required AppLocalizations l10n,
 }) {
   final raw = _requireList(payload, payloadName: 'channels');
   final channels = <HomeChannelSummary>[];
@@ -344,7 +352,7 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
       continue;
     }
 
-    final lastMessage = _parseLastMessage(item['lastMessage']);
+    final lastMessage = _parseLastMessage(item['lastMessage'], l10n: l10n);
 
     channels.add(HomeChannelSummary(
       scopeId: ChannelScopeId(
@@ -365,6 +373,7 @@ const _filteredChannelTypes = {'thread', 'inbox', 'system'};
 List<HomeDirectMessageSummary> _parseDirectMessageSummaries(
   Object? payload, {
   required ServerScopeId serverId,
+  required AppLocalizations l10n,
 }) {
   final directMessages = _requireList(payload, payloadName: 'directMessages');
   return List<HomeDirectMessageSummary>.generate(directMessages.length,
@@ -381,7 +390,7 @@ List<HomeDirectMessageSummary> _parseDirectMessageSummaries(
         payloadName: 'directMessages[$index]',
       ),
     );
-    final lastMessage = _parseLastMessage(item['lastMessage']);
+    final lastMessage = _parseLastMessage(item['lastMessage'], l10n: l10n);
     final peerType = item['peerType'];
     return HomeDirectMessageSummary(
       scopeId: scopeId,
@@ -445,7 +454,10 @@ String _describeType(Object? value) => value?.runtimeType.toString() ?? 'Null';
 ///   "messageType": "message", "isDeleted": false,
 ///   "attachments": [{"name": "...", "type": "..."}] }
 /// ```
-_LastMessagePreview? _parseLastMessage(Object? payload) {
+_LastMessagePreview? _parseLastMessage(
+  Object? payload, {
+  required AppLocalizations l10n,
+}) {
   if (payload is! Map) return null;
   final map = Map<String, dynamic>.from(payload);
   final id = map['id'];
@@ -463,6 +475,7 @@ _LastMessagePreview? _parseLastMessage(Object? payload) {
   final attachments = parseAttachments(map['attachments']);
 
   final preview = MessagePreviewResolver.resolve(
+    l10n: l10n,
     content: content,
     messageType: messageType,
     isDeleted: isDeleted,

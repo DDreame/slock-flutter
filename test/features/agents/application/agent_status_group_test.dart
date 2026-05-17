@@ -1,9 +1,17 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/application/agent_status_group.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
+  late AppLocalizations l10n;
+
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+  });
+
   AgentItem makeAgent({
     required String id,
     required String name,
@@ -33,7 +41,7 @@ void main() {
         ],
       );
 
-      expect(group.mergedSummary(), 'Alice、Bob 思考中');
+      expect(group.mergedSummary(l10n: l10n), 'Alice、Bob 思考中');
     });
 
     test('mergedSummary with single agent uses just name + status', () {
@@ -44,7 +52,7 @@ void main() {
         ],
       );
 
-      expect(group.mergedSummary(), 'Alice 工作中');
+      expect(group.mergedSummary(l10n: l10n), 'Alice 工作中');
     });
 
     test('mergedSummary falls back to name when displayName is null', () {
@@ -56,7 +64,7 @@ void main() {
         ],
       );
 
-      expect(group.mergedSummary(), 'Agent1、Agent2 在线');
+      expect(group.mergedSummary(l10n: l10n), 'Agent1、Agent2 在线');
     });
 
     test('count returns number of agents', () {
@@ -271,8 +279,8 @@ void main() {
 
       final groups = groupAgentsByStatus(agents);
 
-      expect(groups[0].mergedSummary(), 'J1、J2 思考中');
-      expect(groups[1].mergedSummary(), 'A1 在线');
+      expect(groups[0].mergedSummary(l10n: l10n), 'J1、J2 思考中');
+      expect(groups[1].mergedSummary(l10n: l10n), 'A1 在线');
     });
 
     test('displayName preferred over name in mergedSummary', () {
@@ -287,7 +295,7 @@ void main() {
 
       final groups = groupAgentsByStatus(agents);
 
-      expect(groups[0].mergedSummary(), 'Alice 工作中');
+      expect(groups[0].mergedSummary(l10n: l10n), 'Alice 工作中');
     });
   });
 }

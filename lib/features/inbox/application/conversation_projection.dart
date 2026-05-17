@@ -4,6 +4,7 @@ import 'package:slock_app/features/inbox/application/inbox_name_resolver.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 // Re-export so existing `import conversation_projection.dart` callsites
 // continue to see `resolvePreviewText`.
@@ -104,6 +105,7 @@ class ConversationProjection {
 ConversationProjection projectInboxItem(
   InboxItem item, {
   required ServerScopeId serverId,
+  required AppLocalizations l10n,
   InboxNameResolver? nameResolver,
 }) {
   return ConversationProjection(
@@ -113,6 +115,7 @@ ConversationProjection projectInboxItem(
         ? nameResolver.resolveChannelName(item)
         : _buildTitle(item),
     previewText: MessagePreviewResolver.resolve(
+      l10n: l10n,
       content: item.latestActivityPreview ?? item.preview,
       messageType: item.messageType,
       isDeleted: item.isDeleted,
@@ -140,11 +143,17 @@ ConversationProjection projectInboxItem(
 List<ConversationProjection> projectInboxItems(
   List<InboxItem> items, {
   required ServerScopeId serverId,
+  required AppLocalizations l10n,
   InboxNameResolver? nameResolver,
 }) {
   return [
     for (final item in items)
-      projectInboxItem(item, serverId: serverId, nameResolver: nameResolver),
+      projectInboxItem(
+        item,
+        serverId: serverId,
+        l10n: l10n,
+        nameResolver: nameResolver,
+      ),
   ];
 }
 

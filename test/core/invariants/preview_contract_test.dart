@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:glados/glados.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
@@ -6,6 +7,7 @@ import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 import '../../support/support.dart';
 
@@ -19,6 +21,11 @@ import '../../support/support.dart';
 /// - **INV-PREVIEW-3**: Every MessageType × attachment × state combination
 ///   produces a valid preview
 void main() {
+  late AppLocalizations l10n;
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+  });
+
   // ---------------------------------------------------------------------------
   // Custom generators for property-based testing
   // ---------------------------------------------------------------------------
@@ -128,6 +135,7 @@ void main() {
       'resolve() with random content × sendState never returns empty',
       (content, sendState) {
         final result = MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: content,
           sendState: sendState,
         );
@@ -141,6 +149,7 @@ void main() {
       'resolve() with random messageType × isDeleted never returns empty',
       (messageType, isDeleted) {
         final result = MessagePreviewResolver.resolve(
+          l10n: l10n,
           messageType: messageType,
           isDeleted: isDeleted,
         );
@@ -154,6 +163,7 @@ void main() {
       'resolve() with random attachments never returns empty',
       (attachments) {
         final result = MessagePreviewResolver.resolve(
+          l10n: l10n,
           attachments: attachments,
         );
         expect(result, isNotEmpty);
@@ -175,7 +185,8 @@ void main() {
     Glados(contentGenerator).test(
       'resolve() output length <= 200',
       (content) {
-        final result = MessagePreviewResolver.resolve(content: content);
+        final result =
+            MessagePreviewResolver.resolve(l10n: l10n, content: content);
         expect(result.length, lessThanOrEqualTo(200));
       },
       skip: 'TODO: Resolver does not truncate content — INV-PREVIEW-2 '
@@ -185,39 +196,39 @@ void main() {
     // Verify that all non-content label constants satisfy the 200-char limit.
     test('all label constants are <= 200 chars', () {
       expect(
-        MessagePreviewResolver.deletedPreview.length,
+        l10n.previewDeleted.length,
         lessThanOrEqualTo(200),
       );
       expect(
-        MessagePreviewResolver.sendingPreview.length,
+        l10n.previewSending.length,
         lessThanOrEqualTo(200),
       );
       expect(
-        MessagePreviewResolver.failedPreview.length,
+        l10n.previewFailed.length,
         lessThanOrEqualTo(200),
       );
       expect(
-        MessagePreviewResolver.systemPreview.length,
+        l10n.previewSystem.length,
         lessThanOrEqualTo(200),
       );
       expect(
-        MessagePreviewResolver.linkPreview.length,
+        l10n.previewLink.length,
         lessThanOrEqualTo(200),
       );
       expect(
-        MessagePreviewResolver.voicePreview.length,
+        l10n.previewVoice.length,
         lessThanOrEqualTo(200),
       );
       expect(
-        MessagePreviewResolver.imagePreview.length,
+        l10n.previewImage.length,
         lessThanOrEqualTo(200),
       );
       expect(
-        MessagePreviewResolver.videoPreview.length,
+        l10n.previewVideo.length,
         lessThanOrEqualTo(200),
       );
       expect(
-        MessagePreviewResolver.fallbackPreview.length,
+        l10n.previewFallback.length,
         lessThanOrEqualTo(200),
       );
     });
@@ -238,6 +249,7 @@ void main() {
               'type=$messageType, sendState=$sendState, deleted=$isDeleted';
           test('resolve produces valid preview for $label', () {
             final result = MessagePreviewResolver.resolve(
+              l10n: l10n,
               content: 'test content',
               messageType: messageType,
               isDeleted: isDeleted,
@@ -252,8 +264,8 @@ void main() {
     }
 
     test('null content + null attachments falls through to fallback', () {
-      final result = MessagePreviewResolver.resolve();
-      expect(result, equals(MessagePreviewResolver.fallbackPreview));
+      final result = MessagePreviewResolver.resolve(l10n: l10n);
+      expect(result, equals(l10n.previewFallback));
       expect(result, isNotEmpty);
     });
 
@@ -273,6 +285,7 @@ void main() {
     for (final mime in mimeTypes) {
       test('attachment MIME $mime produces non-empty preview', () {
         final result = MessagePreviewResolver.resolve(
+          l10n: l10n,
           attachments: [MessageAttachment(name: 'file', type: mime)],
         );
         expect(result, isNotEmpty);
@@ -288,20 +301,21 @@ void main() {
   group('Edge cases', () {
     test('empty content + empty attachment list → fallback', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: '',
         attachments: const [],
       );
-      expect(result, equals(MessagePreviewResolver.fallbackPreview));
+      expect(result, equals(l10n.previewFallback));
     });
 
     test('null content → fallback', () {
-      final result = MessagePreviewResolver.resolve(content: null);
-      expect(result, equals(MessagePreviewResolver.fallbackPreview));
+      final result = MessagePreviewResolver.resolve(l10n: l10n, content: null);
+      expect(result, equals(l10n.previewFallback));
     });
 
     test('pure emoji content → returns emoji string', () {
       const emoji = '\u{1F600}\u{1F601}\u{1F602}';
-      final result = MessagePreviewResolver.resolve(content: emoji);
+      final result = MessagePreviewResolver.resolve(l10n: l10n, content: emoji);
       expect(result, equals(emoji));
     });
 
@@ -311,6 +325,7 @@ void main() {
 
     test('non-http URL in content → returns content as-is', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: 'ftp://files.example.com/doc.pdf',
       );
       expect(result, equals('ftp://files.example.com/doc.pdf'));
@@ -318,13 +333,15 @@ void main() {
 
     test('bare HTTP URL → link label', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: 'https://example.com',
       );
-      expect(result, equals(MessagePreviewResolver.linkPreview));
+      expect(result, equals(l10n.previewLink));
     });
 
     test('mixed text + URL → returns content as-is', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: 'Check this out: https://example.com',
       );
       expect(result, equals('Check this out: https://example.com'));
@@ -332,95 +349,107 @@ void main() {
 
     test('voice message (audio attachment, no text) → voice label', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: null,
         attachments: const [
           MessageAttachment(name: 'voice.ogg', type: 'audio/ogg'),
         ],
       );
-      expect(result, equals(MessagePreviewResolver.voicePreview));
+      expect(result, equals(l10n.previewVoice));
     });
 
     test('image attachment only → image label', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: null,
         attachments: const [
           MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
         ],
       );
-      expect(result, equals(MessagePreviewResolver.imagePreview));
+      expect(result, equals(l10n.previewImage));
     });
 
     test('video attachment only → video label', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: null,
         attachments: const [
           MessageAttachment(name: 'clip.mp4', type: 'video/mp4'),
         ],
       );
-      expect(result, equals(MessagePreviewResolver.videoPreview));
+      expect(result, equals(l10n.previewVideo));
     });
 
     test('system message → system label (ignores content)', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: 'User joined',
         messageType: 'system',
       );
-      expect(result, equals(MessagePreviewResolver.systemPreview));
+      expect(result, equals(l10n.previewSystem));
     });
 
     test('deleted message → deleted label (ignores content)', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: 'Some content',
         isDeleted: true,
       );
-      expect(result, equals(MessagePreviewResolver.deletedPreview));
+      expect(result, equals(l10n.previewDeleted));
     });
 
     test('sending state → sending label (ignores content)', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: 'Message being sent',
         sendState: MessageSendState.sending,
       );
-      expect(result, equals(MessagePreviewResolver.sendingPreview));
+      expect(result, equals(l10n.previewSending));
     });
 
     test('failed state → failed label (ignores content)', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: 'Message that failed',
         sendState: MessageSendState.failed,
       );
-      expect(result, equals(MessagePreviewResolver.failedPreview));
+      expect(result, equals(l10n.previewFailed));
     });
 
     test('whitespace-only content → fallback', () {
-      final result = MessagePreviewResolver.resolve(content: '   \t\n  ');
-      expect(result, equals(MessagePreviewResolver.fallbackPreview));
+      final result =
+          MessagePreviewResolver.resolve(l10n: l10n, content: '   \t\n  ');
+      expect(result, equals(l10n.previewFallback));
     });
 
     test('content with leading/trailing whitespace → returns content as-is',
         () {
-      final result = MessagePreviewResolver.resolve(content: '  hello  ');
+      final result =
+          MessagePreviewResolver.resolve(l10n: l10n, content: '  hello  ');
       expect(result, equals('  hello  '));
     });
 
     test('deleted takes priority over sending state', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         isDeleted: true,
         sendState: MessageSendState.sending,
       );
-      expect(result, equals(MessagePreviewResolver.deletedPreview));
+      expect(result, equals(l10n.previewDeleted));
     });
 
     test('deleted takes priority over system messageType', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         isDeleted: true,
         messageType: 'system',
       );
-      expect(result, equals(MessagePreviewResolver.deletedPreview));
+      expect(result, equals(l10n.previewDeleted));
     });
 
     test('content takes priority over attachments', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         content: 'Text with attachment',
         attachments: const [
           MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
@@ -431,6 +460,7 @@ void main() {
 
     test('unknown attachment MIME produces "附件: filename"', () {
       final result = MessagePreviewResolver.resolve(
+        l10n: l10n,
         attachments: const [
           MessageAttachment(name: 'data.bin', type: 'application/octet-stream'),
         ],
@@ -445,27 +475,27 @@ void main() {
 
   group('resolvePreviewText (backward compat)', () {
     test('non-null non-empty string → returns as-is', () {
-      expect(resolvePreviewText('hello'), equals('hello'));
+      expect(resolvePreviewText('hello', l10n: l10n), equals('hello'));
     });
 
     test('null → fallback', () {
       expect(
-        resolvePreviewText(null),
-        equals(MessagePreviewResolver.fallbackPreview),
+        resolvePreviewText(null, l10n: l10n),
+        equals(l10n.previewFallback),
       );
     });
 
     test('empty string → fallback', () {
       expect(
-        resolvePreviewText(''),
-        equals(MessagePreviewResolver.fallbackPreview),
+        resolvePreviewText('', l10n: l10n),
+        equals(l10n.previewFallback),
       );
     });
 
     test('whitespace-only → fallback', () {
       expect(
-        resolvePreviewText('   '),
-        equals(MessagePreviewResolver.fallbackPreview),
+        resolvePreviewText('   ', l10n: l10n),
+        equals(l10n.previewFallback),
       );
     });
   });
@@ -481,9 +511,7 @@ void main() {
       fixture.seedHome(
         channels: [
           (ChannelBuilder('ch-text')..withPreview('Hello world')).build(),
-          (ChannelBuilder('ch-link')
-                ..withPreview(MessagePreviewResolver.linkPreview))
-              .build(),
+          (ChannelBuilder('ch-link')..withPreview(l10n.previewLink)).build(),
           (ChannelBuilder('ch-no-preview')..withName('empty-ch')).build(),
         ],
         directMessages: [
@@ -500,7 +528,7 @@ void main() {
         // resolvePreviewText is the UI safety net called by HomeChannelRow /
         // HomeDirectMessageRow. Verify it never returns empty or [No preview].
         for (final ch in [...state.pinnedChannels, ...state.channels]) {
-          final preview = resolvePreviewText(ch.lastMessagePreview);
+          final preview = resolvePreviewText(ch.lastMessagePreview, l10n: l10n);
           expect(preview, isNotEmpty,
               reason: 'channel ${ch.scopeId.value} preview empty');
           expect(preview.trim(), isNotEmpty,
@@ -513,7 +541,7 @@ void main() {
           ...state.pinnedDirectMessages,
           ...state.directMessages,
         ]) {
-          final preview = resolvePreviewText(dm.lastMessagePreview);
+          final preview = resolvePreviewText(dm.lastMessagePreview, l10n: l10n);
           expect(preview, isNotEmpty,
               reason: 'dm ${dm.scopeId.value} preview empty');
           expect(preview.trim(), isNotEmpty,

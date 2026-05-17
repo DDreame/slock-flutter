@@ -34,18 +34,19 @@ AgentDisplayStatus resolveDisplayStatus(AgentItem agent) {
 /// Lower values are higher priority (shown first).
 int displayStatusPriority(AgentDisplayStatus status) => status.index;
 
-/// Returns the Chinese display label for a status.
+/// Returns the localized display label for a status.
 ///
-/// When [l10n] is provided, resolves the label through the ARB l10n system.
-/// When null, falls back to hardcoded Chinese labels (legacy behavior).
-/// Phase B will wire the l10n path.
-String displayStatusLabel(AgentDisplayStatus status, {AppLocalizations? l10n}) {
+/// Resolves the label through the ARB l10n system.
+String displayStatusLabel(
+  AgentDisplayStatus status, {
+  required AppLocalizations l10n,
+}) {
   return switch (status) {
-    AgentDisplayStatus.thinking => '思考中',
-    AgentDisplayStatus.working => '工作中',
-    AgentDisplayStatus.error => '错误',
-    AgentDisplayStatus.online => '在线',
-    AgentDisplayStatus.offline => '离线',
-    AgentDisplayStatus.stopped => '已停止',
+    AgentDisplayStatus.thinking => l10n.agentStatusThinking,
+    AgentDisplayStatus.working => l10n.agentStatusWorking,
+    AgentDisplayStatus.error => l10n.agentStatusError,
+    AgentDisplayStatus.online => l10n.agentStatusOnline,
+    AgentDisplayStatus.offline => l10n.agentStatusOffline,
+    AgentDisplayStatus.stopped => l10n.agentStatusStopped,
   };
 }

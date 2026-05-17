@@ -624,7 +624,7 @@ class _StatusGroupHeader extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
-                displayStatusLabel(group.displayStatus),
+                displayStatusLabel(group.displayStatus, l10n: context.l10n),
                 style: AppTypography.label.copyWith(
                   color: colors.text,
                   fontWeight: FontWeight.w600,
@@ -673,7 +673,7 @@ class _CollapsedSummary extends StatelessWidget {
         AppSpacing.sm,
       ),
       child: Text(
-        group.mergedSummary(),
+        group.mergedSummary(l10n: context.l10n),
         style: AppTypography.bodySmall.copyWith(
           color: colors.textSecondary,
         ),

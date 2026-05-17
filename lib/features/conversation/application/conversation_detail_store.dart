@@ -15,6 +15,7 @@ import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/application/pinned_messages_store.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -1565,6 +1566,7 @@ class ConversationDetailStore
     required MessageSendState sendState,
   }) {
     final preview = MessagePreviewResolver.resolve(
+      l10n: ref.read(appLocalizationsProvider),
       content: content,
       sendState: sendState,
     );

@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 /// Status of the background socket connection.
 enum BackgroundSocketStatus {
@@ -284,7 +286,15 @@ class BackgroundNotificationWorker {
         (payload['deletedAt'] is String &&
             (payload['deletedAt'] as String).isNotEmpty);
     final attachments = parseAttachments(payload['attachments']);
+    final platformLocale = PlatformDispatcher.instance.locale;
+    final supported = AppLocalizations.supportedLocales.any(
+      (l) => l.languageCode == platformLocale.languageCode,
+    );
+    final l10n = lookupAppLocalizations(
+      supported ? Locale(platformLocale.languageCode) : const Locale('en'),
+    );
     final body = MessagePreviewResolver.resolve(
+      l10n: l10n,
       content: content,
       messageType: messageType,
       isDeleted: isDeleted,
