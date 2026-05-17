@@ -111,8 +111,6 @@ void main() {
             reason:
                 'Key map must be empty after dispose (proves explicit clear)');
       },
-      skip:
-          true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
     );
   });
 
@@ -195,8 +193,6 @@ void main() {
         expect(secondCountFn!(), greaterThan(0),
             reason: 'Key map must be repopulated after recreate');
       },
-      skip:
-          true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
     );
   });
 
@@ -247,7 +243,12 @@ void main() {
             child: ConversationDetailPage(target: target),
           ),
         );
-        await tester.pumpAndSettle();
+        // Use bounded pump instead of pumpAndSettle — the page has
+        // ongoing animations/timers that prevent settle.  The fake
+        // repository resolves synchronously so one async gap is enough
+        // to render message widgets.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Find the CachedNetworkImage used for the inline thumbnail.
         final images = find.byType(CachedNetworkImage);
@@ -264,7 +265,6 @@ void main() {
             reason:
                 'In-chat thumbnail must have memCacheWidth to limit memory');
       },
-      skip: true, // Phase A: invariant locked — Phase B adds memCacheWidth
     );
   });
 
@@ -308,7 +308,6 @@ void main() {
         expect(img.memCacheHeight, greaterThan(0),
             reason: 'memCacheHeight must be positive');
       },
-      skip: true, // Phase A: invariant locked — Phase B adds memCacheHeight
     );
   });
 
@@ -319,20 +318,26 @@ void main() {
     testWidgets(
       'FilePreviewPage CachedNetworkImage does NOT have memCacheWidth or memCacheHeight',
       (tester) async {
+        // FilePreviewPage is a ConsumerStatefulWidget — wrap in ProviderScope.
+        // Use a null id so _loadAttachment takes the fast fallback path
+        // (sets _signedUrl = att.url without needing attachment repo).
         await tester.pumpWidget(
-          MaterialApp(
-            theme: AppTheme.light,
-            home: const FilePreviewPage(
-              attachment: MessageAttachment(
-                name: 'photo.jpg',
-                type: 'image/jpeg',
-                url: 'https://example.com/photo_full.jpg',
-                id: 'att-1',
+          ProviderScope(
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const FilePreviewPage(
+                attachment: MessageAttachment(
+                  name: 'photo.jpg',
+                  type: 'image/jpeg',
+                  url: 'https://example.com/photo_full.jpg',
+                ),
               ),
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        // Bounded pump: async gap for _loadAttachment future + build.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
 
         // Find the CachedNetworkImage in the full-screen viewer.
         final images = find.byType(CachedNetworkImage);
@@ -348,8 +353,6 @@ void main() {
               reason: 'Full-screen viewer must NOT constrain memCacheHeight');
         }
       },
-      skip:
-          true, // Phase A: invariant locked — Phase B adds memCacheWidth to thumbnails only
     );
   });
 }

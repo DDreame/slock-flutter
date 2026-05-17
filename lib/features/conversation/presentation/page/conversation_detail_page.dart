@@ -3571,6 +3571,7 @@ class _ImageAttachmentPreview extends StatelessWidget {
                 tag: HeroTags.imageAttachment(attachment.id ?? attachment.name),
                 child: CachedNetworkImage(
                   imageUrl: attachment.thumbnailUrl ?? attachment.url!,
+                  memCacheWidth: 280,
                   fit: BoxFit.cover,
                   progressIndicatorBuilder: (context, url, progress) {
                     return SizedBox(
