@@ -478,6 +478,12 @@ void main() {
         find.byKey(const ValueKey('agent-activity-log-section')),
         200,
       );
+      // Scroll a bit more to ensure ListView lazy-builds the entries
+      // below the section header.
+      await tester.scrollUntilVisible(
+        find.text('14:30:15'),
+        100,
+      );
 
       expect(find.text('Activity Log'), findsOneWidget);
       expect(find.text('14:30:15'), findsOneWidget);
