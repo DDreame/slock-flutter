@@ -108,6 +108,9 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-CACHE-VOICE-CAP-1: Voice waveform cache evicts at max size
+  //
+  // Drives insertion through the production VoiceWaveformCacheNotifier.put()
+  // API — the eviction logic lives inside put() in Phase B.
   // -----------------------------------------------------------------------
   group('INV-CACHE-VOICE-CAP-1: voice waveform cache max size', () {
     test(
@@ -118,21 +121,16 @@ void main() {
 
         final notifier = container.read(voiceWaveformCacheProvider.notifier);
 
-        // Populate 50 entries.
+        // Populate 50 entries via production insertion API.
         for (var i = 0; i < 50; i++) {
-          notifier.state = {
-            ...notifier.state,
-            'voice-$i': [0.1, 0.2, 0.3],
-          };
+          notifier.put('voice-$i', [0.1, 0.2, 0.3]);
         }
         expect(notifier.state.length, equals(50),
             reason: 'Waveform cache must hold 50 entries at max');
 
-        // Add one more — should evict the oldest.
-        notifier.state = {
-          ...notifier.state,
-          'voice-50': [0.4, 0.5, 0.6],
-        };
+        // Add one more via production API — should evict the oldest.
+        notifier.put('voice-50', [0.4, 0.5, 0.6]);
+
         expect(notifier.state.length, equals(50),
             reason: 'Waveform cache must not exceed 50 entries');
         expect(notifier.state.containsKey('voice-0'), isFalse,
@@ -146,18 +144,25 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-CACHE-DIO-CLOSE-1: Dio closed on provider dispose
+  //
+  // Uses overrideWith (factory override) so the provider lifecycle path
+  // (including ref.onDispose) is exercised. overrideWithValue would bypass
+  // the builder and miss the disposal registration.
   // -----------------------------------------------------------------------
   group('INV-CACHE-DIO-CLOSE-1: Dio closed on dispose', () {
     test(
-      'LinkPreviewService Dio instance is closed when provider is disposed',
+      'LinkPreviewService.close() is called when provider is disposed',
       () async {
         var closeCalled = false;
-        final service = _CloseTrackingLinkPreviewService(
-          onClose: () => closeCalled = true,
-        );
         final container = ProviderContainer(
           overrides: [
-            linkPreviewServiceProvider.overrideWithValue(service),
+            linkPreviewServiceProvider.overrideWith((ref) {
+              final service = _CloseTrackingLinkPreviewService(
+                onClose: () => closeCalled = true,
+              );
+              ref.onDispose(service.close);
+              return service;
+            }),
           ],
         );
 
@@ -167,7 +172,7 @@ void main() {
         expect(closeCalled, isFalse,
             reason: 'Close callback must not fire before dispose');
 
-        // Dispose container — Phase B should trigger service.close().
+        // Dispose container — ref.onDispose fires service.close().
         container.dispose();
 
         expect(closeCalled, isTrue,
@@ -197,10 +202,10 @@ class _CountingLinkPreviewService extends LinkPreviewService {
   }
 }
 
-/// A [LinkPreviewService] that tracks when close is called.
+/// A [LinkPreviewService] that tracks when [close] is called.
 ///
-/// Phase B adds a `close()` method to [LinkPreviewService]; this fake
-/// verifies the provider disposal lifecycle invokes it.
+/// Used with `overrideWith` (factory override) to verify the provider
+/// lifecycle calls close via `ref.onDispose`.
 class _CloseTrackingLinkPreviewService extends LinkPreviewService {
   _CloseTrackingLinkPreviewService({required this.onClose}) : super(dio: Dio());
 
@@ -211,7 +216,7 @@ class _CloseTrackingLinkPreviewService extends LinkPreviewService {
     return LinkMetadata(url: url, title: 'Title', domain: 'example.com');
   }
 
-  /// Phase B will add this to [LinkPreviewService]; this fake tracks the call.
+  @override
   void close() {
     onClose();
   }
