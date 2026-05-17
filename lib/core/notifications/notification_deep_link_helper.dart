@@ -14,20 +14,22 @@ String? resolveNotificationRoute(Map<String, dynamic> payload) {
   switch (type) {
     case 'channel':
       if (serverId == null || channelId == null) return null;
-      return Uri(
-        path: '/servers/$serverId/channels/$channelId',
-        queryParameters: {
-          if (messageId != null) 'messageId': messageId,
-        },
-      ).toString();
+      if (messageId != null) {
+        return Uri(
+          path: '/servers/$serverId/channels/$channelId',
+          queryParameters: {'messageId': messageId},
+        ).toString();
+      }
+      return '/servers/$serverId/channels/$channelId';
     case 'dm':
       if (serverId == null || channelId == null) return null;
-      return Uri(
-        path: '/servers/$serverId/dms/$channelId',
-        queryParameters: {
-          if (messageId != null) 'messageId': messageId,
-        },
-      ).toString();
+      if (messageId != null) {
+        return Uri(
+          path: '/servers/$serverId/dms/$channelId',
+          queryParameters: {'messageId': messageId},
+        ).toString();
+      }
+      return '/servers/$serverId/dms/$channelId';
     case 'thread':
       if (serverId == null || channelId == null || threadId == null) {
         return null;
