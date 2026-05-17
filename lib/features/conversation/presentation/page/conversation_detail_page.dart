@@ -473,7 +473,10 @@ class _ConversationDetailScreenState
               members: _filteredMentionMembers,
               onSelect: _insertMention,
             ),
-          if (state.status == ConversationDetailStatus.success)
+          if (state.status == ConversationDetailStatus.success &&
+              state.isSelectionMode)
+            const _SelectionActionBar()
+          else if (state.status == ConversationDetailStatus.success)
             _ConversationComposer(
               controller: _composerController,
               focusNode: _composerFocusNode,
@@ -2743,6 +2746,39 @@ class _ConversationMessageCardState
       child: shellContent,
     );
 
+    // Read selection state from the store.
+    final detailState = ref.watch(conversationDetailStoreProvider);
+    final isSelectionMode = detailState.isSelectionMode;
+    final isSelected = detailState.selectedMessageIds.contains(message.id);
+
+    // In selection mode, show a checkmark overlay on selected messages.
+    Widget shellWithSelection = shell;
+    if (isSelectionMode && isSelected) {
+      shellWithSelection = Stack(
+        children: [
+          shell,
+          Positioned(
+            top: 4,
+            right: 4,
+            child: Container(
+              key: ValueKey('selection-check-${message.id}'),
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: colors.primary,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check,
+                color: colors.primaryForeground,
+                size: 16,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     // Wrap the entire message shell in a gesture wrapper for double-tap
     // react, swipe-to-reply, and long-press context menu. The wrapper
     // covers the full shell area so that long-press can trigger on empty
@@ -2750,7 +2786,19 @@ class _ConversationMessageCardState
     // conflicts in MarkdownBody). Child widget taps (reaction chips,
     // thread indicator, task badges, links) still work because their
     // gesture recognizers are deeper in the tree and win the arena.
+    //
+    // In selection mode, taps toggle selection and long-press/swipe/
+    // double-tap are disabled.
     if (isNonSystem) {
+      if (isSelectionMode) {
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => ref
+              .read(conversationDetailStoreProvider.notifier)
+              .toggleMessageSelection(message.id),
+          child: shellWithSelection,
+        );
+      }
       return MessageGestureWrapper(
         enablePressFeedback: enableTapToThread,
         onTap: () => _handleMessageTap(
@@ -2764,13 +2812,18 @@ class _ConversationMessageCardState
         onSwipeReply: () => ref
             .read(conversationDetailStoreProvider.notifier)
             .setReplyTo(message),
-        onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
+        onLongPress: () {
+          // Enter selection mode on long-press.
+          ref
+              .read(conversationDetailStoreProvider.notifier)
+              .enterSelectionMode(message.id);
+        },
         child: Listener(
           behavior: HitTestBehavior.translucent,
           onPointerDown: (event) {
             _lastPointerDownGlobalPos = event.position;
           },
-          child: shell,
+          child: shellWithSelection,
         ),
       );
     }
@@ -2778,7 +2831,7 @@ class _ConversationMessageCardState
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
-      child: shell,
+      child: shellWithSelection,
     );
   }
 
@@ -4468,6 +4521,79 @@ class _OfflineBanner extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Bottom action bar shown during multi-select mode. (#537)
+///
+/// Displays Cancel, Delete, and Save buttons for batch operations
+/// on the currently selected messages.
+class _SelectionActionBar extends ConsumerWidget {
+  const _SelectionActionBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final state = ref.watch(conversationDetailStoreProvider);
+    final selectedCount = state.selectedMessageIds.length;
+
+    return Container(
+      key: const ValueKey('selection-action-bar'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(
+          top: BorderSide(color: colors.border),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            IconButton(
+              key: const ValueKey('selection-action-cancel'),
+              icon: const Icon(Icons.close),
+              tooltip: 'Cancel',
+              onPressed: () => ref
+                  .read(conversationDetailStoreProvider.notifier)
+                  .exitSelectionMode(),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              '$selectedCount selected',
+              style: AppTypography.body.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            IconButton(
+              key: const ValueKey('selection-action-save'),
+              icon: const Icon(Icons.bookmark_outline),
+              tooltip: 'Save',
+              onPressed: selectedCount > 0
+                  ? () => ref
+                      .read(conversationDetailStoreProvider.notifier)
+                      .batchSaveMessages(state.selectedMessageIds)
+                  : null,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            IconButton(
+              key: const ValueKey('selection-action-delete'),
+              icon: Icon(Icons.delete_outline, color: colors.error),
+              tooltip: 'Delete',
+              onPressed: selectedCount > 0
+                  ? () => ref
+                      .read(conversationDetailStoreProvider.notifier)
+                      .batchDeleteMessages(state.selectedMessageIds)
+                  : null,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

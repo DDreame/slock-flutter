@@ -1041,6 +1041,94 @@ class ConversationDetailStore
     }
   }
 
+  // ---------- Multi-select mode (#537) ----------
+
+  /// Enters selection mode with [firstMessageId] auto-selected.
+  void enterSelectionMode(String firstMessageId) {
+    if (state.status != ConversationDetailStatus.success) return;
+    state = state.copyWith(
+      isSelectionMode: true,
+      selectedMessageIds: {firstMessageId},
+    );
+  }
+
+  /// Exits selection mode and clears all selections.
+  void exitSelectionMode() {
+    state = state.copyWith(
+      isSelectionMode: false,
+      selectedMessageIds: const {},
+    );
+  }
+
+  /// Toggles whether [messageId] is in the current selection set.
+  void toggleMessageSelection(String messageId) {
+    if (!state.isSelectionMode) return;
+    final updated = Set<String>.of(state.selectedMessageIds);
+    if (updated.contains(messageId)) {
+      updated.remove(messageId);
+    } else {
+      updated.add(messageId);
+    }
+    state = state.copyWith(selectedMessageIds: updated);
+  }
+
+  /// Batch-deletes all selected messages and exits selection mode.
+  Future<void> batchDeleteMessages(Set<String> ids) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    // Optimistic: mark all selected messages as deleted.
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    for (final id in ids) {
+      final index = messages.indexWhere((m) => m.id == id);
+      if (index != -1) {
+        messages[index] = messages[index].copyWith(isDeleted: true);
+      }
+    }
+    state = state.copyWith(
+      messages: messages,
+      isSelectionMode: false,
+      selectedMessageIds: const {},
+    );
+
+    // Fire delete requests (best-effort, no rollback on partial failure).
+    final repo = ref.read(conversationRepositoryProvider);
+    for (final id in ids) {
+      try {
+        await repo.deleteMessage(target, messageId: id);
+      } on AppFailure {
+        // Individual message delete failure is silently tolerated in batch.
+      }
+    }
+    _persistSession();
+  }
+
+  /// Batch-saves all selected messages and exits selection mode.
+  Future<void> batchSaveMessages(Set<String> ids) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    // Optimistic: add all selected message IDs to savedMessageIds.
+    final previousSaved = state.savedMessageIds;
+    final updatedSaved = Set<String>.of(previousSaved)..addAll(ids);
+    state = state.copyWith(
+      savedMessageIds: updatedSaved,
+      isSelectionMode: false,
+      selectedMessageIds: const {},
+    );
+
+    // Fire save requests (best-effort, no rollback on partial failure).
+    final serverId = target.serverId;
+    final repo = ref.read(savedMessagesRepositoryProvider);
+    for (final id in ids) {
+      try {
+        await repo.saveMessage(serverId, id);
+      } on AppFailure {
+        // Individual message save failure is silently tolerated in batch.
+      }
+    }
+  }
+
   Future<void> pinMessage(String messageId) async {
     final target = ref.read(currentConversationDetailTargetProvider);
     if (state.status != ConversationDetailStatus.success) return;

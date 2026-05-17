@@ -33,6 +33,8 @@ class ConversationDetailState {
     this.currentSearchMatchIndex = -1,
     this.savedMessageIds = const {},
     this.replyToMessage,
+    this.isSelectionMode = false,
+    this.selectedMessageIds = const {},
   });
 
   final ConversationDetailTarget target;
@@ -70,6 +72,13 @@ class ConversationDetailState {
   /// When non-null, the composer shows a quote preview and the next send
   /// includes `replyToId` in the payload.
   final ConversationMessageSummary? replyToMessage;
+
+  /// Whether multi-select mode is active. In this mode, taps toggle message
+  /// selection instead of navigating to threads or toggling precise timestamp.
+  final bool isSelectionMode;
+
+  /// The set of message IDs currently selected in multi-select mode.
+  final Set<String> selectedMessageIds;
 
   bool get isEmpty =>
       status == ConversationDetailStatus.success &&
@@ -110,6 +119,8 @@ class ConversationDetailState {
     Set<String>? savedMessageIds,
     ConversationMessageSummary? replyToMessage,
     bool clearReplyToMessage = false,
+    bool? isSelectionMode,
+    Set<String>? selectedMessageIds,
   }) {
     return ConversationDetailState(
       target: target ?? this.target,
@@ -138,6 +149,8 @@ class ConversationDetailState {
       savedMessageIds: savedMessageIds ?? this.savedMessageIds,
       replyToMessage:
           clearReplyToMessage ? null : (replyToMessage ?? this.replyToMessage),
+      isSelectionMode: isSelectionMode ?? this.isSelectionMode,
+      selectedMessageIds: selectedMessageIds ?? this.selectedMessageIds,
     );
   }
 
@@ -169,7 +182,9 @@ class ConversationDetailState {
             listEquals(searchMatchIds, other.searchMatchIds) &&
             currentSearchMatchIndex == other.currentSearchMatchIndex &&
             setEquals(savedMessageIds, other.savedMessageIds) &&
-            replyToMessage == other.replyToMessage;
+            replyToMessage == other.replyToMessage &&
+            isSelectionMode == other.isSelectionMode &&
+            setEquals(selectedMessageIds, other.selectedMessageIds);
   }
 
   @override
@@ -199,6 +214,8 @@ class ConversationDetailState {
           currentSearchMatchIndex,
           Object.hashAll(savedMessageIds),
           replyToMessage,
+          isSelectionMode,
+          Object.hashAll(selectedMessageIds),
         ),
       );
 }

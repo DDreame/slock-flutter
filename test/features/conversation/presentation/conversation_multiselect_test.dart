@@ -18,7 +18,7 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #537: Multi-Select Batch Operations — Phase A
+// #537: Multi-Select Batch Operations — Phase B
 //
 // Verifies the multi-select mode for batch delete and batch save of messages
 // in the conversation detail page.
@@ -43,10 +43,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //                   exits selection mode, shows success snackbar
 //   INV-MULTISEL-5: Tap Cancel/X → exits selection mode, deselects all
 //
-// Phase A: All tests skip:true — selection mode, checkmark overlay,
-// selection action bar, and batch operations do not exist yet.
-//
-// Widget keys (Phase B must create):
+// Widget keys:
 //   'selection-action-bar' — bottom bar during selection mode
 //   'selection-action-delete' — Delete button in action bar
 //   'selection-action-save' — Save button in action bar
@@ -70,13 +67,10 @@ void main() {
   // 'selection-action-bar') should be visible, and the long-pressed
   // message should show a checkmark overlay (keyed
   // 'selection-check-{msgId}').
-  //
-  // skip:true — selection mode does not exist.
   // -----------------------------------------------------------------------
   testWidgets(
     'Long-press message enters selection mode with first message selected '
     '(INV-MULTISEL-1)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         _buildApp(
@@ -124,12 +118,9 @@ void main() {
   //
   // Setup: Enter selection mode via long-press on msg-1. Then tap msg-2.
   // msg-2 should gain a checkmark. Tap msg-2 again — checkmark disappears.
-  //
-  // skip:true — selection mode does not exist.
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap toggles message selection in selection mode (INV-MULTISEL-2)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         _buildApp(
@@ -180,14 +171,11 @@ void main() {
   //   - Both messages are marked as deleted (isDeleted = true in state)
   //
   // NOTE: The delete button key 'selection-action-delete' is a new seam
-  // that Phase B must create in a new SelectionActionBar widget.
-  //
-  // skip:true — selection mode does not exist.
+  // that Phase B creates in the _SelectionActionBar widget.
   // -----------------------------------------------------------------------
   testWidgets(
     'Delete button batch-deletes selected messages and exits selection '
     '(INV-MULTISEL-3)',
-    skip: true,
     (tester) async {
       final repo = _fakeRepo(channelTarget);
 
@@ -256,17 +244,14 @@ void main() {
   //   - Both messages are now in savedMessageIds
   //
   // NOTE: The save button key 'selection-action-save' is a new seam
-  // that Phase B must create in a new SelectionActionBar widget.
-  // The production save path is ConversationDetailStore.toggleSaveMessage()
-  // (line 970 of conversation_detail_store.dart) which delegates to
-  // SavedMessagesRepository.saveMessage() via savedMessagesRepositoryProvider.
-  //
-  // skip:true — selection mode does not exist.
+  // that Phase B creates in the _SelectionActionBar widget.
+  // The production save path is ConversationDetailStore.batchSaveMessages()
+  // which delegates to SavedMessagesRepository.saveMessage() via
+  // savedMessagesRepositoryProvider.
   // -----------------------------------------------------------------------
   testWidgets(
     'Save button batch-saves selected messages and exits selection '
     '(INV-MULTISEL-4)',
-    skip: true,
     (tester) async {
       final repo = _fakeRepo(channelTarget);
       final savedRepo = _FakeSavedMessagesRepository();
@@ -339,14 +324,11 @@ void main() {
   //   - Messages are NOT deleted or saved
   //
   // NOTE: The cancel button key 'selection-action-cancel' is a new seam
-  // that Phase B must create in a new SelectionActionBar widget.
-  //
-  // skip:true — selection mode does not exist.
+  // that Phase B creates in the _SelectionActionBar widget.
   // -----------------------------------------------------------------------
   testWidgets(
     'Cancel button exits selection mode and deselects all '
     '(INV-MULTISEL-5)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         _buildApp(
