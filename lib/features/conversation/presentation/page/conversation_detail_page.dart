@@ -212,8 +212,9 @@ class _ConversationDetailScreenState
 
   @override
   void dispose() {
-    // Deregister test hook.
-    ConversationDetailPage.debugMessageGlobalKeyCount = null;
+    // Clear the key map so the test hook observes count == 0 after dispose.
+    // Phase B adds this line; the hook stays alive for test observation.
+    _messageGlobalKeys.clear();
     _voiceStateSub?.cancel();
     _voiceAmplitudeSub?.cancel();
     _voiceElapsedSub?.cancel();

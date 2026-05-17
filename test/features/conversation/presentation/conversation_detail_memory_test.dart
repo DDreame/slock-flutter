@@ -40,6 +40,11 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
+  // Clean up static test hook after each test to avoid cross-test leaks.
+  tearDown(() {
+    ConversationDetailPage.debugMessageGlobalKeyCount = null;
+  });
+
   // -----------------------------------------------------------------------
   // INV-KEY-DISPOSE-1: GlobalKeys map cleared on dispose
   // -----------------------------------------------------------------------
@@ -96,12 +101,15 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // After dispose, the hook is deregistered (set to null).
-        // Phase B adds `_messageGlobalKeys.clear()` in dispose().
-        // The hook being null proves dispose ran and cleared state.
-        expect(ConversationDetailPage.debugMessageGlobalKeyCount, isNull,
+        // After dispose, the hook still exists but returns 0 because
+        // _messageGlobalKeys.clear() was called in dispose().
+        // This distinguishes "map explicitly cleared" from "hook unavailable".
+        final postDisposeFn = ConversationDetailPage.debugMessageGlobalKeyCount;
+        expect(postDisposeFn, isNotNull,
+            reason: 'Hook must survive dispose to observe cleared map');
+        expect(postDisposeFn!(), equals(0),
             reason:
-                'debugMessageGlobalKeyCount must be null after page dispose');
+                'Key map must be empty after dispose (proves explicit clear)');
       },
       skip:
           true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
@@ -164,9 +172,11 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // After dispose, hook is null (map was cleared).
-        expect(ConversationDetailPage.debugMessageGlobalKeyCount, isNull,
-            reason: 'Hook must be null after dispose — proves clear happened');
+        // After dispose, hook returns 0 (map was cleared).
+        final midCountFn = ConversationDetailPage.debugMessageGlobalKeyCount;
+        expect(midCountFn, isNotNull, reason: 'Hook must survive dispose');
+        expect(midCountFn!(), equals(0),
+            reason: 'Key map must be 0 after dispose (proves explicit clear)');
 
         // Re-mount with same messages.
         await tester.pumpWidget(
@@ -177,8 +187,8 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // After re-creation, the hook is re-registered with a fresh map
-        // that has been repopulated via putIfAbsent.
+        // After re-creation, the hook now points to the NEW state's map,
+        // which has been repopulated via putIfAbsent.
         final secondCountFn = ConversationDetailPage.debugMessageGlobalKeyCount;
         expect(secondCountFn, isNotNull,
             reason: 'Hook must be re-registered after recreate');
