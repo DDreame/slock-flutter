@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/composer_keyboard_handler.dart';
 import 'package:slock_app/stores/composer/composer_settings_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
@@ -319,7 +320,7 @@ void main() {
             '(INV-KBSHORTCUT-4)',
       );
 
-      // New container should restore the preference.
+      // New container should auto-restore the preference from build().
       final container2 = ProviderContainer(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
@@ -327,28 +328,23 @@ void main() {
       );
       addTearDown(container2.dispose);
 
-      final store2 = container2.read(composerSettingsStoreProvider.notifier);
-      store2.restoreFromPrefs();
-
+      // No explicit restoreFromPrefs() call — build() auto-restores.
       expect(
         container2.read(composerSettingsStoreProvider).enterToSend,
         isTrue,
-        reason: 'enterToSend must be restored from SharedPreferences '
-            '(INV-KBSHORTCUT-4)',
+        reason: 'enterToSend must be auto-restored from SharedPreferences '
+            'in build() (INV-KBSHORTCUT-4)',
       );
     },
   );
 }
 
 // ---------------------------------------------------------------------------
-// Test-local widget with keyboard shortcut handling.
+// Test-local widget using the shared handleComposerKeyEvent handler.
 // ---------------------------------------------------------------------------
 
-/// Test-local composer widget with keyboard shortcut handling.
-///
-/// Mirrors the Focus.onKeyEvent logic in the real _ConversationComposer:
-/// - enterToSend=true: Enter → send, Shift+Enter → newline
-/// - enterToSend=false: Ctrl/Cmd+Enter → send, Enter → newline
+/// Minimal composer widget that uses the same [handleComposerKeyEvent]
+/// function as the production `_ConversationComposer` — no duplicate logic.
 class _TestComposer extends StatelessWidget {
   const _TestComposer({
     required this.controller,
@@ -365,47 +361,14 @@ class _TestComposer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Focus(
-      onKeyEvent: (node, event) {
-        if (event is! KeyDownEvent) return KeyEventResult.ignored;
-        if (event.logicalKey != LogicalKeyboardKey.enter) {
-          return KeyEventResult.ignored;
-        }
-
-        final isShift = HardwareKeyboard.instance.isShiftPressed;
-        final isCtrl = HardwareKeyboard.instance.isControlPressed;
-        final isMeta = HardwareKeyboard.instance.isMetaPressed;
-
-        if (enterToSend) {
-          if (isShift) {
-            // Shift+Enter → insert newline
-            final text = controller.text;
-            final selection = controller.selection;
-            final newText = text.replaceRange(
-              selection.start,
-              selection.end,
-              '\n',
-            );
-            controller.value = TextEditingValue(
-              text: newText,
-              selection: TextSelection.collapsed(
-                offset: selection.start + 1,
-              ),
-            );
-            return KeyEventResult.handled;
-          } else if (!isCtrl && !isMeta) {
-            // Enter → send
-            onSend();
-            return KeyEventResult.handled;
-          }
-        } else {
-          if (isCtrl || isMeta) {
-            // Ctrl/Cmd+Enter → send
-            onSend();
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      },
+      onKeyEvent: (node, event) => handleComposerKeyEvent(
+        node,
+        event,
+        enterToSend: enterToSend,
+        controller: controller,
+        canSend: true,
+        onSend: onSend,
+      ),
       child: TextField(
         key: const ValueKey('composer-input'),
         controller: controller,

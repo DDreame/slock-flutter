@@ -43,6 +43,7 @@ import 'package:slock_app/features/unread/application/unread_source_projection.d
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/composer_keyboard_handler.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
 import 'package:slock_app/stores/composer/composer_settings_store.dart';
@@ -1957,51 +1958,14 @@ class _ConversationComposer extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Focus(
-                      onKeyEvent: (node, event) {
-                        if (event is! KeyDownEvent) {
-                          return KeyEventResult.ignored;
-                        }
-                        if (event.logicalKey != LogicalKeyboardKey.enter) {
-                          return KeyEventResult.ignored;
-                        }
-
-                        final isShift =
-                            HardwareKeyboard.instance.isShiftPressed;
-                        final isCtrl =
-                            HardwareKeyboard.instance.isControlPressed;
-                        final isMeta = HardwareKeyboard.instance.isMetaPressed;
-
-                        if (enterToSend) {
-                          if (isShift) {
-                            // Shift+Enter → insert newline
-                            final text = controller.text;
-                            final selection = controller.selection;
-                            final newText = text.replaceRange(
-                              selection.start,
-                              selection.end,
-                              '\n',
-                            );
-                            controller.value = TextEditingValue(
-                              text: newText,
-                              selection: TextSelection.collapsed(
-                                offset: selection.start + 1,
-                              ),
-                            );
-                            return KeyEventResult.handled;
-                          } else if (!isCtrl && !isMeta) {
-                            // Enter → send
-                            if (state.canSend) onSend();
-                            return KeyEventResult.handled;
-                          }
-                        } else {
-                          if (isCtrl || isMeta) {
-                            // Ctrl/Cmd+Enter → send
-                            if (state.canSend) onSend();
-                            return KeyEventResult.handled;
-                          }
-                        }
-                        return KeyEventResult.ignored;
-                      },
+                      onKeyEvent: (node, event) => handleComposerKeyEvent(
+                        node,
+                        event,
+                        enterToSend: enterToSend,
+                        controller: controller,
+                        canSend: state.canSend,
+                        onSend: onSend,
+                      ),
                       child: TextField(
                         key: const ValueKey('composer-input'),
                         controller: controller,

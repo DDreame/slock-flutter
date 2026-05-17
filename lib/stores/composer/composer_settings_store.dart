@@ -24,9 +24,16 @@ class ComposerSettingsState {
 /// [SharedPreferences] under the key `enter_to_send`.
 class ComposerSettingsStore extends Notifier<ComposerSettingsState> {
   @override
-  ComposerSettingsState build() => const ComposerSettingsState();
+  ComposerSettingsState build() {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final value = prefs.getBool('enter_to_send') ?? false;
+    return ComposerSettingsState(enterToSend: value);
+  }
 
   /// Restores the preference from SharedPreferences.
+  ///
+  /// Normally called automatically in [build], but available for
+  /// explicit refresh if needed.
   void restoreFromPrefs() {
     final prefs = ref.read(sharedPreferencesProvider);
     final value = prefs.getBool('enter_to_send') ?? false;
