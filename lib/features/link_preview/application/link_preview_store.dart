@@ -4,8 +4,13 @@ import '../data/link_metadata.dart';
 import '../data/link_preview_service.dart';
 
 /// Provider for the [LinkPreviewService] singleton.
+///
+/// Registers [LinkPreviewService.close] on dispose to release the
+/// underlying Dio HTTP client when the provider is torn down.
 final linkPreviewServiceProvider = Provider<LinkPreviewService>((ref) {
-  return LinkPreviewService();
+  final service = LinkPreviewService();
+  ref.onDispose(service.close);
+  return service;
 });
 
 /// In-memory cache of fetched link preview metadata.

@@ -86,6 +86,14 @@ class LinkPreviewService {
     return _parseHtml(response.data!, url);
   }
 
+  /// Closes the underlying HTTP client.
+  ///
+  /// Call when the service is being permanently disposed (e.g. provider
+  /// teardown via `ref.onDispose`). Phase B will add `_dio.close()` here.
+  void close() {
+    // Phase B: _dio.close();
+  }
+
   /// Parse HTML content to extract OG and meta tags.
   LinkMetadata? _parseHtml(String html, String url) {
     final document = html_parser.parse(html);

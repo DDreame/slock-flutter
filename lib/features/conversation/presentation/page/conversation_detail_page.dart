@@ -774,9 +774,7 @@ class _ConversationDetailScreenState
 
     // Cache the recorded waveform so the inline player can use it.
     if (amplitudes.isNotEmpty) {
-      ref.read(voiceWaveformCacheProvider.notifier).update(
-            (cache) => {...cache, name: amplitudes},
-          );
+      ref.read(voiceWaveformCacheProvider.notifier).put(name, amplitudes);
     }
 
     ref.read(conversationDetailStoreProvider.notifier).addPendingAttachment(

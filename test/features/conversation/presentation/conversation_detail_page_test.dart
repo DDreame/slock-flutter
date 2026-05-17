@@ -1841,9 +1841,9 @@ void main() {
                 () => _FixedSessionStore(const SessionState()),
               ),
               voiceWaveformCacheProvider.overrideWith(
-                (ref) => {
+                (ref) => VoiceWaveformCacheNotifier({
                   'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
-                },
+                }),
               ),
             ],
           ),

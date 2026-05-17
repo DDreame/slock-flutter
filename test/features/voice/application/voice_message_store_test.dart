@@ -145,30 +145,22 @@ void main() {
     });
 
     test('caching amplitudes stores them keyed by name', () {
-      container.read(voiceWaveformCacheProvider.notifier).update(
-            (cache) => {
-              ...cache,
-              'voice_123.m4a': [0.3, 0.7, 0.5]
-            },
-          );
+      container.read(voiceWaveformCacheProvider.notifier).put(
+        'voice_123.m4a',
+        [0.3, 0.7, 0.5],
+      );
 
       final cache = container.read(voiceWaveformCacheProvider);
       expect(cache['voice_123.m4a'], [0.3, 0.7, 0.5]);
     });
 
     test('multiple entries are preserved', () {
-      container.read(voiceWaveformCacheProvider.notifier).update(
-            (cache) => {
-              ...cache,
-              'voice_1.m4a': [0.1, 0.2]
-            },
-          );
-      container.read(voiceWaveformCacheProvider.notifier).update(
-            (cache) => {
-              ...cache,
-              'voice_2.m4a': [0.8, 0.9]
-            },
-          );
+      container
+          .read(voiceWaveformCacheProvider.notifier)
+          .put('voice_1.m4a', [0.1, 0.2]);
+      container
+          .read(voiceWaveformCacheProvider.notifier)
+          .put('voice_2.m4a', [0.8, 0.9]);
 
       final cache = container.read(voiceWaveformCacheProvider);
       expect(cache, hasLength(2));

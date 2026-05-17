@@ -88,9 +88,30 @@ class VoiceMessageStore extends Notifier<VoiceMessageState> {
   }
 }
 
+/// Notifier for the voice waveform amplitude cache.
+///
+/// Provides a structured insertion API ([put]) so eviction logic
+/// (Phase B) can be added at the insertion point without callers
+/// needing to change.
+class VoiceWaveformCacheNotifier
+    extends StateNotifier<Map<String, List<double>>> {
+  VoiceWaveformCacheNotifier([Map<String, List<double>>? initialData])
+      : super(initialData ?? {});
+
+  /// Insert or update a waveform entry.
+  ///
+  /// This is the production insertion point — Phase B adds
+  /// max-size eviction logic here.
+  void put(String name, List<double> samples) {
+    state = {...state, name: samples};
+  }
+}
+
 /// Cache of recorded waveform amplitudes, keyed by attachment name.
 ///
 /// Populated when the user sends a voice recording so the inline player
 /// can display the real waveform captured during recording.
-final voiceWaveformCacheProvider =
-    StateProvider<Map<String, List<double>>>((ref) => {});
+final voiceWaveformCacheProvider = StateNotifierProvider<
+    VoiceWaveformCacheNotifier, Map<String, List<double>>>(
+  (ref) => VoiceWaveformCacheNotifier(),
+);
