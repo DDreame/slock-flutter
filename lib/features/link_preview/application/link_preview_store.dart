@@ -25,11 +25,17 @@ final linkPreviewCacheProvider = StateNotifierProvider<LinkPreviewCacheNotifier,
 });
 
 /// Notifier that manages the link preview cache.
+///
+/// Uses FIFO eviction: when the cache exceeds [maxSize] entries,
+/// the oldest (first-inserted) entries are removed.
 class LinkPreviewCacheNotifier
     extends StateNotifier<Map<String, AsyncValue<LinkMetadata?>>> {
   LinkPreviewCacheNotifier(this._service) : super({});
 
   final LinkPreviewService _service;
+
+  /// Maximum number of cached link previews.
+  static const maxSize = 100;
 
   /// Fetch metadata for [url] if not already cached or in progress.
   ///
@@ -37,25 +43,43 @@ class LinkPreviewCacheNotifier
   /// On network error: caches `AsyncError` so the widget can render a
   /// fallback link. Errors are retryable — calling [fetch] again for the
   /// same URL will re-attempt the request.
+  ///
+  /// When the cache exceeds [maxSize], the oldest entries are evicted.
   Future<void> fetch(String url) async {
     final existing = state[url];
     // Already succeeded or in progress — skip.
     if (existing is AsyncData || existing is AsyncLoading) return;
 
     // Mark as loading (overwrite any prior error).
-    state = {...state, url: const AsyncValue.loading()};
+    state = _trimToMax({...state, url: const AsyncValue.loading()});
 
     try {
       final metadata = await _service.fetchMetadata(url);
-      state = {...state, url: AsyncValue.data(metadata)};
+      state = _trimToMax({...state, url: AsyncValue.data(metadata)});
     } catch (e, st) {
       // Transient failure — store as error so widget can show fallback.
-      state = {...state, url: AsyncValue.error(e, st)};
+      state = _trimToMax({...state, url: AsyncValue.error(e, st)});
     }
   }
 
   /// Clear the entire cache.
   void clear() {
     state = {};
+  }
+
+  /// Trims [cache] to [maxSize] by removing the oldest entries.
+  ///
+  /// Dart's default Map (LinkedHashMap) preserves insertion order,
+  /// so the first keys are the oldest.
+  static Map<String, AsyncValue<LinkMetadata?>> _trimToMax(
+    Map<String, AsyncValue<LinkMetadata?>> cache,
+  ) {
+    if (cache.length <= maxSize) return cache;
+    final excess = cache.length - maxSize;
+    final keysToRemove = cache.keys.take(excess).toList();
+    for (final key in keysToRemove) {
+      cache.remove(key);
+    }
+    return cache;
   }
 }

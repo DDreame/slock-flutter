@@ -9,9 +9,8 @@
 //   3. `link_preview_service.dart`: Dio instance created per service,
 //      never explicitly closed on dispose.
 //
-// Phase A: skip:true invariants locking the cache eviction contracts.
-//          Tests use ProviderContainer + fake services to verify eviction
-//          behavior and resource cleanup.
+// Phase B: Implemented LRU eviction (100), voice waveform cap (50),
+//          Dio close on dispose. All invariants un-skipped.
 //
 // Invariants verified:
 // INV-CACHE-LRU-1:      LinkPreviewCache evicts oldest when exceeding max 100
@@ -65,7 +64,6 @@ void main() {
         expect(stateAt101.containsKey('https://example.com/100'), isTrue,
             reason: 'Newest entry (url 100) must be present');
       },
-      skip: 'Phase A: invariant locked — Phase B adds LRU eviction',
     );
   });
 
@@ -102,7 +100,6 @@ void main() {
         expect(state.containsKey('https://example.com/0'), isTrue,
             reason: 'Re-fetched URL must be back in cache');
       },
-      skip: 'Phase A: invariant locked — Phase B adds LRU eviction',
     );
   });
 
@@ -138,7 +135,6 @@ void main() {
         expect(notifier.state.containsKey('voice-50'), isTrue,
             reason: 'Newest waveform entry must be present');
       },
-      skip: 'Phase A: invariant locked — Phase B adds waveform eviction',
     );
   });
 
@@ -178,7 +174,6 @@ void main() {
         expect(closeCalled, isTrue,
             reason: 'Close callback must fire when provider is disposed');
       },
-      skip: 'Phase A: invariant locked — Phase B adds Dio dispose',
     );
   });
 }
