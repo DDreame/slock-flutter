@@ -1508,6 +1508,71 @@ void main() {
       expect(container.read(pendingDeepLinkProvider), isNull);
     });
 
+    // -----------------------------------------------------------------
+    // INV-DEEPLINK-ROUTER: Channel deep link with ?messageId= query
+    // param navigates and preserves the messageId through to the
+    // destination route.
+    //
+    // This test is part of #536 Phase A: it locks the router seam to
+    // prove that once resolveNotificationRoute() produces a URL with
+    // ?messageId=, the router correctly delivers it to the page.
+    //
+    // skip:true — resolveNotificationRoute currently drops messageId
+    // so the full pipeline from notification payload → router → page
+    // never produces this URL. Phase B fix will enable it.
+    // -----------------------------------------------------------------
+    testWidgets(
+      'channel deep link with messageId preserves query param '
+      '(INV-DEEPLINK-ROUTER)',
+      skip: true,
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              _FakeServerListRepository(['server-1']),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        await container.read(serverListStoreProvider.notifier).load();
+        container.read(appReadyProvider.notifier).state = true;
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        container.read(pendingDeepLinkProvider.notifier).state =
+            '/servers/server-1/channels/general?messageId=msg-target-1';
+        await tester.pumpAndSettle();
+
+        final routeUri = router.routeInformationProvider.value.uri;
+        expect(routeUri.path, '/servers/server-1/channels/general');
+        expect(
+          routeUri.queryParameters['messageId'],
+          'msg-target-1',
+          reason: 'Router must preserve messageId query param from deep '
+              'link (INV-DEEPLINK-ROUTER)',
+        );
+        expect(container.read(pendingDeepLinkProvider), isNull);
+      },
+    );
+
     testWidgets('agent deep link navigates from /home', (tester) async {
       final container = ProviderContainer(
         overrides: [
