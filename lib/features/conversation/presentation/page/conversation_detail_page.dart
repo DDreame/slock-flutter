@@ -94,6 +94,13 @@ class ConversationDetailPage extends StatelessWidget {
   /// once the message list is loaded.
   final String? highlightMessageId;
 
+  /// Test-only hook: returns the current number of cached message GlobalKeys
+  /// in the most-recently-mounted [_ConversationDetailScreenState]. Null when
+  /// no instance is mounted. Used by Phase A invariant tests to observe
+  /// explicit map clearing on dispose.
+  @visibleForTesting
+  static int Function()? debugMessageGlobalKeyCount;
+
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
@@ -172,6 +179,9 @@ class _ConversationDetailScreenState
   @override
   void initState() {
     super.initState();
+    // Register test hook for observing GlobalKey map size.
+    ConversationDetailPage.debugMessageGlobalKeyCount =
+        () => _messageGlobalKeys.length;
     final target = ref.read(currentConversationDetailTargetProvider);
     final cachedSession =
         ref.read(conversationDetailSessionStoreProvider)[target];
@@ -202,6 +212,9 @@ class _ConversationDetailScreenState
 
   @override
   void dispose() {
+    // Clear the key map so the test hook observes count == 0 after dispose.
+    // Phase B adds this line; the hook stays alive for test observation.
+    _messageGlobalKeys.clear();
     _voiceStateSub?.cancel();
     _voiceAmplitudeSub?.cancel();
     _voiceElapsedSub?.cancel();
