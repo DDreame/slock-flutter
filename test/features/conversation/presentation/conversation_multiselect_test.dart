@@ -8,6 +8,10 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/saved_messages/data/saved_message_item.dart'
+    as saved_data;
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -227,6 +231,18 @@ void main() {
         reason: 'Checkmarks must clear after batch delete '
             '(INV-MULTISEL-3)',
       );
+
+      // The real delete seam must have been called for each selected
+      // message. ConversationDetailStore.deleteMessage() delegates to
+      // ConversationRepository.deleteMessage() (line 1021 of
+      // conversation_detail_store.dart). The fake records each call.
+      expect(
+        repo.deletedMessageIds,
+        containsAll(<String>['msg-1', 'msg-2']),
+        reason: 'Batch delete must call deleteMessage() for every '
+            'selected message via ConversationRepository '
+            '(INV-MULTISEL-3)',
+      );
     },
   );
 
@@ -241,6 +257,9 @@ void main() {
   //
   // NOTE: The save button key 'selection-action-save' is a new seam
   // that Phase B must create in a new SelectionActionBar widget.
+  // The production save path is ConversationDetailStore.toggleSaveMessage()
+  // (line 970 of conversation_detail_store.dart) which delegates to
+  // SavedMessagesRepository.saveMessage() via savedMessagesRepositoryProvider.
   //
   // skip:true — selection mode does not exist.
   // -----------------------------------------------------------------------
@@ -250,11 +269,13 @@ void main() {
     skip: true,
     (tester) async {
       final repo = _fakeRepo(channelTarget);
+      final savedRepo = _FakeSavedMessagesRepository();
 
       await tester.pumpWidget(
         _buildApp(
           repository: repo,
           target: channelTarget,
+          savedMessagesRepository: savedRepo,
         ),
       );
       await tester.pumpAndSettle();
@@ -289,6 +310,19 @@ void main() {
         find.byKey(const ValueKey('selection-check-msg-1')),
         findsNothing,
         reason: 'Checkmarks must clear after batch save '
+            '(INV-MULTISEL-4)',
+      );
+
+      // The real save seam must have been called for each selected
+      // message. ConversationDetailStore.toggleSaveMessage() delegates
+      // to SavedMessagesRepository.saveMessage() via
+      // savedMessagesRepositoryProvider (line 986 of
+      // conversation_detail_store.dart). The fake records each call.
+      expect(
+        savedRepo.savedMessageIds,
+        containsAll(<String>['msg-1', 'msg-2']),
+        reason: 'Batch save must call saveMessage() for every '
+            'selected message via SavedMessagesRepository '
             '(INV-MULTISEL-4)',
       );
     },
@@ -414,12 +448,16 @@ _FakeConversationRepository _fakeRepo(ConversationDetailTarget target) {
 Widget _buildApp({
   required ConversationRepository repository,
   required ConversationDetailTarget target,
+  SavedMessagesRepository? savedMessagesRepository,
 }) {
   return ProviderScope(
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repository),
       channelMutedIdsProvider.overrideWith((ref) => <String>{}),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      if (savedMessagesRepository != null)
+        savedMessagesRepositoryProvider
+            .overrideWithValue(savedMessagesRepository),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -578,4 +616,35 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
   }) async {}
+}
+
+class _FakeSavedMessagesRepository implements SavedMessagesRepository {
+  final List<String> savedMessageIds = [];
+
+  @override
+  Future<saved_data.SavedMessagesPage> listSavedMessages(
+    ServerScopeId serverId, {
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    return const saved_data.SavedMessagesPage(items: [], hasMore: false);
+  }
+
+  @override
+  Future<void> saveMessage(ServerScopeId serverId, String messageId) async {
+    savedMessageIds.add(messageId);
+  }
+
+  @override
+  Future<void> unsaveMessage(ServerScopeId serverId, String messageId) async {
+    savedMessageIds.remove(messageId);
+  }
+
+  @override
+  Future<Set<String>> checkSavedMessages(
+    ServerScopeId serverId,
+    List<String> messageIds,
+  ) async {
+    return savedMessageIds.toSet().intersection(messageIds.toSet());
+  }
 }
