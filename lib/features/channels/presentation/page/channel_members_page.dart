@@ -265,7 +265,11 @@ class _MemberTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final avatar = CircleAvatar(
       backgroundImage: member.avatarUrl != null
-          ? CachedNetworkImageProvider(member.avatarUrl!)
+          ? CachedNetworkImageProvider(
+              member.avatarUrl!,
+              maxWidth: 200,
+              maxHeight: 200,
+            )
           : null,
       child: member.avatarUrl == null
           ? Icon(member.isAgent ? Icons.smart_toy : Icons.person)

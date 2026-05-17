@@ -252,7 +252,11 @@ class _HumanCandidateTile extends StatelessWidget {
     return ListTile(
       leading: CircleAvatar(
         backgroundImage: member.avatarUrl != null
-            ? CachedNetworkImageProvider(member.avatarUrl!)
+            ? CachedNetworkImageProvider(
+                member.avatarUrl!,
+                maxWidth: 200,
+                maxHeight: 200,
+              )
             : null,
         child: member.avatarUrl == null ? const Icon(Icons.person) : null,
       ),
@@ -287,7 +291,11 @@ class _AgentCandidateTile extends StatelessWidget {
     return ListTile(
       leading: CircleAvatar(
         backgroundImage: agent.avatarUrl != null
-            ? CachedNetworkImageProvider(agent.avatarUrl!)
+            ? CachedNetworkImageProvider(
+                agent.avatarUrl!,
+                maxWidth: 200,
+                maxHeight: 200,
+              )
             : null,
         child: agent.avatarUrl == null ? const Icon(Icons.smart_toy) : null,
       ),

@@ -274,7 +274,11 @@ class _AgentsTab extends ConsumerWidget {
           key: ValueKey('dm-agent-${agent.id}'),
           leading: CircleAvatar(
             backgroundImage: agent.avatarUrl != null
-                ? CachedNetworkImageProvider(agent.avatarUrl!)
+                ? CachedNetworkImageProvider(
+                    agent.avatarUrl!,
+                    maxWidth: 200,
+                    maxHeight: 200,
+                  )
                 : null,
             child: agent.avatarUrl == null
                 ? const Icon(Icons.smart_toy_outlined)
@@ -323,7 +327,11 @@ class _MemberList extends StatelessWidget {
           key: ValueKey('dm-member-${member.id}'),
           leading: CircleAvatar(
             backgroundImage: member.avatarUrl != null
-                ? CachedNetworkImageProvider(member.avatarUrl!)
+                ? CachedNetworkImageProvider(
+                    member.avatarUrl!,
+                    maxWidth: 200,
+                    maxHeight: 200,
+                  )
                 : null,
             child: member.avatarUrl == null
                 ? Text(member.displayName.characters.first.toUpperCase())
