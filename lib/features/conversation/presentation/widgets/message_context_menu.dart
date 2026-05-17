@@ -55,6 +55,16 @@ void showMessageContextMenu({
                 onReply();
               },
             ),
+            if (onSelect != null)
+              ListTile(
+                key: const ValueKey('ctx-action-select'),
+                leading: const Icon(Icons.checklist_outlined),
+                title: const Text('Select'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onSelect();
+                },
+              ),
             ListTile(
               key: const ValueKey('ctx-action-react'),
               leading: const Icon(Icons.emoji_emotions_outlined),
@@ -130,16 +140,6 @@ void showMessageContextMenu({
                 onTap: () {
                   Navigator.of(context).pop();
                   onCreateTask();
-                },
-              ),
-            if (onSelect != null)
-              ListTile(
-                key: const ValueKey('ctx-action-select'),
-                leading: const Icon(Icons.checklist_outlined),
-                title: const Text('Select'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onSelect();
                 },
               ),
             if (isOwn && onDelete != null)
