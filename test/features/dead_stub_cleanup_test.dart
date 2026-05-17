@@ -223,13 +223,16 @@ void main() {
   // After Phase B, all user-facing strings come from AppLocalizations.
   // We verify by pumping with zh locale:
   //   - Negative: hardcoded English strings must not appear
-  //   - Positive: key structural elements still render (by ValueKey)
+  //   - Positive: key structural elements render + l10n-resolved text visible
   //   - Both owner and non-owner fixtures covered
   // -----------------------------------------------------------------------
   testWidgets(
     'WorkspaceSettingsPage uses l10n for user-facing strings '
     '(INV-STUB-4)',
     (tester) async {
+      // Load zh localizations for positive assertions.
+      final l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+
       // --- Owner variant ---
       await tester.pumpWidget(
         ProviderScope(
@@ -307,6 +310,17 @@ void main() {
             '(INV-STUB-4)',
       );
 
+      // Positive l10n: at least one localized string from
+      // AppLocalizations must appear on the page. Phase B will wire
+      // the page to l10n — this assertion proves real l10n text
+      // renders, not just "no English" + "tiles present".
+      expect(
+        find.text(l10n.homeConsoleMembers),
+        findsAtLeast(1),
+        reason: 'Localized "Members" string must render under zh '
+            'locale (INV-STUB-4)',
+      );
+
       // --- Non-owner variant (member) — covers "Leave workspace" path ---
       await tester.pumpWidget(
         ProviderScope(
@@ -350,6 +364,14 @@ void main() {
         findsOneWidget,
         reason: 'Leave action must render for non-owner under zh '
             'locale (INV-STUB-4)',
+      );
+
+      // Positive l10n: Members section must use localized string.
+      expect(
+        find.text(l10n.homeConsoleMembers),
+        findsAtLeast(1),
+        reason: 'Localized "Members" string must render for non-owner '
+            'under zh locale (INV-STUB-4)',
       );
     },
     skip: true,
