@@ -132,13 +132,18 @@ void _handleMessageNew(
   final notifier = ref.read(homeListStoreProvider.notifier);
 
   if (matchedChannel != null && matchedDirectMessage == null) {
-    unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
+    unawaited(ref
+        .read(homeRepositoryProvider)
+        .persistConversationActivity(
           serverId: homeState.serverScopeId!,
           conversationId: incoming.conversationId,
           messageId: incoming.message.id,
           preview: preview,
           activityAt: incoming.message.createdAt,
-        ));
+        )
+        .catchError((Object e, StackTrace st) {
+      ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+    }));
     notifier.updateChannelLastMessage(
       conversationId: incoming.conversationId,
       messageId: incoming.message.id,
@@ -151,13 +156,18 @@ void _handleMessageNew(
     return;
   }
   if (matchedDirectMessage != null && matchedChannel == null) {
-    unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
+    unawaited(ref
+        .read(homeRepositoryProvider)
+        .persistConversationActivity(
           serverId: homeState.serverScopeId!,
           conversationId: incoming.conversationId,
           messageId: incoming.message.id,
           preview: preview,
           activityAt: incoming.message.createdAt,
-        ));
+        )
+        .catchError((Object e, StackTrace st) {
+      ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+    }));
     notifier.updateDmLastMessage(
       conversationId: incoming.conversationId,
       messageId: incoming.message.id,
@@ -253,12 +263,17 @@ void _handleMessageUpdated(Ref ref, RealtimeEventEnvelope event) {
 
   final preview = MessagePreviewResolver.resolve(content: updated.content);
 
-  unawaited(ref.read(homeRepositoryProvider).persistConversationPreviewUpdate(
+  unawaited(ref
+      .read(homeRepositoryProvider)
+      .persistConversationPreviewUpdate(
         serverId: homeState.serverScopeId!,
         conversationId: updated.channelId,
         messageId: updated.id,
         preview: preview,
-      ));
+      )
+      .catchError((Object e, StackTrace st) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+  }));
 
   notifier.updateChannelPreview(
     conversationId: updated.channelId,

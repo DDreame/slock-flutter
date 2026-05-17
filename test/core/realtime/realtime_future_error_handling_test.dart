@@ -163,7 +163,6 @@ void main() {
   group('INV-FUTURE-CATCH-1: channel persistConversationActivity error', () {
     test(
       'error captured by CrashReporter when persistence throws',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final error = StateError('disk full');
@@ -181,7 +180,6 @@ void main() {
 
     test(
       'processing continues after persistence failure',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final persister = _TestableRealtimeActivityPersister(
@@ -199,7 +197,6 @@ void main() {
 
     test(
       'no error captured when persistence succeeds',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final persister = _TestableRealtimeActivityPersister(
@@ -221,7 +218,6 @@ void main() {
   group('INV-FUTURE-CATCH-2: DM persistConversationActivity error', () {
     test(
       'error captured by CrashReporter when DM persistence throws',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         const error = FormatException('corrupt DM payload');
@@ -239,7 +235,6 @@ void main() {
 
     test(
       'DM processing continues after persistence failure',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final persister = _TestableRealtimeActivityPersister(
@@ -261,7 +256,6 @@ void main() {
   group('INV-FUTURE-CATCH-3: persistConversationPreviewUpdate error', () {
     test(
       'error captured when preview update persistence throws',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final error = StateError('preview write failed');
@@ -279,7 +273,6 @@ void main() {
 
     test(
       'notifier preview updates continue after persistence failure',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final persister = _TestableRealtimePreviewPersister(
@@ -298,7 +291,6 @@ void main() {
 
     test(
       'no error captured when preview update succeeds',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final persister = _TestableRealtimePreviewPersister(
@@ -320,7 +312,6 @@ void main() {
   group('INV-FUTURE-RECOVER-1: persistMessage failure + gap recovery', () {
     test(
       'persistMessage error captured and _recoverGap still executes',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         var gapRecoveryCalled = false;
@@ -347,7 +338,6 @@ void main() {
 
     test(
       'persistMessage error captured without gap when gapDetected=false',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final handler = _TestableMessagePersistenceHandler(
@@ -372,7 +362,6 @@ void main() {
   group('INV-FUTURE-RECOVER-2: _recoverGap failure captured', () {
     test(
       '_recoverGap error captured when gap recovery throws',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final handler = _TestableMessagePersistenceHandler(
@@ -394,7 +383,6 @@ void main() {
 
     test(
       'both errors captured when persistMessage and _recoverGap both throw',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final handler = _TestableMessagePersistenceHandler(
@@ -414,7 +402,6 @@ void main() {
 
     test(
       'no error captured when both persistMessage and _recoverGap succeed',
-      skip: true,
       () async {
         final reporter = FakeCrashReporter();
         final handler = _TestableMessagePersistenceHandler(
