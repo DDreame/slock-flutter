@@ -24,6 +24,8 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart';
 //                      Shift+Enter inserts a newline (does not send)
 //   INV-KBSHORTCUT-3: When enterToSend is disabled (default), pressing
 //                      Ctrl+Enter triggers the send callback
+//   INV-KBSHORTCUT-3a: When enterToSend is disabled (default), pressing
+//                       Cmd+Enter (macOS) triggers the send callback
 //   INV-KBSHORTCUT-4: The enterToSend preference persists to
 //                      SharedPreferences and is restored on read
 //
@@ -146,6 +148,14 @@ void main() {
             '(INV-KBSHORTCUT-2)',
       );
 
+      // Composer text must gain a newline.
+      expect(
+        controller.text,
+        contains('\n'),
+        reason: 'Shift+Enter must insert a newline into composer text '
+            '(INV-KBSHORTCUT-2)',
+      );
+
       controller.dispose();
       focusNode.dispose();
     },
@@ -201,6 +211,63 @@ void main() {
         isTrue,
         reason: 'Ctrl+Enter must trigger send when enterToSend is '
             'disabled (INV-KBSHORTCUT-3)',
+      );
+
+      controller.dispose();
+      focusNode.dispose();
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-KBSHORTCUT-3a: Cmd+Enter (macOS) sends when enterToSend is
+  // disabled (default mode).
+  //
+  // Setup: Render a composer with enterToSend=false. Simulate pressing
+  // Cmd+Enter (metaLeft + Enter) on hardware keyboard. The send
+  // callback should fire.
+  //
+  // skip:true — Composer has no keyboard shortcut handling.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Cmd+Enter triggers send when enterToSend is disabled '
+    '(INV-KBSHORTCUT-3a)',
+    skip: true,
+    (tester) async {
+      var sendCalled = false;
+      final controller = TextEditingController(text: 'Hello');
+      final focusNode = FocusNode();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: _TestComposer(
+              controller: controller,
+              focusNode: focusNode,
+              enterToSend: false,
+              onSend: () => sendCalled = true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Focus the text field.
+      await tester.tap(find.byKey(const ValueKey('composer-input')));
+      await tester.pumpAndSettle();
+
+      // Simulate pressing Cmd+Enter on hardware keyboard (macOS path).
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await tester.pumpAndSettle();
+
+      // Send callback must fire.
+      expect(
+        sendCalled,
+        isTrue,
+        reason: 'Cmd+Enter must trigger send when enterToSend is '
+            'disabled — macOS path (INV-KBSHORTCUT-3a)',
       );
 
       controller.dispose();
