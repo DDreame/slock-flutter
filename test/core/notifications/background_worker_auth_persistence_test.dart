@@ -23,11 +23,10 @@
 // SharedPreferences, no SecureStorage integration yet.
 //
 // Phase B will:
-// - Add optional `SecureStorage? storage` parameter to persist()/clear()
-// - Add a static load(SecureStorage) that returns BackgroundAuthProvider
-// - Replace _persistViaSecureStorage / _clearViaSecureStorage /
-//   _loadFromSecureStorage with real BackgroundWorkerAuthPersistence
-//   methods and un-skip
+// - Add SecureStorage parameter to BackgroundWorkerAuthPersistence
+//   constructor (matching _TestableBackgroundWorkerAuthPersistence API)
+// - Tests: swap _TestableBackgroundWorkerAuthPersistence → real class,
+//   un-skip — no assertion rewrite needed
 // ---------------------------------------------------------------------------
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/notifications/background_notification_entrypoint.dart';
@@ -39,11 +38,13 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-SEC-PERSIST-1: persist() writes all 4 credentials to SecureStorage.
   //
-  // Setup: Create a FakeSecureStorage, call _persistViaSecureStorage
-  // (Phase B: BackgroundWorkerAuthPersistence.persist(storage: ...)),
+  // Setup: Create a FakeSecureStorage, construct a
+  // _TestableBackgroundWorkerAuthPersistence with it, call persist(),
   // verify all 4 keys are written.
   //
   // skip:true — persist() still uses SharedPreferences, no injection.
+  // Phase B: Replace _TestableBackgroundWorkerAuthPersistence with
+  // BackgroundWorkerAuthPersistence — same constructor + method API.
   // -----------------------------------------------------------------------
   test(
     'persist() writes credentials to SecureStorage '
@@ -53,12 +54,11 @@ void main() {
       final secureStorage = _FakeSecureStorage();
 
       // Phase B: Replace with
-      // BackgroundWorkerAuthPersistence.persist(
-      //   token: ..., userId: ..., serverId: ..., realtimeUrl: ...,
-      //   storage: secureStorage,
-      // );
-      await _persistViaSecureStorage(
-        secureStorage,
+      // final persistence = BackgroundWorkerAuthPersistence(secureStorage);
+      final persistence =
+          _TestableBackgroundWorkerAuthPersistence(secureStorage);
+
+      await persistence.persist(
         token: 'jwt-token-123',
         userId: 'user-abc',
         serverId: 'server-xyz',
@@ -96,10 +96,12 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-SEC-PERSIST-2: clear() removes all 4 keys from SecureStorage.
   //
-  // Setup: Pre-populate FakeSecureStorage via _persistViaSecureStorage,
-  // call _clearViaSecureStorage, verify all 4 keys are removed.
+  // Setup: Pre-populate via persist(), call clear(), verify all 4 keys
+  // are removed.
   //
   // skip:true — clear() still uses SharedPreferences, no injection.
+  // Phase B: Replace _TestableBackgroundWorkerAuthPersistence with
+  // BackgroundWorkerAuthPersistence — same constructor + method API.
   // -----------------------------------------------------------------------
   test(
     'clear() removes all credentials from SecureStorage '
@@ -108,18 +110,20 @@ void main() {
     () async {
       final secureStorage = _FakeSecureStorage();
 
+      // Phase B: Replace with
+      // final persistence = BackgroundWorkerAuthPersistence(secureStorage);
+      final persistence =
+          _TestableBackgroundWorkerAuthPersistence(secureStorage);
+
       // Pre-populate via the persist contract.
-      await _persistViaSecureStorage(
-        secureStorage,
+      await persistence.persist(
         token: 'jwt-token-123',
         userId: 'user-abc',
         serverId: 'server-xyz',
         realtimeUrl: 'wss://realtime.example.com',
       );
 
-      // Phase B: Replace with
-      // BackgroundWorkerAuthPersistence.clear(storage: secureStorage);
-      await _clearViaSecureStorage(secureStorage);
+      await persistence.clear();
 
       // All 4 keys must be removed.
       expect(
@@ -153,11 +157,12 @@ void main() {
   // INV-SEC-LOAD-1: load() reads credentials from SecureStorage and
   // returns a populated BackgroundAuthProvider with matching fields.
   //
-  // Setup: Pre-populate FakeSecureStorage with known credentials,
-  // call _loadFromSecureStorage, verify the returned auth object
-  // has all 4 matching fields.
+  // Setup: Pre-populate via persist(), call load(), verify the returned
+  // auth object has all 4 matching fields.
   //
   // skip:true — load() still reads from SharedPreferences.
+  // Phase B: Replace _TestableBackgroundWorkerAuthPersistence with
+  // BackgroundWorkerAuthPersistence — same constructor + method API.
   // -----------------------------------------------------------------------
   test(
     'load() reads credentials from SecureStorage and returns '
@@ -166,22 +171,22 @@ void main() {
     () async {
       final secureStorage = _FakeSecureStorage();
 
-      // Pre-populate SecureStorage with known credentials.
-      await _persistViaSecureStorage(
-        secureStorage,
+      // Phase B: Replace with
+      // final persistence = BackgroundWorkerAuthPersistence(secureStorage);
+      final persistence =
+          _TestableBackgroundWorkerAuthPersistence(secureStorage);
+
+      // Pre-populate SecureStorage via persist contract.
+      await persistence.persist(
         token: 'jwt-token-123',
         userId: 'user-abc',
         serverId: 'server-xyz',
         realtimeUrl: 'wss://realtime.example.com',
       );
 
-      // Phase B: Replace with
-      // final auth = await BackgroundWorkerAuthPersistence.load(
-      //   storage: secureStorage,
-      // );
-      final auth = await _loadFromSecureStorage(secureStorage);
+      // Load and assert the returned auth object fields.
+      final auth = await persistence.load();
 
-      // Returned auth object must have matching fields.
       expect(
         auth.token,
         equals('jwt-token-123'),
@@ -212,10 +217,12 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-SEC-LOAD-2: load() returns null tokens when nothing is stored.
   //
-  // Setup: Empty FakeSecureStorage, call _loadFromSecureStorage, verify
-  // token/userId/serverId are null and realtimeUrl has fallback.
+  // Setup: Empty FakeSecureStorage, call load(), verify token/userId/
+  // serverId are null and realtimeUrl has fallback.
   //
   // skip:true — load() still reads from SharedPreferences.
+  // Phase B: Replace _TestableBackgroundWorkerAuthPersistence with
+  // BackgroundWorkerAuthPersistence — same constructor + method API.
   // -----------------------------------------------------------------------
   test(
     'load() returns null tokens when nothing stored '
@@ -225,10 +232,12 @@ void main() {
       final secureStorage = _FakeSecureStorage();
 
       // Phase B: Replace with
-      // final auth = await BackgroundWorkerAuthPersistence.load(
-      //   storage: secureStorage,
-      // );
-      final auth = await _loadFromSecureStorage(secureStorage);
+      // final persistence = BackgroundWorkerAuthPersistence(secureStorage);
+      final persistence =
+          _TestableBackgroundWorkerAuthPersistence(secureStorage);
+
+      // Load from empty storage.
+      final auth = await persistence.load();
 
       // Empty storage → null/fallback fields.
       expect(
@@ -295,62 +304,65 @@ void main() {
 }
 
 // ---------------------------------------------------------------------------
-// Test-local contract functions.
+// Test-local class mirroring the Phase B API of
+// BackgroundWorkerAuthPersistence with SecureStorage injection.
 //
-// These mirror the Phase B API of BackgroundWorkerAuthPersistence with
-// an injected SecureStorage parameter. Phase B replaces these calls
-// with the real static methods (un-skip only, no assertion rewrite).
+// Phase B: Replace _TestableBackgroundWorkerAuthPersistence with the real
+// BackgroundWorkerAuthPersistence — same constructor accepting
+// SecureStorage, same persist()/clear()/load() method signatures.
 //
-// persist  → BackgroundWorkerAuthPersistence.persist(storage: ...)
-// clear    → BackgroundWorkerAuthPersistence.clear(storage: ...)
-// load     → BackgroundWorkerAuthPersistence.load(storage: ...)
+// The class has a single constructor taking SecureStorage, and instance
+// methods persist/clear/load that delegate to it. Phase B adds the same
+// constructor + methods to the real class, and tests swap the class name.
 // ---------------------------------------------------------------------------
 
-/// Test-local persist: writes all 4 credential keys to [storage].
-/// Phase B: Replace calls with
-/// `BackgroundWorkerAuthPersistence.persist(storage: storage, ...)`.
-Future<void> _persistViaSecureStorage(
-  SecureStorage storage, {
-  required String token,
-  required String userId,
-  required String serverId,
-  required String realtimeUrl,
-}) async {
-  await Future.wait([
-    storage.write(key: backgroundWorkerTokenKey, value: token),
-    storage.write(key: backgroundWorkerUserIdKey, value: userId),
-    storage.write(key: backgroundWorkerServerIdKey, value: serverId),
-    storage.write(key: backgroundWorkerRealtimeUrlKey, value: realtimeUrl),
-  ]);
-}
+/// Test-local stand-in for the Phase B [BackgroundWorkerAuthPersistence]
+/// API. Constructor takes [SecureStorage]; methods mirror the real class
+/// signatures so Phase B only swaps the class name and un-skips.
+class _TestableBackgroundWorkerAuthPersistence {
+  _TestableBackgroundWorkerAuthPersistence(this._storage);
 
-/// Test-local clear: removes all 4 credential keys from [storage].
-/// Phase B: Replace calls with
-/// `BackgroundWorkerAuthPersistence.clear(storage: storage)`.
-Future<void> _clearViaSecureStorage(SecureStorage storage) async {
-  await Future.wait([
-    storage.delete(key: backgroundWorkerTokenKey),
-    storage.delete(key: backgroundWorkerUserIdKey),
-    storage.delete(key: backgroundWorkerServerIdKey),
-    storage.delete(key: backgroundWorkerRealtimeUrlKey),
-  ]);
-}
+  final SecureStorage _storage;
 
-/// Test-local load: reads credentials from [storage] and returns
-/// a [BackgroundAuthProvider] — the same interface that
-/// `_SharedPrefsAuthProvider` implements.
-/// Phase B: Replace calls with
-/// `BackgroundWorkerAuthPersistence.load(storage: storage)`.
-Future<BackgroundAuthProvider> _loadFromSecureStorage(
-  SecureStorage storage,
-) async {
-  return _SecureStorageAuthProvider(
-    token: await storage.read(key: backgroundWorkerTokenKey),
-    userId: await storage.read(key: backgroundWorkerUserIdKey),
-    serverId: await storage.read(key: backgroundWorkerServerIdKey),
-    realtimeUrl: await storage.read(key: backgroundWorkerRealtimeUrlKey) ??
-        'wss://realtime.slock.invalid',
-  );
+  /// Persist auth credentials to [SecureStorage].
+  /// Phase B: Same signature on real BackgroundWorkerAuthPersistence.
+  Future<void> persist({
+    required String token,
+    required String userId,
+    required String serverId,
+    required String realtimeUrl,
+  }) async {
+    await Future.wait([
+      _storage.write(key: backgroundWorkerTokenKey, value: token),
+      _storage.write(key: backgroundWorkerUserIdKey, value: userId),
+      _storage.write(key: backgroundWorkerServerIdKey, value: serverId),
+      _storage.write(key: backgroundWorkerRealtimeUrlKey, value: realtimeUrl),
+    ]);
+  }
+
+  /// Clear persisted auth from [SecureStorage].
+  /// Phase B: Same signature on real BackgroundWorkerAuthPersistence.
+  Future<void> clear() async {
+    await Future.wait([
+      _storage.delete(key: backgroundWorkerTokenKey),
+      _storage.delete(key: backgroundWorkerUserIdKey),
+      _storage.delete(key: backgroundWorkerServerIdKey),
+      _storage.delete(key: backgroundWorkerRealtimeUrlKey),
+    ]);
+  }
+
+  /// Load auth credentials from [SecureStorage] and return a
+  /// [BackgroundAuthProvider] with matching fields.
+  /// Phase B: Same signature on real BackgroundWorkerAuthPersistence.
+  Future<BackgroundAuthProvider> load() async {
+    return _SecureStorageAuthProvider(
+      token: await _storage.read(key: backgroundWorkerTokenKey),
+      userId: await _storage.read(key: backgroundWorkerUserIdKey),
+      serverId: await _storage.read(key: backgroundWorkerServerIdKey),
+      realtimeUrl: await _storage.read(key: backgroundWorkerRealtimeUrlKey) ??
+          'wss://realtime.slock.invalid',
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -378,7 +390,8 @@ class _FakeSecureStorage implements SecureStorage {
   }
 }
 
-/// Test-local [BackgroundAuthProvider] returned by [_loadFromSecureStorage].
+/// Test-local [BackgroundAuthProvider] returned by
+/// [_TestableBackgroundWorkerAuthPersistence.load].
 /// Mirrors `_SharedPrefsAuthProvider` from background_notification_entrypoint
 /// — same fields, same fallback logic for [realtimeUrl].
 class _SecureStorageAuthProvider implements BackgroundAuthProvider {
