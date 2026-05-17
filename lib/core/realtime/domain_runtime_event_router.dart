@@ -3,6 +3,7 @@ import 'dart:collection';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/realtime/scope_patterns.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/announcements/application/announcement_store.dart';
 import 'package:slock_app/features/announcements/data/announcement.dart';
@@ -880,7 +881,7 @@ String? _extractChannelId(RealtimeEventEnvelope event) {
   final payloadChannelId =
       _optionalString(payload?['channelId']) ?? _optionalString(payload?['id']);
   if (payloadChannelId != null) return payloadChannelId;
-  final match = RegExp(r'(?:^|/)channel:([^/]+)').firstMatch(event.scopeKey);
+  final match = channelScopePattern.firstMatch(event.scopeKey);
   return match?.group(1);
 }
 
@@ -896,7 +897,7 @@ String? _optionalString(Object? value) {
 }
 
 String? _serverIdFromScopeKey(String scopeKey) {
-  final match = RegExp(r'(?:^|/)server:([^/]+)').firstMatch(scopeKey);
+  final match = serverScopePattern.firstMatch(scopeKey);
   return match?.group(1);
 }
 

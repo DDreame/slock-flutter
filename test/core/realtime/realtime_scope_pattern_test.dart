@@ -42,7 +42,6 @@ void main() {
       () {
         expect(_extractServer('server:abc123'), equals('abc123'));
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -50,7 +49,6 @@ void main() {
       () {
         expect(_extractServer('org/server:abc123'), equals('abc123'));
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -58,7 +56,6 @@ void main() {
       () {
         expect(_extractServer('channel:xyz'), isNull);
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -69,7 +66,6 @@ void main() {
           equals('s1'),
         );
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
   });
 
@@ -82,7 +78,6 @@ void main() {
       () {
         expect(_extractChannel('channel:xyz789'), equals('xyz789'));
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -90,7 +85,6 @@ void main() {
       () {
         expect(_extractChannel('org/channel:xyz789'), equals('xyz789'));
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -98,7 +92,6 @@ void main() {
       () {
         expect(_extractChannel('server:abc'), isNull);
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -109,7 +102,6 @@ void main() {
           equals('c1'),
         );
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
   });
 
@@ -122,7 +114,6 @@ void main() {
       () {
         expect(_extractServer(''), isNull);
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -130,7 +121,6 @@ void main() {
       () {
         expect(_extractChannel(''), isNull);
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -139,7 +129,6 @@ void main() {
         expect(_extractServer('random-string'), isNull);
         expect(_extractChannel('random-string'), isNull);
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -149,7 +138,6 @@ void main() {
         expect(_extractServer(multiSegment), equals('a'));
         expect(_extractChannel(multiSegment), equals('b'));
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -157,7 +145,6 @@ void main() {
       () {
         expect(_extractServer('server:abc/extra'), equals('abc'));
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
 
     test(
@@ -165,7 +152,6 @@ void main() {
       () {
         expect(_extractChannel('channel:xyz/extra'), equals('xyz'));
       },
-      skip: 'Phase A: invariant locked — Phase B promotes to shared constant',
     );
   });
 
@@ -180,7 +166,6 @@ void main() {
         // This test fails if the export is removed or renamed.
         expect(serverScopePattern, isA<RegExp>());
       },
-      skip: 'Phase A: invariant locked — Phase B wires call sites',
     );
 
     test(
@@ -190,7 +175,6 @@ void main() {
         // This test fails if the export is removed or renamed.
         expect(channelScopePattern, isA<RegExp>());
       },
-      skip: 'Phase A: invariant locked — Phase B wires call sites',
     );
 
     test(
@@ -214,7 +198,6 @@ void main() {
           );
         }
       },
-      skip: 'Phase A: invariant locked — Phase B wires call sites',
     );
 
     test(
@@ -236,7 +219,6 @@ void main() {
           );
         }
       },
-      skip: 'Phase A: invariant locked — Phase B wires call sites',
     );
   });
 }
