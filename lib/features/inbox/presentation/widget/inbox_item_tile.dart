@@ -49,9 +49,8 @@ class InboxItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    final content = GestureDetector(
+    final content = InkWell(
       onTap: onTap,
-      behavior: HitTestBehavior.opaque,
       child: _isUnread
           ? _buildUnreadContainer(colors)
           : _buildReadContainer(colors),
