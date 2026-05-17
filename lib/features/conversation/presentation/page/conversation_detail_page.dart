@@ -39,6 +39,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository_pro
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
@@ -132,6 +133,7 @@ class _ConversationDetailScreenState
   late final bool _restoredFromSession;
   ProviderSubscription<ConversationDetailState>? _stateSubscription;
   ProviderSubscription<TranslationSettingsState>? _translationSettingsSub;
+  ProviderSubscription<UnreadSourceProjectionState>? _deferredMarkReadSub;
   bool _didApplyInitialLanding = false;
   double? _olderLoadAnchorOffset;
   double? _olderLoadAnchorMaxExtent;
@@ -203,6 +205,7 @@ class _ConversationDetailScreenState
     _voiceRecorder?.dispose();
     _stateSubscription?.close();
     _translationSettingsSub?.close();
+    _deferredMarkReadSub?.close();
     _scrollThrottleTimer?.cancel();
     _highlightTimer?.cancel();
     if (_scrollController.hasClients) {
@@ -864,23 +867,39 @@ class _ConversationDetailScreenState
   ) {
     // Fire markRead exactly once on first successful load,
     // only when there are actually unread messages (INV-READ-4).
+    // If the inbox projection is not yet loaded (race condition: user opened
+    // conversation before inbox finished loading), set up a one-shot deferred
+    // listener that fires markRead when the projection becomes available
+    // (INV-RACE-1). The deferred listener fires at most once (INV-RACE-2).
     if (previous?.status != ConversationDetailStatus.success &&
         next.status == ConversationDetailStatus.success) {
       final t = ref.read(currentConversationDetailTargetProvider);
       final projection = ref.read(unreadSourceProjectionProvider);
-      switch (t.surface) {
-        case ConversationSurface.channel:
-          final scopeId =
-              ChannelScopeId(serverId: t.serverId, value: t.conversationId);
-          if (projection.channelUnreadCount(scopeId) > 0) {
-            ref.read(markChannelReadUseCaseProvider)(scopeId);
-          }
-        case ConversationSurface.directMessage:
-          final scopeId = DirectMessageScopeId(
-              serverId: t.serverId, value: t.conversationId);
-          if (projection.dmUnreadCount(scopeId) > 0) {
-            ref.read(markDmReadUseCaseProvider)(scopeId);
-          }
+
+      if (projection.isLoaded) {
+        _fireMarkReadIfUnread(t, projection);
+      } else {
+        // Inbox not loaded yet — defer markRead until projection is available.
+        // Use addPostFrameCallback so the loaded projection state is
+        // observable before markRead's optimistic zeroing takes effect.
+        _deferredMarkReadSub?.close();
+        _deferredMarkReadSub = ref.listenManual<UnreadSourceProjectionState>(
+          unreadSourceProjectionProvider,
+          (previous, next) {
+            if (next.isLoaded) {
+              // One-shot: close subscription immediately.
+              _deferredMarkReadSub?.close();
+              _deferredMarkReadSub = null;
+              // Defer markRead to next frame so the loaded state is
+              // observable before optimistic zeroing (INV-RACE-1).
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _fireMarkReadIfUnread(t, next);
+                }
+              });
+            }
+          },
+        );
       }
 
       // INV-TRANSLATE-3: auto-translate visible messages on first load
@@ -898,6 +917,29 @@ class _ConversationDetailScreenState
       return;
     }
     _syncScrollState(previous, next);
+  }
+
+  /// Fires markRead for the current conversation if the projection
+  /// reports unread messages. Called both on immediate success and
+  /// from the deferred listener (INV-RACE-1).
+  void _fireMarkReadIfUnread(
+    ConversationDetailTarget t,
+    UnreadSourceProjectionState projection,
+  ) {
+    switch (t.surface) {
+      case ConversationSurface.channel:
+        final scopeId =
+            ChannelScopeId(serverId: t.serverId, value: t.conversationId);
+        if (projection.channelUnreadCount(scopeId) > 0) {
+          ref.read(markChannelReadUseCaseProvider)(scopeId);
+        }
+      case ConversationSurface.directMessage:
+        final scopeId =
+            DirectMessageScopeId(serverId: t.serverId, value: t.conversationId);
+        if (projection.dmUnreadCount(scopeId) > 0) {
+          ref.read(markDmReadUseCaseProvider)(scopeId);
+        }
+    }
   }
 
   void _syncScrollState(

@@ -119,7 +119,6 @@ void main() {
     testWidgets(
       'markRead fires after inbox loads even when conversation loaded first '
       '(INV-RACE-1)',
-      skip: true,
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
@@ -201,9 +200,11 @@ void main() {
 
         // Now simulate inbox finishing its load.
         await seedInbox(container);
-        await tester.pumpAndSettle();
 
         // Verify inbox projection is now loaded with unread.
+        // The deferred markRead is scheduled for the next frame via
+        // addPostFrameCallback, so the loaded state is observable here
+        // before the optimistic zeroing kicks in.
         expect(
           container
               .read(unreadSourceProjectionProvider)
@@ -211,6 +212,9 @@ void main() {
           greaterThan(0),
           reason: 'Inbox should now report unread for ch-general',
         );
+
+        // Pump to let the deferred markRead fire on the next frame.
+        await tester.pumpAndSettle();
 
         // KEY ASSERTION: markRead must have been called despite the
         // conversation loading before the inbox.
@@ -240,7 +244,6 @@ void main() {
     testWidgets(
       'deferred markRead fires exactly once after inbox loads '
       '(INV-RACE-2)',
-      skip: true,
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
