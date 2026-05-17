@@ -2,15 +2,19 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 // ---------------------------------------------------------------------------
 // #532: Conversation Info Page — Phase A
@@ -50,7 +54,7 @@ void main() {
         snapshot: _makeChannelSnapshot(),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(await _buildConversationApp(repo));
       await tester.pumpAndSettle();
 
       // Members toggle must be present in the app bar.
@@ -89,7 +93,7 @@ void main() {
         snapshot: _makeChannelSnapshot(),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(await _buildConversationApp(repo));
       await tester.pumpAndSettle();
 
       // Navigate to info page.
@@ -125,7 +129,7 @@ void main() {
         snapshot: _makeChannelSnapshot(),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(await _buildConversationApp(repo));
       await tester.pumpAndSettle();
 
       // Navigate to info page.
@@ -162,7 +166,7 @@ void main() {
         snapshot: _makeDmSnapshot(),
       );
 
-      await tester.pumpWidget(_buildConversationApp(
+      await tester.pumpWidget(await _buildConversationApp(
         repo,
         isDm: true,
       ));
@@ -240,10 +244,13 @@ ConversationDetailSnapshot _makeDmSnapshot() {
   );
 }
 
-Widget _buildConversationApp(
+Future<Widget> _buildConversationApp(
   _FakeConversationRepository repo, {
   bool isDm = false,
-}) {
+}) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+
   final target = isDm
       ? ConversationDetailTarget.directMessage(
           const DirectMessageScopeId(
@@ -260,6 +267,8 @@ Widget _buildConversationApp(
 
   return ProviderScope(
     overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      channelMutedIdsProvider.overrideWith((ref) => <String>{}),
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
     ],

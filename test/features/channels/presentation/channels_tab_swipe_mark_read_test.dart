@@ -23,6 +23,7 @@ import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
@@ -95,6 +96,7 @@ void main() {
 
     return ProviderScope(
       overrides: [
+        channelMutedIdsProvider.overrideWith((ref) => <String>{}),
         activeServerScopeIdProvider.overrideWithValue(serverId),
         homeRepositoryProvider.overrideWithValue(homeRepository),
         sidebarOrderRepositoryProvider.overrideWithValue(
