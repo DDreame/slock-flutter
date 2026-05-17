@@ -115,37 +115,40 @@ class _HomePageState extends ConsumerState<HomePage> {
                 child: RefreshIndicator(
                   key: const ValueKey('home-refresh-indicator'),
                   onRefresh: homeStore.refresh,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.pageHorizontal,
-                      AppSpacing.md,
-                      AppSpacing.pageHorizontal,
-                      AppSpacing.xl,
+                  child: Semantics(
+                    label: 'Home overview',
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.pageHorizontal,
+                        AppSpacing.md,
+                        AppSpacing.pageHorizontal,
+                        AppSpacing.xl,
+                      ),
+                      itemCount: 3,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: AppSpacing.md),
+                      itemBuilder: (_, index) => switch (index) {
+                        0 => _HomeTasksSection(
+                            key: const ValueKey('home-card-tasks'),
+                            taskItems: state.taskItems,
+                            taskLoadFailure: state.taskLoadFailure,
+                            channels: [
+                              ...state.pinnedChannels,
+                              ...state.channels,
+                            ],
+                            onViewAll: () => _pushServerRoute('tasks'),
+                          ),
+                        1 => _InboxUnreadSection(
+                            key: const ValueKey('home-card-unread'),
+                            onViewAll: () => _pushServerRoute('unread'),
+                          ),
+                        2 => _HomeAgentsSection(
+                            key: const ValueKey('home-card-agents'),
+                            onViewAll: () => _pushServerRoute('agents'),
+                          ),
+                        _ => const SizedBox.shrink(),
+                      },
                     ),
-                    itemCount: 3,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: AppSpacing.md),
-                    itemBuilder: (_, index) => switch (index) {
-                      0 => _HomeTasksSection(
-                          key: const ValueKey('home-card-tasks'),
-                          taskItems: state.taskItems,
-                          taskLoadFailure: state.taskLoadFailure,
-                          channels: [
-                            ...state.pinnedChannels,
-                            ...state.channels,
-                          ],
-                          onViewAll: () => _pushServerRoute('tasks'),
-                        ),
-                      1 => _InboxUnreadSection(
-                          key: const ValueKey('home-card-unread'),
-                          onViewAll: () => _pushServerRoute('unread'),
-                        ),
-                      2 => _HomeAgentsSection(
-                          key: const ValueKey('home-card-agents'),
-                          onViewAll: () => _pushServerRoute('agents'),
-                        ),
-                      _ => const SizedBox.shrink(),
-                    },
                   ),
                 ),
               ),

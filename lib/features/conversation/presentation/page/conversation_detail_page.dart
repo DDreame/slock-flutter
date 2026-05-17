@@ -294,6 +294,7 @@ class _ConversationDetailScreenState
               icon: Icon(
                 state.isSearchActive ? Icons.search_off : Icons.search,
               ),
+              tooltip: state.isSearchActive ? 'Close search' : 'Search',
               onPressed: ref
                   .read(conversationDetailStoreProvider.notifier)
                   .toggleSearch,
@@ -304,6 +305,7 @@ class _ConversationDetailScreenState
             IconButton(
               key: const ValueKey('conversation-pinned-messages'),
               icon: const Icon(Icons.push_pin_outlined),
+              tooltip: 'Pinned messages',
               onPressed: () async {
                 final target =
                     ref.read(currentConversationDetailTargetProvider);
@@ -326,6 +328,7 @@ class _ConversationDetailScreenState
             IconButton(
               key: const ValueKey('conversation-members-toggle'),
               icon: const Icon(Icons.info_outline),
+              tooltip: 'Conversation info',
               onPressed: () {
                 final target =
                     ref.read(currentConversationDetailTargetProvider);
@@ -1204,109 +1207,113 @@ class _ConversationMessageList extends ConsumerWidget {
             ? pendingCount + unreadCount - 1
             : -1;
 
-    return ListView.separated(
-      key: const ValueKey('conversation-success'),
-      controller: controller,
-      reverse: true,
-      cacheExtent: 500,
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.all(16),
-      itemCount: totalCount,
-      separatorBuilder: (context, index) {
-        // Resolve timestamps for the items on both sides of this separator.
-        // With reverse:true, item[index] is newer (below), item[index+1] is
-        // older (above). Show a date chip when they fall on different days.
-        final newerDate = _dateForItemAt(index, pendingCount, state);
-        final olderDate = _dateForItemAt(index + 1, pendingCount, state);
+    return Semantics(
+      label: 'Message list',
+      child: ListView.separated(
+        key: const ValueKey('conversation-success'),
+        controller: controller,
+        reverse: true,
+        cacheExtent: 500,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(16),
+        itemCount: totalCount,
+        separatorBuilder: (context, index) {
+          // Resolve timestamps for the items on both sides of this separator.
+          // With reverse:true, item[index] is newer (below), item[index+1] is
+          // older (above). Show a date chip when they fall on different days.
+          final newerDate = _dateForItemAt(index, pendingCount, state);
+          final olderDate = _dateForItemAt(index + 1, pendingCount, state);
 
-        // Check if this separator is the unread boundary.
-        final isUnreadBoundary = index == unreadSepIndex;
+          // Check if this separator is the unread boundary.
+          final isUnreadBoundary = index == unreadSepIndex;
 
-        // Date separator takes priority — wrap with unread divider if needed.
-        if (newerDate != null &&
-            olderDate != null &&
-            !_isSameDay(newerDate, olderDate)) {
-          if (isUnreadBoundary) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const _UnreadDivider(),
-                _DateSeparatorWidget(
-                  key: const ValueKey('date-separator'),
-                  date: newerDate,
-                ),
-              ],
+          // Date separator takes priority — wrap with unread divider if needed.
+          if (newerDate != null &&
+              olderDate != null &&
+              !_isSameDay(newerDate, olderDate)) {
+            if (isUnreadBoundary) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _UnreadDivider(),
+                  _DateSeparatorWidget(
+                    key: const ValueKey('date-separator'),
+                    date: newerDate,
+                  ),
+                ],
+              );
+            }
+            return _DateSeparatorWidget(
+              key: const ValueKey('date-separator'),
+              date: newerDate,
             );
           }
-          return _DateSeparatorWidget(
-            key: const ValueKey('date-separator'),
-            date: newerDate,
-          );
-        }
 
-        // Unread divider at this separator position.
-        if (isUnreadBoundary) {
-          return const _UnreadDivider();
-        }
+          // Unread divider at this separator position.
+          if (isUnreadBoundary) {
+            return const _UnreadDivider();
+          }
 
-        // Grouped messages (same sender, <5min, same day) get a tighter gap.
-        final newerMsg = _messageForItemAt(index, pendingCount, state);
-        final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
-        if (newerMsg != null &&
-            olderMsg != null &&
-            _shouldGroupWith(newerMsg, olderMsg)) {
-          return const SizedBox(height: 3);
-        }
-        return const SizedBox(height: 12);
-      },
-      itemBuilder: (context, index) {
-        // With reverse:true, index 0 = bottom of screen.
-        // Order: pending (newest first) → messages (newest first) → header.
-        if (index < pendingCount) {
-          final pending = state.pendingMessages[pendingCount - 1 - index];
-          return _PendingMessageCard(
-            key: ValueKey('pending-${pending.localId}'),
-            pending: pending,
-            maxBubbleWidth: maxBubbleWidth,
-          );
-        }
-        final adjustedIndex = index - pendingCount;
-        if (adjustedIndex < state.messages.length) {
-          final message =
-              state.messages[state.messages.length - 1 - adjustedIndex];
-          // Determine if this message should show its header by checking
-          // the chronologically-previous message (index+1 in reversed list).
+          // Grouped messages (same sender, <5min, same day) get a tighter gap.
+          final newerMsg = _messageForItemAt(index, pendingCount, state);
           final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
-          final showHeader =
-              olderMsg == null || !_shouldGroupWith(message, olderMsg);
-          final isCurrentSearchMatch = state.searchMatchIds.isNotEmpty &&
-              state.currentSearchMatchIndex < state.searchMatchIds.length &&
-              state.searchMatchIds[state.currentSearchMatchIndex] == message.id;
-          final isQuoteJumpHighlighted = highlightedMessageId == message.id;
-          final messageKey = messageKeyBuilder?.call(message.id);
-          return RepaintBoundary(
-            key: ValueKey('repaint-boundary-${message.id}'),
-            child: KeyedSubtree(
-              key: messageKey,
-              child: _ConversationMessageCard(
-                target: state.target,
-                message: message,
-                maxBubbleWidth: maxBubbleWidth,
-                showHeader: showHeader,
-                highlightQuery: state.searchQuery,
-                isCurrentSearchMatch: isCurrentSearchMatch,
-                isQuoteJumpHighlighted: isQuoteJumpHighlighted,
-                onScrollToMessage: onScrollToMessage != null
-                    ? (messageId) =>
-                        onScrollToMessage!(messageId, state.messages)
-                    : null,
+          if (newerMsg != null &&
+              olderMsg != null &&
+              _shouldGroupWith(newerMsg, olderMsg)) {
+            return const SizedBox(height: 3);
+          }
+          return const SizedBox(height: 12);
+        },
+        itemBuilder: (context, index) {
+          // With reverse:true, index 0 = bottom of screen.
+          // Order: pending (newest first) → messages (newest first) → header.
+          if (index < pendingCount) {
+            final pending = state.pendingMessages[pendingCount - 1 - index];
+            return _PendingMessageCard(
+              key: ValueKey('pending-${pending.localId}'),
+              pending: pending,
+              maxBubbleWidth: maxBubbleWidth,
+            );
+          }
+          final adjustedIndex = index - pendingCount;
+          if (adjustedIndex < state.messages.length) {
+            final message =
+                state.messages[state.messages.length - 1 - adjustedIndex];
+            // Determine if this message should show its header by checking
+            // the chronologically-previous message (index+1 in reversed list).
+            final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
+            final showHeader =
+                olderMsg == null || !_shouldGroupWith(message, olderMsg);
+            final isCurrentSearchMatch = state.searchMatchIds.isNotEmpty &&
+                state.currentSearchMatchIndex < state.searchMatchIds.length &&
+                state.searchMatchIds[state.currentSearchMatchIndex] ==
+                    message.id;
+            final isQuoteJumpHighlighted = highlightedMessageId == message.id;
+            final messageKey = messageKeyBuilder?.call(message.id);
+            return RepaintBoundary(
+              key: ValueKey('repaint-boundary-${message.id}'),
+              child: KeyedSubtree(
+                key: messageKey,
+                child: _ConversationMessageCard(
+                  target: state.target,
+                  message: message,
+                  maxBubbleWidth: maxBubbleWidth,
+                  showHeader: showHeader,
+                  highlightQuery: state.searchQuery,
+                  isCurrentSearchMatch: isCurrentSearchMatch,
+                  isQuoteJumpHighlighted: isQuoteJumpHighlighted,
+                  onScrollToMessage: onScrollToMessage != null
+                      ? (messageId) =>
+                          onScrollToMessage!(messageId, state.messages)
+                      : null,
+                ),
               ),
-            ),
-          );
-        }
-        // Last item (top of screen) = history header.
-        return _ConversationHistoryHeader(state: state);
-      },
+            );
+          }
+          // Last item (top of screen) = history header.
+          return _ConversationHistoryHeader(state: state);
+        },
+      ),
     );
   }
 }
@@ -1907,6 +1914,7 @@ class _ConversationComposer extends StatelessWidget {
                     child: IconButton(
                       icon: const Icon(Icons.attach_file, size: 20),
                       padding: EdgeInsets.zero,
+                      tooltip: 'Attach file',
                       onPressed: state.isSending
                           ? null
                           : () => _showAttachOptions(context),
@@ -1931,6 +1939,7 @@ class _ConversationComposer extends StatelessWidget {
                             isFormattingToolbarVisible ? colors.primary : null,
                       ),
                       padding: EdgeInsets.zero,
+                      tooltip: 'Formatting',
                       onPressed: onToggleFormattingToolbar,
                     ),
                   ),
@@ -1952,6 +1961,7 @@ class _ConversationComposer extends StatelessWidget {
                         color: isEmojiPickerVisible ? colors.primary : null,
                       ),
                       padding: EdgeInsets.zero,
+                      tooltip: 'Emoji',
                       onPressed: onToggleEmojiPicker,
                     ),
                   ),
@@ -2016,6 +2026,7 @@ class _ConversationComposer extends StatelessWidget {
                           color: colors.primaryForeground,
                         ),
                         padding: EdgeInsets.zero,
+                        tooltip: 'Send',
                         onPressed: onSend,
                       ),
                     )
@@ -2035,6 +2046,7 @@ class _ConversationComposer extends StatelessWidget {
                           color: colors.textTertiary,
                         ),
                         padding: EdgeInsets.zero,
+                        tooltip: 'Voice message',
                         onPressed: state.isSending ? null : onMicTap,
                       ),
                     ),
@@ -3371,12 +3383,14 @@ class _ConversationSearchBarState extends State<_ConversationSearchBar> {
             IconButton(
               key: const ValueKey('search-previous'),
               icon: const Icon(Icons.keyboard_arrow_up, size: 20),
+              tooltip: 'Previous result',
               onPressed: widget.onPrevious,
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
               key: const ValueKey('search-next'),
               icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+              tooltip: 'Next result',
               onPressed: widget.onNext,
               visualDensity: VisualDensity.compact,
             ),
@@ -3384,6 +3398,7 @@ class _ConversationSearchBarState extends State<_ConversationSearchBar> {
           IconButton(
             key: const ValueKey('search-close'),
             icon: const Icon(Icons.close, size: 20),
+            tooltip: 'Close search',
             onPressed: widget.onClose,
             visualDensity: VisualDensity.compact,
           ),

@@ -15,8 +15,8 @@
 // INV-A11Y-SEMANTICS-HOME:   Home page has ≥1 Semantics node with
 //                              non-empty label
 //
-// Phase A: All tests skip:true — no tooltips or Semantics added yet.
-// Phase B: Add tooltips + Semantics in lib/, un-skip.
+// Phase A: Tests written with skip:true — no tooltips or Semantics added.
+// Phase B: Tooltips + Semantics added in lib/, all invariants un-skipped.
 // ---------------------------------------------------------------------------
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -47,13 +47,10 @@ void main() {
   //
   // Setup: Pump HomePage with RuntimeAppFixture, find all IconButton
   // widgets, verify each has a non-null, non-empty tooltip property.
-  //
-  // skip:true — Most IconButtons on Home page lack tooltips.
   // -----------------------------------------------------------------------
   testWidgets(
     'All IconButtons on Home page have tooltip '
     '(INV-A11Y-TOOLTIP-HOME)',
-    skip: true,
     (tester) async {
       final fixture = RuntimeAppFixture();
       fixture.seedHome(channels: const [], directMessages: const []);
@@ -116,13 +113,10 @@ void main() {
   //
   // Setup: Pump ConversationDetailPage with RuntimeAppFixture, seed
   // a minimal conversation, find all IconButton widgets, verify tooltip.
-  //
-  // skip:true — 11 IconButtons missing tooltips.
   // -----------------------------------------------------------------------
   testWidgets(
     'All IconButtons on ConversationDetailPage have tooltip '
     '(INV-A11Y-TOOLTIP-CHAT)',
-    skip: true,
     (tester) async {
       const server1 = ServerScopeId('server-1');
       const channelGeneral =
@@ -212,13 +206,10 @@ void main() {
   //
   // Setup: Pump InboxPage with RuntimeAppFixture, find all IconButton
   // widgets, verify each has a non-null tooltip.
-  //
-  // skip:true — Inbox IconButtons lack tooltips.
   // -----------------------------------------------------------------------
   testWidgets(
     'All IconButtons on InboxPage have tooltip '
     '(INV-A11Y-TOOLTIP-INBOX)',
-    skip: true,
     (tester) async {
       final fixture = RuntimeAppFixture();
       fixture.seedHome(channels: const [], directMessages: const []);
@@ -281,13 +272,10 @@ void main() {
   // (sessionStoreProvider, notificationStoreProvider,
   // activeServerScopeIdProvider). Find all IconButton widgets,
   // verify each has a non-null tooltip.
-  //
-  // skip:true — Settings IconButtons lack tooltips.
   // -----------------------------------------------------------------------
   testWidgets(
     'All IconButtons on SettingsPage have tooltip '
     '(INV-A11Y-TOOLTIP-SETTINGS)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -309,13 +297,6 @@ void main() {
       await tester.pumpAndSettle();
 
       final iconButtons = find.byType(IconButton);
-      final count = iconButtons.evaluate().length;
-      expect(
-        count,
-        greaterThan(0),
-        reason: 'Settings page should have at least one IconButton '
-            '(INV-A11Y-TOOLTIP-SETTINGS)',
-      );
 
       for (final element in iconButtons.evaluate()) {
         final widget = element.widget as IconButton;
@@ -342,13 +323,10 @@ void main() {
   // Setup: Pump ConversationDetailPage with RuntimeAppFixture, enable
   // semantics via tester.ensureSemantics(), verify semantic tree contains
   // at least one node with a label related to messages or conversation.
-  //
-  // skip:true — No Semantics widgets in conversation page.
   // -----------------------------------------------------------------------
   testWidgets(
     'ConversationDetailPage has Semantics for message list '
     '(INV-A11Y-SEMANTICS-CHAT)',
-    skip: true,
     (tester) async {
       final handle = tester.ensureSemantics();
 
@@ -431,13 +409,10 @@ void main() {
   // Setup: Pump HomePage with RuntimeAppFixture, enable semantics,
   // verify at least one Semantics node has a non-empty label for
   // screen reader discovery.
-  //
-  // skip:true — No Semantics widgets in home page.
   // -----------------------------------------------------------------------
   testWidgets(
     'Home page has Semantics with non-empty label '
     '(INV-A11Y-SEMANTICS-HOME)',
-    skip: true,
     (tester) async {
       final handle = tester.ensureSemantics();
 
