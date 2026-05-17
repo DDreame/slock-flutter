@@ -58,7 +58,10 @@ import 'package:slock_app/features/conversation/data/typing_realtime_binding.dar
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/members/presentation/widgets/member_profile_sheet.dart';
 import 'package:slock_app/features/presence/application/presence_store.dart';
+import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
@@ -2252,6 +2255,52 @@ class _ConversationMessageCardState
     }
   }
 
+  /// Opens the member profile sheet for the sender of a message. (#535)
+  Future<void> _openSenderProfile(
+    BuildContext context,
+    ConversationMessageSummary message,
+    ConversationDetailTarget target,
+  ) async {
+    final senderId = message.senderId;
+    if (senderId == null || senderId.isEmpty) return;
+
+    try {
+      final profile = await ref
+          .read(profileRepositoryProvider)
+          .loadProfile(target.serverId, userId: senderId);
+      if (!context.mounted) return;
+
+      await showMemberProfileSheet(
+        context: context,
+        member: profile,
+        onMessageTap: () {
+          // Close the sheet first.
+          Navigator.of(context).pop();
+          // Open DM with the member.
+          _openDirectMessage(target.serverId, senderId);
+        },
+      );
+    } catch (_) {
+      // Fail-soft: if profile fetch fails, do nothing.
+    }
+  }
+
+  /// Opens a direct message with the given user. (#535)
+  Future<void> _openDirectMessage(
+    ServerScopeId serverId,
+    String userId,
+  ) async {
+    try {
+      final channelId = await ref
+          .read(memberRepositoryProvider)
+          .openDirectMessage(serverId, userId: userId);
+      if (!mounted) return;
+      context.push('/servers/${serverId.value}/dms/$channelId');
+    } catch (_) {
+      // Fail-soft: if DM open fails, do nothing.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final message = widget.message;
@@ -2526,6 +2575,12 @@ class _ConversationMessageCardState
             Text(senderLabel, style: senderStyle),
           ],
         ),
+      );
+      // Wrap the sender label row in a GestureDetector to open the member
+      // profile sheet on tap. (#535 Avatar Popup)
+      senderLabelWidget = GestureDetector(
+        onTap: () => _openSenderProfile(context, message, target),
+        child: senderLabelWidget,
       );
     }
 

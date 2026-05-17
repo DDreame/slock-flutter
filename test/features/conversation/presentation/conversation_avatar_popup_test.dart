@@ -19,7 +19,7 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
-// #535: Avatar Popup — Phase A
+// #535: Avatar Popup — Phase B
 //
 // Verifies that tapping a sender name in the conversation message card
 // opens the member profile bottom sheet with the expected content.
@@ -36,9 +36,6 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   INV-AVATAR-2: Profile sheet shows display name, @username, role badge
 //   INV-AVATAR-3: Profile sheet "Message" button → opens DM
 //   INV-AVATAR-4: Profile sheet shows presence status (online dot + label)
-//
-// Phase A: All tests skip:true — sender name is not tappable yet,
-// profile sheet has no DM button.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -56,12 +53,9 @@ void main() {
   // Setup: Render a conversation with a message from another user. Tap the
   // sender name text. After pumpAndSettle, the profile sheet (keyed
   // 'profile-sheet-name') should be visible.
-  //
-  // skip:true — sender name Text has no GestureDetector yet.
   // -----------------------------------------------------------------------
   testWidgets(
     'Tap sender name opens member profile sheet (INV-AVATAR-1)',
-    skip: true,
     (tester) async {
       final profileRepo = _FakeProfileRepository(
         profile: _testProfile,
@@ -99,12 +93,9 @@ void main() {
   //
   // Setup: Tap sender name to open profile sheet. Verify the sheet shows
   // the member's display name, @username, and role badge.
-  //
-  // skip:true — sender name is not tappable.
   // -----------------------------------------------------------------------
   testWidgets(
     'Profile sheet shows name, username, and role (INV-AVATAR-2)',
-    skip: true,
     (tester) async {
       final profileRepo = _FakeProfileRepository(
         profile: _testProfile,
@@ -160,11 +151,11 @@ void main() {
   // explicitly declared new seam, not an invented key anchored to
   // existing code.
   //
-  // skip:true — profile sheet has no DM button.
+  // Phase B added this key to _MemberProfileSheet in
+  // member_profile_sheet.dart via the onMessageTap callback.
   // -----------------------------------------------------------------------
   testWidgets(
     'Profile sheet Message button opens DM (INV-AVATAR-3)',
-    skip: true,
     (tester) async {
       final profileRepo = _FakeProfileRepository(
         profile: _testProfile,
@@ -214,12 +205,9 @@ void main() {
   // presence='online'. The sheet should show the presence dot (keyed
   // 'profile-sheet-presence-dot') and label (keyed
   // 'profile-sheet-presence').
-  //
-  // skip:true — sender name is not tappable.
   // -----------------------------------------------------------------------
   testWidgets(
     'Profile sheet shows presence status (INV-AVATAR-4)',
-    skip: true,
     (tester) async {
       final profileRepo = _FakeProfileRepository(
         profile: _testProfile,
@@ -311,7 +299,7 @@ Widget _buildApp({
       ),
       // Stub route for DM navigation after tapping the "Message" button.
       GoRoute(
-        path: '/servers/:serverId/dm/:channelId',
+        path: '/servers/:serverId/dms/:channelId',
         builder: (_, state) => Scaffold(
           body: Center(
             child: Text(
