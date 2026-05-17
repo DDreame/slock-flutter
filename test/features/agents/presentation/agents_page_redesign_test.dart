@@ -593,8 +593,7 @@ void main() {
       expect(find.byType(SectionCard), findsWidgets);
     });
 
-    testWidgets(
-        'detail shows env vars section with empty placeholder and edit button',
+    testWidgets('detail shows env vars section with empty placeholder',
         (tester) async {
       final repo = _MutableAgentsRepository(initialItems: [
         makeAgent(id: 'agent-1'),
@@ -612,10 +611,10 @@ void main() {
       );
       expect(find.text('No environment variables'), findsOneWidget);
 
-      // Edit affordance
+      // Edit button removed — dead stub cleanup (#547).
       expect(
         find.byKey(const ValueKey('agent-env-vars-edit')),
-        findsOneWidget,
+        findsNothing,
       );
     });
   });
