@@ -45,6 +45,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/message_con
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
+import 'package:slock_app/stores/composer/composer_settings_store.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
@@ -486,6 +487,7 @@ class _ConversationDetailScreenState
               focusNode: _composerFocusNode,
               state: state,
               isRecording: isRecording,
+              enterToSend: ref.watch(composerSettingsStoreProvider).enterToSend,
               isFormattingToolbarVisible: _isFormattingToolbarVisible,
               isEmojiPickerVisible: _isEmojiPickerVisible,
               onToggleFormattingToolbar: () {
@@ -1800,6 +1802,7 @@ class _ConversationComposer extends StatelessWidget {
     required this.onMicTap,
     required this.onSendRecording,
     required this.onCancelRecording,
+    this.enterToSend = false,
   });
 
   final TextEditingController controller;
@@ -1819,6 +1822,7 @@ class _ConversationComposer extends StatelessWidget {
   final VoidCallback onMicTap;
   final VoidCallback onSendRecording;
   final VoidCallback onCancelRecording;
+  final bool enterToSend;
 
   @override
   Widget build(BuildContext context) {
@@ -1952,34 +1956,80 @@ class _ConversationComposer extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: TextField(
-                      key: const ValueKey('composer-input'),
-                      controller: controller,
-                      focusNode: focusNode,
-                      onChanged: onChanged,
-                      onSubmitted: (_) => state.canSend ? onSend() : null,
-                      minLines: 1,
-                      maxLines: 4,
-                      decoration: InputDecoration(
-                        hintText: 'Write a message',
-                        border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusFull),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusFull),
-                          borderSide: BorderSide(color: colors.border),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.radiusFull),
-                          borderSide:
-                              BorderSide(color: colors.primary, width: 1.5),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.lg,
-                          vertical: AppSpacing.md,
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is! KeyDownEvent) {
+                          return KeyEventResult.ignored;
+                        }
+                        if (event.logicalKey != LogicalKeyboardKey.enter) {
+                          return KeyEventResult.ignored;
+                        }
+
+                        final isShift =
+                            HardwareKeyboard.instance.isShiftPressed;
+                        final isCtrl =
+                            HardwareKeyboard.instance.isControlPressed;
+                        final isMeta = HardwareKeyboard.instance.isMetaPressed;
+
+                        if (enterToSend) {
+                          if (isShift) {
+                            // Shift+Enter → insert newline
+                            final text = controller.text;
+                            final selection = controller.selection;
+                            final newText = text.replaceRange(
+                              selection.start,
+                              selection.end,
+                              '\n',
+                            );
+                            controller.value = TextEditingValue(
+                              text: newText,
+                              selection: TextSelection.collapsed(
+                                offset: selection.start + 1,
+                              ),
+                            );
+                            return KeyEventResult.handled;
+                          } else if (!isCtrl && !isMeta) {
+                            // Enter → send
+                            if (state.canSend) onSend();
+                            return KeyEventResult.handled;
+                          }
+                        } else {
+                          if (isCtrl || isMeta) {
+                            // Ctrl/Cmd+Enter → send
+                            if (state.canSend) onSend();
+                            return KeyEventResult.handled;
+                          }
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: TextField(
+                        key: const ValueKey('composer-input'),
+                        controller: controller,
+                        focusNode: focusNode,
+                        onChanged: onChanged,
+                        minLines: 1,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: 'Write a message',
+                          border: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusFull),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderSide: BorderSide(color: colors.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSpacing.radiusFull),
+                            borderSide:
+                                BorderSide(color: colors.primary, width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.md,
+                          ),
                         ),
                       ),
                     ),
