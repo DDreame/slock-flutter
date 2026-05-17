@@ -2,20 +2,23 @@ import 'package:flutter/material.dart';
 
 /// Shared error state widget used across feature pages.
 ///
-/// Renders an error message and a Retry button. Uses [ValueKey] `app-error-view`
-/// for test discoverability.
+/// Renders an error message and an optional Retry button. Uses [ValueKey]
+/// `app-error-view` for test discoverability.
+///
+/// When [onRetry] is null, only the message is shown (no-retry error state).
 class AppErrorView extends StatelessWidget {
   const AppErrorView({
     required this.message,
-    required this.onRetry,
+    this.onRetry,
     super.key,
   });
 
   /// The error description shown to the user.
   final String message;
 
-  /// Called when the user taps the Retry button.
-  final VoidCallback onRetry;
+  /// Called when the user taps the Retry button. When null, the button
+  /// is not rendered.
+  final VoidCallback? onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +30,10 @@ class AppErrorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            if (onRetry != null) ...[
+              const SizedBox(height: 12),
+              FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            ],
           ],
         ),
       ),
