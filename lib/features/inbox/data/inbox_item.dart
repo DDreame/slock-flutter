@@ -38,6 +38,7 @@ class InboxItem {
     this.channelName,
     this.threadTitle,
     this.senderName,
+    this.senderId,
     this.preview,
     this.latestActivityPreview,
     this.unreadCount = 0,
@@ -59,6 +60,7 @@ class InboxItem {
       channelName: json['channelName'] as String?,
       threadTitle: json['threadTitle'] as String?,
       senderName: json['senderName'] as String?,
+      senderId: json['senderId'] as String?,
       preview: json['preview'] as String?,
       latestActivityPreview: json['latestActivityPreview'] as String?,
       unreadCount: _parseInt(json['unreadCount']),
@@ -81,6 +83,7 @@ class InboxItem {
   final String? channelName;
   final String? threadTitle;
   final String? senderName;
+  final String? senderId;
   final String? preview;
 
   /// Preview text from the latest activity in the conversation.
@@ -124,6 +127,7 @@ class InboxItem {
       channelName: channelName,
       threadTitle: threadTitle,
       senderName: senderName,
+      senderId: senderId,
       preview: preview,
       latestActivityPreview: latestActivityPreview,
       unreadCount: unreadCount ?? this.unreadCount,
@@ -151,6 +155,7 @@ class InboxItem {
             channelName == other.channelName &&
             threadTitle == other.threadTitle &&
             senderName == other.senderName &&
+            senderId == other.senderId &&
             preview == other.preview &&
             latestActivityPreview == other.latestActivityPreview &&
             unreadCount == other.unreadCount &&
@@ -171,6 +176,7 @@ class InboxItem {
         channelName,
         threadTitle,
         senderName,
+        senderId,
         preview,
         latestActivityPreview,
         unreadCount,

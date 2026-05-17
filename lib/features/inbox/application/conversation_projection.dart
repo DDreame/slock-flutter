@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/inbox/application/inbox_name_resolver.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
@@ -97,14 +98,20 @@ class ConversationProjection {
 
 /// Projects a single [InboxItem] into a [ConversationProjection]
 /// with guaranteed non-null [ConversationProjection.previewText].
+///
+/// When [nameResolver] is provided, channel/sender names are resolved
+/// with client-side fallback (API → local store → graceful default).
 ConversationProjection projectInboxItem(
   InboxItem item, {
   required ServerScopeId serverId,
+  InboxNameResolver? nameResolver,
 }) {
   return ConversationProjection(
     kind: _mapKind(item.kind),
     id: _buildId(item),
-    title: _buildTitle(item),
+    title: nameResolver != null
+        ? nameResolver.resolveChannelName(item)
+        : _buildTitle(item),
     previewText: MessagePreviewResolver.resolve(
       content: item.latestActivityPreview ?? item.preview,
       messageType: item.messageType,
@@ -112,8 +119,15 @@ ConversationProjection projectInboxItem(
       attachments: item.attachments,
     ),
     unreadCount: item.unreadCount,
-    sourceLabel: _buildSourceLabel(item),
-    senderName: item.senderName,
+    sourceLabel: nameResolver != null
+        ? nameResolver.resolveSourceLabel(item)
+        : _buildSourceLabel(item),
+    senderName: nameResolver != null
+        ? nameResolver.resolveSenderName(
+            apiName: item.senderName,
+            senderId: item.senderId,
+          )
+        : item.senderName,
     lastActivityAt: item.lastActivityAt,
     channelScopeId: _buildChannelScopeId(item, serverId),
     dmScopeId: _buildDmScopeId(item, serverId),
@@ -126,9 +140,11 @@ ConversationProjection projectInboxItem(
 List<ConversationProjection> projectInboxItems(
   List<InboxItem> items, {
   required ServerScopeId serverId,
+  InboxNameResolver? nameResolver,
 }) {
   return [
-    for (final item in items) projectInboxItem(item, serverId: serverId),
+    for (final item in items)
+      projectInboxItem(item, serverId: serverId, nameResolver: nameResolver),
   ];
 }
 
