@@ -62,7 +62,7 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
   methodChannel.setMethodCallHandler((call) async {
     switch (call.method) {
       case 'stop':
-        worker.dispose();
+        await worker.dispose();
       case 'getDiagnostics':
         final diag = worker.diagnostics;
         return <String, dynamic>{

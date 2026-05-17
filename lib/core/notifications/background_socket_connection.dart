@@ -78,4 +78,12 @@ class SocketIoBackgroundConnection implements BackgroundSocketConnection {
     _socket?.dispose();
     _socket = null;
   }
+
+  @override
+  Future<void> dispose() async {
+    _socket?.dispose();
+    _socket = null;
+    await _eventController.close();
+    await _statusController.close();
+  }
 }
