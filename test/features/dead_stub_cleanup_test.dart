@@ -130,6 +130,10 @@ void main() {
   // Currently the button at key 'agent-env-vars-edit' has an empty
   // onPressed: () {} closure. After Phase B, the button either has a
   // real handler or is removed from the widget tree.
+  //
+  // Two valid Phase B outcomes:
+  //   (a) Button wired to real editor → tap opens dialog/route/editor
+  //   (b) Button removed entirely → findsNothing pre-tap
   // -----------------------------------------------------------------------
   testWidgets(
     'agent env vars edit button either navigates or is absent '
@@ -179,25 +183,31 @@ void main() {
 
       final editButton = find.byKey(const ValueKey('agent-env-vars-edit'));
 
-      if (editButton.evaluate().isNotEmpty) {
-        // Button exists — it must have a real handler that does
-        // something (e.g. navigates), not an empty closure.
-        // Tapping an empty closure produces no observable side-effect,
-        // so we verify a route push or dialog was triggered.
-        await tester.tap(editButton);
-        await tester.pumpAndSettle();
-
-        // After tap, either a new route was pushed or a dialog appeared.
-        // If neither happened, the handler is still a dead empty closure.
-        expect(
-          find.byKey(const ValueKey('agent-env-vars-edit')),
-          isNot(findsOneWidget),
-          reason: 'Tapping edit button must trigger navigation or '
-              'dialog — empty onPressed is not allowed '
-              '(INV-STUB-3)',
-        );
+      // Phase B outcome (b): button removed entirely — dead stub cleaned.
+      if (editButton.evaluate().isEmpty) {
+        return; // No empty onPressed possible — invariant satisfied.
       }
-      // If the button is absent, the invariant passes — dead stub removed.
+
+      // Phase B outcome (a): button exists → must have a real handler.
+      await tester.tap(editButton);
+      await tester.pumpAndSettle();
+
+      // A real handler must produce an observable side effect:
+      // dialog, bottom sheet, or route push (button no longer visible
+      // because we navigated away from the source page).
+      final hasDialog = find.byType(Dialog).evaluate().isNotEmpty ||
+          find.byType(AlertDialog).evaluate().isNotEmpty;
+      final hasBottomSheet = find.byType(BottomSheet).evaluate().isNotEmpty;
+      final routePushed =
+          find.byKey(const ValueKey('agent-env-vars-edit')).evaluate().isEmpty;
+
+      expect(
+        hasDialog || hasBottomSheet || routePushed,
+        isTrue,
+        reason: 'Tapping edit button must trigger navigation, dialog, '
+            'or editor surface — empty onPressed is not allowed '
+            '(INV-STUB-3)',
+      );
     },
     skip: true,
   );
@@ -208,17 +218,19 @@ void main() {
   //
   // Currently the page has hardcoded strings: 'Workspace Settings',
   // 'Manage', 'Members', 'Billing', 'Actions', 'Rename workspace',
-  // 'Delete workspace', 'Leave workspace', 'Role', 'Created', etc.
+  // 'Delete workspace', 'Leave workspace', etc.
   //
   // After Phase B, all user-facing strings come from AppLocalizations.
-  // We verify by pumping the page with a non-English locale and checking
-  // that the hardcoded English strings are NOT found (replaced by
-  // localized equivalents).
+  // We verify by pumping with zh locale:
+  //   - Negative: hardcoded English strings must not appear
+  //   - Positive: key structural elements still render (by ValueKey)
+  //   - Both owner and non-owner fixtures covered
   // -----------------------------------------------------------------------
   testWidgets(
     'WorkspaceSettingsPage uses l10n for user-facing strings '
     '(INV-STUB-4)',
     (tester) async {
+      // --- Owner variant ---
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -249,10 +261,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // These hardcoded English strings must not appear when the
-      // locale is non-English — they should be replaced by l10n
-      // equivalents.
-      final hardcodedStrings = [
+      // Negative: hardcoded English strings must not appear.
+      final ownerHardcodedStrings = [
         'Workspace Settings',
         'Manage',
         'Members',
@@ -260,17 +270,87 @@ void main() {
         'Actions',
         'Rename workspace',
         'Delete workspace',
-        'Leave workspace',
       ];
 
-      for (final str in hardcodedStrings) {
+      for (final str in ownerHardcodedStrings) {
         expect(
           find.text(str),
           findsNothing,
           reason: '"$str" must come from l10n, not be hardcoded '
-              '(INV-STUB-4)',
+              '(INV-STUB-4, owner variant)',
         );
       }
+
+      // Positive: key sections still render under zh locale.
+      expect(
+        find.byKey(const ValueKey('workspace-settings-members')),
+        findsOneWidget,
+        reason: 'Members navigation must render under zh locale '
+            '(INV-STUB-4)',
+      );
+      expect(
+        find.byKey(const ValueKey('workspace-settings-billing')),
+        findsOneWidget,
+        reason: 'Billing navigation must render under zh locale '
+            '(INV-STUB-4)',
+      );
+      expect(
+        find.byKey(const ValueKey('workspace-settings-rename')),
+        findsOneWidget,
+        reason: 'Rename action must render for owner under zh locale '
+            '(INV-STUB-4)',
+      );
+      expect(
+        find.byKey(const ValueKey('workspace-settings-delete')),
+        findsOneWidget,
+        reason: 'Delete action must render for owner under zh locale '
+            '(INV-STUB-4)',
+      );
+
+      // --- Non-owner variant (member) — covers "Leave workspace" path ---
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            serverListStoreProvider.overrideWith(() {
+              return _FakeServerListStore(
+                const ServerListState(
+                  status: ServerListStatus.success,
+                  servers: [
+                    ServerSummary(
+                      id: 'server-1',
+                      name: 'Team',
+                      role: 'member',
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          child: const MaterialApp(
+            locale: Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: WorkspaceSettingsPage(serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Negative: "Leave workspace" hardcoded English must be absent.
+      expect(
+        find.text('Leave workspace'),
+        findsNothing,
+        reason: '"Leave workspace" must come from l10n '
+            '(INV-STUB-4, member variant)',
+      );
+
+      // Positive: leave action tile renders for non-owner.
+      expect(
+        find.byKey(const ValueKey('workspace-settings-leave')),
+        findsOneWidget,
+        reason: 'Leave action must render for non-owner under zh '
+            'locale (INV-STUB-4)',
+      );
     },
     skip: true,
   );
