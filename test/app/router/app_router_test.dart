@@ -1512,20 +1512,11 @@ void main() {
     // -----------------------------------------------------------------
     // INV-DEEPLINK-ROUTER: Channel deep link with ?messageId= query
     // param navigates and preserves the messageId through to the
-    // destination route.
-    //
-    // This test is part of #536 Phase A: it locks the router seam to
-    // prove that once resolveNotificationRoute() produces a URL with
-    // ?messageId=, the router correctly delivers it to the page.
-    //
-    // skip:true — resolveNotificationRoute currently drops messageId
-    // so the full pipeline from notification payload → router → page
-    // never produces this URL. Phase B fix will enable it.
+    // destination route and page widget.
     // -----------------------------------------------------------------
     testWidgets(
       'channel deep link with messageId preserves query param '
       '(INV-DEEPLINK-ROUTER)',
-      skip: true,
       (tester) async {
         final container = ProviderContainer(
           overrides: [

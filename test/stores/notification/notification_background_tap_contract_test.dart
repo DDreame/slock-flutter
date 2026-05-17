@@ -196,7 +196,12 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         final link = container.read(pendingDeepLinkProvider);
-        expect(link, '/servers/s1/channels/c1');
+        // messageId is now propagated (#536), but extra FCM keys
+        // (title, body, senderName, google.*) must still be ignored.
+        expect(link, isNotNull);
+        final uri = Uri.parse(link!);
+        expect(uri.path, '/servers/s1/channels/c1');
+        expect(uri.queryParameters['messageId'], 'msg-uuid-1');
       },
     );
 

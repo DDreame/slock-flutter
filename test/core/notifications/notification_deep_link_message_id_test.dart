@@ -10,7 +10,7 @@ import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 
 // ---------------------------------------------------------------------------
-// #536: Notification Deep Link messageId propagation — Phase A
+// #536: Notification Deep Link messageId propagation — Phase B
 //
 // Verifies that messageId from notification payloads propagates through the
 // full pipeline: resolveNotificationRoute() → pendingDeepLinkProvider →
@@ -26,9 +26,6 @@ import 'package:slock_app/stores/notification/notification_store.dart';
 //
 // Additional regression guard:
 //   INV-DEEPLINK-4: payloads without messageId → no messageId query param
-//
-// Phase A: INV-DEEPLINK-1/2/3 skip:true — messageId not read in
-// resolveNotificationRoute(). INV-DEEPLINK-4 skip:false (current behavior).
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -38,11 +35,9 @@ void main() {
   group('resolveNotificationRoute — messageId propagation', () {
     // ---------------------------------------------------------------------
     // INV-DEEPLINK-1a: Channel payload with messageId.
-    // skip:true — resolveNotificationRoute does not read messageId.
     // ---------------------------------------------------------------------
     test(
       'channel payload with messageId includes query param (INV-DEEPLINK-1)',
-      skip: true,
       () {
         final route = resolveNotificationRoute({
           'type': 'channel',
@@ -64,7 +59,6 @@ void main() {
     // INV-DEEPLINK-1b: DM payload with messageId.
     test(
       'dm payload with messageId includes query param (INV-DEEPLINK-1)',
-      skip: true,
       () {
         final route = resolveNotificationRoute({
           'type': 'dm',
@@ -87,7 +81,6 @@ void main() {
     test(
       'thread payload with messageId includes both channelId and messageId '
       'query params (INV-DEEPLINK-1)',
-      skip: true,
       () {
         final route = resolveNotificationRoute({
           'type': 'thread',
@@ -178,13 +171,10 @@ void main() {
     // -----------------------------------------------------------------
     // INV-DEEPLINK-2a: handleNotificationTap with channel + messageId →
     // pendingDeepLinkProvider contains messageId in URL.
-    //
-    // skip:true — resolveNotificationRoute drops messageId.
     // -----------------------------------------------------------------
     test(
       'handleNotificationTap writes messageId-bearing channel link '
       '(INV-DEEPLINK-2)',
-      skip: true,
       () {
         readStore().handleNotificationTap({
           'type': 'channel',
@@ -210,7 +200,6 @@ void main() {
     test(
       'handleNotificationTap writes messageId-bearing DM link '
       '(INV-DEEPLINK-2)',
-      skip: true,
       () {
         readStore().handleNotificationTap({
           'type': 'dm',
@@ -236,7 +225,6 @@ void main() {
     test(
       'handleNotificationTap writes messageId-bearing thread link '
       '(INV-DEEPLINK-2)',
-      skip: true,
       () {
         readStore().handleNotificationTap({
           'type': 'thread',
@@ -296,13 +284,10 @@ void main() {
 
     // -----------------------------------------------------------------
     // INV-DEEPLINK-3a: cold-start channel notification with messageId.
-    //
-    // skip:true — resolveNotificationRoute drops messageId.
     // -----------------------------------------------------------------
     test(
       'init consumes cold-start channel notification with messageId '
       '(INV-DEEPLINK-3)',
-      skip: true,
       () async {
         fakeInitializer.initialNotificationResult = {
           'type': 'channel',
@@ -330,7 +315,6 @@ void main() {
     test(
       'init consumes cold-start DM notification with messageId '
       '(INV-DEEPLINK-3)',
-      skip: true,
       () async {
         fakeInitializer.initialNotificationResult = {
           'type': 'dm',
@@ -358,7 +342,6 @@ void main() {
     test(
       'init consumes cold-start thread notification with messageId '
       '(INV-DEEPLINK-3)',
-      skip: true,
       () async {
         fakeInitializer.initialNotificationResult = {
           'type': 'thread',
