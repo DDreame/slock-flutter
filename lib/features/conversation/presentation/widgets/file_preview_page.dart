@@ -11,6 +11,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/hero/hero_tags.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart'
     show attachmentRepositoryProvider;
 import 'package:slock_app/features/conversation/data/conversation_repository.dart'
@@ -460,32 +461,36 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
         child: Opacity(
           opacity: (1 - (_dragOffset.abs() / 500)).clamp(0.3, 1.0),
           child: Center(
-            child: InteractiveViewer(
-              key: const ValueKey('image-viewer-interactive'),
-              transformationController: _transformationController,
-              minScale: 0.5,
-              maxScale: 4.0,
-              child: CachedNetworkImage(
-                imageUrl: displayUrl,
-                fit: BoxFit.contain,
-                errorWidget: (context, url, error) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.broken_image_outlined,
-                        color: Colors.white54,
-                        size: 48,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        'Unable to load image.',
-                        style:
-                            AppTypography.body.copyWith(color: Colors.white54),
-                      ),
-                    ],
-                  );
-                },
+            child: Hero(
+              tag: HeroTags.imageAttachment(
+                  widget.attachment.id ?? widget.attachment.name),
+              child: InteractiveViewer(
+                key: const ValueKey('image-viewer-interactive'),
+                transformationController: _transformationController,
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: CachedNetworkImage(
+                  imageUrl: displayUrl,
+                  fit: BoxFit.contain,
+                  errorWidget: (context, url, error) {
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.broken_image_outlined,
+                          color: Colors.white54,
+                          size: 48,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          'Unable to load image.',
+                          style: AppTypography.body
+                              .copyWith(color: Colors.white54),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),

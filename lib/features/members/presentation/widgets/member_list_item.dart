@@ -3,6 +3,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/role_badge.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
+import 'package:slock_app/core/hero/hero_tags.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
@@ -61,10 +62,13 @@ class MemberListItem extends StatelessWidget {
     final canManageTarget =
         canManageMember && !member.isSelf && member.role != 'owner';
 
-    final avatar = ProfileAvatar(
-      displayName: member.displayName,
-      avatarUrl: member.avatarUrl,
-      radius: 20,
+    final avatar = Hero(
+      tag: HeroTags.avatar(member.id),
+      child: ProfileAvatar(
+        displayName: member.displayName,
+        avatarUrl: member.avatarUrl,
+        radius: 20,
+      ),
     );
 
     return ListTile(
