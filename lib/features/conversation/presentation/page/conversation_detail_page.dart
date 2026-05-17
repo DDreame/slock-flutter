@@ -58,7 +58,10 @@ import 'package:slock_app/features/conversation/data/typing_realtime_binding.dar
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/members/presentation/widgets/member_profile_sheet.dart';
 import 'package:slock_app/features/presence/application/presence_store.dart';
+import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
@@ -2234,6 +2237,15 @@ class _ConversationMessageCardState
   bool _showPreciseTimestamp = false;
   Timer? _timestampTimer;
 
+  // Sender-name hit-test state for profile popup. (#535)
+  // We track the pointer-down position via a Listener (which does NOT
+  // participate in the gesture arena) and compare it against the sender
+  // name's render box in the MessageGestureWrapper's single-tap callback.
+  // This avoids adding a child GestureDetector that would win the arena
+  // and break double-tap quick-react detection.
+  final GlobalKey _senderNameKey = GlobalKey();
+  Offset? _lastPointerDownGlobalPos;
+
   @override
   void dispose() {
     _timestampTimer?.cancel();
@@ -2249,6 +2261,86 @@ class _ConversationMessageCardState
       _timestampTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _showPreciseTimestamp = false);
       });
+    }
+  }
+
+  /// Opens the member profile sheet for the sender of a message. (#535)
+  Future<void> _openSenderProfile(
+    BuildContext context,
+    ConversationMessageSummary message,
+    ConversationDetailTarget target,
+  ) async {
+    final senderId = message.senderId;
+    if (senderId == null || senderId.isEmpty) return;
+    final isAgent = message.senderType == 'agent';
+
+    try {
+      final profile = await ref
+          .read(profileRepositoryProvider)
+          .loadProfile(target.serverId, userId: senderId);
+      if (!context.mounted) return;
+
+      await showMemberProfileSheet(
+        context: context,
+        member: profile,
+        onMessageTap: () {
+          // Close the sheet first.
+          Navigator.of(context).pop();
+          // Open DM with the member (agent-aware branch).
+          _openDirectMessage(target.serverId, senderId, isAgent: isAgent);
+        },
+      );
+    } catch (_) {
+      // Fail-soft: if profile fetch fails, do nothing.
+    }
+  }
+
+  /// Opens a direct message with the given user or agent. (#535)
+  Future<void> _openDirectMessage(
+    ServerScopeId serverId,
+    String senderId, {
+    bool isAgent = false,
+  }) async {
+    try {
+      final repo = ref.read(memberRepositoryProvider);
+      final channelId = isAgent
+          ? await repo.openAgentDirectMessage(serverId, agentId: senderId)
+          : await repo.openDirectMessage(serverId, userId: senderId);
+      if (!mounted) return;
+      context.push('/servers/${serverId.value}/dms/$channelId');
+    } catch (_) {
+      // Fail-soft: if DM open fails, do nothing.
+    }
+  }
+
+  /// Returns `true` when the last pointer-down landed inside the sender
+  /// name widget's render box.
+  bool _isTapOnSenderName() {
+    final box = _senderNameKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || _lastPointerDownGlobalPos == null) return false;
+    final local = box.globalToLocal(_lastPointerDownGlobalPos!);
+    return box.paintBounds.contains(local);
+  }
+
+  /// Unified tap handler for messages that routes sender-name taps to the
+  /// profile popup while preserving thread navigation / precise timestamp
+  /// behavior for taps elsewhere on the bubble. This fires AFTER the
+  /// [MessageGestureWrapper]'s 300 ms double-tap window, so double-tap
+  /// quick-react is unaffected.
+  void _handleMessageTap(
+    BuildContext context,
+    ConversationMessageSummary message,
+    ConversationDetailTarget target, {
+    required bool enableTapToThread,
+  }) {
+    if (_isTapOnSenderName()) {
+      _openSenderProfile(context, message, target);
+      return;
+    }
+    if (enableTapToThread) {
+      _navigateToThread(context);
+    } else {
+      _togglePreciseTimestamp();
     }
   }
 
@@ -2498,7 +2590,7 @@ class _ConversationMessageCardState
     Widget senderLabelWidget = const SizedBox.shrink();
     if (showSenderLabel && showHeader) {
       senderLabelWidget = Padding(
-        key: const ValueKey('sender-label-row'),
+        key: _senderNameKey,
         padding: const EdgeInsets.only(bottom: AppSpacing.xs),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -2661,16 +2753,25 @@ class _ConversationMessageCardState
     if (isNonSystem) {
       return MessageGestureWrapper(
         enablePressFeedback: enableTapToThread,
-        onTap: enableTapToThread
-            ? () => _navigateToThread(context)
-            : _togglePreciseTimestamp,
+        onTap: () => _handleMessageTap(
+          context,
+          message,
+          target,
+          enableTapToThread: enableTapToThread,
+        ),
         onDoubleTap: () => _quickReact(context, ref),
         enableSwipeReply: !message.content.contains('```'),
         onSwipeReply: () => ref
             .read(conversationDetailStoreProvider.notifier)
             .setReplyTo(message),
         onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
-        child: shell,
+        child: Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: (event) {
+            _lastPointerDownGlobalPos = event.position;
+          },
+          child: shell,
+        ),
       );
     }
 

@@ -12,18 +12,26 @@ import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.d
 Future<void> showMemberProfileSheet({
   required BuildContext context,
   required MemberProfile member,
+  VoidCallback? onMessageTap,
 }) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _MemberProfileSheet(member: member),
+    builder: (_) => _MemberProfileSheet(
+      member: member,
+      onMessageTap: onMessageTap,
+    ),
   );
 }
 
 class _MemberProfileSheet extends StatelessWidget {
-  const _MemberProfileSheet({required this.member});
+  const _MemberProfileSheet({
+    required this.member,
+    this.onMessageTap,
+  });
 
   final MemberProfile member;
+  final VoidCallback? onMessageTap;
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +163,19 @@ class _MemberProfileSheet extends StatelessWidget {
               ),
             ],
             const SizedBox(height: AppSpacing.lg),
+
+            // Message / DM button
+            if (onMessageTap != null)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  key: const ValueKey('member-profile-dm-action'),
+                  onPressed: onMessageTap,
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: const Text('Message'),
+                ),
+              ),
+            if (onMessageTap != null) const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
