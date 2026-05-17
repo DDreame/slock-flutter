@@ -34,12 +34,17 @@ import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 // Test-local seam: mirrors the production DeepLinkHandler API that Phase B
 // will implement in lib/core/deep_link/deep_link_handler.dart.
 //
-// Phase B: replace this class with:
-//   import 'package:slock_app/core/deep_link/deep_link_handler.dart';
-// and remove _FakeRouter (the real handler will take GoRouter directly).
+// Phase B: replace this class with the real DeepLinkHandler import and
+//          swap _testAuthProvider reads for sessionStoreProvider reads.
+//          Remove _FakeRouter (the real handler takes GoRouter directly).
 // ---------------------------------------------------------------------------
 
+/// Test-local auth state provider.
+/// Phase B: the production handler reads from sessionStoreProvider instead.
+final _testAuthProvider = StateProvider<bool>((ref) => false);
+
 /// Minimal router interface recording go/push calls.
+/// Phase B: replaced by GoRouter.
 class _FakeRouter {
   _FakeRouter({this.onGo, this.onPush});
   final void Function(String path)? onGo;
@@ -52,27 +57,31 @@ class _FakeRouter {
 /// Test-local deep link handler seam.
 ///
 /// Constructor mirrors the intended production API:
-///   DeepLinkHandler(router: <GoRouter>, ref: <ProviderContainer>,
-///                   isAuthenticated: <bool>)
+///   DeepLinkHandler(router: <GoRouter>, ref: <ProviderContainer>)
+///
+/// Auth state is read from ref (via [_testAuthProvider] in tests,
+/// sessionStoreProvider in production).
 ///
 /// Methods:
 ///   String? parseDeepLinkUrl(Uri uri)
 ///   void handleDeepLink(Uri uri)
+///   void dispatchPendingDeepLink()
 class _TestableDeepLinkHandler {
   _TestableDeepLinkHandler({
     required _FakeRouter router,
     required ProviderContainer ref,
-    required bool isAuthenticated,
   })  : _router = router,
-        _ref = ref,
-        _isAuthenticated = isAuthenticated;
+        _ref = ref;
 
   final _FakeRouter _router;
   final ProviderContainer _ref;
-  final bool _isAuthenticated;
 
   static const _httpsHost = 'app.slock.ai';
   static const _customScheme = 'slock';
+
+  /// Whether the current session is authenticated.
+  /// Reads from [_testAuthProvider] (test) / sessionStoreProvider (prod).
+  bool get _isAuthenticated => _ref.read(_testAuthProvider);
 
   /// Parses a deep link [uri] into a GoRouter-compatible path string.
   ///
@@ -124,6 +133,23 @@ class _TestableDeepLinkHandler {
       return;
     }
 
+    _dispatch(path);
+  }
+
+  /// Dispatches the pending deep link stored in [pendingDeepLinkProvider].
+  ///
+  /// Called after authentication completes. Reads the pending path, clears
+  /// the provider, then dispatches. No-op if no pending link exists.
+  void dispatchPendingDeepLink() {
+    final pending = _ref.read(pendingDeepLinkProvider);
+    if (pending == null) return;
+
+    // Clear before dispatch to prevent re-dispatch on redirect loops.
+    _ref.read(pendingDeepLinkProvider.notifier).state = null;
+    _dispatch(pending);
+  }
+
+  void _dispatch(String path) {
     if (isInviteDeepLink(path)) {
       _router.go(path);
     } else {
@@ -143,7 +169,6 @@ void main() {
       handler = _TestableDeepLinkHandler(
         router: _FakeRouter(),
         ref: ProviderContainer(),
-        isAuthenticated: false,
       );
     });
 
@@ -257,11 +282,11 @@ void main() {
       () {
         final container = ProviderContainer();
         addTearDown(container.dispose);
+        // Auth state: unauthenticated (default is false).
 
         final handler = _TestableDeepLinkHandler(
           router: _FakeRouter(),
           ref: container,
-          isAuthenticated: false,
         );
 
         handler.handleDeepLink(
@@ -282,12 +307,11 @@ void main() {
       () {
         final container = ProviderContainer();
         addTearDown(container.dispose);
+        // Auth state: unauthenticated (default is false).
 
-        // isAuthenticated: false simulates unknown / unauthenticated session.
         final handler = _TestableDeepLinkHandler(
           router: _FakeRouter(),
           ref: container,
-          isAuthenticated: false,
         );
 
         handler.handleDeepLink(
@@ -312,23 +336,19 @@ void main() {
         container.read(pendingDeepLinkProvider.notifier).state =
             '/invite/token-1';
 
-        // Simulate authentication completing — create an authenticated
-        // handler that dispatches the pending link.
+        // Simulate authentication completing — set auth to true.
+        container.read(_testAuthProvider.notifier).state = true;
+
         final navigatedPaths = <String>[];
         final handler = _TestableDeepLinkHandler(
           router: _FakeRouter(onGo: navigatedPaths.add),
           ref: container,
-          isAuthenticated: true,
         );
 
-        // Dispatch the pending link.
-        final pending = container.read(pendingDeepLinkProvider);
-        if (pending != null) {
-          handler.handleDeepLink(Uri.parse('https://app.slock.ai$pending'));
-          container.read(pendingDeepLinkProvider.notifier).state = null;
-        }
+        // Handler dispatches pending link AND clears it internally.
+        handler.dispatchPendingDeepLink();
 
-        // Pending link should be cleared after consumption.
+        // Pending link should be cleared by the handler, not by the test.
         expect(container.read(pendingDeepLinkProvider), isNull);
         expect(navigatedPaths, ['/invite/token-1']);
       },
@@ -346,11 +366,11 @@ void main() {
         final navigatedPaths = <String>[];
         final container = ProviderContainer();
         addTearDown(container.dispose);
+        container.read(_testAuthProvider.notifier).state = true;
 
         final handler = _TestableDeepLinkHandler(
           router: _FakeRouter(onGo: navigatedPaths.add),
           ref: container,
-          isAuthenticated: true,
         );
 
         handler.handleDeepLink(
@@ -369,11 +389,11 @@ void main() {
         final pushedPaths = <String>[];
         final container = ProviderContainer();
         addTearDown(container.dispose);
+        container.read(_testAuthProvider.notifier).state = true;
 
         final handler = _TestableDeepLinkHandler(
           router: _FakeRouter(onPush: pushedPaths.add),
           ref: container,
-          isAuthenticated: true,
         );
 
         handler.handleDeepLink(
@@ -394,11 +414,11 @@ void main() {
         final pushedPaths = <String>[];
         final container = ProviderContainer();
         addTearDown(container.dispose);
+        container.read(_testAuthProvider.notifier).state = true;
 
         final handler = _TestableDeepLinkHandler(
           router: _FakeRouter(onPush: pushedPaths.add),
           ref: container,
-          isAuthenticated: true,
         );
 
         handler.handleDeepLink(
@@ -416,6 +436,7 @@ void main() {
         final navigatedPaths = <String>[];
         final container = ProviderContainer();
         addTearDown(container.dispose);
+        // Auth state: unauthenticated (default is false).
 
         final handler = _TestableDeepLinkHandler(
           router: _FakeRouter(
@@ -423,7 +444,6 @@ void main() {
             onPush: navigatedPaths.add,
           ),
           ref: container,
-          isAuthenticated: false,
         );
 
         handler.handleDeepLink(
