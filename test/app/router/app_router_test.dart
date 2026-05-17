@@ -19,6 +19,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
@@ -1570,6 +1571,24 @@ void main() {
               'link (INV-DEEPLINK-ROUTER)',
         );
         expect(container.read(pendingDeepLinkProvider), isNull);
+
+        // Verify the destination page widget received highlightMessageId.
+        // ChannelPage is the routed destination for
+        // /servers/:serverId/channels/:channelId. The router reads
+        // state.uri.queryParameters['messageId'] (app_router.dart:319)
+        // and passes it as the highlightMessageId constructor param.
+        // This mirrors the existing seam locked in
+        // conversation_detail_page_test.dart:1285-1328.
+        final channelPage = tester.widget<ChannelPage>(
+          find.byType(ChannelPage),
+        );
+        expect(
+          channelPage.highlightMessageId,
+          'msg-target-1',
+          reason: 'Destination ChannelPage must receive '
+              'highlightMessageId from router query param '
+              '(INV-DEEPLINK-ROUTER)',
+        );
       },
     );
 
