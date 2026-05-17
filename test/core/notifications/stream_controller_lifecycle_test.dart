@@ -29,6 +29,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/core/notifications/background_notification_worker.dart';
 
 // ---------------------------------------------------------------------------
 // Test-local seams: mirror the production BackgroundSocketConnection
@@ -43,41 +44,46 @@ import 'package:flutter_test/flutter_test.dart';
 //      _socket.dispose() instead of _socket.disconnect()
 // ---------------------------------------------------------------------------
 
-/// Enum mirroring BackgroundSocketStatus from production.
-enum _TestSocketStatus { connected, disconnected }
-
-/// Test-local seam simulating a BackgroundSocketConnection with proper
-/// dispose() lifecycle.
+/// Test-local seam implementing the real [BackgroundSocketConnection]
+/// interface with the proper dispose() lifecycle that Phase B will add.
 ///
-/// Phase B: this contract moves into the real abstract interface and
-/// SocketIoBackgroundConnection.
-class _TestableBackgroundSocketConnection {
+/// Phase B: this dispose() contract moves into the real abstract
+/// interface and SocketIoBackgroundConnection implementation.
+class _TestableBackgroundSocketConnection
+    implements BackgroundSocketConnection {
   final _eventController = StreamController<Map<String, dynamic>>.broadcast();
-  final _statusController = StreamController<_TestSocketStatus>.broadcast();
+  final _statusController =
+      StreamController<BackgroundSocketStatus>.broadcast();
 
   bool _connected = false;
   bool _disposed = false;
 
+  @override
   bool get isConnected => _connected;
+
   bool get isDisposed => _disposed;
 
+  @override
   Stream<Map<String, dynamic>> get events => _eventController.stream;
-  Stream<_TestSocketStatus> get statusChanges => _statusController.stream;
 
+  @override
+  Stream<BackgroundSocketStatus> get statusChanges => _statusController.stream;
+
+  @override
   Future<void> connect({
     required String uri,
     required String token,
+    String? serverId,
   }) async {
     if (_disposed) return; // no-op after dispose
     _connected = true;
-    _statusController.add(_TestSocketStatus.connected);
+    _statusController.add(BackgroundSocketStatus.connected);
   }
 
-  /// Disconnect only tears down the socket connection — streams stay
-  /// open for reconnection.
+  @override
   void disconnect() {
     _connected = false;
-    _statusController.add(_TestSocketStatus.disconnected);
+    _statusController.add(BackgroundSocketStatus.disconnected);
   }
 
   /// Terminal teardown: close both StreamControllers.
@@ -149,7 +155,7 @@ void main() {
 
         // Collect events to verify stream termination.
         final events = <Map<String, dynamic>>[];
-        final statuses = <_TestSocketStatus>[];
+        final statuses = <BackgroundSocketStatus>[];
         final eventSub = conn.events.listen(events.add);
         final statusSub = conn.statusChanges.listen(statuses.add);
 
@@ -240,7 +246,7 @@ void main() {
       () async {
         final conn = _TestableBackgroundSocketConnection();
 
-        final statuses = <_TestSocketStatus>[];
+        final statuses = <BackgroundSocketStatus>[];
         // Listen before dispose to catch any post-dispose emissions.
         conn.statusChanges.listen(statuses.add);
 
@@ -294,7 +300,7 @@ void main() {
       skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
-        final statuses = <_TestSocketStatus>[];
+        final statuses = <BackgroundSocketStatus>[];
         conn.statusChanges.listen(statuses.add);
 
         await conn.connect(uri: 'ws://test', token: 'tok');
@@ -303,9 +309,9 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         expect(statuses, [
-          _TestSocketStatus.connected,
-          _TestSocketStatus.disconnected,
-          _TestSocketStatus.connected,
+          BackgroundSocketStatus.connected,
+          BackgroundSocketStatus.disconnected,
+          BackgroundSocketStatus.connected,
         ]);
       },
     );
