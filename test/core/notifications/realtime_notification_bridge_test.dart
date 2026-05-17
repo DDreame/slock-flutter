@@ -5,6 +5,7 @@ import 'package:slock_app/core/notifications/realtime_notification_bridge.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
@@ -129,6 +130,7 @@ void main() {
     final homeListState = homeState ?? _defaultHomeState();
     final c = ProviderContainer(
       overrides: [
+        channelMutedIdsProvider.overrideWith((ref) => <String>{}),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
         diagnosticsCollectorProvider.overrideWithValue(diagnostics),
         realtimeNotificationShowSinkProvider

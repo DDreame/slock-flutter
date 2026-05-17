@@ -17,6 +17,7 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
@@ -244,6 +245,16 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   }) {
     final unreadCount = unreadState.channelUnreadCount(channel.scopeId);
 
+    // Per-channel mute indicator: uses composite key to match the
+    // in-memory muted IDs set (which is serverId-scoped).
+    final mutedIds = ref.watch(channelMutedIdsProvider);
+    final isMuted = mutedIds.contains(
+      ChannelNotificationPreferenceRepository.compositeKey(
+        channel.scopeId.serverId.value,
+        channel.scopeId.value,
+      ),
+    );
+
     // Move actions are suppressed in this tab because the unread-first
     // merged view does not match the persisted sidebar order that
     // moveChannel() / movePinnedConversation() operate on.
@@ -258,6 +269,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         channel: channel,
         unreadCount: unreadCount,
         isPinned: isPinned,
+        isMuted: isMuted,
         isMutating: managementState.isBusy,
         onTap: () {
           context.push(homeStore.channelRoutePath(channel.scopeId));

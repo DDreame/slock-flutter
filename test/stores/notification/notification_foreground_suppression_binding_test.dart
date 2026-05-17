@@ -6,6 +6,7 @@ import 'package:slock_app/core/notifications/foreground_notification_policy.dart
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
@@ -69,6 +70,7 @@ void main() {
     fakeInitializer = _FakeNotificationInitializer();
     container = ProviderContainer(
       overrides: [
+        channelMutedIdsProvider.overrideWith((ref) => <String>{}),
         notificationInitializerProvider.overrideWithValue(fakeInitializer),
         secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
       ],
@@ -356,6 +358,7 @@ void main() {
       final fakeInit = _FakeNotificationInitializer();
       final c = ProviderContainer(
         overrides: [
+          channelMutedIdsProvider.overrideWith((ref) => <String>{}),
           notificationInitializerProvider.overrideWithValue(fakeInit),
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
         ],
@@ -390,6 +393,7 @@ void main() {
       final fakeInit = _FakeNotificationInitializer();
       final c = ProviderContainer(
         overrides: [
+          channelMutedIdsProvider.overrideWith((ref) => <String>{}),
           notificationInitializerProvider.overrideWithValue(fakeInit),
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
         ],
@@ -421,6 +425,7 @@ void main() {
       final fakeInit = _FakeNotificationInitializer();
       final c = ProviderContainer(
         overrides: [
+          channelMutedIdsProvider.overrideWith((ref) => <String>{}),
           notificationInitializerProvider.overrideWithValue(fakeInit),
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
         ],
@@ -459,6 +464,7 @@ void main() {
       final fakeInit = _FakeNotificationInitializer();
       final c = ProviderContainer(
         overrides: [
+          channelMutedIdsProvider.overrideWith((ref) => <String>{}),
           notificationInitializerProvider.overrideWithValue(fakeInit),
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
         ],

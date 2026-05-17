@@ -17,6 +17,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -97,6 +98,7 @@ void main() {
           const _FakeThreadRepository(),
         ),
         homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        channelMutedIdsProvider.overrideWith((ref) => <String>{}),
       ],
       child: MaterialApp.router(
         routerConfig: router,

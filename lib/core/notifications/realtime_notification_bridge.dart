@@ -9,6 +9,7 @@ import 'package:slock_app/core/realtime/providers.dart'
     show realtimeReductionIngressProvider;
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
@@ -265,6 +266,26 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
         'channelId=$channelId',
       );
       return;
+    }
+
+    // Per-channel mute: suppress notifications for individually muted
+    // channels/DMs. Uses composite key to avoid cross-server collisions.
+    final homeState = ref.read(homeListStoreProvider);
+    final serverId = homeState.serverScopeId?.value;
+    if (serverId != null) {
+      final mutedIds = ref.read(channelMutedIdsProvider);
+      final key = ChannelNotificationPreferenceRepository.compositeKey(
+        serverId,
+        channelId,
+      );
+      if (mutedIds.contains(key)) {
+        diagnostics.info(
+          _tag,
+          'source=realtime, suppressed=channelMuted, '
+          'channelId=$channelId',
+        );
+        return;
+      }
     }
 
     // Resolve notification target from app state.

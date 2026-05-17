@@ -6,6 +6,7 @@ import 'package:slock_app/core/notifications/notification_deep_link_helper.dart'
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -29,6 +30,27 @@ final notificationForegroundSuppressionBindingProvider = Provider<void>((ref) {
         'channelId=$channelId',
       );
       return;
+    }
+
+    // Per-channel mute: suppress notifications for individually muted
+    // channels/DMs. Uses composite key to avoid cross-server collisions.
+    if (channelId != null) {
+      final serverId = payload['serverId'] as String?;
+      if (serverId != null) {
+        final mutedIds = ref.read(channelMutedIdsProvider);
+        final key = ChannelNotificationPreferenceRepository.compositeKey(
+          serverId,
+          channelId,
+        );
+        if (mutedIds.contains(key)) {
+          diagnostics.info(
+            _tag,
+            'source=iosRemotePush, suppressed=channelMuted, '
+            'channelId=$channelId',
+          );
+          return;
+        }
+      }
     }
 
     // Self-sender suppression: don't show notifications for own messages.

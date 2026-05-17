@@ -6,6 +6,7 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/notifications/notification_target.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/stores/notification/notification_foreground_suppression_binding.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
@@ -376,6 +377,7 @@ ProviderContainer _createContainer({
 
   return ProviderContainer(
     overrides: [
+      channelMutedIdsProvider.overrideWith((ref) => <String>{}),
       notificationInitializerProvider.overrideWithValue(initializer),
       secureStorageProvider.overrideWithValue(storage),
       diagnosticsCollectorProvider.overrideWithValue(diagnostics),

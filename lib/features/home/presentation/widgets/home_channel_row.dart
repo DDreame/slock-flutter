@@ -15,6 +15,7 @@ class HomeChannelRow extends StatelessWidget {
     required this.onTap,
     this.unreadCount = 0,
     this.isPinned = false,
+    this.isMuted = false,
     this.onEdit,
     this.onDelete,
     this.onLeave,
@@ -28,6 +29,7 @@ class HomeChannelRow extends StatelessWidget {
   final VoidCallback onTap;
   final int unreadCount;
   final bool isPinned;
+  final bool isMuted;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onLeave;
@@ -104,6 +106,12 @@ class HomeChannelRow extends StatelessWidget {
                       style: AppTypography.caption.copyWith(
                         color: hasUnread ? colors.primary : colors.textTertiary,
                       ),
+                    ),
+                  if (isMuted)
+                    Icon(
+                      Icons.notifications_off,
+                      size: 14,
+                      color: colors.textTertiary,
                     ),
                   if (hasUnread) ...[
                     const SizedBox(height: 4),
