@@ -2263,6 +2263,7 @@ class _ConversationMessageCardState
   ) async {
     final senderId = message.senderId;
     if (senderId == null || senderId.isEmpty) return;
+    final isAgent = message.senderType == 'agent';
 
     try {
       final profile = await ref
@@ -2276,8 +2277,8 @@ class _ConversationMessageCardState
         onMessageTap: () {
           // Close the sheet first.
           Navigator.of(context).pop();
-          // Open DM with the member.
-          _openDirectMessage(target.serverId, senderId);
+          // Open DM with the member (agent-aware branch).
+          _openDirectMessage(target.serverId, senderId, isAgent: isAgent);
         },
       );
     } catch (_) {
@@ -2285,15 +2286,17 @@ class _ConversationMessageCardState
     }
   }
 
-  /// Opens a direct message with the given user. (#535)
+  /// Opens a direct message with the given user or agent. (#535)
   Future<void> _openDirectMessage(
     ServerScopeId serverId,
-    String userId,
-  ) async {
+    String senderId, {
+    bool isAgent = false,
+  }) async {
     try {
-      final channelId = await ref
-          .read(memberRepositoryProvider)
-          .openDirectMessage(serverId, userId: userId);
+      final repo = ref.read(memberRepositoryProvider);
+      final channelId = isAgent
+          ? await repo.openAgentDirectMessage(serverId, agentId: senderId)
+          : await repo.openDirectMessage(serverId, userId: senderId);
       if (!mounted) return;
       context.push('/servers/${serverId.value}/dms/$channelId');
     } catch (_) {
