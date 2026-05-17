@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
@@ -89,12 +90,12 @@ class LinkPreviewCard extends StatelessWidget {
   Widget _buildImage(AppColors colors) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 160),
-      child: Image.network(
-        metadata.imageUrl!,
+      child: CachedNetworkImage(
+        imageUrl: metadata.imageUrl!,
         key: const ValueKey('link-preview-image'),
         fit: BoxFit.cover,
         width: double.infinity,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        errorWidget: (_, __, ___) => const SizedBox.shrink(),
       ),
     );
   }
