@@ -38,7 +38,9 @@ extension MemberRepositoryInviteX on MemberRepository {
     if (repository is MemberInviteMutationRepository) {
       return repository as MemberInviteMutationRepository;
     }
-    throw UnsupportedError('Member invite-by-email is not implemented');
+    throw const UnknownFailure(
+      message: 'Member invite-by-email is not available.',
+    );
   }
 
   Future<void> inviteByEmail(

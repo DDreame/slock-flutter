@@ -7,6 +7,7 @@
 //
 // Phase A: skip:true invariants locking the cleanup contract.
 // Phase B: Remove dead stubs, wire or clean up, un-skip.
+//          All invariants now active.
 //
 // Invariants verified:
 // INV-STUB-1: ServerListMutationRepository methods do not throw
@@ -91,7 +92,6 @@ void main() {
             '(INV-STUB-1)',
       );
     },
-    skip: true,
   );
 
   // -----------------------------------------------------------------------
@@ -120,7 +120,6 @@ void main() {
             '(INV-STUB-2)',
       );
     },
-    skip: true,
   );
 
   // -----------------------------------------------------------------------
@@ -209,7 +208,6 @@ void main() {
             '(INV-STUB-3)',
       );
     },
-    skip: true,
   );
 
   // -----------------------------------------------------------------------
@@ -374,7 +372,6 @@ void main() {
             'under zh locale (INV-STUB-4)',
       );
     },
-    skip: true,
   );
 }
 

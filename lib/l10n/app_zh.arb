@@ -201,5 +201,41 @@
   "attachmentHtmlOpensInBrowser": "HTML · 在浏览器中打开",
 
   "refreshFailedSnackbar": "刷新失败，显示缓存数据。",
-  "refreshFailedRetry": "重试"
+  "refreshFailedRetry": "重试",
+
+  "workspaceSettingsUnavailableTitle": "工作区设置不可用",
+  "workspaceSettingsUnavailableMessage": "目前无法加载工作区设置。",
+  "workspaceSettingsNotFound": "未找到工作区。",
+  "workspaceSettingsRoleLabel": "角色",
+  "workspaceSettingsRoleUnknown": "未知",
+  "workspaceSettingsCreatedLabel": "创建时间",
+  "workspaceSettingsManageSection": "管理",
+  "workspaceSettingsActionsSection": "操作",
+  "workspaceSettingsRenameAction": "重命名工作区",
+  "workspaceSettingsDeleteAction": "删除工作区",
+  "workspaceSettingsLeaveAction": "退出工作区",
+  "workspaceSettingsRenamedSnackbar": "工作区已重命名。",
+  "workspaceSettingsRenameFailed": "重命名工作区失败。",
+  "workspaceSettingsDeleteDialogTitle": "删除工作区？",
+  "workspaceSettingsDeleteDialogMessage": "删除 {name}？此操作将永久移除工作区及其所有数据。",
+  "@workspaceSettingsDeleteDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceSettingsDeleteConfirmLabel": "删除",
+  "workspaceSettingsDeleteFailed": "删除工作区失败。",
+  "workspaceSettingsLeaveDialogTitle": "退出工作区？",
+  "workspaceSettingsLeaveDialogMessage": "退出 {name}？之后可通过新邀请重新加入。",
+  "@workspaceSettingsLeaveDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceSettingsLeaveConfirmLabel": "退出",
+  "workspaceSettingsLeaveFailed": "退出工作区失败。"
 }

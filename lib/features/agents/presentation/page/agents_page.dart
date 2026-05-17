@@ -1263,17 +1263,6 @@ class _EnvVarsSection extends StatelessWidget {
                 style: AppTypography.title.copyWith(color: colors.text),
               ),
             ),
-            IconButton(
-              key: const ValueKey('agent-env-vars-edit'),
-              onPressed: () {
-                // TODO: wire to env vars editor when API is available.
-              },
-              icon: Icon(
-                Icons.edit_outlined,
-                size: 18,
-                color: colors.textSecondary,
-              ),
-            ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
