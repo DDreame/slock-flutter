@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/core/notifications/background_notification_worker.dart';
 import 'package:slock_app/core/notifications/background_socket_connection.dart';
 import 'package:slock_app/core/storage/background_worker_storage_keys.dart';
@@ -152,9 +153,60 @@ class BackgroundWorkerAuthPersistence {
 
   /// Load auth credentials from [SecureStorage] and return a
   /// [BackgroundAuthProvider].
+  ///
+  /// On first load after upgrade, migrates credentials from
+  /// SharedPreferences (legacy) to SecureStorage and deletes the
+  /// legacy keys. This ensures existing logged-in users keep
+  /// background notifications working immediately.
   Future<BackgroundAuthProvider> load() async {
+    final token = await _storage.read(key: BackgroundWorkerStorageKeys.token);
+
+    // One-time migration: if SecureStorage is empty, try legacy
+    // SharedPreferences and migrate if found.
+    if (token == null) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final legacyToken = prefs.getString(BackgroundWorkerStorageKeys.token);
+        if (legacyToken != null) {
+          final legacyUserId =
+              prefs.getString(BackgroundWorkerStorageKeys.userId);
+          final legacyServerId =
+              prefs.getString(BackgroundWorkerStorageKeys.serverId);
+          final legacyRealtimeUrl =
+              prefs.getString(BackgroundWorkerStorageKeys.realtimeUrl);
+
+          // Write to SecureStorage.
+          await persist(
+            token: legacyToken,
+            userId: legacyUserId ?? '',
+            serverId: legacyServerId ?? '',
+            realtimeUrl: legacyRealtimeUrl ?? 'wss://realtime.slock.invalid',
+          );
+
+          // Clean up legacy SharedPreferences keys.
+          await Future.wait([
+            prefs.remove(BackgroundWorkerStorageKeys.token),
+            prefs.remove(BackgroundWorkerStorageKeys.userId),
+            prefs.remove(BackgroundWorkerStorageKeys.serverId),
+            prefs.remove(BackgroundWorkerStorageKeys.realtimeUrl),
+          ]);
+
+          // Return the migrated credentials.
+          return _SecureStorageAuthProvider(
+            token: legacyToken,
+            userId: legacyUserId,
+            serverId: legacyServerId,
+            realtimeUrl: legacyRealtimeUrl ?? 'wss://realtime.slock.invalid',
+          );
+        }
+      } on Object {
+        // SharedPreferences unavailable (e.g. test environment).
+        // Fall through to return empty state.
+      }
+    }
+
     return _SecureStorageAuthProvider(
-      token: await _storage.read(key: BackgroundWorkerStorageKeys.token),
+      token: token,
       userId: await _storage.read(key: BackgroundWorkerStorageKeys.userId),
       serverId: await _storage.read(key: BackgroundWorkerStorageKeys.serverId),
       realtimeUrl:
