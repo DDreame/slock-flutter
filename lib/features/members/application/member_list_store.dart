@@ -168,7 +168,15 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     );
 
     try {
-      final member = state.members.firstWhere((m) => m.id == userId);
+      final member = state.members.where((m) => m.id == userId).firstOrNull;
+      if (member == null) {
+        const failure = NotFoundFailure(
+          message: 'Member not found',
+        );
+        state =
+            state.copyWith(failure: failure, clearOpeningDirectMessage: true);
+        throw failure;
+      }
       final repo = ref.read(memberRepositoryProvider);
       final channelId = member.isAgent
           ? await repo.openAgentDirectMessage(serverId, agentId: userId)

@@ -63,7 +63,10 @@ void _handleMachineStatus(Ref ref, RealtimeEventEnvelope event) {
     ref
         .read(machinesStoreProvider.notifier)
         .updateMachineStatus(machineId, status, statusVersion: statusVersion);
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
 }
 
 void _handleDaemonStatus(Ref ref, RealtimeEventEnvelope event) {
@@ -83,7 +86,10 @@ void _handleDaemonStatus(Ref ref, RealtimeEventEnvelope event) {
     ref
         .read(machinesStoreProvider.notifier)
         .updateMachineStatus(machineId, status, statusVersion: statusVersion);
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
 }
 
 void _handleMachineCapabilities(Ref ref, RealtimeEventEnvelope event) {
@@ -105,7 +111,10 @@ void _handleMachineCapabilities(Ref ref, RealtimeEventEnvelope event) {
           os: _optionalString(map['os']),
           daemonVersion: _optionalString(map['daemonVersion']),
         );
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
 }
 
 Map<String, dynamic>? _asMap(Object? value) {

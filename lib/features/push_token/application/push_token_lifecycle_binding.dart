@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/push_token/data/push_token_repository.dart';
 import 'package:slock_app/features/push_token/data/push_token_repository_provider.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
@@ -10,6 +11,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
   final repo = ref.watch(pushTokenRepositoryProvider);
+  final crashReporter = ref.read(crashReporterProvider);
 
   ref.listen<NotificationState>(
     notificationStoreProvider,
@@ -27,11 +29,13 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
 
       if (oldToken != null && newToken != null && oldToken != newToken) {
         unawaited(_deregisterThenRegister(repo, oldToken, newToken,
-            platform: next.pushTokenPlatform));
+            platform: next.pushTokenPlatform, crashReporter: crashReporter));
       } else if (oldToken == null && newToken != null) {
-        unawaited(_register(repo, newToken, platform: next.pushTokenPlatform));
+        unawaited(_register(repo, newToken,
+            platform: next.pushTokenPlatform, crashReporter: crashReporter));
       } else if (oldToken == newToken && newToken != null && platformChanged) {
-        unawaited(_register(repo, newToken, platform: next.pushTokenPlatform));
+        unawaited(_register(repo, newToken,
+            platform: next.pushTokenPlatform, crashReporter: crashReporter));
       }
     },
   );
@@ -45,8 +49,9 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
         final notifState = ref.read(notificationStoreProvider);
         final token = notifState.pushToken;
         if (token != null) {
-          unawaited(
-              _register(repo, token, platform: notifState.pushTokenPlatform));
+          unawaited(_register(repo, token,
+              platform: notifState.pushTokenPlatform,
+              crashReporter: crashReporter));
         }
         return;
       }
@@ -55,7 +60,8 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
         final notifState = ref.read(notificationStoreProvider);
         final token = notifState.pushToken;
         if (token != null) {
-          unawaited(_deregisterWithAuth(repo, token, previous.token));
+          unawaited(_deregisterWithAuth(repo, token, previous.token,
+              crashReporter: crashReporter));
         }
       }
     },
@@ -66,13 +72,17 @@ Future<void> _register(
   PushTokenRepository repo,
   String token, {
   String? platform,
+  required CrashReporter crashReporter,
 }) async {
   try {
     await repo.registerToken(
       token: token,
       platform: platform ?? 'unknown',
     );
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    crashReporter.captureException(e, stackTrace: s);
+  }
 }
 
 Future<void> _deregisterThenRegister(
@@ -80,19 +90,28 @@ Future<void> _deregisterThenRegister(
   String oldToken,
   String newToken, {
   String? platform,
+  required CrashReporter crashReporter,
 }) async {
   try {
     await repo.deregisterToken(token: oldToken);
-  } catch (_) {}
-  await _register(repo, newToken, platform: platform);
+  } on StateError catch (_) {
+  } catch (e, s) {
+    crashReporter.captureException(e, stackTrace: s);
+  }
+  await _register(repo, newToken,
+      platform: platform, crashReporter: crashReporter);
 }
 
 Future<void> _deregisterWithAuth(
   PushTokenRepository repo,
   String token,
-  String? authToken,
-) async {
+  String? authToken, {
+  required CrashReporter crashReporter,
+}) async {
   try {
     await repo.deregisterToken(token: token, authToken: authToken);
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    crashReporter.captureException(e, stackTrace: s);
+  }
 }
