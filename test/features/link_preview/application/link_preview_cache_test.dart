@@ -104,6 +104,48 @@ void main() {
   });
 
   // -----------------------------------------------------------------------
+  // LRU recency: recently accessed URL survives eviction
+  // -----------------------------------------------------------------------
+  group('LRU recency: touched URL survives eviction', () {
+    test(
+      'recently accessed URL is not evicted when a new entry is added',
+      () async {
+        final service = _CountingLinkPreviewService();
+        final container = ProviderContainer(
+          overrides: [
+            linkPreviewServiceProvider.overrideWithValue(service),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final notifier = container.read(linkPreviewCacheProvider.notifier);
+
+        // Fill cache to max capacity (100): URLs 0–99.
+        for (var i = 0; i < 100; i++) {
+          await notifier.fetch('https://example.com/$i');
+        }
+
+        // Touch URL 0 — it's already cached, so fetch() promotes it to MRU.
+        await notifier.fetch('https://example.com/0');
+        // No new service call (cache hit).
+        expect(service.fetchCount, equals(100));
+
+        // Add URL 100 — evicts the least recently used (URL 1, not URL 0).
+        await notifier.fetch('https://example.com/100');
+
+        final state = container.read(linkPreviewCacheProvider);
+        expect(state.length, equals(100));
+        expect(state.containsKey('https://example.com/0'), isTrue,
+            reason: 'Recently accessed URL 0 must survive (LRU)');
+        expect(state.containsKey('https://example.com/1'), isFalse,
+            reason: 'URL 1 (least recently used) must be evicted');
+        expect(state.containsKey('https://example.com/100'), isTrue,
+            reason: 'Newly added URL 100 must be present');
+      },
+    );
+  });
+
+  // -----------------------------------------------------------------------
   // INV-CACHE-VOICE-CAP-1: Voice waveform cache evicts at max size
   //
   // Drives insertion through the production VoiceWaveformCacheNotifier.put()

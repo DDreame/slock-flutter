@@ -26,8 +26,9 @@ final linkPreviewCacheProvider = StateNotifierProvider<LinkPreviewCacheNotifier,
 
 /// Notifier that manages the link preview cache.
 ///
-/// Uses FIFO eviction: when the cache exceeds [maxSize] entries,
-/// the oldest (first-inserted) entries are removed.
+/// Uses LRU eviction: when the cache exceeds [maxSize] entries,
+/// the least-recently-used entries are removed. Accessing an already-cached
+/// URL via [fetch] refreshes its recency so it survives longer.
 class LinkPreviewCacheNotifier
     extends StateNotifier<Map<String, AsyncValue<LinkMetadata?>>> {
   LinkPreviewCacheNotifier(this._service) : super({});
@@ -39,16 +40,18 @@ class LinkPreviewCacheNotifier
 
   /// Fetch metadata for [url] if not already cached or in progress.
   ///
-  /// On success: caches `AsyncData(metadata)` (may be null if no OG tags).
-  /// On network error: caches `AsyncError` so the widget can render a
-  /// fallback link. Errors are retryable — calling [fetch] again for the
-  /// same URL will re-attempt the request.
+  /// On cache hit (`AsyncData` or `AsyncLoading`), the entry is promoted
+  /// to the most-recently-used position (LRU touch).
   ///
-  /// When the cache exceeds [maxSize], the oldest entries are evicted.
+  /// On cache miss or `AsyncError` (retryable): fetches from service,
+  /// caches the result, and trims to [maxSize] by evicting least-recently-used.
   Future<void> fetch(String url) async {
     final existing = state[url];
-    // Already succeeded or in progress — skip.
-    if (existing is AsyncData || existing is AsyncLoading) return;
+    // Already succeeded or in progress — promote to MRU and skip fetch.
+    if (existing is AsyncData || existing is AsyncLoading) {
+      _touch(url);
+      return;
+    }
 
     // Mark as loading (overwrite any prior error).
     state = _trimToMax({...state, url: const AsyncValue.loading()});
@@ -67,10 +70,23 @@ class LinkPreviewCacheNotifier
     state = {};
   }
 
-  /// Trims [cache] to [maxSize] by removing the oldest entries.
+  /// Promotes [url] to the most-recently-used position.
+  ///
+  /// Removes and re-inserts the entry so it appears last in iteration
+  /// order (Dart's [LinkedHashMap] preserves insertion order).
+  void _touch(String url) {
+    final value = state[url];
+    if (value == null) return;
+    final updated = Map<String, AsyncValue<LinkMetadata?>>.from(state)
+      ..remove(url)
+      ..[url] = value;
+    state = updated;
+  }
+
+  /// Trims [cache] to [maxSize] by removing the least-recently-used entries.
   ///
   /// Dart's default Map (LinkedHashMap) preserves insertion order,
-  /// so the first keys are the oldest.
+  /// so the first keys are the least recently used.
   static Map<String, AsyncValue<LinkMetadata?>> _trimToMax(
     Map<String, AsyncValue<LinkMetadata?>> cache,
   ) {
