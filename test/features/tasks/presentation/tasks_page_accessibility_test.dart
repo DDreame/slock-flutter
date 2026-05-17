@@ -44,7 +44,6 @@ void main() {
   group('INV-TASK-A11Y-1: IconButton tooltips', () {
     testWidgets(
       'all IconButtons on TasksPage have non-null non-empty tooltip',
-      skip: true,
       (tester) async {
         final store = _FakeTasksStore(
           initialState: TasksState(
@@ -81,7 +80,6 @@ void main() {
   group('INV-TASK-A11Y-2: filter chip Semantics', () {
     testWidgets(
       'filter chips have semantic labels describing their function',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -109,7 +107,6 @@ void main() {
 
     testWidgets(
       'selected filter chip announces selected state',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -148,7 +145,6 @@ void main() {
   group('INV-TASK-A11Y-3: status symbol Semantics', () {
     testWidgets(
       'todo status symbol has "To Do" semantic label',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -173,7 +169,6 @@ void main() {
 
     testWidgets(
       'in_progress status symbol has "In Progress" semantic label',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -198,7 +193,6 @@ void main() {
 
     testWidgets(
       'done status symbol has "Done" semantic label',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -223,7 +217,6 @@ void main() {
 
     testWidgets(
       'in_review status symbol has "In Review" semantic label',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -248,7 +241,6 @@ void main() {
 
     testWidgets(
       'closed status symbol has "Cancelled" semantic label',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -278,7 +270,6 @@ void main() {
   group('INV-TASK-A11Y-4: task row Semantics', () {
     testWidgets(
       'task row has semantic description combining title and status',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -311,7 +302,6 @@ void main() {
 
     testWidgets(
       'task row includes task number in semantic description',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -338,7 +328,6 @@ void main() {
 
     testWidgets(
       'task row includes assignee name in combined semantic description',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -379,7 +368,6 @@ void main() {
   group('INV-TASK-A11Y-5: non-drag status change action', () {
     testWidgets(
       'task row exposes non-drag action for changing status (long-press or semantic action)',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
@@ -425,7 +413,6 @@ void main() {
 
     testWidgets(
       'closed task does not expose status change action',
-      skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
