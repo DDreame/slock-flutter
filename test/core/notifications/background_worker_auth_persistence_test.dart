@@ -12,7 +12,8 @@
 //                     to SecureStorage (not SharedPreferences)
 // INV-SEC-PERSIST-2: clear() removes all 4 keys from SecureStorage
 // INV-SEC-LOAD-1:    load() reads credentials from SecureStorage and
-//                     returns populated auth object with matching fields
+//                     returns populated BackgroundAuthProvider with
+//                     matching fields
 // INV-SEC-LOAD-2:    load() returns null tokens when nothing stored,
 //                     realtimeUrl has fallback value
 // INV-SEC-KEYS-1:    Background worker storage keys are distinct from
@@ -23,12 +24,14 @@
 //
 // Phase B will:
 // - Add optional `SecureStorage? storage` parameter to persist()/clear()
-// - Add a static load(SecureStorage) factory or migrate
-//   _SharedPrefsAuthProvider to use SecureStorage
-// - Tests un-skip and pass _FakeSecureStorage via the injection seam
+// - Add a static load(SecureStorage) that returns BackgroundAuthProvider
+// - Replace _persistViaSecureStorage / _clearViaSecureStorage /
+//   _loadFromSecureStorage with real BackgroundWorkerAuthPersistence
+//   methods and un-skip
 // ---------------------------------------------------------------------------
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/notifications/background_notification_entrypoint.dart';
+import 'package:slock_app/core/notifications/background_notification_worker.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/storage/session_storage_keys.dart';
 
@@ -36,9 +39,9 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-SEC-PERSIST-1: persist() writes all 4 credentials to SecureStorage.
   //
-  // Setup: Create a FakeSecureStorage, call persist() with the fake
-  // injected, verify all 4 keys are written to SecureStorage and NOT
-  // to SharedPreferences.
+  // Setup: Create a FakeSecureStorage, call _persistViaSecureStorage
+  // (Phase B: BackgroundWorkerAuthPersistence.persist(storage: ...)),
+  // verify all 4 keys are written.
   //
   // skip:true — persist() still uses SharedPreferences, no injection.
   // -----------------------------------------------------------------------
@@ -49,15 +52,13 @@ void main() {
     () async {
       final secureStorage = _FakeSecureStorage();
 
-      // Phase B: persist() will accept a `storage` parameter.
-      // await BackgroundWorkerAuthPersistence.persist(
-      //   token: 'jwt-token-123',
-      //   userId: 'user-abc',
-      //   serverId: 'server-xyz',
-      //   realtimeUrl: 'wss://realtime.example.com',
+      // Phase B: Replace with
+      // BackgroundWorkerAuthPersistence.persist(
+      //   token: ..., userId: ..., serverId: ..., realtimeUrl: ...,
       //   storage: secureStorage,
       // );
-      await BackgroundWorkerAuthPersistence.persist(
+      await _persistViaSecureStorage(
+        secureStorage,
         token: 'jwt-token-123',
         userId: 'user-abc',
         serverId: 'server-xyz',
@@ -95,9 +96,8 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-SEC-PERSIST-2: clear() removes all 4 keys from SecureStorage.
   //
-  // Setup: Pre-populate FakeSecureStorage with credentials via
-  // persist(), call clear() with the same fake, verify all 4 keys
-  // are removed.
+  // Setup: Pre-populate FakeSecureStorage via _persistViaSecureStorage,
+  // call _clearViaSecureStorage, verify all 4 keys are removed.
   //
   // skip:true — clear() still uses SharedPreferences, no injection.
   // -----------------------------------------------------------------------
@@ -108,27 +108,18 @@ void main() {
     () async {
       final secureStorage = _FakeSecureStorage();
 
-      // Pre-populate via the injection seam.
-      await secureStorage.write(
-        key: backgroundWorkerTokenKey,
-        value: 'jwt-token-123',
-      );
-      await secureStorage.write(
-        key: backgroundWorkerUserIdKey,
-        value: 'user-abc',
-      );
-      await secureStorage.write(
-        key: backgroundWorkerServerIdKey,
-        value: 'server-xyz',
-      );
-      await secureStorage.write(
-        key: backgroundWorkerRealtimeUrlKey,
-        value: 'wss://realtime.example.com',
+      // Pre-populate via the persist contract.
+      await _persistViaSecureStorage(
+        secureStorage,
+        token: 'jwt-token-123',
+        userId: 'user-abc',
+        serverId: 'server-xyz',
+        realtimeUrl: 'wss://realtime.example.com',
       );
 
-      // Phase B: clear() will accept a `storage` parameter.
-      // await BackgroundWorkerAuthPersistence.clear(storage: secureStorage);
-      await BackgroundWorkerAuthPersistence.clear();
+      // Phase B: Replace with
+      // BackgroundWorkerAuthPersistence.clear(storage: secureStorage);
+      await _clearViaSecureStorage(secureStorage);
 
       // All 4 keys must be removed.
       expect(
@@ -160,11 +151,11 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-SEC-LOAD-1: load() reads credentials from SecureStorage and
-  // returns a populated auth object with matching field values.
+  // returns a populated BackgroundAuthProvider with matching fields.
   //
   // Setup: Pre-populate FakeSecureStorage with known credentials,
-  // call the load path (Phase B will expose via SecureStorage),
-  // verify the returned auth object has all 4 matching fields.
+  // call _loadFromSecureStorage, verify the returned auth object
+  // has all 4 matching fields.
   //
   // skip:true — load() still reads from SharedPreferences.
   // -----------------------------------------------------------------------
@@ -176,58 +167,43 @@ void main() {
       final secureStorage = _FakeSecureStorage();
 
       // Pre-populate SecureStorage with known credentials.
-      await secureStorage.write(
-        key: backgroundWorkerTokenKey,
-        value: 'jwt-token-123',
-      );
-      await secureStorage.write(
-        key: backgroundWorkerUserIdKey,
-        value: 'user-abc',
-      );
-      await secureStorage.write(
-        key: backgroundWorkerServerIdKey,
-        value: 'server-xyz',
-      );
-      await secureStorage.write(
-        key: backgroundWorkerRealtimeUrlKey,
-        value: 'wss://realtime.example.com',
+      await _persistViaSecureStorage(
+        secureStorage,
+        token: 'jwt-token-123',
+        userId: 'user-abc',
+        serverId: 'server-xyz',
+        realtimeUrl: 'wss://realtime.example.com',
       );
 
-      // Phase B: _SharedPrefsAuthProvider.load() will accept
-      // SecureStorage and return a BackgroundAuthProvider.
+      // Phase B: Replace with
       // final auth = await BackgroundWorkerAuthPersistence.load(
       //   storage: secureStorage,
       // );
-      //
-      // expect(auth.token, equals('jwt-token-123'));
-      // expect(auth.userId, equals('user-abc'));
-      // expect(auth.serverId, equals('server-xyz'));
-      // expect(auth.realtimeUrl, equals('wss://realtime.example.com'));
+      final auth = await _loadFromSecureStorage(secureStorage);
 
-      // Verify round-trip: read back directly from SecureStorage
-      // matches what was written — proves the storage layer is wired.
+      // Returned auth object must have matching fields.
       expect(
-        await secureStorage.read(key: backgroundWorkerTokenKey),
+        auth.token,
         equals('jwt-token-123'),
-        reason: 'Token must round-trip through SecureStorage '
+        reason: 'Auth token must match persisted value '
             '(INV-SEC-LOAD-1)',
       );
       expect(
-        await secureStorage.read(key: backgroundWorkerUserIdKey),
+        auth.userId,
         equals('user-abc'),
-        reason: 'UserId must round-trip through SecureStorage '
+        reason: 'Auth userId must match persisted value '
             '(INV-SEC-LOAD-1)',
       );
       expect(
-        await secureStorage.read(key: backgroundWorkerServerIdKey),
+        auth.serverId,
         equals('server-xyz'),
-        reason: 'ServerId must round-trip through SecureStorage '
+        reason: 'Auth serverId must match persisted value '
             '(INV-SEC-LOAD-1)',
       );
       expect(
-        await secureStorage.read(key: backgroundWorkerRealtimeUrlKey),
+        auth.realtimeUrl,
         equals('wss://realtime.example.com'),
-        reason: 'RealtimeUrl must round-trip through SecureStorage '
+        reason: 'Auth realtimeUrl must match persisted value '
             '(INV-SEC-LOAD-1)',
       );
     },
@@ -236,8 +212,8 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-SEC-LOAD-2: load() returns null tokens when nothing is stored.
   //
-  // Setup: Empty FakeSecureStorage, call load path, verify token/
-  // userId/serverId are null and realtimeUrl has fallback.
+  // Setup: Empty FakeSecureStorage, call _loadFromSecureStorage, verify
+  // token/userId/serverId are null and realtimeUrl has fallback.
   //
   // skip:true — load() still reads from SharedPreferences.
   // -----------------------------------------------------------------------
@@ -248,42 +224,36 @@ void main() {
     () async {
       final secureStorage = _FakeSecureStorage();
 
-      // Empty SecureStorage — no credentials stored.
-      // Phase B: load() will use SecureStorage.
+      // Phase B: Replace with
       // final auth = await BackgroundWorkerAuthPersistence.load(
       //   storage: secureStorage,
       // );
-      //
-      // expect(auth.token, isNull);
-      // expect(auth.userId, isNull);
-      // expect(auth.serverId, isNull);
-      // expect(auth.realtimeUrl, equals('wss://realtime.slock.invalid'));
+      final auth = await _loadFromSecureStorage(secureStorage);
 
-      // Verify empty SecureStorage returns null for all credential keys.
+      // Empty storage → null/fallback fields.
       expect(
-        await secureStorage.read(key: backgroundWorkerTokenKey),
+        auth.token,
         isNull,
-        reason: 'Empty storage must return null token '
+        reason: 'Auth token must be null when nothing stored '
             '(INV-SEC-LOAD-2)',
       );
       expect(
-        await secureStorage.read(key: backgroundWorkerUserIdKey),
+        auth.userId,
         isNull,
-        reason: 'Empty storage must return null userId '
+        reason: 'Auth userId must be null when nothing stored '
             '(INV-SEC-LOAD-2)',
       );
       expect(
-        await secureStorage.read(key: backgroundWorkerServerIdKey),
+        auth.serverId,
         isNull,
-        reason: 'Empty storage must return null serverId '
+        reason: 'Auth serverId must be null when nothing stored '
             '(INV-SEC-LOAD-2)',
       );
       expect(
-        await secureStorage.read(key: backgroundWorkerRealtimeUrlKey),
-        isNull,
-        reason: 'Empty storage must return null realtimeUrl '
-            '(fallback applied at auth object level) '
-            '(INV-SEC-LOAD-2)',
+        auth.realtimeUrl,
+        equals('wss://realtime.slock.invalid'),
+        reason: 'Auth realtimeUrl must fall back to default when '
+            'nothing stored (INV-SEC-LOAD-2)',
       );
     },
   );
@@ -325,9 +295,66 @@ void main() {
 }
 
 // ---------------------------------------------------------------------------
-// Test-local fake implementing the real SecureStorage interface.
-// Phase B: tests will inject this into persist()/clear()/load() via
-// the injection seam that Phase B adds to BackgroundWorkerAuthPersistence.
+// Test-local contract functions.
+//
+// These mirror the Phase B API of BackgroundWorkerAuthPersistence with
+// an injected SecureStorage parameter. Phase B replaces these calls
+// with the real static methods (un-skip only, no assertion rewrite).
+//
+// persist  → BackgroundWorkerAuthPersistence.persist(storage: ...)
+// clear    → BackgroundWorkerAuthPersistence.clear(storage: ...)
+// load     → BackgroundWorkerAuthPersistence.load(storage: ...)
+// ---------------------------------------------------------------------------
+
+/// Test-local persist: writes all 4 credential keys to [storage].
+/// Phase B: Replace calls with
+/// `BackgroundWorkerAuthPersistence.persist(storage: storage, ...)`.
+Future<void> _persistViaSecureStorage(
+  SecureStorage storage, {
+  required String token,
+  required String userId,
+  required String serverId,
+  required String realtimeUrl,
+}) async {
+  await Future.wait([
+    storage.write(key: backgroundWorkerTokenKey, value: token),
+    storage.write(key: backgroundWorkerUserIdKey, value: userId),
+    storage.write(key: backgroundWorkerServerIdKey, value: serverId),
+    storage.write(key: backgroundWorkerRealtimeUrlKey, value: realtimeUrl),
+  ]);
+}
+
+/// Test-local clear: removes all 4 credential keys from [storage].
+/// Phase B: Replace calls with
+/// `BackgroundWorkerAuthPersistence.clear(storage: storage)`.
+Future<void> _clearViaSecureStorage(SecureStorage storage) async {
+  await Future.wait([
+    storage.delete(key: backgroundWorkerTokenKey),
+    storage.delete(key: backgroundWorkerUserIdKey),
+    storage.delete(key: backgroundWorkerServerIdKey),
+    storage.delete(key: backgroundWorkerRealtimeUrlKey),
+  ]);
+}
+
+/// Test-local load: reads credentials from [storage] and returns
+/// a [BackgroundAuthProvider] — the same interface that
+/// `_SharedPrefsAuthProvider` implements.
+/// Phase B: Replace calls with
+/// `BackgroundWorkerAuthPersistence.load(storage: storage)`.
+Future<BackgroundAuthProvider> _loadFromSecureStorage(
+  SecureStorage storage,
+) async {
+  return _SecureStorageAuthProvider(
+    token: await storage.read(key: backgroundWorkerTokenKey),
+    userId: await storage.read(key: backgroundWorkerUserIdKey),
+    serverId: await storage.read(key: backgroundWorkerServerIdKey),
+    realtimeUrl: await storage.read(key: backgroundWorkerRealtimeUrlKey) ??
+        'wss://realtime.slock.invalid',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Test-local fakes
 // ---------------------------------------------------------------------------
 
 /// In-memory [SecureStorage] implementation for testing.
@@ -349,4 +376,28 @@ class _FakeSecureStorage implements SecureStorage {
   Future<void> delete({required String key}) async {
     store.remove(key);
   }
+}
+
+/// Test-local [BackgroundAuthProvider] returned by [_loadFromSecureStorage].
+/// Mirrors `_SharedPrefsAuthProvider` from background_notification_entrypoint
+/// — same fields, same fallback logic for [realtimeUrl].
+class _SecureStorageAuthProvider implements BackgroundAuthProvider {
+  const _SecureStorageAuthProvider({
+    required this.token,
+    required this.userId,
+    required this.serverId,
+    required this.realtimeUrl,
+  });
+
+  @override
+  final String? token;
+
+  @override
+  final String? userId;
+
+  @override
+  final String? serverId;
+
+  @override
+  final String realtimeUrl;
 }
