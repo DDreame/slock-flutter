@@ -508,10 +508,7 @@ class _TasksListSurfaceState extends State<_TasksListSurface> {
   }
 
   bool get _showFilterBar {
-    // Show filter bar when at least one channel exists with tasks.
-    // The "All" chip provides accessible context even with a single
-    // channel.
-    return _filterChannelIds().isNotEmpty;
+    return _filterChannelIds().length > 1;
   }
 
   @override

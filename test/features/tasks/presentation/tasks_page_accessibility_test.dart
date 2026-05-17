@@ -87,6 +87,7 @@ void main() {
             status: TasksStatus.success,
             items: [
               _taskItem(id: 't1', status: 'todo', channelId: 'ch-1'),
+              _taskItem(id: 't2', status: 'todo', channelId: 'ch-2'),
             ],
           ),
         );
@@ -114,6 +115,7 @@ void main() {
             status: TasksStatus.success,
             items: [
               _taskItem(id: 't1', status: 'todo', channelId: 'ch-1'),
+              _taskItem(id: 't2', status: 'todo', channelId: 'ch-2'),
             ],
           ),
         );
