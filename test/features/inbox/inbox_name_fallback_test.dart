@@ -137,7 +137,6 @@ void main() {
   group('INV-INBOX-NAME-1: channel name fallback from local store', () {
     test(
       'resolves channel name from local store when API channelName is null',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver(
           channelNames: {'ch-123': 'engineering'},
@@ -157,7 +156,6 @@ void main() {
 
     test(
       'resolves channel name from local store when API channelName is empty',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver(
           channelNames: {'ch-456': 'design'},
@@ -177,7 +175,6 @@ void main() {
 
     test(
       'prefers API channelName over local store when API value is present',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver(
           channelNames: {'ch-789': 'stale-name'},
@@ -197,7 +194,6 @@ void main() {
 
     test(
       'source label uses local store name when API channelName is null',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver(
           channelNames: {'ch-123': 'general'},
@@ -224,7 +220,6 @@ void main() {
     test(
       'resolves sender name from local member store when API senderName '
       'is null',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver(
           memberNames: {'user-abc': 'Alice Chen'},
@@ -241,7 +236,6 @@ void main() {
 
     test(
       'resolves sender name from local store when API senderName is empty',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver(
           memberNames: {'user-def': 'Bob'},
@@ -258,7 +252,6 @@ void main() {
 
     test(
       'resolves agent name from local store when API senderName is null',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver(
           memberNames: {'agent-j1': 'J1'},
@@ -275,7 +268,6 @@ void main() {
 
     test(
       'prefers API senderName over local store when API value is present',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver(
           memberNames: {'user-abc': 'Stale Name'},
@@ -298,7 +290,6 @@ void main() {
     test(
       'channel title falls back to channelId when API and local store '
       'both miss',
-      skip: true,
       () {
         // Empty local store — no data for this channel.
         final resolver = _TestableInboxNameResolver();
@@ -317,7 +308,6 @@ void main() {
 
     test(
       'channel source label falls back to #channelId when all sources miss',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver();
 
@@ -335,7 +325,6 @@ void main() {
 
     test(
       'DM source label falls back to "Unknown" when all sources miss',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver();
 
@@ -353,7 +342,6 @@ void main() {
 
     test(
       'sender name returns null when API and local store both miss',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver();
 
@@ -368,7 +356,6 @@ void main() {
 
     test(
       'sender name returns null when senderId itself is null',
-      skip: true,
       () {
         final resolver = _TestableInboxNameResolver();
 
