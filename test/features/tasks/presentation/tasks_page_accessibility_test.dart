@@ -337,7 +337,7 @@ void main() {
     );
 
     testWidgets(
-      'task row includes assignee name in semantic description',
+      'task row includes assignee name in combined semantic description',
       skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
@@ -358,12 +358,14 @@ void main() {
         await tester.pumpWidget(_buildApp(store));
         await tester.pumpAndSettle();
 
-        // Combined announcement must include assignee name.
+        // Combined row announcement must include title + status + assignee
+        // in a single Semantics label/description. This pins the contract
+        // that all three pieces appear together, not just in isolation.
         expect(
-          find.bySemanticsLabel(RegExp(r'Bob')),
+          find.bySemanticsLabel(RegExp(r'Fix login bug.*In\s*Progress.*Bob')),
           findsOneWidget,
           reason:
-              'Task row must include assignee name in Semantics description',
+              'Task row must combine title + status + assignee in Semantics label',
         );
 
         handle.dispose();
