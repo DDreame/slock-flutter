@@ -19,6 +19,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
@@ -1507,6 +1508,89 @@ void main() {
       );
       expect(container.read(pendingDeepLinkProvider), isNull);
     });
+
+    // -----------------------------------------------------------------
+    // INV-DEEPLINK-ROUTER: Channel deep link with ?messageId= query
+    // param navigates and preserves the messageId through to the
+    // destination route.
+    //
+    // This test is part of #536 Phase A: it locks the router seam to
+    // prove that once resolveNotificationRoute() produces a URL with
+    // ?messageId=, the router correctly delivers it to the page.
+    //
+    // skip:true — resolveNotificationRoute currently drops messageId
+    // so the full pipeline from notification payload → router → page
+    // never produces this URL. Phase B fix will enable it.
+    // -----------------------------------------------------------------
+    testWidgets(
+      'channel deep link with messageId preserves query param '
+      '(INV-DEEPLINK-ROUTER)',
+      skip: true,
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              _FakeServerListRepository(['server-1']),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        await container.read(serverListStoreProvider.notifier).load();
+        container.read(appReadyProvider.notifier).state = true;
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        container.read(pendingDeepLinkProvider.notifier).state =
+            '/servers/server-1/channels/general?messageId=msg-target-1';
+        await tester.pumpAndSettle();
+
+        final routeUri = router.routeInformationProvider.value.uri;
+        expect(routeUri.path, '/servers/server-1/channels/general');
+        expect(
+          routeUri.queryParameters['messageId'],
+          'msg-target-1',
+          reason: 'Router must preserve messageId query param from deep '
+              'link (INV-DEEPLINK-ROUTER)',
+        );
+        expect(container.read(pendingDeepLinkProvider), isNull);
+
+        // Verify the destination page widget received highlightMessageId.
+        // ChannelPage is the routed destination for
+        // /servers/:serverId/channels/:channelId. The router reads
+        // state.uri.queryParameters['messageId'] (app_router.dart:319)
+        // and passes it as the highlightMessageId constructor param.
+        // This mirrors the existing seam locked in
+        // conversation_detail_page_test.dart:1285-1328.
+        final channelPage = tester.widget<ChannelPage>(
+          find.byType(ChannelPage),
+        );
+        expect(
+          channelPage.highlightMessageId,
+          'msg-target-1',
+          reason: 'Destination ChannelPage must receive '
+              'highlightMessageId from router query param '
+              '(INV-DEEPLINK-ROUTER)',
+        );
+      },
+    );
 
     testWidgets('agent deep link navigates from /home', (tester) async {
       final container = ProviderContainer(
