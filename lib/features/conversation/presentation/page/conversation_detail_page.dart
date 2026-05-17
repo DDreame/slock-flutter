@@ -1965,6 +1965,7 @@ class _ConversationComposer extends StatelessWidget {
                         controller: controller,
                         canSend: state.canSend,
                         onSend: onSend,
+                        onTextChanged: onChanged,
                       ),
                       child: TextField(
                         key: const ValueKey('composer-input'),

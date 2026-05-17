@@ -110,6 +110,7 @@ void main() {
     '(INV-KBSHORTCUT-2)',
     (tester) async {
       var sendCalled = false;
+      String? lastTextChanged;
       final controller = TextEditingController(text: 'Hello');
       final focusNode = FocusNode();
 
@@ -122,6 +123,7 @@ void main() {
               focusNode: focusNode,
               enterToSend: true,
               onSend: () => sendCalled = true,
+              onTextChanged: (text) => lastTextChanged = text,
             ),
           ),
         ),
@@ -151,6 +153,22 @@ void main() {
         controller.text,
         contains('\n'),
         reason: 'Shift+Enter must insert a newline into composer text '
+            '(INV-KBSHORTCUT-2)',
+      );
+
+      // onTextChanged must fire with the newline text so draft state
+      // stays in sync (production bug fix — programmatic controller
+      // mutations don't fire TextField.onChanged).
+      expect(
+        lastTextChanged,
+        isNotNull,
+        reason: 'onTextChanged must fire after Shift+Enter newline '
+            '(INV-KBSHORTCUT-2)',
+      );
+      expect(
+        lastTextChanged,
+        contains('\n'),
+        reason: 'onTextChanged text must contain the inserted newline '
             '(INV-KBSHORTCUT-2)',
       );
 
@@ -351,12 +369,14 @@ class _TestComposer extends StatelessWidget {
     required this.focusNode,
     required this.enterToSend,
     required this.onSend,
+    this.onTextChanged,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enterToSend;
   final VoidCallback onSend;
+  final ValueChanged<String>? onTextChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -368,6 +388,7 @@ class _TestComposer extends StatelessWidget {
         controller: controller,
         canSend: true,
         onSend: onSend,
+        onTextChanged: onTextChanged,
       ),
       child: TextField(
         key: const ValueKey('composer-input'),
