@@ -13,8 +13,10 @@
 //      of locale-aware separator.
 //
 // Phase A: skip:true invariants locking the i18n contracts.
-//          Tests load AppLocalizations for 'en' locale and verify that
-//          resolver / status functions return English l10n strings.
+//          Tests load AppLocalizations for BOTH 'en' and 'zh' locales and
+//          verify resolver / status functions produce locale-appropriate
+//          output. Multi-locale assertions prove l10n wiring — hardcoding
+//          either language fails the other locale's check.
 //
 // Invariants verified:
 // INV-I18N-PREVIEW-1: All 10 preview constants resolve via AppLocalizations
@@ -32,138 +34,234 @@ import 'package:slock_app/features/inbox/application/message_preview_resolver.da
 import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
-  /// Load English AppLocalizations for assertion.
-  late AppLocalizations l10n;
+  /// English and Chinese AppLocalizations for dual-locale assertions.
+  late AppLocalizations enL10n;
+  late AppLocalizations zhL10n;
 
   setUpAll(() async {
-    l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    enL10n = await AppLocalizations.delegate.load(const Locale('en'));
+    zhL10n = await AppLocalizations.delegate.load(const Locale('zh'));
   });
 
   // -----------------------------------------------------------------------
   // INV-I18N-PREVIEW-1: All 10 preview constants resolve via l10n
+  //
+  // Each test passes both en and zh l10n to the same API and verifies:
+  //   1. en result matches en ARB value
+  //   2. zh result matches zh ARB value
+  //   3. en and zh results differ (proves wiring, not hardcoding)
   // -----------------------------------------------------------------------
   group('INV-I18N-PREVIEW-1: preview constants use l10n', () {
     test(
-      'deleted preview resolves to English l10n string',
+      'deleted preview resolves per locale',
       () {
-        final result = MessagePreviewResolver.resolve(isDeleted: true);
-        expect(result, equals(l10n.previewDeleted),
-            reason: 'Deleted preview must use l10n, not hardcoded Chinese');
-        expect(result, isNot(contains('消息已删除')),
-            reason: 'Must not contain hardcoded Chinese');
+        expect(enL10n.previewDeleted, isNot(equals(zhL10n.previewDeleted)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        final enResult =
+            MessagePreviewResolver.resolve(l10n: enL10n, isDeleted: true);
+        final zhResult =
+            MessagePreviewResolver.resolve(l10n: zhL10n, isDeleted: true);
+
+        expect(enResult, equals(enL10n.previewDeleted),
+            reason: 'English locale must return English deleted preview');
+        expect(zhResult, equals(zhL10n.previewDeleted),
+            reason: 'Chinese locale must return Chinese deleted preview');
+        expect(enResult, isNot(equals(zhResult)),
+            reason: 'Locales must produce different results');
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
-      'sending preview resolves to English l10n string',
+      'sending preview resolves per locale',
       () {
-        final result = MessagePreviewResolver.resolve(
+        expect(enL10n.previewSending, isNot(equals(zhL10n.previewSending)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        final enResult = MessagePreviewResolver.resolve(
+          l10n: enL10n,
           sendState: MessageSendState.sending,
         );
-        expect(result, equals(l10n.previewSending));
-        expect(result, isNot(contains('正在发送')));
+        final zhResult = MessagePreviewResolver.resolve(
+          l10n: zhL10n,
+          sendState: MessageSendState.sending,
+        );
+
+        expect(enResult, equals(enL10n.previewSending));
+        expect(zhResult, equals(zhL10n.previewSending));
+        expect(enResult, isNot(equals(zhResult)));
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
-      'failed preview resolves to English l10n string',
+      'failed preview resolves per locale',
       () {
-        final result = MessagePreviewResolver.resolve(
+        expect(enL10n.previewFailed, isNot(equals(zhL10n.previewFailed)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        final enResult = MessagePreviewResolver.resolve(
+          l10n: enL10n,
           sendState: MessageSendState.failed,
         );
-        expect(result, equals(l10n.previewFailed));
-        expect(result, isNot(contains('未发送')));
+        final zhResult = MessagePreviewResolver.resolve(
+          l10n: zhL10n,
+          sendState: MessageSendState.failed,
+        );
+
+        expect(enResult, equals(enL10n.previewFailed));
+        expect(zhResult, equals(zhL10n.previewFailed));
+        expect(enResult, isNot(equals(zhResult)));
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
-      'system preview resolves to English l10n string',
+      'system preview resolves per locale',
       () {
-        final result = MessagePreviewResolver.resolve(messageType: 'system');
-        expect(result, equals(l10n.previewSystem));
-        expect(result, isNot(contains('系统消息')));
+        expect(enL10n.previewSystem, isNot(equals(zhL10n.previewSystem)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        final enResult =
+            MessagePreviewResolver.resolve(l10n: enL10n, messageType: 'system');
+        final zhResult =
+            MessagePreviewResolver.resolve(l10n: zhL10n, messageType: 'system');
+
+        expect(enResult, equals(enL10n.previewSystem));
+        expect(zhResult, equals(zhL10n.previewSystem));
+        expect(enResult, isNot(equals(zhResult)));
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
-      'link preview resolves to English l10n string',
+      'link preview resolves per locale',
       () {
-        final result = MessagePreviewResolver.resolve(
+        expect(enL10n.previewLink, isNot(equals(zhL10n.previewLink)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        final enResult = MessagePreviewResolver.resolve(
+          l10n: enL10n,
           content: 'https://example.com',
         );
-        expect(result, equals(l10n.previewLink));
-        expect(result, isNot(equals('链接')));
-      },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
-    );
-
-    test(
-      'voice preview resolves to English l10n string',
-      () {
-        final result = MessagePreviewResolver.resolve(
-          attachments: const [
-            MessageAttachment(
-              name: 'recording.ogg',
-              type: 'audio/ogg',
-              url: 'https://example.com/audio.ogg',
-              id: 'att-1',
-            ),
-          ],
+        final zhResult = MessagePreviewResolver.resolve(
+          l10n: zhL10n,
+          content: 'https://example.com',
         );
-        expect(result, equals(l10n.previewVoice));
-        expect(result, isNot(contains('语音消息')));
+
+        expect(enResult, equals(enL10n.previewLink));
+        expect(zhResult, equals(zhL10n.previewLink));
+        expect(enResult, isNot(equals(zhResult)));
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
-      'image preview resolves to English l10n string',
+      'voice preview resolves per locale',
       () {
-        final result = MessagePreviewResolver.resolve(
-          attachments: const [
-            MessageAttachment(
-              name: 'photo.jpg',
-              type: 'image/jpeg',
-              url: 'https://example.com/photo.jpg',
-              id: 'att-1',
-            ),
-          ],
+        expect(enL10n.previewVoice, isNot(equals(zhL10n.previewVoice)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        const voiceAttachment = [
+          MessageAttachment(
+            name: 'recording.ogg',
+            type: 'audio/ogg',
+            url: 'https://example.com/audio.ogg',
+            id: 'att-1',
+          ),
+        ];
+
+        final enResult = MessagePreviewResolver.resolve(
+          l10n: enL10n,
+          attachments: voiceAttachment,
         );
-        expect(result, equals(l10n.previewImage));
-        expect(result, isNot(equals('图片')));
-      },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
-    );
-
-    test(
-      'video preview resolves to English l10n string',
-      () {
-        final result = MessagePreviewResolver.resolve(
-          attachments: const [
-            MessageAttachment(
-              name: 'clip.mp4',
-              type: 'video/mp4',
-              url: 'https://example.com/clip.mp4',
-              id: 'att-1',
-            ),
-          ],
+        final zhResult = MessagePreviewResolver.resolve(
+          l10n: zhL10n,
+          attachments: voiceAttachment,
         );
-        expect(result, equals(l10n.previewVideo));
-        expect(result, isNot(equals('视频')));
+
+        expect(enResult, equals(enL10n.previewVoice));
+        expect(zhResult, equals(zhL10n.previewVoice));
+        expect(enResult, isNot(equals(zhResult)));
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
 
     test(
-      'fallback preview resolves to English l10n string',
+      'image preview resolves per locale',
       () {
-        final result = MessagePreviewResolver.resolve();
-        expect(result, equals(l10n.previewFallback));
-        expect(result, isNot(equals('新消息')));
+        expect(enL10n.previewImage, isNot(equals(zhL10n.previewImage)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        const imageAttachment = [
+          MessageAttachment(
+            name: 'photo.jpg',
+            type: 'image/jpeg',
+            url: 'https://example.com/photo.jpg',
+            id: 'att-1',
+          ),
+        ];
+
+        final enResult = MessagePreviewResolver.resolve(
+          l10n: enL10n,
+          attachments: imageAttachment,
+        );
+        final zhResult = MessagePreviewResolver.resolve(
+          l10n: zhL10n,
+          attachments: imageAttachment,
+        );
+
+        expect(enResult, equals(enL10n.previewImage));
+        expect(zhResult, equals(zhL10n.previewImage));
+        expect(enResult, isNot(equals(zhResult)));
+      },
+      skip: 'Phase A: invariant locked — Phase B wires l10n',
+    );
+
+    test(
+      'video preview resolves per locale',
+      () {
+        expect(enL10n.previewVideo, isNot(equals(zhL10n.previewVideo)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        const videoAttachment = [
+          MessageAttachment(
+            name: 'clip.mp4',
+            type: 'video/mp4',
+            url: 'https://example.com/clip.mp4',
+            id: 'att-1',
+          ),
+        ];
+
+        final enResult = MessagePreviewResolver.resolve(
+          l10n: enL10n,
+          attachments: videoAttachment,
+        );
+        final zhResult = MessagePreviewResolver.resolve(
+          l10n: zhL10n,
+          attachments: videoAttachment,
+        );
+
+        expect(enResult, equals(enL10n.previewVideo));
+        expect(zhResult, equals(zhL10n.previewVideo));
+        expect(enResult, isNot(equals(zhResult)));
+      },
+      skip: 'Phase A: invariant locked — Phase B wires l10n',
+    );
+
+    test(
+      'fallback preview resolves per locale',
+      () {
+        expect(enL10n.previewFallback, isNot(equals(zhL10n.previewFallback)),
+            reason: 'Precondition: en/zh ARB values must differ');
+
+        final enResult = MessagePreviewResolver.resolve(l10n: enL10n);
+        final zhResult = MessagePreviewResolver.resolve(l10n: zhL10n);
+
+        expect(enResult, equals(enL10n.previewFallback));
+        expect(zhResult, equals(zhL10n.previewFallback));
+        expect(enResult, isNot(equals(zhResult)));
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
@@ -174,23 +272,40 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-I18N-PREVIEW-2: attachment preview l10n template', () {
     test(
-      'generic attachment preview uses l10n template with filename',
+      'generic attachment preview uses l10n template per locale',
       () {
-        final result = MessagePreviewResolver.resolve(
-          attachments: const [
-            MessageAttachment(
-              name: 'document.pdf',
-              type: 'application/pdf',
-              url: 'https://example.com/doc.pdf',
-              id: 'att-1',
-            ),
-          ],
+        const filename = 'document.pdf';
+
+        expect(
+          enL10n.previewAttachment(filename),
+          isNot(equals(zhL10n.previewAttachment(filename))),
+          reason: 'Precondition: en/zh attachment templates must differ',
         );
-        // Phase B: resolve returns l10n.previewAttachment('document.pdf')
-        expect(result, equals(l10n.previewAttachment('document.pdf')),
-            reason: 'Attachment preview must use l10n template');
-        expect(result, isNot(startsWith('附件')),
-            reason: 'Must not use hardcoded Chinese prefix');
+
+        const pdfAttachment = [
+          MessageAttachment(
+            name: filename,
+            type: 'application/pdf',
+            url: 'https://example.com/doc.pdf',
+            id: 'att-1',
+          ),
+        ];
+
+        final enResult = MessagePreviewResolver.resolve(
+          l10n: enL10n,
+          attachments: pdfAttachment,
+        );
+        final zhResult = MessagePreviewResolver.resolve(
+          l10n: zhL10n,
+          attachments: pdfAttachment,
+        );
+
+        expect(enResult, equals(enL10n.previewAttachment(filename)),
+            reason: 'English attachment must use l10n template');
+        expect(zhResult, equals(zhL10n.previewAttachment(filename)),
+            reason: 'Chinese attachment must use l10n template');
+        expect(enResult, isNot(equals(zhResult)),
+            reason: 'Locales must produce different templates');
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );
@@ -201,36 +316,36 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-I18N-STATUS-1: agent status labels use l10n', () {
     test(
-      'all 6 displayStatusLabel values resolve to English l10n strings',
+      'all 6 displayStatusLabel values resolve per locale',
       () {
-        final expected = {
-          AgentDisplayStatus.thinking: l10n.agentStatusThinking,
-          AgentDisplayStatus.working: l10n.agentStatusWorking,
-          AgentDisplayStatus.error: l10n.agentStatusError,
-          AgentDisplayStatus.online: l10n.agentStatusOnline,
-          AgentDisplayStatus.offline: l10n.agentStatusOffline,
-          AgentDisplayStatus.stopped: l10n.agentStatusStopped,
+        final enExpected = {
+          AgentDisplayStatus.thinking: enL10n.agentStatusThinking,
+          AgentDisplayStatus.working: enL10n.agentStatusWorking,
+          AgentDisplayStatus.error: enL10n.agentStatusError,
+          AgentDisplayStatus.online: enL10n.agentStatusOnline,
+          AgentDisplayStatus.offline: enL10n.agentStatusOffline,
+          AgentDisplayStatus.stopped: enL10n.agentStatusStopped,
+        };
+        final zhExpected = {
+          AgentDisplayStatus.thinking: zhL10n.agentStatusThinking,
+          AgentDisplayStatus.working: zhL10n.agentStatusWorking,
+          AgentDisplayStatus.error: zhL10n.agentStatusError,
+          AgentDisplayStatus.online: zhL10n.agentStatusOnline,
+          AgentDisplayStatus.offline: zhL10n.agentStatusOffline,
+          AgentDisplayStatus.stopped: zhL10n.agentStatusStopped,
         };
 
-        for (final entry in expected.entries) {
-          final result = displayStatusLabel(entry.key);
-          expect(result, equals(entry.value),
-              reason:
-                  '${entry.key.name} label must resolve via l10n to "${entry.value}"');
-        }
-      },
-      skip: 'Phase A: invariant locked — Phase B wires l10n',
-    );
-
-    test(
-      'displayStatusLabel does not return hardcoded Chinese',
-      () {
-        const chineseLabels = ['思考中', '工作中', '错误', '在线', '离线', '已停止'];
         for (final status in AgentDisplayStatus.values) {
-          final result = displayStatusLabel(status);
-          expect(chineseLabels.contains(result), isFalse,
+          final enResult = displayStatusLabel(status, l10n: enL10n);
+          final zhResult = displayStatusLabel(status, l10n: zhL10n);
+
+          expect(enResult, equals(enExpected[status]),
+              reason: '${status.name} English label must match en l10n value');
+          expect(zhResult, equals(zhExpected[status]),
+              reason: '${status.name} Chinese label must match zh l10n value');
+          expect(enResult, isNot(equals(zhResult)),
               reason:
-                  '${status.name} must not return hardcoded Chinese "$result"');
+                  '${status.name} must produce different results per locale');
         }
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
@@ -239,6 +354,10 @@ void main() {
 
   // -----------------------------------------------------------------------
   // INV-I18N-GROUP-1: mergedSummary uses locale-aware separator
+  //
+  // mergedSummary delegates to displayStatusLabel() — once that is l10n-wired
+  // (INV-I18N-STATUS-1), the summary inherits locale-correct labels.
+  // This test additionally pins the separator: must be ', ' (not '、').
   // -----------------------------------------------------------------------
   group('INV-I18N-GROUP-1: mergedSummary locale-aware separator', () {
     test(
@@ -278,7 +397,7 @@ void main() {
         expect(summary, contains(', '),
             reason: 'mergedSummary must use locale-aware comma separator');
 
-        // Status label must be l10n English, not Chinese.
+        // Status label must be l10n-resolved, not hardcoded Chinese.
         expect(summary, isNot(contains('思考中')),
             reason: 'Status label must not be hardcoded Chinese');
       },

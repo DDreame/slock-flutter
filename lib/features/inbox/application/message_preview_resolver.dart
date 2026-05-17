@@ -1,4 +1,5 @@
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 /// Send state of an outgoing message for preview resolution.
 enum MessageSendState {
@@ -52,12 +53,16 @@ class MessagePreviewResolver {
   static const fallbackPreview = '新消息';
 
   /// Resolves preview from structured message metadata.
+  ///
+  /// When [l10n] is provided, resolves labels through the ARB l10n system.
+  /// When null, falls back to hardcoded constants (legacy behavior).
   static String resolve({
     String? content,
     String? messageType,
     bool isDeleted = false,
     List<MessageAttachment>? attachments,
     MessageSendState sendState = MessageSendState.sent,
+    AppLocalizations? l10n,
   }) {
     if (isDeleted) return deletedPreview;
     if (sendState == MessageSendState.sending) return sendingPreview;
