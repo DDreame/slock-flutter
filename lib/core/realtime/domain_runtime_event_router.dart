@@ -18,6 +18,7 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -406,7 +407,10 @@ void _handleMessageNew(
   final matchedDirectMessage =
       _matchDirectMessageScopeId(homeState, incoming.conversationId);
 
-  final preview = MessagePreviewResolver.resolveFromMessage(incoming.message);
+  final preview = MessagePreviewResolver.resolveFromMessage(
+    incoming.message,
+    l10n: ref.read(appLocalizationsProvider),
+  );
 
   final notifier = ref.read(homeListStoreProvider.notifier);
 
@@ -518,7 +522,10 @@ void _handleMessageUpdated(Ref ref, RealtimeEventEnvelope event) {
 
   final notifier = ref.read(homeListStoreProvider.notifier);
 
-  final preview = MessagePreviewResolver.resolve(content: updated.content);
+  final preview = MessagePreviewResolver.resolve(
+    l10n: ref.read(appLocalizationsProvider),
+    content: updated.content,
+  );
 
   unawaited(ref.read(homeRepositoryProvider).persistConversationPreviewUpdate(
         serverId: homeState.serverScopeId!,

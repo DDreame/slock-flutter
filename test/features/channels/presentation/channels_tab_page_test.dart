@@ -30,6 +30,7 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -129,6 +130,9 @@ void main() {
 
     return ProviderScope(
       overrides: [
+        appLocalizationsProvider.overrideWithValue(
+          lookupAppLocalizations(const Locale('en')),
+        ),
         activeServerScopeIdProvider.overrideWithValue(activeServerId),
         homeRepositoryProvider.overrideWithValue(homeRepository),
         sidebarOrderRepositoryProvider.overrideWithValue(
@@ -155,6 +159,7 @@ void main() {
       child: MaterialApp.router(
         routerConfig: effectiveRouter,
         theme: AppTheme.light,
+        locale: const Locale('en'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
       ),
@@ -468,6 +473,9 @@ void main() {
   }) async {
     final container = ProviderContainer(
       overrides: [
+        appLocalizationsProvider.overrideWithValue(
+          lookupAppLocalizations(const Locale('en')),
+        ),
         activeServerScopeIdProvider.overrideWithValue(serverId),
         homeRepositoryProvider.overrideWithValue(homeRepository),
         inboxRepositoryProvider.overrideWithValue(inboxRepository),
@@ -508,6 +516,7 @@ void main() {
         child: MaterialApp.router(
           routerConfig: router,
           theme: AppTheme.light,
+          locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
         ),
@@ -771,6 +780,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
+          locale: const Locale('en'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: HomeChannelRow(
               channel: channelSecret,

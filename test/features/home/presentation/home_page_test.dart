@@ -30,6 +30,7 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
 void main() {
@@ -154,7 +155,7 @@ void main() {
         expect(
           find.descendant(
             of: card,
-            matching: find.text('Alpha 工作中'),
+            matching: find.text('Alpha Working'),
           ),
           findsOneWidget,
           reason: 'Working group summary',
@@ -162,7 +163,7 @@ void main() {
         expect(
           find.descendant(
             of: card,
-            matching: find.text('Beta 错误'),
+            matching: find.text('Beta Error'),
           ),
           findsOneWidget,
           reason: 'Error group summary',
@@ -170,7 +171,7 @@ void main() {
         expect(
           find.descendant(
             of: card,
-            matching: find.text('Delta 在线'),
+            matching: find.text('Delta Online'),
           ),
           findsOneWidget,
           reason: 'Online group summary',
@@ -178,7 +179,7 @@ void main() {
         expect(
           find.descendant(
             of: card,
-            matching: find.text('Gamma 已停止'),
+            matching: find.text('Gamma Stopped'),
           ),
           findsOneWidget,
           reason: 'Stopped group summary',
@@ -309,7 +310,7 @@ void main() {
         // Merged summary contains all names (sorted alphabetically)
         expect(
           find.text(
-            'Agent 0、Agent 1、Agent 2、Agent 3、Agent 4 工作中',
+            'Agent 0, Agent 1, Agent 2, Agent 3, Agent 4 Working',
           ),
           findsOneWidget,
           reason: 'All same-status agents merged into one summary',
@@ -354,7 +355,7 @@ void main() {
 
         // Stopped agents produce a group summary, not empty state
         expect(
-          find.text('Stopped One、Stopped Two 已停止'),
+          find.text('Stopped One, Stopped Two Stopped'),
           findsOneWidget,
           reason: 'Stopped agents shown as group summary',
         );
@@ -423,17 +424,17 @@ void main() {
 
         // Three groups: working, online, stopped
         expect(
-          find.text('Worker 工作中'),
+          find.text('Worker Working'),
           findsOneWidget,
           reason: 'Working group summary',
         );
         expect(
-          find.text('Online 1 在线'),
+          find.text('Online 1 Online'),
           findsOneWidget,
           reason: 'Online group summary',
         );
         expect(
-          find.text('Stopped 1、Stopped 2 已停止'),
+          find.text('Stopped 1, Stopped 2 Stopped'),
           findsOneWidget,
           reason: 'Stopped group merges both agents',
         );
@@ -479,14 +480,14 @@ void main() {
 
         // Active worker in working group
         expect(
-          find.text('Worker 工作中'),
+          find.text('Worker Working'),
           findsOneWidget,
           reason: 'Active working agent in working group',
         );
 
         // Stopped agent with stale online activity → stopped group
         expect(
-          find.text('Stale 已停止'),
+          find.text('Stale Stopped'),
           findsOneWidget,
           reason: 'Stopped agent with stale activity '
               'resolves to stopped group',
@@ -494,7 +495,7 @@ void main() {
 
         // Should NOT appear in online group
         expect(
-          find.textContaining('Stale 在线'),
+          find.textContaining('Stale Online'),
           findsNothing,
           reason: 'Stopped agent must not inflate '
               'online group',
@@ -1245,6 +1246,9 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
+            appLocalizationsProvider.overrideWithValue(
+              lookupAppLocalizations(const Locale('en')),
+            ),
             activeServerScopeIdProvider.overrideWithValue(
               const ServerScopeId('server-1'),
             ),
@@ -1293,6 +1297,7 @@ void main() {
             child: MaterialApp.router(
               routerConfig: router,
               theme: AppTheme.light,
+              locale: const Locale('en'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
             ),
@@ -1339,6 +1344,9 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
+            appLocalizationsProvider.overrideWithValue(
+              lookupAppLocalizations(const Locale('en')),
+            ),
             activeServerScopeIdProvider.overrideWithValue(
               const ServerScopeId('server-1'),
             ),
@@ -1387,6 +1395,7 @@ void main() {
             child: MaterialApp.router(
               routerConfig: router,
               theme: AppTheme.light,
+              locale: const Locale('en'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
             ),
@@ -1459,6 +1468,9 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
+            appLocalizationsProvider.overrideWithValue(
+              lookupAppLocalizations(const Locale('en')),
+            ),
             activeServerScopeIdProvider.overrideWithValue(
               const ServerScopeId('server-1'),
             ),
@@ -1511,6 +1523,7 @@ void main() {
             child: MaterialApp.router(
               routerConfig: router,
               theme: AppTheme.light,
+              locale: const Locale('en'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
             ),
@@ -1779,6 +1792,9 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
+            appLocalizationsProvider.overrideWithValue(
+              lookupAppLocalizations(const Locale('en')),
+            ),
             activeServerScopeIdProvider.overrideWithValue(
               const ServerScopeId('server-1'),
             ),
@@ -1827,6 +1843,7 @@ void main() {
             child: MaterialApp.router(
               routerConfig: router,
               theme: AppTheme.light,
+              locale: const Locale('en'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
             ),
@@ -1858,6 +1875,9 @@ void main() {
 
         final container = ProviderContainer(
           overrides: [
+            appLocalizationsProvider.overrideWithValue(
+              lookupAppLocalizations(const Locale('en')),
+            ),
             activeServerScopeIdProvider.overrideWithValue(
               const ServerScopeId('server-1'),
             ),
@@ -1906,6 +1926,7 @@ void main() {
             child: MaterialApp.router(
               routerConfig: router,
               theme: AppTheme.light,
+              locale: const Locale('en'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
             ),
@@ -2201,6 +2222,7 @@ void main() {
             child: MaterialApp.router(
               routerConfig: router,
               theme: AppTheme.light,
+              locale: const Locale('en'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
             ),
@@ -2321,6 +2343,7 @@ void main() {
             child: MaterialApp.router(
               routerConfig: router,
               theme: AppTheme.light,
+              locale: const Locale('en'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
             ),
@@ -2511,6 +2534,9 @@ Widget _buildApp({
 }) {
   return ProviderScope(
     overrides: [
+      appLocalizationsProvider.overrideWithValue(
+        lookupAppLocalizations(const Locale('en')),
+      ),
       activeServerScopeIdProvider.overrideWithValue(
         const ServerScopeId('server-1'),
       ),
@@ -2536,6 +2562,7 @@ Widget _buildApp({
     child: MaterialApp.router(
       routerConfig: router,
       theme: AppTheme.light,
+      locale: const Locale('en'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
     ),

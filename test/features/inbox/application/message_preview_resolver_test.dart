@@ -1,8 +1,15 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
+  late AppLocalizations l10n;
+  setUpAll(() async {
+    l10n = await AppLocalizations.delegate.load(const Locale('zh'));
+  });
+
   group('MessagePreviewResolver.resolve', () {
     // ---------------------------------------------------------------
     // 1. Deleted messages
@@ -10,6 +17,7 @@ void main() {
     test('deleted message returns 消息已删除', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Hello',
           isDeleted: true,
         ),
@@ -20,6 +28,7 @@ void main() {
     test('deleted message with attachments still returns 消息已删除', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           isDeleted: true,
           attachments: const [
@@ -36,6 +45,7 @@ void main() {
     test('sending message returns 正在发送...', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Hello',
           sendState: MessageSendState.sending,
         ),
@@ -46,6 +56,7 @@ void main() {
     test('failed message returns 未发送，点击重试', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Hello',
           sendState: MessageSendState.failed,
         ),
@@ -56,6 +67,7 @@ void main() {
     test('sent message with content returns content', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Hello',
           sendState: MessageSendState.sent,
         ),
@@ -66,6 +78,7 @@ void main() {
     test('deleted wins over sending', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Hello',
           isDeleted: true,
           sendState: MessageSendState.sending,
@@ -77,6 +90,7 @@ void main() {
     test('sending wins over system', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Event',
           messageType: 'system',
           sendState: MessageSendState.sending,
@@ -88,6 +102,7 @@ void main() {
     test('failed wins over content', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Hello',
           sendState: MessageSendState.failed,
         ),
@@ -101,6 +116,7 @@ void main() {
     test('system message returns 系统消息', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'User joined the channel',
           messageType: 'system',
         ),
@@ -111,6 +127,7 @@ void main() {
     test('system message without content returns 系统消息', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           messageType: 'system',
         ),
@@ -123,35 +140,35 @@ void main() {
     // ---------------------------------------------------------------
     test('non-empty content returns content as-is', () {
       expect(
-        MessagePreviewResolver.resolve(content: 'Hello world'),
+        MessagePreviewResolver.resolve(l10n: l10n, content: 'Hello world'),
         'Hello world',
       );
     });
 
     test('content with leading/trailing whitespace is preserved', () {
       expect(
-        MessagePreviewResolver.resolve(content: '  hello  '),
+        MessagePreviewResolver.resolve(l10n: l10n, content: '  hello  '),
         '  hello  ',
       );
     });
 
     test('whitespace-only content falls through to fallback', () {
       expect(
-        MessagePreviewResolver.resolve(content: '   '),
+        MessagePreviewResolver.resolve(l10n: l10n, content: '   '),
         '新消息',
       );
     });
 
     test('null content falls through to fallback', () {
       expect(
-        MessagePreviewResolver.resolve(content: null),
+        MessagePreviewResolver.resolve(l10n: l10n, content: null),
         '新消息',
       );
     });
 
     test('empty content falls through to fallback', () {
       expect(
-        MessagePreviewResolver.resolve(content: ''),
+        MessagePreviewResolver.resolve(l10n: l10n, content: ''),
         '新消息',
       );
     });
@@ -159,6 +176,7 @@ void main() {
     test('mixed text with URL returns content as-is', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Check out https://example.com please',
         ),
         'Check out https://example.com please',
@@ -171,6 +189,7 @@ void main() {
     test('bare HTTP URL returns 链接', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'https://example.com/page',
         ),
         '链接',
@@ -180,6 +199,7 @@ void main() {
     test('bare HTTP URL with leading/trailing whitespace returns 链接', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '  https://example.com  ',
         ),
         '链接',
@@ -189,6 +209,7 @@ void main() {
     test('http (non-https) URL returns 链接', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'http://example.com',
         ),
         '链接',
@@ -198,6 +219,7 @@ void main() {
     test('URL with query string returns 链接', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'https://example.com/path?q=1&a=2',
         ),
         '链接',
@@ -206,7 +228,7 @@ void main() {
 
     test('non-URL text is not treated as link', () {
       expect(
-        MessagePreviewResolver.resolve(content: 'Hello world'),
+        MessagePreviewResolver.resolve(l10n: l10n, content: 'Hello world'),
         'Hello world',
       );
     });
@@ -217,6 +239,7 @@ void main() {
     test('voice attachment returns 语音消息', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: const [
             MessageAttachment(name: 'voice_123.m4a', type: 'audio/m4a'),
@@ -229,6 +252,7 @@ void main() {
     test('audio/mpeg attachment returns 语音消息', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: const [
             MessageAttachment(name: 'recording.mp3', type: 'audio/mpeg'),
@@ -244,6 +268,7 @@ void main() {
     test('image attachment returns 图片', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: const [
             MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
@@ -256,6 +281,7 @@ void main() {
     test('image/png attachment returns 图片', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: const [
             MessageAttachment(name: 'screenshot.png', type: 'image/png'),
@@ -271,6 +297,7 @@ void main() {
     test('video attachment returns 视频', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: const [
             MessageAttachment(name: 'clip.mp4', type: 'video/mp4'),
@@ -286,6 +313,7 @@ void main() {
     test('file attachment with name returns 附件: filename', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: const [
             MessageAttachment(name: 'report.pdf', type: 'application/pdf'),
@@ -301,6 +329,7 @@ void main() {
     test('non-empty content with attachments returns content', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Check this out',
           attachments: const [
             MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
@@ -316,6 +345,7 @@ void main() {
     test('deleted system message returns 消息已删除', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'System event',
           messageType: 'system',
           isDeleted: true,
@@ -330,6 +360,7 @@ void main() {
     test('multiple attachments uses first for type resolution', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: const [
             MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
@@ -346,6 +377,7 @@ void main() {
     test('null messageType with content returns content', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Hello',
           messageType: null,
         ),
@@ -356,6 +388,7 @@ void main() {
     test('messageType=message with content returns content', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: 'Hello',
           messageType: 'message',
         ),
@@ -369,6 +402,7 @@ void main() {
     test('empty attachments list falls to fallback', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: const [],
         ),
@@ -379,6 +413,7 @@ void main() {
     test('null attachments falls to fallback', () {
       expect(
         MessagePreviewResolver.resolve(
+          l10n: l10n,
           content: '',
           attachments: null,
         ),
@@ -397,7 +432,8 @@ void main() {
         messageType: 'message',
         reactions: const [],
       );
-      expect(MessagePreviewResolver.resolveFromMessage(msg), 'Hello');
+      expect(
+          MessagePreviewResolver.resolveFromMessage(msg, l10n: l10n), 'Hello');
     });
 
     test('resolves deleted message', () {
@@ -410,7 +446,8 @@ void main() {
         isDeleted: true,
         reactions: const [],
       );
-      expect(MessagePreviewResolver.resolveFromMessage(msg), '消息已删除');
+      expect(
+          MessagePreviewResolver.resolveFromMessage(msg, l10n: l10n), '消息已删除');
     });
 
     test('resolves system message', () {
@@ -422,7 +459,8 @@ void main() {
         messageType: 'system',
         reactions: const [],
       );
-      expect(MessagePreviewResolver.resolveFromMessage(msg), '系统消息');
+      expect(
+          MessagePreviewResolver.resolveFromMessage(msg, l10n: l10n), '系统消息');
     });
 
     test('resolves attachment-only message', () {
@@ -437,7 +475,7 @@ void main() {
         ],
         reactions: const [],
       );
-      expect(MessagePreviewResolver.resolveFromMessage(msg), '图片');
+      expect(MessagePreviewResolver.resolveFromMessage(msg, l10n: l10n), '图片');
     });
 
     test('resolves voice message', () {
@@ -452,7 +490,8 @@ void main() {
         ],
         reactions: const [],
       );
-      expect(MessagePreviewResolver.resolveFromMessage(msg), '语音消息');
+      expect(
+          MessagePreviewResolver.resolveFromMessage(msg, l10n: l10n), '语音消息');
     });
 
     test('resolves link-only message', () {
@@ -464,7 +503,7 @@ void main() {
         messageType: 'message',
         reactions: const [],
       );
-      expect(MessagePreviewResolver.resolveFromMessage(msg), '链接');
+      expect(MessagePreviewResolver.resolveFromMessage(msg, l10n: l10n), '链接');
     });
 
     test('resolves sending message', () {
@@ -479,6 +518,7 @@ void main() {
       expect(
         MessagePreviewResolver.resolveFromMessage(
           msg,
+          l10n: l10n,
           sendState: MessageSendState.sending,
         ),
         '正在发送...',
@@ -497,6 +537,7 @@ void main() {
       expect(
         MessagePreviewResolver.resolveFromMessage(
           msg,
+          l10n: l10n,
           sendState: MessageSendState.failed,
         ),
         '未发送，点击重试',
@@ -506,23 +547,23 @@ void main() {
 
   group('resolvePreviewText (backward compat)', () {
     test('returns raw preview when non-null and non-empty', () {
-      expect(resolvePreviewText('Hello world'), 'Hello world');
+      expect(resolvePreviewText('Hello world', l10n: l10n), 'Hello world');
     });
 
     test('returns 新消息 when preview is null', () {
-      expect(resolvePreviewText(null), '新消息');
+      expect(resolvePreviewText(null, l10n: l10n), '新消息');
     });
 
     test('returns 新消息 when preview is empty string', () {
-      expect(resolvePreviewText(''), '新消息');
+      expect(resolvePreviewText('', l10n: l10n), '新消息');
     });
 
     test('returns 新消息 when preview is whitespace-only', () {
-      expect(resolvePreviewText('   '), '新消息');
+      expect(resolvePreviewText('   ', l10n: l10n), '新消息');
     });
 
     test('preserves leading/trailing whitespace in non-empty preview', () {
-      expect(resolvePreviewText('  hello  '), '  hello  ');
+      expect(resolvePreviewText('  hello  ', l10n: l10n), '  hello  ');
     });
   });
 }

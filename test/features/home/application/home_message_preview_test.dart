@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -9,6 +10,8 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 import '../../../stores/session/session_store_persistence_test.dart'
@@ -43,6 +46,9 @@ void main() {
     final ingress = RealtimeReductionIngress();
     final container = ProviderContainer(
       overrides: [
+        appLocalizationsProvider.overrideWithValue(
+          lookupAppLocalizations(const Locale('en')),
+        ),
         secureStorageProvider.overrideWithValue(FakeSecureStorage()),
         authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
         realtimeReductionIngressProvider.overrideWithValue(ingress),
@@ -196,7 +202,7 @@ void main() {
       final homeState = container.read(homeListStoreProvider);
       final channel = homeState.channels
           .firstWhere((c) => c.scopeId.value == channelScopeId.value);
-      expect(channel.lastMessagePreview, '图片');
+      expect(channel.lastMessagePreview, 'Image');
     });
 
     test('empty non-attachment message shows fallback preview', () async {
@@ -224,7 +230,7 @@ void main() {
           .firstWhere((c) => c.scopeId.value == channelScopeId.value);
       expect(
         channel.lastMessagePreview,
-        '新消息',
+        'New message',
         reason: 'Empty non-attachment messages should show fallback preview',
       );
     });

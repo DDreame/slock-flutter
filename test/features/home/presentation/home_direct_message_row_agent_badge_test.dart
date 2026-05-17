@@ -4,6 +4,7 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -17,6 +18,8 @@ void main() {
     return MaterialApp(
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: HomeDirectMessageRow(
           directMessage: dm,

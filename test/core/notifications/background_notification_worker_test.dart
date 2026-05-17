@@ -103,7 +103,7 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         expect(fakeSink.notifications, hasLength(1));
-        expect(fakeSink.notifications.first['body'], '图片');
+        expect(fakeSink.notifications.first['body'], 'Image');
       });
 
       test('delivers multiple notifications for different channels', () async {

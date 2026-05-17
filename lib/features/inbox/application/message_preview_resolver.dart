@@ -26,64 +26,56 @@ final _bareUrlPattern = RegExp(
 /// Used across all preview surfaces: Home sidebar, Inbox list, realtime event
 /// updates, and push notifications.
 ///
+/// All labels are resolved through the [AppLocalizations] l10n system.
+///
 /// Resolution priority:
-///  1. Deleted → `消息已删除`
-///  2. Sending → `正在发送...`
-///  3. Failed  → `未发送，点击重试`
-///  4. System  → `系统消息`
+///  1. Deleted → l10n.previewDeleted
+///  2. Sending → l10n.previewSending
+///  3. Failed  → l10n.previewFailed
+///  4. System  → l10n.previewSystem
 ///  5. Non-empty text content (non-link) → content as-is
-///  6. Link-only content → `链接`
-///  7. Voice attachment (audio/*) → `语音消息`
-///  8. Image attachment (image/*) → `图片`
-///  9. Video attachment (video/*) → `视频`
-/// 10. Other attachment → `附件: filename`
-/// 11. Fallback → `新消息`
+///  6. Link-only content → l10n.previewLink
+///  7. Voice attachment (audio/*) → l10n.previewVoice
+///  8. Image attachment (image/*) → l10n.previewImage
+///  9. Video attachment (video/*) → l10n.previewVideo
+/// 10. Other attachment → l10n.previewAttachment(filename)
+/// 11. Fallback → l10n.previewFallback
 class MessagePreviewResolver {
   const MessagePreviewResolver._();
 
-  /// Semantic preview labels.
-  static const deletedPreview = '消息已删除';
-  static const sendingPreview = '正在发送...';
-  static const failedPreview = '未发送，点击重试';
-  static const systemPreview = '系统消息';
-  static const linkPreview = '链接';
-  static const voicePreview = '语音消息';
-  static const imagePreview = '图片';
-  static const videoPreview = '视频';
-  static const fallbackPreview = '新消息';
-
   /// Resolves preview from structured message metadata.
   ///
-  /// When [l10n] is provided, resolves labels through the ARB l10n system.
-  /// When null, falls back to hardcoded constants (legacy behavior).
+  /// All labels are resolved through the [l10n] ARB localization system.
   static String resolve({
+    required AppLocalizations l10n,
     String? content,
     String? messageType,
     bool isDeleted = false,
     List<MessageAttachment>? attachments,
     MessageSendState sendState = MessageSendState.sent,
-    AppLocalizations? l10n,
   }) {
-    if (isDeleted) return deletedPreview;
-    if (sendState == MessageSendState.sending) return sendingPreview;
-    if (sendState == MessageSendState.failed) return failedPreview;
-    if (messageType == 'system') return systemPreview;
+    if (isDeleted) return l10n.previewDeleted;
+    if (sendState == MessageSendState.sending) return l10n.previewSending;
+    if (sendState == MessageSendState.failed) return l10n.previewFailed;
+    if (messageType == 'system') return l10n.previewSystem;
     if (content != null && content.trim().isNotEmpty) {
-      if (_bareUrlPattern.hasMatch(content)) return linkPreview;
+      if (_bareUrlPattern.hasMatch(content)) return l10n.previewLink;
       return content;
     }
     if (attachments != null && attachments.isNotEmpty) {
-      return _resolveAttachmentPreview(attachments);
+      return _resolveAttachmentPreview(attachments, l10n: l10n);
     }
-    return fallbackPreview;
+    return l10n.previewFallback;
   }
 
   /// Convenience: resolves preview directly from a [ConversationMessageSummary].
   static String resolveFromMessage(
     ConversationMessageSummary message, {
+    required AppLocalizations l10n,
     MessageSendState sendState = MessageSendState.sent,
   }) {
     return resolve(
+      l10n: l10n,
       content: message.content,
       messageType: message.messageType,
       isDeleted: message.isDeleted,
@@ -92,13 +84,16 @@ class MessagePreviewResolver {
     );
   }
 
-  static String _resolveAttachmentPreview(List<MessageAttachment> attachments) {
+  static String _resolveAttachmentPreview(
+    List<MessageAttachment> attachments, {
+    required AppLocalizations l10n,
+  }) {
     final first = attachments.first;
     final mime = first.type;
-    if (mime.startsWith('audio/')) return voicePreview;
-    if (mime.startsWith('image/')) return imagePreview;
-    if (mime.startsWith('video/')) return videoPreview;
-    return '附件: ${first.name}';
+    if (mime.startsWith('audio/')) return l10n.previewVoice;
+    if (mime.startsWith('image/')) return l10n.previewImage;
+    if (mime.startsWith('video/')) return l10n.previewVideo;
+    return l10n.previewAttachment(first.name);
   }
 }
 
@@ -106,7 +101,8 @@ class MessagePreviewResolver {
 ///
 /// Used by Home row widgets that only have a raw preview string (already
 /// resolved at the data layer). Provides a final safety-net fallback.
-String resolvePreviewText(String? rawPreview) {
+String resolvePreviewText(String? rawPreview,
+    {required AppLocalizations l10n}) {
   if (rawPreview != null && rawPreview.trim().isNotEmpty) return rawPreview;
-  return MessagePreviewResolver.fallbackPreview;
+  return l10n.previewFallback;
 }

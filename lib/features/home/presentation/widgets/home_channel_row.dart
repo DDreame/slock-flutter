@@ -7,6 +7,7 @@ import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 class HomeChannelRow extends StatelessWidget {
   const HomeChannelRow({
@@ -85,7 +86,10 @@ class HomeChannelRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      resolvePreviewText(channel.lastMessagePreview),
+                      resolvePreviewText(
+                        channel.lastMessagePreview,
+                        l10n: AppLocalizations.of(context)!,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.bodySmall.copyWith(

@@ -12,6 +12,7 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -127,7 +128,10 @@ void _handleMessageNew(
   final matchedDirectMessage =
       _matchDirectMessageScopeId(homeState, incoming.conversationId);
 
-  final preview = MessagePreviewResolver.resolveFromMessage(incoming.message);
+  final preview = MessagePreviewResolver.resolveFromMessage(
+    incoming.message,
+    l10n: ref.read(appLocalizationsProvider),
+  );
 
   final notifier = ref.read(homeListStoreProvider.notifier);
 
@@ -261,7 +265,10 @@ void _handleMessageUpdated(Ref ref, RealtimeEventEnvelope event) {
 
   final notifier = ref.read(homeListStoreProvider.notifier);
 
-  final preview = MessagePreviewResolver.resolve(content: updated.content);
+  final preview = MessagePreviewResolver.resolve(
+    l10n: ref.read(appLocalizationsProvider),
+    content: updated.content,
+  );
 
   unawaited(ref
       .read(homeRepositoryProvider)
