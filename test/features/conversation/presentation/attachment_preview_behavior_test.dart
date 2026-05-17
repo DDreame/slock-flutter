@@ -23,6 +23,17 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// - PDF/other signed download flow
 /// - Missing-id fallback behavior
 /// - Diagnostics collector integration regression
+
+/// Pumps enough frames for the widget tree to load without waiting for
+/// CachedNetworkImage. In fake-async test environment, CachedNetworkImage's
+/// network request never completes, keeping the loading indicator animating
+/// forever and preventing pumpAndSettle from returning.
+Future<void> _pumpUntilLoaded(WidgetTester tester) async {
+  for (int i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 void main() {
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
@@ -73,7 +84,7 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // The image preview widget should exist
       expect(
@@ -123,7 +134,7 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       expect(
         find.byKey(const ValueKey('image-preview-att-legacy')),
@@ -174,7 +185,7 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap the image preview
       await tester.tap(find.byKey(const ValueKey('image-preview-att-img')));
@@ -231,11 +242,11 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap HTML attachment row
       await tester.tap(find.byKey(const ValueKey('html-attachment-att-html')));
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Verify getHtmlPreviewUrl was called with correct id
       expect(attachmentRepo.htmlPreviewUrlCalls, contains('att-html'));
@@ -278,11 +289,11 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap HTML attachment row
       await tester.tap(find.byKey(const ValueKey('html-attachment-page.html')));
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Should NOT call getHtmlPreviewUrl because id is null
       expect(
@@ -331,13 +342,13 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap HTML attachment row
       await tester.tap(
         find.byKey(const ValueKey('html-attachment-att-html-fail')),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // getHtmlPreviewUrl was called but failed — falls back to direct url
       expect(attachmentRepo.htmlPreviewUrlCalls, contains('att-html-fail'));
@@ -383,7 +394,7 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap generic file row
       await tester.tap(find.byKey(const ValueKey('file-attachment-att-pdf')));
@@ -434,7 +445,7 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap generic file row
       await tester.tap(find.byKey(const ValueKey('file-attachment-doc.pdf')));
@@ -491,7 +502,7 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap the image preview (key uses name since no id)
       await tester.tap(find.byKey(const ValueKey('image-preview-old.png')));
@@ -553,7 +564,7 @@ void main() {
           attachmentRepository: attachmentRepo,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap the image preview
       await tester.tap(find.byKey(const ValueKey('image-preview-att-fail')));
@@ -615,7 +626,7 @@ void main() {
           diagnostics: diagnostics,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap image to open full-screen (triggers getSignedUrl)
       await tester.tap(find.byKey(const ValueKey('image-preview-att-diag')));
@@ -668,7 +679,7 @@ void main() {
           diagnostics: diagnostics,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap image to open full-screen (no id → fallback path)
       await tester.tap(find.byKey(const ValueKey('image-preview-legacy.png')));
@@ -740,7 +751,7 @@ void main() {
           diagnostics: diagnostics,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Tap image to trigger signed URL fetch (will fail)
       await tester.tap(find.byKey(const ValueKey('image-preview-att-err')));

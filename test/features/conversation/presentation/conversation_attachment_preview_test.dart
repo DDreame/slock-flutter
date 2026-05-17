@@ -20,6 +20,16 @@ void main() {
     ),
   );
 
+  /// Pumps enough frames for the widget tree to load without waiting for
+  /// CachedNetworkImage. In fake-async test environment, CachedNetworkImage's
+  /// network request never completes, keeping the loading indicator animating
+  /// forever and preventing pumpAndSettle from returning.
+  Future<void> pumpUntilLoaded(WidgetTester tester) async {
+    for (int i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  }
+
   testWidgets('message without attachments does not render attachment section',
       (tester) async {
     final repository = _FakeConversationRepository(
@@ -44,7 +54,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(repository: repository, target: target),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilLoaded(tester);
 
     expect(
       find.byKey(const ValueKey('message-attachments')),
@@ -84,7 +94,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(repository: repository, target: target),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilLoaded(tester);
 
     expect(
       find.byKey(const ValueKey('message-attachments')),
@@ -129,7 +139,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(repository: repository, target: target),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilLoaded(tester);
 
     expect(
       find.byKey(const ValueKey('message-attachments')),
@@ -179,7 +189,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(repository: repository, target: target),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilLoaded(tester);
 
     expect(
       find.byKey(const ValueKey('message-attachments')),
@@ -240,7 +250,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(repository: repository, target: target),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilLoaded(tester);
 
     expect(
       find.byKey(const ValueKey('image-preview-att-img')),
@@ -291,7 +301,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(repository: repository, target: target),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilLoaded(tester);
 
     // Without a URL, should fall back to generic file row
     expect(
@@ -334,7 +344,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(repository: repository, target: target),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilLoaded(tester);
 
     expect(
       find.byKey(const ValueKey('file-attachment-att-sized')),
@@ -380,7 +390,7 @@ void main() {
     await tester.pumpWidget(
       _buildApp(repository: repository, target: target),
     );
-    await tester.pumpAndSettle();
+    await pumpUntilLoaded(tester);
 
     expect(
       find.byKey(const ValueKey('file-attachment-att-nosize')),
