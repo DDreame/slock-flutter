@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
-import 'package:slock_app/app/widgets/app_empty_view.dart';
-import 'package:slock_app/app/widgets/app_error_view.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/presentation/widget/inbox_item_tile.dart';
@@ -360,6 +358,56 @@ void main() {
       );
     },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Test-local stubs for shared widgets that Phase B will create.
+//
+// These stubs define the constructor contract that Phase B must
+// satisfy. They are only used in skip:true tests — Phase B will
+// replace these with imports from lib/app/widgets/.
+// ---------------------------------------------------------------------------
+
+/// Phase B: `lib/app/widgets/app_error_view.dart`
+/// Contract: `AppErrorView({required String message, required VoidCallback onRetry})`
+/// Must render: message text, 'Retry' button, key `app-error-view`.
+class AppErrorView extends StatelessWidget {
+  const AppErrorView({
+    required this.message,
+    required this.onRetry,
+    super.key,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    // Stub — skip:true tests never render this.
+    return const SizedBox.shrink();
+  }
+}
+
+/// Phase B: `lib/app/widgets/app_empty_view.dart`
+/// Contract: `AppEmptyView({required IconData icon, required String title, String? subtitle})`
+/// Must render: icon, title, subtitle (when non-null), key `app-empty-view`.
+class AppEmptyView extends StatelessWidget {
+  const AppEmptyView({
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    super.key,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    // Stub — skip:true tests never render this.
+    return const SizedBox.shrink();
+  }
 }
 
 // ---------------------------------------------------------------------------
