@@ -87,7 +87,6 @@ void main() {
         expect(caughtError, isNot(isA<StateError>()),
             reason: 'Missing member must not produce uncaught StateError');
       },
-      skip: 'Phase A: invariant locked — Phase B adds firstOrNull',
     );
 
     test(
@@ -118,7 +117,6 @@ void main() {
           reason: 'Missing member must produce AppFailure, not StateError',
         );
       },
-      skip: 'Phase A: invariant locked — Phase B adds firstOrNull',
     );
   });
 
@@ -154,7 +152,6 @@ void main() {
         expect(repo.openRequests, [(serverId, 'user-1')],
             reason: 'Repository must receive the open request');
       },
-      skip: 'Phase A: invariant locked — Phase B validates happy path',
     );
   });
 
@@ -213,7 +210,6 @@ void main() {
         expect(recorder.captured, isEmpty,
             reason: 'StateError must be silently swallowed, not reported');
       },
-      skip: 'Phase A: invariant locked — Phase B narrows catch blocks',
     );
   });
 
@@ -272,7 +268,6 @@ void main() {
         expect(recorder.captured.first.$1, isA<TypeError>(),
             reason: 'Captured exception must be the original TypeError');
       },
-      skip: 'Phase A: invariant locked — Phase B narrows catch blocks',
     );
   });
 
@@ -330,7 +325,6 @@ void main() {
         expect(recorder.captured.first.$1, isA<FormatException>(),
             reason: 'Captured exception must be the original FormatException');
       },
-      skip: 'Phase A: invariant locked — Phase B narrows catch blocks',
     );
   });
 
@@ -391,7 +385,6 @@ void main() {
         expect(recorder.captured.first.$2, isNotNull,
             reason: 'Stack trace must be provided');
       },
-      skip: 'Phase A: invariant locked — Phase B narrows catch blocks',
     );
   });
 }

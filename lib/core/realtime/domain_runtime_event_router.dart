@@ -751,13 +751,19 @@ void _handleAgentActivity(Ref ref, RealtimeEventEnvelope event) {
           detail,
           timestamp: event.receivedAt,
         );
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
 }
 
 void _handleAgentCreatedOrDeleted(Ref ref) {
   try {
     ref.read(agentsStoreProvider.notifier).load();
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -929,5 +935,8 @@ void _handleAnnouncementNew(Ref ref, RealtimeEventEnvelope event) {
 
   try {
     ref.read(announcementStoreProvider.notifier).addAnnouncement(announcement);
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
 }

@@ -43,13 +43,19 @@ Future<void> _handleMembershipRemoved(Ref ref, ServerScopeId serverId) async {
     if (ref.read(memberListStoreProvider).status != MemberListStatus.loading) {
       await ref.read(memberListStoreProvider.notifier).load();
     }
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
 
   try {
     if (ref.read(serverListStoreProvider).status != ServerListStatus.loading) {
       await ref.read(serverListStoreProvider.notifier).load();
     }
-  } catch (_) {
+  } on StateError catch (_) {
+    return;
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
     return;
   }
 
@@ -58,7 +64,10 @@ Future<void> _handleMembershipRemoved(Ref ref, ServerScopeId serverId) async {
     if (!servers.any((server) => server.id == serverId.value)) {
       await ref.read(serverSelectionStoreProvider.notifier).clearSelection();
     }
-  } catch (_) {}
+  } on StateError catch (_) {
+  } catch (e, s) {
+    ref.read(crashReporterProvider).captureException(e, stackTrace: s);
+  }
 }
 
 bool _matchesServer(ServerScopeId serverId, RealtimeEventEnvelope event) {
