@@ -9,9 +9,8 @@
 //   3. `link_preview_service.dart`: Dio instance created per service,
 //      never explicitly closed on dispose.
 //
-// Phase A: skip:true invariants locking the cache eviction contracts.
-//          Tests use ProviderContainer + fake services to verify eviction
-//          behavior and resource cleanup.
+// Phase B: Implemented LRU eviction (100), voice waveform cap (50),
+//          Dio close on dispose. All invariants un-skipped.
 //
 // Invariants verified:
 // INV-CACHE-LRU-1:      LinkPreviewCache evicts oldest when exceeding max 100
@@ -65,7 +64,6 @@ void main() {
         expect(stateAt101.containsKey('https://example.com/100'), isTrue,
             reason: 'Newest entry (url 100) must be present');
       },
-      skip: 'Phase A: invariant locked — Phase B adds LRU eviction',
     );
   });
 
@@ -102,7 +100,48 @@ void main() {
         expect(state.containsKey('https://example.com/0'), isTrue,
             reason: 'Re-fetched URL must be back in cache');
       },
-      skip: 'Phase A: invariant locked — Phase B adds LRU eviction',
+    );
+  });
+
+  // -----------------------------------------------------------------------
+  // LRU recency: recently accessed URL survives eviction
+  // -----------------------------------------------------------------------
+  group('LRU recency: touched URL survives eviction', () {
+    test(
+      'recently accessed URL is not evicted when a new entry is added',
+      () async {
+        final service = _CountingLinkPreviewService();
+        final container = ProviderContainer(
+          overrides: [
+            linkPreviewServiceProvider.overrideWithValue(service),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final notifier = container.read(linkPreviewCacheProvider.notifier);
+
+        // Fill cache to max capacity (100): URLs 0–99.
+        for (var i = 0; i < 100; i++) {
+          await notifier.fetch('https://example.com/$i');
+        }
+
+        // Touch URL 0 — it's already cached, so fetch() promotes it to MRU.
+        await notifier.fetch('https://example.com/0');
+        // No new service call (cache hit).
+        expect(service.fetchCount, equals(100));
+
+        // Add URL 100 — evicts the least recently used (URL 1, not URL 0).
+        await notifier.fetch('https://example.com/100');
+
+        final state = container.read(linkPreviewCacheProvider);
+        expect(state.length, equals(100));
+        expect(state.containsKey('https://example.com/0'), isTrue,
+            reason: 'Recently accessed URL 0 must survive (LRU)');
+        expect(state.containsKey('https://example.com/1'), isFalse,
+            reason: 'URL 1 (least recently used) must be evicted');
+        expect(state.containsKey('https://example.com/100'), isTrue,
+            reason: 'Newly added URL 100 must be present');
+      },
     );
   });
 
@@ -138,7 +177,6 @@ void main() {
         expect(notifier.state.containsKey('voice-50'), isTrue,
             reason: 'Newest waveform entry must be present');
       },
-      skip: 'Phase A: invariant locked — Phase B adds waveform eviction',
     );
   });
 
@@ -178,7 +216,6 @@ void main() {
         expect(closeCalled, isTrue,
             reason: 'Close callback must fire when provider is disposed');
       },
-      skip: 'Phase A: invariant locked — Phase B adds Dio dispose',
     );
   });
 }

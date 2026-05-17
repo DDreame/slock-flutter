@@ -89,9 +89,9 @@ class LinkPreviewService {
   /// Closes the underlying HTTP client.
   ///
   /// Call when the service is being permanently disposed (e.g. provider
-  /// teardown via `ref.onDispose`). Phase B will add `_dio.close()` here.
+  /// teardown via `ref.onDispose`).
   void close() {
-    // Phase B: _dio.close();
+    _dio.close();
   }
 
   /// Parse HTML content to extract OG and meta tags.

@@ -98,12 +98,23 @@ class VoiceWaveformCacheNotifier
   VoiceWaveformCacheNotifier([Map<String, List<double>>? initialData])
       : super(initialData ?? {});
 
+  /// Maximum number of cached waveform entries.
+  static const maxSize = 50;
+
   /// Insert or update a waveform entry.
   ///
-  /// This is the production insertion point — Phase B adds
-  /// max-size eviction logic here.
+  /// When the cache exceeds [maxSize], the oldest (first-inserted)
+  /// entries are evicted to keep memory bounded.
   void put(String name, List<double> samples) {
-    state = {...state, name: samples};
+    final updated = {...state, name: samples};
+    if (updated.length > maxSize) {
+      final excess = updated.length - maxSize;
+      final keysToRemove = updated.keys.take(excess).toList();
+      for (final key in keysToRemove) {
+        updated.remove(key);
+      }
+    }
+    state = updated;
   }
 }
 
