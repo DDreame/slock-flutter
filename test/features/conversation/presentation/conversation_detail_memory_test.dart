@@ -111,8 +111,6 @@ void main() {
             reason:
                 'Key map must be empty after dispose (proves explicit clear)');
       },
-      skip:
-          true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
     );
   });
 
@@ -195,8 +193,6 @@ void main() {
         expect(secondCountFn!(), greaterThan(0),
             reason: 'Key map must be repopulated after recreate');
       },
-      skip:
-          true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
     );
   });
 
@@ -264,7 +260,6 @@ void main() {
             reason:
                 'In-chat thumbnail must have memCacheWidth to limit memory');
       },
-      skip: true, // Phase A: invariant locked — Phase B adds memCacheWidth
     );
   });
 
@@ -308,7 +303,6 @@ void main() {
         expect(img.memCacheHeight, greaterThan(0),
             reason: 'memCacheHeight must be positive');
       },
-      skip: true, // Phase A: invariant locked — Phase B adds memCacheHeight
     );
   });
 
@@ -348,8 +342,6 @@ void main() {
               reason: 'Full-screen viewer must NOT constrain memCacheHeight');
         }
       },
-      skip:
-          true, // Phase A: invariant locked — Phase B adds memCacheWidth to thumbnails only
     );
   });
 }

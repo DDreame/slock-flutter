@@ -93,6 +93,7 @@ class LinkPreviewCard extends StatelessWidget {
       child: CachedNetworkImage(
         imageUrl: metadata.imageUrl!,
         key: const ValueKey('link-preview-image'),
+        memCacheHeight: 160,
         fit: BoxFit.cover,
         width: double.infinity,
         errorWidget: (_, __, ___) => const SizedBox.shrink(),
