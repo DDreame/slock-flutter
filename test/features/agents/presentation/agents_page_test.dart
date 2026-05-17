@@ -372,6 +372,12 @@ void main() {
           find.byKey(const ValueKey('agent-activity-log-section')),
           200,
         );
+        // Scroll a bit more to ensure ListView lazy-builds content
+        // below the section header.
+        await tester.scrollUntilVisible(
+          find.text('No activity log entries.'),
+          100,
+        );
 
         // No entries returned by default, so still shows empty.
         expect(find.text('No activity log entries.'), findsOneWidget);
@@ -451,6 +457,12 @@ void main() {
         await tester.scrollUntilVisible(
           find.byKey(const ValueKey('agent-activity-log-section')),
           200,
+        );
+        // Scroll a bit more to ensure ListView lazy-builds entries
+        // below the section header.
+        await tester.scrollUntilVisible(
+          find.text('09:30:15'),
+          100,
         );
 
         // Historical entries rendered.

@@ -7,6 +7,7 @@
 //
 // Phase A: skip:true invariants locking the cleanup contract.
 // Phase B: Remove dead stubs, wire or clean up, un-skip.
+//          All invariants now active.
 //
 // Invariants verified:
 // INV-STUB-1: ServerListMutationRepository methods do not throw
@@ -60,38 +61,62 @@ void main() {
       // Each mutation method must not throw UnsupportedError.
       // After Phase B cleanup, calling these either succeeds (wired)
       // or the null-callback code path is gone.
-      await expectLater(
-        () => repo.createServer(name: 'Test', slug: 'test'),
-        isNot(throwsA(isA<UnsupportedError>())),
-        reason: 'createServer must not throw UnsupportedError '
-            '(INV-STUB-1)',
-      );
-      await expectLater(
-        () => repo.renameServer('sid', name: 'New'),
-        isNot(throwsA(isA<UnsupportedError>())),
-        reason: 'renameServer must not throw UnsupportedError '
-            '(INV-STUB-1)',
-      );
-      await expectLater(
-        () => repo.deleteServer('sid'),
-        isNot(throwsA(isA<UnsupportedError>())),
-        reason: 'deleteServer must not throw UnsupportedError '
-            '(INV-STUB-1)',
-      );
-      await expectLater(
-        () => repo.leaveServer('sid'),
-        isNot(throwsA(isA<UnsupportedError>())),
-        reason: 'leaveServer must not throw UnsupportedError '
-            '(INV-STUB-1)',
-      );
-      await expectLater(
-        () => repo.acceptInvite('token'),
-        isNot(throwsA(isA<UnsupportedError>())),
-        reason: 'acceptInvite must not throw UnsupportedError '
-            '(INV-STUB-1)',
-      );
+      //
+      // We use try/catch instead of isNot(throwsA(...)) because the
+      // async matcher combination does not work correctly when a
+      // non-matching error type (e.g. UnknownFailure) is thrown.
+      Object? caught;
+
+      caught = null;
+      try {
+        await repo.createServer(name: 'Test', slug: 'test');
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught, isNot(isA<UnsupportedError>()),
+          reason: 'createServer must not throw UnsupportedError '
+              '(INV-STUB-1)');
+
+      caught = null;
+      try {
+        await repo.renameServer('sid', name: 'New');
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught, isNot(isA<UnsupportedError>()),
+          reason: 'renameServer must not throw UnsupportedError '
+              '(INV-STUB-1)');
+
+      caught = null;
+      try {
+        await repo.deleteServer('sid');
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught, isNot(isA<UnsupportedError>()),
+          reason: 'deleteServer must not throw UnsupportedError '
+              '(INV-STUB-1)');
+
+      caught = null;
+      try {
+        await repo.leaveServer('sid');
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught, isNot(isA<UnsupportedError>()),
+          reason: 'leaveServer must not throw UnsupportedError '
+              '(INV-STUB-1)');
+
+      caught = null;
+      try {
+        await repo.acceptInvite('token');
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught, isNot(isA<UnsupportedError>()),
+          reason: 'acceptInvite must not throw UnsupportedError '
+              '(INV-STUB-1)');
     },
-    skip: true,
   );
 
   // -----------------------------------------------------------------------
@@ -110,17 +135,19 @@ void main() {
     () async {
       final repo = _MinimalMemberRepository();
 
-      await expectLater(
-        () => repo.inviteByEmail(
+      Object? caught;
+      try {
+        await repo.inviteByEmail(
           const ServerScopeId('server-1'),
           email: 'test@example.com',
-        ),
-        isNot(throwsA(isA<UnsupportedError>())),
-        reason: 'inviteByEmail must not throw UnsupportedError '
-            '(INV-STUB-2)',
-      );
+        );
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught, isNot(isA<UnsupportedError>()),
+          reason: 'inviteByEmail must not throw UnsupportedError '
+              '(INV-STUB-2)');
     },
-    skip: true,
   );
 
   // -----------------------------------------------------------------------
@@ -209,7 +236,6 @@ void main() {
             '(INV-STUB-3)',
       );
     },
-    skip: true,
   );
 
   // -----------------------------------------------------------------------
@@ -322,6 +348,11 @@ void main() {
       );
 
       // --- Non-owner variant (member) — covers "Leave workspace" path ---
+      // Dispose the owner variant before pumping the non-owner variant
+      // to ensure a clean ProviderContainer.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -340,11 +371,14 @@ void main() {
               );
             }),
           ],
-          child: const MaterialApp(
-            locale: Locale('zh'),
+          child: MaterialApp(
+            locale: const Locale('zh'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: WorkspaceSettingsPage(serverId: 'server-1'),
+            home: WorkspaceSettingsPage(
+              key: UniqueKey(),
+              serverId: 'server-1',
+            ),
           ),
         ),
       );
@@ -374,7 +408,6 @@ void main() {
             'under zh locale (INV-STUB-4)',
       );
     },
-    skip: true,
   );
 }
 

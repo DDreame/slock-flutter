@@ -8,6 +8,7 @@ import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_management_dialogs.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class WorkspaceSettingsPage extends ConsumerWidget {
   const WorkspaceSettingsPage({required this.serverId, super.key});
@@ -17,17 +18,18 @@ class WorkspaceSettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final serverListState = ref.watch(serverListStoreProvider);
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Workspace Settings')),
+      appBar: AppBar(title: Text(l10n.homeConsoleWorkspaceSettings)),
       body: switch (serverListState.status) {
         ServerListStatus.initial ||
         ServerListStatus.loading =>
           const Center(child: CircularProgressIndicator()),
         ServerListStatus.failure => FriendlyErrorState(
             key: const ValueKey('workspace-settings-error'),
-            title: 'Workspace settings unavailable',
-            message: 'We could not load workspace settings right now.',
+            title: l10n.workspaceSettingsUnavailableTitle,
+            message: l10n.workspaceSettingsUnavailableMessage,
             onRetry: ref.read(serverListStoreProvider.notifier).retry,
             onShareDiagnostics: () => DiagnosticShareSheet.show(context),
           ),
@@ -42,9 +44,10 @@ class WorkspaceSettingsPage extends ConsumerWidget {
     WidgetRef ref,
     ServerListState state,
   ) {
+    final l10n = context.l10n;
     final server = _findServer(state, serverId);
     if (server == null) {
-      return const Center(child: Text('Workspace not found.'));
+      return Center(child: Text(l10n.workspaceSettingsNotFound));
     }
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -78,6 +81,7 @@ class _InfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -98,14 +102,14 @@ class _InfoSection extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           _InfoRow(
-            label: 'Role',
+            label: l10n.workspaceSettingsRoleLabel,
             value: server.role.isNotEmpty
                 ? server.role[0].toUpperCase() + server.role.substring(1)
-                : 'Unknown',
+                : l10n.workspaceSettingsRoleUnknown,
           ),
           if (server.createdAt != null)
             _InfoRow(
-              label: 'Created',
+              label: l10n.workspaceSettingsCreatedLabel,
               value: _formatDate(server.createdAt!),
             ),
         ],
@@ -155,27 +159,28 @@ class _NavigationSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Text(
-            'Manage',
+            l10n.workspaceSettingsManageSection,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
         ListTile(
           key: const ValueKey('workspace-settings-members'),
           leading: const Icon(Icons.people_outline),
-          title: const Text('Members'),
+          title: Text(l10n.homeConsoleMembers),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/servers/$serverId/members'),
         ),
         ListTile(
           key: const ValueKey('workspace-settings-billing'),
           leading: const Icon(Icons.payment_outlined),
-          title: const Text('Billing'),
+          title: Text(l10n.homeConsoleBilling),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/billing'),
         ),
@@ -191,13 +196,14 @@ class _ActionsSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
           child: Text(
-            'Actions',
+            l10n.workspaceSettingsActionsSection,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
@@ -205,7 +211,7 @@ class _ActionsSection extends ConsumerWidget {
           ListTile(
             key: const ValueKey('workspace-settings-rename'),
             leading: const Icon(Icons.edit_outlined),
-            title: const Text('Rename workspace'),
+            title: Text(l10n.workspaceSettingsRenameAction),
             onTap: () => _renameServer(context, ref),
           ),
         if (server.isOwner)
@@ -216,7 +222,7 @@ class _ActionsSection extends ConsumerWidget {
               color: Theme.of(context).colorScheme.error,
             ),
             title: Text(
-              'Delete workspace',
+              l10n.workspaceSettingsDeleteAction,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
             onTap: () => _deleteServer(context, ref),
@@ -229,7 +235,7 @@ class _ActionsSection extends ConsumerWidget {
               color: Theme.of(context).colorScheme.error,
             ),
             title: Text(
-              'Leave workspace',
+              l10n.workspaceSettingsLeaveAction,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
             onTap: () => _leaveServer(context, ref),
@@ -245,33 +251,35 @@ class _ActionsSection extends ConsumerWidget {
     );
     if (name == null || !context.mounted) return;
 
+    final l10n = context.l10n;
     try {
       await ref
           .read(serverListStoreProvider.notifier)
           .renameServer(server.id, name);
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Workspace renamed.')),
+        SnackBar(content: Text(l10n.workspaceSettingsRenamedSnackbar)),
       );
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? 'Failed to rename workspace.'),
+          content: Text(
+            failure.message ?? l10n.workspaceSettingsRenameFailed,
+          ),
         ),
       );
     }
   }
 
   Future<void> _deleteServer(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (_) => ConfirmServerActionDialog(
-            title: 'Delete workspace?',
-            message:
-                'Delete ${server.name}? This permanently removes the workspace '
-                'and all its data.',
-            confirmLabel: 'Delete',
+            title: l10n.workspaceSettingsDeleteDialogTitle,
+            message: l10n.workspaceSettingsDeleteDialogMessage(server.name),
+            confirmLabel: l10n.workspaceSettingsDeleteConfirmLabel,
             confirmKey: const ValueKey('workspace-settings-delete-confirm'),
           ),
         ) ??
@@ -286,20 +294,22 @@ class _ActionsSection extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? 'Failed to delete workspace.'),
+          content: Text(
+            failure.message ?? l10n.workspaceSettingsDeleteFailed,
+          ),
         ),
       );
     }
   }
 
   Future<void> _leaveServer(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (_) => ConfirmServerActionDialog(
-            title: 'Leave workspace?',
-            message:
-                'Leave ${server.name}? You can rejoin later with a new invite.',
-            confirmLabel: 'Leave',
+            title: l10n.workspaceSettingsLeaveDialogTitle,
+            message: l10n.workspaceSettingsLeaveDialogMessage(server.name),
+            confirmLabel: l10n.workspaceSettingsLeaveConfirmLabel,
             confirmKey: const ValueKey('workspace-settings-leave-confirm'),
           ),
         ) ??
@@ -314,7 +324,9 @@ class _ActionsSection extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? 'Failed to leave workspace.'),
+          content: Text(
+            failure.message ?? l10n.workspaceSettingsLeaveFailed,
+          ),
         ),
       );
     }

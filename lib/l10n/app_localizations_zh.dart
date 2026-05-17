@@ -599,4 +599,71 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get refreshFailedRetry => '重试';
+
+  @override
+  String get workspaceSettingsUnavailableTitle => '工作区设置不可用';
+
+  @override
+  String get workspaceSettingsUnavailableMessage => '目前无法加载工作区设置。';
+
+  @override
+  String get workspaceSettingsNotFound => '未找到工作区。';
+
+  @override
+  String get workspaceSettingsRoleLabel => '角色';
+
+  @override
+  String get workspaceSettingsRoleUnknown => '未知';
+
+  @override
+  String get workspaceSettingsCreatedLabel => '创建时间';
+
+  @override
+  String get workspaceSettingsManageSection => '管理';
+
+  @override
+  String get workspaceSettingsActionsSection => '操作';
+
+  @override
+  String get workspaceSettingsRenameAction => '重命名工作区';
+
+  @override
+  String get workspaceSettingsDeleteAction => '删除工作区';
+
+  @override
+  String get workspaceSettingsLeaveAction => '退出工作区';
+
+  @override
+  String get workspaceSettingsRenamedSnackbar => '工作区已重命名。';
+
+  @override
+  String get workspaceSettingsRenameFailed => '重命名工作区失败。';
+
+  @override
+  String get workspaceSettingsDeleteDialogTitle => '删除工作区？';
+
+  @override
+  String workspaceSettingsDeleteDialogMessage(String name) {
+    return '删除 $name？此操作将永久移除工作区及其所有数据。';
+  }
+
+  @override
+  String get workspaceSettingsDeleteConfirmLabel => '删除';
+
+  @override
+  String get workspaceSettingsDeleteFailed => '删除工作区失败。';
+
+  @override
+  String get workspaceSettingsLeaveDialogTitle => '退出工作区？';
+
+  @override
+  String workspaceSettingsLeaveDialogMessage(String name) {
+    return '退出 $name？之后可通过新邀请重新加入。';
+  }
+
+  @override
+  String get workspaceSettingsLeaveConfirmLabel => '退出';
+
+  @override
+  String get workspaceSettingsLeaveFailed => '退出工作区失败。';
 }

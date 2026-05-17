@@ -637,4 +637,79 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get refreshFailedRetry => 'Reintentar';
+
+  @override
+  String get workspaceSettingsUnavailableTitle =>
+      'Configuración del espacio no disponible';
+
+  @override
+  String get workspaceSettingsUnavailableMessage =>
+      'No se pudo cargar la configuración del espacio de trabajo.';
+
+  @override
+  String get workspaceSettingsNotFound => 'Espacio de trabajo no encontrado.';
+
+  @override
+  String get workspaceSettingsRoleLabel => 'Rol';
+
+  @override
+  String get workspaceSettingsRoleUnknown => 'Desconocido';
+
+  @override
+  String get workspaceSettingsCreatedLabel => 'Creado';
+
+  @override
+  String get workspaceSettingsManageSection => 'Gestionar';
+
+  @override
+  String get workspaceSettingsActionsSection => 'Acciones';
+
+  @override
+  String get workspaceSettingsRenameAction => 'Renombrar espacio de trabajo';
+
+  @override
+  String get workspaceSettingsDeleteAction => 'Eliminar espacio de trabajo';
+
+  @override
+  String get workspaceSettingsLeaveAction => 'Abandonar espacio de trabajo';
+
+  @override
+  String get workspaceSettingsRenamedSnackbar =>
+      'Espacio de trabajo renombrado.';
+
+  @override
+  String get workspaceSettingsRenameFailed =>
+      'Error al renombrar el espacio de trabajo.';
+
+  @override
+  String get workspaceSettingsDeleteDialogTitle =>
+      '¿Eliminar espacio de trabajo?';
+
+  @override
+  String workspaceSettingsDeleteDialogMessage(String name) {
+    return '¿Eliminar $name? Esto eliminará permanentemente el espacio de trabajo y todos sus datos.';
+  }
+
+  @override
+  String get workspaceSettingsDeleteConfirmLabel => 'Eliminar';
+
+  @override
+  String get workspaceSettingsDeleteFailed =>
+      'Error al eliminar el espacio de trabajo.';
+
+  @override
+  String get workspaceSettingsLeaveDialogTitle =>
+      '¿Abandonar espacio de trabajo?';
+
+  @override
+  String workspaceSettingsLeaveDialogMessage(String name) {
+    return '¿Abandonar $name? Puede volver a unirse con una nueva invitación.';
+  }
+
+  @override
+  String get workspaceSettingsLeaveConfirmLabel => 'Abandonar';
+
+  @override
+  String get workspaceSettingsLeaveFailed =>
+      'Error al abandonar el espacio de trabajo.';
 }

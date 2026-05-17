@@ -6,6 +6,7 @@ import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/presentation/page/workspace_settings_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   Widget buildPage({
@@ -19,6 +20,8 @@ void main() {
         }),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: WorkspaceSettingsPage(serverId: serverId),
       ),
     );

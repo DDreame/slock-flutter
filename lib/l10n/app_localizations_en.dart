@@ -627,4 +627,73 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refreshFailedRetry => 'Retry';
+
+  @override
+  String get workspaceSettingsUnavailableTitle =>
+      'Workspace settings unavailable';
+
+  @override
+  String get workspaceSettingsUnavailableMessage =>
+      'We could not load workspace settings right now.';
+
+  @override
+  String get workspaceSettingsNotFound => 'Workspace not found.';
+
+  @override
+  String get workspaceSettingsRoleLabel => 'Role';
+
+  @override
+  String get workspaceSettingsRoleUnknown => 'Unknown';
+
+  @override
+  String get workspaceSettingsCreatedLabel => 'Created';
+
+  @override
+  String get workspaceSettingsManageSection => 'Manage';
+
+  @override
+  String get workspaceSettingsActionsSection => 'Actions';
+
+  @override
+  String get workspaceSettingsRenameAction => 'Rename workspace';
+
+  @override
+  String get workspaceSettingsDeleteAction => 'Delete workspace';
+
+  @override
+  String get workspaceSettingsLeaveAction => 'Leave workspace';
+
+  @override
+  String get workspaceSettingsRenamedSnackbar => 'Workspace renamed.';
+
+  @override
+  String get workspaceSettingsRenameFailed => 'Failed to rename workspace.';
+
+  @override
+  String get workspaceSettingsDeleteDialogTitle => 'Delete workspace?';
+
+  @override
+  String workspaceSettingsDeleteDialogMessage(String name) {
+    return 'Delete $name? This permanently removes the workspace and all its data.';
+  }
+
+  @override
+  String get workspaceSettingsDeleteConfirmLabel => 'Delete';
+
+  @override
+  String get workspaceSettingsDeleteFailed => 'Failed to delete workspace.';
+
+  @override
+  String get workspaceSettingsLeaveDialogTitle => 'Leave workspace?';
+
+  @override
+  String workspaceSettingsLeaveDialogMessage(String name) {
+    return 'Leave $name? You can rejoin later with a new invite.';
+  }
+
+  @override
+  String get workspaceSettingsLeaveConfirmLabel => 'Leave';
+
+  @override
+  String get workspaceSettingsLeaveFailed => 'Failed to leave workspace.';
 }

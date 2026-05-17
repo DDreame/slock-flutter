@@ -200,5 +200,41 @@
   "attachmentHtmlOpensInBrowser": "HTML · Abrir en navegador",
 
   "refreshFailedSnackbar": "No se pudo actualizar. Mostrando datos en cache.",
-  "refreshFailedRetry": "Reintentar"
+  "refreshFailedRetry": "Reintentar",
+
+  "workspaceSettingsUnavailableTitle": "Configuración del espacio no disponible",
+  "workspaceSettingsUnavailableMessage": "No se pudo cargar la configuración del espacio de trabajo.",
+  "workspaceSettingsNotFound": "Espacio de trabajo no encontrado.",
+  "workspaceSettingsRoleLabel": "Rol",
+  "workspaceSettingsRoleUnknown": "Desconocido",
+  "workspaceSettingsCreatedLabel": "Creado",
+  "workspaceSettingsManageSection": "Gestionar",
+  "workspaceSettingsActionsSection": "Acciones",
+  "workspaceSettingsRenameAction": "Renombrar espacio de trabajo",
+  "workspaceSettingsDeleteAction": "Eliminar espacio de trabajo",
+  "workspaceSettingsLeaveAction": "Abandonar espacio de trabajo",
+  "workspaceSettingsRenamedSnackbar": "Espacio de trabajo renombrado.",
+  "workspaceSettingsRenameFailed": "Error al renombrar el espacio de trabajo.",
+  "workspaceSettingsDeleteDialogTitle": "¿Eliminar espacio de trabajo?",
+  "workspaceSettingsDeleteDialogMessage": "¿Eliminar {name}? Esto eliminará permanentemente el espacio de trabajo y todos sus datos.",
+  "@workspaceSettingsDeleteDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceSettingsDeleteConfirmLabel": "Eliminar",
+  "workspaceSettingsDeleteFailed": "Error al eliminar el espacio de trabajo.",
+  "workspaceSettingsLeaveDialogTitle": "¿Abandonar espacio de trabajo?",
+  "workspaceSettingsLeaveDialogMessage": "¿Abandonar {name}? Puede volver a unirse con una nueva invitación.",
+  "@workspaceSettingsLeaveDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceSettingsLeaveConfirmLabel": "Abandonar",
+  "workspaceSettingsLeaveFailed": "Error al abandonar el espacio de trabajo."
 }

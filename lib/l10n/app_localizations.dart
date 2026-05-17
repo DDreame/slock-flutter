@@ -1221,6 +1221,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get refreshFailedRetry;
+
+  /// No description provided for @workspaceSettingsUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace settings unavailable'**
+  String get workspaceSettingsUnavailableTitle;
+
+  /// No description provided for @workspaceSettingsUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not load workspace settings right now.'**
+  String get workspaceSettingsUnavailableMessage;
+
+  /// No description provided for @workspaceSettingsNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace not found.'**
+  String get workspaceSettingsNotFound;
+
+  /// No description provided for @workspaceSettingsRoleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get workspaceSettingsRoleLabel;
+
+  /// No description provided for @workspaceSettingsRoleUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get workspaceSettingsRoleUnknown;
+
+  /// No description provided for @workspaceSettingsCreatedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get workspaceSettingsCreatedLabel;
+
+  /// No description provided for @workspaceSettingsManageSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get workspaceSettingsManageSection;
+
+  /// No description provided for @workspaceSettingsActionsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get workspaceSettingsActionsSection;
+
+  /// No description provided for @workspaceSettingsRenameAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename workspace'**
+  String get workspaceSettingsRenameAction;
+
+  /// No description provided for @workspaceSettingsDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete workspace'**
+  String get workspaceSettingsDeleteAction;
+
+  /// No description provided for @workspaceSettingsLeaveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave workspace'**
+  String get workspaceSettingsLeaveAction;
+
+  /// No description provided for @workspaceSettingsRenamedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace renamed.'**
+  String get workspaceSettingsRenamedSnackbar;
+
+  /// No description provided for @workspaceSettingsRenameFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to rename workspace.'**
+  String get workspaceSettingsRenameFailed;
+
+  /// No description provided for @workspaceSettingsDeleteDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete workspace?'**
+  String get workspaceSettingsDeleteDialogTitle;
+
+  /// No description provided for @workspaceSettingsDeleteDialogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}? This permanently removes the workspace and all its data.'**
+  String workspaceSettingsDeleteDialogMessage(String name);
+
+  /// No description provided for @workspaceSettingsDeleteConfirmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get workspaceSettingsDeleteConfirmLabel;
+
+  /// No description provided for @workspaceSettingsDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete workspace.'**
+  String get workspaceSettingsDeleteFailed;
+
+  /// No description provided for @workspaceSettingsLeaveDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave workspace?'**
+  String get workspaceSettingsLeaveDialogTitle;
+
+  /// No description provided for @workspaceSettingsLeaveDialogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave {name}? You can rejoin later with a new invite.'**
+  String workspaceSettingsLeaveDialogMessage(String name);
+
+  /// No description provided for @workspaceSettingsLeaveConfirmLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get workspaceSettingsLeaveConfirmLabel;
+
+  /// No description provided for @workspaceSettingsLeaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to leave workspace.'**
+  String get workspaceSettingsLeaveFailed;
 }
 
 class _AppLocalizationsDelegate

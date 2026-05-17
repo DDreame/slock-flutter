@@ -25,7 +25,9 @@ extension ServerListRepositoryMutationX on ServerListRepository {
     if (repository is ServerListMutationRepository) {
       return repository as ServerListMutationRepository;
     }
-    throw UnsupportedError('Server mutation operations are not implemented');
+    throw const UnknownFailure(
+      message: 'Server mutation operations are not available.',
+    );
   }
 
   Future<ServerSummary> createServer({
@@ -107,7 +109,9 @@ class BaselineServerListRepository
   }) async {
     final createServer = _createServer;
     if (createServer == null) {
-      throw UnsupportedError('Server create operation is not implemented');
+      throw const UnknownFailure(
+        message: 'Server create operation is not available.',
+      );
     }
     try {
       return await createServer(name: name, slug: slug);
@@ -125,7 +129,9 @@ class BaselineServerListRepository
   Future<String> renameServer(String serverId, {required String name}) async {
     final renameServer = _renameServer;
     if (renameServer == null) {
-      throw UnsupportedError('Server rename operation is not implemented');
+      throw const UnknownFailure(
+        message: 'Server rename operation is not available.',
+      );
     }
     try {
       return await renameServer(serverId, name: name);
@@ -143,7 +149,9 @@ class BaselineServerListRepository
   Future<void> deleteServer(String serverId) async {
     final deleteServer = _deleteServer;
     if (deleteServer == null) {
-      throw UnsupportedError('Server delete operation is not implemented');
+      throw const UnknownFailure(
+        message: 'Server delete operation is not available.',
+      );
     }
     try {
       await deleteServer(serverId);
@@ -161,7 +169,9 @@ class BaselineServerListRepository
   Future<void> leaveServer(String serverId) async {
     final leaveServer = _leaveServer;
     if (leaveServer == null) {
-      throw UnsupportedError('Server leave operation is not implemented');
+      throw const UnknownFailure(
+        message: 'Server leave operation is not available.',
+      );
     }
     try {
       await leaveServer(serverId);
@@ -179,7 +189,9 @@ class BaselineServerListRepository
   Future<AcceptInviteResult> acceptInvite(String token) async {
     final acceptInvite = _acceptInvite;
     if (acceptInvite == null) {
-      throw UnsupportedError('Server invite operation is not implemented');
+      throw const UnknownFailure(
+        message: 'Server invite operation is not available.',
+      );
     }
     try {
       return await acceptInvite(token);

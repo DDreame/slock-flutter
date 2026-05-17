@@ -233,5 +233,41 @@
   "attachmentHtmlOpensInBrowser": "HTML • Opens in browser",
 
   "refreshFailedSnackbar": "Could not refresh. Showing cached data.",
-  "refreshFailedRetry": "Retry"
+  "refreshFailedRetry": "Retry",
+
+  "workspaceSettingsUnavailableTitle": "Workspace settings unavailable",
+  "workspaceSettingsUnavailableMessage": "We could not load workspace settings right now.",
+  "workspaceSettingsNotFound": "Workspace not found.",
+  "workspaceSettingsRoleLabel": "Role",
+  "workspaceSettingsRoleUnknown": "Unknown",
+  "workspaceSettingsCreatedLabel": "Created",
+  "workspaceSettingsManageSection": "Manage",
+  "workspaceSettingsActionsSection": "Actions",
+  "workspaceSettingsRenameAction": "Rename workspace",
+  "workspaceSettingsDeleteAction": "Delete workspace",
+  "workspaceSettingsLeaveAction": "Leave workspace",
+  "workspaceSettingsRenamedSnackbar": "Workspace renamed.",
+  "workspaceSettingsRenameFailed": "Failed to rename workspace.",
+  "workspaceSettingsDeleteDialogTitle": "Delete workspace?",
+  "workspaceSettingsDeleteDialogMessage": "Delete {name}? This permanently removes the workspace and all its data.",
+  "@workspaceSettingsDeleteDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceSettingsDeleteConfirmLabel": "Delete",
+  "workspaceSettingsDeleteFailed": "Failed to delete workspace.",
+  "workspaceSettingsLeaveDialogTitle": "Leave workspace?",
+  "workspaceSettingsLeaveDialogMessage": "Leave {name}? You can rejoin later with a new invite.",
+  "@workspaceSettingsLeaveDialogMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workspaceSettingsLeaveConfirmLabel": "Leave",
+  "workspaceSettingsLeaveFailed": "Failed to leave workspace."
 }
