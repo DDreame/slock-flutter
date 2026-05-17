@@ -113,23 +113,32 @@ void main() {
             '(INV-PERFFIX-2)',
       );
 
-      // Cast and verify disk cache dimensions are set.
-      // CachedNetworkImageProvider exposes maxWidth / maxHeight.
-      // Phase B implementation must set these ≤ 200 for avatar sizes.
-      //
-      // NOTE: The concrete cast depends on the cached_network_image
-      // API. Phase B will import the package and use:
-      //   final cnip = provider as CachedNetworkImageProvider;
-      //   expect(cnip.maxWidth, lessThanOrEqualTo(200));
-      //   expect(cnip.maxHeight, lessThanOrEqualTo(200));
-      //
-      // For now, verify the provider is not a bare NetworkImage
-      // (which has no cache size concept).
+      // Verify disk cache dimensions are bounded via dynamic access.
+      // CachedNetworkImageProvider exposes maxWidth / maxHeight as int?.
+      // Phase B must set these ≤ 200 for avatar sizes.
+      final dynamic dynamicProvider = provider;
       expect(
-        provider,
-        isNot(isA<NetworkImage>()),
-        reason: 'ProfileAvatar must NOT use bare NetworkImage — '
-            'CachedNetworkImageProvider with size limits required '
+        dynamicProvider.maxWidth,
+        isNotNull,
+        reason: 'CachedNetworkImageProvider must set maxWidth '
+            '(INV-PERFFIX-2)',
+      );
+      expect(
+        dynamicProvider.maxHeight,
+        isNotNull,
+        reason: 'CachedNetworkImageProvider must set maxHeight '
+            '(INV-PERFFIX-2)',
+      );
+      expect(
+        dynamicProvider.maxWidth as int,
+        lessThanOrEqualTo(200),
+        reason: 'maxWidth must be ≤ 200 for avatar sizes '
+            '(INV-PERFFIX-2)',
+      );
+      expect(
+        dynamicProvider.maxHeight as int,
+        lessThanOrEqualTo(200),
+        reason: 'maxHeight must be ≤ 200 for avatar sizes '
             '(INV-PERFFIX-2)',
       );
     },
