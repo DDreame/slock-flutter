@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/widgets/app_error_view.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
@@ -47,16 +48,16 @@ class _ThreadsScreen extends ConsumerWidget {
           ),
         ThreadsInboxStatus.loading => _ThreadsListSurface(
             items: state.items,
-            isRefreshing: true,
             isCompleting: state.isCompleting,
             onOpen: (item) => context.push(item.routeTarget.toLocation()),
             onDone: store.markDone,
+            onRefresh: store.load,
           ),
         ThreadsInboxStatus.initial ||
         ThreadsInboxStatus.failure =>
-          _ThreadsFailureView(
+          AppErrorView(
             message: state.failure?.message ?? 'Unable to load threads.',
-            onRetry: store.retry,
+            onRetry: () => store.retry(),
           ),
         ThreadsInboxStatus.success when state.items.isEmpty => const Center(
             key: ValueKey('threads-empty'),
@@ -67,6 +68,7 @@ class _ThreadsScreen extends ConsumerWidget {
             isCompleting: state.isCompleting,
             onOpen: (item) => context.push(item.routeTarget.toLocation()),
             onDone: store.markDone,
+            onRefresh: store.load,
           ),
       },
     );
@@ -79,70 +81,33 @@ class _ThreadsListSurface extends StatelessWidget {
     required this.isCompleting,
     required this.onOpen,
     required this.onDone,
-    this.isRefreshing = false,
+    required this.onRefresh,
   });
 
   final List<ThreadInboxItem> items;
   final bool Function(String threadChannelId) isCompleting;
   final void Function(ThreadInboxItem item) onOpen;
   final Future<void> Function(ThreadInboxItem item) onDone;
-  final bool isRefreshing;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ListView.separated(
-          key: const ValueKey('threads-success'),
-          padding: const EdgeInsets.all(16),
-          itemCount: items.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return _ThreadInboxCard(
-              item: item,
-              isCompleting:
-                  isCompleting(item.routeTarget.threadChannelId ?? ''),
-              onOpen: () => onOpen(item),
-              onDone: () => onDone(item),
-            );
-          },
-        ),
-        if (isRefreshing)
-          const Align(
-            alignment: Alignment.topCenter,
-            child: LinearProgressIndicator(
-              key: ValueKey('threads-refresh-indicator'),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _ThreadsFailureView extends StatelessWidget {
-  const _ThreadsFailureView({
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      key: const ValueKey('threads-error'),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
-          ],
-        ),
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.separated(
+        key: const ValueKey('threads-success'),
+        padding: const EdgeInsets.all(16),
+        itemCount: items.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return _ThreadInboxCard(
+            item: item,
+            isCompleting: isCompleting(item.routeTarget.threadChannelId ?? ''),
+            onOpen: () => onOpen(item),
+            onDone: () => onDone(item),
+          );
+        },
       ),
     );
   }
