@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
+import 'package:slock_app/core/telemetry/crash_breadcrumb_observer.dart';
+import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/app/shell/app_shell.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/auth/presentation/page/forgot_password_page.dart';
@@ -79,9 +81,11 @@ const _transitionDuration = Duration(milliseconds: 300);
 CustomTransitionPage<void> _slideTransitionPage({
   required LocalKey key,
   required Widget child,
+  String? name,
 }) {
   return CustomTransitionPage<void>(
     key: key,
+    name: name,
     child: child,
     transitionDuration: _transitionDuration,
     reverseTransitionDuration: _transitionDuration,
@@ -305,6 +309,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         pageBuilder: (context, state) => _slideTransitionPage(
           key: state.pageKey,
+          name: state.name ?? state.uri.path,
           child: const SettingsPage(),
         ),
       ),
@@ -313,6 +318,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: syncServerSelection,
         pageBuilder: (context, state) => _slideTransitionPage(
           key: state.pageKey,
+          name: state.name ?? state.uri.path,
           child: ChannelPage(
             serverId: state.pathParameters['serverId']!,
             channelId: state.pathParameters['channelId']!,
@@ -325,6 +331,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: syncServerSelection,
         pageBuilder: (context, state) => _slideTransitionPage(
           key: state.pageKey,
+          name: state.name ?? state.uri.path,
           child: ChannelMembersPage(
             serverId: state.pathParameters['serverId']!,
             channelId: state.pathParameters['channelId']!,
@@ -338,6 +345,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final target = state.extra as ConversationDetailTarget?;
           return _slideTransitionPage(
             key: state.pageKey,
+            name: state.name ?? state.uri.path,
             child: ProviderScope(
               overrides: [
                 if (target != null)
@@ -356,6 +364,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: syncServerSelection,
         pageBuilder: (context, state) => _slideTransitionPage(
           key: state.pageKey,
+          name: state.name ?? state.uri.path,
           child: ChannelFilesPage(
             serverId: state.pathParameters['serverId']!,
             channelId: state.pathParameters['channelId']!,
@@ -374,6 +383,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: syncServerSelection,
         pageBuilder: (context, state) => _slideTransitionPage(
           key: state.pageKey,
+          name: state.name ?? state.uri.path,
           child: MessagesPage(
             serverId: state.pathParameters['serverId']!,
             channelId: state.pathParameters['channelId']!,
@@ -400,6 +410,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final target = tryParseThreadRouteTarget(state.uri);
           return _slideTransitionPage(
             key: state.pageKey,
+            name: state.name ?? state.uri.path,
             child: ThreadRepliesPage(routeTarget: target),
           );
         },
@@ -409,6 +420,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: syncServerSelection,
         pageBuilder: (context, state) => _slideTransitionPage(
           key: state.pageKey,
+          name: state.name ?? state.uri.path,
           child: TasksPage(serverId: state.pathParameters['serverId']!),
         ),
       ),
@@ -442,6 +454,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         redirect: syncServerSelection,
         pageBuilder: (context, state) => _slideTransitionPage(
           key: state.pageKey,
+          name: state.name ?? state.uri.path,
           child: SearchPage(serverId: state.pathParameters['serverId']!),
         ),
       ),
@@ -468,6 +481,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         pageBuilder: (context, state) => _slideTransitionPage(
           key: state.pageKey,
+          name: state.name ?? state.uri.path,
           child: const ProfilePage(),
         ),
       ),
@@ -521,6 +535,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
     errorBuilder: (context, state) =>
         Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
+    observers: [
+      CrashBreadcrumbObserver(reporter: ref.read(crashReporterProvider)),
+    ],
   );
 
   ref.listen<String?>(pendingDeepLinkProvider, (prev, next) {
