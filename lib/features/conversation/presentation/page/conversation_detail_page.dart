@@ -4575,9 +4575,19 @@ class _SelectionActionBar extends ConsumerWidget {
               icon: const Icon(Icons.bookmark_outline),
               tooltip: 'Save',
               onPressed: selectedCount > 0
-                  ? () => ref
-                      .read(conversationDetailStoreProvider.notifier)
-                      .batchSaveMessages(state.selectedMessageIds)
+                  ? () async {
+                      final ids = Set<String>.of(state.selectedMessageIds);
+                      final result = await ref
+                          .read(conversationDetailStoreProvider.notifier)
+                          .batchSaveMessages(ids);
+                      if (!context.mounted) return;
+                      _showBatchResultSnackbar(
+                        context,
+                        action: 'saved',
+                        succeeded: result.succeeded,
+                        failed: result.failed,
+                      );
+                    }
                   : null,
             ),
             const SizedBox(width: AppSpacing.xs),
@@ -4586,14 +4596,48 @@ class _SelectionActionBar extends ConsumerWidget {
               icon: Icon(Icons.delete_outline, color: colors.error),
               tooltip: 'Delete',
               onPressed: selectedCount > 0
-                  ? () => ref
-                      .read(conversationDetailStoreProvider.notifier)
-                      .batchDeleteMessages(state.selectedMessageIds)
+                  ? () async {
+                      final ids = Set<String>.of(state.selectedMessageIds);
+                      final result = await ref
+                          .read(conversationDetailStoreProvider.notifier)
+                          .batchDeleteMessages(ids);
+                      if (!context.mounted) return;
+                      _showBatchResultSnackbar(
+                        context,
+                        action: 'deleted',
+                        succeeded: result.succeeded,
+                        failed: result.failed,
+                      );
+                    }
                   : null,
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showBatchResultSnackbar(
+    BuildContext context, {
+    required String action,
+    required int succeeded,
+    required int failed,
+  }) {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+
+    final String message;
+    if (failed == 0) {
+      message = '$succeeded message${succeeded == 1 ? '' : 's'} $action.';
+    } else if (succeeded == 0) {
+      message = 'Failed to ${action == 'deleted' ? 'delete' : 'save'} '
+          '$failed message${failed == 1 ? '' : 's'}.';
+    } else {
+      message = '$succeeded $action, $failed failed.';
+    }
+
+    messenger.showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }

@@ -1073,9 +1073,15 @@ class ConversationDetailStore
   }
 
   /// Batch-deletes all selected messages and exits selection mode.
-  Future<void> batchDeleteMessages(Set<String> ids) async {
+  ///
+  /// Returns a record of (succeeded, failed) counts so the UI can show
+  /// appropriate feedback.
+  Future<({int succeeded, int failed})> batchDeleteMessages(
+      Set<String> ids) async {
     final target = ref.read(currentConversationDetailTargetProvider);
-    if (state.status != ConversationDetailStatus.success) return;
+    if (state.status != ConversationDetailStatus.success) {
+      return (succeeded: 0, failed: 0);
+    }
 
     // Optimistic: mark all selected messages as deleted.
     final messages = List<ConversationMessageSummary>.of(state.messages);
@@ -1091,22 +1097,32 @@ class ConversationDetailStore
       selectedMessageIds: const {},
     );
 
-    // Fire delete requests (best-effort, no rollback on partial failure).
+    // Fire delete requests, tracking successes and failures.
     final repo = ref.read(conversationRepositoryProvider);
+    int succeeded = 0;
+    int failed = 0;
     for (final id in ids) {
       try {
         await repo.deleteMessage(target, messageId: id);
+        succeeded++;
       } on AppFailure {
-        // Individual message delete failure is silently tolerated in batch.
+        failed++;
       }
     }
     _persistSession();
+    return (succeeded: succeeded, failed: failed);
   }
 
   /// Batch-saves all selected messages and exits selection mode.
-  Future<void> batchSaveMessages(Set<String> ids) async {
+  ///
+  /// Returns a record of (succeeded, failed) counts so the UI can show
+  /// appropriate feedback.
+  Future<({int succeeded, int failed})> batchSaveMessages(
+      Set<String> ids) async {
     final target = ref.read(currentConversationDetailTargetProvider);
-    if (state.status != ConversationDetailStatus.success) return;
+    if (state.status != ConversationDetailStatus.success) {
+      return (succeeded: 0, failed: 0);
+    }
 
     // Optimistic: add all selected message IDs to savedMessageIds.
     final previousSaved = state.savedMessageIds;
@@ -1117,16 +1133,20 @@ class ConversationDetailStore
       selectedMessageIds: const {},
     );
 
-    // Fire save requests (best-effort, no rollback on partial failure).
+    // Fire save requests, tracking successes and failures.
     final serverId = target.serverId;
     final repo = ref.read(savedMessagesRepositoryProvider);
+    int succeeded = 0;
+    int failed = 0;
     for (final id in ids) {
       try {
         await repo.saveMessage(serverId, id);
+        succeeded++;
       } on AppFailure {
-        // Individual message save failure is silently tolerated in batch.
+        failed++;
       }
     }
+    return (succeeded: succeeded, failed: failed);
   }
 
   Future<void> pinMessage(String messageId) async {
