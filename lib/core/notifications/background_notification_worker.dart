@@ -23,6 +23,12 @@ abstract class BackgroundSocketConnection {
     String? serverId,
   });
   void disconnect();
+
+  /// Terminal teardown: closes all stream controllers and releases
+  /// resources. After dispose, [connect] must be a no-op.
+  /// Contrast with [disconnect], which only tears down the underlying
+  /// socket but keeps streams open for reconnection.
+  Future<void> dispose();
 }
 
 /// Abstraction for posting local notifications from the background
@@ -185,14 +191,14 @@ class BackgroundNotificationWorker {
   }
 
   /// Stop the worker and release resources.
-  void dispose() {
+  Future<void> dispose() async {
     _disposed = true;
     _active = false;
     _eventSubscription?.cancel();
     _eventSubscription = null;
     _statusSubscription?.cancel();
     _statusSubscription = null;
-    _socket.disconnect();
+    await _socket.dispose();
   }
 
   void _onStatusChange(BackgroundSocketStatus status) {

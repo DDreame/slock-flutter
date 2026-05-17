@@ -88,6 +88,7 @@ class _TestableBackgroundSocketConnection
 
   /// Terminal teardown: close both StreamControllers.
   /// After dispose, connect() is a no-op.
+  @override
   Future<void> dispose() async {
     _disposed = true;
     _connected = false;
@@ -110,7 +111,6 @@ void main() {
   group('INV-STREAM-DISPOSE-1: dispose closes streams', () {
     test(
       'eventStream completes after dispose',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
 
@@ -130,7 +130,6 @@ void main() {
 
     test(
       'statusStream completes after dispose',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
 
@@ -149,7 +148,6 @@ void main() {
 
     test(
       'both streams closed after dispose',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
 
@@ -180,7 +178,6 @@ void main() {
   group('INV-STREAM-DISPOSE-2: disconnect preserves streams', () {
     test(
       'streams remain open after disconnect',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
 
@@ -203,7 +200,6 @@ void main() {
 
     test(
       'events can still be emitted after disconnect',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
         final events = <Map<String, dynamic>>[];
@@ -228,7 +224,6 @@ void main() {
   group('INV-STREAM-DISPOSE-3: connect after dispose is no-op', () {
     test(
       'connect() after dispose() does not establish connection',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
 
@@ -242,7 +237,6 @@ void main() {
 
     test(
       'no status events emitted from connect after dispose',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
 
@@ -269,7 +263,6 @@ void main() {
   group('INV-STREAM-LISTEN-1: listeners across reconnect cycles', () {
     test(
       'active listeners receive events across connect/disconnect cycles',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
         final events = <Map<String, dynamic>>[];
@@ -297,7 +290,6 @@ void main() {
 
     test(
       'status listeners receive transitions across reconnect cycles',
-      skip: true,
       () async {
         final conn = _TestableBackgroundSocketConnection();
         final statuses = <BackgroundSocketStatus>[];

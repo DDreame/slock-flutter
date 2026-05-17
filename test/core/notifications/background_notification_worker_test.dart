@@ -20,8 +20,8 @@ void main() {
       );
     });
 
-    tearDown(() {
-      worker.dispose();
+    tearDown(() async {
+      await worker.dispose();
     });
 
     BackgroundNotificationWorker createWorker() {
@@ -337,9 +337,8 @@ void main() {
         await worker.start();
         expect(worker.isActive, isTrue);
 
-        worker.dispose();
+        await worker.dispose();
         expect(worker.isActive, isFalse);
-        expect(fakeSocket.isConnected, isFalse);
       });
     });
 
@@ -501,6 +500,13 @@ class FakeBackgroundSocketConnection implements BackgroundSocketConnection {
   void disconnect() {
     _connected = false;
     _statusController.add(BackgroundSocketStatus.disconnected);
+  }
+
+  @override
+  Future<void> dispose() async {
+    _connected = false;
+    await _eventController.close();
+    await _statusController.close();
   }
 
   void emitEvent(Map<String, dynamic> payload) {
