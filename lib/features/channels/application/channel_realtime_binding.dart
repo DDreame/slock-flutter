@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/realtime/scope_patterns.dart';
 import 'package:slock_app/features/channels/application/channel_member_state.dart';
 import 'package:slock_app/features/channels/application/channel_member_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
@@ -96,7 +97,7 @@ String? _extractServerId(RealtimeEventEnvelope event) {
   if (payloadServerId != null) {
     return payloadServerId;
   }
-  final match = RegExp(r'(?:^|/)server:([^/]+)').firstMatch(event.scopeKey);
+  final match = serverScopePattern.firstMatch(event.scopeKey);
   return match?.group(1);
 }
 
@@ -107,7 +108,7 @@ String? _extractChannelId(RealtimeEventEnvelope event) {
   if (payloadChannelId != null) {
     return payloadChannelId;
   }
-  final match = RegExp(r'(?:^|/)channel:([^/]+)').firstMatch(event.scopeKey);
+  final match = channelScopePattern.firstMatch(event.scopeKey);
   return match?.group(1);
 }
 

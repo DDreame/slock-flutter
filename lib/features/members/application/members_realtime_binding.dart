@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/realtime/scope_patterns.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
@@ -71,7 +72,7 @@ String? _extractServerId(RealtimeEventEnvelope event) {
   if (payloadServerId != null) {
     return payloadServerId;
   }
-  final match = RegExp(r'(?:^|/)server:([^/]+)').firstMatch(event.scopeKey);
+  final match = serverScopePattern.firstMatch(event.scopeKey);
   return match?.group(1);
 }
 

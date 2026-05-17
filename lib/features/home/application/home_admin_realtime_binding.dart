@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/realtime/scope_patterns.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -123,6 +124,6 @@ String? _optionalString(Object? value) {
 }
 
 String? _serverIdFromScopeKey(String scopeKey) {
-  final match = RegExp(r'(?:^|/)server:([^/]+)').firstMatch(scopeKey);
+  final match = serverScopePattern.firstMatch(scopeKey);
   return match?.group(1);
 }
