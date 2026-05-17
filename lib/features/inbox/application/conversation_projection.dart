@@ -125,6 +125,7 @@ ConversationProjection projectInboxItem(
     senderName: nameResolver != null
         ? nameResolver.resolveSenderName(
             apiName: item.senderName,
+            senderId: item.senderId,
           )
         : item.senderName,
     lastActivityAt: item.lastActivityAt,

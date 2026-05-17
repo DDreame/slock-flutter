@@ -5,6 +5,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
+import 'package:slock_app/features/inbox/application/inbox_name_resolver.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
@@ -40,6 +41,7 @@ final unreadSourceProjectionProvider =
   }
 
   final ctx = _visibilityContextFromSelected(homeVis);
+  final nameResolver = _buildNameResolver(homeVis);
 
   return _projectSources(
     inboxState.items,
@@ -47,6 +49,7 @@ final unreadSourceProjectionProvider =
     visibleChannelIds: ctx.channelIds,
     visibleDmIds: ctx.dmIds,
     homeLoaded: ctx.homeLoaded,
+    nameResolver: nameResolver,
   );
 });
 
@@ -75,11 +78,12 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   }
 
   final ctx = _visibilityContextFromSelected(homeVis);
+  final nameResolver = _buildNameResolver(homeVis);
 
   return [
     for (final item in inboxState.items)
       UnreadSourceProjection.fromProjection(
-        projectInboxItem(item, serverId: serverId),
+        projectInboxItem(item, serverId: serverId, nameResolver: nameResolver),
         visibility: _resolveVisibility(
           item,
           visibleChannelIds: ctx.channelIds,
@@ -117,6 +121,32 @@ _HomeVisibility _selectVisibility(HomeListState s) => (
       directMessages: s.directMessages,
     );
 
+/// Builds an [InboxNameResolver] from the selected [_HomeVisibility] record.
+///
+/// Populates `channelNames` from both pinned and regular channels/DMs so
+/// that [projectInboxItem] can resolve display names when the API returns
+/// null/empty values.
+InboxNameResolver _buildNameResolver(_HomeVisibility vis) {
+  final channelNames = <String, String>{};
+
+  if (vis.status == HomeListStatus.success) {
+    for (final ch in vis.pinnedChannels) {
+      channelNames[ch.scopeId.value] = ch.name;
+    }
+    for (final ch in vis.channels) {
+      channelNames[ch.scopeId.value] = ch.name;
+    }
+    for (final dm in vis.pinnedDirectMessages) {
+      channelNames[dm.scopeId.value] = dm.title;
+    }
+    for (final dm in vis.directMessages) {
+      channelNames[dm.scopeId.value] = dm.title;
+    }
+  }
+
+  return InboxNameResolver(channelNames: channelNames);
+}
+
 /// Builds visibility context from the selected [_HomeVisibility] record.
 ({Set<String> channelIds, Set<String> dmIds, bool homeLoaded})
     _visibilityContextFromSelected(_HomeVisibility vis) {
@@ -153,6 +183,7 @@ UnreadSourceProjectionState _projectSources(
   required Set<String> visibleChannelIds,
   required Set<String> visibleDmIds,
   required bool homeLoaded,
+  InboxNameResolver? nameResolver,
 }) {
   final sources = <UnreadSourceProjection>[];
   final channelCounts = <ChannelScopeId, int>{};
@@ -161,7 +192,11 @@ UnreadSourceProjectionState _projectSources(
   for (final item in items) {
     if (item.unreadCount <= 0) continue;
 
-    final projection = projectInboxItem(item, serverId: serverId);
+    final projection = projectInboxItem(
+      item,
+      serverId: serverId,
+      nameResolver: nameResolver,
+    );
     final visibility = _resolveVisibility(
       item,
       visibleChannelIds: visibleChannelIds,
