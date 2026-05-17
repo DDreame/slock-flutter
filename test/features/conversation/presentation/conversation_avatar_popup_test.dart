@@ -74,7 +74,11 @@ void main() {
       expect(find.text('Alex'), findsOneWidget);
 
       // Tap the sender name.
+      // The sender-name tap routes through MessageGestureWrapper's
+      // timer-based single-tap detection (300ms double-tap window),
+      // so we must explicitly advance past the timer before settling.
       await tester.tap(find.text('Alex'));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
       // Profile sheet should appear with the display name.
@@ -112,6 +116,7 @@ void main() {
 
       // Tap sender name to open profile sheet.
       await tester.tap(find.text('Alex'));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
       // Display name.
@@ -176,6 +181,7 @@ void main() {
 
       // Open profile sheet.
       await tester.tap(find.text('Alex'));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
       // Tap the Message / DM button.
@@ -224,6 +230,7 @@ void main() {
 
       // Open profile sheet.
       await tester.tap(find.text('Alex'));
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
       // Presence dot.
