@@ -35,8 +35,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('threads-success')), findsOneWidget);
     expect(find.text('Thread title'), findsOneWidget);
-    expect(find.byKey(const ValueKey('threads-refresh-indicator')),
-        findsOneWidget);
+    expect(find.byType(RefreshIndicator), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 }
