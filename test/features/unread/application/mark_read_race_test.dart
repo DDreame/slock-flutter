@@ -119,7 +119,6 @@ void main() {
     testWidgets(
       'markRead fires after inbox loads even when conversation loaded first '
       '(INV-RACE-1)',
-      skip: true,
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
@@ -240,7 +239,6 @@ void main() {
     testWidgets(
       'deferred markRead fires exactly once after inbox loads '
       '(INV-RACE-2)',
-      skip: true,
       (tester) async {
         final inboxRepo = _RecordingInboxRepository(
           fetchResponse: const InboxResponse(
