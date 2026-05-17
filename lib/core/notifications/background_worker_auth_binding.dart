@@ -5,10 +5,11 @@ import 'package:slock_app/core/network/auth_token_provider.dart'
 import 'package:slock_app/core/notifications/foreground_service_manager.dart';
 import 'package:slock_app/core/realtime/providers.dart'
     show realtimeSocketOptionsProvider;
+import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
-/// Persists auth credentials to SharedPreferences whenever the
+/// Persists auth credentials to SecureStorage whenever the
 /// session, selected server, or realtime URL changes, so the
 /// background notification worker (running in a separate Dart
 /// isolate) can read them on startup or refresh.
@@ -19,6 +20,8 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// On logout, clears the persisted credentials.
 final backgroundWorkerAuthBindingProvider = Provider<void>((ref) {
   final diagnostics = ref.read(diagnosticsCollectorProvider);
+  final storage = ref.read(secureStorageProvider);
+  final persistence = BackgroundWorkerAuthPersistence(storage);
 
   /// Persist current credentials and signal the background worker.
   Future<void> persistAndRefresh() async {
@@ -32,7 +35,7 @@ final backgroundWorkerAuthBindingProvider = Provider<void>((ref) {
 
       final options = ref.read(realtimeSocketOptionsProvider);
       final serverId = ref.read(selectedServerIdProvider) ?? '';
-      await BackgroundWorkerAuthPersistence.persist(
+      await persistence.persist(
         token: session.token!,
         userId: session.userId ?? '',
         serverId: serverId,
@@ -68,7 +71,7 @@ final backgroundWorkerAuthBindingProvider = Provider<void>((ref) {
       await persistAndRefresh();
     } else if (next.isUnauthenticated) {
       try {
-        await BackgroundWorkerAuthPersistence.clear();
+        await persistence.clear();
         diagnostics.info(
           'background-worker-auth',
           'Cleared background worker credentials',
