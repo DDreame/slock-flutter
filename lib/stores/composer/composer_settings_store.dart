@@ -25,9 +25,16 @@ class ComposerSettingsState {
 class ComposerSettingsStore extends Notifier<ComposerSettingsState> {
   @override
   ComposerSettingsState build() {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final value = prefs.getBool('enter_to_send') ?? false;
-    return ComposerSettingsState(enterToSend: value);
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final value = prefs.getBool('enter_to_send') ?? false;
+      return ComposerSettingsState(enterToSend: value);
+    } on UnimplementedError {
+      // SharedPreferences not yet initialized (e.g. test environments
+      // that don't override sharedPreferencesProvider). Fall back to
+      // default state.
+      return const ComposerSettingsState();
+    }
   }
 
   /// Restores the preference from SharedPreferences.
