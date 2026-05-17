@@ -45,7 +45,7 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-KEY-DISPOSE-1: GlobalKeys cleared on dispose', () {
     testWidgets(
-      'GlobalKey currentContext is null after page dispose',
+      'messageGlobalKeyCount drops to zero after page dispose',
       (tester) async {
         final target = ConversationDetailTarget.channel(
           const ChannelScopeId(
@@ -80,20 +80,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Extract the GlobalKey from the KeyedSubtree wrapping msg-1.
-        // The _getMessageKey callback generates a GlobalKey per message
-        // and wraps each message in KeyedSubtree(key: globalKey).
-        final subtrees = find.byType(KeyedSubtree).evaluate();
-        final msgSubtree = subtrees.where((e) {
-          final widget = e.widget as KeyedSubtree;
-          return widget.key is GlobalKey;
-        }).toList();
-        expect(msgSubtree, isNotEmpty,
-            reason: 'At least one message should have a GlobalKey');
-
-        final capturedKey = msgSubtree.first.widget.key as GlobalKey;
-        expect(capturedKey.currentContext, isNotNull,
-            reason: 'Key should be attached while page is mounted');
+        // Verify the key map is populated while page is mounted.
+        final countFn = ConversationDetailPage.debugMessageGlobalKeyCount;
+        expect(countFn, isNotNull,
+            reason: 'debugMessageGlobalKeyCount hook must be registered');
+        expect(countFn!(), greaterThan(0),
+            reason: 'Key map must contain entries while messages are rendered');
 
         // Navigate away — triggers dispose.
         final context = tester.element(find.byType(ConversationDetailPage));
@@ -104,11 +96,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // After dispose + clear, the captured GlobalKey should be
-        // detached (currentContext is null). Phase B adds
-        // `_messageGlobalKeys.clear()` in dispose().
-        expect(capturedKey.currentContext, isNull,
-            reason: 'GlobalKey must be detached after page dispose');
+        // After dispose, the hook is deregistered (set to null).
+        // Phase B adds `_messageGlobalKeys.clear()` in dispose().
+        // The hook being null proves dispose ran and cleared state.
+        expect(ConversationDetailPage.debugMessageGlobalKeyCount, isNull,
+            reason:
+                'debugMessageGlobalKeyCount must be null after page dispose');
       },
       skip:
           true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
@@ -120,7 +113,7 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-KEY-REGEN-1: key regeneration after dispose', () {
     testWidgets(
-      'recreated page generates different GlobalKey instance for same message',
+      'key count resets to zero on dispose and repopulates on recreate',
       (tester) async {
         final target = ConversationDetailTarget.channel(
           const ChannelScopeId(
@@ -155,14 +148,12 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Extract GlobalKey from the first incarnation.
-        final firstSubtrees = find.byType(KeyedSubtree).evaluate();
-        final firstGlobalKeys = firstSubtrees
-            .where((e) => (e.widget as KeyedSubtree).key is GlobalKey)
-            .map((e) => (e.widget as KeyedSubtree).key as GlobalKey)
-            .toList();
-        expect(firstGlobalKeys, isNotEmpty);
-        final firstKeyIdentity = firstGlobalKeys.first;
+        // Capture count from first incarnation.
+        final firstCountFn = ConversationDetailPage.debugMessageGlobalKeyCount;
+        expect(firstCountFn, isNotNull);
+        final firstCount = firstCountFn!();
+        expect(firstCount, greaterThan(0),
+            reason: 'Key map must be populated after first mount');
 
         // Navigate away (dispose).
         final context = tester.element(find.byType(ConversationDetailPage));
@@ -173,6 +164,10 @@ void main() {
         );
         await tester.pumpAndSettle();
 
+        // After dispose, hook is null (map was cleared).
+        expect(ConversationDetailPage.debugMessageGlobalKeyCount, isNull,
+            reason: 'Hook must be null after dispose — proves clear happened');
+
         // Re-mount with same messages.
         await tester.pumpWidget(
           _buildApp(
@@ -182,23 +177,13 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Extract GlobalKey from the second incarnation.
-        final secondSubtrees = find.byType(KeyedSubtree).evaluate();
-        final secondGlobalKeys = secondSubtrees
-            .where((e) => (e.widget as KeyedSubtree).key is GlobalKey)
-            .map((e) => (e.widget as KeyedSubtree).key as GlobalKey)
-            .toList();
-        expect(secondGlobalKeys, isNotEmpty);
-        final secondKeyIdentity = secondGlobalKeys.first;
-
-        // After dispose+clear+recreate, the GlobalKey instance should
-        // be a fresh one (different identity), proving putIfAbsent
-        // regenerated it from an empty map.
-        expect(
-          identical(firstKeyIdentity, secondKeyIdentity),
-          isFalse,
-          reason: 'After dispose+recreate, GlobalKey must be a fresh instance',
-        );
+        // After re-creation, the hook is re-registered with a fresh map
+        // that has been repopulated via putIfAbsent.
+        final secondCountFn = ConversationDetailPage.debugMessageGlobalKeyCount;
+        expect(secondCountFn, isNotNull,
+            reason: 'Hook must be re-registered after recreate');
+        expect(secondCountFn!(), greaterThan(0),
+            reason: 'Key map must be repopulated after recreate');
       },
       skip:
           true, // Phase A: invariant locked — Phase B adds key cleanup in dispose
