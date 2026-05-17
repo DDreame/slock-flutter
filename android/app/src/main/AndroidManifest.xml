@@ -52,6 +52,22 @@
                 <data android:mimeType="video/*" />
                 <data android:mimeType="application/*" />
             </intent-filter>
+
+            <!-- HTTPS App Links (requires server .well-known/assetlinks.json) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.slock.ai" />
+            </intent-filter>
+
+            <!-- slock:// custom scheme deep links -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="slock" />
+            </intent-filter>
         </activity>
         <meta-data
             android:name="flutterEmbedding"

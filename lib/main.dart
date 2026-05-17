@@ -26,6 +26,7 @@ import 'package:slock_app/features/home/application/home_refresh_lifecycle_bindi
 import 'package:slock_app/features/presence/data/presence_realtime_binding.dart';
 import 'package:slock_app/stores/notification/notification_visible_target_binding.dart';
 import 'package:slock_app/core/core.dart' show connectivityServiceProvider;
+import 'package:slock_app/core/deep_link/deep_link_lifecycle_binding.dart';
 import 'package:slock_app/core/network/connectivity_service.dart'
     show initConnectivityService;
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
@@ -139,6 +140,7 @@ class SlockApp extends ConsumerWidget {
     ref.watch(biometricLockLifecycleBindingProvider);
     ref.watch(presenceRealtimeBindingProvider);
     ref.watch(domainRuntimeEventRouterProvider);
+    ref.watch(deepLinkLifecycleBindingProvider);
     final themeState = ref.watch(themeModeStoreProvider);
     final router = ref.watch(appRouterProvider);
     return MaterialApp.router(

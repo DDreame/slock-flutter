@@ -174,7 +174,6 @@ void main() {
 
     test(
       'HTTPS invite URL parses to /invite/:token path',
-      skip: true,
       () {
         final path = handler.parseDeepLinkUrl(
           Uri.parse('https://app.slock.ai/invite/abc123'),
@@ -187,7 +186,6 @@ void main() {
 
     test(
       'custom scheme conversation URL parses to /servers/:sid/channels/:cid',
-      skip: true,
       () {
         final path = handler.parseDeepLinkUrl(
           Uri.parse('slock://servers/server-1/channels/channel-1'),
@@ -200,7 +198,6 @@ void main() {
 
     test(
       'preserves query parameters (e.g. ?messageId=) in parsed path',
-      skip: true,
       () {
         final path = handler.parseDeepLinkUrl(
           Uri.parse('slock://servers/s1/channels/c1?messageId=m1'),
@@ -211,7 +208,6 @@ void main() {
 
     test(
       'custom scheme DM URL parses to /servers/:sid/dms/:cid',
-      skip: true,
       () {
         final path = handler.parseDeepLinkUrl(
           Uri.parse('slock://servers/s1/dms/dm-1'),
@@ -223,7 +219,6 @@ void main() {
 
     test(
       'notification deep link URLs (threads, agents, profile) parse correctly',
-      skip: true,
       () {
         // Thread reply
         expect(
@@ -257,7 +252,6 @@ void main() {
 
     test(
       'returns null for unrecognized URLs',
-      skip: true,
       () {
         expect(
           handler.parseDeepLinkUrl(Uri.parse('https://google.com')),
@@ -278,7 +272,6 @@ void main() {
     test(
       'stores invite deep link in pendingDeepLinkProvider when '
       'unauthenticated',
-      skip: true,
       () {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -303,7 +296,6 @@ void main() {
     test(
       'stores conversation deep link in pendingDeepLinkProvider when '
       'session is unknown',
-      skip: true,
       () {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -327,7 +319,6 @@ void main() {
 
     test(
       'pending deep link is consumed (set to null) after dispatch',
-      skip: true,
       () {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -361,7 +352,6 @@ void main() {
   group('INV-LINK-DISPATCH-1: deep link dispatch', () {
     test(
       'dispatches invite deep link via GoRouter.go() when authenticated',
-      skip: true,
       () {
         final navigatedPaths = <String>[];
         final container = ProviderContainer();
@@ -384,7 +374,6 @@ void main() {
     test(
       'dispatches conversation deep link via GoRouter.push() when '
       'authenticated',
-      skip: true,
       () {
         final pushedPaths = <String>[];
         final container = ProviderContainer();
@@ -409,7 +398,6 @@ void main() {
 
     test(
       'dispatches notification deep link (thread reply) via GoRouter.push()',
-      skip: true,
       () {
         final pushedPaths = <String>[];
         final container = ProviderContainer();
@@ -431,7 +419,6 @@ void main() {
 
     test(
       'does not dispatch when session is unauthenticated (stores instead)',
-      skip: true,
       () {
         final navigatedPaths = <String>[];
         final container = ProviderContainer();
