@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
+import 'package:slock_app/core/telemetry/crash_breadcrumb_observer.dart';
+import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/app/shell/app_shell.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/auth/presentation/page/forgot_password_page.dart';
@@ -521,6 +523,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
     errorBuilder: (context, state) =>
         Scaffold(body: Center(child: Text('Page not found: ${state.uri}'))),
+    observers: [
+      CrashBreadcrumbObserver(reporter: ref.read(crashReporterProvider)),
+    ],
   );
 
   ref.listen<String?>(pendingDeepLinkProvider, (prev, next) {

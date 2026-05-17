@@ -119,7 +119,6 @@ void main() {
   group('INV-CRASH-USER-1: setUser on authenticated session', () {
     test(
       'setUser called with userId after successful login',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final binding = _TestableAuthCrashBinding(reporter: reporter);
@@ -132,7 +131,6 @@ void main() {
 
     test(
       'setUser includes displayName when available',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final binding = _TestableAuthCrashBinding(reporter: reporter);
@@ -154,7 +152,6 @@ void main() {
   group('INV-CRASH-USER-2: setUser cleared on logout', () {
     test(
       'setUser(null) called on logout to clear Sentry user context',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final binding = _TestableAuthCrashBinding(reporter: reporter);
@@ -170,7 +167,6 @@ void main() {
 
     test(
       'displayName also cleared on logout',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final binding = _TestableAuthCrashBinding(reporter: reporter);
@@ -193,7 +189,6 @@ void main() {
   group('INV-CRASH-NAV-1: navigation breadcrumb observer', () {
     test(
       'didPush records breadcrumb with route path',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final observer = _TestableCrashBreadcrumbObserver(reporter: reporter);
@@ -215,7 +210,6 @@ void main() {
 
     test(
       'didPop records breadcrumb with popped route path',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final observer = _TestableCrashBreadcrumbObserver(reporter: reporter);
@@ -232,7 +226,6 @@ void main() {
 
     test(
       'didReplace records breadcrumb with new route path',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final observer = _TestableCrashBreadcrumbObserver(reporter: reporter);
@@ -252,7 +245,6 @@ void main() {
 
     test(
       'multiple navigations accumulate breadcrumbs in order',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final observer = _TestableCrashBreadcrumbObserver(reporter: reporter);
@@ -275,7 +267,6 @@ void main() {
   group('INV-CRASH-ZONE-1: testable zone error handler', () {
     test(
       'zone error handler captures exception via CrashReporter',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
         final error = StateError('test error');
@@ -290,7 +281,6 @@ void main() {
 
     test(
       'zone error handler works with different error types',
-      skip: true,
       () {
         final reporter = FakeCrashReporter();
 

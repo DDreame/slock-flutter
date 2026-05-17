@@ -14,6 +14,7 @@ import 'package:slock_app/core/realtime/realtime.dart';
 import 'package:slock_app/core/storage/flutter_secure_storage_impl.dart';
 import 'package:slock_app/core/telemetry/crash_marker_service.dart';
 import 'package:slock_app/core/telemetry/crash_recovery_wrapper.dart';
+import 'package:slock_app/core/telemetry/zone_error_handler.dart';
 import 'package:slock_app/features/push_token/application/push_token_lifecycle_binding.dart';
 import 'package:slock_app/features/settings/data/base_url_settings.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -114,9 +115,13 @@ void main() async {
       ));
     },
     (error, stack) {
-      bootstrap.reporter.captureException(error, stackTrace: stack);
-      bootstrap.diagnostics.error('crash', error.toString());
-      crashMarker.markCrash();
+      handleZoneError(
+        error,
+        stack,
+        reporter: bootstrap.reporter,
+        diagnostics: bootstrap.diagnostics,
+        crashMarker: crashMarker,
+      );
     },
   );
 }

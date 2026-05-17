@@ -142,6 +142,7 @@ class SessionStore extends Notifier<SessionState> {
     await ref.read(serverSelectionStoreProvider.notifier).clearSelection();
     await SessionStorageKeys.clear(_storage);
     state = const SessionState(status: AuthStatus.unauthenticated);
+    ref.read(crashReporterProvider).setUser(null);
   }
 
   Future<void> updateTokens({
@@ -193,6 +194,11 @@ class SessionStore extends Notifier<SessionState> {
         emailVerified: user?.emailVerified,
       );
       await _persistSession();
+
+      ref.read(crashReporterProvider).setUser(
+            state.userId,
+            displayName: state.displayName,
+          );
 
       ref.read(crashReporterProvider).addBreadcrumb(Breadcrumb(
             category: 'session',
