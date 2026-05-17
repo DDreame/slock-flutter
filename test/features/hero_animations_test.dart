@@ -21,6 +21,7 @@
 // INV-HERO-AVATAR-2: Profile page header contains a Hero widget with
 //                    the same tag
 // ---------------------------------------------------------------------------
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
@@ -72,12 +73,11 @@ class _TestableImageThumbnailHero extends StatelessWidget {
               // Phase B inserts Hero here, wrapping CachedNetworkImage.
               child: Hero(
                 tag: _HeroTags.imageAttachment(attachmentId),
-                // In production: CachedNetworkImage(imageUrl: ...)
-                child: Container(
-                  key: const ValueKey('cached-network-image-thumbnail'),
+                child: CachedNetworkImage(
+                  imageUrl: 'https://example.com/$attachmentId.jpg',
                   width: 200,
                   height: 200,
-                  color: Colors.grey,
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
@@ -107,12 +107,11 @@ class _TestableFilePreviewHero extends StatelessWidget {
         tag: _HeroTags.imageAttachment(attachmentId),
         child: InteractiveViewer(
           key: const ValueKey('image-viewer-interactive'),
-          // In production: CachedNetworkImage(imageUrl: signedUrl)
-          child: Container(
-            key: const ValueKey('cached-network-image-preview'),
+          child: CachedNetworkImage(
+            imageUrl: 'https://example.com/$attachmentId.jpg',
             width: 400,
             height: 400,
-            color: Colors.black,
+            fit: BoxFit.contain,
           ),
         ),
       ),
@@ -215,12 +214,11 @@ void main() {
         expect(hero.tag, _HeroTags.imageAttachment('att-123'));
         expect(hero.tag, 'image-hero-att-123');
 
-        // The Hero wraps the image (CachedNetworkImage placeholder).
+        // The Hero wraps CachedNetworkImage.
         expect(
           find.descendant(
             of: heroFinder,
-            matching:
-                find.byKey(const ValueKey('cached-network-image-thumbnail')),
+            matching: find.byType(CachedNetworkImage),
           ),
           findsOneWidget,
         );
