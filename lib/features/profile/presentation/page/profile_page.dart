@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/role_badge.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/hero/hero_tags.dart';
 import 'package:slock_app/features/profile/application/profile_detail_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
@@ -151,10 +152,13 @@ class _ProfileSuccessBody extends StatelessWidget {
           child: Column(
             children: [
               // --- Avatar ---
-              ProfileAvatar(
-                displayName: profile.displayName,
-                avatarUrl: profile.avatarUrl,
-                radius: 40,
+              Hero(
+                tag: HeroTags.avatar(profile.id),
+                child: ProfileAvatar(
+                  displayName: profile.displayName,
+                  avatarUrl: profile.avatarUrl,
+                  radius: 40,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
 

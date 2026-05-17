@@ -25,6 +25,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/core/hero/hero_tags.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
@@ -3553,48 +3554,51 @@ class _ImageAttachmentPreview extends StatelessWidget {
                 maxHeight: 200,
                 maxWidth: 280,
               ),
-              child: CachedNetworkImage(
-                imageUrl: attachment.thumbnailUrl ?? attachment.url!,
-                fit: BoxFit.cover,
-                progressIndicatorBuilder: (context, url, progress) {
-                  return SizedBox(
-                    height: 120,
-                    width: 200,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        value: progress.progress,
-                      ),
-                    ),
-                  );
-                },
-                errorWidget: (context, url, error) {
-                  return Container(
-                    height: 80,
-                    width: 200,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.broken_image_outlined,
-                          color: theme.colorScheme.onSurfaceVariant,
+              child: Hero(
+                tag: HeroTags.imageAttachment(attachment.id ?? attachment.name),
+                child: CachedNetworkImage(
+                  imageUrl: attachment.thumbnailUrl ?? attachment.url!,
+                  fit: BoxFit.cover,
+                  progressIndicatorBuilder: (context, url, progress) {
+                    return SizedBox(
+                      height: 120,
+                      width: 200,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          value: progress.progress,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          attachment.name,
-                          style: theme.textTheme.labelSmall?.copyWith(
+                      ),
+                    );
+                  },
+                  errorWidget: (context, url, error) {
+                    return Container(
+                      height: 80,
+                      width: 200,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.broken_image_outlined,
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                          const SizedBox(height: 4),
+                          Text(
+                            attachment.name,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),

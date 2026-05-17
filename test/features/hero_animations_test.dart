@@ -195,7 +195,6 @@ void main() {
     testWidgets(
       'image attachment preview contains Hero with tag matching '
       'attachment ID',
-      skip: true,
       (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
@@ -227,7 +226,6 @@ void main() {
 
     test(
       'Hero tag is unique per attachment ID',
-      skip: true,
       () {
         expect(
           _HeroTags.imageAttachment('att-1'),
@@ -246,7 +244,6 @@ void main() {
     testWidgets(
       'file preview page contains Hero wrapping InteractiveViewer with '
       'same tag as thumbnail',
-      skip: true,
       (tester) async {
         const attachmentId = 'att-456';
         final thumbnailTag = _HeroTags.imageAttachment(attachmentId);
@@ -278,7 +275,6 @@ void main() {
 
     test(
       'thumbnail and preview share the same Hero tag for a given attachment',
-      skip: true,
       () {
         const attachmentId = 'shared-att';
         // Both source (thumbnail) and destination (preview) must use the
@@ -297,7 +293,6 @@ void main() {
     testWidgets(
       'member list item avatar contains Hero wrapping ProfileAvatar with '
       'tag matching user ID',
-      skip: true,
       (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
@@ -330,7 +325,6 @@ void main() {
 
     test(
       'Hero tag is unique per user ID',
-      skip: true,
       () {
         expect(
           _HeroTags.avatar('user-1'),
@@ -349,7 +343,6 @@ void main() {
     testWidgets(
       'profile page header contains Hero wrapping ProfileAvatar with '
       'same tag as member avatar',
-      skip: true,
       (tester) async {
         const userId = 'user-xyz';
         final memberTag = _HeroTags.avatar(userId);
@@ -385,7 +378,6 @@ void main() {
     test(
       'member avatar and profile avatar share the same Hero tag for a '
       'given user',
-      skip: true,
       () {
         const userId = 'shared-user';
         // Both source (member list) and destination (profile) must use
