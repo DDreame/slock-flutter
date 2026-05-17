@@ -880,15 +880,23 @@ class _ConversationDetailScreenState
         _fireMarkReadIfUnread(t, projection);
       } else {
         // Inbox not loaded yet — defer markRead until projection is available.
+        // Use addPostFrameCallback so the loaded projection state is
+        // observable before markRead's optimistic zeroing takes effect.
         _deferredMarkReadSub?.close();
         _deferredMarkReadSub = ref.listenManual<UnreadSourceProjectionState>(
           unreadSourceProjectionProvider,
           (previous, next) {
             if (next.isLoaded) {
-              _fireMarkReadIfUnread(t, next);
-              // One-shot: close subscription after firing.
+              // One-shot: close subscription immediately.
               _deferredMarkReadSub?.close();
               _deferredMarkReadSub = null;
+              // Defer markRead to next frame so the loaded state is
+              // observable before optimistic zeroing (INV-RACE-1).
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _fireMarkReadIfUnread(t, next);
+                }
+              });
             }
           },
         );
