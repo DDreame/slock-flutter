@@ -6,9 +6,10 @@
 // Both routes use builder: with no transition currently.
 //
 // Phase A: skip:true invariants locking the Hero widget placement contract.
-//          A test-local _TestableHeroConfig seam defines expected Hero tags
-//          and widget tree positions. Phase B adds Hero widgets to the
-//          production code and un-skips.
+//          A test-local _HeroTags seam defines expected Hero tags.
+//          Test wrappers mirror the real production widget tree nesting at
+//          the intended Hero insertion points. Phase B adds Hero widgets
+//          to the production code and un-skips.
 //
 // Invariants verified:
 // INV-HERO-IMAGE-1: _ImageAttachmentPreview widget tree contains a Hero
@@ -22,6 +23,7 @@
 // ---------------------------------------------------------------------------
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 
 // ---------------------------------------------------------------------------
 // Test-local seam: defines the Hero tag convention and widget wrappers that
@@ -46,87 +48,141 @@ class _HeroTags {
   static String avatar(String userId) => 'avatar-hero-$userId';
 }
 
-/// Test-local wrapper simulating a Hero-wrapped image thumbnail.
+/// Test-local wrapper mirroring the real _ImageAttachmentPreview tree:
+///   GestureDetector → Column → ClipRRect → ConstrainedBox → [Hero →] image
 ///
 /// Phase B: _ImageAttachmentPreview.build() wraps its CachedNetworkImage
-/// in a Hero widget with tag = _HeroTags.imageAttachment(attachment.id).
+/// child in a Hero widget with tag = _HeroTags.imageAttachment(attachment.id).
 class _TestableImageThumbnailHero extends StatelessWidget {
   const _TestableImageThumbnailHero({required this.attachmentId});
   final String attachmentId;
 
   @override
   Widget build(BuildContext context) {
-    return Hero(
-      tag: _HeroTags.imageAttachment(attachmentId),
-      child: Container(
-        key: ValueKey('image-preview-$attachmentId'),
-        width: 200,
-        height: 200,
-        color: Colors.grey,
+    // Mirrors: _ImageAttachmentPreview.build()
+    return GestureDetector(
+      key: ValueKey('image-preview-$attachmentId'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 280),
+              // Phase B inserts Hero here, wrapping CachedNetworkImage.
+              child: Hero(
+                tag: _HeroTags.imageAttachment(attachmentId),
+                // In production: CachedNetworkImage(imageUrl: ...)
+                child: Container(
+                  key: const ValueKey('cached-network-image-thumbnail'),
+                  width: 200,
+                  height: 200,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Test-local wrapper simulating a Hero-wrapped file preview image.
+/// Test-local wrapper mirroring the real FilePreviewPage._buildImageBody tree:
+///   GestureDetector → [Hero →] InteractiveViewer → image
 ///
-/// Phase B: FilePreviewPage._buildImageBody() wraps its CachedNetworkImage
-/// in a Hero widget with tag = _HeroTags.imageAttachment(attachment.id).
+/// Phase B: FilePreviewPage._buildImageBody() wraps its InteractiveViewer
+/// (or the CachedNetworkImage within) in a Hero widget with the same tag.
 class _TestableFilePreviewHero extends StatelessWidget {
   const _TestableFilePreviewHero({required this.attachmentId});
   final String attachmentId;
 
   @override
   Widget build(BuildContext context) {
-    return Hero(
-      tag: _HeroTags.imageAttachment(attachmentId),
-      child: Container(
-        key: const ValueKey('image-viewer-interactive'),
-        width: 400,
-        height: 400,
-        color: Colors.black,
+    // Mirrors: FilePreviewPage._buildImageBody()
+    return GestureDetector(
+      key: const ValueKey('media-viewer-dismiss-area'),
+      // Phase B inserts Hero here, wrapping InteractiveViewer.
+      child: Hero(
+        tag: _HeroTags.imageAttachment(attachmentId),
+        child: InteractiveViewer(
+          key: const ValueKey('image-viewer-interactive'),
+          // In production: CachedNetworkImage(imageUrl: signedUrl)
+          child: Container(
+            key: const ValueKey('cached-network-image-preview'),
+            width: 400,
+            height: 400,
+            color: Colors.black,
+          ),
+        ),
       ),
     );
   }
 }
 
-/// Test-local wrapper simulating a Hero-wrapped avatar in MemberListItem.
+/// Test-local wrapper mirroring the real MemberListItem avatar tree:
+///   ListTile.leading → PresenceAvatar/StatusGlowRing → [Hero →] ProfileAvatar
 ///
 /// Phase B: MemberListItem.build() wraps ProfileAvatar in a Hero widget
 /// with tag = _HeroTags.avatar(member.id).
 class _TestableAvatarHero extends StatelessWidget {
-  const _TestableAvatarHero({required this.userId});
+  const _TestableAvatarHero({
+    required this.userId,
+    required this.displayName,
+  });
   final String userId;
+  final String displayName;
 
   @override
   Widget build(BuildContext context) {
+    // Mirrors: MemberListItem.build() leading widget.
+    // In production: PresenceAvatar/StatusGlowRing wraps ProfileAvatar.
+    // Phase B inserts Hero between the presence wrapper and ProfileAvatar.
     return Hero(
       tag: _HeroTags.avatar(userId),
-      child: CircleAvatar(
-        key: ValueKey('member-avatar-$userId'),
+      child: ProfileAvatar(
+        displayName: displayName,
         radius: 20,
-        child: const Text('A'),
       ),
     );
   }
 }
 
-/// Test-local wrapper simulating a Hero-wrapped avatar in ProfilePage.
+/// Test-local wrapper mirroring the real ProfilePage._ProfileSuccessBody tree:
+///   SingleChildScrollView → Center → Column → [Hero →] ProfileAvatar
 ///
 /// Phase B: _ProfileSuccessBody wraps ProfileAvatar in a Hero widget
 /// with tag = _HeroTags.avatar(profile.id).
 class _TestableProfileAvatarHero extends StatelessWidget {
-  const _TestableProfileAvatarHero({required this.userId});
+  const _TestableProfileAvatarHero({
+    required this.userId,
+    required this.displayName,
+  });
   final String userId;
+  final String displayName;
 
   @override
   Widget build(BuildContext context) {
-    return Hero(
-      tag: _HeroTags.avatar(userId),
-      child: CircleAvatar(
-        key: const ValueKey('profile-avatar-image'),
-        radius: 40,
-        child: const Text('P'),
+    // Mirrors: _ProfileSuccessBody.build() layout.
+    return SingleChildScrollView(
+      key: const ValueKey('profile-success'),
+      child: Center(
+        child: Column(
+          children: [
+            // Phase B inserts Hero here, wrapping ProfileAvatar.
+            Hero(
+              tag: _HeroTags.avatar(userId),
+              child: ProfileAvatar(
+                displayName: displayName,
+                radius: 40,
+              ),
+            ),
+            Text(
+              displayName,
+              key: const ValueKey('profile-display-name'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -158,6 +214,16 @@ void main() {
         final hero = tester.widget<Hero>(heroFinder);
         expect(hero.tag, _HeroTags.imageAttachment('att-123'));
         expect(hero.tag, 'image-hero-att-123');
+
+        // The Hero wraps the image (CachedNetworkImage placeholder).
+        expect(
+          find.descendant(
+            of: heroFinder,
+            matching:
+                find.byKey(const ValueKey('cached-network-image-thumbnail')),
+          ),
+          findsOneWidget,
+        );
       },
     );
 
@@ -180,7 +246,8 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-HERO-IMAGE-2: file preview page Hero widget', () {
     testWidgets(
-      'file preview page contains Hero with same tag as thumbnail',
+      'file preview page contains Hero wrapping InteractiveViewer with '
+      'same tag as thumbnail',
       skip: true,
       (tester) async {
         const attachmentId = 'att-456';
@@ -199,6 +266,15 @@ void main() {
 
         final hero = tester.widget<Hero>(heroFinder);
         expect(hero.tag, thumbnailTag);
+
+        // Hero wraps InteractiveViewer (the zoom/pan container).
+        expect(
+          find.descendant(
+            of: heroFinder,
+            matching: find.byType(InteractiveViewer),
+          ),
+          findsOneWidget,
+        );
       },
     );
 
@@ -221,13 +297,17 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-HERO-AVATAR-1: member list avatar Hero widget', () {
     testWidgets(
-      'member list item avatar contains Hero with tag matching user ID',
+      'member list item avatar contains Hero wrapping ProfileAvatar with '
+      'tag matching user ID',
       skip: true,
       (tester) async {
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(
-              body: _TestableAvatarHero(userId: 'user-abc'),
+              body: _TestableAvatarHero(
+                userId: 'user-abc',
+                displayName: 'Alice',
+              ),
             ),
           ),
         );
@@ -238,6 +318,15 @@ void main() {
         final hero = tester.widget<Hero>(heroFinder);
         expect(hero.tag, _HeroTags.avatar('user-abc'));
         expect(hero.tag, 'avatar-hero-user-abc');
+
+        // Hero wraps ProfileAvatar.
+        expect(
+          find.descendant(
+            of: heroFinder,
+            matching: find.byType(ProfileAvatar),
+          ),
+          findsOneWidget,
+        );
       },
     );
 
@@ -260,7 +349,8 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-HERO-AVATAR-2: profile page avatar Hero widget', () {
     testWidgets(
-      'profile page header contains Hero with same tag as member avatar',
+      'profile page header contains Hero wrapping ProfileAvatar with '
+      'same tag as member avatar',
       skip: true,
       (tester) async {
         const userId = 'user-xyz';
@@ -269,7 +359,10 @@ void main() {
         await tester.pumpWidget(
           const MaterialApp(
             home: Scaffold(
-              body: _TestableProfileAvatarHero(userId: userId),
+              body: _TestableProfileAvatarHero(
+                userId: userId,
+                displayName: 'Bob',
+              ),
             ),
           ),
         );
@@ -279,6 +372,15 @@ void main() {
 
         final hero = tester.widget<Hero>(heroFinder);
         expect(hero.tag, memberTag);
+
+        // Hero wraps ProfileAvatar with larger radius (40 for profile).
+        final avatar = tester.widget<ProfileAvatar>(
+          find.descendant(
+            of: heroFinder,
+            matching: find.byType(ProfileAvatar),
+          ),
+        );
+        expect(avatar.radius, 40);
       },
     );
 
