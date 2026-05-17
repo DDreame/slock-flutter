@@ -153,6 +153,13 @@ void main() {
   // Setup: Open profile sheet, tap the "Message" button. After navigation,
   // the DM conversation page should appear (verified via stub route).
   //
+  // NOTE: The key 'member-profile-dm-action' does NOT exist in the
+  // current production code. Phase B must add this key to a new
+  // ElevatedButton/TextButton in member_profile_sheet.dart's
+  // _MemberProfileSheet widget (below the presence row). This is an
+  // explicitly declared new seam, not an invented key anchored to
+  // existing code.
+  //
   // skip:true — profile sheet has no DM button.
   // -----------------------------------------------------------------------
   testWidgets(
@@ -182,7 +189,7 @@ void main() {
 
       // Tap the Message / DM button.
       final dmButton = find.byKey(
-        const ValueKey('profile-sheet-dm-button'),
+        const ValueKey('member-profile-dm-action'),
       );
       expect(dmButton, findsOneWidget,
           reason: 'Profile sheet must have a DM button (INV-AVATAR-3)');
