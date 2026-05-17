@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/composer_keyboard_handler.dart';
+import 'package:slock_app/stores/composer/composer_settings_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 // ---------------------------------------------------------------------------
@@ -29,8 +31,8 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart';
 //   INV-KBSHORTCUT-4: The enterToSend preference persists to
 //                      SharedPreferences and is restored on read
 //
-// Phase A: All tests skip:true — no keyboard handling in composer,
-// no ComposerSettingsStore, no settings toggle.
+// Phase B: All tests un-skipped. Keyboard handling implemented in
+// _ConversationComposer, ComposerSettingsStore created.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -41,12 +43,10 @@ void main() {
   // with enterToSend=true. Simulate pressing Enter on hardware keyboard.
   // The send callback should fire and the text should not gain a newline.
   //
-  // skip:true — Composer has no keyboard shortcut handling.
   // -----------------------------------------------------------------------
   testWidgets(
     'Enter key triggers send when enterToSend is enabled '
     '(INV-KBSHORTCUT-1)',
-    skip: true,
     (tester) async {
       var sendCalled = false;
       final controller = TextEditingController(text: 'Hello');
@@ -104,14 +104,13 @@ void main() {
   // Shift+Enter on hardware keyboard. The text should gain a newline
   // and the send callback should NOT fire.
   //
-  // skip:true — Composer has no keyboard shortcut handling.
   // -----------------------------------------------------------------------
   testWidgets(
     'Shift+Enter inserts newline when enterToSend is enabled '
     '(INV-KBSHORTCUT-2)',
-    skip: true,
     (tester) async {
       var sendCalled = false;
+      String? lastTextChanged;
       final controller = TextEditingController(text: 'Hello');
       final focusNode = FocusNode();
 
@@ -124,6 +123,7 @@ void main() {
               focusNode: focusNode,
               enterToSend: true,
               onSend: () => sendCalled = true,
+              onTextChanged: (text) => lastTextChanged = text,
             ),
           ),
         ),
@@ -156,6 +156,22 @@ void main() {
             '(INV-KBSHORTCUT-2)',
       );
 
+      // onTextChanged must fire with the newline text so draft state
+      // stays in sync (production bug fix — programmatic controller
+      // mutations don't fire TextField.onChanged).
+      expect(
+        lastTextChanged,
+        isNotNull,
+        reason: 'onTextChanged must fire after Shift+Enter newline '
+            '(INV-KBSHORTCUT-2)',
+      );
+      expect(
+        lastTextChanged,
+        contains('\n'),
+        reason: 'onTextChanged text must contain the inserted newline '
+            '(INV-KBSHORTCUT-2)',
+      );
+
       controller.dispose();
       focusNode.dispose();
     },
@@ -169,12 +185,10 @@ void main() {
   // Simulate pressing Ctrl+Enter on hardware keyboard. The send
   // callback should fire.
   //
-  // skip:true — Composer has no keyboard shortcut handling.
   // -----------------------------------------------------------------------
   testWidgets(
     'Ctrl+Enter triggers send when enterToSend is disabled '
     '(INV-KBSHORTCUT-3)',
-    skip: true,
     (tester) async {
       var sendCalled = false;
       final controller = TextEditingController(text: 'Hello');
@@ -226,12 +240,10 @@ void main() {
   // Cmd+Enter (metaLeft + Enter) on hardware keyboard. The send
   // callback should fire.
   //
-  // skip:true — Composer has no keyboard shortcut handling.
   // -----------------------------------------------------------------------
   testWidgets(
     'Cmd+Enter triggers send when enterToSend is disabled '
     '(INV-KBSHORTCUT-3a)',
-    skip: true,
     (tester) async {
       var sendCalled = false;
       final controller = TextEditingController(text: 'Hello');
@@ -283,12 +295,10 @@ void main() {
   // Set enterToSend=true, verify it persists. Create a new store
   // instance and verify the preference is restored.
   //
-  // skip:true — ComposerSettingsStore does not exist yet.
   // -----------------------------------------------------------------------
   testWidgets(
     'enterToSend preference persists to SharedPreferences '
     '(INV-KBSHORTCUT-4)',
-    skip: true,
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
@@ -328,7 +338,7 @@ void main() {
             '(INV-KBSHORTCUT-4)',
       );
 
-      // New container should restore the preference.
+      // New container should auto-restore the preference from build().
       final container2 = ProviderContainer(
         overrides: [
           sharedPreferencesProvider.overrideWithValue(prefs),
@@ -336,96 +346,57 @@ void main() {
       );
       addTearDown(container2.dispose);
 
-      final store2 = container2.read(composerSettingsStoreProvider.notifier);
-      store2.restoreFromPrefs();
-
+      // No explicit restoreFromPrefs() call — build() auto-restores.
       expect(
         container2.read(composerSettingsStoreProvider).enterToSend,
         isTrue,
-        reason: 'enterToSend must be restored from SharedPreferences '
-            '(INV-KBSHORTCUT-4)',
+        reason: 'enterToSend must be auto-restored from SharedPreferences '
+            'in build() (INV-KBSHORTCUT-4)',
       );
     },
   );
 }
 
 // ---------------------------------------------------------------------------
-// Test-local stubs for widgets/providers that Phase B will create.
+// Test-local widget using the shared handleComposerKeyEvent handler.
 // ---------------------------------------------------------------------------
 
-/// Test-local stub for the composer with keyboard shortcut handling.
-///
-/// Phase B will add Focus.onKeyEvent to the real _ConversationComposer.
-/// This stub defines the expected behavior contract:
-/// - enterToSend=true: Enter → send, Shift+Enter → newline
-/// - enterToSend=false: Ctrl/Cmd+Enter → send, Enter → newline
+/// Minimal composer widget that uses the same [handleComposerKeyEvent]
+/// function as the production `_ConversationComposer` — no duplicate logic.
 class _TestComposer extends StatelessWidget {
   const _TestComposer({
     required this.controller,
     required this.focusNode,
     required this.enterToSend,
     required this.onSend,
+    this.onTextChanged,
   });
 
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool enterToSend;
   final VoidCallback onSend;
+  final ValueChanged<String>? onTextChanged;
 
   @override
   Widget build(BuildContext context) {
-    // Stub — skip:true tests never render this.
-    return TextField(
-      key: const ValueKey('composer-input'),
-      controller: controller,
-      focusNode: focusNode,
-      minLines: 1,
-      maxLines: 4,
+    return Focus(
+      onKeyEvent: (node, event) => handleComposerKeyEvent(
+        node,
+        event,
+        enterToSend: enterToSend,
+        controller: controller,
+        canSend: true,
+        onSend: onSend,
+        onTextChanged: onTextChanged,
+      ),
+      child: TextField(
+        key: const ValueKey('composer-input'),
+        controller: controller,
+        focusNode: focusNode,
+        minLines: 1,
+        maxLines: 4,
+      ),
     );
   }
 }
-
-/// Test-local stub for ComposerSettingsState.
-///
-/// Phase B: `lib/stores/composer/composer_settings_store.dart`
-/// Contract: immutable state with `bool enterToSend` (default false).
-@immutable
-class ComposerSettingsState {
-  const ComposerSettingsState({this.enterToSend = false});
-
-  final bool enterToSend;
-
-  ComposerSettingsState copyWith({bool? enterToSend}) {
-    return ComposerSettingsState(
-      enterToSend: enterToSend ?? this.enterToSend,
-    );
-  }
-}
-
-/// Test-local stub for ComposerSettingsStore.
-///
-/// Phase B: `lib/stores/composer/composer_settings_store.dart`
-/// Contract: `Notifier<ComposerSettingsState>` with:
-///   - `restoreFromPrefs()` — reads from SharedPreferences
-///   - `setEnterToSend(bool)` — updates state + persists
-class ComposerSettingsStore extends Notifier<ComposerSettingsState> {
-  @override
-  ComposerSettingsState build() => const ComposerSettingsState();
-
-  void restoreFromPrefs() {
-    final prefs = ref.read(sharedPreferencesProvider);
-    final value = prefs.getBool('enter_to_send') ?? false;
-    state = state.copyWith(enterToSend: value);
-  }
-
-  Future<void> setEnterToSend(bool value) async {
-    final prefs = ref.read(sharedPreferencesProvider);
-    await prefs.setBool('enter_to_send', value);
-    state = state.copyWith(enterToSend: value);
-  }
-}
-
-final composerSettingsStoreProvider =
-    NotifierProvider<ComposerSettingsStore, ComposerSettingsState>(
-  ComposerSettingsStore.new,
-);
