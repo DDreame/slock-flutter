@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
@@ -250,8 +251,13 @@ class _HumanCandidateTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundImage:
-            member.avatarUrl != null ? NetworkImage(member.avatarUrl!) : null,
+        backgroundImage: member.avatarUrl != null
+            ? CachedNetworkImageProvider(
+                member.avatarUrl!,
+                maxWidth: 200,
+                maxHeight: 200,
+              )
+            : null,
         child: member.avatarUrl == null ? const Icon(Icons.person) : null,
       ),
       title: Text(member.displayName),
@@ -284,8 +290,13 @@ class _AgentCandidateTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundImage:
-            agent.avatarUrl != null ? NetworkImage(agent.avatarUrl!) : null,
+        backgroundImage: agent.avatarUrl != null
+            ? CachedNetworkImageProvider(
+                agent.avatarUrl!,
+                maxWidth: 200,
+                maxHeight: 200,
+              )
+            : null,
         child: agent.avatarUrl == null ? const Icon(Icons.smart_toy) : null,
       ),
       title: Text(agent.label),

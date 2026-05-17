@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -263,8 +264,13 @@ class _MemberTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final avatar = CircleAvatar(
-      backgroundImage:
-          member.avatarUrl != null ? NetworkImage(member.avatarUrl!) : null,
+      backgroundImage: member.avatarUrl != null
+          ? CachedNetworkImageProvider(
+              member.avatarUrl!,
+              maxWidth: 200,
+              maxHeight: 200,
+            )
+          : null,
       child: member.avatarUrl == null
           ? Icon(member.isAgent ? Icons.smart_toy : Icons.person)
           : null,

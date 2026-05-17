@@ -38,6 +38,16 @@ import 'package:slock_app/stores/session/session_store.dart';
 // INV-3 is active — swipe-to-dismiss gesture (Phase B implemented).
 // ---------------------------------------------------------------------------
 
+/// Pumps enough frames for the widget tree to load without waiting for
+/// CachedNetworkImage. In fake-async test environment, CachedNetworkImage's
+/// network request never completes, keeping the loading indicator animating
+/// forever and preventing pumpAndSettle from returning.
+Future<void> _pumpUntilLoaded(WidgetTester tester) async {
+  for (int i = 0; i < 10; i++) {
+    await tester.pump(const Duration(milliseconds: 100));
+  }
+}
+
 void main() {
   // -----------------------------------------------------------------------
   // INV-MEDIA-1: Tapping an image attachment in a message opens
@@ -56,7 +66,7 @@ void main() {
       );
 
       await tester.pumpWidget(_buildConversationApp(repo));
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // The image attachment preview must be rendered with production key.
       // Production key: 'image-preview-${attachment.id ?? attachment.name}'
@@ -69,7 +79,7 @@ void main() {
 
       // Tap the image thumbnail — production calls context.push('/file-preview').
       await tester.tap(imageThumbnailFinder);
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // FilePreviewPage must be pushed via GoRouter.
       expect(
@@ -94,14 +104,14 @@ void main() {
       );
 
       await tester.pumpWidget(_buildConversationApp(repo));
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Open the viewer by tapping the image thumbnail.
       final imageThumbnailFinder =
           find.byKey(const ValueKey('image-preview-att-1'));
       expect(imageThumbnailFinder, findsOneWidget);
       await tester.tap(imageThumbnailFinder);
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // FilePreviewPage must be open.
       expect(
@@ -138,14 +148,14 @@ void main() {
       );
 
       await tester.pumpWidget(_buildConversationApp(repo));
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // Open the viewer.
       final imageThumbnailFinder =
           find.byKey(const ValueKey('image-preview-att-1'));
       expect(imageThumbnailFinder, findsOneWidget);
       await tester.tap(imageThumbnailFinder);
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // FilePreviewPage must be open.
       expect(
@@ -163,7 +173,7 @@ void main() {
 
       // Perform a vertical drag down (300 px) to trigger dismiss.
       await tester.drag(dismissArea, const Offset(0, 300));
-      await tester.pumpAndSettle();
+      await _pumpUntilLoaded(tester);
 
       // FilePreviewPage must be dismissed.
       expect(

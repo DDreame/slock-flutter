@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class ProfileAvatar extends StatelessWidget {
@@ -22,7 +23,11 @@ class ProfileAvatar extends StatelessWidget {
       return CircleAvatar(
         key: const ValueKey('profile-avatar-image'),
         radius: radius,
-        backgroundImage: NetworkImage(avatarUrl!),
+        backgroundImage: CachedNetworkImageProvider(
+          avatarUrl!,
+          maxWidth: 200,
+          maxHeight: 200,
+        ),
         child: const SizedBox.shrink(),
       );
     }

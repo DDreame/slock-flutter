@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
@@ -464,10 +465,10 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
               transformationController: _transformationController,
               minScale: 0.5,
               maxScale: 4.0,
-              child: Image.network(
-                displayUrl,
+              child: CachedNetworkImage(
+                imageUrl: displayUrl,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stack) {
+                errorWidget: (context, url, error) {
                   return Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

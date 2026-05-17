@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
@@ -3480,26 +3481,22 @@ class _ImageAttachmentPreview extends StatelessWidget {
                 maxHeight: 200,
                 maxWidth: 280,
               ),
-              child: Image.network(
-                attachment.thumbnailUrl ?? attachment.url!,
+              child: CachedNetworkImage(
+                imageUrl: attachment.thumbnailUrl ?? attachment.url!,
                 fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
+                progressIndicatorBuilder: (context, url, progress) {
                   return SizedBox(
                     height: 120,
                     width: 200,
                     child: Center(
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
+                        value: progress.progress,
                       ),
                     ),
                   );
                 },
-                errorBuilder: (context, error, stack) {
+                errorWidget: (context, url, error) {
                   return Container(
                     height: 80,
                     width: 200,
@@ -3653,10 +3650,10 @@ class _FullScreenImageViewerState
                     key: const ValueKey('image-viewer-interactive'),
                     minScale: 0.5,
                     maxScale: 4.0,
-                    child: Image.network(
-                      displayUrl,
+                    child: CachedNetworkImage(
+                      imageUrl: displayUrl,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, error, stack) {
+                      errorWidget: (context, url, error) {
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

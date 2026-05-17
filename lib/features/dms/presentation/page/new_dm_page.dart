@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -269,8 +270,13 @@ class _AgentsTab extends ConsumerWidget {
         return ListTile(
           key: ValueKey('dm-agent-${agent.id}'),
           leading: CircleAvatar(
-            backgroundImage:
-                agent.avatarUrl != null ? NetworkImage(agent.avatarUrl!) : null,
+            backgroundImage: agent.avatarUrl != null
+                ? CachedNetworkImageProvider(
+                    agent.avatarUrl!,
+                    maxWidth: 200,
+                    maxHeight: 200,
+                  )
+                : null,
             child: agent.avatarUrl == null
                 ? const Icon(Icons.smart_toy_outlined)
                 : null,
@@ -318,7 +324,11 @@ class _MemberList extends StatelessWidget {
           key: ValueKey('dm-member-${member.id}'),
           leading: CircleAvatar(
             backgroundImage: member.avatarUrl != null
-                ? NetworkImage(member.avatarUrl!)
+                ? CachedNetworkImageProvider(
+                    member.avatarUrl!,
+                    maxWidth: 200,
+                    maxHeight: 200,
+                  )
                 : null,
             child: member.avatarUrl == null
                 ? Text(

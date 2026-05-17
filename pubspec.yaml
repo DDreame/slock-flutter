@@ -8,6 +8,7 @@ environment:
   flutter: '>=3.16.0'
 
 dependencies:
+  cached_network_image: ^3.4.1
   connectivity_plus: ^6.1.4
   dio: ^5.9.0
   emoji_picker_flutter: ^4.4.0

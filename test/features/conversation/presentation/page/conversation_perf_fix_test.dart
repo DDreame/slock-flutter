@@ -22,6 +22,7 @@ import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.d
 //                  (not bare Image.network)
 //
 // Phase A: All tests skip:true — no cached_network_image package yet.
+// Phase B: Un-skipped — cached_network_image added and all sites migrated.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -32,11 +33,10 @@ void main() {
   // of the CircleAvatar should be a CachedNetworkImageProvider, not a
   // bare NetworkImage.
   //
-  // skip:true — ProfileAvatar still uses NetworkImage(avatarUrl!).
+  // skip:false — ProfileAvatar now uses CachedNetworkImageProvider.
   // -----------------------------------------------------------------------
   testWidgets(
     'ProfileAvatar uses CachedNetworkImageProvider (INV-PERFFIX-1)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -78,11 +78,11 @@ void main() {
   // maxHeightDiskCache to ≤ 200 to avoid caching full-resolution
   // images at avatar display sizes.
   //
-  // skip:true — ProfileAvatar still uses NetworkImage(avatarUrl!).
+  // skip:false — ProfileAvatar now uses CachedNetworkImageProvider with
+  // maxWidth/maxHeight ≤ 200.
   // -----------------------------------------------------------------------
   testWidgets(
     'ProfileAvatar sets disk cache size limits (INV-PERFFIX-2)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -151,11 +151,10 @@ void main() {
   // should be a CachedNetworkImage (from cached_network_image package),
   // not a bare Image.network.
   //
-  // skip:true — LinkPreviewCard still uses Image.network().
+  // skip:false — LinkPreviewCard now uses CachedNetworkImage.
   // -----------------------------------------------------------------------
   testWidgets(
     'LinkPreviewCard image uses CachedNetworkImage (INV-PERFFIX-3)',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
