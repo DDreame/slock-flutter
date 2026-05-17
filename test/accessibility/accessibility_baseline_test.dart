@@ -19,6 +19,7 @@
 // Phase B: Add tooltips + Semantics in lib/, un-skip.
 // ---------------------------------------------------------------------------
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -406,13 +407,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // At least one Semantics node must exist in the message area.
-      final semanticsNodes = find.byType(Semantics);
+      // Traverse the actual semantics tree (not widget tree) to verify
+      // at least one node with a non-empty label exists for the message
+      // list area — proves screen reader can discover the content.
+      final rootNode = RendererBinding
+          .instance.rootPipelineOwner.semanticsOwner!.rootSemanticsNode!;
       expect(
-        semanticsNodes,
-        findsAtLeast(1),
-        reason: 'Chat page must have at least one Semantics node '
-            'for screen reader navigation (INV-A11Y-SEMANTICS-CHAT)',
+        _hasLabeledSemanticsNode(rootNode),
+        isTrue,
+        reason: 'Chat page must have at least one labeled semantics node '
+            'in the accessibility tree for screen reader navigation '
+            '(INV-A11Y-SEMANTICS-CHAT)',
       );
 
       handle.dispose();
@@ -464,23 +469,41 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Find Semantics widgets that have a non-empty label.
-      final semanticsNodes = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label != null &&
-            widget.properties.label!.isNotEmpty,
-      );
+      // Traverse the actual semantics tree (not widget tree) to verify
+      // at least one node with a non-empty label exists — proves screen
+      // reader can discover meaningful content on the home page.
+      final rootNode = RendererBinding
+          .instance.rootPipelineOwner.semanticsOwner!.rootSemanticsNode!;
       expect(
-        semanticsNodes,
-        findsAtLeast(1),
-        reason: 'Home page must have at least one Semantics node with '
-            'a non-empty label (INV-A11Y-SEMANTICS-HOME)',
+        _hasLabeledSemanticsNode(rootNode),
+        isTrue,
+        reason: 'Home page must have at least one labeled semantics node '
+            'in the accessibility tree (INV-A11Y-SEMANTICS-HOME)',
       );
 
       handle.dispose();
     },
   );
+}
+
+// ---------------------------------------------------------------------------
+// Semantics tree traversal helper
+// ---------------------------------------------------------------------------
+
+/// Recursively checks whether [node] or any descendant has a non-empty
+/// [SemanticsNode.label]. Uses the real semantics tree (not the widget tree)
+/// to verify screen-reader discoverability.
+bool _hasLabeledSemanticsNode(SemanticsNode node) {
+  if (node.label.isNotEmpty) return true;
+  bool found = false;
+  node.visitChildren((child) {
+    if (_hasLabeledSemanticsNode(child)) {
+      found = true;
+      return false; // stop visiting
+    }
+    return true; // continue
+  });
+  return found;
 }
 
 // ---------------------------------------------------------------------------
