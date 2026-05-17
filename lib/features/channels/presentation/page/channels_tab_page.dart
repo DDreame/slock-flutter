@@ -276,6 +276,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
           // Deferred mark-read: brief delay before clearing unread
           // so the user sees the conversation before the count drops.
           Future.delayed(const Duration(seconds: 1), () {
+            if (!mounted) return;
             ref.read(markChannelReadUseCaseProvider)(channel.scopeId);
           });
         },

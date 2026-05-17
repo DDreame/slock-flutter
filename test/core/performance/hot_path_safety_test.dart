@@ -48,7 +48,6 @@ void main() {
         // Does not match inside email addresses (preceded by word char).
         expect(mentionSpanRegex.hasMatch('user@domain.com'), isFalse);
       },
-      skip: true,
     );
 
     test(
@@ -62,7 +61,6 @@ void main() {
         expect('Hello World'.split(dmRowInitialsRegex), ['Hello', 'World']);
         expect('A  B'.split(dmRowInitialsRegex), ['A', 'B']);
       },
-      skip: true,
     );
 
     test(
@@ -82,7 +80,6 @@ void main() {
         );
         expect('A  B'.split(sharePickerInitialsRegex), ['A', 'B']);
       },
-      skip: true,
     );
   });
 
@@ -225,7 +222,6 @@ void main() {
         expect(markReadCount, 0,
             reason: 'Deferred mark-read must not fire after disposal');
       },
-      skip: true,
     );
 
     testWidgets(
@@ -305,7 +301,6 @@ void main() {
         expect(markReadCount, 0,
             reason: 'Deferred mark-read must not fire after disposal');
       },
-      skip: true,
     );
   });
 }
