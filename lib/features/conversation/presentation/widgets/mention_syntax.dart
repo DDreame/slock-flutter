@@ -93,6 +93,14 @@ class MentionBuilder extends MarkdownElementBuilder {
   }
 }
 
+/// Compiled mention pattern shared by [buildMentionAwareSpan].
+///
+/// Matches `@username` at word boundaries (not inside emails).
+/// Promoted from a local variable to a module-level constant to avoid
+/// per-call [RegExp] allocation on a hot render path.
+@visibleForTesting
+final mentionSpanRegex = RegExp(r'(?<![\w.])@([\w][\w.\-]*)');
+
 /// Parses message text for @mentions and returns styled [TextSpan] children.
 ///
 /// Used in the search-highlight fallback path where Markdown rendering
@@ -109,8 +117,7 @@ TextSpan buildMentionAwareSpan({
   String highlightQuery = '',
   Color? highlightColor,
 }) {
-  final mentionRegex = RegExp(r'(?<![\w.])@([\w][\w.\-]*)');
-  final matches = mentionRegex.allMatches(text).toList();
+  final matches = mentionSpanRegex.allMatches(text).toList();
 
   if (matches.isEmpty) {
     // No mentions — fall through to simple highlight or plain text.

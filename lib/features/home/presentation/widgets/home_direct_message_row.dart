@@ -9,6 +9,13 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 
+/// Whitespace splitter for avatar-initials extraction.
+///
+/// Promoted from a per-call allocation inside [HomeDirectMessageRow._initials]
+/// to a module-level constant, avoiding [RegExp] compilation on every row build.
+@visibleForTesting
+final dmRowInitialsRegex = RegExp(r'\s+');
+
 class HomeDirectMessageRow extends StatelessWidget {
   const HomeDirectMessageRow({
     super.key,
@@ -267,7 +274,7 @@ class HomeDirectMessageRow extends StatelessWidget {
   }
 
   static String _initials(String title) {
-    final words = title.trim().split(RegExp(r'\s+'));
+    final words = title.trim().split(dmRowInitialsRegex);
     if (words.isEmpty || words[0].isEmpty) return '?';
     if (words.length == 1) return words[0][0].toUpperCase();
     return '${words[0][0]}${words[1][0]}'.toUpperCase();
