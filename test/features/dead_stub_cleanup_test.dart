@@ -1,0 +1,367 @@
+// ---------------------------------------------------------------------------
+// #547: Dead Stub Cleanup
+//
+// Problem: Several production code paths contain UnsupportedError stubs,
+// empty event handlers, and hardcoded English strings that should be
+// either properly wired or removed.
+//
+// Phase A: skip:true invariants locking the cleanup contract.
+// Phase B: Remove dead stubs, wire or clean up, un-skip.
+//
+// Invariants verified:
+// INV-STUB-1: ServerListMutationRepository methods do not throw
+//             UnsupportedError when mutation callbacks are null
+//             (either callbacks made required or null guards removed)
+// INV-STUB-2: MemberInviteMutationRepository.inviteByEmail does not
+//             throw UnsupportedError via extension on non-implementing
+//             repository (either extension removed or mixin enforced)
+// INV-STUB-3: Agent env vars edit button either navigates to editor
+//             OR is not rendered (no empty onPressed)
+// INV-STUB-4: WorkspaceSettingsPage uses l10n for all user-facing
+//             strings (no hardcoded English)
+// ---------------------------------------------------------------------------
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
+import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
+import 'package:slock_app/features/members/data/member_repository.dart';
+import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/features/servers/application/server_list_state.dart';
+import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/presentation/page/workspace_settings_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
+
+void main() {
+  // -----------------------------------------------------------------------
+  // INV-STUB-1: ServerListMutationRepository methods do not throw
+  // UnsupportedError when mutation callbacks are null.
+  //
+  // Currently, BaselineServerListRepository throws UnsupportedError when
+  // a mutation method is called and its callback is null. After Phase B,
+  // either the callbacks are required (compile-time safety) or the null
+  // guards are removed because production always provides them.
+  // -----------------------------------------------------------------------
+  test(
+    'BaselineServerListRepository mutation methods do not throw '
+    'UnsupportedError when callbacks are null (INV-STUB-1)',
+    () async {
+      final repo = BaselineServerListRepository(
+        loadServers: () async => [],
+      );
+
+      // Each mutation method must not throw UnsupportedError.
+      // After Phase B cleanup, calling these either succeeds (wired)
+      // or the null-callback code path is gone.
+      await expectLater(
+        () => repo.createServer(name: 'Test', slug: 'test'),
+        isNot(throwsA(isA<UnsupportedError>())),
+        reason: 'createServer must not throw UnsupportedError '
+            '(INV-STUB-1)',
+      );
+      await expectLater(
+        () => repo.renameServer('sid', name: 'New'),
+        isNot(throwsA(isA<UnsupportedError>())),
+        reason: 'renameServer must not throw UnsupportedError '
+            '(INV-STUB-1)',
+      );
+      await expectLater(
+        () => repo.deleteServer('sid'),
+        isNot(throwsA(isA<UnsupportedError>())),
+        reason: 'deleteServer must not throw UnsupportedError '
+            '(INV-STUB-1)',
+      );
+      await expectLater(
+        () => repo.leaveServer('sid'),
+        isNot(throwsA(isA<UnsupportedError>())),
+        reason: 'leaveServer must not throw UnsupportedError '
+            '(INV-STUB-1)',
+      );
+      await expectLater(
+        () => repo.acceptInvite('token'),
+        isNot(throwsA(isA<UnsupportedError>())),
+        reason: 'acceptInvite must not throw UnsupportedError '
+            '(INV-STUB-1)',
+      );
+    },
+    skip: true,
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-STUB-2: MemberInviteMutationRepository.inviteByEmail does not
+  // throw UnsupportedError via extension on a non-implementing repository.
+  //
+  // The extension MemberRepositoryInviteX on MemberRepository throws
+  // UnsupportedError when the concrete type does not implement
+  // MemberInviteMutationRepository. After Phase B, either the extension
+  // guard is removed (because production always implements the mixin)
+  // or the extension pattern is cleaned up.
+  // -----------------------------------------------------------------------
+  test(
+    'MemberRepository.inviteByEmail does not throw '
+    'UnsupportedError (INV-STUB-2)',
+    () async {
+      final repo = _MinimalMemberRepository();
+
+      await expectLater(
+        () => repo.inviteByEmail(
+          const ServerScopeId('server-1'),
+          email: 'test@example.com',
+        ),
+        isNot(throwsA(isA<UnsupportedError>())),
+        reason: 'inviteByEmail must not throw UnsupportedError '
+            '(INV-STUB-2)',
+      );
+    },
+    skip: true,
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-STUB-3: Agent env vars edit button either navigates to editor
+  // OR is not rendered (no empty onPressed).
+  //
+  // Currently the button at key 'agent-env-vars-edit' has an empty
+  // onPressed: () {} closure. After Phase B, the button either has a
+  // real handler or is removed from the widget tree.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'agent env vars edit button either navigates or is absent '
+    '(INV-STUB-3)',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
+      final repo = _FakeAgentsRepository(
+        agents: [
+          const AgentItem(
+            id: 'agent-1',
+            name: 'TestBot',
+            model: 'sonnet',
+            runtime: 'claude',
+            status: 'active',
+            activity: 'online',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            agentsRepositoryProvider.overrideWithValue(repo),
+            agentsMachinesLoaderProvider
+                .overrideWithValue(() async => const []),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            realtimeReductionIngressProvider
+                .overrideWithValue(RealtimeReductionIngress()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const TickerMode(
+              enabled: false,
+              child: AgentsPage(
+                agentId: 'agent-1',
+                serverId: 'server-1',
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final editButton = find.byKey(const ValueKey('agent-env-vars-edit'));
+
+      if (editButton.evaluate().isNotEmpty) {
+        // Button exists — it must have a real handler that does
+        // something (e.g. navigates), not an empty closure.
+        // Tapping an empty closure produces no observable side-effect,
+        // so we verify a route push or dialog was triggered.
+        await tester.tap(editButton);
+        await tester.pumpAndSettle();
+
+        // After tap, either a new route was pushed or a dialog appeared.
+        // If neither happened, the handler is still a dead empty closure.
+        expect(
+          find.byKey(const ValueKey('agent-env-vars-edit')),
+          isNot(findsOneWidget),
+          reason: 'Tapping edit button must trigger navigation or '
+              'dialog — empty onPressed is not allowed '
+              '(INV-STUB-3)',
+        );
+      }
+      // If the button is absent, the invariant passes — dead stub removed.
+    },
+    skip: true,
+  );
+
+  // -----------------------------------------------------------------------
+  // INV-STUB-4: WorkspaceSettingsPage uses l10n for all user-facing
+  // strings (no hardcoded English).
+  //
+  // Currently the page has hardcoded strings: 'Workspace Settings',
+  // 'Manage', 'Members', 'Billing', 'Actions', 'Rename workspace',
+  // 'Delete workspace', 'Leave workspace', 'Role', 'Created', etc.
+  //
+  // After Phase B, all user-facing strings come from AppLocalizations.
+  // We verify by pumping the page with a non-English locale and checking
+  // that the hardcoded English strings are NOT found (replaced by
+  // localized equivalents).
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'WorkspaceSettingsPage uses l10n for user-facing strings '
+    '(INV-STUB-4)',
+    (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            serverListStoreProvider.overrideWith(() {
+              return _FakeServerListStore(
+                ServerListState(
+                  status: ServerListStatus.success,
+                  servers: [
+                    ServerSummary(
+                      id: 'server-1',
+                      name: 'My Workspace',
+                      slug: 'my-ws',
+                      role: 'owner',
+                      createdAt: DateTime(2026, 1, 15),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          child: const MaterialApp(
+            locale: Locale('zh'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: WorkspaceSettingsPage(serverId: 'server-1'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // These hardcoded English strings must not appear when the
+      // locale is non-English — they should be replaced by l10n
+      // equivalents.
+      final hardcodedStrings = [
+        'Workspace Settings',
+        'Manage',
+        'Members',
+        'Billing',
+        'Actions',
+        'Rename workspace',
+        'Delete workspace',
+        'Leave workspace',
+      ];
+
+      for (final str in hardcodedStrings) {
+        expect(
+          find.text(str),
+          findsNothing,
+          reason: '"$str" must come from l10n, not be hardcoded '
+              '(INV-STUB-4)',
+        );
+      }
+    },
+    skip: true,
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Test-local fakes
+// ---------------------------------------------------------------------------
+
+/// Minimal [MemberRepository] that does NOT implement
+/// [MemberInviteMutationRepository], triggering the extension guard.
+class _MinimalMemberRepository implements MemberRepository {
+  @override
+  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async => [];
+
+  @override
+  Future<String> createInvite(ServerScopeId serverId) async => 'invite-code';
+
+  @override
+  Future<void> updateMemberRole(
+    ServerScopeId serverId, {
+    required String userId,
+    required String role,
+  }) async {}
+
+  @override
+  Future<void> removeMember(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {}
+
+  @override
+  Future<String> openDirectMessage(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async =>
+      'dm-channel-id';
+
+  @override
+  Future<String> openAgentDirectMessage(
+    ServerScopeId serverId, {
+    required String agentId,
+  }) async =>
+      'agent-dm-channel-id';
+}
+
+/// Fake [AgentsRepository] returning a fixed list.
+class _FakeAgentsRepository implements AgentsRepository {
+  _FakeAgentsRepository({required this.agents});
+
+  final List<AgentItem> agents;
+
+  @override
+  Future<List<AgentItem>> listAgents() async => List.of(agents);
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
+}
+
+/// Fake [ServerListStore] returning a fixed state.
+class _FakeServerListStore extends ServerListStore {
+  _FakeServerListStore(this._state);
+
+  final ServerListState _state;
+
+  @override
+  ServerListState build() => _state;
+
+  @override
+  Future<void> retry() async {}
+
+  @override
+  Future<ServerSummary?> renameServer(String serverId, String name) async =>
+      null;
+
+  @override
+  Future<void> deleteServer(String serverId) async {}
+
+  @override
+  Future<void> leaveServer(String serverId) async {}
+}
