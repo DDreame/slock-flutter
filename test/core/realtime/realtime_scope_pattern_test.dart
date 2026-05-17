@@ -18,24 +18,17 @@
 //                      expected patterns
 // ---------------------------------------------------------------------------
 import 'package:flutter_test/flutter_test.dart';
-
-/// The server scope pattern currently hardcoded across 5 files.
-/// Phase B will replace with import from lib/core/realtime/scope_patterns.dart.
-final _serverScopePattern = RegExp(r'(?:^|/)server:([^/]+)');
-
-/// The channel scope pattern currently hardcoded across 3 files.
-/// Phase B will replace with import from lib/core/realtime/scope_patterns.dart.
-final _channelScopePattern = RegExp(r'(?:^|/)channel:([^/]+)');
+import 'package:slock_app/core/realtime/scope_patterns.dart';
 
 /// Helper matching the inline extraction logic used in realtime bindings.
 String? _extractServer(String scopeKey) {
-  final match = _serverScopePattern.firstMatch(scopeKey);
+  final match = serverScopePattern.firstMatch(scopeKey);
   return match?.group(1);
 }
 
 /// Helper matching the inline extraction logic used in realtime bindings.
 String? _extractChannel(String scopeKey) {
-  final match = _channelScopePattern.firstMatch(scopeKey);
+  final match = channelScopePattern.firstMatch(scopeKey);
   return match?.group(1);
 }
 
@@ -181,23 +174,23 @@ void main() {
   // -----------------------------------------------------------------------
   group('INV-REGEXP-CONST: shared constants', () {
     test(
-      'server scope pattern is a RegExp instance',
+      'serverScopePattern is exported and is a RegExp instance',
       () {
-        // Phase B will import from lib/core/realtime/scope_patterns.dart
-        // and verify the exported constant here.
-        expect(_serverScopePattern, isA<RegExp>());
+        // Imported from lib/core/realtime/scope_patterns.dart.
+        // This test fails if the export is removed or renamed.
+        expect(serverScopePattern, isA<RegExp>());
       },
-      skip: 'Phase A: invariant locked — Phase B exports shared constants',
+      skip: 'Phase A: invariant locked — Phase B wires call sites',
     );
 
     test(
-      'channel scope pattern is a RegExp instance',
+      'channelScopePattern is exported and is a RegExp instance',
       () {
-        // Phase B will import from lib/core/realtime/scope_patterns.dart
-        // and verify the exported constant here.
-        expect(_channelScopePattern, isA<RegExp>());
+        // Imported from lib/core/realtime/scope_patterns.dart.
+        // This test fails if the export is removed or renamed.
+        expect(channelScopePattern, isA<RegExp>());
       },
-      skip: 'Phase A: invariant locked — Phase B exports shared constants',
+      skip: 'Phase A: invariant locked — Phase B wires call sites',
     );
 
     test(
@@ -215,13 +208,13 @@ void main() {
         ];
         for (final input in testCases) {
           expect(
-            _serverScopePattern.firstMatch(input)?.group(1),
+            serverScopePattern.firstMatch(input)?.group(1),
             equals(inline.firstMatch(input)?.group(1)),
             reason: 'Mismatch for input: $input',
           );
         }
       },
-      skip: 'Phase A: invariant locked — Phase B exports shared constants',
+      skip: 'Phase A: invariant locked — Phase B wires call sites',
     );
 
     test(
@@ -237,13 +230,13 @@ void main() {
         ];
         for (final input in testCases) {
           expect(
-            _channelScopePattern.firstMatch(input)?.group(1),
+            channelScopePattern.firstMatch(input)?.group(1),
             equals(inline.firstMatch(input)?.group(1)),
             reason: 'Mismatch for input: $input',
           );
         }
       },
-      skip: 'Phase A: invariant locked — Phase B exports shared constants',
+      skip: 'Phase A: invariant locked — Phase B wires call sites',
     );
   });
 }
