@@ -355,13 +355,13 @@ void main() {
   // -----------------------------------------------------------------------
   // INV-I18N-GROUP-1: mergedSummary uses locale-aware separator
   //
-  // mergedSummary delegates to displayStatusLabel() — once that is l10n-wired
-  // (INV-I18N-STATUS-1), the summary inherits locale-correct labels.
-  // This test additionally pins the separator: must be ', ' (not '、').
+  // mergedSummary({AppLocalizations? l10n}) delegates to displayStatusLabel()
+  // and uses locale-appropriate separator. Dual-locale assertion: en → ', ',
+  // zh → '、', with locale-appropriate status labels.
   // -----------------------------------------------------------------------
   group('INV-I18N-GROUP-1: mergedSummary locale-aware separator', () {
     test(
-      'mergedSummary uses comma separator instead of Chinese 、',
+      'mergedSummary produces locale-aware output per locale',
       () {
         final group = AgentStatusGroup(
           displayStatus: AgentDisplayStatus.thinking,
@@ -387,19 +387,24 @@ void main() {
           ],
         );
 
-        final summary = group.mergedSummary;
+        final enSummary = group.mergedSummary(l10n: enL10n);
+        final zhSummary = group.mergedSummary(l10n: zhL10n);
 
-        // Must NOT contain Chinese enumeration comma.
-        expect(summary, isNot(contains('、')),
-            reason: 'mergedSummary must not use Chinese comma 、');
+        // English: "Alpha, Beta Thinking"
+        expect(enSummary, contains(', '),
+            reason: 'English mergedSummary must use comma separator');
+        expect(enSummary, contains(enL10n.agentStatusThinking),
+            reason: 'English summary must use English status label');
 
-        // Must use locale-aware separator (English: ", ").
-        expect(summary, contains(', '),
-            reason: 'mergedSummary must use locale-aware comma separator');
+        // Chinese: "Alpha、Beta 思考中"
+        expect(zhSummary, contains('、'),
+            reason: 'Chinese mergedSummary must use Chinese comma 、');
+        expect(zhSummary, contains(zhL10n.agentStatusThinking),
+            reason: 'Chinese summary must use Chinese status label');
 
-        // Status label must be l10n-resolved, not hardcoded Chinese.
-        expect(summary, isNot(contains('思考中')),
-            reason: 'Status label must not be hardcoded Chinese');
+        // Dual-locale: results must differ (proves l10n wiring).
+        expect(enSummary, isNot(equals(zhSummary)),
+            reason: 'Locales must produce different summaries');
       },
       skip: 'Phase A: invariant locked — Phase B wires l10n',
     );

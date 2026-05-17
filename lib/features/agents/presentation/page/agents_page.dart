@@ -673,7 +673,7 @@ class _CollapsedSummary extends StatelessWidget {
         AppSpacing.sm,
       ),
       child: Text(
-        group.mergedSummary,
+        group.mergedSummary(),
         style: AppTypography.bodySmall.copyWith(
           color: colors.textSecondary,
         ),
