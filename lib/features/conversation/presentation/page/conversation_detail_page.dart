@@ -2812,12 +2812,7 @@ class _ConversationMessageCardState
         onSwipeReply: () => ref
             .read(conversationDetailStoreProvider.notifier)
             .setReplyTo(message),
-        onLongPress: () {
-          // Enter selection mode on long-press.
-          ref
-              .read(conversationDetailStoreProvider.notifier)
-              .enterSelectionMode(message.id);
-        },
+        onLongPress: () => _showContextMenu(context, ref, isSaved, visualKind),
         child: Listener(
           behavior: HitTestBehavior.translucent,
           onPointerDown: (event) {
@@ -3009,6 +3004,9 @@ class _ConversationMessageCardState
               .read(translationCacheStoreProvider.notifier)
               .translateMessage(widget.message.id)
           : null,
+      onSelect: () => ref
+          .read(conversationDetailStoreProvider.notifier)
+          .enterSelectionMode(widget.message.id),
     );
   }
 

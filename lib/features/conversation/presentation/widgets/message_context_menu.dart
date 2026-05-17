@@ -27,6 +27,7 @@ void showMessageContextMenu({
   VoidCallback? onReplyInThread,
   VoidCallback? onCreateTask,
   VoidCallback? onTranslate,
+  VoidCallback? onSelect,
 }) {
   showModalBottomSheet<void>(
     context: context,
@@ -129,6 +130,16 @@ void showMessageContextMenu({
                 onTap: () {
                   Navigator.of(context).pop();
                   onCreateTask();
+                },
+              ),
+            if (onSelect != null)
+              ListTile(
+                key: const ValueKey('ctx-action-select'),
+                leading: const Icon(Icons.checklist_outlined),
+                title: const Text('Select'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onSelect();
                 },
               ),
             if (isOwn && onDelete != null)

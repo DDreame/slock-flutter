@@ -60,12 +60,13 @@ void main() {
   );
 
   // -----------------------------------------------------------------------
-  // INV-MULTISEL-1: Long-press a message enters selection mode.
+  // INV-MULTISEL-1: Long-press a message → context menu → "Select" enters
+  // selection mode.
   //
   // Setup: Render a conversation with multiple messages. Long-press one
-  // message. After the gesture, the selection action bar (keyed
-  // 'selection-action-bar') should be visible, and the long-pressed
-  // message should show a checkmark overlay (keyed
+  // message to open context menu, tap "Select". After the gesture, the
+  // selection action bar (keyed 'selection-action-bar') should be visible,
+  // and the selected message should show a checkmark overlay (keyed
   // 'selection-check-{msgId}').
   // -----------------------------------------------------------------------
   testWidgets(
@@ -80,11 +81,15 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Long-press the first message.
+      // Long-press the first message to open context menu.
       final shellTL = tester.getTopLeft(
         find.byKey(const ValueKey('message-shell-msg-1')),
       );
       await tester.longPressAt(shellTL + const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      // Tap "Select" in the context menu to enter selection mode.
+      await tester.tap(find.byKey(const ValueKey('ctx-action-select')));
       await tester.pumpAndSettle();
 
       // Selection action bar should appear.
@@ -130,11 +135,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Enter selection mode by long-pressing msg-1.
+      // Enter selection mode by long-pressing msg-1 → context menu → Select.
       final shellTL = tester.getTopLeft(
         find.byKey(const ValueKey('message-shell-msg-1')),
       );
       await tester.longPressAt(shellTL + const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('ctx-action-select')));
       await tester.pumpAndSettle();
 
       // Tap msg-2 to select it.
@@ -187,11 +195,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Enter selection mode by long-pressing msg-1.
+      // Enter selection mode by long-pressing msg-1 → context menu → Select.
       final shellTL = tester.getTopLeft(
         find.byKey(const ValueKey('message-shell-msg-1')),
       );
       await tester.longPressAt(shellTL + const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('ctx-action-select')));
       await tester.pumpAndSettle();
 
       // Select msg-2 as well.
@@ -265,11 +276,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Enter selection mode by long-pressing msg-1.
+      // Enter selection mode by long-pressing msg-1 → context menu → Select.
       final shellTL = tester.getTopLeft(
         find.byKey(const ValueKey('message-shell-msg-1')),
       );
       await tester.longPressAt(shellTL + const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('ctx-action-select')));
       await tester.pumpAndSettle();
 
       // Select msg-2 as well.
@@ -338,11 +352,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Enter selection mode by long-pressing msg-1.
+      // Enter selection mode by long-pressing msg-1 → context menu → Select.
       final shellTL = tester.getTopLeft(
         find.byKey(const ValueKey('message-shell-msg-1')),
       );
       await tester.longPressAt(shellTL + const Offset(10, 10));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('ctx-action-select')));
       await tester.pumpAndSettle();
 
       // Select msg-2 as well.
