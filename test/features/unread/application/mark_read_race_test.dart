@@ -189,6 +189,16 @@ void main() {
           reason: 'Conversation should render despite inbox not loaded',
         );
 
+        // KEY MID-TEST ASSERTION: markRead must NOT have been called yet.
+        // The conversation reached success while inbox was still initial,
+        // so the unread projection returned 0 and the > 0 guard skipped.
+        expect(
+          inboxRepo.markReadChannelIds,
+          isEmpty,
+          reason: 'markRead must not fire while inbox is still initial '
+              '(projection returns 0)',
+        );
+
         // Now simulate inbox finishing its load.
         await seedInbox(container);
         await tester.pumpAndSettle();
