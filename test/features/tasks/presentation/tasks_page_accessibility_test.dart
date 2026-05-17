@@ -6,7 +6,7 @@
 //   2. Status symbols (○ ◐ ◑ ● ✕) have no Semantics label
 //   3. Filter chips (custom GestureDetector) have no Semantics
 //   4. Task list items have no combined screen reader description
-//   5. Assignee CircleAvatar has no semantic label
+//   5. No non-drag accessibility action for changing task status
 //
 // Phase A: skip:true invariants locking the accessibility contracts.
 //          Widget tests pump TasksPage with test data and assert
@@ -17,10 +17,15 @@
 // INV-TASK-A11Y-1: Every IconButton in TasksPage has non-null tooltip
 // INV-TASK-A11Y-2: Filter chips have Semantics labels
 // INV-TASK-A11Y-3: Status symbols have Semantics labels mapping to
-//                    human-readable status names
-// INV-TASK-A11Y-4: Task list items have Semantics description
-// INV-TASK-A11Y-5: Assignee avatar has Semantics label
+//                    human-readable status names (5 states including
+//                    in_review; closed maps to "Cancelled")
+// INV-TASK-A11Y-4: Task list items have Semantics description combining
+//                    title, status, and assignee name
+// INV-TASK-A11Y-5: Non-drag accessibility action for status changes
+//                    (long-press menu or semantic custom action)
 // ---------------------------------------------------------------------------
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -217,7 +222,32 @@ void main() {
     );
 
     testWidgets(
-      'closed status symbol has "Closed" semantic label',
+      'in_review status symbol has "In Review" semantic label',
+      skip: true,
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        final store = _FakeTasksStore(
+          initialState: TasksState(
+            status: TasksStatus.success,
+            items: [_taskItem(id: 't1', status: 'in_review')],
+          ),
+        );
+
+        await tester.pumpWidget(_buildApp(store));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.bySemanticsLabel(RegExp(r'In\s*Review')),
+          findsWidgets,
+          reason: 'In Review status symbol must have semantic label',
+        );
+
+        handle.dispose();
+      },
+    );
+
+    testWidgets(
+      'closed status symbol has "Cancelled" semantic label',
       skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
@@ -232,9 +262,9 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.bySemanticsLabel(RegExp(r'Closed|已关闭')),
+          find.bySemanticsLabel(RegExp(r'Cancelled')),
           findsWidgets,
-          reason: 'Closed status symbol must have semantic label',
+          reason: 'Closed status symbol must have "Cancelled" semantic label',
         );
 
         handle.dispose();
@@ -305,14 +335,9 @@ void main() {
         handle.dispose();
       },
     );
-  });
 
-  // -----------------------------------------------------------------------
-  // INV-TASK-A11Y-5: Assignee avatar has Semantics label
-  // -----------------------------------------------------------------------
-  group('INV-TASK-A11Y-5: assignee Semantics', () {
     testWidgets(
-      'assigned task shows assignee name in Semantics label',
+      'task row includes assignee name in semantic description',
       skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
@@ -323,6 +348,7 @@ void main() {
               _taskItem(
                 id: 't1',
                 status: 'in_progress',
+                title: 'Fix login bug',
                 claimedByName: 'Bob',
               ),
             ],
@@ -332,37 +358,100 @@ void main() {
         await tester.pumpWidget(_buildApp(store));
         await tester.pumpAndSettle();
 
+        // Combined announcement must include assignee name.
         expect(
           find.bySemanticsLabel(RegExp(r'Bob')),
-          findsWidgets,
-          reason: 'Assignee avatar must have Semantics label with name',
+          findsOneWidget,
+          reason:
+              'Task row must include assignee name in Semantics description',
         );
 
         handle.dispose();
       },
     );
+  });
 
+  // -----------------------------------------------------------------------
+  // INV-TASK-A11Y-5: Non-drag accessibility action for status changes
+  // -----------------------------------------------------------------------
+  group('INV-TASK-A11Y-5: non-drag status change action', () {
     testWidgets(
-      'unassigned task has no assignee Semantics node',
+      'task row exposes non-drag action for changing status (long-press or semantic action)',
       skip: true,
       (tester) async {
         final handle = tester.ensureSemantics();
         final store = _FakeTasksStore(
           initialState: TasksState(
             status: TasksStatus.success,
-            items: [_taskItem(id: 't1', status: 'todo')],
+            items: [
+              _taskItem(
+                id: 't1',
+                status: 'todo',
+                title: 'Fix login bug',
+              ),
+            ],
           ),
         );
 
         await tester.pumpWidget(_buildApp(store));
         await tester.pumpAndSettle();
 
-        // No assignee avatar should be present.
-        expect(
-          find.byKey(const ValueKey('task-assignee-t1')),
-          findsNothing,
-          reason: 'Unassigned task should not show assignee avatar',
+        // Find the task row and verify it has a long-press or
+        // custom semantic action that provides a non-drag path
+        // for changing task status (required for accessibility —
+        // drag is not accessible to screen reader users).
+        final taskRow = find.byKey(const ValueKey('task-row-t1'));
+        expect(taskRow, findsOneWidget, reason: 'Task row must be present');
+
+        // The row's semantics node should expose a custom action
+        // or the widget tree should include a GestureDetector with
+        // onLongPress that opens the status change menu.
+        final node = tester.getSemantics(taskRow);
+        final hasCustomAction =
+            node.getSemanticsData().customSemanticsActionIds?.isNotEmpty ==
+                true;
+        final hasLongPress =
+            node.getSemanticsData().actions & SemanticsAction.longPress.index !=
+                0;
+        expect(hasCustomAction || hasLongPress, isTrue,
+            reason:
+                'Task row must have a non-drag action (long-press or semantic custom action) for status changes');
+
+        handle.dispose();
+      },
+    );
+
+    testWidgets(
+      'closed task does not expose status change action',
+      skip: true,
+      (tester) async {
+        final handle = tester.ensureSemantics();
+        final store = _FakeTasksStore(
+          initialState: TasksState(
+            status: TasksStatus.success,
+            items: [
+              _taskItem(id: 't1', status: 'closed', title: 'Old task'),
+            ],
+          ),
         );
+
+        await tester.pumpWidget(_buildApp(store));
+        await tester.pumpAndSettle();
+
+        // Closed tasks should not offer drag-to-change or any
+        // status change action — they are terminal.
+        final taskRow = find.byKey(const ValueKey('task-row-t1'));
+        expect(taskRow, findsOneWidget);
+
+        final node = tester.getSemantics(taskRow);
+        final hasCustomAction =
+            node.getSemanticsData().customSemanticsActionIds?.isNotEmpty ==
+                true;
+        final hasLongPress =
+            node.getSemanticsData().actions & SemanticsAction.longPress.index !=
+                0;
+        expect(hasCustomAction || hasLongPress, isFalse,
+            reason: 'Closed task must not expose status change action');
 
         handle.dispose();
       },
