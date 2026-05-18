@@ -237,16 +237,20 @@ class _SummaryCardBase extends StatelessWidget {
                         ),
                       ),
                       if (onViewAll != null)
-                        GestureDetector(
-                          key: ValueKey(
-                            'card-view-all-${title.toLowerCase()}',
-                          ),
-                          onTap: onViewAll,
-                          child: Text(
-                            '${l10n.homeCardViewAll} \u2192',
-                            style: AppTypography.caption.copyWith(
-                              color: colors.primary,
-                              fontWeight: FontWeight.w500,
+                        Semantics(
+                          button: true,
+                          label: '${l10n.homeCardViewAll} $title',
+                          child: GestureDetector(
+                            key: ValueKey(
+                              'card-view-all-${title.toLowerCase()}',
+                            ),
+                            onTap: onViewAll,
+                            child: Text(
+                              '${l10n.homeCardViewAll} \u2192',
+                              style: AppTypography.caption.copyWith(
+                                color: colors.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
@@ -443,18 +447,18 @@ class _HomeTasksSection extends ConsumerWidget {
   final VoidCallback onViewAll;
   final AppFailure? taskLoadFailure;
 
-  String _channelName(String channelId) {
-    for (final ch in channels) {
-      if (ch.scopeId.value == channelId) return ch.name;
-    }
-    return channelId;
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
     final now = ref.watch(homeNowProvider);
+
+    // O(1) channel name lookup — built once per build.
+    final channelNameMap = <String, String>{
+      for (final ch in channels) ch.scopeId.value: ch.name,
+    };
+    String channelName(String channelId) =>
+        channelNameMap[channelId] ?? channelId;
 
     // Filter: only in_progress + todo
     final activeTasks = taskItems
@@ -493,7 +497,7 @@ class _HomeTasksSection extends ConsumerWidget {
                       _TaskItemRow(
                         key: ValueKey('task-item-${task.id}'),
                         task: task,
-                        channelName: _channelName(task.channelId),
+                        channelName: channelName(task.channelId),
                         now: now,
                       ),
                     if (overflowCount > 0)
@@ -948,131 +952,134 @@ class _UnreadItemRow extends ConsumerWidget {
     // Build line 3: "senderName: previewText"
     final line3Text = _buildPreviewLine();
 
-    return GestureDetector(
-      onTap: () => _navigateTo(context, ref),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.xs,
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Left icon: kind glyph badge
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Container(
-                key: ValueKey(
-                    'unread-kind-${item.kind == ConversationProjectionKind.dm ? 'directMessage' : item.kind.name}'),
-                width: 22,
-                height: 22,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  glyph,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: badgeColor,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
+    return Semantics(
+      label: '${item.title}: ${_buildPreviewLine()}',
+      child: GestureDetector(
+        onTap: () => _navigateTo(context, ref),
+        behavior: HitTestBehavior.opaque,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSpacing.xs,
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left icon: kind glyph badge
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Container(
+                  key: ValueKey(
+                      'unread-kind-${item.kind == ConversationProjectionKind.dm ? 'directMessage' : item.kind.name}'),
+                  width: 22,
+                  height: 22,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  semanticsLabel: item.kind.name,
+                  child: Text(
+                    glyph,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: badgeColor,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                    ),
+                    semanticsLabel: item.kind.name,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            // Three-line content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Line 1: Type pill + source + time
-                  Row(
-                    children: [
-                      // Type pill
-                      Container(
-                        key: ValueKey('unread-pill-${item.id}'),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 1,
-                        ),
-                        decoration: BoxDecoration(
-                          color: badgeColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                        child: Text(
-                          _typePillLabel,
-                          style: TextStyle(
-                            fontSize: 9,
-                            color: badgeColor,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.3,
-                            height: 1.3,
+              const SizedBox(width: AppSpacing.sm),
+              // Three-line content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Line 1: Type pill + source + time
+                    Row(
+                      children: [
+                        // Type pill
+                        Container(
+                          key: ValueKey('unread-pill-${item.id}'),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      // Source label
-                      if (item.sourceLabel != null)
-                        Expanded(
+                          decoration: BoxDecoration(
+                            color: badgeColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
                           child: Text(
-                            item.sourceLabel!,
-                            key: ValueKey('unread-source-${item.id}'),
-                            style: AppTypography.caption.copyWith(
-                              color: colors.textSecondary,
+                            _typePillLabel,
+                            style: TextStyle(
+                              fontSize: 9,
+                              color: badgeColor,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                              height: 1.3,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        )
-                      else
-                        const Spacer(),
-                      // Time
-                      if (item.lastActivityAt != null) ...[
-                        const SizedBox(width: 4),
-                        _TimeAgoLabel(
-                          time: item.lastActivityAt!,
-                          now: now,
                         ),
+                        const SizedBox(width: 4),
+                        // Source label
+                        if (item.sourceLabel != null)
+                          Expanded(
+                            child: Text(
+                              item.sourceLabel!,
+                              key: ValueKey('unread-source-${item.id}'),
+                              style: AppTypography.caption.copyWith(
+                                color: colors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )
+                        else
+                          const Spacer(),
+                        // Time
+                        if (item.lastActivityAt != null) ...[
+                          const SizedBox(width: 4),
+                          _TimeAgoLabel(
+                            time: item.lastActivityAt!,
+                            now: now,
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  // Line 2: Destination title (bold)
-                  Text(
-                    item.title,
-                    key: ValueKey('unread-title-${item.id}'),
-                    style: AppTypography.body.copyWith(
-                      color: colors.text,
-                      fontWeight: FontWeight.w600,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  // Line 3: senderName: previewText (always shown)
-                  const SizedBox(height: 2),
-                  Text(
-                    line3Text,
-                    key: ValueKey('unread-preview-${item.id}'),
-                    style: AppTypography.caption.copyWith(
-                      color: colors.textTertiary,
+                    const SizedBox(height: 2),
+                    // Line 2: Destination title (bold)
+                    Text(
+                      item.title,
+                      key: ValueKey('unread-title-${item.id}'),
+                      style: AppTypography.body.copyWith(
+                        color: colors.text,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                    // Line 3: senderName: previewText (always shown)
+                    const SizedBox(height: 2),
+                    Text(
+                      line3Text,
+                      key: ValueKey('unread-preview-${item.id}'),
+                      style: AppTypography.caption.copyWith(
+                        color: colors.textTertiary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            // Unread badge
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: _UnreadBadge(count: item.unreadCount),
-            ),
-          ],
+              const SizedBox(width: AppSpacing.xs),
+              // Unread badge
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: _UnreadBadge(count: item.unreadCount),
+              ),
+            ],
+          ),
         ),
       ),
     );
