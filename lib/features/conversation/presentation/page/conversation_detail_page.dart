@@ -950,10 +950,13 @@ class _ConversationDetailScreenState
       // INV-TRANSLATE-3: auto-translate visible messages on first load
       // when translation mode is auto.
       _autoTranslateIfNeeded(next.messages);
+    }
 
-      // #566: Eagerly register ALL attachment downloads with the scheduler
-      // so offscreen items are tracked (deferred) from the start. Visibility
-      // changes later promote them to priority queue.
+    // #566: Register attachment downloads on every state change (not just
+    // first load). After loadOlder() appends messages, the new attachments
+    // must also be enqueued. The scheduler's enqueue() deduplicates, so
+    // calling with all messages on every change is safe.
+    if (next.status == ConversationDetailStatus.success) {
       _registerAttachmentDownloads(next.messages);
     }
 
