@@ -102,6 +102,7 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
         profile: MemberProfile(
           id: session.userId ?? 'unknown',
           displayName: session.displayName ?? 'User',
+          avatarUrl: session.avatarUrl,
           isSelf: true,
         ),
       );

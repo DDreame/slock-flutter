@@ -12,6 +12,7 @@ import 'package:slock_app/features/profile/application/avatar_upload_service.dar
 import 'package:slock_app/features/profile/application/profile_detail_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key, this.userId, this.serverId});
@@ -154,6 +155,8 @@ class _ProfileSuccessBody extends ConsumerWidget {
       final newUrl = await uploadService.upload(filePath);
 
       ref.read(profileDetailStoreProvider.notifier).updateAvatarUrl(newUrl);
+      // Persist to session so avatar survives page rebuild/reopen.
+      ref.read(sessionStoreProvider.notifier).updateAvatarUrl(newUrl);
     } on AvatarUploadException catch (e) {
       messenger
         ..hideCurrentSnackBar()
