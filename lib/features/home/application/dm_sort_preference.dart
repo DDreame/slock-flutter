@@ -1,13 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
-import 'package:slock_app/stores/theme/theme_mode_store.dart'
-    show sharedPreferencesProvider;
 
 // ---------------------------------------------------------------------------
-// #576: DM Sort Preference — Stub (Phase A)
+// #576: DM Sort Preference — Seam (Phase A)
 //
-// Mirrors channel_sort_preference.dart pattern from #574.
-// Phase B implements the actual sort logic and UI toggle.
+// Minimal provider surface for tests to compile against.
+// Phase B fills in real SharedPreferences IO and sort logic.
 // ---------------------------------------------------------------------------
 
 enum DmSortPreference {
@@ -25,42 +23,22 @@ final dmSortPreferenceProvider =
 class DmSortPreferenceNotifier extends Notifier<DmSortPreference> {
   @override
   DmSortPreference build() {
-    final prefs = ref.watch(sharedPreferencesProvider);
-    final stored = prefs.getString(DmSortPreference.prefsKey);
-    if (stored == 'alphabetical') {
-      return DmSortPreference.alphabetical;
-    }
-    return DmSortPreference.recentActivity;
+    // Phase B: read from SharedPreferences.
+    throw UnimplementedError('DmSortPreferenceNotifier not yet implemented');
   }
 
   void setSortPreference(DmSortPreference preference) {
-    state = preference;
-    ref
-        .read(sharedPreferencesProvider)
-        .setString(DmSortPreference.prefsKey, preference.name);
+    // Phase B: persist to SharedPreferences.
+    throw UnimplementedError('setSortPreference not yet implemented');
   }
 }
 
+/// Given a list of DMs, returns them sorted according to the current
+/// [dmSortPreferenceProvider]. Phase B provides the real sort logic.
 final sortedDmsProvider = Provider.family<List<HomeDirectMessageSummary>,
     List<HomeDirectMessageSummary>>(
   (ref, dms) {
-    final preference = ref.watch(dmSortPreferenceProvider);
-    final sorted = List<HomeDirectMessageSummary>.of(dms);
-    switch (preference) {
-      case DmSortPreference.recentActivity:
-        sorted.sort((a, b) {
-          final aTime = a.lastActivityAt;
-          final bTime = b.lastActivityAt;
-          if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-          return bTime.compareTo(aTime);
-        });
-      case DmSortPreference.alphabetical:
-        sorted.sort(
-          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
-        );
-    }
-    return sorted;
+    // Phase B: sort by preference (recentActivity desc / alphabetical A-Z).
+    throw UnimplementedError('sortedDmsProvider not yet implemented');
   },
 );
