@@ -208,6 +208,8 @@ class SessionStore extends Notifier<SessionState> {
         token: state.token,
         userId: user?.id ?? fallbackUserId,
         displayName: user?.name ?? fallbackDisplayName,
+        avatarUrl: state
+            .avatarUrl, // preserve uploaded avatar (AuthUser has no avatar field)
         emailVerified: user?.emailVerified,
       );
       await _persistSession();
