@@ -21,7 +21,6 @@ import 'package:slock_app/features/conversation/presentation/page/pinned_message
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
-import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';

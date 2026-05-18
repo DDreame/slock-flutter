@@ -158,6 +158,7 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
                 // Forward the selected message ID back to the caller
                 // (conversation detail page) so it can scroll to it.
                 if (messageId != null && mounted) {
+                  if (!context.mounted) return;
                   Navigator.of(context).pop(messageId);
                 }
               },
