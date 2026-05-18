@@ -7,6 +7,16 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 
+// ---------------------------------------------------------------------------
+// #569: Conversation Info Page Consolidation
+//
+// Enum for the info page sections — used by header shortcuts to navigate
+// directly to the relevant section.
+// ---------------------------------------------------------------------------
+
+/// Sections of the conversation info page that can be targeted by shortcuts.
+enum ConversationInfoSection { members, files, pinned }
+
 /// Aggregation page showing conversation details: members, shared files,
 /// pinned messages (for channels), or user profile info (for DMs).
 ///
@@ -19,10 +29,16 @@ class ConversationInfoPage extends ConsumerStatefulWidget {
     super.key,
     required this.target,
     required this.title,
+    this.initialSection,
   });
 
   final ConversationDetailTarget target;
   final String title;
+
+  /// Optional section to scroll to / highlight on load.
+  ///
+  /// Phase B: used by header shortcuts to open directly to a section.
+  final ConversationInfoSection? initialSection;
 
   @override
   ConsumerState<ConversationInfoPage> createState() =>
