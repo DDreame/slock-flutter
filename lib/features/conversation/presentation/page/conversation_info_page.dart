@@ -29,11 +29,15 @@ class ConversationInfoPage extends ConsumerStatefulWidget {
     super.key,
     required this.target,
     required this.title,
+    this.description,
     this.initialSection,
   });
 
   final ConversationDetailTarget target;
   final String title;
+
+  /// Channel description/topic. Null when not available.
+  final String? description;
 
   /// Optional section to scroll to / highlight on load.
   ///
@@ -70,7 +74,11 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
       body: ListView(
         children: [
           // ── Header ──
-          _InfoHeader(title: widget.title, isChannel: _isChannel),
+          _InfoHeader(
+            title: widget.title,
+            isChannel: _isChannel,
+            description: widget.description,
+          ),
           const Divider(),
 
           // ── Notifications / Mute Toggle ──
@@ -181,10 +189,15 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
 // ---------------------------------------------------------------------------
 
 class _InfoHeader extends StatelessWidget {
-  const _InfoHeader({required this.title, required this.isChannel});
+  const _InfoHeader({
+    required this.title,
+    required this.isChannel,
+    this.description,
+  });
 
   final String title;
   final bool isChannel;
+  final String? description;
 
   @override
   Widget build(BuildContext context) {
@@ -212,6 +225,17 @@ class _InfoHeader extends StatelessWidget {
             style: AppTypography.headline,
             textAlign: TextAlign.center,
           ),
+          if (description != null && description!.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              description!,
+              key: const ValueKey('conversation-info-description'),
+              style: AppTypography.caption.copyWith(
+                color: colors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ],
       ),
     );
