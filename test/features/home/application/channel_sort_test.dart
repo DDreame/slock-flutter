@@ -146,7 +146,8 @@ void main() {
     'Sort preference persists across restarts',
     skip: true,
     () async {
-      // Phase 1: Set preference and verify it was written to SharedPreferences.
+      // Phase 1 (write-path): Set preference and verify it was written
+      // to SharedPreferences via the documented key constant.
       final container1 = ProviderContainer(
         overrides: [
           activeServerScopeIdProvider.overrideWithValue(serverId),
@@ -162,8 +163,7 @@ void main() {
       // Allow async write to SharedPreferences.
       await Future<void>.delayed(Duration.zero);
 
-      // Verify the preference was actually written to SharedPreferences
-      // via the documented storage key constant.
+      // Verify the preference was actually written to SharedPreferences.
       expect(
         prefs.getString(ChannelSortPreference.prefsKey),
         'alphabetical',
@@ -173,10 +173,13 @@ void main() {
 
       container1.dispose();
 
-      // Phase 2: Seed prefs with known value BEFORE creating new container.
-      // This proves the provider reads from prefs, not container memory.
+      // Phase 2 (read-path): Seed prefs with 'recentActivity' (a DIFFERENT
+      // value than what was written above) to prove the provider reads from
+      // prefs rather than any static/cached memory from the prior container.
+      // If an impl caches 'alphabetical' statically and ignores prefs on
+      // build(), this assertion will fail.
       SharedPreferences.setMockInitialValues({
-        ChannelSortPreference.prefsKey: 'alphabetical',
+        ChannelSortPreference.prefsKey: 'recentActivity',
       });
       final freshPrefs = await SharedPreferences.getInstance();
 
@@ -188,13 +191,15 @@ void main() {
       );
       addTearDown(container2.dispose);
 
-      // Preference must be restored from SharedPreferences, not static memory.
+      // Provider must return recentActivity (from prefs), NOT alphabetical
+      // (from the prior container's in-memory state).
       final restored = container2.read(channelSortPreferenceProvider);
       expect(
         restored,
-        ChannelSortPreference.alphabetical,
+        ChannelSortPreference.recentActivity,
         reason: 'Sort preference must be read from SharedPreferences on build, '
-            'not from static in-memory state',
+            'not from static in-memory state (seeded recentActivity, '
+            'prior container set alphabetical)',
       );
     },
   );
