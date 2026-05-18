@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
@@ -8,6 +9,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
+import 'package:slock_app/features/realtime/application/list_typing_indicator_store.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
 /// Whitespace splitter for avatar-initials extraction.
@@ -186,16 +188,40 @@ class HomeDirectMessageRow extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      resolvePreviewText(
-                        directMessage.lastMessagePreview,
-                        l10n: AppLocalizations.of(context)!,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: colors.textSecondary,
-                      ),
+                    Consumer(
+                      key: const ValueKey('dm-row-typing-indicator'),
+                      builder: (context, ref, _) {
+                        final scopeKey =
+                            'server:${directMessage.scopeId.serverId.value}'
+                            '/dm:${directMessage.scopeId.value}';
+                        final typingState = ref.watch(
+                          listTypingIndicatorStoreProvider(scopeKey),
+                        );
+                        final colors =
+                            Theme.of(context).extension<AppColors>()!;
+                        if (typingState.isActive) {
+                          return Text(
+                            typingState.displayText!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: colors.primary,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          );
+                        }
+                        return Text(
+                          resolvePreviewText(
+                            directMessage.lastMessagePreview,
+                            l10n: AppLocalizations.of(context)!,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
