@@ -825,11 +825,17 @@ class HomeListStore extends Notifier<HomeListState> {
       }
     }
 
-    final pinnedSorted = _sortByOrder(
-      pinned,
-      order.pinnedOrder,
-      (c) => c.scopeId.value,
-    );
+    // Re-order pinned channels by pinnedOrder using a single index
+    // lookup pass instead of a full _sortByOrder call.
+    final pinnedOrderMap = <String, int>{
+      for (var i = 0; i < order.pinnedOrder.length; i++)
+        order.pinnedOrder[i]: i,
+    };
+    pinned.sort((a, b) {
+      final ai = pinnedOrderMap[a.scopeId.value] ?? pinnedOrderMap.length;
+      final bi = pinnedOrderMap[b.scopeId.value] ?? pinnedOrderMap.length;
+      return ai.compareTo(bi);
+    });
 
     final hiddenSet = order.hiddenDmIds.toSet();
     final sortedDms = _sortByOrder(
@@ -873,7 +879,7 @@ class HomeListStore extends Notifier<HomeListState> {
     state = state.copyWith(
       serverScopeId: serverScopeId,
       status: status,
-      pinnedChannels: pinnedSorted,
+      pinnedChannels: pinned,
       pinnedDirectMessages: pinnedDms,
       pinnedConversationOrder: _currentPinnedConversationIds(),
       channels: unpinned,
@@ -970,26 +976,34 @@ class HomeListStore extends Notifier<HomeListState> {
     };
     final pinnedAgentIds = _sidebarOrder.pinnedAgentIds.toSet();
     final activePinnedIds = {...pinnedConversationIds, ...pinnedAgentIds};
-    final currentPinnedOrder = [
-      for (final id in _sidebarOrder.pinnedOrder)
-        if (activePinnedIds.contains(id)) id,
-    ];
+    // Build list + shadow set simultaneously so duplicate IDs
+    // already present in the persisted pinnedOrder are filtered.
+    final currentPinnedOrder = <String>[];
+    final currentPinnedOrderSet = <String>{};
+    for (final id in _sidebarOrder.pinnedOrder) {
+      if (activePinnedIds.contains(id) && currentPinnedOrderSet.add(id)) {
+        currentPinnedOrder.add(id);
+      }
+    }
 
     for (final id in _orderedChannelIds()) {
       if (pinnedConversationIds.contains(id) &&
-          !currentPinnedOrder.contains(id)) {
+          !currentPinnedOrderSet.contains(id)) {
         currentPinnedOrder.add(id);
+        currentPinnedOrderSet.add(id);
       }
     }
     for (final id in _orderedDirectMessageIds()) {
       if (pinnedConversationIds.contains(id) &&
-          !currentPinnedOrder.contains(id)) {
+          !currentPinnedOrderSet.contains(id)) {
         currentPinnedOrder.add(id);
+        currentPinnedOrderSet.add(id);
       }
     }
     for (final id in _orderedAgentIds()) {
-      if (pinnedAgentIds.contains(id) && !currentPinnedOrder.contains(id)) {
+      if (pinnedAgentIds.contains(id) && !currentPinnedOrderSet.contains(id)) {
         currentPinnedOrder.add(id);
+        currentPinnedOrderSet.add(id);
       }
     }
 

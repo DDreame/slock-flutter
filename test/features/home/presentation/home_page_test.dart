@@ -1134,7 +1134,7 @@ void main() {
         // Channel with unreadCount > 0 should appear
         expect(
           find.byKey(
-            const ValueKey('unread-item-channel:general'),
+            const ValueKey('unread-item-0'),
           ),
           findsOneWidget,
           reason: 'Channel unread should appear',
@@ -1143,7 +1143,7 @@ void main() {
         // DM with unreadCount > 0 should appear
         expect(
           find.byKey(
-            const ValueKey('unread-item-dm:dm-alice'),
+            const ValueKey('unread-item-1'),
           ),
           findsOneWidget,
           reason: 'DM unread should appear',
@@ -1151,7 +1151,7 @@ void main() {
 
         // Title and preview should render
         final row = find.byKey(
-          const ValueKey('unread-item-channel:general'),
+          const ValueKey('unread-item-0'),
         );
         expect(
           find.descendant(
@@ -1217,17 +1217,17 @@ void main() {
         // Should show 5 items + overflow
         for (var i = 0; i < 5; i++) {
           expect(
-            find.byKey(ValueKey('unread-item-channel:ch-$i')),
+            find.byKey(ValueKey('unread-item-$i')),
             findsOneWidget,
           );
         }
         // Items 5 and 6 should be hidden
         expect(
-          find.byKey(const ValueKey('unread-item-channel:ch-5')),
+          find.byKey(const ValueKey('unread-item-5')),
           findsNothing,
         );
         expect(
-          find.byKey(const ValueKey('unread-item-channel:ch-6')),
+          find.byKey(const ValueKey('unread-item-6')),
           findsNothing,
         );
         // Overflow indicator
@@ -1308,7 +1308,7 @@ void main() {
         // Verify unread row is present.
         expect(
           find.byKey(
-            const ValueKey('unread-item-channel:general'),
+            const ValueKey('unread-item-0'),
           ),
           findsOneWidget,
         );
@@ -1316,7 +1316,7 @@ void main() {
         // Tap the unread row.
         await tester.tap(
           find.byKey(
-            const ValueKey('unread-item-channel:general'),
+            const ValueKey('unread-item-0'),
           ),
         );
         await tester.pumpAndSettle();
@@ -1406,7 +1406,7 @@ void main() {
         // Verify DM unread row is present.
         expect(
           find.byKey(
-            const ValueKey('unread-item-dm:dm-alice'),
+            const ValueKey('unread-item-0'),
           ),
           findsOneWidget,
         );
@@ -1414,7 +1414,7 @@ void main() {
         // Tap the DM unread row.
         await tester.tap(
           find.byKey(
-            const ValueKey('unread-item-dm:dm-alice'),
+            const ValueKey('unread-item-0'),
           ),
         );
         await tester.pumpAndSettle();
@@ -1534,7 +1534,7 @@ void main() {
         // Pinned DM with unreads should appear
         expect(
           find.byKey(
-            const ValueKey('unread-item-dm:pinned-dm'),
+            const ValueKey('unread-item-0'),
           ),
           findsOneWidget,
           reason: 'Pinned DM with positive unread '
@@ -1543,7 +1543,7 @@ void main() {
         expect(
           find.descendant(
             of: find.byKey(
-              const ValueKey('unread-item-dm:pinned-dm'),
+              const ValueKey('unread-item-0'),
             ),
             matching: find.byKey(
               const ValueKey('unread-title-dm:pinned-dm'),
@@ -1634,10 +1634,10 @@ void main() {
         await tester.pumpAndSettle();
 
         final newItem = find.byKey(
-          const ValueKey('unread-item-channel:general'),
+          const ValueKey('unread-item-0'),
         );
         final oldItem = find.byKey(
-          const ValueKey('unread-item-channel:random'),
+          const ValueKey('unread-item-1'),
         );
 
         expect(newItem, findsOneWidget);
@@ -1680,7 +1680,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final row = find.byKey(
-          const ValueKey('unread-item-channel:general'),
+          const ValueKey('unread-item-0'),
         );
         expect(row, findsOneWidget);
 
@@ -1732,7 +1732,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final row = find.byKey(
-          const ValueKey('unread-item-channel:general'),
+          const ValueKey('unread-item-0'),
         );
         expect(row, findsOneWidget);
 
@@ -1778,7 +1778,7 @@ void main() {
         // Thread items are classified as hidden sources and excluded
         // from the Home unread card (only visibleSources are shown).
         expect(
-          find.byKey(const ValueKey('unread-item-thread:src-msg')),
+          find.byKey(const ValueKey('unread-item-0')),
           findsNothing,
           reason: 'Threads are hidden sources — not rendered on Home card',
         );
@@ -1852,7 +1852,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final row = find.byKey(
-          const ValueKey('unread-item-channel:general'),
+          const ValueKey('unread-item-0'),
         );
         expect(row, findsOneWidget);
 
@@ -1935,7 +1935,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final row = find.byKey(
-          const ValueKey('unread-item-dm:dm-alice'),
+          const ValueKey('unread-item-0'),
         );
         expect(row, findsOneWidget);
 

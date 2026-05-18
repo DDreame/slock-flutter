@@ -141,7 +141,18 @@ _HomeVisibility _selectVisibility(HomeListState s) => (
 /// that [projectInboxItem] can resolve display names when the API returns
 /// null/empty values. Populates `memberNames` from DM peer data and agent
 /// data so sender name fallback resolves via local stores.
+///
+/// Memoized: returns cached resolver when the [_HomeVisibility] record is
+/// the same object reference (identity check), avoiding fresh Map allocations
+/// on every provider rebuild.
+_HomeVisibility? _lastResolverVisibility;
+InboxNameResolver? _cachedResolver;
+
 InboxNameResolver _buildNameResolver(_HomeVisibility vis) {
+  if (identical(vis, _lastResolverVisibility) && _cachedResolver != null) {
+    return _cachedResolver!;
+  }
+
   final channelNames = <String, String>{};
   final memberNames = <String, String>{};
 
@@ -174,15 +185,17 @@ InboxNameResolver _buildNameResolver(_HomeVisibility vis) {
     }
   }
 
-  return InboxNameResolver(
+  final resolver = InboxNameResolver(
     channelNames: channelNames,
     memberNames: memberNames,
   );
+  _lastResolverVisibility = vis;
+  _cachedResolver = resolver;
+  return resolver;
 }
 
 /// Builds visibility context from the selected [_HomeVisibility] record.
-({Set<String> channelIds, Set<String> dmIds, bool homeLoaded})
-    _visibilityContextFromSelected(_HomeVisibility vis) {
+_visibilityContextFromSelected(_HomeVisibility vis) {
   final channelIds = <String>{};
   final dmIds = <String>{};
 
