@@ -32,14 +32,18 @@ final unreadSourceProjectionProvider =
   final homeVis = ref.watch(homeListStoreProvider.select(_selectVisibility));
   final serverId = ref.watch(activeServerScopeIdProvider);
 
-  // Guard: only block projection for initial (no data yet) and failure.
-  // During loading, pass through current items (may be empty after filter
-  // switch, or stale during same-filter SWR refresh). This prevents the
-  // provider from returning empty during filter-switch loading, which
-  // caused a full-screen spinner in UnreadListPage (#510 BUG 2).
+  // Guard: block projection when no meaningful data exists yet.
+  // initial/failure: no data available.
+  // loading with empty items: first-ever load or filter-switch —
+  // projection should not be considered "loaded" (isLoaded: false)
+  // until inbox reaches success. This prevents the deferred-markRead
+  // listener from firing prematurely during auto-load (#572 + #541
+  // interaction). UnreadListPage handles this case with a skeleton.
   if (serverId == null ||
       inboxState.status == InboxStatus.initial ||
-      inboxState.status == InboxStatus.failure) {
+      inboxState.status == InboxStatus.failure ||
+      (inboxState.status == InboxStatus.loading &&
+          inboxState.items.isEmpty)) {
     return const UnreadSourceProjectionState();
   }
 
@@ -70,14 +74,13 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   final homeVis = ref.watch(homeListStoreProvider.select(_selectVisibility));
   final serverId = ref.watch(activeServerScopeIdProvider);
 
-  // Guard: only block projection for initial (no data yet) and failure.
-  // During loading, project whatever items exist (empty after filter
-  // switch due to InboxStore.load() clearing items, or stale during
-  // same-filter refresh). This ensures skeleton-compatible empty state
-  // instead of blanking the UI (#510 BUG 1).
+  // Guard: block projection when no meaningful data exists yet.
+  // Same logic as unreadSourceProjectionProvider — see above.
   if (serverId == null ||
       inboxState.status == InboxStatus.initial ||
-      inboxState.status == InboxStatus.failure) {
+      inboxState.status == InboxStatus.failure ||
+      (inboxState.status == InboxStatus.loading &&
+          inboxState.items.isEmpty)) {
     return const [];
   }
 

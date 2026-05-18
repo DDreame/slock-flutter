@@ -17,6 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
+
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -135,6 +137,9 @@ void main() {
             hasMore: false,
           ),
         );
+        // Block auto-load from completing so inbox stays in loading state
+        // until we explicitly call seedInbox().
+        inboxRepo.fetchGate = Completer<void>();
         final conversationRepo = _FakeConversationRepository(
           snapshot: ConversationDetailSnapshot(
             target: channelTarget,
@@ -199,6 +204,8 @@ void main() {
         );
 
         // Now simulate inbox finishing its load.
+        // Release the fetch gate so auto-load (and seedInbox) can complete.
+        inboxRepo.fetchGate!.complete();
         await seedInbox(container);
 
         // Verify inbox projection is now loaded with unread.
@@ -329,6 +336,10 @@ class _RecordingInboxRepository implements InboxRepository {
   final List<String> markDoneChannelIds = [];
   bool markAllReadCalled = false;
 
+  /// When non-null, fetchInbox waits on this completer before returning.
+  /// Used to block auto-load from completing during test setup.
+  Completer<void>? fetchGate;
+
   @override
   Future<InboxResponse> fetchInbox(
     ServerScopeId serverId, {
@@ -336,6 +347,9 @@ class _RecordingInboxRepository implements InboxRepository {
     int limit = 30,
     int offset = 0,
   }) async {
+    if (fetchGate != null) {
+      await fetchGate!.future;
+    }
     return fetchResponse;
   }
 
