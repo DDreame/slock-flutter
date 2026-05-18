@@ -762,4 +762,125 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get agentStatusStopped => 'Detenido';
+
+  @override
+  String get settingsTitle => 'Configuración';
+
+  @override
+  String get settingsAccountSection => 'Cuenta';
+
+  @override
+  String get settingsWorkspaceSection => 'Espacio de trabajo';
+
+  @override
+  String get settingsNotificationsSection => 'Notificaciones';
+
+  @override
+  String get settingsAppearanceSection => 'Apariencia';
+
+  @override
+  String get settingsLanguageSection => 'Idioma';
+
+  @override
+  String get settingsSecuritySection => 'Seguridad';
+
+  @override
+  String get settingsMoreSection => 'Más';
+
+  @override
+  String get settingsDangerZoneSection => 'Zona de peligro';
+
+  @override
+  String get settingsMyProfileTitle => 'Mi perfil';
+
+  @override
+  String get settingsMyProfileSubtitle => 'Revisa los detalles de tu cuenta.';
+
+  @override
+  String get settingsMembersTitle => 'Miembros';
+
+  @override
+  String get settingsMembersSubtitle => 'Ver y gestionar miembros del espacio.';
+
+  @override
+  String get settingsNotificationSettingsTitle =>
+      'Configuración de notificaciones';
+
+  @override
+  String get settingsThemeTitle => 'Tema';
+
+  @override
+  String get settingsTranslationTitle => 'Traducción';
+
+  @override
+  String get settingsTranslationSubtitle =>
+      'Idioma preferido y modo de traducción.';
+
+  @override
+  String get settingsBiometricLockTitle => 'Bloqueo biométrico';
+
+  @override
+  String get settingsBiometricLockEnabled =>
+      'Activado — desbloquear con biometría tras inactividad';
+
+  @override
+  String get settingsBiometricLockDisabled =>
+      'Desactivado — sin bloqueo biométrico';
+
+  @override
+  String get settingsBillingTitle => 'Facturación';
+
+  @override
+  String get settingsBillingSubtitle => 'Revisa el resumen de tu suscripción.';
+
+  @override
+  String get settingsReleaseNotesTitle => 'Notas de versión';
+
+  @override
+  String get settingsReleaseNotesSubtitle =>
+      'Consulta las últimas actualizaciones del producto.';
+
+  @override
+  String get settingsDiagnosticsTitle => 'Diagnósticos';
+
+  @override
+  String get settingsDiagnosticsSubtitle =>
+      'Ver y exportar registros de diagnóstico.';
+
+  @override
+  String get settingsLogOutTitle => 'Cerrar sesión';
+
+  @override
+  String get settingsLogOutSubtitle => 'Cerrar sesión en este dispositivo.';
+
+  @override
+  String get settingsLogOutDialogTitle => '¿Cerrar sesión?';
+
+  @override
+  String get settingsLogOutDialogContent =>
+      'Se cerrará la sesión en este dispositivo.';
+
+  @override
+  String get settingsLogOutDialogCancel => 'Cancelar';
+
+  @override
+  String get settingsLogOutDialogConfirm => 'Cerrar sesión';
+
+  @override
+  String get settingsSignedInFallback => 'Sesión iniciada';
+
+  @override
+  String get settingsAccountUnavailable => 'Datos de cuenta no disponibles';
+
+  @override
+  String get settingsNotificationGranted => 'Concedido';
+
+  @override
+  String get settingsNotificationDenied => 'Denegado';
+
+  @override
+  String get settingsNotificationProvisional => 'Provisional';
+
+  @override
+  String get settingsNotificationNotRequested => 'No solicitado';
 }
