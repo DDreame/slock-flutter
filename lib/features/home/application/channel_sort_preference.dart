@@ -15,7 +15,11 @@ enum ChannelSortPreference {
   recentActivity,
 
   /// Sort alphabetically by channel name (case-insensitive A-Z).
-  alphabetical,
+  alphabetical;
+
+  /// SharedPreferences key used to persist the sort preference.
+  /// Test-visible constant for Phase A assertion.
+  static const prefsKey = 'channel_sort_preference';
 }
 
 /// Provides the current [ChannelSortPreference] and persists changes

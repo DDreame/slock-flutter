@@ -47,19 +47,20 @@ void main() {
   const serverId = ServerScopeId('server-1');
 
   // Channels with known names and activity timestamps for sort assertions.
+  // Mixed case to catch case-sensitive comparators (A1 carry finding).
   final channelAlpha = HomeChannelSummary(
     scopeId: const ChannelScopeId(serverId: serverId, value: 'ch-alpha'),
-    name: 'alpha',
+    name: 'Alpha', // title-case
     lastActivityAt: DateTime.utc(2026, 5, 10, 10, 0), // oldest
   );
   final channelBeta = HomeChannelSummary(
     scopeId: const ChannelScopeId(serverId: serverId, value: 'ch-beta'),
-    name: 'beta',
+    name: 'beta', // lowercase
     lastActivityAt: DateTime.utc(2026, 5, 15, 10, 0), // middle
   );
   final channelGamma = HomeChannelSummary(
     scopeId: const ChannelScopeId(serverId: serverId, value: 'ch-gamma'),
-    name: 'gamma',
+    name: 'Gamma', // title-case
     lastActivityAt: DateTime.utc(2026, 5, 18, 10, 0), // newest
   );
 
@@ -97,8 +98,8 @@ void main() {
         sortedChannelsProvider(channels),
       );
 
-      // Most-recently-active first: gamma (May 18) > beta (May 15) > alpha (May 10).
-      expect(sorted.map((c) => c.name).toList(), ['gamma', 'beta', 'alpha']);
+      // Most-recently-active first: Gamma (May 18) > beta (May 15) > Alpha (May 10).
+      expect(sorted.map((c) => c.name).toList(), ['Gamma', 'beta', 'Alpha']);
     },
   );
 
@@ -131,8 +132,10 @@ void main() {
         sortedChannelsProvider(channels),
       );
 
-      // Alphabetical (case-insensitive): alpha < beta < gamma.
-      expect(sorted.map((c) => c.name).toList(), ['alpha', 'beta', 'gamma']);
+      // Case-insensitive alphabetical: Alpha < beta < Gamma.
+      // A case-sensitive comparator (String.compareTo) would produce
+      // ['Alpha', 'Gamma', 'beta'] — uppercase sorts before lowercase.
+      expect(sorted.map((c) => c.name).toList(), ['Alpha', 'beta', 'Gamma']);
     },
   );
 
@@ -143,6 +146,7 @@ void main() {
     'Sort preference persists across restarts',
     skip: true,
     () async {
+      // Phase 1: Set preference and verify it was written to SharedPreferences.
       final container1 = ProviderContainer(
         overrides: [
           activeServerScopeIdProvider.overrideWithValue(serverId),
@@ -157,23 +161,40 @@ void main() {
 
       // Allow async write to SharedPreferences.
       await Future<void>.delayed(Duration.zero);
+
+      // Verify the preference was actually written to SharedPreferences
+      // via the documented storage key constant.
+      expect(
+        prefs.getString(ChannelSortPreference.prefsKey),
+        'alphabetical',
+        reason: 'setSortPreference must write to SharedPreferences '
+            'at the documented key',
+      );
+
       container1.dispose();
 
-      // Rebuild with same SharedPreferences — simulates app restart.
+      // Phase 2: Seed prefs with known value BEFORE creating new container.
+      // This proves the provider reads from prefs, not container memory.
+      SharedPreferences.setMockInitialValues({
+        ChannelSortPreference.prefsKey: 'alphabetical',
+      });
+      final freshPrefs = await SharedPreferences.getInstance();
+
       final container2 = ProviderContainer(
         overrides: [
           activeServerScopeIdProvider.overrideWithValue(serverId),
-          sharedPreferencesProvider.overrideWithValue(prefs),
+          sharedPreferencesProvider.overrideWithValue(freshPrefs),
         ],
       );
       addTearDown(container2.dispose);
 
-      // Preference should be restored from SharedPreferences.
+      // Preference must be restored from SharedPreferences, not static memory.
       final restored = container2.read(channelSortPreferenceProvider);
       expect(
         restored,
         ChannelSortPreference.alphabetical,
-        reason: 'Sort preference must persist across store rebuilds',
+        reason: 'Sort preference must be read from SharedPreferences on build, '
+            'not from static in-memory state',
       );
     },
   );
@@ -252,19 +273,20 @@ void main() {
       // After toggle: channels should be in alphabetical order.
       // Find channel row widgets and verify ordering by vertical position.
       final alphaPos = tester.getTopLeft(
-        find.byKey(const ValueKey('channels-tab-alpha')),
+        find.byKey(const ValueKey('channels-tab-ch-alpha')),
       );
       final betaPos = tester.getTopLeft(
-        find.byKey(const ValueKey('channels-tab-beta')),
+        find.byKey(const ValueKey('channels-tab-ch-beta')),
       );
       final gammaPos = tester.getTopLeft(
-        find.byKey(const ValueKey('channels-tab-gamma')),
+        find.byKey(const ValueKey('channels-tab-ch-gamma')),
       );
 
+      // Case-insensitive A-Z: Alpha < beta < Gamma.
       expect(alphaPos.dy < betaPos.dy, isTrue,
-          reason: 'alpha should be above beta in A-Z sort');
+          reason: 'Alpha should be above beta in A-Z sort');
       expect(betaPos.dy < gammaPos.dy, isTrue,
-          reason: 'beta should be above gamma in A-Z sort');
+          reason: 'beta should be above Gamma in A-Z sort');
     },
   );
 }
