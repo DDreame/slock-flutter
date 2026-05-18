@@ -42,8 +42,7 @@ final unreadSourceProjectionProvider =
   if (serverId == null ||
       inboxState.status == InboxStatus.initial ||
       inboxState.status == InboxStatus.failure ||
-      (inboxState.status == InboxStatus.loading &&
-          inboxState.items.isEmpty)) {
+      (inboxState.status == InboxStatus.loading && inboxState.items.isEmpty)) {
     return const UnreadSourceProjectionState();
   }
 
@@ -79,8 +78,7 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   if (serverId == null ||
       inboxState.status == InboxStatus.initial ||
       inboxState.status == InboxStatus.failure ||
-      (inboxState.status == InboxStatus.loading &&
-          inboxState.items.isEmpty)) {
+      (inboxState.status == InboxStatus.loading && inboxState.items.isEmpty)) {
     return const [];
   }
 
