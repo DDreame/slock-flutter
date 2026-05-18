@@ -234,11 +234,13 @@ class HomeListStore extends Notifier<HomeListState> {
           .read(sidebarOrderRepositoryProvider)
           .loadSidebarOrder(serverScopeId);
     } catch (e, st) {
-      ref.read(diagnosticsCollectorProvider).error(
-        'HomeListStore',
-        'Failed to load sidebar order: $e',
-        metadata: {'stackTrace': st.toString()},
-      );
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load sidebar order: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       return const SidebarOrder();
     }
   }
@@ -247,11 +249,13 @@ class HomeListStore extends Notifier<HomeListState> {
     try {
       return await ref.read(agentsRepositoryProvider).listAgents();
     } catch (e, st) {
-      ref.read(diagnosticsCollectorProvider).error(
-        'HomeListStore',
-        'Failed to load agents: $e',
-        metadata: {'stackTrace': st.toString()},
-      );
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load agents: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       return const [];
     }
   }
@@ -269,11 +273,13 @@ class HomeListStore extends Notifier<HomeListState> {
       _taskLoadFailure = failure;
       return const [];
     } catch (e, st) {
-      ref.read(diagnosticsCollectorProvider).error(
-        'HomeListStore',
-        'Failed to load tasks: $e',
-        metadata: {'stackTrace': st.toString()},
-      );
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load tasks: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       _taskLoadFailure = const UnknownFailure(
         message: 'Failed to load tasks.',
         causeType: 'unknown',
@@ -289,11 +295,13 @@ class HomeListStore extends Notifier<HomeListState> {
       final loader = ref.read(homeMachineCountLoaderProvider);
       return await loader(serverScopeId);
     } catch (e, st) {
-      ref.read(diagnosticsCollectorProvider).error(
-        'HomeListStore',
-        'Failed to load machine count: $e',
-        metadata: {'stackTrace': st.toString()},
-      );
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load machine count: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       return 0;
     }
   }
@@ -306,11 +314,13 @@ class HomeListStore extends Notifier<HomeListState> {
           .read(threadRepositoryProvider)
           .loadFollowedThreads(serverScopeId);
     } catch (e, st) {
-      ref.read(diagnosticsCollectorProvider).error(
-        'HomeListStore',
-        'Failed to load threads: $e',
-        metadata: {'stackTrace': st.toString()},
-      );
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load threads: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       return const [];
     }
   }
