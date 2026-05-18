@@ -41,7 +41,6 @@ void main() {
   group('ConversationDetailPage error telemetry', () {
     testWidgets(
       'sender profile fetch failure → logged + no crash (INV-TELEM-9)',
-      skip: true,
       (tester) async {
         // Setup: Render ConversationDetailPage with a message from a
         // non-self sender. profileRepository.loadProfile throws.
@@ -82,10 +81,11 @@ void main() {
         expect(senderLabel, findsOneWidget,
             reason: 'Sender name must be rendered');
         await tester.tap(senderLabel);
-        // Flush fire-and-forget async from _openSenderProfile (the
-        // gesture handler discards the Future, so pumpAndSettle alone
-        // may not process the profile-load microtask chain).
-        await tester.pump();
+        // Advance clock past the 300 ms double-tap window in
+        // MessageGestureWrapper so onTap fires → _handleMessageTap →
+        // _openSenderProfile. Raw Timer does not schedule frames, so
+        // pumpAndSettle() alone cannot advance past it.
+        await tester.pump(const Duration(milliseconds: 500));
         await tester.pumpAndSettle();
 
         // Widget must remain mounted after the failure.
@@ -109,7 +109,6 @@ void main() {
 
     testWidgets(
       'DM open failure → logged + no crash (INV-TELEM-10)',
-      skip: true,
       (tester) async {
         // Setup: Render ConversationDetailPage with a message from a
         // non-self sender.
@@ -160,9 +159,10 @@ void main() {
         expect(senderLabel, findsOneWidget,
             reason: 'Sender name must be rendered');
         await tester.tap(senderLabel);
-        // Flush fire-and-forget async from _openSenderProfile so the
-        // profile sheet appears before the next finder runs.
-        await tester.pump();
+        // Advance clock past the 300 ms double-tap window in
+        // MessageGestureWrapper so onTap fires → _openSenderProfile →
+        // loadProfile succeeds → showMemberProfileSheet renders.
+        await tester.pump(const Duration(milliseconds: 500));
         await tester.pumpAndSettle();
 
         // Step 2: Profile sheet must be visible with the DM action button.
@@ -174,8 +174,10 @@ void main() {
         // Step 3: Tap the "Message" button → triggers _openDirectMessage
         // → memberRepository.openDirectMessage throws → catch block fires.
         await tester.tap(dmButton);
-        // Flush fire-and-forget async from _openDirectMessage.
-        await tester.pump();
+        // Flush async from _openDirectMessage (memberRepository throws →
+        // catch → diagnostics.error). The DM button is outside the
+        // MessageGestureWrapper, so no 300 ms double-tap delay here.
+        await tester.pump(const Duration(milliseconds: 50));
         await tester.pumpAndSettle();
 
         // Widget must remain mounted after the failure.

@@ -2401,7 +2401,7 @@ class _ConversationMessageCardState
     } catch (e, st) {
       ref.read(diagnosticsCollectorProvider).error(
         'ConversationDetail',
-        'DM open failed: $e',
+        'direct message open failed: $e',
         metadata: {'stackTrace': st.toString()},
       );
       // Fail-soft: if DM open fails, do nothing.
