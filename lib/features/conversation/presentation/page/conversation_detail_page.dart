@@ -346,11 +346,11 @@ class _ConversationDetailScreenState
               key: const ValueKey('conversation-pinned-shortcut'),
               icon: const Icon(Icons.push_pin_outlined),
               tooltip: 'Pinned messages',
-              onPressed: () {
+              onPressed: () async {
                 final target =
                     ref.read(currentConversationDetailTargetProvider);
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
+                final messageId = await Navigator.of(context).push<String>(
+                  MaterialPageRoute<String>(
                     builder: (_) => ConversationInfoPage(
                       target: target,
                       title: state.resolvedTitle,
@@ -358,6 +358,13 @@ class _ConversationDetailScreenState
                     ),
                   ),
                 );
+                if (messageId != null && mounted) {
+                  final currentState =
+                      ref.read(conversationDetailStoreProvider);
+                  if (currentState.status == ConversationDetailStatus.success) {
+                    _scrollToMessageId(messageId, currentState.messages);
+                  }
+                }
               },
             ),
           if (state.status == ConversationDetailStatus.success)

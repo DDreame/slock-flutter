@@ -150,11 +150,16 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
               icon: Icons.push_pin_outlined,
               label: 'Pinned messages',
               isActive: widget.initialSection == ConversationInfoSection.pinned,
-              onTap: () {
-                context.push(
+              onTap: () async {
+                final messageId = await context.push<String>(
                   '/servers/${widget.target.serverId.value}/channels/${widget.target.conversationId}/pinned',
                   extra: widget.target,
                 );
+                // Forward the selected message ID back to the caller
+                // (conversation detail page) so it can scroll to it.
+                if (messageId != null && mounted) {
+                  Navigator.of(context).pop(messageId);
+                }
               },
             ),
           ] else ...[
