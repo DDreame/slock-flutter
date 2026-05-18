@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/profile/application/avatar_upload_service.dart';
 import 'package:slock_app/features/profile/application/profile_detail_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
@@ -17,7 +18,7 @@ import 'package:slock_app/l10n/app_localizations.dart';
 // T1: Profile page shows edit avatar button when viewing own profile
 // T2: Tapping edit avatar opens image picker
 // T3: Selected image is uploaded via user API (multipart PUT /users/me)
-// T4: Upload success updates displayed avatar URL
+// T4: Upload success updates displayed avatar URL (old → new)
 // T5: Upload failure shows error snackbar
 // ---------------------------------------------------------------------------
 
@@ -36,6 +37,22 @@ void main() {
     isSelf: false,
   );
 
+  /// Standard test harness with AppTheme + localizations.
+  Widget buildApp({
+    required List<Override> overrides,
+    Widget? child,
+  }) {
+    return ProviderScope(
+      overrides: overrides,
+      child: MaterialApp(
+        theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: child ?? const Scaffold(body: ProfilePage()),
+      ),
+    );
+  }
+
   // -------------------------------------------------------------------------
   // T1: Profile page shows edit avatar button when viewing own profile
   // -------------------------------------------------------------------------
@@ -44,7 +61,7 @@ void main() {
     skip: true,
     (tester) async {
       await tester.pumpWidget(
-        ProviderScope(
+        buildApp(
           overrides: [
             currentProfileTargetProvider.overrideWithValue(
               const ProfileTarget(),
@@ -53,9 +70,6 @@ void main() {
               () => _FixedProfileDetailStore(selfProfile),
             ),
           ],
-          child: const MaterialApp(
-            home: ProfilePage(),
-          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -66,10 +80,15 @@ void main() {
         findsOneWidget,
         reason: 'Self profile must show an edit avatar button overlay',
       );
+    },
+  );
 
-      // Other profile should NOT show the edit button.
+  testWidgets(
+    'Profile page does NOT show edit avatar button for other profile',
+    skip: true,
+    (tester) async {
       await tester.pumpWidget(
-        ProviderScope(
+        buildApp(
           overrides: [
             currentProfileTargetProvider.overrideWithValue(
               const ProfileTarget(userId: 'user-2'),
@@ -78,9 +97,7 @@ void main() {
               () => _FixedProfileDetailStore(otherProfile),
             ),
           ],
-          child: const MaterialApp(
-            home: ProfilePage(userId: 'user-2'),
-          ),
+          child: const Scaffold(body: ProfilePage(userId: 'user-2')),
         ),
       );
       await tester.pumpAndSettle();
@@ -104,7 +121,7 @@ void main() {
       bool pickerCalled = false;
 
       await tester.pumpWidget(
-        ProviderScope(
+        buildApp(
           overrides: [
             currentProfileTargetProvider.overrideWithValue(
               const ProfileTarget(),
@@ -114,12 +131,12 @@ void main() {
             ),
             // Override image picker provider with a fake that records calls.
             imagePickerProvider.overrideWithValue(
-              FakeImagePicker(onPick: () => pickerCalled = true),
+              _FakeImagePicker(onPick: () => pickerCalled = true),
+            ),
+            avatarUploadServiceProvider.overrideWithValue(
+              _FakeAvatarUploadService(),
             ),
           ],
-          child: const MaterialApp(
-            home: ProfilePage(),
-          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -145,7 +162,7 @@ void main() {
       String? uploadedPath;
 
       await tester.pumpWidget(
-        ProviderScope(
+        buildApp(
           overrides: [
             currentProfileTargetProvider.overrideWithValue(
               const ProfileTarget(),
@@ -155,19 +172,16 @@ void main() {
             ),
             // Fake picker returns a known file path.
             imagePickerProvider.overrideWithValue(
-              FakeImagePicker(resultPath: '/tmp/test-avatar.png'),
+              _FakeImagePicker(resultPath: '/tmp/test-avatar.png'),
             ),
             // Fake upload service records the uploaded path.
             avatarUploadServiceProvider.overrideWithValue(
-              FakeAvatarUploadService(
+              _FakeAvatarUploadService(
                 onUpload: (path) => uploadedPath = path,
                 resultUrl: 'https://example.com/new-avatar.png',
               ),
             ),
           ],
-          child: const MaterialApp(
-            home: ProfilePage(),
-          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -184,39 +198,53 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // T4: Upload success updates displayed avatar
+  // T4: Upload success updates displayed avatar URL (old → new)
   // -------------------------------------------------------------------------
   testWidgets(
     'Upload success updates displayed avatar',
     skip: true,
     (tester) async {
+      // Start with a profile that has NO avatar (initials shown).
+      const noAvatarProfile = MemberProfile(
+        id: 'user-1',
+        displayName: 'Test User',
+        avatarUrl: null, // No avatar — shows initials
+        isSelf: true,
+      );
+
       await tester.pumpWidget(
-        ProviderScope(
+        buildApp(
           overrides: [
             currentProfileTargetProvider.overrideWithValue(
               const ProfileTarget(),
             ),
             profileDetailStoreProvider.overrideWith(
-              () => _FixedProfileDetailStore(selfProfile),
+              () => _FixedProfileDetailStore(noAvatarProfile),
             ),
             imagePickerProvider.overrideWithValue(
-              FakeImagePicker(resultPath: '/tmp/test-avatar.png'),
+              _FakeImagePicker(resultPath: '/tmp/test-avatar.png'),
             ),
             avatarUploadServiceProvider.overrideWithValue(
-              FakeAvatarUploadService(
+              _FakeAvatarUploadService(
                 resultUrl: 'https://example.com/new-avatar.png',
               ),
             ),
           ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const ProfilePage(),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-          ),
         ),
       );
       await tester.pumpAndSettle();
+
+      // Before upload: avatar shows initials (no image).
+      expect(
+        find.byKey(const ValueKey('profile-avatar-initials')),
+        findsOneWidget,
+        reason: 'Before upload, avatar should show initials (no avatarUrl)',
+      );
+      expect(
+        find.byKey(const ValueKey('profile-avatar-image')),
+        findsNothing,
+        reason: 'Before upload, avatar image should not be present',
+      );
 
       // Tap edit avatar → picker → upload → success.
       await tester.tap(
@@ -224,12 +252,16 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // After successful upload, the avatar widget should show the new URL.
-      // Verify via the profile detail state or the avatar widget's image URL.
+      // After successful upload: avatar now shows the image (not initials).
       expect(
         find.byKey(const ValueKey('profile-avatar-image')),
         findsOneWidget,
-        reason: 'Avatar image widget must be present after upload success',
+        reason: 'After upload success, avatar must show the new image',
+      );
+      expect(
+        find.byKey(const ValueKey('profile-avatar-initials')),
+        findsNothing,
+        reason: 'After upload success, initials should be replaced by image',
       );
     },
   );
@@ -242,7 +274,7 @@ void main() {
     skip: true,
     (tester) async {
       await tester.pumpWidget(
-        ProviderScope(
+        buildApp(
           overrides: [
             currentProfileTargetProvider.overrideWithValue(
               const ProfileTarget(),
@@ -251,22 +283,16 @@ void main() {
               () => _FixedProfileDetailStore(selfProfile),
             ),
             imagePickerProvider.overrideWithValue(
-              FakeImagePicker(resultPath: '/tmp/test-avatar.png'),
+              _FakeImagePicker(resultPath: '/tmp/test-avatar.png'),
             ),
             // Upload service that throws on upload.
             avatarUploadServiceProvider.overrideWithValue(
-              FakeAvatarUploadService(
+              _FakeAvatarUploadService(
                 shouldFail: true,
                 errorMessage: 'File too large',
               ),
             ),
           ],
-          child: MaterialApp(
-            theme: AppTheme.light,
-            home: const Scaffold(body: ProfilePage()),
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -288,7 +314,7 @@ void main() {
 }
 
 // ---------------------------------------------------------------------------
-// Fakes & Stubs
+// Fakes
 // ---------------------------------------------------------------------------
 
 /// Fixed profile store that returns a pre-set profile immediately.
@@ -303,14 +329,14 @@ class _FixedProfileDetailStore extends ProfileDetailStore {
       );
 }
 
-/// Fake image picker for testing. Records pick calls and returns
-/// a configured result path (or null for cancellation).
-class FakeImagePicker {
-  FakeImagePicker({this.onPick, this.resultPath});
+/// Fake image picker for testing.
+class _FakeImagePicker implements ImagePickerService {
+  _FakeImagePicker({this.onPick, this.resultPath});
 
   final VoidCallback? onPick;
   final String? resultPath;
 
+  @override
   Future<String?> pickImage() async {
     onPick?.call();
     return resultPath;
@@ -318,8 +344,8 @@ class FakeImagePicker {
 }
 
 /// Fake avatar upload service for testing.
-class FakeAvatarUploadService {
-  FakeAvatarUploadService({
+class _FakeAvatarUploadService implements AvatarUploadService {
+  _FakeAvatarUploadService({
     this.onUpload,
     this.resultUrl,
     this.shouldFail = false,
@@ -331,6 +357,7 @@ class FakeAvatarUploadService {
   final bool shouldFail;
   final String? errorMessage;
 
+  @override
   Future<String> upload(String filePath) async {
     onUpload?.call(filePath);
     if (shouldFail) {
@@ -339,22 +366,3 @@ class FakeAvatarUploadService {
     return resultUrl ?? 'https://example.com/avatar.png';
   }
 }
-
-/// Exception thrown when avatar upload fails.
-class AvatarUploadException implements Exception {
-  AvatarUploadException(this.message);
-  final String message;
-
-  @override
-  String toString() => message;
-}
-
-/// Stub provider for image picker — Phase B will implement.
-final imagePickerProvider = Provider<FakeImagePicker>((ref) {
-  throw UnimplementedError('#575 Phase B: implement image picker provider');
-});
-
-/// Stub provider for avatar upload service — Phase B will implement.
-final avatarUploadServiceProvider = Provider<FakeAvatarUploadService>((ref) {
-  throw UnimplementedError('#575 Phase B: implement avatar upload service');
-});
