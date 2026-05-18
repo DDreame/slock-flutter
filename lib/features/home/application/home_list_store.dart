@@ -976,12 +976,15 @@ class HomeListStore extends Notifier<HomeListState> {
     };
     final pinnedAgentIds = _sidebarOrder.pinnedAgentIds.toSet();
     final activePinnedIds = {...pinnedConversationIds, ...pinnedAgentIds};
-    final currentPinnedOrder = <String>[
-      for (final id in _sidebarOrder.pinnedOrder)
-        if (activePinnedIds.contains(id)) id,
-    ];
-    // Shadow set for O(1) membership checks below.
-    final currentPinnedOrderSet = <String>{...currentPinnedOrder};
+    // Build list + shadow set simultaneously so duplicate IDs
+    // already present in the persisted pinnedOrder are filtered.
+    final currentPinnedOrder = <String>[];
+    final currentPinnedOrderSet = <String>{};
+    for (final id in _sidebarOrder.pinnedOrder) {
+      if (activePinnedIds.contains(id) && currentPinnedOrderSet.add(id)) {
+        currentPinnedOrder.add(id);
+      }
+    }
 
     for (final id in _orderedChannelIds()) {
       if (pinnedConversationIds.contains(id) &&

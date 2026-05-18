@@ -853,10 +853,10 @@ class _InboxUnreadListContent extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final item in visible)
+        for (var i = 0; i < visible.length; i++)
           _UnreadItemRow(
-            key: ValueKey('unread-item-${item.id}'),
-            item: item,
+            key: ValueKey('unread-item-$i'),
+            item: visible[i],
             now: now,
           ),
         if (overflowCount > 0)

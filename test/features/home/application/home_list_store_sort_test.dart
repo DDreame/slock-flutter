@@ -220,6 +220,9 @@ void main() {
         addTearDown(container.dispose);
 
         await container.read(homeListStoreProvider.notifier).load();
+        // Flush tier-2 supplemental microtasks (agents load asynchronously
+        // via unawaited _loadAndMergeSupplemental).
+        await Future<void>.delayed(Duration.zero);
         final state = container.read(homeListStoreProvider);
 
         expect(
@@ -354,6 +357,9 @@ void main() {
         addTearDown(container.dispose);
 
         await container.read(homeListStoreProvider.notifier).load();
+        // Flush tier-2 supplemental microtasks (agents load asynchronously
+        // via unawaited _loadAndMergeSupplemental).
+        await Future<void>.delayed(Duration.zero);
         final state = container.read(homeListStoreProvider);
 
         // pinnedConversationOrder only includes channels + DMs (not agents).
