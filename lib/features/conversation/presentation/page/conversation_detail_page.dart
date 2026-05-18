@@ -2375,7 +2375,12 @@ class _ConversationMessageCardState
           _openDirectMessage(target.serverId, senderId, isAgent: isAgent);
         },
       );
-    } catch (_) {
+    } catch (e, st) {
+      ref.read(diagnosticsCollectorProvider).error(
+        'ConversationDetail',
+        'profile load failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
       // Fail-soft: if profile fetch fails, do nothing.
     }
   }
@@ -2393,7 +2398,12 @@ class _ConversationMessageCardState
           : await repo.openDirectMessage(serverId, userId: senderId);
       if (!mounted) return;
       context.push('/servers/${serverId.value}/dms/$channelId');
-    } catch (_) {
+    } catch (e, st) {
+      ref.read(diagnosticsCollectorProvider).error(
+        'ConversationDetail',
+        'direct message open failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
       // Fail-soft: if DM open fails, do nothing.
     }
   }

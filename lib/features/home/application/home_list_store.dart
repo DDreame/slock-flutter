@@ -233,7 +233,14 @@ class HomeListStore extends Notifier<HomeListState> {
       return await ref
           .read(sidebarOrderRepositoryProvider)
           .loadSidebarOrder(serverScopeId);
-    } catch (_) {
+    } catch (e, st) {
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load sidebar order: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       return const SidebarOrder();
     }
   }
@@ -241,7 +248,14 @@ class HomeListStore extends Notifier<HomeListState> {
   Future<List<AgentItem>> _loadAgentsSafe() async {
     try {
       return await ref.read(agentsRepositoryProvider).listAgents();
-    } catch (_) {
+    } catch (e, st) {
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load agents: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       return const [];
     }
   }
@@ -258,7 +272,14 @@ class HomeListStore extends Notifier<HomeListState> {
     } on AppFailure catch (failure) {
       _taskLoadFailure = failure;
       return const [];
-    } catch (_) {
+    } catch (e, st) {
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load tasks: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       _taskLoadFailure = const UnknownFailure(
         message: 'Failed to load tasks.',
         causeType: 'unknown',
@@ -273,7 +294,14 @@ class HomeListStore extends Notifier<HomeListState> {
     try {
       final loader = ref.read(homeMachineCountLoaderProvider);
       return await loader(serverScopeId);
-    } catch (_) {
+    } catch (e, st) {
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load machine count: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       return 0;
     }
   }
@@ -285,7 +313,14 @@ class HomeListStore extends Notifier<HomeListState> {
       return await ref
           .read(threadRepositoryProvider)
           .loadFollowedThreads(serverScopeId);
-    } catch (_) {
+    } catch (e, st) {
+      if (!_disposed) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'HomeListStore',
+          'Failed to load threads: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      }
       return const [];
     }
   }
@@ -304,7 +339,13 @@ class HomeListStore extends Notifier<HomeListState> {
           try {
             final agentNames = <String>{for (final a in agents) a.label};
             ref.read(persistedAgentNamesProvider.notifier).update(agentNames);
-          } catch (_) {}
+          } catch (e, st) {
+            ref.read(diagnosticsCollectorProvider).error(
+              'HomeListStore',
+              'Failed to persist agent names: $e',
+              metadata: {'stackTrace': st.toString()},
+            );
+          }
         }
         _emitPersonalizedState();
       }),

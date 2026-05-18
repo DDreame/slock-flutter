@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
@@ -101,15 +102,18 @@ class BackgroundNotificationWorker {
     required BackgroundNotificationSink notificationSink,
     required BackgroundAuthProvider authProvider,
     BackgroundAuthRefresher? authRefresher,
+    DiagnosticsCollector? diagnostics,
   })  : _socket = socket,
         _notificationSink = notificationSink,
         _authProvider = authProvider,
-        _authRefresher = authRefresher;
+        _authRefresher = authRefresher,
+        _diagnostics = diagnostics;
 
   final BackgroundSocketConnection _socket;
   final BackgroundNotificationSink _notificationSink;
   BackgroundAuthProvider _authProvider;
   final BackgroundAuthRefresher? _authRefresher;
+  final DiagnosticsCollector? _diagnostics;
 
   StreamSubscription<Map<String, dynamic>>? _eventSubscription;
   StreamSubscription<BackgroundSocketStatus>? _statusSubscription;
@@ -241,7 +245,12 @@ class BackgroundNotificationWorker {
     try {
       final newAuth = await _authRefresher!();
       _authProvider = newAuth;
-    } catch (_) {
+    } catch (e, st) {
+      _diagnostics?.error(
+        'BackgroundWorker',
+        'auth refresh failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
       // Fall through and use existing auth.
     }
 
@@ -320,7 +329,12 @@ class BackgroundNotificationWorker {
       await _notificationSink.showNotification(payload);
     } on BackgroundNotificationPermissionException {
       _lastPermissionFailure = DateTime.now();
-    } catch (_) {
+    } catch (e, st) {
+      _diagnostics?.error(
+        'BackgroundWorker',
+        'notification delivery failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
       // Swallow other errors — the worker must remain alive.
     }
   }

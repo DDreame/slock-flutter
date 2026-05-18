@@ -9,6 +9,7 @@ import 'package:slock_app/core/notifications/background_socket_connection.dart';
 import 'package:slock_app/core/storage/background_worker_storage_keys.dart';
 import 'package:slock_app/core/storage/flutter_secure_storage_impl.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
 /// Method channel name shared between the headless Dart engine and
 /// the native [SlockForegroundService].
@@ -54,6 +55,7 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
     notificationSink: sink,
     authProvider: authProvider,
     authRefresher: () => persistence.load(),
+    diagnostics: DiagnosticsCollector(),
   );
 
   await worker.start();
