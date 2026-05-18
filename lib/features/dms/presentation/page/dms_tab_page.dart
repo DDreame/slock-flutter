@@ -8,6 +8,7 @@ import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/dm_sort_preference.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/persisted_agent_names.dart';
@@ -52,12 +53,32 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     );
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final unreadState = ref.watch(unreadSourceProjectionProvider);
+    final sortPreference = ref.watch(dmSortPreferenceProvider);
     final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.dmsTabTitle),
         actions: [
+          IconButton(
+            key: const ValueKey('dms-sort-toggle'),
+            icon: Icon(
+              sortPreference == DmSortPreference.recentActivity
+                  ? Icons.sort_by_alpha
+                  : Icons.access_time,
+            ),
+            tooltip: sortPreference == DmSortPreference.recentActivity
+                ? 'Sort A-Z'
+                : 'Sort by recent',
+            onPressed: () {
+              final notifier = ref.read(dmSortPreferenceProvider.notifier);
+              notifier.setSortPreference(
+                sortPreference == DmSortPreference.recentActivity
+                    ? DmSortPreference.alphabetical
+                    : DmSortPreference.recentActivity,
+              );
+            },
+          ),
           if (state.status == HomeListStatus.success &&
               unreadState.dmUnreadTotal > 0)
             IconButton(
@@ -155,17 +176,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             )
             .toList();
 
-    // Sort unread-first (preserve relative order within each group).
-    final unread = <HomeDirectMessageSummary>[];
-    final read = <HomeDirectMessageSummary>[];
-    for (final dm in filtered) {
-      if (unreadState.dmUnreadCount(dm.scopeId) > 0) {
-        unread.add(dm);
-      } else {
-        read.add(dm);
-      }
-    }
-    final sorted = [...unread, ...read];
+    // Apply sort preference (sole ordering — no secondary unread-first).
+    final sorted = ref.watch(sortedDmsProvider(filtered));
 
     final pinnedIds =
         state.pinnedDirectMessages.map((dm) => dm.scopeId.value).toSet();
