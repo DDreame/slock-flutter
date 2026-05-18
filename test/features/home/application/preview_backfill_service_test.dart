@@ -15,6 +15,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
@@ -135,7 +136,6 @@ void main() {
     // T1: SQLite cache hit fills preview
     test(
       'SQLite cache hit fills preview for channels missing lastMessagePreview',
-      skip: true,
       () async {
         // Setup: HomeListStore loaded with 3 channels — API returned null
         // previews for all. SQLite has cached previews for 2 of them.
@@ -197,10 +197,10 @@ void main() {
         // Load the home list first.
         await container.read(homeListStoreProvider.notifier).load();
 
-        // Run backfill.
-        await container
-            .read(previewBackfillServiceProvider.notifier)
-            .backfill(channels);
+        // load() auto-triggers backfill. Allow it to complete.
+        for (var i = 0; i < 5; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
 
         // Assert: 2/3 channels should now have preview from cache.
         final state = container.read(homeListStoreProvider);
@@ -222,7 +222,6 @@ void main() {
     // T2: Lazy load fills remaining nulls
     test(
       'lazy-load API fills channels with no SQLite cache',
-      skip: true,
       () async {
         // Setup: 1 channel with no SQLite cache. After backfill Phase 1 (cache
         // check) returns null, Phase 2 should call GET /messages/channel/{id}
@@ -276,11 +275,13 @@ void main() {
 
         await container.read(homeListStoreProvider.notifier).load();
 
-        // After backfill, channel should have preview from API.
-        await container
-            .read(previewBackfillServiceProvider.notifier)
-            .backfill(channels);
+        // load() auto-triggers backfill. Allow it to complete (instant
+        // responses resolve in microtask queue).
+        for (var i = 0; i < 5; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
 
+        // After auto-backfill, channel should have preview from API.
         final state = container.read(homeListStoreProvider);
         final ch1 = state.channels.firstWhere(
           (c) => c.scopeId.value == 'ch-1',
@@ -293,7 +294,6 @@ void main() {
     // T3: Concurrency cap (max 5)
     test(
       'limits concurrent lazy-load API calls to maxConcurrent (5)',
-      skip: true,
       () async {
         // Setup: 10 channels all need lazy load (no cache).
         final messageApi = FakeMessageApi();
@@ -349,13 +349,11 @@ void main() {
 
         await container.read(homeListStoreProvider.notifier).load();
 
-        // Start backfill (non-blocking — returns future).
-        final backfillFuture = container
-            .read(previewBackfillServiceProvider.notifier)
-            .backfill(channels);
-
-        // Allow initial batch to start.
-        await Future<void>.delayed(Duration.zero);
+        // load() auto-triggers backfill. Allow Phase 1 (cache) and
+        // Phase 2 (concurrency-limited fetch) to start.
+        for (var i = 0; i < 5; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
 
         // At most 5 should be in flight concurrently.
         expect(messageApi.peakConcurrency, lessThanOrEqualTo(5));
@@ -364,7 +362,11 @@ void main() {
         for (var i = 0; i < 10; i++) {
           messageApi.completeFetch('ch-$i');
         }
-        await backfillFuture;
+
+        // Wait for backfill to complete.
+        for (var i = 0; i < 10; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
 
         // All 10 should have been fetched eventually.
         expect(messageApi.fetchedChannelIds.length, equals(10));
@@ -374,15 +376,18 @@ void main() {
     // T4: Viewport priority ordering
     test(
       'loads visible channels before offscreen channels',
-      skip: true,
       () async {
         // Setup: 10 channels, 3 marked as visible. Visible should load first.
         final messageApi = FakeMessageApi();
         final channels = <HomeChannelSummary>[];
+        // Channels given placeholder previews so auto-backfill from load()
+        // has nothing to fill. We test priority via explicit backfill call.
+        final channelsWithPreviews = <HomeChannelSummary>[];
 
         for (var i = 0; i < 10; i++) {
           final id = 'ch-$i';
           channels.add(makeChannel(id));
+          channelsWithPreviews.add(makeChannel(id, lastMessagePreview: 'p'));
           messageApi.seedResponse(
             id,
             messageId: 'msg-$i',
@@ -409,7 +414,7 @@ void main() {
             homeWorkspaceSnapshotLoaderProvider.overrideWithValue(
               (scopeId) async => HomeWorkspaceSnapshot(
                 serverId: scopeId,
-                channels: channels,
+                channels: channelsWithPreviews,
                 directMessages: const [],
               ),
             ),
@@ -430,7 +435,9 @@ void main() {
 
         await container.read(homeListStoreProvider.notifier).load();
 
-        // Run backfill with viewport priority.
+        // Auto-backfill from load() is a no-op (all channels have previews).
+        // Now explicitly run backfill with viewport priority using channel
+        // list that lacks previews — tests the ordering logic.
         await container.read(previewBackfillServiceProvider.notifier).backfill(
           channels,
           visibleChannelIds: {'ch-7', 'ch-8', 'ch-9'},
@@ -463,7 +470,6 @@ void main() {
     // T5: Realtime event updates preview (protects against overwrite)
     test(
       'realtime message:new event is not overwritten by backfill',
-      skip: true,
       () async {
         // Setup: Channel receives a realtime message:new event after backfill
         // starts. The realtime preview should NOT be overwritten by the
@@ -521,11 +527,11 @@ void main() {
 
         await container.read(homeListStoreProvider.notifier).load();
 
-        // Start backfill — API fetch is delayed.
-        final backfillFuture = container
-            .read(previewBackfillServiceProvider.notifier)
-            .backfill(channels);
-        await Future<void>.delayed(Duration.zero);
+        // load() auto-triggers backfill with delayed response — stuck at
+        // completer. Allow Phase 1 (cache miss) to complete.
+        for (var i = 0; i < 3; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
 
         // Before the API responds, a realtime event arrives with newer preview.
         container.read(homeListStoreProvider.notifier).updateChannelLastMessage(
@@ -537,7 +543,9 @@ void main() {
 
         // Now let the API respond.
         messageApi.completeFetch('ch-1');
-        await backfillFuture;
+        for (var i = 0; i < 5; i++) {
+          await Future<void>.delayed(Duration.zero);
+        }
 
         // Realtime preview should be preserved (not overwritten).
         final state = container.read(homeListStoreProvider);
@@ -552,25 +560,21 @@ void main() {
     // T6: Integration — widget renders backfilled preview
     testWidgets(
       'channel row displays backfilled preview text instead of fallback',
-      skip: true,
       (tester) async {
-        // Setup: Channel with null preview from API, but SQLite has cache.
+        // Setup: Channel with null preview from API, SQLite cache also empty.
+        // Uses delayed response so auto-backfill from load() doesn't resolve
+        // immediately — allows verifying the intermediate "no preview" state.
         final localStore = FakeConversationLocalStore();
-        await localStore.upsertConversationSummaries([
-          LocalConversationSummaryUpsert(
-            serverId: 'server-1',
-            conversationId: 'ch-1',
-            surface: 'channel',
-            title: '#ch-1',
-            sortIndex: 0,
-            lastMessageId: 'msg-cached',
-            lastMessagePreview: 'Cached preview text',
-            lastActivityAt: DateTime.parse('2026-05-17T12:00:00Z'),
-          ),
-        ]);
+        final messageApi = FakeMessageApi();
+        messageApi.seedDelayedResponse(
+          'ch-1',
+          messageId: 'msg-fetched',
+          preview: 'Backfilled via API',
+          activityAt: DateTime.parse('2026-05-17T12:00:00Z'),
+        );
 
         final channels = [
-          makeChannel('ch-1'), // No preview from API, but has cache
+          makeChannel('ch-1'), // No preview from API, no cache
         ];
 
         await tester.pumpWidget(
@@ -594,8 +598,20 @@ void main() {
                   directMessages: const [],
                 ),
               ),
+              previewMessageFetcherProvider.overrideWithValue(
+                (serverId, channelId) async {
+                  final resp = await messageApi.fetchLastMessage(channelId);
+                  if (resp == null) return null;
+                  return PreviewFetchResult(
+                    messageId: resp.messageId,
+                    preview: resp.preview,
+                    activityAt: resp.activityAt,
+                  );
+                },
+              ),
             ],
             child: MaterialApp(
+              theme: AppTheme.light,
               supportedLocales: AppLocalizations.supportedLocales,
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               home: Scaffold(
@@ -622,19 +638,21 @@ void main() {
           tester.element(find.byType(Consumer)),
         );
         await container.read(homeListStoreProvider.notifier).load();
-        await tester.pumpAndSettle();
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
 
-        // Initially shows fallback text (no preview from API).
+        // Initially shows fallback text (auto-backfill stuck at completer).
         expect(find.text('New message'), findsOneWidget);
 
-        // Trigger backfill — should fill from SQLite cache.
-        await container
-            .read(previewBackfillServiceProvider.notifier)
-            .backfill(channels);
-        await tester.pumpAndSettle();
+        // Complete the delayed fetch — auto-backfill from load() resolves.
+        messageApi.completeFetch('ch-1');
+        for (var i = 0; i < 5; i++) {
+          await tester.pump(const Duration(milliseconds: 50));
+        }
 
-        // After backfill, row should show cached preview.
-        expect(find.text('Cached preview text'), findsOneWidget);
+        // After backfill, row should show fetched preview.
+        expect(find.text('Backfilled via API'), findsOneWidget);
         expect(find.text('New message'), findsNothing);
       },
     );

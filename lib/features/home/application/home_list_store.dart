@@ -8,6 +8,7 @@ import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/persisted_agent_names.dart';
+import 'package:slock_app/features/home/application/preview_backfill_service.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
@@ -208,6 +209,18 @@ class HomeListStore extends Notifier<HomeListState> {
       _emitPersonalizedState(
         serverScopeId: snapshot.serverId,
         status: HomeListStatus.success,
+      );
+
+      // Backfill missing channel previews (SQLite cache → lazy-load API).
+      // Wrapped in try/catch: the unawaited future may outlive a disposed
+      // ProviderContainer in tests; silently absorb disposal errors.
+      unawaited(
+        ref
+            .read(previewBackfillServiceProvider.notifier)
+            .backfill(
+              _allChannels.where((c) => c.lastMessagePreview == null).toList(),
+            )
+            .catchError((_) {}),
       );
 
       // Tier 2: supplemental data — load independently, merge as
@@ -559,6 +572,32 @@ class HomeListStore extends Notifier<HomeListState> {
     final dms = List<HomeDirectMessageSummary>.of(_allDirectMessages);
     dms[index] = dm.copyWith(lastMessagePreview: preview);
     _allDirectMessages = dms;
+    _emitPersonalizedState();
+  }
+
+  /// Applies a backfilled preview to a channel.
+  ///
+  /// Unlike [updateChannelLastMessage], this does NOT mark the channel as
+  /// having a realtime preview (so future realtime events can still override).
+  /// Skips if a realtime preview already exists for [conversationId].
+  void backfillChannelPreview({
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) {
+    if (state.status != HomeListStatus.success) return;
+    if (_realtimePreviewIds.contains(conversationId)) return;
+    final index =
+        _allChannels.indexWhere((c) => c.scopeId.value == conversationId);
+    if (index == -1) return;
+    final channels = List<HomeChannelSummary>.of(_allChannels);
+    channels[index] = channels[index].copyWith(
+      lastMessageId: messageId,
+      lastMessagePreview: preview,
+      lastActivityAt: activityAt,
+    );
+    _allChannels = channels;
     _emitPersonalizedState();
   }
 
