@@ -154,12 +154,13 @@ BackgroundNotificationWorker _createWorker({
   BackgroundAuthRefresher? authRefresher,
   DiagnosticsCollector? diagnostics,
 }) {
-  // Phase B: add `diagnostics: diagnostics` to the constructor call below.
+  // Phase B: forward diagnostics to the worker constructor.
   return BackgroundNotificationWorker(
     socket: socket,
     notificationSink: sink,
     authProvider: auth,
     authRefresher: authRefresher,
+    diagnostics: diagnostics,
   );
 }
 

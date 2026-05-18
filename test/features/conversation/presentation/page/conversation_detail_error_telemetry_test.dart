@@ -82,6 +82,10 @@ void main() {
         expect(senderLabel, findsOneWidget,
             reason: 'Sender name must be rendered');
         await tester.tap(senderLabel);
+        // Flush fire-and-forget async from _openSenderProfile (the
+        // gesture handler discards the Future, so pumpAndSettle alone
+        // may not process the profile-load microtask chain).
+        await tester.pump();
         await tester.pumpAndSettle();
 
         // Widget must remain mounted after the failure.
@@ -156,6 +160,9 @@ void main() {
         expect(senderLabel, findsOneWidget,
             reason: 'Sender name must be rendered');
         await tester.tap(senderLabel);
+        // Flush fire-and-forget async from _openSenderProfile so the
+        // profile sheet appears before the next finder runs.
+        await tester.pump();
         await tester.pumpAndSettle();
 
         // Step 2: Profile sheet must be visible with the DM action button.
@@ -167,6 +174,8 @@ void main() {
         // Step 3: Tap the "Message" button → triggers _openDirectMessage
         // → memberRepository.openDirectMessage throws → catch block fires.
         await tester.tap(dmButton);
+        // Flush fire-and-forget async from _openDirectMessage.
+        await tester.pump();
         await tester.pumpAndSettle();
 
         // Widget must remain mounted after the failure.
