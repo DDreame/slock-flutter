@@ -52,21 +52,18 @@ void main() {
       await tester.pumpWidget(_buildApp(store));
       await tester.pumpAndSettle();
 
-      // With ListView.builder, only viewport-visible rows are built.
-      // With a screen height of 600px and rows ~72px high, at most ~10 rows
-      // should be built. Assert far fewer than 100.
-      final builtRows = find.byWidgetPredicate(
-        (widget) =>
-            widget.key is ValueKey<String> &&
-            (widget.key! as ValueKey<String>).value.startsWith('task-row-'),
-      );
-      expect(builtRows, findsWidgets);
-      // Must be significantly fewer than the full 100 tasks.
+      // The key contract: ListView.builder uses SliverChildBuilderDelegate
+      // (lazy, on-demand construction) whereas the current ListView(children:)
+      // uses SliverChildListDelegate (eager, all built upfront).
+      final listViewFinder = find.byKey(const ValueKey('tasks-list'));
+      expect(listViewFinder, findsOneWidget);
+      final listView = tester.widget<ListView>(listViewFinder);
       expect(
-        builtRows.evaluate().length,
-        lessThan(30),
-        reason: 'ListView.builder should only build viewport-visible rows, '
-            'not all 100 tasks',
+        listView.childrenDelegate,
+        isA<SliverChildBuilderDelegate>(),
+        reason:
+            'TasksPage must use ListView.builder (SliverChildBuilderDelegate) '
+            'for lazy rendering, not ListView(children:) (SliverChildListDelegate)',
       );
     },
     skip: true,
@@ -100,27 +97,35 @@ void main() {
       await tester.pumpWidget(_buildApp(store));
       await tester.pumpAndSettle();
 
-      // All 4 section headers should be present.
-      expect(
-        find.byKey(const ValueKey('task-section-todo')),
-        findsOneWidget,
-        reason: 'Section header for "todo" must be present',
-      );
-      expect(
-        find.byKey(const ValueKey('task-section-in_progress')),
-        findsOneWidget,
-        reason: 'Section header for "in_progress" must be present',
-      );
-      expect(
-        find.byKey(const ValueKey('task-section-in_review')),
-        findsOneWidget,
-        reason: 'Section header for "in_review" must be present',
-      );
-      expect(
-        find.byKey(const ValueKey('task-section-done')),
-        findsOneWidget,
-        reason: 'Section header for "done" must be present',
-      );
+      // All 4 section headers must be present.
+      final todoHeader = find.byKey(const ValueKey('task-section-todo'));
+      final inProgressHeader =
+          find.byKey(const ValueKey('task-section-in_progress'));
+      final inReviewHeader =
+          find.byKey(const ValueKey('task-section-in_review'));
+      final doneHeader = find.byKey(const ValueKey('task-section-done'));
+
+      expect(todoHeader, findsOneWidget,
+          reason: 'Section header for "todo" must be present');
+      expect(inProgressHeader, findsOneWidget,
+          reason: 'Section header for "in_progress" must be present');
+      expect(inReviewHeader, findsOneWidget,
+          reason: 'Section header for "in_review" must be present');
+      expect(doneHeader, findsOneWidget,
+          reason: 'Section header for "done" must be present');
+
+      // Assert vertical ordering: todo < in_progress < in_review < done.
+      final todoY = tester.getTopLeft(todoHeader).dy;
+      final inProgressY = tester.getTopLeft(inProgressHeader).dy;
+      final inReviewY = tester.getTopLeft(inReviewHeader).dy;
+      final doneY = tester.getTopLeft(doneHeader).dy;
+
+      expect(todoY, lessThan(inProgressY),
+          reason: 'todo section must appear before in_progress');
+      expect(inProgressY, lessThan(inReviewY),
+          reason: 'in_progress section must appear before in_review');
+      expect(inReviewY, lessThan(doneY),
+          reason: 'in_review section must appear before done');
     },
     skip: true,
   );
