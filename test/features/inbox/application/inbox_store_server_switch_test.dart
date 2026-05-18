@@ -7,7 +7,7 @@
 // Phase B fix: add ref.watch(activeServerScopeIdProvider) in build() so
 // the Notifier rebuilds (state resets) whenever the selected server changes.
 //
-// All tests skip: true — activated in Phase B.
+// Phase B — all tests active.
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,7 +27,6 @@ void main() {
     // T1: Store rebuilds when activeServerScopeId changes
     test(
       'build() is re-invoked when activeServerScopeId changes',
-      skip: true,
       () async {
         final inboxRepo = FakeInboxRepository();
         final container = ProviderContainer(
@@ -83,7 +82,6 @@ void main() {
     // T2: load() fetches data for new server after switch
     test(
       'load() after server switch fetches data for the new server',
-      skip: true,
       () async {
         final inboxRepo = _TrackingInboxRepository();
         final container = ProviderContainer(
@@ -148,7 +146,6 @@ void main() {
     // T3: Stale items from previous server are cleared
     test(
       'stale items from previous server are cleared on switch',
-      skip: true,
       () async {
         final inboxRepo = FakeInboxRepository();
         final container = ProviderContainer(
@@ -206,7 +203,6 @@ void main() {
     // T4: Rapid server switches — final state reflects last server only
     test(
       'rapid server switches — final state reflects last server only',
-      skip: true,
       () async {
         final inboxRepo = _TrackingInboxRepository();
         final container = ProviderContainer(
