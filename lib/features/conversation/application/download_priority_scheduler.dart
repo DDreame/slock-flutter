@@ -45,7 +45,15 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
   ///
   /// The [download] callback is invoked when the scheduler decides to start
   /// the download (based on visibility and concurrency limits).
-  void enqueue(String id, Future<void> Function() download) {
+  ///
+  /// [onCancel] is called by the scheduler if it decides to cancel the
+  /// in-progress download (e.g. item scrolled far offscreen). Callers use
+  /// this to abort network requests or free resources.
+  void enqueue(
+    String id,
+    Future<void> Function() download, {
+    void Function()? onCancel,
+  }) {
     // Phase B implementation.
   }
 

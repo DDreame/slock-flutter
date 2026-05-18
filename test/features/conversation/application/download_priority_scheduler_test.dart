@@ -57,6 +57,27 @@ class FakeDownloader {
     };
   }
 
+  /// Create a cancellable download for [id].
+  ///
+  /// Returns a record with `download` callback and `onCancel` callback.
+  /// The scheduler passes both to `enqueue`. When the scheduler cancels,
+  /// it calls `onCancel` which records the id in [cancelledIds].
+  ({Future<void> Function() download, void Function() onCancel})
+      createCancellableDownload(String id) {
+    final completer = Completer<void>();
+    _completers[id] = completer;
+    return (
+      download: () async {
+        startOrder.add(id);
+        await completer.future;
+      },
+      onCancel: () {
+        cancelledIds.add(id);
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
+  }
+
   /// Complete the download for [id] (simulates download finished).
   void complete(String id) {
     _completers[id]?.complete();
@@ -264,8 +285,9 @@ void main() {
 
         final scheduler = container.read(downloadSchedulerProvider.notifier);
 
-        // Enqueue and make visible.
-        scheduler.enqueue('1', downloader.createDownload('1'));
+        // Enqueue and make visible — using cancellable download.
+        final dl = downloader.createCancellableDownload('1');
+        scheduler.enqueue('1', dl.download, onCancel: dl.onCancel);
         scheduler.onVisibilityChanged('1', true);
         await Future<void>.delayed(Duration.zero);
 
@@ -384,7 +406,11 @@ class _SpyDownloadScheduler extends DownloadPriorityScheduler {
       visibilityChanges.map((e) => e.$1).toList();
 
   @override
-  void enqueue(String id, Future<void> Function() download) {
+  void enqueue(
+    String id,
+    Future<void> Function() download, {
+    void Function()? onCancel,
+  }) {
     enqueuedIds.add(id);
   }
 
