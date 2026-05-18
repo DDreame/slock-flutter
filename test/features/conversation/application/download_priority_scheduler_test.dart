@@ -40,8 +40,14 @@ import '../../../support/support.dart';
 class FakeDownloader {
   final List<String> startOrder = [];
   final Map<String, Completer<void>> _completers = {};
+  final List<String> cancelledIds = [];
 
   /// Create a download callback for [id].
+  ///
+  /// The returned function records [id] in [startOrder] on invocation,
+  /// then awaits a [Completer]. The scheduler may cancel by calling
+  /// [cancel], which completes the Completer and records the id in
+  /// [cancelledIds].
   Future<void> Function() createDownload(String id) {
     final completer = Completer<void>();
     _completers[id] = completer;
@@ -54,6 +60,15 @@ class FakeDownloader {
   /// Complete the download for [id] (simulates download finished).
   void complete(String id) {
     _completers[id]?.complete();
+  }
+
+  /// Cancel the download for [id] — records in [cancelledIds] and
+  /// completes the Completer so the scheduler can proceed.
+  void cancel(String id) {
+    cancelledIds.add(id);
+    if (_completers[id] != null && !_completers[id]!.isCompleted) {
+      _completers[id]!.complete();
+    }
   }
 
   /// Complete all pending downloads.
@@ -269,6 +284,9 @@ void main() {
         expect(state.inFlight, isNot(contains('1')));
         expect(state.deferred, contains('1'));
 
+        // The in-progress download must have been cancelled.
+        expect(downloader.cancelledIds, contains('1'));
+
         downloader.completeAll();
       },
     );
@@ -343,6 +361,10 @@ void main() {
         for (var i = 0; i < 10; i++) {
           expect(spyScheduler.enqueuedIds, contains('att-$i'));
         }
+
+        // Visibility callbacks must be wired — at least visible items
+        // should have triggered onVisibilityChanged.
+        expect(spyScheduler.visibilityChangedIds, isNotEmpty);
       },
     );
   });
@@ -355,7 +377,11 @@ void main() {
 /// Spy scheduler that records enqueue calls without executing downloads.
 class _SpyDownloadScheduler extends DownloadPriorityScheduler {
   final List<String> enqueuedIds = [];
-  final List<String> visibilityChangedIds = [];
+  final List<(String, bool)> visibilityChanges = [];
+
+  /// IDs that had onVisibilityChanged called (any direction).
+  List<String> get visibilityChangedIds =>
+      visibilityChanges.map((e) => e.$1).toList();
 
   @override
   void enqueue(String id, Future<void> Function() download) {
@@ -364,7 +390,7 @@ class _SpyDownloadScheduler extends DownloadPriorityScheduler {
 
   @override
   void onVisibilityChanged(String id, bool isVisible) {
-    visibilityChangedIds.add(id);
+    visibilityChanges.add((id, isVisible));
   }
 }
 
