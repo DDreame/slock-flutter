@@ -1,7 +1,7 @@
+// ignore_for_file: unused_local_variable
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_task_section_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
