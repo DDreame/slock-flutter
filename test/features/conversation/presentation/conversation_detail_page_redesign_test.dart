@@ -549,7 +549,7 @@ void main() {
 
       // Members icon should be present
       expect(
-        find.byKey(const ValueKey('conversation-members-toggle')),
+        find.byKey(const ValueKey('conversation-members-shortcut')),
         findsOneWidget,
       );
     });

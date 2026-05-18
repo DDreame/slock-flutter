@@ -51,7 +51,7 @@ void main() {
   // INV-MUTE-1: The conversation info page includes a notification/mute
   // toggle (SwitchListTile with "Mute" or "Notifications" in its title).
   //
-  // Setup: Render ConversationDetailPage, tap conversation-members-toggle
+  // Setup: Render ConversationDetailPage, tap conversation-members-shortcut
   // to navigate to ConversationInfoPage. The info page must contain a
   // mute/notification SwitchListTile.
   // -----------------------------------------------------------------------
@@ -70,7 +70,7 @@ void main() {
 
       // Navigate to info page via the production entry point.
       final membersToggle =
-          find.byKey(const ValueKey('conversation-members-toggle'));
+          find.byKey(const ValueKey('conversation-members-shortcut'));
       expect(membersToggle, findsOneWidget,
           reason: 'Members toggle must be in app bar');
       await tester.tap(membersToggle);
