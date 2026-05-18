@@ -17,6 +17,9 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
@@ -99,6 +102,9 @@ void main() {
         ),
         homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
         channelMutedIdsProvider.overrideWith((ref) => <String>{}),
+        inboxRepositoryProvider.overrideWithValue(
+          const _NeverCompleteInboxRepository(),
+        ),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -500,4 +506,34 @@ class _FakeThreadRepository implements ThreadRepository {
     ServerScopeId serverId, {
     required String threadChannelId,
   }) async {}
+}
+
+class _NeverCompleteInboxRepository implements InboxRepository {
+  const _NeverCompleteInboxRepository();
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) =>
+      Completer<InboxResponse>().future;
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) =>
+      Future.value();
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) =>
+      Future.value();
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) => Future.value();
 }

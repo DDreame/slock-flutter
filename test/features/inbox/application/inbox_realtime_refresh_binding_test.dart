@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -5,6 +7,7 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/inbox/application/inbox_realtime_refresh_binding.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 
 import '../../../support/support.dart';
@@ -64,8 +67,22 @@ void main() {
 
   group('InboxRealtimeRefreshBinding', () {
     test('does not trigger refresh when inbox is not loaded', () async {
-      container = createContainer();
+      // Use a never-completing repo so auto-load starts but inbox stays
+      // in `loading` state (never reaches `success`). The binding's guard
+      // (status != InboxStatus.success) blocks the refresh.
+      final neverCompleteRepo = _NeverCompleteInboxRepository();
+      container = ProviderContainer(
+        overrides: [
+          inboxRepositoryProvider.overrideWithValue(neverCompleteRepo),
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
       container.read(inboxRealtimeRefreshBindingProvider);
+
+      // Allow auto-load microtask to fire (InboxStore.build schedules load).
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
 
       ingress.accept(RealtimeEventEnvelope(
         eventType: 'message:new',
@@ -75,7 +92,9 @@ void main() {
       ));
 
       await Future<void>.delayed(const Duration(milliseconds: 2100));
-      expect(repo.fetchCallCount, 0);
+      // fetchCallCount stays at 1 (only the auto-load attempt, which never
+      // completes). No refresh was triggered by the binding.
+      expect(neverCompleteRepo.fetchCallCount, 1);
     });
 
     test('debounces message:new events', () async {
@@ -211,4 +230,42 @@ void main() {
       expect(repo.fetchCallCount, callsAfterLoad + 1);
     });
   });
+}
+
+// ---------------------------------------------------------------------------
+// Never-completing inbox repository for testing "not loaded" guard.
+// fetchInbox is called (by auto-load) but never resolves, so InboxStore
+// stays in `loading` state permanently.
+// ---------------------------------------------------------------------------
+
+class _NeverCompleteInboxRepository implements InboxRepository {
+  int fetchCallCount = 0;
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) {
+    fetchCallCount++;
+    return Completer<InboxResponse>().future; // never completes
+  }
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) =>
+      Future.value();
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) =>
+      Future.value();
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) => Future.value();
 }

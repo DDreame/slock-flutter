@@ -59,6 +59,26 @@ void main() {
       final repo = _ControllableInboxRepository();
 
       // Initial load: 2 unread channels (filter=all by default).
+      // Queue twice — auto-load microtask fires first, then UI may trigger.
+      repo.queueResponse(const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            channelName: 'general',
+            unreadCount: 2,
+          ),
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-2',
+            channelName: 'random',
+            unreadCount: 1,
+          ),
+        ],
+        totalCount: 2,
+        totalUnreadCount: 3,
+        hasMore: false,
+      ));
       repo.queueResponse(const InboxResponse(
         items: [
           InboxItem(
