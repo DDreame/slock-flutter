@@ -78,7 +78,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'DmListStore sorts by recent activity (default)',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -108,7 +107,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'DmListStore sorts alphabetically when preference is A-Z',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -140,7 +138,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'DM sort preference persists across restarts',
-    skip: true,
     () async {
       // Phase 1 (write-path): Set preference and verify it was written.
       final container1 = ProviderContainer(
@@ -199,7 +196,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'DM list header shows sort toggle',
-    skip: true,
     (tester) async {
       final snapshot = HomeWorkspaceSnapshot(
         serverId: serverId,
