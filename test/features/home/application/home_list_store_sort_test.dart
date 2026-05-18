@@ -45,7 +45,7 @@ import 'package:slock_app/l10n/app_localizations_provider.dart';
 // INV-PIN-1:   preserves manual pinnedOrder for existing pinned items
 // INV-PIN-2:   newly pinned channel appended after existing pinnedOrder
 // INV-PIN-3:   newly pinned DM appended, hidden DM excluded
-// INV-PIN-4:   newly pinned agent appended after channels+DMs
+// INV-PIN-4:   pinned agents tracked separately from pinnedConversationOrder
 // INV-PIN-5:   duplicate protection (contains check)
 // INV-NAME-1:  _channelName returns name when ID matches
 // INV-NAME-2:  _channelName falls back to raw channelId when not found
@@ -328,13 +328,12 @@ void main() {
     );
 
     test(
-      'newly pinned agent appended after channels+DMs (INV-PIN-4)',
+      'pinned agents tracked separately from pinnedConversationOrder (INV-PIN-4)',
       skip: true,
       () async {
         // Setup: channel A pinned, agent-1 pinned. pinnedOrder=[ch-a, agent-1].
-        // _currentPinnedOrder() builds the full combined order:
-        //   channels + DMs + agents (in pinnedOrder).
-        // _currentPinnedConversationIds() filters to channels+DMs only.
+        // _currentPinnedConversationIds() filters to channels+DMs only,
+        // so agents never appear in pinnedConversationOrder by design.
         // Assert:
         //   pinnedConversationOrder = [ch-a] (agents excluded)
         //   pinnedAgents = [agent-1] (agents in their own list)
