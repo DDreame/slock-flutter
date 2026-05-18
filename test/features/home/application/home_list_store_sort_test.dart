@@ -1,14 +1,35 @@
 // ignore_for_file: lines_longer_than_80_chars
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/home/presentation/page/home_page.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository.dart';
+import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/features/threads/application/thread_route.dart';
+import 'package:slock_app/features/threads/data/thread_repository.dart';
+import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 
 // ---------------------------------------------------------------------------
 // #561 Phase A — HomeListStore Hot Path Optimization
@@ -190,6 +211,7 @@ void main() {
         // Assert: state.pinnedAgents=[a1], state.agents=[a3,a2].
         final container = _buildContainer(
           snapshot: _snapshotWithAgents(['agent-1', 'agent-2', 'agent-3']),
+          agents: _makeAgentItems(['agent-1', 'agent-2', 'agent-3']),
           sidebarOrder: const SidebarOrder(
             agentOrder: ['agent-3', 'agent-1', 'agent-2'],
             pinnedAgentIds: ['agent-1'],
@@ -310,15 +332,19 @@ void main() {
       skip: true,
       () async {
         // Setup: channel A pinned, agent-1 pinned. pinnedOrder=[ch-a, agent-1].
-        // Assert: pinnedConversationOrder = [ch-a] only (agents don't appear
-        // in pinnedConversationOrder — only in pinnedOrder through
-        // _currentPinnedOrder). Verify pinnedAgents list contains agent-1.
+        // _currentPinnedOrder() builds the full combined order:
+        //   channels + DMs + agents (in pinnedOrder).
+        // _currentPinnedConversationIds() filters to channels+DMs only.
+        // Assert:
+        //   pinnedConversationOrder = [ch-a] (agents excluded)
+        //   pinnedAgents = [agent-1] (agents in their own list)
         final container = _buildContainer(
           snapshot: _snapshotWithAll(
             channelIds: ['ch-a'],
             dmIds: [],
             agentIds: ['agent-1'],
           ),
+          agents: _makeAgentItems(['agent-1']),
           sidebarOrder: const SidebarOrder(
             channelOrder: ['ch-a'],
             pinnedChannelIds: ['ch-a'],
@@ -333,6 +359,8 @@ void main() {
 
         // pinnedConversationOrder only includes channels + DMs (not agents).
         expect(state.pinnedConversationOrder, contains('ch-a'));
+        expect(state.pinnedConversationOrder, isNot(contains('agent-1')),
+            reason: 'Agents must not appear in pinnedConversationOrder');
         // Agent is in pinnedAgents list, not in pinnedConversationOrder.
         expect(state.pinnedAgents.map((a) => a.id).toList(), ['agent-1']);
       },
@@ -369,55 +397,96 @@ void main() {
   // Group 3 — _channelName correctness
   //
   // _channelName is a private method on _HomeTasksSection widget.
-  // Test by rendering the widget with known channels + tasks and
-  // verifying the task row shows the resolved channel name.
+  // Test by rendering HomePage with known channels + tasks and
+  // verifying the task row shows the resolved channel name text.
   // -----------------------------------------------------------------------
 
   group('_channelName correctness', () {
-    test(
+    testWidgets(
       'returns channel name when ID matches (INV-NAME-1)',
       skip: true,
-      () async {
-        // Setup: HomeListStore loaded with channel 'ch-1' named 'general'.
-        //        Task with channelId='ch-1'.
-        // Assert: Rendered task row shows 'general' (not 'ch-1').
-        //
-        // Phase B will render _HomeTasksSection widget with known channels
-        // list and task list, then assert the channel name text.
-        final container = _buildContainer(
-          snapshot: _snapshotWithChannels(['ch-1'], names: {'ch-1': 'general'}),
+      (tester) async {
+        // Setup: Render HomePage with channel 'ch-1' named 'general'
+        //        and a task with channelId='ch-1'.
+        // Assert: The task row displays '#general' (resolved name),
+        //         not '#ch-1' (raw ID).
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: _FakeHomeRepository(
+              _snapshotWithChannels(['ch-1'], names: {'ch-1': 'general'}),
+            ),
+            tasksRepository: _FakeTasksRepository(tasks: [
+              TaskItem(
+                id: 'task-1',
+                taskNumber: 1,
+                title: 'Fix the login bug',
+                status: 'todo',
+                channelId: 'ch-1',
+                channelType: 'channel',
+                createdById: 'user-1',
+                createdByName: 'Alice',
+                createdByType: 'human',
+                createdAt: DateTime.parse('2026-05-18T00:00:00Z'),
+              ),
+            ]),
+          ),
         );
-        addTearDown(container.dispose);
+        await tester.pumpAndSettle();
 
-        await container.read(homeListStoreProvider.notifier).load();
-        final state = container.read(homeListStoreProvider);
-
-        // Verify the channel is available for name resolution.
-        expect(state.channels.first.name, 'general');
+        // _channelName resolves 'ch-1' → 'general', rendered as '#general'.
+        final taskRow = find.byKey(const ValueKey('task-item-task-1'));
+        expect(taskRow, findsOneWidget, reason: 'Task row must be rendered');
+        expect(
+          find.descendant(of: taskRow, matching: find.text('#general')),
+          findsOneWidget,
+          reason: '_channelName must resolve ID to name (INV-NAME-1)',
+        );
       },
     );
 
-    test(
+    testWidgets(
       'falls back to raw channelId when not found (INV-NAME-2)',
       skip: true,
-      () async {
-        // Setup: HomeListStore loaded with channel 'ch-1' only.
-        //        Task with channelId='ch-unknown'.
-        // Assert: Rendered task row shows 'ch-unknown' (raw ID fallback).
-        //
-        // Phase B will render _HomeTasksSection and assert fallback.
-        final container = _buildContainer(
-          snapshot: _snapshotWithChannels(['ch-1']),
+      (tester) async {
+        // Setup: Render HomePage with channel 'ch-1' only,
+        //        but task has channelId='ch-unknown' (no match).
+        // Assert: The task row displays '#ch-unknown' (raw fallback).
+        final router = _buildRouter();
+
+        await tester.pumpWidget(
+          _buildApp(
+            router: router,
+            homeRepository: _FakeHomeRepository(
+              _snapshotWithChannels(['ch-1']),
+            ),
+            tasksRepository: _FakeTasksRepository(tasks: [
+              TaskItem(
+                id: 'task-1',
+                taskNumber: 1,
+                title: 'Unknown channel task',
+                status: 'todo',
+                channelId: 'ch-unknown',
+                channelType: 'channel',
+                createdById: 'user-1',
+                createdByName: 'Alice',
+                createdByType: 'human',
+                createdAt: DateTime.parse('2026-05-18T00:00:00Z'),
+              ),
+            ]),
+          ),
         );
-        addTearDown(container.dispose);
+        await tester.pumpAndSettle();
 
-        await container.read(homeListStoreProvider.notifier).load();
-        final state = container.read(homeListStoreProvider);
-
-        // Verify no channel named 'ch-unknown' exists.
+        // _channelName has no match → falls back to raw ID '#ch-unknown'.
+        final taskRow = find.byKey(const ValueKey('task-item-task-1'));
+        expect(taskRow, findsOneWidget, reason: 'Task row must be rendered');
         expect(
-          state.channels.every((c) => c.scopeId.value != 'ch-unknown'),
-          isTrue,
+          find.descendant(of: taskRow, matching: find.text('#ch-unknown')),
+          findsOneWidget,
+          reason: '_channelName must fall back to raw ID (INV-NAME-2)',
         );
       },
     );
@@ -465,7 +534,8 @@ HomeWorkspaceSnapshot _snapshotWithDms(List<String> dmIds) {
 HomeWorkspaceSnapshot _snapshotWithAgents(List<String> agentIds) {
   // Agents are loaded separately via agentsRepositoryProvider,
   // not from the workspace snapshot. This helper returns an empty
-  // workspace; Phase B will add agentsRepositoryProvider override.
+  // workspace; agent data comes from the agents parameter in
+  // _buildContainer.
   return const HomeWorkspaceSnapshot(
     serverId: _serverId,
     channels: [],
@@ -497,13 +567,28 @@ HomeWorkspaceSnapshot _snapshotWithAll({
   );
 }
 
+List<AgentItem> _makeAgentItems(List<String> ids) {
+  return [
+    for (final id in ids)
+      AgentItem(
+        id: id,
+        name: id,
+        model: 'test-model',
+        runtime: 'test',
+        status: 'active',
+        activity: 'idle',
+      ),
+  ];
+}
+
 // ---------------------------------------------------------------------------
-// Helpers — ProviderContainer factory
+// Helpers — ProviderContainer factory (unit tests)
 // ---------------------------------------------------------------------------
 
 ProviderContainer _buildContainer({
   required HomeWorkspaceSnapshot snapshot,
   SidebarOrder sidebarOrder = const SidebarOrder(),
+  List<AgentItem> agents = const [],
 }) {
   return ProviderContainer(
     overrides: [
@@ -513,6 +598,88 @@ ProviderContainer _buildContainer({
       ),
       sidebarOrderRepositoryProvider.overrideWithValue(
         _FakeSidebarOrderRepository(sidebarOrder: sidebarOrder),
+      ),
+      agentsRepositoryProvider.overrideWithValue(
+        _FakeAgentsRepository(agents: agents),
+      ),
+      tasksRepositoryProvider.overrideWithValue(
+        const _FakeTasksRepository(),
+      ),
+      threadRepositoryProvider.overrideWithValue(
+        const _FakeThreadRepository(),
+      ),
+      homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helpers — Widget test infrastructure (for _channelName tests)
+// ---------------------------------------------------------------------------
+
+Widget _buildApp({
+  required GoRouter router,
+  required HomeRepository homeRepository,
+  TasksRepository tasksRepository = const _FakeTasksRepository(),
+}) {
+  return ProviderScope(
+    overrides: [
+      appLocalizationsProvider.overrideWithValue(
+        lookupAppLocalizations(const Locale('en')),
+      ),
+      activeServerScopeIdProvider.overrideWithValue(_serverId),
+      homeRepositoryProvider.overrideWithValue(homeRepository),
+      serverListRepositoryProvider.overrideWithValue(
+        const _FakeServerListRepository(),
+      ),
+      sidebarOrderRepositoryProvider.overrideWithValue(
+        const _FakeSidebarOrderRepository(),
+      ),
+      agentsRepositoryProvider.overrideWithValue(
+        const _FakeAgentsRepository(),
+      ),
+      tasksRepositoryProvider.overrideWithValue(tasksRepository),
+      threadRepositoryProvider.overrideWithValue(
+        const _FakeThreadRepository(),
+      ),
+      inboxRepositoryProvider.overrideWithValue(
+        const _FakeInboxRepository(),
+      ),
+      homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+      agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+      homeNowProvider.overrideWithValue(
+        DateTime.parse('2026-05-18T00:00:00Z'),
+      ),
+    ],
+    child: MaterialApp.router(
+      routerConfig: router,
+      theme: AppTheme.light,
+      locale: const Locale('en'),
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+    ),
+  );
+}
+
+GoRouter _buildRouter() {
+  return GoRouter(
+    initialLocation: '/home',
+    routes: [
+      GoRoute(
+        path: '/home',
+        builder: (context, state) => const HomePage(),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/tasks',
+        builder: (context, state) => const Scaffold(body: Placeholder()),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/channels/:channelId',
+        builder: (context, state) => const Scaffold(body: Placeholder()),
+      ),
+      GoRoute(
+        path: '/servers/:serverId/dms/:dmId',
+        builder: (context, state) => const Scaffold(body: Placeholder()),
       ),
     ],
   );
@@ -565,7 +732,7 @@ class _FakeHomeRepository implements HomeRepository {
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  _FakeSidebarOrderRepository({
+  const _FakeSidebarOrderRepository({
     this.sidebarOrder = const SidebarOrder(),
   });
 
@@ -581,6 +748,152 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
     ServerScopeId serverId, {
     required Map<String, Object> patch,
   }) async {}
+}
+
+class _FakeAgentsRepository implements AgentsRepository {
+  const _FakeAgentsRepository({this.agents = const []});
+
+  final List<AgentItem> agents;
+
+  @override
+  Future<List<AgentItem>> listAgents() async => agents;
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
+}
+
+class _FakeTasksRepository implements TasksRepository {
+  const _FakeTasksRepository({this.tasks = const []});
+
+  final List<TaskItem> tasks;
+
+  @override
+  Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async => tasks;
+
+  @override
+  Future<List<TaskItem>> createTasks(
+    ServerScopeId serverId, {
+    required String channelId,
+    required List<String> titles,
+  }) async =>
+      [];
+
+  @override
+  Future<TaskItem> updateTaskStatus(
+    ServerScopeId serverId, {
+    required String taskId,
+    required String status,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> deleteTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async {}
+
+  @override
+  Future<TaskItem> claimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> unclaimTask(
+    ServerScopeId serverId, {
+    required String taskId,
+  }) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<TaskItem> convertMessageToTask(
+    ServerScopeId serverId, {
+    required String messageId,
+  }) async =>
+      throw UnimplementedError();
+}
+
+class _FakeThreadRepository implements ThreadRepository {
+  const _FakeThreadRepository();
+
+  @override
+  Future<List<ThreadInboxItem>> loadFollowedThreads(
+    ServerScopeId serverId,
+  ) async =>
+      const [];
+
+  @override
+  Future<ResolvedThreadChannel> resolveThread(ThreadRouteTarget target) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> followThread(ThreadRouteTarget target) async {}
+
+  @override
+  Future<void> markThreadDone(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+
+  @override
+  Future<void> markThreadRead(
+    ServerScopeId serverId, {
+    required String threadChannelId,
+  }) async {}
+}
+
+class _FakeServerListRepository implements ServerListRepository {
+  const _FakeServerListRepository();
+
+  @override
+  Future<List<ServerSummary>> loadServers() async => const [];
+}
+
+class _FakeInboxRepository implements InboxRepository {
+  const _FakeInboxRepository();
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async =>
+      const InboxResponse(
+        items: [],
+        totalCount: 0,
+        totalUnreadCount: 0,
+        hasMore: false,
+      );
+
+  @override
+  Future<void> markItemRead(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markItemDone(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {}
+
+  @override
+  Future<void> markAllRead(ServerScopeId serverId) async {}
 }
 
 // ---------------------------------------------------------------------------
