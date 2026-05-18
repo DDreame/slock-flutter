@@ -20,6 +20,11 @@ class InboxStore extends Notifier<InboxState> {
   InboxState build() {
     // Watch the active server so the store rebuilds (state resets) on switch.
     ref.watch(activeServerScopeIdProvider);
+    // Schedule auto-load after state reset so InboxPage (indexedStack) does
+    // not require initState() to re-fire on server switch (#572).
+    Future.microtask(() {
+      if (state.status == InboxStatus.initial) load();
+    });
     return const InboxState();
   }
 

@@ -10,7 +10,7 @@
 // Phase B — all tests active.
 // =============================================================================
 //
-// #572 Phase A — InboxStore Server-Switch Auto-Load
+// #572 Phase A → Phase B — InboxStore Server-Switch Auto-Load
 //
 // Root cause: InboxStore.build() resets state on server switch but does NOT
 // schedule load() after reset. Since InboxPage uses indexedStack, initState()
@@ -19,7 +19,7 @@
 // Phase B fix: add Future.microtask(() { if (state.status == InboxStatus.initial)
 // load(); }) in build(), same pattern as HomeListStore.
 //
-// Phase A — skip:true tests.
+// Phase B — all tests active.
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -342,7 +342,6 @@ void main() {
 
         sub.close();
       },
-      skip: true,
     );
 
     // T2: After server switch, the auto-load microtask fires exactly once —
@@ -437,7 +436,6 @@ void main() {
 
         sub.close();
       },
-      skip: true,
     );
   });
 }
