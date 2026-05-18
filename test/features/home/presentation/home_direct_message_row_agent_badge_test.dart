@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
@@ -15,18 +16,20 @@ void main() {
     bool isOnline = false,
     int unreadCount = 0,
   }) {
-    return MaterialApp(
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      home: Scaffold(
-        body: HomeDirectMessageRow(
-          directMessage: dm,
-          isAgent: isAgent,
-          isOnline: isOnline,
-          unreadCount: unreadCount,
-          onTap: () {},
+    return ProviderScope(
+      child: MaterialApp(
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: Scaffold(
+          body: HomeDirectMessageRow(
+            directMessage: dm,
+            isAgent: isAgent,
+            isOnline: isOnline,
+            unreadCount: unreadCount,
+            onTap: () {},
+          ),
         ),
       ),
     );

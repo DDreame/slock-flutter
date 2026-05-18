@@ -249,17 +249,19 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: HomeChannelRow(
-              key: ValueKey('channels-tab-${channel.scopeId.value}'),
-              channel: channel,
-              onTap: () {},
-              isMuted: true,
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.light,
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: HomeChannelRow(
+                key: ValueKey('channels-tab-${channel.scopeId.value}'),
+                channel: channel,
+                onTap: () {},
+                isMuted: true,
+              ),
             ),
           ),
         ),

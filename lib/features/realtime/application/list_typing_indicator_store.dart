@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // ---------------------------------------------------------------------------
-// #578: Typing Indicator in List Rows — Seam (Phase A)
+// #578: Typing Indicator in List Rows — Phase B
 //
 // Per-channel typing indicator store for list rows.
-// Phase B implements the real family store + global WebSocket listener.
+// Family-keyed by scope key (e.g. "server:s1/channel:ch1").
+// Manages per-user timers that auto-expire after 5 seconds.
 // ---------------------------------------------------------------------------
 
 /// State for a single channel/DM's typing indicator in list rows.
@@ -24,11 +27,6 @@ class ListTypingIndicatorState {
 
 /// Family provider keyed by scope key (e.g. "server:s1/channel:ch1").
 /// Each list row watches its own instance.
-///
-/// Phase B implements the real store with:
-/// - Global WebSocket listener for `typing:start` events
-/// - Per-channel timer-based expiry (5s)
-/// - Combined text for multiple typers
 final listTypingIndicatorStoreProvider = NotifierProvider.autoDispose
     .family<ListTypingIndicatorNotifier, ListTypingIndicatorState, String>(
   ListTypingIndicatorNotifier.new,
@@ -36,12 +34,22 @@ final listTypingIndicatorStoreProvider = NotifierProvider.autoDispose
 
 class ListTypingIndicatorNotifier
     extends AutoDisposeFamilyNotifier<ListTypingIndicatorState, String> {
+  /// Active typers: userId → displayName.
+  final Map<String, String> _typers = {};
+
+  /// Per-user expiry timers (5-second auto-clear).
+  final Map<String, Timer> _timers = {};
+
   @override
   ListTypingIndicatorState build(String arg) {
-    // Phase B: subscribe to global typing event stream filtered by scopeKey.
-    throw UnimplementedError(
-      'ListTypingIndicatorNotifier not yet implemented',
-    );
+    ref.onDispose(() {
+      for (final timer in _timers.values) {
+        timer.cancel();
+      }
+      _timers.clear();
+      _typers.clear();
+    });
+    return const ListTypingIndicatorState();
   }
 
   /// Add or refresh a remote user's typing indicator.
@@ -50,13 +58,42 @@ class ListTypingIndicatorNotifier
     required String userId,
     required String displayName,
   }) {
-    // Phase B: manage per-user timers and combine display text.
-    throw UnimplementedError('addTyper not yet implemented');
+    // Cancel existing timer for this user (refresh).
+    _timers[userId]?.cancel();
+
+    _typers[userId] = displayName;
+
+    // Start 5-second expiry timer.
+    _timers[userId] = Timer(const Duration(seconds: 5), () {
+      _typers.remove(userId);
+      _timers.remove(userId);
+      state = ListTypingIndicatorState(displayText: _buildDisplayText());
+    });
+
+    state = ListTypingIndicatorState(displayText: _buildDisplayText());
   }
 
   /// Remove a specific user's typing indicator.
   void removeTyper(String userId) {
-    // Phase B: cancel timer, rebuild display text.
-    throw UnimplementedError('removeTyper not yet implemented');
+    _timers[userId]?.cancel();
+    _timers.remove(userId);
+    _typers.remove(userId);
+    state = ListTypingIndicatorState(displayText: _buildDisplayText());
+  }
+
+  /// Builds the combined display text from active typers.
+  String? _buildDisplayText() {
+    if (_typers.isEmpty) return null;
+
+    final names = _typers.values.toList();
+    if (names.length == 1) {
+      return '${names[0]} is typing...';
+    }
+    if (names.length == 2) {
+      return '${names[0]} and ${names[1]} are typing...';
+    }
+    // 3+ typers: "X, Y, and Z are typing..."
+    final allButLast = names.sublist(0, names.length - 1).join(', ');
+    return '$allButLast, and ${names.last} are typing...';
   }
 }

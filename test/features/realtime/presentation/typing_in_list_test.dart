@@ -37,7 +37,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'ListTypingIndicatorStore maintains independent state per scope key',
-    skip: true,
     () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -68,7 +67,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Channel list row shows typing text when someone is typing',
-    skip: true,
     (tester) async {
       final channel = HomeChannelSummary(
         scopeId: const ChannelScopeId(serverId: serverId, value: 'ch-general'),
@@ -115,7 +113,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'Typing indicator clears after 5-second timeout',
-    skip: true,
     () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -164,7 +161,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'Multiple typers show combined text',
-    skip: true,
     () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -191,7 +187,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'DM list row shows typing indicator',
-    skip: true,
     (tester) async {
       final dm = HomeDirectMessageSummary(
         scopeId:
