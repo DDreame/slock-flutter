@@ -26,6 +26,8 @@ import 'package:slock_app/features/threads/data/thread_repository_provider.dart'
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Fake InboxStore that returns a fixed state.
 class _SeedableInboxStore extends InboxStore {
@@ -38,6 +40,13 @@ class _SeedableInboxStore extends InboxStore {
 
 void main() {
   const serverId = ServerScopeId('server-1');
+
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
 
   const channelGeneral = HomeChannelSummary(
     scopeId: ChannelScopeId(serverId: serverId, value: 'general'),
@@ -96,6 +105,7 @@ void main() {
 
     return ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         channelMutedIdsProvider.overrideWith((ref) => <String>{}),
         activeServerScopeIdProvider.overrideWithValue(serverId),
         homeRepositoryProvider.overrideWithValue(homeRepository),

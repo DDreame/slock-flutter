@@ -12,6 +12,7 @@ import 'package:slock_app/features/channels/application/channel_management_store
 import 'package:slock_app/features/channels/presentation/page/create_channel_page.dart';
 import 'package:slock_app/features/channels/presentation/widgets/channel_management_dialogs.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/channel_sort_preference.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -56,12 +57,32 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     final homeStore = ref.read(homeListStoreProvider.notifier);
     final unreadState = ref.watch(unreadSourceProjectionProvider);
     final managementState = ref.watch(channelManagementStoreProvider);
+    final sortPreference = ref.watch(channelSortPreferenceProvider);
     final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.channelsTabTitle),
         actions: [
+          IconButton(
+            key: const ValueKey('channels-sort-toggle'),
+            icon: Icon(
+              sortPreference == ChannelSortPreference.recentActivity
+                  ? Icons.sort_by_alpha
+                  : Icons.access_time,
+            ),
+            tooltip: sortPreference == ChannelSortPreference.recentActivity
+                ? 'Sort A-Z'
+                : 'Sort by recent',
+            onPressed: () {
+              final notifier = ref.read(channelSortPreferenceProvider.notifier);
+              notifier.setSortPreference(
+                sortPreference == ChannelSortPreference.recentActivity
+                    ? ChannelSortPreference.alphabetical
+                    : ChannelSortPreference.recentActivity,
+              );
+            },
+          ),
           if (state.status == HomeListStatus.success &&
               unreadState.channelUnreadTotal > 0)
             IconButton(
@@ -132,10 +153,13 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       ...state.channels,
     ];
 
+    // Apply sort preference via sortedChannelsProvider.
+    final sorted = ref.watch(sortedChannelsProvider(allChannels));
+
     // Apply search filter.
     final filtered = _searchQuery.isEmpty
-        ? allChannels
-        : allChannels
+        ? sorted
+        : sorted
             .where(
               (c) => c.name.toLowerCase().contains(_searchQuery.toLowerCase()),
             )
@@ -151,11 +175,11 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         read.add(channel);
       }
     }
-    final sorted = [...unread, ...read];
+    final displayList = [...unread, ...read];
 
     final pinnedIds = state.pinnedChannels.map((c) => c.scopeId.value).toSet();
 
-    if (sorted.isEmpty && _searchQuery.isEmpty) {
+    if (displayList.isEmpty && _searchQuery.isEmpty) {
       return ListView(
         children: [
           _buildSearchField(l10n, colors),
@@ -181,7 +205,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     return ListView(
       children: [
         _buildSearchField(l10n, colors),
-        if (sorted.isEmpty && _searchQuery.isNotEmpty)
+        if (displayList.isEmpty && _searchQuery.isNotEmpty)
           Padding(
             key: const ValueKey('channels-tab-search-empty'),
             padding: const EdgeInsets.symmetric(
@@ -197,10 +221,10 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               ),
             ),
           ),
-        for (var i = 0; i < sorted.length; i++)
+        for (var i = 0; i < displayList.length; i++)
           _buildChannelRow(
-            channel: sorted[i],
-            isPinned: pinnedIds.contains(sorted[i].scopeId.value),
+            channel: displayList[i],
+            isPinned: pinnedIds.contains(displayList[i].scopeId.value),
             homeStore: homeStore,
             unreadState: unreadState,
             managementState: managementState,
