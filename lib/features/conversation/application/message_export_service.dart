@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
@@ -18,15 +23,20 @@ typedef ShareXFiles = Future<void> Function(List<String> paths);
 /// Production: calls `Share.shareXFiles([XFile(path)])`.
 /// Tests: override to record shared paths without platform channel.
 final shareXFilesProvider = Provider<ShareXFiles>((ref) {
-  // Phase B: wire to Share.shareXFiles from share_plus.
-  return (paths) async {};
+  return (paths) async {
+    await Share.shareXFiles(paths.map((p) => XFile(p)).toList());
+  };
 });
 
 /// Service that exports selected messages as a styled PNG image.
 ///
-/// Phase A stub — Phase B implements capture + share flow.
+/// Captures the RepaintBoundary identified by [boundaryKey], saves the result
+/// as a temporary PNG file, then shares via [shareXFilesProvider].
 class MessageExportService {
-  const MessageExportService();
+  const MessageExportService({this.shareXFiles});
+
+  /// The share function injected by the provider. Null in tests using fakes.
+  final ShareXFiles? shareXFiles;
 
   /// Exports the given [messages] as a branded PNG image and opens the
   /// system share sheet.
@@ -37,8 +47,34 @@ class MessageExportService {
     List<ConversationMessageSummary> messages, {
     required GlobalKey boundaryKey,
   }) async {
-    // Phase B: capture RepaintBoundary → PNG → shareXFilesProvider
-    return null;
+    try {
+      // 1. Find the RepaintBoundary render object.
+      final context = boundaryKey.currentContext;
+      if (context == null) return null;
+      final boundary = context.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+
+      // 2. Capture as image at 3x pixel ratio for sharp output.
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return null;
+
+      // 3. Save to temporary file (synchronous write for test compatibility).
+      final dir = Directory.systemTemp;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '${dir.path}/slock_export_$timestamp.png';
+      final file = File(filePath);
+      file.writeAsBytesSync(byteData.buffer.asUint8List());
+
+      // 4. Share via injectable seam.
+      if (shareXFiles != null) {
+        await shareXFiles!([filePath]);
+      }
+
+      return filePath;
+    } catch (_) {
+      return null;
+    }
   }
 }
 
@@ -46,7 +82,7 @@ class MessageExportService {
 ///
 /// Override in tests to verify capture/share calls without side effects.
 final messageExportServiceProvider = Provider<MessageExportService>((ref) {
-  return const MessageExportService();
+  return MessageExportService(shareXFiles: ref.watch(shareXFilesProvider));
 });
 
 /// The branded background color for the export card.
