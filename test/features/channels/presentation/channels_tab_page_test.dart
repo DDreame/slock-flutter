@@ -789,16 +789,18 @@ void main() {
       // Pinned channels come from SidebarOrder. To test the icon
       // priority directly, we use HomeChannelRow in isolation.
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: HomeChannelRow(
-              channel: channelSecret,
-              isPinned: true,
-              onTap: () {},
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.light,
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: HomeChannelRow(
+                channel: channelSecret,
+                isPinned: true,
+                onTap: () {},
+              ),
             ),
           ),
         ),
