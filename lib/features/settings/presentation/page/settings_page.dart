@@ -9,6 +9,7 @@ import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
@@ -33,309 +34,339 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final themeState = ref.watch(themeModeStoreProvider);
     final biometricState = ref.watch(biometricStoreProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
-    final l10n = context.l10n;
+    final l10n = ref.watch(appLocalizationsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
-      body: ListView(
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
-        children: [
-          // --- Account header ---
-          SectionCard(
-            key: const ValueKey('settings-account-header'),
-            child: Row(
-              children: [
-                ProfileAvatar(
-                  displayName: session.displayName ?? '',
-                  radius: 24,
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        session.displayName ?? 'Signed in',
-                        style: AppTypography.title.copyWith(color: colors.text),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        session.displayName ?? 'Account details unavailable',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                    ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- Account header ---
+            SectionCard(
+              key: const ValueKey('settings-account-header'),
+              child: Row(
+                children: [
+                  ProfileAvatar(
+                    displayName: session.displayName ?? '',
+                    radius: 24,
                   ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sectionGap),
-
-          // --- Account section ---
-          Text(
-            'Account',
-            key: const ValueKey('settings-section-account'),
-            style: AppTypography.title.copyWith(color: colors.text),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SectionCard(
-            padding: EdgeInsets.zero,
-            child: _SettingsTile(
-              key: const ValueKey('settings-my-profile'),
-              icon: Icons.person,
-              iconColor: colors.primary,
-              title: 'My Profile',
-              subtitle: 'Review your current account details.',
-              subtitleKey: const ValueKey('settings-my-profile-subtitle'),
-              chevronKey: const ValueKey('settings-my-profile-chevron'),
-              colors: colors,
-              onTap: () => context.push('/profile'),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sectionGap),
-
-          // --- Workspace section ---
-          Text(
-            'Workspace',
-            key: const ValueKey('settings-section-workspace'),
-            style: AppTypography.title.copyWith(color: colors.text),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SectionCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                _SettingsTile(
-                  key: const ValueKey('settings-members'),
-                  icon: Icons.group_outlined,
-                  iconColor: colors.primary,
-                  title: 'Members',
-                  subtitle: 'View and manage workspace members.',
-                  colors: colors,
-                  onTap: () {
-                    final sid = ref.read(activeServerScopeIdProvider)?.value;
-                    if (sid == null) return;
-                    context.push('/servers/$sid/members');
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sectionGap),
-
-          // --- Notifications section ---
-          Text(
-            'Notifications',
-            key: const ValueKey('settings-section-notifications'),
-            style: AppTypography.title.copyWith(color: colors.text),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SectionCard(
-            padding: EdgeInsets.zero,
-            child: _SettingsTile(
-              key: const ValueKey('settings-notification-link'),
-              icon: Icons.notifications_active_outlined,
-              iconColor: colors.warning,
-              title: 'Notification Settings',
-              subtitle: _notificationSummary(notificationState),
-              colors: colors,
-              onTap: () => context.push('/settings/notifications'),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sectionGap),
-
-          // --- Appearance section ---
-          Text(
-            'Appearance',
-            key: const ValueKey('settings-section-appearance'),
-            style: AppTypography.title.copyWith(color: colors.text),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SectionCard(
-            padding: EdgeInsets.zero,
-            child: _SettingsTile(
-              key: const ValueKey('settings-appearance-link'),
-              icon: Icons.palette_outlined,
-              iconColor: colors.primary,
-              title: 'Theme',
-              subtitle: themeState.preference.title,
-              subtitleKey: const ValueKey(
-                'settings-appearance-subtitle',
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          session.displayName ?? l10n.settingsSignedInFallback,
+                          style:
+                              AppTypography.title.copyWith(color: colors.text),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          session.displayName ??
+                              l10n.settingsAccountUnavailable,
+                          style: AppTypography.bodySmall.copyWith(
+                            color: colors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              colors: colors,
-              onTap: () => context.push('/settings/appearance'),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sectionGap),
+            const SizedBox(height: AppSpacing.sectionGap),
 
-          // --- Translation section ---
-          Text(
-            'Language',
-            key: const ValueKey('settings-section-language'),
-            style: AppTypography.title.copyWith(color: colors.text),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SectionCard(
-            padding: EdgeInsets.zero,
-            child: _SettingsTile(
-              key: const ValueKey('settings-translation-link'),
-              icon: Icons.translate,
-              iconColor: colors.primary,
-              title: 'Translation',
-              subtitle: 'Preferred language and translation mode.',
-              colors: colors,
-              onTap: () => context.push('/settings/translation'),
+            // --- Account section ---
+            SizedBox(
+              key: const ValueKey('settings-section-account'),
+              width: double.infinity,
+              child: Text(
+                l10n.settingsAccountSection,
+                style: AppTypography.title.copyWith(color: colors.text),
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sectionGap),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsTile(
+                key: const ValueKey('settings-my-profile'),
+                icon: Icons.person,
+                iconColor: colors.primary,
+                title: l10n.settingsMyProfileTitle,
+                subtitle: l10n.settingsMyProfileSubtitle,
+                subtitleKey: const ValueKey('settings-my-profile-subtitle'),
+                chevronKey: const ValueKey('settings-my-profile-chevron'),
+                colors: colors,
+                onTap: () => context.push('/profile'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sectionGap),
 
-          // --- Security section (only shown when biometric hardware available) ---
-          if (biometricState.availability ==
-              BiometricAvailability.available) ...[
+            // --- Workspace section ---
+            SizedBox(
+              key: const ValueKey('settings-section-workspace'),
+              width: double.infinity,
+              child: Text(
+                l10n.settingsWorkspaceSection,
+                style: AppTypography.title.copyWith(color: colors.text),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _SettingsTile(
+                    key: const ValueKey('settings-members'),
+                    icon: Icons.group_outlined,
+                    iconColor: colors.primary,
+                    title: l10n.settingsMembersTitle,
+                    subtitle: l10n.settingsMembersSubtitle,
+                    colors: colors,
+                    onTap: () {
+                      final sid = ref.read(activeServerScopeIdProvider)?.value;
+                      if (sid == null) return;
+                      context.push('/servers/$sid/members');
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sectionGap),
+
+            // --- Notifications section ---
+            SizedBox(
+              key: const ValueKey('settings-section-notifications'),
+              width: double.infinity,
+              child: Text(
+                l10n.settingsNotificationsSection,
+                style: AppTypography.title.copyWith(color: colors.text),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsTile(
+                key: const ValueKey('settings-notification-link'),
+                icon: Icons.notifications_active_outlined,
+                iconColor: colors.warning,
+                title: l10n.settingsNotificationSettingsTitle,
+                subtitle: _notificationSummary(notificationState, l10n),
+                colors: colors,
+                onTap: () => context.push('/settings/notifications'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sectionGap),
+
+            // --- Appearance section ---
+            SizedBox(
+              key: const ValueKey('settings-section-appearance'),
+              width: double.infinity,
+              child: Text(
+                l10n.settingsAppearanceSection,
+                style: AppTypography.title.copyWith(color: colors.text),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsTile(
+                key: const ValueKey('settings-appearance-link'),
+                icon: Icons.palette_outlined,
+                iconColor: colors.primary,
+                title: l10n.settingsThemeTitle,
+                subtitle: themeState.preference.title,
+                subtitleKey: const ValueKey(
+                  'settings-appearance-subtitle',
+                ),
+                colors: colors,
+                onTap: () => context.push('/settings/appearance'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sectionGap),
+
+            // --- Translation section ---
+            SizedBox(
+              key: const ValueKey('settings-section-language'),
+              width: double.infinity,
+              child: Text(
+                l10n.settingsLanguageSection,
+                style: AppTypography.title.copyWith(color: colors.text),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsTile(
+                key: const ValueKey('settings-translation-link'),
+                icon: Icons.translate,
+                iconColor: colors.primary,
+                title: l10n.settingsTranslationTitle,
+                subtitle: l10n.settingsTranslationSubtitle,
+                colors: colors,
+                onTap: () => context.push('/settings/translation'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sectionGap),
+
+            // --- Security section (only shown when biometric hardware available) ---
+            if (biometricState.availability ==
+                BiometricAvailability.available) ...[
+              SizedBox(
+                key: const ValueKey('settings-section-security'),
+                width: double.infinity,
+                child: Text(
+                  l10n.settingsSecuritySection,
+                  style: AppTypography.title.copyWith(color: colors.text),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              SectionCard(
+                padding: EdgeInsets.zero,
+                child: _SettingsTile(
+                  key: const ValueKey('settings-biometric-toggle'),
+                  icon: Icons.fingerprint,
+                  iconColor: colors.primary,
+                  title: l10n.settingsBiometricLockTitle,
+                  subtitle: biometricState.enabled
+                      ? l10n.settingsBiometricLockEnabled
+                      : l10n.settingsBiometricLockDisabled,
+                  colors: colors,
+                  trailing: Switch.adaptive(
+                    key: const ValueKey('settings-biometric-switch'),
+                    value: biometricState.enabled,
+                    onChanged: (enabled) {
+                      ref
+                          .read(biometricStoreProvider.notifier)
+                          .setEnabled(enabled);
+                    },
+                  ),
+                  onTap: null,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sectionGap),
+            ],
+
+            // --- Server section ---
             Text(
-              'Security',
-              key: const ValueKey('settings-section-security'),
+              l10n.baseUrlSettingsSettingsTile,
+              key: const ValueKey('settings-section-server'),
               style: AppTypography.title.copyWith(color: colors.text),
             ),
             const SizedBox(height: AppSpacing.sm),
             SectionCard(
               padding: EdgeInsets.zero,
               child: _SettingsTile(
-                key: const ValueKey('settings-biometric-toggle'),
-                icon: Icons.fingerprint,
+                key: const ValueKey('settings-base-url'),
+                icon: Icons.dns_outlined,
                 iconColor: colors.primary,
-                title: 'Biometric Lock',
-                subtitle: biometricState.enabled
-                    ? 'Enabled — unlock with biometrics after inactivity'
-                    : 'Disabled — no biometric lock on app access',
+                title: l10n.baseUrlSettingsSettingsTile,
+                subtitle: l10n.baseUrlSettingsSettingsTileSubtitle,
                 colors: colors,
-                trailing: Switch.adaptive(
-                  key: const ValueKey('settings-biometric-switch'),
-                  value: biometricState.enabled,
-                  onChanged: (enabled) {
-                    ref
-                        .read(biometricStoreProvider.notifier)
-                        .setEnabled(enabled);
-                  },
-                ),
-                onTap: null,
+                onTap: () => context.push('/settings/base-url'),
               ),
             ),
             const SizedBox(height: AppSpacing.sectionGap),
+
+            // --- More section ---
+            SizedBox(
+              key: const ValueKey('settings-section-more'),
+              width: double.infinity,
+              child: Text(
+                l10n.settingsMoreSection,
+                style: AppTypography.title.copyWith(color: colors.text),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  _SettingsTile(
+                    key: const ValueKey('settings-billing'),
+                    icon: Icons.credit_card_outlined,
+                    iconColor: colors.primary,
+                    title: l10n.settingsBillingTitle,
+                    subtitle: l10n.settingsBillingSubtitle,
+                    colors: colors,
+                    onTap: () => context.push('/billing'),
+                  ),
+                  Divider(height: 1, color: colors.border),
+                  _SettingsTile(
+                    key: const ValueKey('settings-release-notes'),
+                    icon: Icons.newspaper_outlined,
+                    iconColor: colors.primary,
+                    title: l10n.settingsReleaseNotesTitle,
+                    subtitle: l10n.settingsReleaseNotesSubtitle,
+                    colors: colors,
+                    onTap: () => context.push('/release-notes'),
+                  ),
+                  Divider(height: 1, color: colors.border),
+                  _SettingsTile(
+                    key: const ValueKey('settings-diagnostics'),
+                    icon: Icons.bug_report_outlined,
+                    iconColor: colors.primary,
+                    title: l10n.settingsDiagnosticsTitle,
+                    subtitle: l10n.settingsDiagnosticsSubtitle,
+                    colors: colors,
+                    onTap: () => context.push('/settings/diagnostics'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sectionGap),
+
+            // --- Danger zone ---
+            SizedBox(
+              key: const ValueKey('settings-section-danger'),
+              width: double.infinity,
+              child: Text(
+                l10n.settingsDangerZoneSection,
+                style: AppTypography.title.copyWith(color: colors.error),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SectionCard(
+              padding: EdgeInsets.zero,
+              child: _SettingsTile(
+                key: const ValueKey('settings-logout'),
+                icon: Icons.logout,
+                iconColor: colors.error,
+                title: l10n.settingsLogOutTitle,
+                subtitle: l10n.settingsLogOutSubtitle,
+                colors: colors,
+                trailing: _isLoggingOut
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : null,
+                enabled: !_isLoggingOut,
+                onTap: _isLoggingOut ? null : _confirmLogout,
+              ),
+            ),
           ],
-
-          // --- Server section ---
-          Text(
-            l10n.baseUrlSettingsSettingsTile,
-            key: const ValueKey('settings-section-server'),
-            style: AppTypography.title.copyWith(color: colors.text),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SectionCard(
-            padding: EdgeInsets.zero,
-            child: _SettingsTile(
-              key: const ValueKey('settings-base-url'),
-              icon: Icons.dns_outlined,
-              iconColor: colors.primary,
-              title: l10n.baseUrlSettingsSettingsTile,
-              subtitle: l10n.baseUrlSettingsSettingsTileSubtitle,
-              colors: colors,
-              onTap: () => context.push('/settings/base-url'),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sectionGap),
-
-          // --- More section ---
-          Text(
-            'More',
-            key: const ValueKey('settings-section-more'),
-            style: AppTypography.title.copyWith(color: colors.text),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SectionCard(
-            padding: EdgeInsets.zero,
-            child: Column(
-              children: [
-                _SettingsTile(
-                  key: const ValueKey('settings-billing'),
-                  icon: Icons.credit_card_outlined,
-                  iconColor: colors.primary,
-                  title: 'Billing',
-                  subtitle: 'Review your current subscription summary.',
-                  colors: colors,
-                  onTap: () => context.push('/billing'),
-                ),
-                Divider(height: 1, color: colors.border),
-                _SettingsTile(
-                  key: const ValueKey('settings-release-notes'),
-                  icon: Icons.newspaper_outlined,
-                  iconColor: colors.primary,
-                  title: 'Release Notes',
-                  subtitle: 'See the latest packaged product updates.',
-                  colors: colors,
-                  onTap: () => context.push('/release-notes'),
-                ),
-                Divider(height: 1, color: colors.border),
-                _SettingsTile(
-                  key: const ValueKey('settings-diagnostics'),
-                  icon: Icons.bug_report_outlined,
-                  iconColor: colors.primary,
-                  title: 'Diagnostics',
-                  subtitle: 'View and export diagnostic logs.',
-                  colors: colors,
-                  onTap: () => context.push('/settings/diagnostics'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sectionGap),
-
-          // --- Danger zone ---
-          Text(
-            'Danger Zone',
-            key: const ValueKey('settings-section-danger'),
-            style: AppTypography.title.copyWith(color: colors.error),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SectionCard(
-            padding: EdgeInsets.zero,
-            child: _SettingsTile(
-              key: const ValueKey('settings-logout'),
-              icon: Icons.logout,
-              iconColor: colors.error,
-              title: 'Log Out',
-              subtitle: 'Sign out of this device.',
-              colors: colors,
-              trailing: _isLoggingOut
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : null,
-              enabled: !_isLoggingOut,
-              onTap: _isLoggingOut ? null : _confirmLogout,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Future<void> _confirmLogout() async {
+    final l10n = ref.read(appLocalizationsProvider);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         key: const ValueKey('logout-confirmation-dialog'),
-        title: const Text('Log out?'),
-        content: const Text('You will be signed out of this device.'),
+        title: Text(l10n.settingsLogOutDialogTitle),
+        content: Text(l10n.settingsLogOutDialogContent),
         actions: [
           TextButton(
             key: const ValueKey('logout-cancel'),
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.settingsLogOutDialogCancel),
           ),
           FilledButton(
             key: const ValueKey('logout-confirm'),
@@ -343,7 +374,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               Theme.of(context).colorScheme,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Log out'),
+            child: Text(l10n.settingsLogOutDialogConfirm),
           ),
         ],
       ),
@@ -423,13 +454,24 @@ class _SettingsTile extends StatelessWidget {
                     style: AppTypography.body.copyWith(color: colors.text),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    key: subtitleKey,
-                    style: AppTypography.caption.copyWith(
-                      color: colors.textSecondary,
+                  if (subtitleKey != null)
+                    SizedBox(
+                      key: subtitleKey,
+                      width: double.infinity,
+                      child: Text(
+                        subtitle,
+                        style: AppTypography.caption.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    )
+                  else
+                    Text(
+                      subtitle,
+                      style: AppTypography.caption.copyWith(
+                        color: colors.textSecondary,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -449,12 +491,14 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-String _notificationSummary(NotificationState state) {
+String _notificationSummary(NotificationState state, AppLocalizations l10n) {
   final permission = switch (state.permissionStatus) {
-    NotificationPermissionStatus.granted => 'Granted',
-    NotificationPermissionStatus.denied => 'Denied',
-    NotificationPermissionStatus.provisional => 'Provisional',
-    NotificationPermissionStatus.unknown => 'Not requested',
+    NotificationPermissionStatus.granted => l10n.settingsNotificationGranted,
+    NotificationPermissionStatus.denied => l10n.settingsNotificationDenied,
+    NotificationPermissionStatus.provisional =>
+      l10n.settingsNotificationProvisional,
+    NotificationPermissionStatus.unknown =>
+      l10n.settingsNotificationNotRequested,
   };
   final filter = state.notificationPreference.title;
   return '$permission \u00b7 $filter';
