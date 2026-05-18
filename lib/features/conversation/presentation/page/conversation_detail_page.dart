@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_info_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
@@ -34,6 +35,7 @@ import 'package:slock_app/features/conversation/application/current_open_convers
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/download_priority_scheduler.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -820,6 +822,29 @@ class _ConversationDetailScreenState
         .translateMessages(messageIds);
   }
 
+  /// #566: Eagerly register all image attachments with the download scheduler.
+  /// This ensures offscreen items are tracked (deferred) from page load.
+  /// VisibilityDetector later promotes visible items to the priority queue.
+  void _registerAttachmentDownloads(
+    List<ConversationMessageSummary> messages,
+  ) {
+    final scheduler = ref.read(downloadSchedulerProvider.notifier);
+    for (final message in messages) {
+      final attachments = message.attachments;
+      if (attachments == null) continue;
+      for (final attachment in attachments) {
+        if (attachment.id == null) continue;
+        final mimeType = attachment.type.toLowerCase();
+        if (!mimeType.startsWith('image/')) continue;
+        if (attachment.thumbnailUrl == null && attachment.url == null) continue;
+        scheduler.enqueue(
+          attachment.id!,
+          () async {/* Pre-fetch signed URL — actual fetch added later. */},
+        );
+      }
+    }
+  }
+
   /// Handles the race where conversation data arrives before translation
   /// settings. When settings transition to success and conversation is
   /// already loaded, re-trigger auto-translate.
@@ -925,6 +950,14 @@ class _ConversationDetailScreenState
       // INV-TRANSLATE-3: auto-translate visible messages on first load
       // when translation mode is auto.
       _autoTranslateIfNeeded(next.messages);
+    }
+
+    // #566: Register attachment downloads on every state change (not just
+    // first load). After loadOlder() appends messages, the new attachments
+    // must also be enqueued. The scheduler's enqueue() deduplicates, so
+    // calling with all messages on every change is safe.
+    if (next.status == ConversationDetailStatus.success) {
+      _registerAttachmentDownloads(next.messages);
     }
 
     if (!_scrollController.hasClients) {
@@ -3432,7 +3465,7 @@ class _ConversationSearchBarState extends State<_ConversationSearchBar> {
   }
 }
 
-class _AttachmentSection extends StatelessWidget {
+class _AttachmentSection extends ConsumerWidget {
   const _AttachmentSection({required this.attachments});
 
   final List<MessageAttachment> attachments;
@@ -3477,7 +3510,7 @@ class _AttachmentSection extends StatelessWidget {
       name.endsWith('.md') || name.endsWith('.markdown');
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
@@ -3487,7 +3520,7 @@ class _AttachmentSection extends StatelessWidget {
           for (final attachment in attachments)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: _buildAttachmentWidget(context, attachment),
+              child: _buildAttachmentWidget(context, ref, attachment),
             ),
         ],
       ),
@@ -3496,13 +3529,37 @@ class _AttachmentSection extends StatelessWidget {
 
   Widget _buildAttachmentWidget(
     BuildContext context,
+    WidgetRef ref,
     MessageAttachment attachment,
   ) {
     final mimeType = attachment.type.toLowerCase();
 
     if (_imageTypes.contains(mimeType) &&
         (attachment.thumbnailUrl != null || attachment.url != null)) {
-      return _ImageAttachmentPreview(attachment: attachment);
+      final imageWidget = _ImageAttachmentPreview(attachment: attachment);
+      // Wrap in VisibilityDetector so the scheduler knows which items are
+      // on-screen (priority) vs offscreen (deferred). The actual enqueue
+      // happens eagerly in _registerAttachmentDownloads on message load.
+      if (attachment.id != null) {
+        return VisibilityDetector(
+          key: Key('download-visibility-${attachment.id}'),
+          onVisibilityChanged: (info) {
+            // Guard: VisibilityDetector fires callbacks asynchronously (next
+            // frame). If the widget tree was disposed between frames, ref is
+            // invalid — ignore the late callback safely.
+            try {
+              ref.read(downloadSchedulerProvider.notifier).onVisibilityChanged(
+                    attachment.id!,
+                    info.visibleFraction > 0,
+                  );
+            } on StateError {
+              // Widget disposed — ignore late visibility callback.
+            }
+          },
+          child: imageWidget,
+        );
+      }
+      return imageWidget;
     }
 
     if (_htmlTypes.contains(mimeType)) {
