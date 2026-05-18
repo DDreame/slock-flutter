@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
+import 'package:slock_app/features/conversation/application/message_export_service.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 // ---------------------------------------------------------------------------
@@ -12,11 +14,12 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 
 /// Renders selected messages as a branded export card suitable for capture.
 ///
-/// Phase A stub — Phase B implements styled layout with:
-/// - App header with logo/name
-/// - Messages in chronological order with sender labels
+/// Messages are sorted by [createdAt] in ascending (chronological) order.
+/// Layout:
+/// - App header with "Slock" branding
+/// - Messages list with sender name + content
 /// - Timestamp footer
-/// - Branded background color
+/// - Branded background color ([exportCardBackgroundColor])
 class MessageExportCard extends StatelessWidget {
   const MessageExportCard({
     super.key,
@@ -32,14 +35,87 @@ class MessageExportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Phase B: styled message list with branding.
+    // Sort messages chronologically.
+    final sorted = List<ConversationMessageSummary>.from(messages)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    // Determine timestamp range for footer.
+    final earliest = sorted.first.createdAt;
+    final latest = sorted.last.createdAt;
+    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+    final footerText = sorted.length == 1
+        ? dateFormat.format(earliest)
+        : '${dateFormat.format(earliest)} – ${dateFormat.format(latest)}';
+
     return RepaintBoundary(
       key: boundaryKey,
       child: Container(
         key: const ValueKey('message-export-card'),
-        color: Colors.white,
-        padding: const EdgeInsets.all(16),
-        child: const SizedBox.shrink(),
+        color: exportCardBackgroundColor,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── App branding header ──
+            const Center(
+              child: Text(
+                'Slock',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A1A),
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: Color(0xFFE0E0E0)),
+            const SizedBox(height: 12),
+
+            // ── Messages ──
+            ...sorted.map((msg) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        msg.senderName ?? 'Unknown',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF555555),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        msg.content,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: Color(0xFF1A1A1A),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+
+            // ── Timestamp footer ──
+            const SizedBox(height: 8),
+            const Divider(height: 1, color: Color(0xFFE0E0E0)),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                footerText,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF999999),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -36,6 +36,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/application/download_priority_scheduler.dart';
+import 'package:slock_app/features/conversation/application/message_export_service.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -46,6 +47,7 @@ import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/message_export_card.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/composer_keyboard_handler.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
@@ -4748,8 +4750,57 @@ class _SelectionActionBar extends ConsumerWidget {
               icon: const Icon(Icons.image_outlined),
               tooltip: 'Export as image',
               onPressed: selectedCount > 0
-                  ? () {
-                      // Phase B: trigger MessageExportService flow.
+                  ? () async {
+                      // Gather selected messages in chronological order.
+                      final ids = state.selectedMessageIds;
+                      final selectedMessages = state.messages
+                          .where((m) => ids.contains(m.id))
+                          .toList()
+                        ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+                      if (selectedMessages.isEmpty) return;
+
+                      // Render the export card in an overlay for capture.
+                      final boundaryKey = GlobalKey();
+                      final overlay = Overlay.of(context);
+                      final entry = OverlayEntry(
+                        builder: (_) => Transform.translate(
+                          offset: const Offset(-10000, -10000),
+                          child: SizedBox(
+                            width: 360,
+                            child: MessageExportCard(
+                              messages: selectedMessages,
+                              boundaryKey: boundaryKey,
+                            ),
+                          ),
+                        ),
+                      );
+                      overlay.insert(entry);
+
+                      // Wait for the overlay to be laid out and painted.
+                      // addPostFrameCallback fires after the next frame renders.
+                      final completer = Completer<void>();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        completer.complete();
+                      });
+                      await completer.future;
+
+                      // Capture and share.
+                      final service = ref.read(messageExportServiceProvider);
+                      await service.exportSelectedMessages(
+                        selectedMessages,
+                        boundaryKey: boundaryKey,
+                      );
+
+                      // Clean up overlay.
+                      entry.remove();
+
+                      // Exit selection mode.
+                      if (context.mounted) {
+                        ref
+                            .read(conversationDetailStoreProvider.notifier)
+                            .exitSelectionMode();
+                      }
                     }
                   : null,
             ),
