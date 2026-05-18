@@ -28,6 +28,8 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ---------------------------------------------------------------------------
 // #491: Channels Tab Skeleton Integration Tests
@@ -42,6 +44,13 @@ import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   const serverId = ServerScopeId('server-1');
+
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
 
   const sampleSnapshot = HomeWorkspaceSnapshot(
     serverId: serverId,
@@ -86,6 +95,7 @@ void main() {
   }) {
     return ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         activeServerScopeIdProvider.overrideWithValue(serverId),
         homeRepositoryProvider.overrideWithValue(homeRepository),
         sidebarOrderRepositoryProvider.overrideWithValue(

@@ -1,11 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 // ---------------------------------------------------------------------------
-// #574: Channel Sort Preference — Stub (Phase A)
+// #574: Channel Sort Preference
 //
-// Provides the enum, providers, and notifier interface referenced by
-// Phase A tests. Phase B implements the actual logic.
+// Persists the user's channel list sort order (recent activity / A-Z)
+// to SharedPreferences and provides a sorted channel list via a
+// family provider.
 // ---------------------------------------------------------------------------
 
 /// User preference for channel list sort order.
@@ -24,9 +27,6 @@ enum ChannelSortPreference {
 
 /// Provides the current [ChannelSortPreference] and persists changes
 /// to SharedPreferences.
-///
-/// Phase B: implement as a Notifier backed by SharedPreferences with
-/// server-scoped key.
 final channelSortPreferenceProvider =
     NotifierProvider<ChannelSortPreferenceNotifier, ChannelSortPreference>(
   ChannelSortPreferenceNotifier.new,
@@ -36,24 +36,47 @@ final channelSortPreferenceProvider =
 class ChannelSortPreferenceNotifier extends Notifier<ChannelSortPreference> {
   @override
   ChannelSortPreference build() {
-    // Phase B: read from SharedPreferences.
-    throw UnimplementedError('#574 Phase B: implement sort preference');
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final stored = prefs.getString(ChannelSortPreference.prefsKey);
+    if (stored == 'alphabetical') {
+      return ChannelSortPreference.alphabetical;
+    }
+    return ChannelSortPreference.recentActivity;
   }
 
   /// Update the sort preference and persist to SharedPreferences.
   void setSortPreference(ChannelSortPreference preference) {
-    throw UnimplementedError('#574 Phase B: implement setSortPreference');
+    state = preference;
+    ref
+        .read(sharedPreferencesProvider)
+        .setString(ChannelSortPreference.prefsKey, preference.name);
   }
 }
 
 /// Given a list of channels, returns them sorted according to the
 /// current [channelSortPreferenceProvider].
-///
-/// Phase B: implement as a family provider that applies the appropriate
-/// comparator based on sort preference.
 final sortedChannelsProvider =
     Provider.family<List<HomeChannelSummary>, List<HomeChannelSummary>>(
   (ref, channels) {
-    throw UnimplementedError('#574 Phase B: implement sorted channels');
+    final preference = ref.watch(channelSortPreferenceProvider);
+    final sorted = List<HomeChannelSummary>.of(channels);
+
+    switch (preference) {
+      case ChannelSortPreference.recentActivity:
+        sorted.sort((a, b) {
+          final aTime = a.lastActivityAt;
+          final bTime = b.lastActivityAt;
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime); // descending (newest first)
+        });
+      case ChannelSortPreference.alphabetical:
+        sorted.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+    }
+
+    return sorted;
   },
 );

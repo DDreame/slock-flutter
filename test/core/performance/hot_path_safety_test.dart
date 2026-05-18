@@ -151,6 +151,8 @@ void main() {
       'INV-MOUNTED-CHANNEL-1: channels_tab deferred mark-read does not '
       'fire after widget disposal',
       (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
         int markReadCount = 0;
 
         final router = GoRouter(
@@ -170,6 +172,7 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
+              sharedPreferencesProvider.overrideWithValue(prefs),
               channelMutedIdsProvider.overrideWith((ref) => <String>{}),
               activeServerScopeIdProvider.overrideWithValue(serverId),
               homeRepositoryProvider.overrideWithValue(

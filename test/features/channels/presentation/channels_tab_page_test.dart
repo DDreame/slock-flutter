@@ -31,6 +31,8 @@ import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/l10n/app_localizations_provider.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -100,6 +102,13 @@ void main() {
     directMessages: [],
   );
 
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   Widget buildApp({
     required HomeRepository homeRepository,
     ServerScopeId? activeServerId = serverId,
@@ -130,6 +139,7 @@ void main() {
 
     return ProviderScope(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         appLocalizationsProvider.overrideWithValue(
           lookupAppLocalizations(const Locale('en')),
         ),
@@ -473,6 +483,7 @@ void main() {
   }) async {
     final container = ProviderContainer(
       overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
         appLocalizationsProvider.overrideWithValue(
           lookupAppLocalizations(const Locale('en')),
         ),

@@ -76,7 +76,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'ChannelListStore sorts by recent activity (default)',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -108,7 +107,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'ChannelListStore sorts alphabetically when preference is A-Z',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -144,7 +142,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'Sort preference persists across restarts',
-    skip: true,
     () async {
       // Phase 1 (write-path): Set preference and verify it was written
       // to SharedPreferences via the documented key constant.
@@ -209,7 +206,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Channel list header shows sort toggle',
-    skip: true,
     (tester) async {
       final snapshot = HomeWorkspaceSnapshot(
         serverId: serverId,
