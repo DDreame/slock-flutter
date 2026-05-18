@@ -4744,6 +4744,17 @@ class _SelectionActionBar extends ConsumerWidget {
             ),
             const SizedBox(width: AppSpacing.xs),
             IconButton(
+              key: const ValueKey('selection-action-export'),
+              icon: const Icon(Icons.image_outlined),
+              tooltip: 'Export as image',
+              onPressed: selectedCount > 0
+                  ? () {
+                      // Phase B: trigger MessageExportService flow.
+                    }
+                  : null,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            IconButton(
               key: const ValueKey('selection-action-delete'),
               icon: Icon(Icons.delete_outline, color: colors.error),
               tooltip: 'Delete',
