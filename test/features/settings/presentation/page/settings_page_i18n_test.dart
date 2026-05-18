@@ -32,7 +32,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 //   1. Replace all 38 hardcoded strings in settings_page.dart with l10n calls
 //   2. Un-skip all 26 tests
 //
-// Phase A — all tests skip: true.
+// Phase B — all tests active (skip removed).
 // ---------------------------------------------------------------------------
 
 /// Chinese l10n instance used by all assertions.
@@ -45,7 +45,6 @@ void main() {
   group('Section headers use l10n', () {
     testWidgets(
       'AppBar title from l10n (T1)',
-      skip: true,
       (tester) async {
         // Production: AppBar(title: const Text('Settings'))
         // Phase B: AppBar(title: Text(l10n.settingsTitle))
@@ -66,7 +65,6 @@ void main() {
 
     testWidgets(
       'Account section header from l10n (T2)',
-      skip: true,
       (tester) async {
         // Production: Text('Account', key: ValueKey('settings-section-account'))
         // Phase B: Text(l10n.settingsAccountSection, ...)
@@ -89,7 +87,6 @@ void main() {
 
     testWidgets(
       'Workspace section header from l10n (T3)',
-      skip: true,
       (tester) async {
         // Production: Text('Workspace', key: ValueKey('settings-section-workspace'))
         // Phase B: Text(l10n.settingsWorkspaceSection, ...)
@@ -113,7 +110,6 @@ void main() {
 
     testWidgets(
       'Notifications section header from l10n (T4)',
-      skip: true,
       (tester) async {
         // Production: Text('Notifications', key: ValueKey('settings-section-notifications'))
         // Phase B: Text(l10n.settingsNotificationsSection, ...)
@@ -138,7 +134,6 @@ void main() {
 
     testWidgets(
       'Appearance section header from l10n (T5)',
-      skip: true,
       (tester) async {
         // Production: Text('Appearance', key: ValueKey('settings-section-appearance'))
         // Phase B: Text(l10n.settingsAppearanceSection, ...)
@@ -163,7 +158,6 @@ void main() {
 
     testWidgets(
       'Language section header from l10n (T6)',
-      skip: true,
       (tester) async {
         // Production: Text('Language', key: ValueKey('settings-section-language'))
         // Phase B: Text(l10n.settingsLanguageSection, ...)
@@ -187,7 +181,6 @@ void main() {
 
     testWidgets(
       'Security section header from l10n (T7)',
-      skip: true,
       (tester) async {
         // Security section only renders when biometric hardware is available.
         // Production: Text('Security', key: ValueKey('settings-section-security'))
@@ -219,7 +212,6 @@ void main() {
 
     testWidgets(
       'More section header from l10n (T8)',
-      skip: true,
       (tester) async {
         // Production: Text('More', key: ValueKey('settings-section-more'))
         // Phase B: Text(l10n.settingsMoreSection, ...)
@@ -248,7 +240,6 @@ void main() {
 
     testWidgets(
       'Danger Zone section header from l10n (T9)',
-      skip: true,
       (tester) async {
         // Production: Text('Danger Zone', key: ValueKey('settings-section-danger'))
         // Phase B: Text(l10n.settingsDangerZoneSection, ...)
@@ -283,7 +274,6 @@ void main() {
   group('Tile titles and subtitles use l10n', () {
     testWidgets(
       'My Profile tile title from l10n (T10)',
-      skip: true,
       (tester) async {
         // Production: title: 'My Profile' in _SettingsTile
         // Phase B: title: l10n.settingsMyProfileTitle
@@ -306,7 +296,6 @@ void main() {
 
     testWidgets(
       'My Profile tile subtitle from l10n (T11)',
-      skip: true,
       (tester) async {
         // Production: subtitle: 'Review your current account details.'
         // Phase B: subtitle: l10n.settingsMyProfileSubtitle
@@ -330,7 +319,6 @@ void main() {
 
     testWidgets(
       'Members tile title from l10n (T12)',
-      skip: true,
       (tester) async {
         // Production: title: 'Members'
         // Phase B: title: l10n.settingsMembersTitle
@@ -353,7 +341,6 @@ void main() {
 
     testWidgets(
       'Members tile subtitle from l10n (T13)',
-      skip: true,
       (tester) async {
         // Production: subtitle: 'View and manage workspace members.'
         // Phase B: subtitle: l10n.settingsMembersSubtitle
@@ -376,7 +363,6 @@ void main() {
 
     testWidgets(
       'Notification Settings tile from l10n (T14)',
-      skip: true,
       (tester) async {
         // Production: title: 'Notification Settings'
         // Phase B: title: l10n.settingsNotificationSettingsTitle
@@ -400,7 +386,6 @@ void main() {
 
     testWidgets(
       'Theme tile title from l10n (T15)',
-      skip: true,
       (tester) async {
         // Production: title: 'Theme'
         // Phase B: title: l10n.settingsThemeTitle
@@ -423,7 +408,6 @@ void main() {
 
     testWidgets(
       'Translation tile title from l10n (T16)',
-      skip: true,
       (tester) async {
         // Production: title: 'Translation'
         // Phase B: title: l10n.settingsTranslationTitle
@@ -453,7 +437,6 @@ void main() {
 
     testWidgets(
       'Translation tile subtitle from l10n (T17)',
-      skip: true,
       (tester) async {
         // Production: subtitle: 'Preferred language and translation mode.'
         // Phase B: subtitle: l10n.settingsTranslationSubtitle
@@ -483,7 +466,6 @@ void main() {
 
     testWidgets(
       'Biometric Lock tile from l10n (T18)',
-      skip: true,
       (tester) async {
         // Security section only visible when biometric hardware available.
         // Production: title: 'Biometric Lock'
@@ -514,7 +496,6 @@ void main() {
 
     testWidgets(
       'Biometric Lock enabled subtitle from l10n (T19)',
-      skip: true,
       (tester) async {
         // Production: subtitle: 'Enabled — unlock with biometrics after inactivity'
         // Phase B: subtitle: l10n.settingsBiometricLockEnabled
@@ -546,7 +527,6 @@ void main() {
 
     testWidgets(
       'Billing tile from l10n (T20)',
-      skip: true,
       (tester) async {
         // Production: title: 'Billing', subtitle: 'Review your current subscription summary.'
         // Phase B: title: l10n.settingsBillingTitle, subtitle: l10n.settingsBillingSubtitle
@@ -584,7 +564,6 @@ void main() {
 
     testWidgets(
       'Release Notes tile from l10n (T21)',
-      skip: true,
       (tester) async {
         // Production: title: 'Release Notes', subtitle: 'See the latest packaged product updates.'
         // Phase B: title: l10n.settingsReleaseNotesTitle, subtitle: l10n.settingsReleaseNotesSubtitle
@@ -624,7 +603,6 @@ void main() {
 
     testWidgets(
       'Diagnostics tile from l10n (T22)',
-      skip: true,
       (tester) async {
         // Production: title: 'Diagnostics', subtitle: 'View and export diagnostic logs.'
         // Phase B: title: l10n.settingsDiagnosticsTitle, subtitle: l10n.settingsDiagnosticsSubtitle
@@ -664,7 +642,6 @@ void main() {
 
     testWidgets(
       'Log Out tile from l10n (T23)',
-      skip: true,
       (tester) async {
         // Production: title: 'Log Out', subtitle: 'Sign out of this device.'
         // Phase B: title: l10n.settingsLogOutTitle, subtitle: l10n.settingsLogOutSubtitle
@@ -707,7 +684,6 @@ void main() {
   group('Dialog and misc use l10n', () {
     testWidgets(
       'Logout dialog uses l10n (T24)',
-      skip: true,
       (tester) async {
         // Tap Log Out -> dialog appears with 4 strings.
         // Production:
@@ -791,7 +767,6 @@ void main() {
 
     testWidgets(
       'Profile card fallbacks from l10n (T25)',
-      skip: true,
       (tester) async {
         // When session.displayName is null, the profile card shows
         // fallback strings.
@@ -830,25 +805,16 @@ void main() {
       },
     );
 
+    // T26 — Split into individual tests per permission status.
+    // Riverpod 2.6.1 ProviderScope.updateOverrides does not invalidate
+    // NotifierProvider.overrideWith within a single testWidgets, so each
+    // state needs its own fresh ProviderScope (separate testWidgets).
     testWidgets(
-      'Notification permission summary from l10n (T26)',
-      skip: true,
+      'Notification permission unknown from l10n (T26a)',
       (tester) async {
-        // The notification tile subtitle shows a permission summary
-        // with hardcoded status labels.
-        // Production: 'Granted', 'Denied', 'Provisional', 'Not requested'
-        // Phase B:
-        //   l10n.settingsNotificationGranted
-        //   l10n.settingsNotificationDenied
-        //   l10n.settingsNotificationProvisional
-        //   l10n.settingsNotificationNotRequested
-        //
-        // Test each permission status label appears correctly.
-        // Default state uses NotificationPermissionStatus.unknown -> 'Not requested'.
         await tester.pumpWidget(_buildApp());
         await tester.pumpAndSettle();
 
-        // Default permission is unknown -> Chinese 'Not requested'.
         expect(
           find.textContaining(_zhL10n.settingsNotificationNotRequested),
           findsOneWidget,
@@ -856,8 +822,12 @@ void main() {
               'Permission unknown must show l10n.settingsNotificationNotRequested '
               '(expected: "${_zhL10n.settingsNotificationNotRequested}")',
         );
+      },
+    );
 
-        // Rebuild with granted permission.
+    testWidgets(
+      'Notification permission granted from l10n (T26b)',
+      (tester) async {
         await tester.pumpWidget(
           _buildApp(
             notificationPermission: NotificationPermissionStatus.granted,
@@ -872,8 +842,12 @@ void main() {
               'Permission granted must show l10n.settingsNotificationGranted '
               '(expected: "${_zhL10n.settingsNotificationGranted}")',
         );
+      },
+    );
 
-        // Rebuild with denied permission.
+    testWidgets(
+      'Notification permission denied from l10n (T26c)',
+      (tester) async {
         await tester.pumpWidget(
           _buildApp(
             notificationPermission: NotificationPermissionStatus.denied,
@@ -887,8 +861,12 @@ void main() {
           reason: 'Permission denied must show l10n.settingsNotificationDenied '
               '(expected: "${_zhL10n.settingsNotificationDenied}")',
         );
+      },
+    );
 
-        // Rebuild with provisional permission.
+    testWidgets(
+      'Notification permission provisional from l10n (T26d)',
+      (tester) async {
         await tester.pumpWidget(
           _buildApp(
             notificationPermission: NotificationPermissionStatus.provisional,

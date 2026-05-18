@@ -110,9 +110,12 @@ void main() {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
 
-      // Find the "Account" section header
+      // Find the "Account" section header (Text inside SizedBox key wrapper)
       final accountHeader = tester.widget<Text>(
-        find.byKey(const ValueKey('settings-section-account')),
+        find.descendant(
+          of: find.byKey(const ValueKey('settings-section-account')),
+          matching: find.byType(Text),
+        ),
       );
       expect(accountHeader.style?.color, AppColors.light.text);
     });
@@ -124,8 +127,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // The "My Profile" subtitle should use textSecondary
+      // (Text inside SizedBox key wrapper)
       final subtitle = tester.widget<Text>(
-        find.byKey(const ValueKey('settings-my-profile-subtitle')),
+        find.descendant(
+          of: find.byKey(const ValueKey('settings-my-profile-subtitle')),
+          matching: find.byType(Text),
+        ),
       );
       expect(subtitle.style?.color, AppColors.light.textSecondary);
     });
@@ -220,7 +227,10 @@ void main() {
       await tester.pumpAndSettle();
 
       final accountHeader = tester.widget<Text>(
-        find.byKey(const ValueKey('settings-section-account')),
+        find.descendant(
+          of: find.byKey(const ValueKey('settings-section-account')),
+          matching: find.byType(Text),
+        ),
       );
       expect(accountHeader.style?.color, AppColors.dark.text);
     });
@@ -270,7 +280,10 @@ void main() {
         200,
       );
       final dangerHeader = tester.widget<Text>(
-        find.byKey(const ValueKey('settings-section-danger')),
+        find.descendant(
+          of: find.byKey(const ValueKey('settings-section-danger')),
+          matching: find.byType(Text),
+        ),
       );
       expect(dangerHeader.style?.color, AppColors.light.error);
 
