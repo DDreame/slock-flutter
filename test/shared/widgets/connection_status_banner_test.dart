@@ -187,7 +187,7 @@ void main() {
 
     // T5: Banner uses correct styling (surfaceAlt bg, caption text)
     testWidgets(
-      'uses warning background and caption text style',
+      'uses subtle informational background and caption text style',
       skip: true,
       (tester) async {
         await tester.pumpWidget(buildApp(
@@ -201,7 +201,8 @@ void main() {
           find.byKey(const ValueKey('connection-status-banner')),
         );
         final decoration = banner.decoration as BoxDecoration?;
-        expect(decoration?.color, AppColors.light.warning);
+        // Subtle informational banner — not warning/alarm colored.
+        expect(decoration?.color, AppColors.light.surfaceAlt);
 
         // Text should use caption style.
         final text = tester.widget<Text>(
