@@ -1,12 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 // ---------------------------------------------------------------------------
 // #566: Attachment Download Priority Queue
 //
 // Dual-queue scheduler: visible (priority) and deferred (FIFO).
 // Prioritizes attachments visible in viewport, defers offscreen.
+// Only visible items are actively downloaded — deferred items wait
+// until promoted via onVisibilityChanged.
 // ---------------------------------------------------------------------------
 
 /// Observable state of the download scheduler.
@@ -46,6 +49,9 @@ class _DownloadEntry {
 /// [onVisibilityChanged]. The scheduler maintains two internal queues
 /// (visible priority + deferred FIFO) and limits concurrency to
 /// [maxConcurrent] simultaneous downloads.
+///
+/// Only items in the visible queue are actively downloaded. Deferred
+/// items remain idle until promoted via [onVisibilityChanged].
 class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
   /// Maximum number of concurrent downloads.
   int get maxConcurrent => 3;
@@ -62,8 +68,17 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
   /// Currently in-flight download IDs.
   final Set<String> _inFlight = {};
 
+  /// IDs that have completed — prevents re-enqueue on widget rebuild.
+  final Set<String> _completed = {};
+
   @override
-  DownloadSchedulerState build() => const DownloadSchedulerState();
+  DownloadSchedulerState build() {
+    // Make VisibilityDetector report synchronously (no timer delay).
+    // This prevents pumpAndSettle timeouts in tests and gives more
+    // responsive priority updates in production.
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+    return const DownloadSchedulerState();
+  }
 
   /// Add a download to the scheduler.
   ///
@@ -78,7 +93,8 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
     Future<void> Function() download, {
     void Function()? onCancel,
   }) {
-    if (_entries.containsKey(id)) return; // already tracked
+    // Skip if already tracked or previously completed.
+    if (_entries.containsKey(id) || _completed.contains(id)) return;
 
     _entries[id] = _DownloadEntry(
       id: id,
@@ -89,7 +105,6 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
     // Start in deferred queue (offscreen until told otherwise).
     _deferredQueue.add(id);
     _emitState();
-    _pump();
   }
 
   /// Notify the scheduler that an item's viewport visibility changed.
@@ -125,21 +140,13 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
 
   /// Internal pump: start downloads up to [maxConcurrent].
   ///
-  /// Pulls from visible queue first (priority), then fills remaining
-  /// slots from deferred queue.
+  /// Only pulls from the visible queue. Deferred items remain idle
+  /// until promoted via [onVisibilityChanged].
   void _pump() {
-    // Fill from visible queue first.
     while (_inFlight.length < maxConcurrent && _visibleQueue.isNotEmpty) {
       final id = _visibleQueue.removeAt(0);
       _startDownload(id);
     }
-
-    // Then fill from deferred if slots remain.
-    while (_inFlight.length < maxConcurrent && _deferredQueue.isNotEmpty) {
-      final id = _deferredQueue.removeAt(0);
-      _startDownload(id);
-    }
-
     _emitState();
   }
 
@@ -149,7 +156,6 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
     if (entry == null) return;
 
     _inFlight.add(id);
-    _emitState();
 
     // Fire the download and handle completion.
     entry.download().then((_) {
@@ -161,8 +167,9 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
 
   /// Called when a download finishes (success or error).
   void _onDownloadComplete(String id) {
-    _inFlight.remove(id);
+    if (!_inFlight.remove(id)) return; // Already cancelled/removed.
     _entries.remove(id);
+    _completed.add(id);
     _emitState();
     _pump();
   }

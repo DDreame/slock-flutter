@@ -370,7 +370,13 @@ void main() {
             ),
           ),
         );
-        await tester.pumpAndSettle();
+        // CachedNetworkImage never completes in test mode (HTTP returns 400),
+        // keeping its CircularProgressIndicator animating forever. Use pump()
+        // instead of pumpAndSettle() — same pattern as
+        // conversation_attachment_preview_test.dart.
+        for (int i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
 
         // Scheduler should have been called with enqueue for each attachment.
         expect(spyScheduler.enqueuedIds.length, equals(10));

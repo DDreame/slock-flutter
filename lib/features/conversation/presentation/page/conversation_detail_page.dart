@@ -822,6 +822,29 @@ class _ConversationDetailScreenState
         .translateMessages(messageIds);
   }
 
+  /// #566: Eagerly register all image attachments with the download scheduler.
+  /// This ensures offscreen items are tracked (deferred) from page load.
+  /// VisibilityDetector later promotes visible items to the priority queue.
+  void _registerAttachmentDownloads(
+    List<ConversationMessageSummary> messages,
+  ) {
+    final scheduler = ref.read(downloadSchedulerProvider.notifier);
+    for (final message in messages) {
+      final attachments = message.attachments;
+      if (attachments == null) continue;
+      for (final attachment in attachments) {
+        if (attachment.id == null) continue;
+        final mimeType = attachment.type.toLowerCase();
+        if (!mimeType.startsWith('image/')) continue;
+        if (attachment.thumbnailUrl == null && attachment.url == null) continue;
+        scheduler.enqueue(
+          attachment.id!,
+          () async {/* Pre-fetch signed URL — actual fetch added later. */},
+        );
+      }
+    }
+  }
+
   /// Handles the race where conversation data arrives before translation
   /// settings. When settings transition to success and conversation is
   /// already loaded, re-trigger auto-translate.
@@ -927,6 +950,11 @@ class _ConversationDetailScreenState
       // INV-TRANSLATE-3: auto-translate visible messages on first load
       // when translation mode is auto.
       _autoTranslateIfNeeded(next.messages);
+
+      // #566: Eagerly register ALL attachment downloads with the scheduler
+      // so offscreen items are tracked (deferred) from the start. Visibility
+      // changes later promote them to priority queue.
+      _registerAttachmentDownloads(next.messages);
     }
 
     if (!_scrollController.hasClients) {
@@ -3506,22 +3534,24 @@ class _AttachmentSection extends ConsumerWidget {
     if (_imageTypes.contains(mimeType) &&
         (attachment.thumbnailUrl != null || attachment.url != null)) {
       final imageWidget = _ImageAttachmentPreview(attachment: attachment);
-      // Schedule download if attachment has an ID.
+      // Wrap in VisibilityDetector so the scheduler knows which items are
+      // on-screen (priority) vs offscreen (deferred). The actual enqueue
+      // happens eagerly in _registerAttachmentDownloads on message load.
       if (attachment.id != null) {
-        final scheduler = ref.read(downloadSchedulerProvider.notifier);
-        scheduler.enqueue(
-          attachment.id!,
-          () async {
-            /* Pre-fetch signed URL — actual fetch added when needed. */
-          },
-        );
         return VisibilityDetector(
           key: Key('download-visibility-${attachment.id}'),
           onVisibilityChanged: (info) {
-            ref.read(downloadSchedulerProvider.notifier).onVisibilityChanged(
-                  attachment.id!,
-                  info.visibleFraction > 0,
-                );
+            // Guard: VisibilityDetector fires callbacks asynchronously (next
+            // frame). If the widget tree was disposed between frames, ref is
+            // invalid — ignore the late callback safely.
+            try {
+              ref.read(downloadSchedulerProvider.notifier).onVisibilityChanged(
+                    attachment.id!,
+                    info.visibleFraction > 0,
+                  );
+            } on StateError {
+              // Widget disposed — ignore late visibility callback.
+            }
           },
           child: imageWidget,
         );
