@@ -6,8 +6,7 @@
 //
 // Phase B: Implement ConnectionStatusBanner widget + wire into pages.
 //
-// Phase B — all tests active after implementation.
-// All tests skip: true — activated in Phase B.
+// Phase B — all tests active.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -52,7 +51,6 @@ void main() {
     // T1: Banner hidden when socket connected
     testWidgets(
       'hidden when socket status is connected',
-      skip: true,
       (tester) async {
         await tester.pumpWidget(buildApp(
           connectionState: const RealtimeConnectionState(
@@ -72,7 +70,6 @@ void main() {
     // T2: Banner shows "Reconnecting..." when disconnected
     testWidgets(
       'shows reconnecting text when disconnected',
-      skip: true,
       (tester) async {
         await tester.pumpWidget(buildApp(
           connectionState: const RealtimeConnectionState(
@@ -93,7 +90,6 @@ void main() {
     // T3: Banner shows "Reconnecting..." when reconnecting
     testWidgets(
       'shows reconnecting text when status is reconnecting',
-      skip: true,
       (tester) async {
         await tester.pumpWidget(buildApp(
           connectionState: const RealtimeConnectionState(
@@ -113,7 +109,6 @@ void main() {
     // T4: Banner auto-dismisses on reconnect (disconnected → connected)
     testWidgets(
       'auto-dismisses when status transitions to connected',
-      skip: true,
       (tester) async {
         // Start with disconnected.
         final stateNotifier = ValueNotifier(const RealtimeConnectionState(
@@ -188,7 +183,6 @@ void main() {
     // T5: Banner uses correct styling (surfaceAlt bg, caption text)
     testWidgets(
       'uses subtle informational background and caption text style',
-      skip: true,
       (tester) async {
         await tester.pumpWidget(buildApp(
           connectionState: const RealtimeConnectionState(
