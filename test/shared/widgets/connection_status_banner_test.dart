@@ -111,15 +111,13 @@ void main() {
       'auto-dismisses when status transitions to connected',
       (tester) async {
         // Start with disconnected.
-        final stateNotifier = ValueNotifier(const RealtimeConnectionState(
-          status: RealtimeConnectionStatus.disconnected,
-        ));
-
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
               realtimeServiceProvider.overrideWith(() {
-                return _FakeRealtimeService(stateNotifier.value);
+                return _FakeRealtimeService(const RealtimeConnectionState(
+                  status: RealtimeConnectionStatus.disconnected,
+                ));
               }),
             ],
             child: MaterialApp(
@@ -145,30 +143,15 @@ void main() {
           findsOneWidget,
         );
 
-        // Simulate reconnection by rebuilding with connected state.
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              realtimeServiceProvider.overrideWith(() {
-                return _FakeRealtimeService(const RealtimeConnectionState(
-                  status: RealtimeConnectionStatus.connected,
-                ));
-              }),
-            ],
-            child: MaterialApp(
-              theme: AppTheme.light,
-              supportedLocales: AppLocalizations.supportedLocales,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              home: const Scaffold(
-                body: Column(
-                  children: [
-                    ConnectionStatusBanner(),
-                    Expanded(child: Placeholder()),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        // Simulate reconnection by transitioning notifier state directly.
+        // (A second pumpWidget with a new ProviderScope would reuse the
+        // existing element — overrides only apply at initState.)
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(ConnectionStatusBanner)),
+        );
+        container.read(realtimeServiceProvider.notifier).state =
+            const RealtimeConnectionState(
+          status: RealtimeConnectionStatus.connected,
         );
         await tester.pumpAndSettle();
 
