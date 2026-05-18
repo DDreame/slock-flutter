@@ -345,8 +345,8 @@ void main() {
       skip: true,
     );
 
-    // T2: If status is NOT initial (already loaded or loading), the auto-load
-    // guard prevents a redundant load() call.
+    // T2: After server switch, the auto-load microtask fires exactly once —
+    // the guard prevents a redundant second load() from the same rebuild.
     test(
       'InboxStore does not double-load if already loaded',
       () async {
@@ -359,10 +359,10 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        // Keep provider alive.
+        // Keep provider alive during microtask resolution.
         final sub = container.listen(inboxStoreProvider, (_, __) {});
 
-        // Select server A and load.
+        // Select server A.
         await container
             .read(serverSelectionStoreProvider.notifier)
             .selectServer('server-a');
@@ -381,21 +381,59 @@ void main() {
           hasMore: false,
         );
 
-        // Allow auto-load to fire.
+        // Allow auto-load microtask to fire for server A.
         await Future<void>.delayed(Duration.zero);
         await Future<void>.delayed(Duration.zero);
 
-        // Record load count after initial auto-load resolves.
-        final countAfterAutoLoad = inboxRepo.loadCount;
+        // Verify server A loaded successfully.
+        expect(
+          container.read(inboxStoreProvider).status,
+          InboxStatus.success,
+        );
 
-        // Manually call load() — should still work but NOT be doubled by
-        // the microtask guard since status is no longer initial.
-        await container.read(inboxStoreProvider.notifier).load();
-        final countAfterManualLoad = inboxRepo.loadCount;
+        // Record load count after server A auto-load.
+        final countBeforeSwitch = inboxRepo.loadCount;
 
-        // Only 1 additional load (the manual one), not 2.
-        expect(countAfterManualLoad - countAfterAutoLoad, 1,
-            reason: 'Guard should prevent double-load when status != initial');
+        // Prepare response for server B.
+        inboxRepo.fetchResponse = const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.dm,
+              channelId: 'dm-b1',
+              channelName: 'Bob',
+              unreadCount: 2,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 2,
+          hasMore: false,
+        );
+
+        // Switch to server B — build() fires, state resets to initial,
+        // auto-load microtask should fire exactly ONCE.
+        await container
+            .read(serverSelectionStoreProvider.notifier)
+            .selectServer('server-b');
+
+        // Allow microtasks to resolve fully.
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        // The auto-load guard should have triggered exactly 1 fetch for
+        // server B — not 0 (broken) and not 2 (double-load).
+        final countAfterSwitch = inboxRepo.loadCount;
+        expect(
+          countAfterSwitch - countBeforeSwitch,
+          1,
+          reason: 'Server switch should trigger exactly 1 auto-load, '
+              'not double-load',
+        );
+
+        // Verify state reached success for server B.
+        final state = container.read(inboxStoreProvider);
+        expect(state.status, InboxStatus.success);
+        expect(state.items.first.channelId, 'dm-b1');
 
         sub.close();
       },
