@@ -31,6 +31,9 @@ import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../stores/session/session_store_persistence_test.dart'
     show FakeAuthRepository;
@@ -48,9 +51,11 @@ Widget _buildRouterApp(GoRouter router) {
 /// testing. Returns the container and router.
 ({ProviderContainer container, GoRouter router}) _createAuthenticatedRouter({
   List<Override> extraOverrides = const [],
+  SharedPreferences? prefs,
 }) {
   final container = ProviderContainer(
     overrides: [
+      if (prefs != null) sharedPreferencesProvider.overrideWithValue(prefs),
       secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
       authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
       splashControllerProvider.overrideWith(() => _StallingSplashController()),
@@ -95,6 +100,13 @@ Future<void> _pumpNavigation(WidgetTester tester) async {
 }
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   group('Navigation linearization (#495)', () {
     // -------------------------------------------------------------------
     // INV-NAV-LINEAR-1: Push channel → pop → returns to /home
@@ -103,7 +115,7 @@ void main() {
       'push from home to channel detail → pop returns to home '
       '(INV-NAV-LINEAR-1)',
       (tester) async {
-        final setup = _createAuthenticatedRouter();
+        final setup = _createAuthenticatedRouter(prefs: prefs);
         addTearDown(setup.container.dispose);
         await _pumpAuthenticated(
           tester,
@@ -146,6 +158,7 @@ void main() {
       '(INV-NAV-LINEAR-2)',
       (tester) async {
         final setup = _createAuthenticatedRouter(
+          prefs: prefs,
           extraOverrides: [
             serverListRepositoryProvider.overrideWithValue(
               _FakeServerListRepository(['s1']),
@@ -203,7 +216,7 @@ void main() {
       'tab switch does not push to stack — back does not cycle tabs '
       '(INV-NAV-LINEAR-3)',
       (tester) async {
-        final setup = _createAuthenticatedRouter();
+        final setup = _createAuthenticatedRouter(prefs: prefs);
         addTearDown(setup.container.dispose);
         await _pumpAuthenticated(
           tester,
@@ -287,7 +300,7 @@ void main() {
       'push from home to DM detail → pop returns to home '
       '(INV-NAV-LINEAR-5)',
       (tester) async {
-        final setup = _createAuthenticatedRouter();
+        final setup = _createAuthenticatedRouter(prefs: prefs);
         addTearDown(setup.container.dispose);
         await _pumpAuthenticated(
           tester,
@@ -318,7 +331,7 @@ void main() {
       'push from inbox to thread replies → pop returns to inbox '
       '(INV-NAV-LINEAR-6)',
       (tester) async {
-        final setup = _createAuthenticatedRouter();
+        final setup = _createAuthenticatedRouter(prefs: prefs);
         addTearDown(setup.container.dispose);
         await _pumpAuthenticated(
           tester,
@@ -388,7 +401,7 @@ void main() {
       'canPop is true after push from shell root, false on tab switch '
       '(INV-NAV-LINEAR-8)',
       (tester) async {
-        final setup = _createAuthenticatedRouter();
+        final setup = _createAuthenticatedRouter(prefs: prefs);
         addTearDown(setup.container.dispose);
         await _pumpAuthenticated(
           tester,

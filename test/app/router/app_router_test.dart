@@ -1167,8 +1167,12 @@ void main() {
     Future<({ProviderContainer container, GoRouter router})> pumpAuthed(
       WidgetTester tester,
     ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+
       final container = ProviderContainer(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
           secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
           authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
