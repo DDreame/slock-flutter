@@ -248,7 +248,7 @@ class _InfoSection extends StatelessWidget {
         ),
       ),
       trailing: const Icon(Icons.chevron_right),
-      tileColor: isActive ? colors.primary.withOpacity(0.08) : null,
+      tileColor: isActive ? colors.primary.withValues(alpha: 0.08) : null,
       onTap: onTap,
     );
   }
