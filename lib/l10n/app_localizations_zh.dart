@@ -716,4 +716,118 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get agentStatusStopped => '已停止';
+
+  @override
+  String get settingsTitle => '设置';
+
+  @override
+  String get settingsAccountSection => '账户';
+
+  @override
+  String get settingsWorkspaceSection => '工作区';
+
+  @override
+  String get settingsNotificationsSection => '通知';
+
+  @override
+  String get settingsAppearanceSection => '外观';
+
+  @override
+  String get settingsLanguageSection => '语言';
+
+  @override
+  String get settingsSecuritySection => '安全';
+
+  @override
+  String get settingsMoreSection => '更多';
+
+  @override
+  String get settingsDangerZoneSection => '危险区域';
+
+  @override
+  String get settingsMyProfileTitle => '我的资料';
+
+  @override
+  String get settingsMyProfileSubtitle => '查看您的当前账户详情。';
+
+  @override
+  String get settingsMembersTitle => '成员';
+
+  @override
+  String get settingsMembersSubtitle => '查看和管理工作区成员。';
+
+  @override
+  String get settingsNotificationSettingsTitle => '通知设置';
+
+  @override
+  String get settingsThemeTitle => '主题';
+
+  @override
+  String get settingsTranslationTitle => '翻译';
+
+  @override
+  String get settingsTranslationSubtitle => '首选语言和翻译模式。';
+
+  @override
+  String get settingsBiometricLockTitle => '生物识别锁定';
+
+  @override
+  String get settingsBiometricLockEnabled => '已启用 - 不活动后使用生物识别解锁';
+
+  @override
+  String get settingsBiometricLockDisabled => '已禁用 - 无生物识别锁定';
+
+  @override
+  String get settingsBillingTitle => '账单';
+
+  @override
+  String get settingsBillingSubtitle => '查看您的当前订阅摘要。';
+
+  @override
+  String get settingsReleaseNotesTitle => '发布说明';
+
+  @override
+  String get settingsReleaseNotesSubtitle => '查看最新的产品更新。';
+
+  @override
+  String get settingsDiagnosticsTitle => '诊断';
+
+  @override
+  String get settingsDiagnosticsSubtitle => '查看和导出诊断日志。';
+
+  @override
+  String get settingsLogOutTitle => '退出登录';
+
+  @override
+  String get settingsLogOutSubtitle => '退出此设备。';
+
+  @override
+  String get settingsLogOutDialogTitle => '确认退出？';
+
+  @override
+  String get settingsLogOutDialogContent => '您将退出此设备的登录。';
+
+  @override
+  String get settingsLogOutDialogCancel => '取消';
+
+  @override
+  String get settingsLogOutDialogConfirm => '退出';
+
+  @override
+  String get settingsSignedInFallback => '已登录';
+
+  @override
+  String get settingsAccountUnavailable => '账户信息不可用';
+
+  @override
+  String get settingsNotificationGranted => '已授权';
+
+  @override
+  String get settingsNotificationDenied => '已拒绝';
+
+  @override
+  String get settingsNotificationProvisional => '临时授权';
+
+  @override
+  String get settingsNotificationNotRequested => '未请求';
 }

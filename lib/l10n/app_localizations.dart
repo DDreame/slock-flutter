@@ -1443,6 +1443,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stopped'**
   String get agentStatusStopped;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsAccountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get settingsAccountSection;
+
+  /// No description provided for @settingsWorkspaceSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace'**
+  String get settingsWorkspaceSection;
+
+  /// No description provided for @settingsNotificationsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get settingsNotificationsSection;
+
+  /// No description provided for @settingsAppearanceSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsAppearanceSection;
+
+  /// No description provided for @settingsLanguageSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsLanguageSection;
+
+  /// No description provided for @settingsSecuritySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Security'**
+  String get settingsSecuritySection;
+
+  /// No description provided for @settingsMoreSection.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get settingsMoreSection;
+
+  /// No description provided for @settingsDangerZoneSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Danger Zone'**
+  String get settingsDangerZoneSection;
+
+  /// No description provided for @settingsMyProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My Profile'**
+  String get settingsMyProfileTitle;
+
+  /// No description provided for @settingsMyProfileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your current account details.'**
+  String get settingsMyProfileSubtitle;
+
+  /// No description provided for @settingsMembersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get settingsMembersTitle;
+
+  /// No description provided for @settingsMembersSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View and manage workspace members.'**
+  String get settingsMembersSubtitle;
+
+  /// No description provided for @settingsNotificationSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Settings'**
+  String get settingsNotificationSettingsTitle;
+
+  /// No description provided for @settingsThemeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsThemeTitle;
+
+  /// No description provided for @settingsTranslationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get settingsTranslationTitle;
+
+  /// No description provided for @settingsTranslationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred language and translation mode.'**
+  String get settingsTranslationSubtitle;
+
+  /// No description provided for @settingsBiometricLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometric Lock'**
+  String get settingsBiometricLockTitle;
+
+  /// No description provided for @settingsBiometricLockEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled — unlock with biometrics after inactivity'**
+  String get settingsBiometricLockEnabled;
+
+  /// No description provided for @settingsBiometricLockDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled — no biometric lock on app access'**
+  String get settingsBiometricLockDisabled;
+
+  /// No description provided for @settingsBillingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing'**
+  String get settingsBillingTitle;
+
+  /// No description provided for @settingsBillingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your current subscription summary.'**
+  String get settingsBillingSubtitle;
+
+  /// No description provided for @settingsReleaseNotesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Release Notes'**
+  String get settingsReleaseNotesTitle;
+
+  /// No description provided for @settingsReleaseNotesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'See the latest packaged product updates.'**
+  String get settingsReleaseNotesSubtitle;
+
+  /// No description provided for @settingsDiagnosticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get settingsDiagnosticsTitle;
+
+  /// No description provided for @settingsDiagnosticsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View and export diagnostic logs.'**
+  String get settingsDiagnosticsSubtitle;
+
+  /// No description provided for @settingsLogOutTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log Out'**
+  String get settingsLogOutTitle;
+
+  /// No description provided for @settingsLogOutSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out of this device.'**
+  String get settingsLogOutSubtitle;
+
+  /// No description provided for @settingsLogOutDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out?'**
+  String get settingsLogOutDialogTitle;
+
+  /// No description provided for @settingsLogOutDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'You will be signed out of this device.'**
+  String get settingsLogOutDialogContent;
+
+  /// No description provided for @settingsLogOutDialogCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get settingsLogOutDialogCancel;
+
+  /// No description provided for @settingsLogOutDialogConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get settingsLogOutDialogConfirm;
+
+  /// No description provided for @settingsSignedInFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in'**
+  String get settingsSignedInFallback;
+
+  /// No description provided for @settingsAccountUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Account details unavailable'**
+  String get settingsAccountUnavailable;
+
+  /// No description provided for @settingsNotificationGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Granted'**
+  String get settingsNotificationGranted;
+
+  /// No description provided for @settingsNotificationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Denied'**
+  String get settingsNotificationDenied;
+
+  /// No description provided for @settingsNotificationProvisional.
+  ///
+  /// In en, this message translates to:
+  /// **'Provisional'**
+  String get settingsNotificationProvisional;
+
+  /// No description provided for @settingsNotificationNotRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Not requested'**
+  String get settingsNotificationNotRequested;
 }
 
 class _AppLocalizationsDelegate

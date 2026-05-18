@@ -9,6 +9,7 @@ import 'package:slock_app/core/scope/server_scope_id.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
@@ -22,16 +23,20 @@ import 'package:slock_app/stores/session/session_store.dart';
 // Verifies that SettingsPage text comes from AppLocalizations (l10n)
 // rather than hardcoded English strings.
 //
-// SettingsPage has 38 hardcoded English strings across 10 sections.
-// Only the Base URL tile currently uses l10n.
+// Strategy: render with Chinese locale and assert the Chinese l10n text
+// appears. Since production currently uses hardcoded English, these
+// assertions will fail until Phase B replaces hardcoded strings with
+// l10n calls — therefore all tests are skip: true.
 //
 // Phase B will:
-//   1. Add 38 new ARB keys (settingsTitle, settingsAccountSection, ...)
-//   2. Replace all hardcoded strings in settings_page.dart with l10n calls
-//   3. Un-skip all 26 tests
+//   1. Replace all 38 hardcoded strings in settings_page.dart with l10n calls
+//   2. Un-skip all 26 tests
 //
 // Phase A — all tests skip: true.
 // ---------------------------------------------------------------------------
+
+/// Chinese l10n instance used by all assertions.
+final AppLocalizations _zhL10n = lookupAppLocalizations(const Locale('zh'));
 
 void main() {
   // =========================================================================
@@ -50,10 +55,11 @@ void main() {
         expect(
           find.descendant(
             of: find.byType(AppBar),
-            matching: find.text('Settings'),
+            matching: find.text(_zhL10n.settingsTitle),
           ),
           findsOneWidget,
-          reason: 'AppBar title must use l10n.settingsTitle',
+          reason: 'AppBar title must use l10n.settingsTitle '
+              '(expected: "${_zhL10n.settingsTitle}")',
         );
       },
     );
@@ -70,9 +76,13 @@ void main() {
         final header = find.byKey(const ValueKey('settings-section-account'));
         expect(header, findsOneWidget);
         expect(
-          find.descendant(of: header, matching: find.text('Account')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsAccountSection),
+          ),
           findsOneWidget,
-          reason: 'Account section header must use l10n.settingsAccountSection',
+          reason: 'Account section header must use l10n.settingsAccountSection '
+              '(expected: "${_zhL10n.settingsAccountSection}")',
         );
       },
     );
@@ -89,10 +99,14 @@ void main() {
         final header = find.byKey(const ValueKey('settings-section-workspace'));
         expect(header, findsOneWidget);
         expect(
-          find.descendant(of: header, matching: find.text('Workspace')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsWorkspaceSection),
+          ),
           findsOneWidget,
           reason:
-              'Workspace section header must use l10n.settingsWorkspaceSection',
+              'Workspace section header must use l10n.settingsWorkspaceSection '
+              '(expected: "${_zhL10n.settingsWorkspaceSection}")',
         );
       },
     );
@@ -110,10 +124,14 @@ void main() {
             find.byKey(const ValueKey('settings-section-notifications'));
         expect(header, findsOneWidget);
         expect(
-          find.descendant(of: header, matching: find.text('Notifications')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsNotificationsSection),
+          ),
           findsOneWidget,
           reason:
-              'Notifications section header must use l10n.settingsNotificationsSection',
+              'Notifications section header must use l10n.settingsNotificationsSection '
+              '(expected: "${_zhL10n.settingsNotificationsSection}")',
         );
       },
     );
@@ -131,10 +149,14 @@ void main() {
             find.byKey(const ValueKey('settings-section-appearance'));
         expect(header, findsOneWidget);
         expect(
-          find.descendant(of: header, matching: find.text('Appearance')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsAppearanceSection),
+          ),
           findsOneWidget,
           reason:
-              'Appearance section header must use l10n.settingsAppearanceSection',
+              'Appearance section header must use l10n.settingsAppearanceSection '
+              '(expected: "${_zhL10n.settingsAppearanceSection}")',
         );
       },
     );
@@ -151,10 +173,14 @@ void main() {
         final header = find.byKey(const ValueKey('settings-section-language'));
         expect(header, findsOneWidget);
         expect(
-          find.descendant(of: header, matching: find.text('Language')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsLanguageSection),
+          ),
           findsOneWidget,
           reason:
-              'Language section header must use l10n.settingsLanguageSection',
+              'Language section header must use l10n.settingsLanguageSection '
+              '(expected: "${_zhL10n.settingsLanguageSection}")',
         );
       },
     );
@@ -179,10 +205,14 @@ void main() {
         final header = find.byKey(const ValueKey('settings-section-security'));
         expect(header, findsOneWidget);
         expect(
-          find.descendant(of: header, matching: find.text('Security')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsSecuritySection),
+          ),
           findsOneWidget,
           reason:
-              'Security section header must use l10n.settingsSecuritySection',
+              'Security section header must use l10n.settingsSecuritySection '
+              '(expected: "${_zhL10n.settingsSecuritySection}")',
         );
       },
     );
@@ -205,9 +235,13 @@ void main() {
         final header = find.byKey(const ValueKey('settings-section-more'));
         expect(header, findsOneWidget);
         expect(
-          find.descendant(of: header, matching: find.text('More')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsMoreSection),
+          ),
           findsOneWidget,
-          reason: 'More section header must use l10n.settingsMoreSection',
+          reason: 'More section header must use l10n.settingsMoreSection '
+              '(expected: "${_zhL10n.settingsMoreSection}")',
         );
       },
     );
@@ -230,10 +264,14 @@ void main() {
         final header = find.byKey(const ValueKey('settings-section-danger'));
         expect(header, findsOneWidget);
         expect(
-          find.descendant(of: header, matching: find.text('Danger Zone')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsDangerZoneSection),
+          ),
           findsOneWidget,
           reason:
-              'Danger Zone section header must use l10n.settingsDangerZoneSection',
+              'Danger Zone section header must use l10n.settingsDangerZoneSection '
+              '(expected: "${_zhL10n.settingsDangerZoneSection}")',
         );
       },
     );
@@ -255,9 +293,13 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-my-profile'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('My Profile')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsMyProfileTitle),
+          ),
           findsOneWidget,
-          reason: 'My Profile tile title must use l10n.settingsMyProfileTitle',
+          reason: 'My Profile tile title must use l10n.settingsMyProfileTitle '
+              '(expected: "${_zhL10n.settingsMyProfileTitle}")',
         );
       },
     );
@@ -277,10 +319,11 @@ void main() {
         expect(
           find.descendant(
             of: subtitle,
-            matching: find.text('Review your current account details.'),
+            matching: find.text(_zhL10n.settingsMyProfileSubtitle),
           ),
           findsOneWidget,
-          reason: 'My Profile subtitle must use l10n.settingsMyProfileSubtitle',
+          reason: 'My Profile subtitle must use l10n.settingsMyProfileSubtitle '
+              '(expected: "${_zhL10n.settingsMyProfileSubtitle}")',
         );
       },
     );
@@ -297,9 +340,13 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-members'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('Members')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsMembersTitle),
+          ),
           findsOneWidget,
-          reason: 'Members tile title must use l10n.settingsMembersTitle',
+          reason: 'Members tile title must use l10n.settingsMembersTitle '
+              '(expected: "${_zhL10n.settingsMembersTitle}")',
         );
       },
     );
@@ -318,10 +365,11 @@ void main() {
         expect(
           find.descendant(
             of: tile,
-            matching: find.text('View and manage workspace members.'),
+            matching: find.text(_zhL10n.settingsMembersSubtitle),
           ),
           findsOneWidget,
-          reason: 'Members subtitle must use l10n.settingsMembersSubtitle',
+          reason: 'Members subtitle must use l10n.settingsMembersSubtitle '
+              '(expected: "${_zhL10n.settingsMembersSubtitle}")',
         );
       },
     );
@@ -340,11 +388,12 @@ void main() {
         expect(
           find.descendant(
             of: tile,
-            matching: find.text('Notification Settings'),
+            matching: find.text(_zhL10n.settingsNotificationSettingsTitle),
           ),
           findsOneWidget,
           reason:
-              'Notification Settings tile must use l10n.settingsNotificationSettingsTitle',
+              'Notification Settings tile must use l10n.settingsNotificationSettingsTitle '
+              '(expected: "${_zhL10n.settingsNotificationSettingsTitle}")',
         );
       },
     );
@@ -361,9 +410,13 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-appearance-link'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('Theme')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsThemeTitle),
+          ),
           findsOneWidget,
-          reason: 'Theme tile title must use l10n.settingsThemeTitle',
+          reason: 'Theme tile title must use l10n.settingsThemeTitle '
+              '(expected: "${_zhL10n.settingsThemeTitle}")',
         );
       },
     );
@@ -386,10 +439,14 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-translation-link'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('Translation')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsTranslationTitle),
+          ),
           findsOneWidget,
           reason:
-              'Translation tile title must use l10n.settingsTranslationTitle',
+              'Translation tile title must use l10n.settingsTranslationTitle '
+              '(expected: "${_zhL10n.settingsTranslationTitle}")',
         );
       },
     );
@@ -414,11 +471,12 @@ void main() {
         expect(
           find.descendant(
             of: tile,
-            matching: find.text('Preferred language and translation mode.'),
+            matching: find.text(_zhL10n.settingsTranslationSubtitle),
           ),
           findsOneWidget,
           reason:
-              'Translation subtitle must use l10n.settingsTranslationSubtitle',
+              'Translation subtitle must use l10n.settingsTranslationSubtitle '
+              '(expected: "${_zhL10n.settingsTranslationSubtitle}")',
         );
       },
     );
@@ -442,10 +500,14 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-biometric-toggle'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('Biometric Lock')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsBiometricLockTitle),
+          ),
           findsOneWidget,
           reason:
-              'Biometric Lock tile must use l10n.settingsBiometricLockTitle',
+              'Biometric Lock tile must use l10n.settingsBiometricLockTitle '
+              '(expected: "${_zhL10n.settingsBiometricLockTitle}")',
         );
       },
     );
@@ -472,13 +534,12 @@ void main() {
         expect(
           find.descendant(
             of: tile,
-            matching: find.text(
-              'Enabled — unlock with biometrics after inactivity',
-            ),
+            matching: find.text(_zhL10n.settingsBiometricLockEnabled),
           ),
           findsOneWidget,
           reason:
-              'Biometric enabled subtitle must use l10n.settingsBiometricLockEnabled',
+              'Biometric enabled subtitle must use l10n.settingsBiometricLockEnabled '
+              '(expected: "${_zhL10n.settingsBiometricLockEnabled}")',
         );
       },
     );
@@ -501,17 +562,22 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-billing'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('Billing')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsBillingTitle),
+          ),
           findsOneWidget,
-          reason: 'Billing tile title must use l10n.settingsBillingTitle',
+          reason: 'Billing tile title must use l10n.settingsBillingTitle '
+              '(expected: "${_zhL10n.settingsBillingTitle}")',
         );
         expect(
           find.descendant(
             of: tile,
-            matching: find.text('Review your current subscription summary.'),
+            matching: find.text(_zhL10n.settingsBillingSubtitle),
           ),
           findsOneWidget,
-          reason: 'Billing subtitle must use l10n.settingsBillingSubtitle',
+          reason: 'Billing subtitle must use l10n.settingsBillingSubtitle '
+              '(expected: "${_zhL10n.settingsBillingSubtitle}")',
         );
       },
     );
@@ -534,21 +600,24 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-release-notes'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('Release Notes')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsReleaseNotesTitle),
+          ),
           findsOneWidget,
           reason:
-              'Release Notes tile title must use l10n.settingsReleaseNotesTitle',
+              'Release Notes tile title must use l10n.settingsReleaseNotesTitle '
+              '(expected: "${_zhL10n.settingsReleaseNotesTitle}")',
         );
         expect(
           find.descendant(
             of: tile,
-            matching: find.text(
-              'See the latest packaged product updates.',
-            ),
+            matching: find.text(_zhL10n.settingsReleaseNotesSubtitle),
           ),
           findsOneWidget,
           reason:
-              'Release Notes subtitle must use l10n.settingsReleaseNotesSubtitle',
+              'Release Notes subtitle must use l10n.settingsReleaseNotesSubtitle '
+              '(expected: "${_zhL10n.settingsReleaseNotesSubtitle}")',
         );
       },
     );
@@ -571,19 +640,24 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-diagnostics'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('Diagnostics')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsDiagnosticsTitle),
+          ),
           findsOneWidget,
           reason:
-              'Diagnostics tile title must use l10n.settingsDiagnosticsTitle',
+              'Diagnostics tile title must use l10n.settingsDiagnosticsTitle '
+              '(expected: "${_zhL10n.settingsDiagnosticsTitle}")',
         );
         expect(
           find.descendant(
             of: tile,
-            matching: find.text('View and export diagnostic logs.'),
+            matching: find.text(_zhL10n.settingsDiagnosticsSubtitle),
           ),
           findsOneWidget,
           reason:
-              'Diagnostics subtitle must use l10n.settingsDiagnosticsSubtitle',
+              'Diagnostics subtitle must use l10n.settingsDiagnosticsSubtitle '
+              '(expected: "${_zhL10n.settingsDiagnosticsSubtitle}")',
         );
       },
     );
@@ -606,17 +680,22 @@ void main() {
         final tile = find.byKey(const ValueKey('settings-logout'));
         expect(tile, findsOneWidget);
         expect(
-          find.descendant(of: tile, matching: find.text('Log Out')),
+          find.descendant(
+            of: tile,
+            matching: find.text(_zhL10n.settingsLogOutTitle),
+          ),
           findsOneWidget,
-          reason: 'Log Out tile title must use l10n.settingsLogOutTitle',
+          reason: 'Log Out tile title must use l10n.settingsLogOutTitle '
+              '(expected: "${_zhL10n.settingsLogOutTitle}")',
         );
         expect(
           find.descendant(
             of: tile,
-            matching: find.text('Sign out of this device.'),
+            matching: find.text(_zhL10n.settingsLogOutSubtitle),
           ),
           findsOneWidget,
-          reason: 'Log Out subtitle must use l10n.settingsLogOutSubtitle',
+          reason: 'Log Out subtitle must use l10n.settingsLogOutSubtitle '
+              '(expected: "${_zhL10n.settingsLogOutSubtitle}")',
         );
       },
     );
@@ -630,7 +709,7 @@ void main() {
       'Logout dialog uses l10n (T24)',
       skip: true,
       (tester) async {
-        // Tap Log Out → dialog appears with 4 strings.
+        // Tap Log Out -> dialog appears with 4 strings.
         // Production:
         //   title: 'Log out?'
         //   content: 'You will be signed out of this device.'
@@ -661,16 +740,18 @@ void main() {
 
         // Dialog title.
         expect(
-          find.text('Log out?'),
+          find.text(_zhL10n.settingsLogOutDialogTitle),
           findsOneWidget,
-          reason: 'Dialog title must use l10n.settingsLogOutDialogTitle',
+          reason: 'Dialog title must use l10n.settingsLogOutDialogTitle '
+              '(expected: "${_zhL10n.settingsLogOutDialogTitle}")',
         );
 
         // Dialog content.
         expect(
-          find.text('You will be signed out of this device.'),
+          find.text(_zhL10n.settingsLogOutDialogContent),
           findsOneWidget,
-          reason: 'Dialog content must use l10n.settingsLogOutDialogContent',
+          reason: 'Dialog content must use l10n.settingsLogOutDialogContent '
+              '(expected: "${_zhL10n.settingsLogOutDialogContent}")',
         );
 
         // Cancel button.
@@ -682,10 +763,11 @@ void main() {
         expect(
           find.descendant(
             of: find.byKey(const ValueKey('logout-cancel')),
-            matching: find.text('Cancel'),
+            matching: find.text(_zhL10n.settingsLogOutDialogCancel),
           ),
           findsOneWidget,
-          reason: 'Cancel button text must use l10n.settingsLogOutDialogCancel',
+          reason: 'Cancel button text must use l10n.settingsLogOutDialogCancel '
+              '(expected: "${_zhL10n.settingsLogOutDialogCancel}")',
         );
 
         // Confirm button.
@@ -697,11 +779,12 @@ void main() {
         expect(
           find.descendant(
             of: find.byKey(const ValueKey('logout-confirm')),
-            matching: find.text('Log out'),
+            matching: find.text(_zhL10n.settingsLogOutDialogConfirm),
           ),
           findsOneWidget,
           reason:
-              'Confirm button text must use l10n.settingsLogOutDialogConfirm',
+              'Confirm button text must use l10n.settingsLogOutDialogConfirm '
+              '(expected: "${_zhL10n.settingsLogOutDialogConfirm}")',
         );
       },
     );
@@ -725,19 +808,24 @@ void main() {
         expect(header, findsOneWidget);
 
         expect(
-          find.descendant(of: header, matching: find.text('Signed in')),
+          find.descendant(
+            of: header,
+            matching: find.text(_zhL10n.settingsSignedInFallback),
+          ),
           findsOneWidget,
           reason: 'Fallback title must use l10n.settingsSignedInFallback when '
-              'displayName is null',
+              'displayName is null '
+              '(expected: "${_zhL10n.settingsSignedInFallback}")',
         );
         expect(
           find.descendant(
             of: header,
-            matching: find.text('Account details unavailable'),
+            matching: find.text(_zhL10n.settingsAccountUnavailable),
           ),
           findsOneWidget,
           reason: 'Fallback subtitle must use l10n.settingsAccountUnavailable '
-              'when displayName is null',
+              'when displayName is null '
+              '(expected: "${_zhL10n.settingsAccountUnavailable}")',
         );
       },
     );
@@ -756,16 +844,17 @@ void main() {
         //   l10n.settingsNotificationNotRequested
         //
         // Test each permission status label appears correctly.
-        // Default state uses NotificationPermissionStatus.unknown → 'Not requested'.
+        // Default state uses NotificationPermissionStatus.unknown -> 'Not requested'.
         await tester.pumpWidget(_buildApp());
         await tester.pumpAndSettle();
 
-        // Default permission is unknown → 'Not requested'.
+        // Default permission is unknown -> Chinese 'Not requested'.
         expect(
-          find.textContaining('Not requested'),
+          find.textContaining(_zhL10n.settingsNotificationNotRequested),
           findsOneWidget,
           reason:
-              'Permission unknown must show l10n.settingsNotificationNotRequested',
+              'Permission unknown must show l10n.settingsNotificationNotRequested '
+              '(expected: "${_zhL10n.settingsNotificationNotRequested}")',
         );
 
         // Rebuild with granted permission.
@@ -777,10 +866,11 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.textContaining('Granted'),
+          find.textContaining(_zhL10n.settingsNotificationGranted),
           findsOneWidget,
           reason:
-              'Permission granted must show l10n.settingsNotificationGranted',
+              'Permission granted must show l10n.settingsNotificationGranted '
+              '(expected: "${_zhL10n.settingsNotificationGranted}")',
         );
 
         // Rebuild with denied permission.
@@ -792,9 +882,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.textContaining('Denied'),
+          find.textContaining(_zhL10n.settingsNotificationDenied),
           findsOneWidget,
-          reason: 'Permission denied must show l10n.settingsNotificationDenied',
+          reason: 'Permission denied must show l10n.settingsNotificationDenied '
+              '(expected: "${_zhL10n.settingsNotificationDenied}")',
         );
 
         // Rebuild with provisional permission.
@@ -806,10 +897,11 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          find.textContaining('Provisional'),
+          find.textContaining(_zhL10n.settingsNotificationProvisional),
           findsOneWidget,
           reason:
-              'Permission provisional must show l10n.settingsNotificationProvisional',
+              'Permission provisional must show l10n.settingsNotificationProvisional '
+              '(expected: "${_zhL10n.settingsNotificationProvisional}")',
         );
       },
     );
@@ -846,10 +938,14 @@ Widget _buildApp({
           enabled: biometricEnabled,
         ),
       ),
+      appLocalizationsProvider.overrideWithValue(
+        lookupAppLocalizations(const Locale('zh')),
+      ),
     ],
     child: MaterialApp.router(
       theme: AppTheme.light,
       routerConfig: _buildRouter(),
+      locale: const Locale('zh'),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
     ),

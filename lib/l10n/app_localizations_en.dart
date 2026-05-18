@@ -746,4 +746,125 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get agentStatusStopped => 'Stopped';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsAccountSection => 'Account';
+
+  @override
+  String get settingsWorkspaceSection => 'Workspace';
+
+  @override
+  String get settingsNotificationsSection => 'Notifications';
+
+  @override
+  String get settingsAppearanceSection => 'Appearance';
+
+  @override
+  String get settingsLanguageSection => 'Language';
+
+  @override
+  String get settingsSecuritySection => 'Security';
+
+  @override
+  String get settingsMoreSection => 'More';
+
+  @override
+  String get settingsDangerZoneSection => 'Danger Zone';
+
+  @override
+  String get settingsMyProfileTitle => 'My Profile';
+
+  @override
+  String get settingsMyProfileSubtitle =>
+      'Review your current account details.';
+
+  @override
+  String get settingsMembersTitle => 'Members';
+
+  @override
+  String get settingsMembersSubtitle => 'View and manage workspace members.';
+
+  @override
+  String get settingsNotificationSettingsTitle => 'Notification Settings';
+
+  @override
+  String get settingsThemeTitle => 'Theme';
+
+  @override
+  String get settingsTranslationTitle => 'Translation';
+
+  @override
+  String get settingsTranslationSubtitle =>
+      'Preferred language and translation mode.';
+
+  @override
+  String get settingsBiometricLockTitle => 'Biometric Lock';
+
+  @override
+  String get settingsBiometricLockEnabled =>
+      'Enabled — unlock with biometrics after inactivity';
+
+  @override
+  String get settingsBiometricLockDisabled =>
+      'Disabled — no biometric lock on app access';
+
+  @override
+  String get settingsBillingTitle => 'Billing';
+
+  @override
+  String get settingsBillingSubtitle =>
+      'Review your current subscription summary.';
+
+  @override
+  String get settingsReleaseNotesTitle => 'Release Notes';
+
+  @override
+  String get settingsReleaseNotesSubtitle =>
+      'See the latest packaged product updates.';
+
+  @override
+  String get settingsDiagnosticsTitle => 'Diagnostics';
+
+  @override
+  String get settingsDiagnosticsSubtitle => 'View and export diagnostic logs.';
+
+  @override
+  String get settingsLogOutTitle => 'Log Out';
+
+  @override
+  String get settingsLogOutSubtitle => 'Sign out of this device.';
+
+  @override
+  String get settingsLogOutDialogTitle => 'Log out?';
+
+  @override
+  String get settingsLogOutDialogContent =>
+      'You will be signed out of this device.';
+
+  @override
+  String get settingsLogOutDialogCancel => 'Cancel';
+
+  @override
+  String get settingsLogOutDialogConfirm => 'Log out';
+
+  @override
+  String get settingsSignedInFallback => 'Signed in';
+
+  @override
+  String get settingsAccountUnavailable => 'Account details unavailable';
+
+  @override
+  String get settingsNotificationGranted => 'Granted';
+
+  @override
+  String get settingsNotificationDenied => 'Denied';
+
+  @override
+  String get settingsNotificationProvisional => 'Provisional';
+
+  @override
+  String get settingsNotificationNotRequested => 'Not requested';
 }
