@@ -122,6 +122,8 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
               key: const ValueKey('conversation-info-members-section'),
               icon: Icons.people_outline,
               label: 'Members',
+              isActive:
+                  widget.initialSection == ConversationInfoSection.members,
               onTap: () {
                 context.push(
                   '/servers/${widget.target.serverId.value}/channels/${widget.target.conversationId}/members',
@@ -134,6 +136,7 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
               key: const ValueKey('conversation-info-files-section'),
               icon: Icons.folder_outlined,
               label: 'Shared files',
+              isActive: widget.initialSection == ConversationInfoSection.files,
               onTap: () {
                 context.push(
                   '/servers/${widget.target.serverId.value}/channels/${widget.target.conversationId}/files',
@@ -146,11 +149,18 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
               key: const ValueKey('conversation-info-pinned-section'),
               icon: Icons.push_pin_outlined,
               label: 'Pinned messages',
-              onTap: () {
-                context.push(
+              isActive: widget.initialSection == ConversationInfoSection.pinned,
+              onTap: () async {
+                final messageId = await context.push<String>(
                   '/servers/${widget.target.serverId.value}/channels/${widget.target.conversationId}/pinned',
                   extra: widget.target,
                 );
+                // Forward the selected message ID back to the caller
+                // (conversation detail page) so it can scroll to it.
+                if (messageId != null && mounted) {
+                  if (!context.mounted) return;
+                  Navigator.of(context).pop(messageId);
+                }
               },
             ),
           ] else ...[
@@ -214,18 +224,37 @@ class _InfoSection extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.isActive = false,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    // Derive a unique active key from the widget's key.
+    Key? activeKey;
+    if (isActive && key is ValueKey<String>) {
+      final baseKey = (key! as ValueKey<String>).value;
+      activeKey = ValueKey('$baseKey-active');
+    }
+
     return ListTile(
-      leading: Icon(icon),
-      title: Text(label, style: AppTypography.body),
+      key: activeKey,
+      leading: Icon(icon, color: isActive ? colors.primary : null),
+      title: Text(
+        label,
+        style: AppTypography.body.copyWith(
+          color: isActive ? colors.primary : null,
+          fontWeight: isActive ? FontWeight.w600 : null,
+        ),
+      ),
       trailing: const Icon(Icons.chevron_right),
+      tileColor: isActive ? colors.primary.withValues(alpha: 0.08) : null,
       onTap: onTap,
     );
   }

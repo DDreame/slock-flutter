@@ -24,7 +24,7 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart'
 // (members, files, pinned messages) for channels and user info for DMs.
 //
 // The production entry point is the existing placeholder IconButton keyed
-// 'conversation-members-toggle' in the conversation detail app bar.
+// 'conversation-members-shortcut' in the conversation detail app bar.
 // Phase B will wire this button to navigate to the info page.
 //
 // Invariants:
@@ -42,7 +42,7 @@ void main() {
   // navigates to a ConversationInfoPage.
   //
   // Setup: Render conversation detail page, tap the members toggle (keyed
-  // 'conversation-members-toggle'). After navigation, a widget keyed
+  // 'conversation-members-shortcut'). After navigation, a widget keyed
   // 'conversation-info-page' should appear.
   //
   // skip:true — onPressed is empty stub and no info page exists.
@@ -59,7 +59,7 @@ void main() {
 
       // Members toggle must be present in the app bar.
       final membersToggle =
-          find.byKey(const ValueKey('conversation-members-toggle'));
+          find.byKey(const ValueKey('conversation-members-shortcut'));
       expect(membersToggle, findsOneWidget,
           reason: 'Members toggle must be in app bar');
 
@@ -98,7 +98,7 @@ void main() {
 
       // Navigate to info page.
       final membersToggle =
-          find.byKey(const ValueKey('conversation-members-toggle'));
+          find.byKey(const ValueKey('conversation-members-shortcut'));
       expect(membersToggle, findsOneWidget);
       await tester.tap(membersToggle);
       await tester.pumpAndSettle();
@@ -134,7 +134,7 @@ void main() {
 
       // Navigate to info page.
       final membersToggle =
-          find.byKey(const ValueKey('conversation-members-toggle'));
+          find.byKey(const ValueKey('conversation-members-shortcut'));
       expect(membersToggle, findsOneWidget);
       await tester.tap(membersToggle);
       await tester.pumpAndSettle();
@@ -174,7 +174,7 @@ void main() {
 
       // Navigate to info page.
       final membersToggle =
-          find.byKey(const ValueKey('conversation-members-toggle'));
+          find.byKey(const ValueKey('conversation-members-shortcut'));
       expect(membersToggle, findsOneWidget);
       await tester.tap(membersToggle);
       await tester.pumpAndSettle();

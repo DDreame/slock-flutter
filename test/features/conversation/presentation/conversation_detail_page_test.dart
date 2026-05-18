@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
@@ -28,9 +29,17 @@ import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/translation/data/translation_repository.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 import 'package:slock_app/features/translation/data/translation_settings.dart';
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
   testWidgets('ChannelPage wrapper rebuilds typed channel scope', (
     tester,
   ) async {
@@ -1408,7 +1417,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('conversation-pinned-messages')),
+      find.byKey(const ValueKey('conversation-pinned-shortcut')),
       findsNothing,
     );
   });
@@ -1448,7 +1457,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(const ValueKey('conversation-pinned-messages')),
+      find.byKey(const ValueKey('conversation-pinned-shortcut')),
       findsOneWidget,
     );
   });
@@ -1498,13 +1507,20 @@ void main() {
       _buildApp(
         repository: repository,
         child: ConversationDetailPage(target: target),
+        prefs: prefs,
       ),
     );
     await tester.pumpAndSettle();
 
-    // Tap pin icon to open pinned messages page
+    // Tap pin shortcut to open info page with pinned section
     await tester.tap(
-      find.byKey(const ValueKey('conversation-pinned-messages')),
+      find.byKey(const ValueKey('conversation-pinned-shortcut')),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap the pinned section in info page to open pinned messages list
+    await tester.tap(
+      find.byKey(const ValueKey('conversation-info-pinned-section-active')),
     );
     await tester.pumpAndSettle();
 
@@ -2104,6 +2120,7 @@ Widget _buildApp({
   required ConversationRepository repository,
   required Widget child,
   SessionState sessionState = const SessionState(),
+  SharedPreferences? prefs,
 }) {
   return ProviderScope(
     overrides: [
@@ -2111,6 +2128,7 @@ Widget _buildApp({
       sessionStoreProvider.overrideWith(
         () => _FixedSessionStore(sessionState),
       ),
+      if (prefs != null) sharedPreferencesProvider.overrideWithValue(prefs),
     ],
     child: MaterialApp.router(
       routerConfig: _testGoRouter(home: child),
