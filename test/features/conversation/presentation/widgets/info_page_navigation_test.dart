@@ -1,19 +1,20 @@
 // =============================================================================
-// #569 Phase A — Conversation Info Page Consolidation (test-only)
+// #569 — Conversation Info Page Consolidation
 //
 // Feature: Header shortcuts (files/pinned/members) navigate TO the info page
 // sections rather than rendering separate standalone views.
 //
-// Phase B: Wire header shortcuts to open ConversationInfoPage with the
-// appropriate initialSection, remove standalone routes.
-//
-// All tests skip:true — Phase A only.
+// Tests verify:
+// - Shortcut buttons open ConversationInfoPage with correct initialSection
+// - Info page shows active indicator on the targeted section
+// - Shortcuts navigate to unified page, not standalone routes
 // =============================================================================
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -25,6 +26,8 @@ import 'package:slock_app/features/settings/data/channel_notification_preference
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -215,12 +218,16 @@ _FakeConversationRepository _fakeRepo() {
 /// Builds the full ConversationDetailPage for shortcut tests (T1-T3, T5).
 ///
 /// Passes [observer] to the MaterialApp so tests can inspect pushed routes.
-Widget _buildDetailPage({NavigatorObserver? observer}) {
+Widget _buildDetailPage({
+  NavigatorObserver? observer,
+  required SharedPreferences prefs,
+}) {
   return ProviderScope(
     overrides: [
       conversationRepositoryProvider.overrideWithValue(_fakeRepo()),
       channelMutedIdsProvider.overrideWith((ref) => <String>{}),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      sharedPreferencesProvider.overrideWithValue(prefs),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -234,11 +241,15 @@ Widget _buildDetailPage({NavigatorObserver? observer}) {
 
 /// Builds a standalone ConversationInfoPage with the given [initialSection]
 /// for T4 (section rendering on load).
-Widget _buildInfoPage({ConversationInfoSection? initialSection}) {
+Widget _buildInfoPage({
+  ConversationInfoSection? initialSection,
+  required SharedPreferences prefs,
+}) {
   return ProviderScope(
     overrides: [
       channelMutedIdsProvider.overrideWith((ref) => <String>{}),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      sharedPreferencesProvider.overrideWithValue(prefs),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -258,13 +269,22 @@ Widget _buildInfoPage({ConversationInfoSection? initialSection}) {
 // ---------------------------------------------------------------------------
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   group('InfoPageNavigation', () {
     // T1: Files shortcut navigates to info page files section
     testWidgets(
       'files shortcut navigates to info page with initialSection: files',
       (tester) async {
         final observer = _RecordingNavigatorObserver();
-        await tester.pumpWidget(_buildDetailPage(observer: observer));
+        await tester.pumpWidget(
+          _buildDetailPage(observer: observer, prefs: prefs),
+        );
         await tester.pumpAndSettle();
 
         // Tap the files header shortcut button.
@@ -284,7 +304,6 @@ void main() {
         );
         expect(infoPage.initialSection, ConversationInfoSection.files);
       },
-      skip: true,
     );
 
     // T2: Pinned shortcut navigates to info page pinned section
@@ -292,7 +311,9 @@ void main() {
       'pinned shortcut navigates to info page with initialSection: pinned',
       (tester) async {
         final observer = _RecordingNavigatorObserver();
-        await tester.pumpWidget(_buildDetailPage(observer: observer));
+        await tester.pumpWidget(
+          _buildDetailPage(observer: observer, prefs: prefs),
+        );
         await tester.pumpAndSettle();
 
         // Tap the pinned header shortcut button.
@@ -312,7 +333,6 @@ void main() {
         );
         expect(infoPage.initialSection, ConversationInfoSection.pinned);
       },
-      skip: true,
     );
 
     // T3: Members shortcut navigates to info page members section
@@ -320,7 +340,9 @@ void main() {
       'members shortcut navigates to info page with initialSection: members',
       (tester) async {
         final observer = _RecordingNavigatorObserver();
-        await tester.pumpWidget(_buildDetailPage(observer: observer));
+        await tester.pumpWidget(
+          _buildDetailPage(observer: observer, prefs: prefs),
+        );
         await tester.pumpAndSettle();
 
         // Tap the members header shortcut button.
@@ -340,7 +362,6 @@ void main() {
         );
         expect(infoPage.initialSection, ConversationInfoSection.members);
       },
-      skip: true,
     );
 
     // T4: Info page renders correct initial section with active indicator
@@ -348,7 +369,10 @@ void main() {
       'info page shows active indicator on the files section when initialSection is files',
       (tester) async {
         await tester.pumpWidget(
-          _buildInfoPage(initialSection: ConversationInfoSection.files),
+          _buildInfoPage(
+            initialSection: ConversationInfoSection.files,
+            prefs: prefs,
+          ),
         );
         await tester.pumpAndSettle();
 
@@ -368,7 +392,6 @@ void main() {
           findsOneWidget,
         );
       },
-      skip: true,
     );
 
     // T5: Header shortcuts navigate to ConversationInfoPage, not standalone
@@ -376,7 +399,9 @@ void main() {
       'pinned shortcut navigates to ConversationInfoPage not PinnedMessagesPage',
       (tester) async {
         final observer = _RecordingNavigatorObserver();
-        await tester.pumpWidget(_buildDetailPage(observer: observer));
+        await tester.pumpWidget(
+          _buildDetailPage(observer: observer, prefs: prefs),
+        );
         await tester.pumpAndSettle();
 
         // Tap the pinned shortcut (new unified key).
@@ -398,7 +423,6 @@ void main() {
         final pushes = observer.pushedRoutes.whereType<MaterialPageRoute>();
         expect(pushes, isNotEmpty);
       },
-      skip: true,
     );
   });
 }
