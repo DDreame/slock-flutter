@@ -43,11 +43,16 @@ class FakeMessageExportService extends MessageExportService {
   static final List<String> sharedFilePaths = [];
   static String? nextResult;
 
+  /// Records whether the boundaryKey was attached to a RepaintBoundary at
+  /// call time (before the overlay is torn down).
+  static bool lastBoundaryWasRepaintBoundary = false;
+
   static void reset() {
     exportCalls.clear();
     boundaryKeys.clear();
     sharedFilePaths.clear();
     nextResult = null;
+    lastBoundaryWasRepaintBoundary = false;
   }
 
   @override
@@ -57,6 +62,8 @@ class FakeMessageExportService extends MessageExportService {
   }) async {
     exportCalls.add(messages);
     boundaryKeys.add(boundaryKey);
+    lastBoundaryWasRepaintBoundary =
+        boundaryKey.currentContext?.widget is RepaintBoundary;
     final result = nextResult;
     if (result != null) {
       sharedFilePaths.add(result);
@@ -378,6 +385,13 @@ void main() {
         expect(FakeMessageExportService.boundaryKeys, hasLength(1));
         final capturedKey = FakeMessageExportService.boundaryKeys.first;
         expect(capturedKey, isA<GlobalKey>());
+
+        // Verify the key was attached to a RepaintBoundary at call time
+        // (proves the capture path is wired to the real export card boundary).
+        expect(
+          FakeMessageExportService.lastBoundaryWasRepaintBoundary,
+          isTrue,
+        );
       },
     );
 
