@@ -157,25 +157,13 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     final sorted = ref.watch(sortedChannelsProvider(allChannels));
 
     // Apply search filter.
-    final filtered = _searchQuery.isEmpty
+    final displayList = _searchQuery.isEmpty
         ? sorted
         : sorted
             .where(
               (c) => c.name.toLowerCase().contains(_searchQuery.toLowerCase()),
             )
             .toList();
-
-    // Sort unread-first (preserve relative order within each group).
-    final unread = <HomeChannelSummary>[];
-    final read = <HomeChannelSummary>[];
-    for (final channel in filtered) {
-      if (unreadState.channelUnreadCount(channel.scopeId) > 0) {
-        unread.add(channel);
-      } else {
-        read.add(channel);
-      }
-    }
-    final displayList = [...unread, ...read];
 
     final pinnedIds = state.pinnedChannels.map((c) => c.scopeId.value).toSet();
 
