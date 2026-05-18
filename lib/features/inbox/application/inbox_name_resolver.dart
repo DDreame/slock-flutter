@@ -35,6 +35,12 @@ class InboxNameResolver {
     if (item.channelName?.isNotEmpty == true) return item.channelName!;
     final localName = channelNames[item.channelId];
     if (localName != null && localName.isNotEmpty) return localName;
+    // For thread items, channelId is the sub-channel (thread) ID which may
+    // not be in the lookup map. Fall back to parentChannelId.
+    if (item.parentChannelId != null) {
+      final parentName = channelNames[item.parentChannelId];
+      if (parentName != null && parentName.isNotEmpty) return parentName;
+    }
     return item.channelId;
   }
 
@@ -62,7 +68,11 @@ class InboxNameResolver {
   String resolveSourceLabel(InboxItem item) {
     final name =
         (item.channelName?.isNotEmpty == true) ? item.channelName : null;
-    final resolvedName = name ?? channelNames[item.channelId];
+    final resolvedName = name ??
+        channelNames[item.channelId] ??
+        (item.parentChannelId != null
+            ? channelNames[item.parentChannelId]
+            : null);
 
     if (resolvedName != null && resolvedName.isNotEmpty) {
       switch (item.kind) {

@@ -19,7 +19,6 @@ void main() {
     // T1: Thread reply shows parent channel name
     test(
       'resolves parent channel name when thread channelId is not in map',
-      skip: true,
       () {
         final resolver = InboxNameResolver(
           channelNames: {'parent-ch-1': 'engineering'},
@@ -42,7 +41,6 @@ void main() {
     // T2: Regular message still uses channelId (no regression)
     test(
       'regular channel message still resolves from channelId',
-      skip: true,
       () {
         final resolver = InboxNameResolver(
           channelNames: {'ch-regular': 'general'},
@@ -65,7 +63,6 @@ void main() {
     // T3: Source label includes parent channel for thread items
     test(
       'resolveSourceLabel uses parent channel name for thread items',
-      skip: true,
       () {
         final resolver = InboxNameResolver(
           channelNames: {'parent-ch-2': 'design'},
@@ -89,7 +86,6 @@ void main() {
     // T4: Sender name resolves normally for thread items
     test(
       'resolveSenderName works for thread items using memberNames',
-      skip: true,
       () {
         final resolver = InboxNameResolver(
           channelNames: {'parent-ch-3': 'random'},
