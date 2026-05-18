@@ -4,7 +4,7 @@
 // Verify that ConversationPage and InboxPage include the
 // ConnectionStatusBanner widget in their widget tree.
 //
-// All tests skip: true — activated in Phase B.
+// All tests active — Phase B.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -31,7 +31,6 @@ void main() {
     // T6: InboxPage includes ConnectionStatusBanner
     testWidgets(
       'InboxPage includes ConnectionStatusBanner in widget tree',
-      skip: true,
       (tester) async {
         final inboxRepo = FakeInboxRepository(
           fetchResponse: const InboxResponse(
@@ -80,7 +79,6 @@ void main() {
     // T7: ConversationDetailPage includes ConnectionStatusBanner
     testWidgets(
       'ConversationDetailPage includes ConnectionStatusBanner in widget tree',
-      skip: true,
       (tester) async {
         final target = ConversationDetailTarget.channel(
           const ChannelScopeId(

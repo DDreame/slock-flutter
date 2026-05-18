@@ -22,6 +22,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/text_previe
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/connection_status_banner.dart';
 import 'package:slock_app/app/widgets/message_bubble.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/core/core.dart';
@@ -384,6 +385,7 @@ class _ConversationDetailScreenState
                   .read(conversationDetailStoreProvider.notifier)
                   .toggleSearch,
             ),
+          const ConnectionStatusBanner(),
           const _OfflineBanner(),
           Expanded(
             child: switch (state.status) {
