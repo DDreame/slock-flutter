@@ -7,6 +7,11 @@ import 'package:slock_app/stores/biometric/biometric_store.dart';
 ///
 /// Prompts the user for biometric authentication and unlocks on success.
 /// Shown via router redirect when the biometric store indicates a locked state.
+///
+/// Escape paths:
+/// - "Disable & Continue" button after error or permanentLockout
+/// - Auto-disable when hardware is unavailable
+/// - "Skip for now" after 3 consecutive cancellations (session bypass)
 class BiometricLockPage extends ConsumerStatefulWidget {
   const BiometricLockPage({super.key});
 
@@ -17,6 +22,10 @@ class BiometricLockPage extends ConsumerStatefulWidget {
 class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
   bool _isAuthenticating = false;
   String? _errorMessage;
+  int _cancelCount = 0;
+
+  /// Whether to show the "Disable & Continue" escape button.
+  bool _showDisableButton = false;
 
   @override
   void initState() {
@@ -43,28 +52,51 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
 
     switch (result) {
       case BiometricAuthResult.success:
+        _cancelCount = 0;
         ref.read(biometricStoreProvider.notifier).unlock();
       case BiometricAuthResult.cancelled:
+        _cancelCount++;
         setState(() {
           _isAuthenticating = false;
           _errorMessage = null;
         });
       case BiometricAuthResult.lockout:
+        _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
           _errorMessage = 'Too many attempts. Please try again later.';
         });
       case BiometricAuthResult.permanentLockout:
+        _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
           _errorMessage = 'Biometrics locked. Please use your device passcode.';
+          _showDisableButton = true;
         });
       case BiometricAuthResult.error:
+        _cancelCount = 0;
+        // Check if hardware is still available.
+        final available = await service.isAvailable();
+        if (!mounted) return;
+        if (!available) {
+          // Auto-disable biometric when hardware is unavailable.
+          ref.read(biometricStoreProvider.notifier).setEnabled(false);
+          return;
+        }
         setState(() {
           _isAuthenticating = false;
           _errorMessage = 'Authentication unavailable.';
+          _showDisableButton = true;
         });
     }
+  }
+
+  void _disableAndContinue() {
+    ref.read(biometricStoreProvider.notifier).setEnabled(false);
+  }
+
+  void _skipForNow() {
+    ref.read(biometricStoreProvider.notifier).unlock();
   }
 
   @override
@@ -123,6 +155,22 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                   const CircularProgressIndicator(
                     key: ValueKey('biometric-lock-progress'),
                   ),
+                if (_showDisableButton) ...[
+                  const SizedBox(height: 16),
+                  OutlinedButton(
+                    key: const ValueKey('biometric-lock-disable'),
+                    onPressed: _disableAndContinue,
+                    child: const Text('Disable & Continue'),
+                  ),
+                ],
+                if (_cancelCount >= 3) ...[
+                  const SizedBox(height: 16),
+                  TextButton(
+                    key: const ValueKey('biometric-lock-skip'),
+                    onPressed: _skipForNow,
+                    child: const Text('Skip for now'),
+                  ),
+                ],
               ],
             ),
           ),

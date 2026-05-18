@@ -58,14 +58,17 @@ void main() {
     // T1: Hardware error → auto-disable
     testWidgets(
       'auto-disables biometric when hardware is unavailable after error',
-      skip: true,
       (tester) async {
         // authenticate() returns error + isAvailable() returns false
         fakeService.result = BiometricAuthResult.error;
         fakeService.available = false;
 
         final container = await pumpLockPage(tester);
-        await tester.pumpAndSettle();
+        // Use pump() — after auto-disable the page keeps animating
+        // (in real app router redirects away).
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
 
         // Should auto-disable biometric and unlock
         final state = container.read(biometricStoreProvider);
@@ -77,7 +80,6 @@ void main() {
     // T2: "Disable & Continue" button visible after error
     testWidgets(
       'shows Disable & Continue button after authentication error',
-      skip: true,
       (tester) async {
         fakeService.result = BiometricAuthResult.error;
         fakeService.available = true;
@@ -106,7 +108,6 @@ void main() {
     // T3: Skip after 3 cancellations
     testWidgets(
       'shows Skip for now after 3 consecutive cancellations',
-      skip: true,
       (tester) async {
         fakeService.result = BiometricAuthResult.cancelled;
 
@@ -148,7 +149,6 @@ void main() {
     // T4: Normal success still unlocks (no escape buttons visible)
     testWidgets(
       'normal success unlocks without showing escape buttons',
-      skip: true,
       (tester) async {
         fakeService.result = BiometricAuthResult.success;
 
@@ -173,7 +173,6 @@ void main() {
     // T5: Permanent lockout shows disable button
     testWidgets(
       'permanentLockout shows Disable & Continue button',
-      skip: true,
       (tester) async {
         fakeService.result = BiometricAuthResult.permanentLockout;
 
