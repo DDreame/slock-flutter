@@ -687,6 +687,8 @@ class _TasksListView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Flatten tasks into an indexed list of header + task items.
+    final flatItems = <_FlatListItem>[];
     final grouped = <String, List<TaskItem>>{};
     for (final item in items) {
       (grouped[item.status] ??= []).add(item);
@@ -694,26 +696,52 @@ class _TasksListView extends StatelessWidget {
 
     const statusOrder = ['todo', 'in_progress', 'in_review', 'done', 'closed'];
 
-    return ListView(
+    for (final status in statusOrder) {
+      if (grouped[status] != null && grouped[status]!.isNotEmpty) {
+        flatItems.add(_FlatHeaderItem(status));
+        for (final task in grouped[status]!) {
+          flatItems.add(_FlatTaskItem(task));
+        }
+      }
+    }
+
+    return ListView.builder(
       key: const ValueKey('tasks-list'),
       padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-      children: [
-        for (final status in statusOrder)
-          if (grouped[status] != null && grouped[status]!.isNotEmpty) ...[
+      itemCount: flatItems.length,
+      itemBuilder: (context, index) {
+        final item = flatItems[index];
+        return switch (item) {
+          _FlatHeaderItem(:final status) =>
             _TaskSectionLabel(status: status, colors: colors),
-            for (final task in grouped[status]!)
-              _TaskRow(
-                task: task,
-                colors: colors,
-                onStatusUpdate: onStatusUpdate,
-                onDelete: onDelete,
-                onClaim: onClaim,
-                onUnclaim: onUnclaim,
-              ),
-          ],
-      ],
+          _FlatTaskItem(:final task) => _TaskRow(
+              task: task,
+              colors: colors,
+              onStatusUpdate: onStatusUpdate,
+              onDelete: onDelete,
+              onClaim: onClaim,
+              onUnclaim: onUnclaim,
+            ),
+        };
+      },
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Flat list item types for ListView.builder indexed access
+// ---------------------------------------------------------------------------
+
+sealed class _FlatListItem {}
+
+class _FlatHeaderItem extends _FlatListItem {
+  _FlatHeaderItem(this.status);
+  final String status;
+}
+
+class _FlatTaskItem extends _FlatListItem {
+  _FlatTaskItem(this.task);
+  final TaskItem task;
 }
 
 // ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@
 // Phase B fix: Migrate to ListView.builder with flattened indexed item list
 // (status headers + task items as flat index).
 //
-// Phase A — skip:true tests.
+// Phase A → Phase B — all tests active.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -66,7 +66,6 @@ void main() {
             'for lazy rendering, not ListView(children:) (SliverChildListDelegate)',
       );
     },
-    skip: true,
   );
 
   // ---------------------------------------------------------------------------
@@ -127,7 +126,6 @@ void main() {
       expect(inReviewY, lessThan(doneY),
           reason: 'in_review section must appear before done');
     },
-    skip: true,
   );
 
   // ---------------------------------------------------------------------------
@@ -162,7 +160,6 @@ void main() {
 
       // No overflow errors (implicit — test would fail with FlutterError).
     },
-    skip: true,
   );
 }
 
