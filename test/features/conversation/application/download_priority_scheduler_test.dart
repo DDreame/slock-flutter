@@ -6,7 +6,7 @@
 //
 // Phase B: Implement DownloadPriorityScheduler + wire into pages.
 //
-// All tests skip: true — activated in Phase B.
+// Phase B — all tests active.
 // =============================================================================
 
 import 'dart:async';
@@ -105,7 +105,6 @@ void main() {
     // T1: Viewport-first ordering
     test(
       'starts visible items before offscreen items',
-      skip: true,
       () async {
         final downloader = FakeDownloader();
         final container = ProviderContainer(
@@ -151,7 +150,6 @@ void main() {
     // T2: Offscreen deferral
     test(
       'defers downloads when no items are visible',
-      skip: true,
       () async {
         final downloader = FakeDownloader();
         final container = ProviderContainer(
@@ -187,7 +185,6 @@ void main() {
     // T3: Scroll re-prioritization
     test(
       'promotes newly visible items ahead of pending offscreen items',
-      skip: true,
       () async {
         final downloader = FakeDownloader();
         final container = ProviderContainer(
@@ -234,7 +231,6 @@ void main() {
     // T4: Concurrency cap (maxConcurrent: 3)
     test(
       'limits concurrent downloads to maxConcurrent',
-      skip: true,
       () async {
         final downloader = FakeDownloader();
         final container = ProviderContainer(
@@ -272,7 +268,6 @@ void main() {
     // T5: Deprioritization on scroll-away
     test(
       'cancels in-progress download when item scrolls away',
-      skip: true,
       () async {
         final downloader = FakeDownloader();
         final container = ProviderContainer(
@@ -316,7 +311,6 @@ void main() {
     // T6: Integration — ConversationDetailPage wiring
     testWidgets(
       'ConversationDetailPage wires attachment downloads to scheduler',
-      skip: true,
       (tester) async {
         final target = ConversationDetailTarget.channel(
           const ChannelScopeId(

@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_info_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
@@ -34,6 +35,7 @@ import 'package:slock_app/features/conversation/application/current_open_convers
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/download_priority_scheduler.dart';
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -3432,7 +3434,7 @@ class _ConversationSearchBarState extends State<_ConversationSearchBar> {
   }
 }
 
-class _AttachmentSection extends StatelessWidget {
+class _AttachmentSection extends ConsumerWidget {
   const _AttachmentSection({required this.attachments});
 
   final List<MessageAttachment> attachments;
@@ -3477,7 +3479,7 @@ class _AttachmentSection extends StatelessWidget {
       name.endsWith('.md') || name.endsWith('.markdown');
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
@@ -3487,7 +3489,7 @@ class _AttachmentSection extends StatelessWidget {
           for (final attachment in attachments)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: _buildAttachmentWidget(context, attachment),
+              child: _buildAttachmentWidget(context, ref, attachment),
             ),
         ],
       ),
@@ -3496,13 +3498,35 @@ class _AttachmentSection extends StatelessWidget {
 
   Widget _buildAttachmentWidget(
     BuildContext context,
+    WidgetRef ref,
     MessageAttachment attachment,
   ) {
     final mimeType = attachment.type.toLowerCase();
 
     if (_imageTypes.contains(mimeType) &&
         (attachment.thumbnailUrl != null || attachment.url != null)) {
-      return _ImageAttachmentPreview(attachment: attachment);
+      final imageWidget = _ImageAttachmentPreview(attachment: attachment);
+      // Schedule download if attachment has an ID.
+      if (attachment.id != null) {
+        final scheduler = ref.read(downloadSchedulerProvider.notifier);
+        scheduler.enqueue(
+          attachment.id!,
+          () async {
+            /* Pre-fetch signed URL — actual fetch added when needed. */
+          },
+        );
+        return VisibilityDetector(
+          key: Key('download-visibility-${attachment.id}'),
+          onVisibilityChanged: (info) {
+            ref.read(downloadSchedulerProvider.notifier).onVisibilityChanged(
+                  attachment.id!,
+                  info.visibleFraction > 0,
+                );
+          },
+          child: imageWidget,
+        );
+      }
+      return imageWidget;
     }
 
     if (_htmlTypes.contains(mimeType)) {
