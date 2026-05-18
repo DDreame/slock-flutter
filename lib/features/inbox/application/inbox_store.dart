@@ -17,7 +17,11 @@ class InboxStore extends Notifier<InboxState> {
   final RequestCoordinator _coordinator = RequestCoordinator();
 
   @override
-  InboxState build() => const InboxState();
+  InboxState build() {
+    // Watch the active server so the store rebuilds (state resets) on switch.
+    ref.watch(activeServerScopeIdProvider);
+    return const InboxState();
+  }
 
   /// Load the first page of inbox items with the given [filter].
   ///
