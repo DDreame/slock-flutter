@@ -14,6 +14,15 @@ import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 // INV-TELEM-7: auth refresh failure → logged
 // INV-TELEM-8: notification delivery failure → logged
 //
+// Phase B seam: BackgroundNotificationWorker will accept an optional
+// `DiagnosticsCollector? diagnostics` constructor parameter. In Phase B:
+//   1. Add field: `final DiagnosticsCollector? _diagnostics;`
+//   2. _refreshAndReconnect catch (line 244):
+//        `_diagnostics?.error('BackgroundWorker', 'auth refresh failed: $e');`
+//   3. _deliverNotification generic catch (line 323):
+//        `_diagnostics?.error('BackgroundWorker', 'notification delivery failed: $e');`
+//   4. Update _createWorker below to forward the parameter.
+//
 // Phase A — all tests skip: true.
 // ---------------------------------------------------------------------------
 
@@ -23,30 +32,25 @@ void main() {
       'auth refresh failure → logged (INV-TELEM-7)',
       skip: true,
       () async {
-        // Setup: Create worker with authRefresher that throws.
-        // Start the worker, then trigger a reconnect (which calls
-        // _refreshAndReconnect → _authRefresher!()).
+        // Setup: Worker with authRefresher that throws.
+        // Start the worker, then trigger disconnect → _refreshAndReconnect.
         //
-        // Assert: DiagnosticsCollector has error entry with
-        //   tag='BackgroundWorker', message contains 'auth'.
-        //
-        // Currently _refreshAndReconnect (line 244) has:
-        //   catch (_) { // Fall through and use existing auth. }
-        // Phase B will add diagnostics.error(...) in that catch.
+        // Phase B wires diagnostics into the worker constructor (see
+        // _createWorker helper). After that, the catch block in
+        // _refreshAndReconnect calls diagnostics.error(...).
         final diagnostics = DiagnosticsCollector();
         final fakeSocket = _FakeBackgroundSocketConnection();
-        final fakeSink = _FakeBackgroundNotificationSink();
-        final fakeAuth = _FakeBackgroundAuthProvider(
-          token: 'test-token',
-          userId: 'user-1',
-          serverId: 'server-1',
-        );
 
-        final worker = BackgroundNotificationWorker(
+        final worker = _createWorker(
           socket: fakeSocket,
-          notificationSink: fakeSink,
-          authProvider: fakeAuth,
+          sink: _FakeBackgroundNotificationSink(),
+          auth: _FakeBackgroundAuthProvider(
+            token: 'test-token',
+            userId: 'user-1',
+            serverId: 'server-1',
+          ),
           authRefresher: () async => throw Exception('Auth refresh failed'),
+          diagnostics: diagnostics,
         );
         addTearDown(() async => worker.dispose());
 
@@ -73,29 +77,24 @@ void main() {
       'notification delivery failure → logged (INV-TELEM-8)',
       skip: true,
       () async {
-        // Setup: Create worker with notificationSink that throws
-        // a generic error (NOT BackgroundNotificationPermissionException).
-        // Send a message event so _deliverNotification is called.
+        // Setup: Worker with notificationSink that throws a generic error
+        // (NOT BackgroundNotificationPermissionException).
         //
-        // Assert: DiagnosticsCollector has error entry with
-        //   tag='BackgroundWorker', message contains 'notification'.
-        //
-        // Currently _deliverNotification (line 323) has:
-        //   catch (_) { // Swallow other errors ... }
-        // Phase B will add diagnostics.error(...) in that catch.
+        // Phase B wires diagnostics into the worker constructor (see
+        // _createWorker helper). After that, the generic catch block in
+        // _deliverNotification calls diagnostics.error(...).
         final diagnostics = DiagnosticsCollector();
         final fakeSocket = _FakeBackgroundSocketConnection();
-        final fakeSink = _ThrowingNotificationSink();
-        final fakeAuth = _FakeBackgroundAuthProvider(
-          token: 'test-token',
-          userId: 'user-1',
-          serverId: 'server-1',
-        );
 
-        final worker = BackgroundNotificationWorker(
+        final worker = _createWorker(
           socket: fakeSocket,
-          notificationSink: fakeSink,
-          authProvider: fakeAuth,
+          sink: _ThrowingNotificationSink(),
+          auth: _FakeBackgroundAuthProvider(
+            token: 'test-token',
+            userId: 'user-1',
+            serverId: 'server-1',
+          ),
+          diagnostics: diagnostics,
         );
         addTearDown(() async => worker.dispose());
 
@@ -128,6 +127,40 @@ void main() {
       },
     );
   });
+}
+
+// ---------------------------------------------------------------------------
+// Worker factory — Phase B injection seam
+// ---------------------------------------------------------------------------
+
+/// Creates a [BackgroundNotificationWorker] with diagnostic telemetry.
+///
+/// Phase B change: forward [diagnostics] to the worker constructor once it
+/// accepts the optional parameter:
+///
+/// ```dart
+/// return BackgroundNotificationWorker(
+///   socket: socket,
+///   notificationSink: sink,
+///   authProvider: auth,
+///   authRefresher: authRefresher,
+///   diagnostics: diagnostics,  // ← Phase B addition
+/// );
+/// ```
+BackgroundNotificationWorker _createWorker({
+  required _FakeBackgroundSocketConnection socket,
+  required BackgroundNotificationSink sink,
+  required BackgroundAuthProvider auth,
+  BackgroundAuthRefresher? authRefresher,
+  DiagnosticsCollector? diagnostics,
+}) {
+  // Phase B: add `diagnostics: diagnostics` to the constructor call below.
+  return BackgroundNotificationWorker(
+    socket: socket,
+    notificationSink: sink,
+    authProvider: auth,
+    authRefresher: authRefresher,
+  );
 }
 
 // ---------------------------------------------------------------------------

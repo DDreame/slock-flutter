@@ -7,6 +7,7 @@ import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/persisted_agent_names.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
@@ -197,7 +198,15 @@ void main() {
       'persisted agent names update failure → logged (INV-TELEM-6)',
       skip: true,
       () async {
-        // Setup: persistedAgentNamesProvider.notifier.update throws.
+        // Setup: agentsRepository returns ≥1 agent (so agents.isNotEmpty
+        // passes at home_list_store.dart:303), then
+        // persistedAgentNamesProvider.notifier.update() throws.
+        //
+        // Catch site: home_list_store.dart:307
+        //   try { ... ref.read(persistedAgentNamesProvider.notifier)
+        //           .update(agentNames); }
+        //   catch (_) {}
+        //
         // Assert: diagnosticsCollector has error entry with
         //   tag='HomeListStore', message contains 'persist'.
         final diagnostics = DiagnosticsCollector();
@@ -242,6 +251,18 @@ const _defaultSnapshot = HomeWorkspaceSnapshot(
   directMessages: [],
 );
 
+/// A single agent item used by T6 to ensure `agents.isNotEmpty`
+/// passes in the production code guard, reaching the persist call.
+const _stubAgent = AgentItem(
+  id: 'agent-1',
+  name: 'test-agent',
+  displayName: 'Test Agent',
+  model: 'test-model',
+  runtime: 'test-runtime',
+  status: 'active',
+  activity: 'idle',
+);
+
 ProviderContainer _buildContainer({
   required DiagnosticsCollector diagnostics,
   AppFailure? sidebarOrderFailure,
@@ -262,7 +283,12 @@ ProviderContainer _buildContainer({
         _FakeSidebarOrderRepository(failure: sidebarOrderFailure),
       ),
       agentsRepositoryProvider.overrideWithValue(
-        _FakeAgentsRepository(failure: agentsFailure),
+        _FakeAgentsRepository(
+          failure: agentsFailure,
+          // T6: return one agent so agents.isNotEmpty passes and the
+          // persist call (home_list_store.dart:306) is reached.
+          agents: persistAgentNamesFailure ? const [_stubAgent] : const [],
+        ),
       ),
       tasksRepositoryProvider.overrideWithValue(
         _FakeTasksRepository(genericFailure: tasksGenericFailure),
@@ -276,6 +302,12 @@ ProviderContainer _buildContainer({
             message: 'Machine fetch failed',
             statusCode: 500,
           ),
+        ),
+      // T6: override persistedAgentNamesProvider with a notifier whose
+      // update() throws, so the catch at home_list_store.dart:307 fires.
+      if (persistAgentNamesFailure)
+        persistedAgentNamesProvider.overrideWith(
+          () => _ThrowingPersistedAgentNames(),
         ),
     ],
   );
@@ -343,14 +375,15 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
 }
 
 class _FakeAgentsRepository implements AgentsRepository {
-  const _FakeAgentsRepository({this.failure});
+  const _FakeAgentsRepository({this.failure, this.agents = const []});
 
   final AppFailure? failure;
+  final List<AgentItem> agents;
 
   @override
   Future<List<AgentItem>> listAgents() async {
     if (failure != null) throw failure!;
-    return const [];
+    return agents;
   }
 
   @override
@@ -461,4 +494,18 @@ class _FakeThreadRepository implements ThreadRepository {
     ServerScopeId serverId, {
     required String threadChannelId,
   }) async {}
+}
+
+/// A [PersistedAgentNames] notifier that throws on [update].
+///
+/// Used by T6 to verify that the catch block at
+/// `home_list_store.dart:307` fires when the persist operation fails.
+class _ThrowingPersistedAgentNames extends PersistedAgentNames {
+  @override
+  Set<String> build() => const {};
+
+  @override
+  void update(Set<String> names) {
+    throw Exception('SharedPreferences write failed');
+  }
 }

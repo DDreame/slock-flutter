@@ -27,6 +27,13 @@ import 'package:dio/dio.dart';
 // INV-TELEM-9: sender profile fetch failure → logged + no crash
 // INV-TELEM-10: DM open failure → logged + no crash
 //
+// Trigger paths (verified against production source):
+//   - _openSenderProfile (line 2353): tap sender name → loadProfile()
+//   - _openDirectMessage (line 2384): called from profile sheet's
+//     "Message" button (key 'member-profile-dm-action' in
+//     member_profile_sheet.dart:172), wired via onMessageTap callback
+//     in _openSenderProfile (line 2371-2375).
+//
 // Phase A — all tests skip: true.
 // ---------------------------------------------------------------------------
 
@@ -70,7 +77,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Locate the sender name "Alice" and tap it to trigger
-        // _openSenderProfile.
+        // _openSenderProfile → loadProfile() throws → catch block fires.
         final senderLabel = find.text('Alice');
         expect(senderLabel, findsOneWidget,
             reason: 'Sender name must be rendered');
@@ -101,9 +108,16 @@ void main() {
       skip: true,
       (tester) async {
         // Setup: Render ConversationDetailPage with a message from a
-        // non-self sender. memberRepository.openDirectMessage throws.
-        // Trigger _openDirectMessage (via avatar popup's DM button
-        // or equivalent interaction path).
+        // non-self sender.
+        //   - profileRepository succeeds → profile sheet opens
+        //   - memberRepository.openDirectMessage throws
+        //
+        // Trigger path (matches production wiring):
+        //   1. Tap sender name → _openSenderProfile → loadProfile succeeds
+        //   2. Profile sheet appears with "Message" button
+        //      (key 'member-profile-dm-action', member_profile_sheet.dart:172)
+        //   3. Tap "Message" → onMessageTap → _openDirectMessage → throws
+        //   4. _openDirectMessage catch (line 2396) fires
         //
         // Assert:
         //   - diagnosticsCollector has error entry with
@@ -128,22 +142,31 @@ void main() {
             conversationRepository: _FakeConversationRepository(
               snapshot: _makeSnapshot(target),
             ),
+            // Profile loads successfully → sheet appears with DM button.
             profileRepository: _FakeProfileRepository(),
+            // DM open throws → catch block fires.
             memberRepository: const _ThrowingMemberRepository(),
           ),
         );
         await tester.pumpAndSettle();
 
-        // Trigger _openDirectMessage — this is called from the
-        // profile sheet's "Message" button after _openSenderProfile
-        // succeeds. The exact interaction path will be refined in Phase B.
-        //
-        // For Phase A, assert the test structure compiles and the
-        // diagnostics assertion shape is correct.
+        // Step 1: Tap sender name to trigger _openSenderProfile.
+        // Profile loads successfully → profile sheet opens.
         final senderLabel = find.text('Alice');
         expect(senderLabel, findsOneWidget,
             reason: 'Sender name must be rendered');
         await tester.tap(senderLabel);
+        await tester.pumpAndSettle();
+
+        // Step 2: Profile sheet must be visible with the DM action button.
+        final dmButton = find.byKey(const ValueKey('member-profile-dm-action'));
+        expect(dmButton, findsOneWidget,
+            reason: 'Profile sheet must show Message button '
+                '(member-profile-dm-action)');
+
+        // Step 3: Tap the "Message" button → triggers _openDirectMessage
+        // → memberRepository.openDirectMessage throws → catch block fires.
+        await tester.tap(dmButton);
         await tester.pumpAndSettle();
 
         // Widget must remain mounted after the failure.
@@ -386,7 +409,7 @@ class _FakeProfileRepository implements ProfileRepository {
       );
 }
 
-/// Profile repository that always throws (for testing C9 catch).
+/// Profile repository that always throws (for testing TELEM-9 catch).
 class _ThrowingProfileRepository implements ProfileRepository {
   @override
   Future<MemberProfile> loadProfile(
@@ -437,7 +460,7 @@ class _FakeMemberRepository implements MemberRepository {
       'dm-agent-channel-1';
 }
 
-/// Member repository that always throws on DM open (for testing C10 catch).
+/// Member repository that always throws on DM open (for testing TELEM-10 catch).
 class _ThrowingMemberRepository implements MemberRepository {
   const _ThrowingMemberRepository();
 
