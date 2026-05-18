@@ -58,7 +58,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Profile page shows edit avatar button for self profile',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         buildApp(
@@ -85,7 +84,6 @@ void main() {
 
   testWidgets(
     'Profile page does NOT show edit avatar button for other profile',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         buildApp(
@@ -115,7 +113,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Tapping edit avatar opens image picker',
-    skip: true,
     (tester) async {
       // Track whether image picker was invoked.
       bool pickerCalled = false;
@@ -157,7 +154,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Selected image is uploaded via user API',
-    skip: true,
     (tester) async {
       String? uploadedPath;
 
@@ -202,7 +198,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Upload success updates displayed avatar',
-    skip: true,
     (tester) async {
       // Start with a profile that has NO avatar (initials shown).
       const noAvatarProfile = MemberProfile(
@@ -271,7 +266,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Upload failure shows error snackbar',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         buildApp(

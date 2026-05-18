@@ -26,11 +26,13 @@ class SessionStore extends Notifier<SessionState> {
         _storage.read(key: SessionStorageKeys.refreshToken),
         _storage.read(key: SessionStorageKeys.userId),
         _storage.read(key: SessionStorageKeys.displayName),
+        _storage.read(key: SessionStorageKeys.avatarUrl),
       ]);
       final token = results[0];
       final refreshToken = results[1];
       final userId = results[2];
       final displayName = results[3];
+      final avatarUrl = results[4];
 
       // Require both tokens for a valid session. If only one is present the
       // pair is incomplete and cannot recover from a 401, so clear it out.
@@ -46,6 +48,7 @@ class SessionStore extends Notifier<SessionState> {
           token: token,
           userId: userId,
           displayName: displayName,
+          avatarUrl: avatarUrl,
         );
         await _hydrateAuthenticatedSession(
           fallbackUserId: userId,
@@ -160,6 +163,15 @@ class SessionStore extends Notifier<SessionState> {
     ]);
   }
 
+  /// Update the session avatar URL (after successful upload).
+  Future<void> updateAvatarUrl(String avatarUrl) async {
+    state = state.copyWith(avatarUrl: avatarUrl);
+    await _storage.write(
+      key: SessionStorageKeys.avatarUrl,
+      value: avatarUrl,
+    );
+  }
+
   Future<void> _persistSession() async {
     final s = state;
     // Batch all storage writes in parallel.
@@ -172,6 +184,11 @@ class SessionStore extends Notifier<SessionState> {
         _storage.write(
           key: SessionStorageKeys.displayName,
           value: s.displayName!,
+        ),
+      if (s.avatarUrl != null)
+        _storage.write(
+          key: SessionStorageKeys.avatarUrl,
+          value: s.avatarUrl!,
         ),
     ]);
   }
@@ -191,6 +208,8 @@ class SessionStore extends Notifier<SessionState> {
         token: state.token,
         userId: user?.id ?? fallbackUserId,
         displayName: user?.name ?? fallbackDisplayName,
+        avatarUrl: state
+            .avatarUrl, // preserve uploaded avatar (AuthUser has no avatar field)
         emailVerified: user?.emailVerified,
       );
       await _persistSession();

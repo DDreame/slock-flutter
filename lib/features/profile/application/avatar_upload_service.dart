@@ -1,23 +1,23 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:slock_app/core/core.dart';
 
 // ---------------------------------------------------------------------------
-// #575: Avatar Upload Service — Stub (Phase A)
+// #575: Avatar Upload Service — Phase B
 //
-// Provides the seam providers referenced by Phase A tests.
-// Phase B implements the actual image picker and upload logic.
+// Real implementations of image picker and avatar upload via PUT /users/me.
 // ---------------------------------------------------------------------------
 
-/// Injectable image picker seam. Phase B replaces with real ImagePicker.
-///
-/// Returns the file path of the picked image, or null if cancelled.
+/// Injectable image picker seam.
 final imagePickerProvider = Provider<ImagePickerService>((ref) {
-  throw UnimplementedError('#575 Phase B: implement image picker provider');
+  return _RealImagePickerService();
 });
 
-/// Injectable avatar upload service seam. Phase B replaces with real
-/// multipart upload to PUT /users/me.
+/// Injectable avatar upload service.
 final avatarUploadServiceProvider = Provider<AvatarUploadService>((ref) {
-  throw UnimplementedError('#575 Phase B: implement avatar upload service');
+  final appDioClient = ref.watch(appDioClientProvider);
+  return _ApiAvatarUploadService(appDioClient: appDioClient);
 });
 
 /// Abstract image picker interface for testability.
@@ -39,4 +39,76 @@ class AvatarUploadException implements Exception {
 
   @override
   String toString() => 'AvatarUploadException: $message';
+}
+
+// ---------------------------------------------------------------------------
+// Real implementations
+// ---------------------------------------------------------------------------
+
+class _RealImagePickerService implements ImagePickerService {
+  final _picker = ImagePicker();
+
+  @override
+  Future<String?> pickImage() async {
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+    return file?.path;
+  }
+}
+
+const _uploadPath = '/users/me';
+
+class _ApiAvatarUploadService implements AvatarUploadService {
+  const _ApiAvatarUploadService({required AppDioClient appDioClient})
+      : _appDioClient = appDioClient;
+
+  final AppDioClient _appDioClient;
+
+  @override
+  Future<String> upload(String filePath) async {
+    try {
+      final formData = FormData()
+        ..files.add(
+          MapEntry(
+            'avatar',
+            await MultipartFile.fromFile(
+              filePath,
+              filename: 'avatar.png',
+              contentType: DioMediaType.parse('image/png'),
+            ),
+          ),
+        );
+
+      final response = await _appDioClient.request<Object?>(
+        _uploadPath,
+        method: 'PUT',
+        data: formData,
+        options: Options(
+          sendTimeout: const Duration(minutes: 1),
+        ),
+      );
+
+      final data = response.data;
+      if (data is Map<String, dynamic>) {
+        final avatarUrl = data['avatarUrl'] as String?;
+        if (avatarUrl != null && avatarUrl.isNotEmpty) {
+          return avatarUrl;
+        }
+      }
+
+      throw AvatarUploadException('Invalid response from server.');
+    } on AvatarUploadException {
+      rethrow;
+    } on AppFailure catch (failure) {
+      throw AvatarUploadException(
+        failure.message ?? 'Upload failed. Please try again.',
+      );
+    } catch (error) {
+      throw AvatarUploadException('Upload failed. Please try again.');
+    }
+  }
 }
