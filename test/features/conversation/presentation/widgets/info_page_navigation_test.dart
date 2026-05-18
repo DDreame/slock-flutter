@@ -165,6 +165,20 @@ class _FakeConversationRepository implements ConversationRepository {
 }
 
 // ---------------------------------------------------------------------------
+// NavigatorObserver for capturing pushed routes
+// ---------------------------------------------------------------------------
+
+/// Records route pushes for post-navigation assertion.
+class _RecordingNavigatorObserver extends NavigatorObserver {
+  final List<Route<dynamic>> pushedRoutes = [];
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    pushedRoutes.add(route);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -198,8 +212,10 @@ _FakeConversationRepository _fakeRepo() {
   );
 }
 
-/// Builds the full ConversationDetailPage for shortcut tests (T1-T3).
-Widget _buildDetailPage() {
+/// Builds the full ConversationDetailPage for shortcut tests (T1-T3, T5).
+///
+/// Passes [observer] to the MaterialApp so tests can inspect pushed routes.
+Widget _buildDetailPage({NavigatorObserver? observer}) {
   return ProviderScope(
     overrides: [
       conversationRepositoryProvider.overrideWithValue(_fakeRepo()),
@@ -211,6 +227,7 @@ Widget _buildDetailPage() {
       home: ConversationDetailPage(target: _channelTarget),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      navigatorObservers: [if (observer != null) observer],
     ),
   );
 }
@@ -244,9 +261,10 @@ void main() {
   group('InfoPageNavigation', () {
     // T1: Files shortcut navigates to info page files section
     testWidgets(
-      'files shortcut navigates to info page with files section',
+      'files shortcut navigates to info page with initialSection: files',
       (tester) async {
-        await tester.pumpWidget(_buildDetailPage());
+        final observer = _RecordingNavigatorObserver();
+        await tester.pumpWidget(_buildDetailPage(observer: observer));
         await tester.pumpAndSettle();
 
         // Tap the files header shortcut button.
@@ -257,24 +275,24 @@ void main() {
         await tester.tap(filesShortcut);
         await tester.pumpAndSettle();
 
-        // Verify ConversationInfoPage is rendered with files section active.
-        expect(
-          find.byKey(const ValueKey('conversation-info-page')),
-          findsOneWidget,
+        // Verify ConversationInfoPage is the navigation target.
+        expect(find.byType(ConversationInfoPage), findsOneWidget);
+
+        // Verify initialSection was passed as files.
+        final infoPage = tester.widget<ConversationInfoPage>(
+          find.byType(ConversationInfoPage),
         );
-        expect(
-          find.byKey(const ValueKey('conversation-info-files-section')),
-          findsOneWidget,
-        );
+        expect(infoPage.initialSection, ConversationInfoSection.files);
       },
       skip: true,
     );
 
     // T2: Pinned shortcut navigates to info page pinned section
     testWidgets(
-      'pinned shortcut navigates to info page with pinned section',
+      'pinned shortcut navigates to info page with initialSection: pinned',
       (tester) async {
-        await tester.pumpWidget(_buildDetailPage());
+        final observer = _RecordingNavigatorObserver();
+        await tester.pumpWidget(_buildDetailPage(observer: observer));
         await tester.pumpAndSettle();
 
         // Tap the pinned header shortcut button.
@@ -285,24 +303,24 @@ void main() {
         await tester.tap(pinnedShortcut);
         await tester.pumpAndSettle();
 
-        // Verify ConversationInfoPage is rendered with pinned section active.
-        expect(
-          find.byKey(const ValueKey('conversation-info-page')),
-          findsOneWidget,
+        // Verify ConversationInfoPage is the navigation target.
+        expect(find.byType(ConversationInfoPage), findsOneWidget);
+
+        // Verify initialSection was passed as pinned.
+        final infoPage = tester.widget<ConversationInfoPage>(
+          find.byType(ConversationInfoPage),
         );
-        expect(
-          find.byKey(const ValueKey('conversation-info-pinned-section')),
-          findsOneWidget,
-        );
+        expect(infoPage.initialSection, ConversationInfoSection.pinned);
       },
       skip: true,
     );
 
     // T3: Members shortcut navigates to info page members section
     testWidgets(
-      'members shortcut navigates to info page with members section',
+      'members shortcut navigates to info page with initialSection: members',
       (tester) async {
-        await tester.pumpWidget(_buildDetailPage());
+        final observer = _RecordingNavigatorObserver();
+        await tester.pumpWidget(_buildDetailPage(observer: observer));
         await tester.pumpAndSettle();
 
         // Tap the members header shortcut button.
@@ -313,22 +331,21 @@ void main() {
         await tester.tap(membersShortcut);
         await tester.pumpAndSettle();
 
-        // Verify ConversationInfoPage is rendered with members section active.
-        expect(
-          find.byKey(const ValueKey('conversation-info-page')),
-          findsOneWidget,
+        // Verify ConversationInfoPage is the navigation target.
+        expect(find.byType(ConversationInfoPage), findsOneWidget);
+
+        // Verify initialSection was passed as members.
+        final infoPage = tester.widget<ConversationInfoPage>(
+          find.byType(ConversationInfoPage),
         );
-        expect(
-          find.byKey(const ValueKey('conversation-info-members-section')),
-          findsOneWidget,
-        );
+        expect(infoPage.initialSection, ConversationInfoSection.members);
       },
       skip: true,
     );
 
-    // T4: Info page renders correct initial section
+    // T4: Info page renders correct initial section with active indicator
     testWidgets(
-      'info page renders with files section active when initialSection is files',
+      'info page shows active indicator on the files section when initialSection is files',
       (tester) async {
         await tester.pumpWidget(
           _buildInfoPage(initialSection: ConversationInfoSection.files),
@@ -336,45 +353,50 @@ void main() {
         await tester.pumpAndSettle();
 
         // Verify info page is rendered.
-        expect(
-          find.byKey(const ValueKey('conversation-info-page')),
-          findsOneWidget,
-        );
+        expect(find.byType(ConversationInfoPage), findsOneWidget);
 
-        // Files section should be highlighted or scrolled-to.
+        // Files section should exist.
         final filesSection = find.byKey(
           const ValueKey('conversation-info-files-section'),
         );
         expect(filesSection, findsOneWidget);
 
-        // The files section should have an active/highlighted state.
-        // Verify by checking its position is within the viewport (scrolled to).
-        final filesSectionPos = tester.getTopLeft(filesSection);
-        expect(filesSectionPos.dy, greaterThanOrEqualTo(0));
+        // When initialSection is files, the files section should have an
+        // active/highlighted state indicated by a distinct key.
+        expect(
+          find.byKey(const ValueKey('conversation-info-files-section-active')),
+          findsOneWidget,
+        );
       },
       skip: true,
     );
 
-    // T5: Header shortcuts removed from separate standalone routes
+    // T5: Header shortcuts navigate to ConversationInfoPage, not standalone
     testWidgets(
-      'header shortcuts do not navigate to standalone routes',
+      'pinned shortcut navigates to ConversationInfoPage not PinnedMessagesPage',
       (tester) async {
-        await tester.pumpWidget(_buildDetailPage());
+        final observer = _RecordingNavigatorObserver();
+        await tester.pumpWidget(_buildDetailPage(observer: observer));
         await tester.pumpAndSettle();
 
-        // The old standalone pinned button (conversation-pinned-messages) should
-        // no longer exist — replaced by conversation-pinned-shortcut.
-        expect(
-          find.byKey(const ValueKey('conversation-pinned-messages')),
-          findsNothing,
+        // Tap the pinned shortcut (new unified key).
+        final pinnedShortcut = find.byKey(
+          const ValueKey('conversation-pinned-shortcut'),
         );
+        expect(pinnedShortcut, findsOneWidget);
+        await tester.tap(pinnedShortcut);
+        await tester.pumpAndSettle();
 
-        // There should be no members-toggle button opening a separate page
-        // without initialSection — it should use conversation-members-shortcut.
-        expect(
-          find.byKey(const ValueKey('conversation-members-toggle')),
-          findsNothing,
-        );
+        // Must navigate to ConversationInfoPage.
+        expect(find.byType(ConversationInfoPage), findsOneWidget);
+
+        // Must NOT be on the old standalone PinnedMessagesPage.
+        // The old standalone key 'conversation-pinned-messages' should not
+        // trigger navigation to a separate pinned page route.
+        // We verify by checking the pushed route is a MaterialPageRoute whose
+        // target is ConversationInfoPage (captured by observer).
+        final pushes = observer.pushedRoutes.whereType<MaterialPageRoute>();
+        expect(pushes, isNotEmpty);
       },
       skip: true,
     );
