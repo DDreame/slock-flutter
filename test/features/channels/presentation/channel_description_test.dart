@@ -47,7 +47,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'ConversationDetailSnapshot includes description from API response',
-    skip: true,
     () async {
       // Set up a fake API client that returns a channel with a description.
       final appDioClient = _FakeAppDioClient(
@@ -104,7 +103,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Channel header shows description text when present',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -145,7 +143,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Channel header hides description when null or empty',
-    skip: true,
     (tester) async {
       // First: verify that description IS shown when present (guards against
       // the test passing trivially when the feature doesn't exist at all).
@@ -174,6 +171,12 @@ void main() {
             '(this ensures the feature exists before testing the hide case)',
       );
 
+      // Dispose old tree cleanly before creating a new one with different
+      // provider state. This avoids Riverpod's "modify during build" error
+      // while ensuring the provider container is truly fresh.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
       // Now test the hide case: null description.
       final repoNull = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
@@ -198,6 +201,10 @@ void main() {
         findsNothing,
         reason: 'Description text must not appear when description is null',
       );
+
+      // Dispose old tree cleanly before next scenario.
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
 
       // Also test with empty string description.
       final repoEmpty = _FakeConversationRepository(
@@ -232,7 +239,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'Channel info page shows description section',
-    skip: true,
     (tester) async {
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(

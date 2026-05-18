@@ -294,6 +294,17 @@ class _ConversationDetailScreenState
               _DmPresenceSubtitle(
                 conversationId: target.conversationId,
               )
+            else if (state.description != null && state.description!.isNotEmpty)
+              Text(
+                state.description!,
+                key: const ValueKey('channel-description-text'),
+                style: AppTypography.caption.copyWith(
+                  color:
+                      Theme.of(context).extension<AppColors>()!.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
             else if (state.memberCount != null)
               Text(
                 '${state.memberCount} '
@@ -333,6 +344,7 @@ class _ConversationDetailScreenState
                     builder: (_) => ConversationInfoPage(
                       target: target,
                       title: state.resolvedTitle,
+                      description: state.description,
                       initialSection: ConversationInfoSection.files,
                     ),
                   ),
@@ -354,6 +366,7 @@ class _ConversationDetailScreenState
                     builder: (_) => ConversationInfoPage(
                       target: target,
                       title: state.resolvedTitle,
+                      description: state.description,
                       initialSection: ConversationInfoSection.pinned,
                     ),
                   ),
@@ -380,6 +393,7 @@ class _ConversationDetailScreenState
                     builder: (_) => ConversationInfoPage(
                       target: target,
                       title: state.resolvedTitle,
+                      description: state.description,
                       initialSection: ConversationInfoSection.members,
                     ),
                   ),

@@ -12,6 +12,7 @@ class ConversationDetailState {
     required this.target,
     this.status = ConversationDetailStatus.initial,
     this.title,
+    this.description,
     this.memberCount,
     this.messages = const [],
     this.pendingMessages = const [],
@@ -40,6 +41,7 @@ class ConversationDetailState {
   final ConversationDetailTarget target;
   final ConversationDetailStatus status;
   final String? title;
+  final String? description;
   final int? memberCount;
   final List<ConversationMessageSummary> messages;
 
@@ -95,6 +97,8 @@ class ConversationDetailState {
     ConversationDetailTarget? target,
     ConversationDetailStatus? status,
     String? title,
+    String? description,
+    bool clearDescription = false,
     int? memberCount,
     List<ConversationMessageSummary>? messages,
     List<PendingMessage>? pendingMessages,
@@ -126,6 +130,7 @@ class ConversationDetailState {
       target: target ?? this.target,
       status: status ?? this.status,
       title: title ?? this.title,
+      description: clearDescription ? null : (description ?? this.description),
       memberCount: memberCount ?? this.memberCount,
       messages: messages ?? this.messages,
       pendingMessages: pendingMessages ?? this.pendingMessages,
@@ -162,6 +167,7 @@ class ConversationDetailState {
             target == other.target &&
             status == other.status &&
             title == other.title &&
+            description == other.description &&
             memberCount == other.memberCount &&
             listEquals(messages, other.messages) &&
             listEquals(pendingMessages, other.pendingMessages) &&
@@ -192,6 +198,7 @@ class ConversationDetailState {
         target,
         status,
         title,
+        description,
         memberCount,
         Object.hashAll(messages),
         Object.hashAll(pendingMessages),
