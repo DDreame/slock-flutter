@@ -148,6 +148,7 @@ class ConversationDetailSnapshot {
     required this.historyLimited,
     required this.hasOlder,
     this.memberCount,
+    this.description,
   });
 
   final ConversationDetailTarget target;
@@ -156,6 +157,10 @@ class ConversationDetailSnapshot {
   final bool historyLimited;
   final bool hasOlder;
   final int? memberCount;
+
+  /// Channel description/topic. Null when not provided by the API.
+  /// Phase B (#577) wires parsing and UI display.
+  final String? description;
 }
 
 @immutable
