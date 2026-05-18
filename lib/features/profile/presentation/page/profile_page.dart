@@ -8,6 +8,7 @@ import 'package:slock_app/app/widgets/role_badge.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/core/hero/hero_tags.dart';
+import 'package:slock_app/features/profile/application/avatar_upload_service.dart';
 import 'package:slock_app/features/profile/application/profile_detail_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
@@ -126,7 +127,7 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
   }
 }
 
-class _ProfileSuccessBody extends StatelessWidget {
+class _ProfileSuccessBody extends ConsumerWidget {
   const _ProfileSuccessBody({
     required this.profile,
     required this.target,
@@ -141,8 +142,33 @@ class _ProfileSuccessBody extends StatelessWidget {
   final bool isOpeningDm;
   final VoidCallback onMessage;
 
+  Future<void> _handleAvatarEdit(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final picker = ref.read(imagePickerProvider);
+      final filePath = await picker.pickImage();
+      if (filePath == null) return; // User cancelled.
+
+      final uploadService = ref.read(avatarUploadServiceProvider);
+      final newUrl = await uploadService.upload(filePath);
+
+      ref.read(profileDetailStoreProvider.notifier).updateAvatarUrl(newUrl);
+    } on AvatarUploadException catch (e) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Failed to update avatar.')),
+        );
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
       key: const ValueKey('profile-success'),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -152,13 +178,42 @@ class _ProfileSuccessBody extends StatelessWidget {
           child: Column(
             children: [
               // --- Avatar ---
-              Hero(
-                tag: HeroTags.avatar(profile.id),
-                child: ProfileAvatar(
-                  displayName: profile.displayName,
-                  avatarUrl: profile.avatarUrl,
-                  radius: 40,
-                ),
+              Stack(
+                children: [
+                  Hero(
+                    tag: HeroTags.avatar(profile.id),
+                    child: ProfileAvatar(
+                      displayName: profile.displayName,
+                      avatarUrl: profile.avatarUrl,
+                      radius: 40,
+                    ),
+                  ),
+                  if (profile.isSelf)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: GestureDetector(
+                        key: const ValueKey('profile-avatar-edit-button'),
+                        onTap: () => _handleAvatarEdit(context, ref),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: colors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Theme.of(context).scaffoldBackgroundColor,
+                              width: 2,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.camera_alt,
+                            size: 16,
+                            color: colors.primaryForeground,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: AppSpacing.lg),
 

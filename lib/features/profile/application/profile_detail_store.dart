@@ -124,6 +124,15 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
 
   Future<void> retry() => _loadProfile();
 
+  /// Update the displayed avatar URL after a successful upload.
+  void updateAvatarUrl(String newUrl) {
+    final current = state.profile;
+    if (current == null) return;
+    state = state.copyWith(
+      profile: current.copyWith(avatarUrl: newUrl),
+    );
+  }
+
   Future<String> openDirectMessage() async {
     final target = ref.read(currentProfileTargetProvider);
     final userId = target.userId;
