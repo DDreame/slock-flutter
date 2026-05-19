@@ -1394,27 +1394,35 @@ class ConversationDetailStore
     }
 
     unawaited(() async {
-      final patched = await ref
-          .read(conversationRepositoryProvider)
-          .updateStoredMessageContent(
-            target,
-            messageId: updated.id,
-            content: updated.content,
-          );
-      if (patched == null ||
-          ref.read(currentConversationDetailTargetProvider) != target ||
-          state.status != ConversationDetailStatus.success) {
-        return;
-      }
-      final index = state.messages.indexWhere((m) => m.id == updated.id);
-      if (index == -1) {
-        return;
-      }
+      try {
+        final patched = await ref
+            .read(conversationRepositoryProvider)
+            .updateStoredMessageContent(
+              target,
+              messageId: updated.id,
+              content: updated.content,
+            );
+        if (patched == null ||
+            ref.read(currentConversationDetailTargetProvider) != target ||
+            state.status != ConversationDetailStatus.success) {
+          return;
+        }
+        final index = state.messages.indexWhere((m) => m.id == updated.id);
+        if (index == -1) {
+          return;
+        }
 
-      final messages = List<ConversationMessageSummary>.of(state.messages);
-      messages[index] = patched;
-      state = state.copyWith(messages: messages);
-      _persistSession();
+        final messages = List<ConversationMessageSummary>.of(state.messages);
+        messages[index] = patched;
+        state = state.copyWith(messages: messages);
+        _persistSession();
+      } on StateError catch (_) {
+        // Provider disposed mid-flight — expected during rapid navigation.
+      } catch (e, st) {
+        // INV-CONV-MESSAGE-UPDATE-ERROR-1: Route unexpected exceptions to
+        // crash reporter instead of leaving them as unhandled future errors.
+        ref.read(crashReporterProvider).captureException(e, stackTrace: st);
+      }
     }());
   }
 
