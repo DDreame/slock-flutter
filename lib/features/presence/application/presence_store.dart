@@ -82,6 +82,8 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
     if (status == UserPresenceStatus.offline) {
       setOffline(userId);
     } else {
+      // Short-circuit: skip allocation when value is unchanged.
+      if (state.statuses[userId] == status) return;
       state = state.copyWith(
         statuses: {...state.statuses, userId: status},
       );
