@@ -274,6 +274,7 @@ class _FakeNotificationStore extends NotificationStore {
   NotificationState build() =>
       const NotificationState(lifecycleStatus: AppLifecycleStatus.resumed);
 
+  @override
   void setLifecycleStatus(AppLifecycleStatus status) {
     state = state.copyWith(lifecycleStatus: status);
   }
