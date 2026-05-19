@@ -45,6 +45,13 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
     }
   }
 
+  /// Idempotent load guard — only calls [load] when status is [initial].
+  void ensureLoaded() {
+    if (state.status == SavedMessagesStatus.initial) {
+      load();
+    }
+  }
+
   Future<void> loadMore() async {
     if (!state.hasMore ||
         state.status != SavedMessagesStatus.success ||

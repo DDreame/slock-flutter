@@ -40,7 +40,7 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
   void initState() {
     super.initState();
     Future.microtask(
-      () => ref.read(savedMessagesStoreProvider.notifier).load(),
+      () => ref.read(savedMessagesStoreProvider.notifier).ensureLoaded(),
     );
   }
 
