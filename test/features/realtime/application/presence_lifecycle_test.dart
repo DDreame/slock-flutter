@@ -10,7 +10,6 @@ void main() {
   group('PresenceStore resource lifecycle', () {
     test(
       'T1: setPresence does not allocate new Map when value is unchanged',
-      skip: true,
       () {
         // Arrange — create container, keep autoDispose alive.
         final container = ProviderContainer();
@@ -45,7 +44,6 @@ void main() {
 
     test(
       'T2: SocketClient.dispose() closes signal controller',
-      skip: true,
       () async {
         // Arrange — use a FakeRealtimeSocketClient to verify dispose behavior.
         final client = _FakeRealtimeSocketClient();
@@ -60,7 +58,6 @@ void main() {
 
     test(
       'T3: RealtimeService._disposeResources() invokes socket disconnect',
-      skip: true,
       () {
         // Arrange — override realtimeSocketClientProvider with a fake.
         final fakeClient = _FakeRealtimeSocketClient();
@@ -89,7 +86,6 @@ void main() {
 
     test(
       'T4: Presence state correctly updated after efficient mutation',
-      skip: true,
       () {
         // Arrange
         final container = ProviderContainer();
