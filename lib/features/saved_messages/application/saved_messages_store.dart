@@ -48,10 +48,12 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
   Future<void> loadMore() async {
     if (!state.hasMore ||
         state.status != SavedMessagesStatus.success ||
+        state.isLoadingMore ||
         state.items.isEmpty) {
       return;
     }
 
+    state = state.copyWith(isLoadingMore: true);
     final serverId = ref.read(currentSavedMessagesServerIdProvider);
 
     try {
@@ -63,9 +65,10 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
       state = state.copyWith(
         items: [...state.items, ...page.items],
         hasMore: page.hasMore,
+        isLoadingMore: false,
       );
     } on AppFailure catch (failure) {
-      state = state.copyWith(failure: failure);
+      state = state.copyWith(failure: failure, isLoadingMore: false);
     }
   }
 

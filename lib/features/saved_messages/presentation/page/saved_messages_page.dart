@@ -146,18 +146,46 @@ class _SavedMessagesListSurface extends StatelessWidget {
   }
 }
 
-class _SavedMessagesList extends ConsumerWidget {
+class _SavedMessagesList extends ConsumerStatefulWidget {
   const _SavedMessagesList({required this.state});
 
   final SavedMessagesState state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final items = state.items;
+  ConsumerState<_SavedMessagesList> createState() => _SavedMessagesListState();
+}
+
+class _SavedMessagesListState extends ConsumerState<_SavedMessagesList> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref.read(savedMessagesStoreProvider.notifier).loadMore();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.state.items;
     return RefreshIndicator(
       onRefresh: () => ref.read(savedMessagesStoreProvider.notifier).load(),
       child: ListView.separated(
         key: const ValueKey('saved-messages-list'),
+        controller: _scrollController,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.md,
@@ -165,15 +193,10 @@ class _SavedMessagesList extends ConsumerWidget {
         itemCount: items.length,
         separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
         itemBuilder: (context, index) {
-          if (index == items.length - 1 && state.hasMore) {
-            Future.microtask(
-              () => ref.read(savedMessagesStoreProvider.notifier).loadMore(),
-            );
-          }
           final item = items[index];
           return _SavedMessageCard(
             item: item,
-            onTap: () => _navigateToSource(context, ref, item),
+            onTap: () => _navigateToSource(context, item),
             onUnsave: () => ref
                 .read(savedMessagesStoreProvider.notifier)
                 .unsaveMessage(item.message.id),
@@ -185,7 +208,6 @@ class _SavedMessagesList extends ConsumerWidget {
 
   void _navigateToSource(
     BuildContext context,
-    WidgetRef ref,
     SavedMessageItem item,
   ) {
     final serverId = ProviderScope.containerOf(
