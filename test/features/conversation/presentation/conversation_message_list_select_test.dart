@@ -262,6 +262,9 @@ void main() {
       // Invalidate to force rebuild and trigger listener notification flow.
       container.invalidate(unreadSourceProjectionProvider);
       container.read(unreadSourceProjectionProvider);
+      // Select listener notifications for plain Provider overrides are
+      // dispatched asynchronously via microtask.
+      await Future<void>.delayed(Duration.zero);
 
       expect(
         selectNotifyCount,
@@ -320,6 +323,9 @@ void main() {
       // Invalidate to force rebuild and trigger listener notification flow.
       container.invalidate(unreadSourceProjectionProvider);
       container.read(unreadSourceProjectionProvider);
+      // Select listener notifications for plain Provider overrides are
+      // dispatched asynchronously via microtask.
+      await Future<void>.delayed(Duration.zero);
 
       expect(
         selectNotifyCount,
