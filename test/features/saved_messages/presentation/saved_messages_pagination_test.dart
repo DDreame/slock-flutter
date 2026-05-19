@@ -140,7 +140,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-PAGING-1: concurrent loadMore() calls result in exactly 1 fetch',
-    skip: true,
     () async {
       final repo = _FakeSavedMessagesRepository();
       repo.loadMoreCompleter = Completer<SavedMessagesPage>();
@@ -201,7 +200,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-PAGING-1: loadMore() is a no-op when one is already in-flight',
-    skip: true,
     () async {
       final repo = _FakeSavedMessagesRepository();
       repo.loadMoreCompleter = Completer<SavedMessagesPage>();
@@ -257,7 +255,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-PAGING-1: loadMore error does not permanently block future loads',
-    skip: true,
     () async {
       final repo = _FakeSavedMessagesRepository();
       repo.loadMoreCompleter = Completer<SavedMessagesPage>();
@@ -309,13 +306,13 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // T4: Current loadMore has no guard (anti-pattern proof).
+  // T4: With guard in place, concurrent calls result in exactly 1 fetch.
   //
-  // Demonstrates the bug: calling loadMore() multiple times concurrently
-  // results in multiple repository fetches. This test passes NOW.
+  // After Phase B fix, the isLoadingMore guard prevents concurrent fetches
+  // even when all calls resolve instantly (no completer).
   // -------------------------------------------------------------------------
   test(
-    'current loadMore allows concurrent fetches (anti-pattern proof)',
+    'concurrent loadMore with instant resolution results in exactly 1 fetch',
     () async {
       final repo = _FakeSavedMessagesRepository();
 
@@ -344,12 +341,11 @@ void main() {
         container.read(savedMessagesStoreProvider.notifier).loadMore(),
       ]);
 
-      // Without a guard, all 3 reach the repository.
+      // With the isLoadingMore guard, only 1 call reaches the repository.
       expect(
         repo.loadMoreCallCount,
-        greaterThan(1),
-        reason: 'Without isLoadingMore guard, concurrent calls all hit the '
-            'repository (proving the bug)',
+        1,
+        reason: 'isLoadingMore guard must prevent concurrent fetches',
       );
 
       keepAlive.close();

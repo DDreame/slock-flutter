@@ -10,18 +10,21 @@ class SavedMessagesState {
     this.status = SavedMessagesStatus.initial,
     this.items = const [],
     this.hasMore = false,
+    this.isLoadingMore = false,
     this.failure,
   });
 
   final SavedMessagesStatus status;
   final List<SavedMessageItem> items;
   final bool hasMore;
+  final bool isLoadingMore;
   final AppFailure? failure;
 
   SavedMessagesState copyWith({
     SavedMessagesStatus? status,
     List<SavedMessageItem>? items,
     bool? hasMore,
+    bool? isLoadingMore,
     AppFailure? failure,
     bool clearFailure = false,
   }) {
@@ -29,6 +32,7 @@ class SavedMessagesState {
       status: status ?? this.status,
       items: items ?? this.items,
       hasMore: hasMore ?? this.hasMore,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       failure: clearFailure ? null : (failure ?? this.failure),
     );
   }
@@ -41,6 +45,7 @@ class SavedMessagesState {
             status == other.status &&
             listEquals(items, other.items) &&
             hasMore == other.hasMore &&
+            isLoadingMore == other.isLoadingMore &&
             failure == other.failure;
   }
 
@@ -49,6 +54,7 @@ class SavedMessagesState {
         status,
         Object.hashAll(items),
         hasMore,
+        isLoadingMore,
         failure,
       );
 }
