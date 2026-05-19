@@ -82,7 +82,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-MESSAGE-CARD-SELECT-1: draft change does NOT notify 2-field select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -127,7 +126,6 @@ void main() {
   test(
     'INV-MESSAGE-CARD-SELECT-1: uploadProgress change does NOT notify '
     '2-field select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -171,7 +169,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-MESSAGE-CARD-SELECT-1: messages change does NOT notify 2-field select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
