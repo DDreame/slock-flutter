@@ -64,8 +64,11 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
 
   @override
   Widget build(BuildContext context) {
-    // Keep agents store alive while the page is open.
-    ref.watch(agentsStoreProvider);
+    // INV-NEW-DM-AGENTS-SELECT-1: Keep agents store alive while the page
+    // is open. Only status is consumed for SWR triggering — mutations to
+    // items, machines, activityLogs, isRefreshing, isCreating do not
+    // rebuild this page.
+    ref.watch(agentsStoreProvider.select((s) => s.status));
 
     return DefaultTabController(
       length: 2,
@@ -233,24 +236,31 @@ class _AgentsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(agentsStoreProvider);
+    // INV-NEW-DM-AGENTS-SELECT-1: Only rebuild for fields consumed by
+    // the agent list — status, items, failure. Mutations to machines,
+    // activityLogs, isRefreshing, isCreating do not trigger rebuilds.
+    final (:status, :items, :failure) = ref.watch(
+      agentsStoreProvider.select(
+        (s) => (status: s.status, items: s.items, failure: s.failure),
+      ),
+    );
 
-    return switch (state.status) {
+    return switch (status) {
       AgentsStatus.initial ||
       AgentsStatus.loading =>
         const Center(child: CircularProgressIndicator()),
       AgentsStatus.failure => _ErrorContent(
-          message: state.failure?.message ?? 'Failed to load agents.',
+          message: failure?.message ?? 'Failed to load agents.',
           onRetry: () async => ref.read(agentsStoreProvider.notifier).retry(),
         ),
-      AgentsStatus.success => _buildFilteredList(state),
+      AgentsStatus.success => _buildFilteredList(items),
     };
   }
 
-  Widget _buildFilteredList(AgentsState state) {
+  Widget _buildFilteredList(List<AgentItem> items) {
     final filtered = searchQuery.isEmpty
-        ? state.items
-        : state.items
+        ? items
+        : items
             .where(
               (a) =>
                   a.label.toLowerCase().contains(searchQuery.toLowerCase()) ||

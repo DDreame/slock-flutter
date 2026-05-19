@@ -30,7 +30,21 @@ class ServerSwitcherSheet extends ConsumerStatefulWidget {
 class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(serverListStoreProvider);
+    // INV-SERVER-SWITCHER-SELECT-1: Only rebuild for fields consumed by
+    // the sheet scaffold. Mutations to savingServerIds, deletingServerIds,
+    // leavingServerIds are handled by _ServerList's own watch.
+    final (:isCreating, :isJoiningInvite, :status, :failure, :servers) =
+        ref.watch(
+      serverListStoreProvider.select(
+        (s) => (
+          isCreating: s.isCreating,
+          isJoiningInvite: s.isJoiningInvite,
+          status: s.status,
+          failure: s.failure,
+          servers: s.servers,
+        ),
+      ),
+    );
     final activeServer = ref.watch(activeServerScopeIdProvider);
 
     return SafeArea(
@@ -53,26 +67,25 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
               children: [
                 OutlinedButton.icon(
                   key: const ValueKey('server-switcher-create'),
-                  onPressed: state.isCreating ? null : _showCreateServerDialog,
+                  onPressed: isCreating ? null : _showCreateServerDialog,
                   icon: const Icon(Icons.add_circle_outline),
                   label: Text(
-                    state.isCreating ? 'Creating...' : 'Create workspace',
+                    isCreating ? 'Creating...' : 'Create workspace',
                   ),
                 ),
                 OutlinedButton.icon(
                   key: const ValueKey('server-switcher-join'),
-                  onPressed:
-                      state.isJoiningInvite ? null : _showJoinServerDialog,
+                  onPressed: isJoiningInvite ? null : _showJoinServerDialog,
                   icon: const Icon(Icons.group_add_outlined),
                   label: Text(
-                    state.isJoiningInvite ? 'Joining...' : 'Join workspace',
+                    isJoiningInvite ? 'Joining...' : 'Join workspace',
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 8),
-          switch (state.status) {
+          switch (status) {
             ServerListStatus.initial ||
             ServerListStatus.loading =>
               const Padding(
@@ -80,19 +93,17 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
                 child: Center(child: CircularProgressIndicator()),
               ),
             ServerListStatus.failure => _ServerListError(
-                message: state.failure?.message ?? 'Unable to load workspaces.',
+                message: failure?.message ?? 'Unable to load workspaces.',
                 onRetry: ref.read(serverListStoreProvider.notifier).retry,
               ),
-            ServerListStatus.success when state.servers.isEmpty =>
-              const Padding(
+            ServerListStatus.success when servers.isEmpty => const Padding(
                 padding: EdgeInsets.all(24),
                 child: Center(child: Text('No workspaces available.')),
               ),
             ServerListStatus.success => Flexible(
                 child: _ServerList(
-                  servers: state.servers,
+                  servers: servers,
                   selectedServerId: activeServer?.value,
-                  state: state,
                   onSelect: _selectServer,
                   onRename: _renameServer,
                   onDelete: _deleteServer,
@@ -100,8 +111,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
                 ),
               ),
           },
-          if (activeServer != null &&
-              state.status == ServerListStatus.success) ...[
+          if (activeServer != null && status == ServerListStatus.success) ...[
             const Divider(height: 1),
             ListTile(
               key: const ValueKey('server-switcher-settings'),
@@ -270,11 +280,10 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
   }
 }
 
-class _ServerList extends StatelessWidget {
+class _ServerList extends ConsumerWidget {
   const _ServerList({
     required this.servers,
     required this.selectedServerId,
-    required this.state,
     required this.onSelect,
     required this.onRename,
     required this.onDelete,
@@ -283,14 +292,14 @@ class _ServerList extends StatelessWidget {
 
   final List<ServerSummary> servers;
   final String? selectedServerId;
-  final ServerListState state;
   final Future<void> Function(ServerSummary server) onSelect;
   final Future<void> Function(ServerSummary server) onRename;
   final Future<void> Function(ServerSummary server) onDelete;
   final Future<void> Function(ServerSummary server) onLeave;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(serverListStoreProvider);
     return ListView.builder(
       shrinkWrap: true,
       itemCount: servers.length,
