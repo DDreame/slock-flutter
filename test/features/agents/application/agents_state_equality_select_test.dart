@@ -98,7 +98,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-AGENTS-STATE-EQUALITY-1: AgentsState with identical fields is ==',
-    skip: true,
     () {
       const item = AgentItem(
         id: 'agent-1',
@@ -123,7 +122,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-AGENTS-STATE-EQUALITY-1: hashCode matches for equal instances',
-    skip: true,
     () {
       const item = AgentItem(
         id: 'agent-1',
@@ -152,7 +150,6 @@ void main() {
   test(
     'INV-AGENTS-PROJECTION-SELECT-1: activityLogs change does NOT notify '
     '(status,items) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -237,7 +234,6 @@ void main() {
   test(
     'INV-AGENTS-PAGE-SELECT-1: activityLogs change does NOT notify '
     '(status,items,isCreating) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [

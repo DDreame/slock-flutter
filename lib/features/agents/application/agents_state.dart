@@ -43,6 +43,49 @@ class AgentsState {
   List<AgentActivityLogEntry> activityLogFor(String agentId) =>
       activityLogs[agentId] ?? const <AgentActivityLogEntry>[];
 
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AgentsState &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          listEquals(items, other.items) &&
+          listEquals(machines, other.machines) &&
+          _mapOfListsEquals(activityLogs, other.activityLogs) &&
+          failure == other.failure &&
+          isRefreshing == other.isRefreshing &&
+          isCreating == other.isCreating &&
+          setEquals(savingAgentIds, other.savingAgentIds) &&
+          setEquals(deletingAgentIds, other.deletingAgentIds) &&
+          setEquals(controlActionAgentIds, other.controlActionAgentIds);
+
+  @override
+  int get hashCode => Object.hash(
+        status,
+        Object.hashAll(items),
+        Object.hashAll(machines),
+        Object.hashAll(activityLogs.entries),
+        failure,
+        isRefreshing,
+        isCreating,
+        Object.hashAll(savingAgentIds),
+        Object.hashAll(deletingAgentIds),
+        Object.hashAll(controlActionAgentIds),
+      );
+
+  /// Deep equality for Map<String, List<T>> using listEquals per entry.
+  static bool _mapOfListsEquals<T>(
+    Map<String, List<T>> a,
+    Map<String, List<T>> b,
+  ) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (final key in a.keys) {
+      if (!b.containsKey(key) || !listEquals(a[key], b[key])) return false;
+    }
+    return true;
+  }
+
   AgentsState copyWith({
     AgentsStatus? status,
     List<AgentItem>? items,
