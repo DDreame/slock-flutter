@@ -4,23 +4,8 @@
 // Invariant: INV-APPBAR-1
 //   App bar title rebuilds only on servers+status changes.
 //
-// Strategy:
-// T1: Verify that changing `isCreating` does NOT notify per-field select
-//     (skip:true — current impl watches full state).
-// T2: Verify that changing `savingServerIds` does NOT notify per-field select
-//     (skip:true — current impl watches full state).
-// T3: Verify that changing `servers` DOES notify the per-field select.
-// T4: Verify that changing `status` DOES notify the per-field select.
-// T5: Anti-pattern proof — full-state watch fires on isCreating change.
-//
-// Phase A: T1/T2 skip:true — current implementation has no select().
-//
-// Phase B:
-// 1. Replace ref.watch(serverListStoreProvider) with
-//    ref.watch(serverListStoreProvider.select(
-//      (s) => (status: s.status, servers: s.servers),
-//    ))
-// 2. Update subsequent references to use the narrowed record.
+// Phase B: lib fix applied — ref.watch uses .select() on
+// (status, servers) record. All tests active.
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,12 +46,6 @@ class _ControllableServerListStore extends ServerListStore {
 void main() {
   // -------------------------------------------------------------------------
   // T1: Changing isCreating must NOT notify per-field select.
-  //
-  // With the current full-state watch, any mutation (including isCreating)
-  // causes rebuilds. After Phase B fix (per-field select on status+servers),
-  // only those fields notify.
-  //
-  // skip:true — requires Phase B per-field select.
   // -------------------------------------------------------------------------
   test(
     'INV-APPBAR-1: isCreating change does NOT notify status/servers select',
@@ -108,14 +87,10 @@ void main() {
 
       keepAlive.close();
     },
-    skip: 'Phase A: requires Phase B per-field select on '
-        'serverListStoreProvider in home_page.dart',
   );
 
   // -------------------------------------------------------------------------
   // T2: Changing savingServerIds must NOT notify per-field select.
-  //
-  // skip:true — requires Phase B per-field select.
   // -------------------------------------------------------------------------
   test(
     'INV-APPBAR-1: savingServerIds change does NOT notify status/servers '
@@ -157,14 +132,10 @@ void main() {
 
       keepAlive.close();
     },
-    skip: 'Phase A: requires Phase B per-field select on '
-        'serverListStoreProvider in home_page.dart',
   );
 
   // -------------------------------------------------------------------------
   // T3: Changing servers DOES notify per-field select.
-  //
-  // This test passes now and after Phase B (consumed fields always fire).
   // -------------------------------------------------------------------------
   test(
     'INV-APPBAR-1: servers change DOES notify select',
@@ -209,8 +180,6 @@ void main() {
 
   // -------------------------------------------------------------------------
   // T4: Changing status DOES notify per-field select.
-  //
-  // This test passes now and after Phase B.
   // -------------------------------------------------------------------------
   test(
     'INV-APPBAR-1: status change DOES notify select',
@@ -245,50 +214,6 @@ void main() {
         selectNotifyCount,
         1,
         reason: 'status change must notify per-field select',
-      );
-
-      keepAlive.close();
-    },
-  );
-
-  // -------------------------------------------------------------------------
-  // T5: Full-state watch fires on isCreating change (anti-pattern proof).
-  //
-  // Demonstrates the bug: watching the full state causes app bar title
-  // rebuilds when a server creation dialog is opened/closed — irrelevant.
-  // -------------------------------------------------------------------------
-  test(
-    'full-state watch fires on isCreating change (anti-pattern proof)',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          serverListStoreProvider
-              .overrideWith(() => _ControllableServerListStore()),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final keepAlive = container.listen(
-        serverListStoreProvider,
-        (_, __) {},
-      );
-
-      // Full-state watch (current pattern).
-      int fullStateNotifyCount = 0;
-      container.listen(
-        serverListStoreProvider,
-        (_, __) => fullStateNotifyCount++,
-      );
-
-      // Mutate isCreating.
-      final store = container.read(serverListStoreProvider.notifier)
-          as _ControllableServerListStore;
-      store.setIsCreatingDirect(true);
-
-      expect(
-        fullStateNotifyCount,
-        greaterThanOrEqualTo(1),
-        reason: 'Full-state watch fires on any mutation (proving the bug)',
       );
 
       keepAlive.close();

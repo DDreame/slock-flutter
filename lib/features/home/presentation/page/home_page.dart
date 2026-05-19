@@ -1249,12 +1249,15 @@ class _HomeAppBarTitle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeServer = ref.watch(activeServerScopeIdProvider);
-    final serverListState = ref.watch(serverListStoreProvider);
+    final serverSnap = ref.watch(
+      serverListStoreProvider.select(
+        (s) => (status: s.status, servers: s.servers),
+      ),
+    );
 
     String title = 'Slock';
-    if (activeServer != null &&
-        serverListState.status == ServerListStatus.success) {
-      for (final server in serverListState.servers) {
+    if (activeServer != null && serverSnap.status == ServerListStatus.success) {
+      for (final server in serverSnap.servers) {
         if (server.id == activeServer.value) {
           title = server.name;
           break;
