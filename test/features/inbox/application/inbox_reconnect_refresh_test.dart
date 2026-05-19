@@ -28,7 +28,6 @@ void main() {
   group('Inbox reconnect refresh', () {
     test(
       'T1: Inbox refreshes when realtime state transitions from reconnecting → connected',
-      skip: true,
       () async {
         final trackingRepo = _TrackingInboxRepository();
 
@@ -72,7 +71,6 @@ void main() {
 
     test(
       'T2: No refresh when state is already connected (no spurious reloads)',
-      skip: true,
       () async {
         final trackingRepo = _TrackingInboxRepository();
 
@@ -116,7 +114,6 @@ void main() {
 
     test(
       'T3: Refresh fires for disconnect → reconnecting → connected cycle',
-      skip: true,
       () async {
         final trackingRepo = _TrackingInboxRepository();
 
