@@ -37,11 +37,14 @@ class _AnnouncementBannerState extends ConsumerState<AnnouncementBanner> {
 
     // Re-trigger load when store resets to initial (e.g. server switch).
     // ref.listen callbacks fire post-build, so ensureLoaded() is safe here.
-    ref.listen(announcementStoreProvider, (prev, next) {
-      if (next.status == AnnouncementStatus.initial) {
-        _scheduleLoad();
-      }
-    });
+    ref.listen(
+      announcementStoreProvider.select((s) => s.status),
+      (prev, next) {
+        if (next == AnnouncementStatus.initial) {
+          _scheduleLoad();
+        }
+      },
+    );
 
     if (state.status != AnnouncementStatus.success ||
         state.announcements.isEmpty) {

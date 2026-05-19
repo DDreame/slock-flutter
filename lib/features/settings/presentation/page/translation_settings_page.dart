@@ -38,14 +38,17 @@ class _TranslationSettingsPageState
     final hasServer = ref.watch(activeServerScopeIdProvider) != null;
 
     // Re-trigger load when store resets to initial (e.g. server switch).
-    ref.listen(translationSettingsStoreProvider, (prev, next) {
-      if (next.status == TranslationSettingsStatus.initial) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          ref.read(translationSettingsStoreProvider.notifier).ensureLoaded();
-        });
-      }
-    });
+    ref.listen(
+      translationSettingsStoreProvider.select((s) => s.status),
+      (prev, next) {
+        if (next == TranslationSettingsStatus.initial) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            ref.read(translationSettingsStoreProvider.notifier).ensureLoaded();
+          });
+        }
+      },
+    );
 
     return Scaffold(
       appBar: AppBar(title: const Text('Translation')),

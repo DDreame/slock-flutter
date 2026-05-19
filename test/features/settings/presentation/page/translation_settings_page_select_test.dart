@@ -96,7 +96,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
@@ -138,7 +138,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
