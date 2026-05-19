@@ -73,7 +73,6 @@ void main() {
   group('Inbox mark-read on tap', () {
     testWidgets(
       'T1: Tap inbox item calls markRead immediately',
-      skip: true,
       (tester) async {
         repo.items = [
           _makeItem(channelId: 'ch-1', channelName: '#general', unread: 3),
@@ -95,7 +94,6 @@ void main() {
 
     testWidgets(
       'T2: Item disappears from Unread filter after tap',
-      skip: true,
       (tester) async {
         repo.items = [
           _makeItem(channelId: 'ch-1', channelName: '#general', unread: 2),
@@ -129,7 +127,6 @@ void main() {
 
     testWidgets(
       'T3: markRead failure reverts optimistic state',
-      skip: true,
       (tester) async {
         repo.items = [
           _makeItem(channelId: 'ch-1', channelName: '#general', unread: 4),
