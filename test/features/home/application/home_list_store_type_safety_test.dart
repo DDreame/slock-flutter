@@ -134,7 +134,6 @@ void main() {
   test(
     'INV-TYPE-1: load() correctly types results when sidebar resolves before '
     'workspace',
-    skip: true,
     () async {
       const snapshot = HomeWorkspaceSnapshot(
         serverId: ServerScopeId('server-1'),
@@ -195,8 +194,10 @@ void main() {
       // State should be correctly populated regardless of resolution order.
       final state = container.read(homeListStoreProvider);
       expect(state.status, HomeListStatus.success);
-      expect(state.channels.length, 1);
-      expect(state.channels.first.name, 'general');
+
+      // 'general' is pinned → goes to pinnedChannels, not channels.
+      expect(state.pinnedChannels.length, 1);
+      expect(state.pinnedChannels.first.name, 'general');
 
       // Verify sidebar order was applied (pinned channels).
       expect(
@@ -220,7 +221,6 @@ void main() {
   test(
     'INV-TYPE-1: refresh() correctly types results when sidebar resolves before '
     'workspace',
-    skip: true,
     () async {
       const snapshot = HomeWorkspaceSnapshot(
         serverId: ServerScopeId('server-1'),

@@ -134,14 +134,11 @@ class HomeListStore extends Notifier<HomeListState> {
 
     try {
       // Tier 1: workspace + sidebar order — critical for initial render.
-      final criticalResults = await Future.wait([
+      final (snapshot, sidebarOrder) = await (
         repo.loadWorkspace(serverScopeId),
         _loadSidebarOrderSafe(serverScopeId),
-      ]);
+      ).wait;
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
-
-      final snapshot = criticalResults[0] as HomeWorkspaceSnapshot;
-      final sidebarOrder = criticalResults[1] as SidebarOrder;
 
       // Build cached-preview lookup before overwriting.
       final priorChById = <String, HomeChannelSummary>{
@@ -410,14 +407,11 @@ class HomeListStore extends Notifier<HomeListState> {
 
       try {
         // Tier 1: workspace + sidebar order — critical for render.
-        final criticalResults = await Future.wait([
+        final (snapshot, sidebarOrder) = await (
           repo.loadWorkspace(serverScopeId),
           _loadSidebarOrderSafe(serverScopeId),
-        ]);
+        ).wait;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
-
-        final snapshot = criticalResults[0] as HomeWorkspaceSnapshot;
-        final sidebarOrder = criticalResults[1] as SidebarOrder;
 
         // Build cached-preview lookup before overwriting.
         final priorChById = <String, HomeChannelSummary>{
