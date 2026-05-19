@@ -7,15 +7,10 @@
 //   long-press handler.
 //
 // Strategy:
-// T1: Verify that MarkdownBody inside MarkdownMessageBody uses selectable=false
-//     (skip:true — current impl uses selectable: true).
-// T2: Anti-pattern proof — current code uses selectable: true.
+// T1: Verify that MarkdownBody inside MarkdownMessageBody uses selectable=false.
 //
-// Phase A: T1 skip:true — current implementation has selectable: true.
-//
-// Phase B:
-// 1. Change `selectable: true` to `selectable: false` in
-//    markdown_message_body.dart line 129.
+// Fix: Changed `selectable: true` to `selectable: false` in
+// markdown_message_body.dart. Context menu copy provides full message text.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -51,12 +46,9 @@ void main() {
   // When selectable=true, SelectableText widgets win the gesture arena over
   // the parent long-press handler (MessageGestureWrapper). Users cannot
   // reach the context menu by long-pressing on message text.
-  //
-  // skip:true — current implementation uses selectable: true.
   // -------------------------------------------------------------------------
   testWidgets(
     'INV-GESTURE-1: MarkdownBody uses selectable=false for context menu access',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(_buildApp());
       await tester.pumpAndSettle();
@@ -68,30 +60,6 @@ void main() {
         isFalse,
         reason: 'MarkdownBody must use selectable=false so long-press triggers '
             'context menu instead of text selection (INV-GESTURE-1)',
-      );
-    },
-  );
-
-  // -------------------------------------------------------------------------
-  // T2: Anti-pattern proof — current code uses selectable: true.
-  //
-  // Demonstrates the bug: MarkdownBody is configured with selectable=true,
-  // causing SelectableText to win the gesture arena and block the parent
-  // long-press handler from triggering the context menu.
-  // -------------------------------------------------------------------------
-  testWidgets(
-    'current code uses selectable=true (anti-pattern proof)',
-    (tester) async {
-      await tester.pumpWidget(_buildApp());
-      await tester.pumpAndSettle();
-
-      final markdownBody =
-          tester.widget<MarkdownBody>(find.byType(MarkdownBody));
-      expect(
-        markdownBody.selectable,
-        isTrue,
-        reason: 'Current implementation incorrectly uses selectable=true '
-            '(proving the bug)',
       );
     },
   );

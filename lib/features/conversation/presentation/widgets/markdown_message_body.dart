@@ -126,7 +126,7 @@ class MarkdownMessageBody extends StatelessWidget {
       data: content,
       styleSheet: styleSheet,
       onTapLink: onLinkTap,
-      selectable: true,
+      selectable: false,
       builders: {
         'pre': _ScrollableCodeBlockBuilder(
           maxHeight: _kCodeBlockMaxHeight,

@@ -40,10 +40,10 @@ void main() {
         await tester.pumpWidget(buildApp(content: 'Line one\nLine two'));
         await tester.pumpAndSettle();
 
-        // With softLineBreak: true and selectable: true, the MarkdownBody
-        // renders via SelectableText widgets rather than RichText.
+        // With softLineBreak: true and selectable: false, the MarkdownBody
+        // renders via RichText widgets.
         expect(find.byType(MarkdownBody), findsOneWidget);
-        expect(find.byType(SelectableText), findsWidgets);
+        expect(find.byType(RichText), findsWidgets);
       });
     });
 
@@ -209,27 +209,15 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // With selectable: true, MarkdownBody renders links inside
-        // SelectableText.rich widgets. Find any widget whose plain text
+        // With selectable: false, MarkdownBody renders links inside
+        // RichText widgets. Find any widget whose plain text
         // contains "Slock" and tap it.
-        final selectableTextFinder = find.byWidgetPredicate(
+        final richTextFinder = find.byWidgetPredicate(
           (widget) =>
-              widget is SelectableText &&
-              widget.textSpan != null &&
-              widget.textSpan!.toPlainText().contains('Slock'),
+              widget is RichText && widget.text.toPlainText().contains('Slock'),
         );
-        if (selectableTextFinder.evaluate().isNotEmpty) {
-          await tester.tap(selectableTextFinder.first);
-        } else {
-          // Fallback: try RichText (in case selectable wraps differently)
-          final richTextFinder = find.byWidgetPredicate(
-            (widget) =>
-                widget is RichText &&
-                widget.text.toPlainText().contains('Slock'),
-          );
-          expect(richTextFinder, findsWidgets);
-          await tester.tap(richTextFinder.first);
-        }
+        expect(richTextFinder, findsWidgets);
+        await tester.tap(richTextFinder.first);
         await tester.pumpAndSettle();
 
         expect(tappedUrl, 'https://slock.app');
@@ -317,18 +305,21 @@ void main() {
     });
 
     group('selectability', () {
-      testWidgets('text is selectable', (tester) async {
+      testWidgets('text is not selectable (INV-GESTURE-1)', (tester) async {
         await tester.pumpWidget(
-          buildApp(content: 'Selectable text content'),
+          buildApp(content: 'Non-selectable text content'),
         );
         await tester.pumpAndSettle();
 
-        // MarkdownBody with selectable: true wraps text in SelectableText
-        // widgets. Verify SelectableText.rich is used in the tree.
-        expect(find.byType(SelectableText), findsWidgets);
+        // MarkdownBody with selectable: false renders via RichText, not
+        // SelectableText. This ensures long-press triggers context menu
+        // instead of text selection (INV-GESTURE-1).
+        expect(find.byType(SelectableText), findsNothing);
+        expect(find.byType(RichText), findsWidgets);
       });
 
-      testWidgets('all bubble kinds produce selectable text', (tester) async {
+      testWidgets('all bubble kinds produce non-selectable text',
+          (tester) async {
         for (final kind in MessageBubbleKind.values) {
           await tester.pumpWidget(
             buildApp(content: 'Text for $kind', kind: kind),
@@ -337,8 +328,9 @@ void main() {
 
           expect(
             find.byType(SelectableText),
-            findsWidgets,
-            reason: '$kind bubble should render selectable text',
+            findsNothing,
+            reason: '$kind bubble should NOT render selectable text '
+                '(INV-GESTURE-1)',
           );
         }
       });
