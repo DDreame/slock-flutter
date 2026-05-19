@@ -87,7 +87,17 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final homeState = ref.watch(homeListStoreProvider);
+    final homeState = ref.watch(
+      homeListStoreProvider.select(
+        (s) => (
+          status: s.status,
+          pinnedChannels: s.pinnedChannels,
+          channels: s.channels,
+          pinnedDirectMessages: s.pinnedDirectMessages,
+          directMessages: s.directMessages,
+        ),
+      ),
+    );
     final sharedContent = ref.watch(shareIntentStoreProvider);
 
     return Scaffold(
@@ -104,7 +114,13 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
 
   Widget _buildBody(
     AppColors colors,
-    HomeListState homeState,
+    ({
+      HomeListStatus status,
+      List<HomeChannelSummary> pinnedChannels,
+      List<HomeChannelSummary> channels,
+      List<HomeDirectMessageSummary> pinnedDirectMessages,
+      List<HomeDirectMessageSummary> directMessages,
+    }) homeState,
     SharedContent? sharedContent,
   ) {
     if (homeState.status == HomeListStatus.loading ||
