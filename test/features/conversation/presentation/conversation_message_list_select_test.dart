@@ -228,14 +228,19 @@ void main() {
         value: 'random',
       );
 
+      // Use StateProvider so mutations guarantee synchronous notifications.
+      final stateProvider = StateProvider<UnreadSourceProjectionState>((ref) {
+        return UnreadSourceProjectionState(
+          channelUnreadCounts: {channelScopeId: 3, otherScopeId: 1},
+          isLoaded: true,
+        );
+      });
+
       final container = ProviderContainer(
         overrides: [
-          unreadSourceProjectionProvider.overrideWith((ref) {
-            return UnreadSourceProjectionState(
-              channelUnreadCounts: {channelScopeId: 3, otherScopeId: 1},
-              isLoaded: true,
-            );
-          }),
+          unreadSourceProjectionProvider.overrideWith(
+            (ref) => ref.watch(stateProvider),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -250,21 +255,12 @@ void main() {
         (_, __) => selectNotifyCount++,
       );
 
-      // Simulate other channel's unread changing.
-      container.updateOverrides([
-        unreadSourceProjectionProvider.overrideWith((ref) {
-          return UnreadSourceProjectionState(
-            channelUnreadCounts: {channelScopeId: 3, otherScopeId: 5},
-            isLoaded: true,
-          );
-        }),
-      ]);
-      // Invalidate to force rebuild and trigger listener notification flow.
-      container.invalidate(unreadSourceProjectionProvider);
-      container.read(unreadSourceProjectionProvider);
-      // Select listener notifications for plain Provider overrides are
-      // dispatched asynchronously via microtask.
-      await Future<void>.delayed(Duration.zero);
+      // Simulate other channel's unread changing — target unchanged.
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
+        channelUnreadCounts: {channelScopeId: 3, otherScopeId: 5},
+        isLoaded: true,
+      );
 
       expect(
         selectNotifyCount,
@@ -289,14 +285,19 @@ void main() {
         value: 'general',
       );
 
+      // Use StateProvider so mutations guarantee synchronous notifications.
+      final stateProvider = StateProvider<UnreadSourceProjectionState>((ref) {
+        return UnreadSourceProjectionState(
+          channelUnreadCounts: {channelScopeId: 3},
+          isLoaded: true,
+        );
+      });
+
       final container = ProviderContainer(
         overrides: [
-          unreadSourceProjectionProvider.overrideWith((ref) {
-            return UnreadSourceProjectionState(
-              channelUnreadCounts: {channelScopeId: 3},
-              isLoaded: true,
-            );
-          }),
+          unreadSourceProjectionProvider.overrideWith(
+            (ref) => ref.watch(stateProvider),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -312,20 +313,11 @@ void main() {
       );
 
       // Simulate target channel's unread changing.
-      container.updateOverrides([
-        unreadSourceProjectionProvider.overrideWith((ref) {
-          return UnreadSourceProjectionState(
-            channelUnreadCounts: {channelScopeId: 7},
-            isLoaded: true,
-          );
-        }),
-      ]);
-      // Invalidate to force rebuild and trigger listener notification flow.
-      container.invalidate(unreadSourceProjectionProvider);
-      container.read(unreadSourceProjectionProvider);
-      // Select listener notifications for plain Provider overrides are
-      // dispatched asynchronously via microtask.
-      await Future<void>.delayed(Duration.zero);
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
+        channelUnreadCounts: {channelScopeId: 7},
+        isLoaded: true,
+      );
 
       expect(
         selectNotifyCount,
