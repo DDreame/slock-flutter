@@ -44,6 +44,7 @@ class _FakeChannelMemberStore extends ChannelMemberStore {
     loadCallCount++;
   }
 
+  @override
   void ensureLoaded() {
     if (state.status == ChannelMemberStatus.initial) {
       load();
@@ -62,7 +63,6 @@ void main() {
   test(
     'INV-CHANNEL-MEMBERS-LOAD-GUARD-1: ensureLoaded() skips when '
     'status == success',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
