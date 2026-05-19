@@ -356,7 +356,6 @@ void main() {
   test(
     'INV-CONV-MESSAGE-UPDATE-ERROR-1: repository throw → crashReporter '
     'captures exception',
-    skip: true,
     () async {
       final recorder = _RecordingCrashReporter();
       final ingress = RealtimeReductionIngress();
