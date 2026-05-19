@@ -55,7 +55,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
   void initState() {
     super.initState();
     Future.microtask(
-      () => ref.read(tasksStoreProvider.notifier).load(),
+      () => ref.read(tasksStoreProvider.notifier).ensureLoaded(),
     );
   }
 

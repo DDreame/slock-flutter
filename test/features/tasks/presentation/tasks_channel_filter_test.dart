@@ -312,7 +312,8 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
 
-      expect(store.loadCallCount, 2); // 1 from initState + 1 from retry tap
+      expect(store.loadCallCount,
+          1); // ensureLoaded() skips (status != initial), retry tap fires load()
     });
 
     testWidgets('failure with null message shows default text', (tester) async {

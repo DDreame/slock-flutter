@@ -46,7 +46,7 @@ class _NewDmDialogContentState extends ConsumerState<_NewDmDialogContent> {
     super.initState();
     Future.microtask(() {
       ref.read(memberListStoreProvider.notifier).ensureLoaded();
-      ref.read(agentsStoreProvider.notifier).load();
+      ref.read(agentsStoreProvider.notifier).ensureLoaded();
     });
   }
 
