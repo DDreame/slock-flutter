@@ -366,10 +366,15 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       builder: (sheetContext) {
         return Consumer(
           builder: (_, ref, __) {
-            final hiddenDms =
-                ref.watch(homeListStoreProvider).hiddenDirectMessages;
+            final hiddenDms = ref.watch(
+              homeListStoreProvider.select((s) => s.hiddenDirectMessages),
+            );
             if (hiddenDms.isEmpty) {
-              Navigator.of(sheetContext).pop();
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (sheetContext.mounted) {
+                  Navigator.of(sheetContext).pop();
+                }
+              });
               return const SizedBox.shrink();
             }
             return SafeArea(

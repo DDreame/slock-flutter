@@ -5,22 +5,8 @@
 //   Sheet dismissal uses post-frame callback, not build-phase mutation.
 //   Sheet rebuilds only when hiddenDirectMessages changes.
 //
-// Strategy:
-// T1: Verify that sheet close when hidden DMs become empty does NOT trigger
-//     framework assertion (skip:true — current impl calls Navigator.pop
-//     synchronously in builder).
-// T2: Verify that changing `isRefreshing` does NOT notify per-field select
-//     (skip:true — current impl watches full state).
-// T3: Verify that changing `hiddenDirectMessages` DOES notify per-field select.
-// T4: Anti-pattern proof — full-state watch fires on isRefreshing change.
-//
-// Phase A: T1/T2 skip:true — current implementation has no select() and uses
-//          build-phase Navigator.pop().
-//
-// Phase B:
-// 1. Replace ref.watch(homeListStoreProvider).hiddenDirectMessages with
-//    ref.watch(homeListStoreProvider.select((s) => s.hiddenDirectMessages))
-// 2. Wrap Navigator.pop() in addPostFrameCallback with mounted check.
+// Phase B: lib fix applied — ref.watch uses .select(), Navigator.pop
+// deferred via addPostFrameCallback. All tests active.
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,15 +43,7 @@ class _ControllableHomeListStore extends HomeListStore {
 
 void main() {
   // -------------------------------------------------------------------------
-  // T1: Sheet close when hidden DMs become empty should use postFrameCallback.
-  //
-  // The current implementation calls Navigator.pop() synchronously inside
-  // Consumer.builder when hiddenDms.isEmpty — a build-phase side-effect that
-  // triggers "setState() or markNeedsBuild() called during build".
-  //
-  // After Phase B, the pop is deferred via addPostFrameCallback.
-  //
-  // skip:true — requires Phase B postFrameCallback fix.
+  // T1: isRefreshing change must NOT notify hiddenDirectMessages select.
   // -------------------------------------------------------------------------
   test(
     'INV-HIDDEN-DM-1: hiddenDirectMessages select fires only on '
@@ -106,14 +84,10 @@ void main() {
 
       keepAlive.close();
     },
-    skip: 'Phase A: requires Phase B .select((s) => s.hiddenDirectMessages) '
-        'in dms_tab_page.dart',
   );
 
   // -------------------------------------------------------------------------
   // T2: Changing channels must NOT notify hiddenDirectMessages select.
-  //
-  // skip:true — requires Phase B per-field select.
   // -------------------------------------------------------------------------
   test(
     'INV-HIDDEN-DM-1: channels change does NOT notify hiddenDirectMessages '
@@ -161,14 +135,10 @@ void main() {
 
       keepAlive.close();
     },
-    skip: 'Phase A: requires Phase B .select((s) => s.hiddenDirectMessages) '
-        'in dms_tab_page.dart',
   );
 
   // -------------------------------------------------------------------------
   // T3: Changing hiddenDirectMessages DOES notify per-field select.
-  //
-  // This test passes now and after Phase B (consumed fields always fire).
   // -------------------------------------------------------------------------
   test(
     'INV-HIDDEN-DM-1: hiddenDirectMessages change DOES notify select',
@@ -209,51 +179,6 @@ void main() {
         selectNotifyCount,
         1,
         reason: 'hiddenDirectMessages change must notify per-field select',
-      );
-
-      keepAlive.close();
-    },
-  );
-
-  // -------------------------------------------------------------------------
-  // T4: Full-state watch fires on isRefreshing change (anti-pattern proof).
-  //
-  // Demonstrates the bug: watching the full state causes Consumer rebuilds on
-  // isRefreshing changes which have zero visible impact on the hidden DMs
-  // sheet — AND each rebuild re-runs the Navigator.pop side-effect check.
-  // -------------------------------------------------------------------------
-  test(
-    'full-state watch fires on isRefreshing change (anti-pattern proof)',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          homeListStoreProvider
-              .overrideWith(() => _ControllableHomeListStore()),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final keepAlive = container.listen(
-        homeListStoreProvider,
-        (_, __) {},
-      );
-
-      // Full-state watch (current pattern).
-      int fullStateNotifyCount = 0;
-      container.listen(
-        homeListStoreProvider,
-        (_, __) => fullStateNotifyCount++,
-      );
-
-      // Mutate isRefreshing.
-      final store = container.read(homeListStoreProvider.notifier)
-          as _ControllableHomeListStore;
-      store.setIsRefreshingDirect(true);
-
-      expect(
-        fullStateNotifyCount,
-        greaterThanOrEqualTo(1),
-        reason: 'Full-state watch fires on any mutation (proving the bug)',
       );
 
       keepAlive.close();
