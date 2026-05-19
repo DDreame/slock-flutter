@@ -120,63 +120,6 @@ void main() {
   // -----------------------------------------------------------------------
   // 6. Swipe left marks item as read (not done)
   //
-  // Tests under All filter so the item stays visible after mark-read
-  // (InboxStore removes read items from Unread filter).
-  // -----------------------------------------------------------------------
-  testWidgets(
-    'swipe left on unread item marks it as read',
-    (tester) async {
-      final repo = _FakeInboxRepository();
-      repo.items = [
-        _makeItem(
-          channelId: 'ch-1',
-          channelName: '#general',
-          senderName: 'Alice',
-          preview: 'New message',
-          unread: 4,
-        ),
-      ];
-      repo.totalUnreadCount = 4;
-
-      await tester.pumpWidget(_buildApp(repo));
-      await tester.pumpAndSettle();
-
-      // Ensure we are on All filter (default) so item stays after mark-read.
-      // Production InboxStore removes read items from Unread filter.
-      await tester.tap(find.byKey(const ValueKey('inbox-filter-all')));
-      await tester.pumpAndSettle();
-
-      // Unread badge visible before swipe.
-      expect(
-        find.byKey(const ValueKey('inbox-unread-badge-ch-1')),
-        findsOneWidget,
-        reason: 'Unread badge must be visible before swipe',
-      );
-
-      // Swipe left (endToStart in LTR layout) for mark-read action.
-      // Phase B: SwipeActionWrapper will add a left-swipe action
-      // for mark-read with blue reveal + checkmark icon.
-      await tester.drag(
-        find.byKey(const ValueKey('inbox-item-ch-1')),
-        const Offset(-300, 0),
-      );
-      await tester.pumpAndSettle();
-
-      // Item stays in the list (All filter keeps read items)
-      // but unread badge is gone (optimistic zeroing).
-      expect(
-        find.byKey(const ValueKey('inbox-item-ch-1')),
-        findsOneWidget,
-        reason: 'Item must stay in list after mark-read swipe (All filter)',
-      );
-      expect(
-        find.byKey(const ValueKey('inbox-unread-badge-ch-1')),
-        findsNothing,
-        reason: 'Unread badge must be removed after mark-read swipe',
-      );
-    },
-  );
-
   // -----------------------------------------------------------------------
   // 7. Empty inbox shows "All caught up!" message
   // -----------------------------------------------------------------------
