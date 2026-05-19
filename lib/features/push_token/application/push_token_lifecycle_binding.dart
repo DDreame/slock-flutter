@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/push_token/data/push_token_repository.dart';
 import 'package:slock_app/features/push_token/data/push_token_repository_provider.dart';
-import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -12,8 +11,13 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
   final repo = ref.watch(pushTokenRepositoryProvider);
   final crashReporter = ref.read(crashReporterProvider);
 
-  ref.listen<NotificationState>(
-    notificationStoreProvider,
+  // INV-PUSH-TOKEN-BINDING-SELECT-1: Only consume pushToken +
+  // pushTokenPlatform. Mutations to lifecycleStatus, visibleTarget,
+  // permissionStatus, etc. must NOT fire.
+  ref.listen(
+    notificationStoreProvider.select(
+      (s) => (pushToken: s.pushToken, pushTokenPlatform: s.pushTokenPlatform),
+    ),
     (previous, next) {
       if (previous == null) return;
       final oldToken = previous.pushToken;
