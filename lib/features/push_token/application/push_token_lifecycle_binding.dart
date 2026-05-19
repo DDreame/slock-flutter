@@ -6,7 +6,6 @@ import 'package:slock_app/features/push_token/data/push_token_repository.dart';
 import 'package:slock_app/features/push_token/data/push_token_repository_provider.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
-import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
@@ -40,8 +39,10 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
     },
   );
 
-  ref.listen<SessionState>(
-    sessionStoreProvider,
+  ref.listen(
+    sessionStoreProvider.select(
+      (s) => (isAuthenticated: s.isAuthenticated, token: s.token),
+    ),
     (previous, next) {
       if (previous == null) return;
 
