@@ -134,10 +134,12 @@ class HomeListStore extends Notifier<HomeListState> {
 
     try {
       // Tier 1: workspace + sidebar order — critical for initial render.
-      final (snapshot, sidebarOrder) = await (
-        repo.loadWorkspace(serverScopeId),
-        _loadSidebarOrderSafe(serverScopeId),
-      ).wait;
+      // Start both concurrently, await sequentially to preserve raw exception
+      // types (record .wait wraps in ParallelWaitError).
+      final workspaceFuture = repo.loadWorkspace(serverScopeId);
+      final sidebarFuture = _loadSidebarOrderSafe(serverScopeId);
+      final snapshot = await workspaceFuture;
+      final sidebarOrder = await sidebarFuture;
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
 
       // Build cached-preview lookup before overwriting.
@@ -407,10 +409,12 @@ class HomeListStore extends Notifier<HomeListState> {
 
       try {
         // Tier 1: workspace + sidebar order — critical for render.
-        final (snapshot, sidebarOrder) = await (
-          repo.loadWorkspace(serverScopeId),
-          _loadSidebarOrderSafe(serverScopeId),
-        ).wait;
+        // Start both concurrently, await sequentially to preserve raw exception
+        // types (record .wait wraps in ParallelWaitError).
+        final workspaceFuture = repo.loadWorkspace(serverScopeId);
+        final sidebarFuture = _loadSidebarOrderSafe(serverScopeId);
+        final snapshot = await workspaceFuture;
+        final sidebarOrder = await sidebarFuture;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
 
         // Build cached-preview lookup before overwriting.
