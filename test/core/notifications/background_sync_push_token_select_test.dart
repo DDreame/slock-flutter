@@ -119,7 +119,6 @@ void main() {
   test(
     'INV-BACKGROUND-SYNC-SELECT-1: displayName change does NOT notify '
     'status select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -193,7 +192,6 @@ void main() {
   test(
     'INV-BACKGROUND-SYNC-SELECT-1: visibleTarget change does NOT notify '
     'lifecycleStatus select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -279,7 +277,6 @@ void main() {
   test(
     'INV-PUSH-TOKEN-BINDING-SELECT-1: permissionStatus change does NOT notify '
     '(pushToken, pushTokenPlatform) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [

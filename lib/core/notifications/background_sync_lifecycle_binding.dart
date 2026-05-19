@@ -3,11 +3,8 @@ import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/notifications/background_sync_manager.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
-import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
-import 'package:slock_app/stores/server_selection/server_selection_state.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
-import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 /// Binds the iOS background sync lifecycle to session, bootstrap,
@@ -86,20 +83,25 @@ final backgroundSyncLifecycleBindingProvider = Provider<void>((ref) {
         pending.then((_) => sync()).catchError((_) {}); // keep chain alive
   }
 
-  ref.listen<SessionState>(
-    sessionStoreProvider,
+  // INV-BACKGROUND-SYNC-SELECT-1: Only listen to fields consumed by sync().
+  // displayName, avatarUrl, userId, emailVerified must not fire.
+  ref.listen(
+    sessionStoreProvider.select((s) => s.status),
     (_, __) => scheduleSync(),
   );
   ref.listen<bool>(
     appReadyProvider,
     (_, __) => scheduleSync(),
   );
-  ref.listen<NotificationState>(
-    notificationStoreProvider,
+  // Only lifecycleStatus is consumed — pushToken, visibleTarget,
+  // permissionStatus, etc. must not fire.
+  ref.listen(
+    notificationStoreProvider.select((s) => s.lifecycleStatus),
     (_, __) => scheduleSync(),
   );
-  ref.listen<ServerSelectionState>(
-    serverSelectionStoreProvider,
+  // Single-field state — documents intent for future-proofing.
+  ref.listen(
+    serverSelectionStoreProvider.select((s) => s.selectedServerId),
     (_, __) => scheduleSync(),
   );
 
