@@ -113,7 +113,6 @@ void main() {
   test(
     'INV-INBOX-BADGE-SELECT-1: filter change does NOT notify '
     '(status, totalUnreadCount) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -154,7 +153,6 @@ void main() {
   test(
     'INV-INBOX-BADGE-SELECT-1: isRefreshing change does NOT notify '
     '(status, totalUnreadCount) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -238,7 +236,6 @@ void main() {
   test(
     'INV-INBOX-CHANNEL-BADGE-SELECT-1: filter change does NOT notify '
     '(status, items) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
