@@ -1,20 +1,19 @@
 // =============================================================================
-// #621 — Foreground service sessionStore .select(isAuthenticated, token)
+// #621 — Foreground service sessionStore .select(status, token)
 //
 // Invariant: INV-FOREGROUND-SERVICE-SELECT-1
 //   foreground_service_lifecycle_binding.dart L161 calls
 //   ref.listen<SessionState>(sessionStoreProvider, ...) — the full ~6-field
 //   state. The sync() function only consumes:
-//     - isAuthenticated (derived from status)
+//     - status (isAuthenticated + isUnauthenticated both derive from it)
 //     - token
-//     - isUnauthenticated (derived from status)
 //   Mutations to displayName, avatarUrl, userId, emailVerified MUST NOT
 //   trigger a sync cycle.
 //
 // Strategy:
 // T1: displayName change must NOT fire 2-field select (skip:true).
 // T2: avatarUrl change must NOT fire 2-field select (skip:true).
-// T3: status change (isAuthenticated) DOES fire 2-field select (active).
+// T3: status change DOES fire 2-field select (active).
 // T4: token change DOES fire 2-field select (active).
 //
 // Phase A: T1/T2 skip:true — current impl listens to full SessionState.
@@ -24,7 +23,7 @@
 // foreground_service_lifecycle_binding.dart L161: narrow
 // ref.listen<SessionState>(sessionStoreProvider, ...) to
 // ref.listen(sessionStoreProvider.select(
-//   (s) => (isAuthenticated: s.isAuthenticated, token: s.token),
+//   (s) => (status: s.status, token: s.token),
 // ), ...)
 // =============================================================================
 
@@ -75,8 +74,7 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-FOREGROUND-SERVICE-SELECT-1: displayName change does NOT notify '
-    '(isAuthenticated, token) select',
-    skip: true,
+    '(status, token) select',
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -90,7 +88,7 @@ void main() {
       int selectNotifyCount = 0;
       container.listen(
         sessionStoreProvider.select(
-          (s) => (isAuthenticated: s.isAuthenticated, token: s.token),
+          (s) => (status: s.status, token: s.token),
         ),
         (_, __) => selectNotifyCount++,
       );
@@ -103,7 +101,7 @@ void main() {
         selectNotifyCount,
         0,
         reason: 'displayName change must not notify '
-            '(isAuthenticated, token) select '
+            '(status, token) select '
             '(INV-FOREGROUND-SERVICE-SELECT-1)',
       );
 
@@ -116,8 +114,7 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-FOREGROUND-SERVICE-SELECT-1: avatarUrl change does NOT notify '
-    '(isAuthenticated, token) select',
-    skip: true,
+    '(status, token) select',
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -131,7 +128,7 @@ void main() {
       int selectNotifyCount = 0;
       container.listen(
         sessionStoreProvider.select(
-          (s) => (isAuthenticated: s.isAuthenticated, token: s.token),
+          (s) => (status: s.status, token: s.token),
         ),
         (_, __) => selectNotifyCount++,
       );
@@ -144,7 +141,7 @@ void main() {
         selectNotifyCount,
         0,
         reason: 'avatarUrl change must not notify '
-            '(isAuthenticated, token) select '
+            '(status, token) select '
             '(INV-FOREGROUND-SERVICE-SELECT-1)',
       );
 
@@ -157,7 +154,7 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-FOREGROUND-SERVICE-SELECT-1: status change DOES notify '
-    '(isAuthenticated, token) select',
+    '(status, token) select',
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -171,7 +168,7 @@ void main() {
       int selectNotifyCount = 0;
       container.listen(
         sessionStoreProvider.select(
-          (s) => (isAuthenticated: s.isAuthenticated, token: s.token),
+          (s) => (status: s.status, token: s.token),
         ),
         (_, __) => selectNotifyCount++,
       );
@@ -184,7 +181,7 @@ void main() {
         selectNotifyCount,
         1,
         reason: 'status change must notify '
-            '(isAuthenticated, token) select',
+            '(status, token) select',
       );
 
       keepAlive.close();
@@ -196,7 +193,7 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-FOREGROUND-SERVICE-SELECT-1: token change DOES notify '
-    '(isAuthenticated, token) select',
+    '(status, token) select',
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -210,7 +207,7 @@ void main() {
       int selectNotifyCount = 0;
       container.listen(
         sessionStoreProvider.select(
-          (s) => (isAuthenticated: s.isAuthenticated, token: s.token),
+          (s) => (status: s.status, token: s.token),
         ),
         (_, __) => selectNotifyCount++,
       );
@@ -223,7 +220,7 @@ void main() {
         selectNotifyCount,
         1,
         reason: 'token change must notify '
-            '(isAuthenticated, token) select',
+            '(status, token) select',
       );
 
       keepAlive.close();
