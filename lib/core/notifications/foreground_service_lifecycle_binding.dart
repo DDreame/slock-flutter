@@ -158,9 +158,14 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
     });
   }
 
-  ref.listen<SessionState>(sessionStoreProvider, (_, __) {
-    scheduleSync();
-  });
+  ref.listen(
+    sessionStoreProvider.select(
+      (s) => (isAuthenticated: s.isAuthenticated, token: s.token),
+    ),
+    (_, __) {
+      scheduleSync();
+    },
+  );
   ref.listen<bool>(appReadyProvider, (_, __) {
     scheduleSync();
   });

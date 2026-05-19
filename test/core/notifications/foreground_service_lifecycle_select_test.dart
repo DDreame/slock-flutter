@@ -76,7 +76,6 @@ void main() {
   test(
     'INV-FOREGROUND-SERVICE-SELECT-1: displayName change does NOT notify '
     '(isAuthenticated, token) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -117,7 +116,6 @@ void main() {
   test(
     'INV-FOREGROUND-SERVICE-SELECT-1: avatarUrl change does NOT notify '
     '(isAuthenticated, token) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
