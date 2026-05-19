@@ -72,7 +72,6 @@ void main() {
   test(
     'INV-HOME-AGENTS-SELECT-1: activityLogs change does NOT notify '
     'count+status select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -126,7 +125,6 @@ void main() {
   test(
     'INV-HOME-AGENTS-SELECT-1: savingAgentIds change does NOT notify '
     'count+status select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
