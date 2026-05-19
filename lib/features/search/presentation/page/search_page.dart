@@ -763,6 +763,8 @@ Future<String?> _showTextInputDialog({
 }) {
   final controller = TextEditingController(text: initialValue);
   final l10n = context.l10n;
+  // INV-SEARCH-CONTROLLER-DISPOSE-1: Dispose controller when dialog closes
+  // to prevent memory leaks.
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
@@ -784,7 +786,7 @@ Future<String?> _showTextInputDialog({
         ),
       ],
     ),
-  );
+  ).whenComplete(controller.dispose);
 }
 
 /// "Load more" button shown when `hasMore` is true.
