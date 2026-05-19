@@ -1,7 +1,7 @@
-// ignore_for_file: unused_local_variable
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_task_section_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
@@ -43,7 +43,6 @@ void main() {
   group('homeTaskSectionProvider', () {
     test(
       'T1: emits filtered + sorted result (in_progress before todo, max 5)',
-      skip: true,
       () {
         // Arrange — 7 tasks: 3 in_progress, 3 todo, 1 done.
         // Expect: done excluded; in_progress first then todo; max 5 items.
@@ -79,14 +78,18 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             homeListStoreProvider.overrideWith(
-              () => throw UnimplementedError(),
+              () => _FakeHomeListStore(
+                HomeListState(
+                  status: HomeListStatus.success,
+                  taskItems: tasks,
+                  channels: channels,
+                ),
+              ),
             ),
           ],
         );
         addTearDown(container.dispose);
 
-        // Seed the state that homeTaskSectionProvider will select from.
-        // Phase B will configure the proper override wiring.
         final result = container.read(homeTaskSectionProvider);
 
         // Assert: 5 items, in_progress tasks first
@@ -104,7 +107,6 @@ void main() {
 
     test(
       'T2: does not recompute when unrelated HomeListState fields change',
-      skip: true,
       () {
         // Arrange — seed taskItems + channels, then change directMessages.
         // Expect: provider build count stays at 1 (no recomputation).
@@ -113,11 +115,17 @@ void main() {
         ];
         final channels = [makeChannel(id: 'ch-1', name: 'general')];
 
+        final store = _FakeHomeListStore(
+          HomeListState(
+            status: HomeListStatus.success,
+            taskItems: tasks,
+            channels: channels,
+          ),
+        );
+
         final container = ProviderContainer(
           overrides: [
-            homeListStoreProvider.overrideWith(
-              () => throw UnimplementedError(),
-            ),
+            homeListStoreProvider.overrideWith(() => store),
           ],
         );
         addTearDown(container.dispose);
@@ -127,7 +135,15 @@ void main() {
         expect(result1.length, 1);
 
         // Mutate unrelated field (directMessages) on the underlying state.
-        // Phase B will wire the override so we can mutate and observe.
+        store.updateDirectMessages([
+          const HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: serverId,
+              value: 'dm-1',
+            ),
+            title: 'Alice',
+          ),
+        ]);
 
         // Second read — should return same instance (no recomputation).
         final result2 = container.read(homeTaskSectionProvider);
@@ -137,7 +153,6 @@ void main() {
 
     test(
       'T3: channelNameMap resolves correct channel name for each task',
-      skip: true,
       () {
         // Arrange — tasks from different channels.
         final tasks = [
@@ -164,7 +179,13 @@ void main() {
         final container = ProviderContainer(
           overrides: [
             homeListStoreProvider.overrideWith(
-              () => throw UnimplementedError(),
+              () => _FakeHomeListStore(
+                HomeListState(
+                  status: HomeListStatus.success,
+                  taskItems: tasks,
+                  channels: channels,
+                ),
+              ),
             ),
           ],
         );
@@ -185,4 +206,21 @@ void main() {
       },
     );
   });
+}
+
+// ---------------------------------------------------------------------------
+// Test fake
+// ---------------------------------------------------------------------------
+
+class _FakeHomeListStore extends HomeListStore {
+  _FakeHomeListStore(this._initialState);
+
+  final HomeListState _initialState;
+
+  @override
+  HomeListState build() => _initialState;
+
+  void updateDirectMessages(List<HomeDirectMessageSummary> dms) {
+    state = state.copyWith(directMessages: dms);
+  }
 }

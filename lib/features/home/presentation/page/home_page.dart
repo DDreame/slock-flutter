@@ -17,7 +17,7 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
-import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/home/application/home_task_section_provider.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
@@ -132,10 +132,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                             key: const ValueKey('home-card-tasks'),
                             taskItems: state.taskItems,
                             taskLoadFailure: state.taskLoadFailure,
-                            channels: [
-                              ...state.pinnedChannels,
-                              ...state.channels,
-                            ],
                             onViewAll: () => _pushServerRoute('tasks'),
                           ),
                         1 => _InboxUnreadSection(
@@ -431,19 +427,16 @@ class _AgentGroupRow extends StatelessWidget {
 // Tasks section — detailed task list
 // ---------------------------------------------------------------------------
 
-const _maxVisibleTasks = 5;
-
 class _HomeTasksSection extends ConsumerWidget {
   const _HomeTasksSection({
     super.key,
     required this.taskItems,
-    required this.channels,
     required this.onViewAll,
     this.taskLoadFailure,
   });
 
+  /// Raw task items — only used for overflow count calculation.
   final List<TaskItem> taskItems;
-  final List<HomeChannelSummary> channels;
   final VoidCallback onViewAll;
   final AppFailure? taskLoadFailure;
 
@@ -453,29 +446,16 @@ class _HomeTasksSection extends ConsumerWidget {
     final l10n = context.l10n;
     final now = ref.watch(homeNowProvider);
 
-    // O(1) channel name lookup — built once per build.
-    final channelNameMap = <String, String>{
-      for (final ch in channels) ch.scopeId.value: ch.name,
-    };
-    String channelName(String channelId) =>
-        channelNameMap[channelId] ?? channelId;
+    // Memoized filtered+sorted+sliced task list from provider.
+    final visibleTasks = ref.watch(homeTaskSectionProvider);
 
-    // Filter: only in_progress + todo
-    final activeTasks = taskItems
+    // Overflow: total active minus visible (max 5).
+    final activeCount = taskItems
         .where(
           (task) => task.status == 'in_progress' || task.status == 'todo',
         )
-        .toList();
-
-    // Sort: in_progress first, then todo
-    activeTasks.sort((a, b) {
-      final aInProgress = a.status == 'in_progress' ? 0 : 1;
-      final bInProgress = b.status == 'in_progress' ? 0 : 1;
-      return aInProgress.compareTo(bInProgress);
-    });
-
-    final visibleTasks = activeTasks.take(_maxVisibleTasks).toList();
-    final overflowCount = activeTasks.length - visibleTasks.length;
+        .length;
+    final overflowCount = activeCount - visibleTasks.length;
 
     return _SummaryCardBase(
       accentColor: colors.warning,
@@ -488,16 +468,15 @@ class _HomeTasksSection extends ConsumerWidget {
                   taskLoadFailure!.message ?? l10n.homeCardTasksUnavailable,
               onRetry: () => ref.read(homeListStoreProvider.notifier).refresh(),
             )
-          : activeTasks.isEmpty
+          : visibleTasks.isEmpty
               ? const _TasksEmptyState(key: ValueKey('home-tasks-empty'))
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (final task in visibleTasks)
                       _TaskItemRow(
-                        key: ValueKey('task-item-${task.id}'),
+                        key: ValueKey('task-item-${task.taskId}'),
                         task: task,
-                        channelName: channelName(task.channelId),
                         now: now,
                       ),
                     if (overflowCount > 0)
@@ -594,12 +573,10 @@ class _TaskItemRow extends StatelessWidget {
   const _TaskItemRow({
     super.key,
     required this.task,
-    required this.channelName,
     required this.now,
   });
 
-  final TaskItem task;
-  final String channelName;
+  final HomeTaskItem task;
   final DateTime now;
 
   @override
@@ -631,7 +608,7 @@ class _TaskItemRow extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      '#$channelName',
+                      '#${task.channelName}',
                       style: AppTypography.caption.copyWith(
                         color: colors.textTertiary,
                       ),
@@ -662,7 +639,7 @@ class _TaskItemRow extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           if (isInProgress && task.claimedAt != null)
             Padding(
-              key: ValueKey('task-duration-${task.id}'),
+              key: ValueKey('task-duration-${task.taskId}'),
               padding: const EdgeInsets.only(
                 right: AppSpacing.xs,
               ),
@@ -672,7 +649,7 @@ class _TaskItemRow extends StatelessWidget {
               ),
             ),
           _TaskStatusChip(
-            key: ValueKey('task-status-${task.id}'),
+            key: ValueKey('task-status-${task.taskId}'),
             label: isInProgress
                 ? l10n.homeCardTasksInProgress
                 : l10n.homeCardTasksTodo,
