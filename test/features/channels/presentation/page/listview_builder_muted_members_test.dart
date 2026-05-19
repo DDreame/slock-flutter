@@ -130,7 +130,6 @@ void main() {
   test(
     'INV-CHANNELS-MUTED-HOIST-1: channelMutedIdsProvider should be watched '
     'once (not per-row)',
-    skip: true, // Phase A — currently watched inside per-row builder.
     () async {
       // This invariant is structural: the fix hoists the watch above the
       // builder loop. Verification in Phase B is via dart analyze + code
@@ -150,7 +149,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-MEMBERS-CACHE-1: humans returns cached list (not recomputed)',
-    skip: true, // Phase A — currently a computed getter.
     () {
       final state = MemberListState(
         status: MemberListStatus.success,
@@ -171,7 +169,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-MEMBERS-CACHE-1: agents returns cached list (not recomputed)',
-    skip: true, // Phase A — currently a computed getter.
     () {
       final state = MemberListState(
         status: MemberListStatus.success,

@@ -231,11 +231,20 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       );
     }
 
-    return ListView(
-      children: [
-        _buildSearchField(l10n, colors),
-        if (displayList.isEmpty && _searchQuery.isNotEmpty)
-          Padding(
+    // INV-CHANNELS-MUTED-HOIST-1: Hoist mutedIds watch above the builder
+    // so it is registered once (not N times per row).
+    final mutedIds = ref.watch(channelMutedIdsProvider);
+
+    return ListView.builder(
+      itemCount: displayList.length +
+          1 +
+          (displayList.isEmpty && _searchQuery.isNotEmpty ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return _buildSearchField(l10n, colors);
+        }
+        if (displayList.isEmpty && _searchQuery.isNotEmpty && index == 1) {
+          return Padding(
             key: const ValueKey('channels-tab-search-empty'),
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.pageHorizontal,
@@ -249,16 +258,24 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                 ),
               ),
             ),
-          ),
-        for (var i = 0; i < displayList.length; i++)
-          _buildChannelRow(
-            channel: displayList[i],
-            isPinned: pinnedIds.contains(displayList[i].scopeId.value),
-            homeStore: homeStore,
-            channelUnreadCounts: channelUnreadCounts,
-            managementState: managementState,
-          ),
-      ],
+          );
+        }
+        final dataIndex = index -
+            1 -
+            (displayList.isEmpty && _searchQuery.isNotEmpty ? 1 : 0);
+        if (dataIndex < 0 || dataIndex >= displayList.length) {
+          return const SizedBox.shrink();
+        }
+        final channel = displayList[dataIndex];
+        return _buildChannelRow(
+          channel: channel,
+          isPinned: pinnedIds.contains(channel.scopeId.value),
+          homeStore: homeStore,
+          channelUnreadCounts: channelUnreadCounts,
+          mutedIds: mutedIds,
+          managementState: managementState,
+        );
+      },
     );
   }
 
@@ -310,13 +327,14 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     required bool isPinned,
     required HomeListStore homeStore,
     required Map<ChannelScopeId, int> channelUnreadCounts,
+    required Set<String> mutedIds,
     required ChannelManagementState managementState,
   }) {
     final unreadCount = channelUnreadCounts[channel.scopeId] ?? 0;
 
     // Per-channel mute indicator: uses composite key to match the
     // in-memory muted IDs set (which is serverId-scoped).
-    final mutedIds = ref.watch(channelMutedIdsProvider);
+    // INV-CHANNELS-MUTED-HOIST-1: mutedIds passed in from hoisted watch.
     final isMuted = mutedIds.contains(
       ChannelNotificationPreferenceRepository.compositeKey(
         channel.scopeId.serverId.value,

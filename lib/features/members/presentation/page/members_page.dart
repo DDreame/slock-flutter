@@ -62,7 +62,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
     final state = ref.watch(memberListStoreProvider);
     final serverId = ref.read(currentMembersServerIdProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
-    final canManageMembers = _canManageMembers(state.members);
+    final canManageMembers = state.canManageMembers;
 
     return Scaffold(
       appBar: AppBar(
@@ -187,47 +187,80 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                   message: 'No members match your search.',
                   colors: colors,
                 )
-              : ListView(
-                  key: const ValueKey('members-list'),
-                  children: [
-                    if (humans.isNotEmpty) ...[
-                      _SectionHeader(
-                        key: const ValueKey(
-                          'members-section-humans',
-                        ),
-                        label: 'Humans',
-                        count: humans.length,
-                        colors: colors,
-                      ),
-                      for (final member in humans)
-                        _buildMemberTile(
-                          member,
-                          serverId,
-                          state,
-                          canManageMembers,
-                        ),
-                    ],
-                    if (agents.isNotEmpty) ...[
-                      _SectionHeader(
-                        key: const ValueKey(
-                          'members-section-agents',
-                        ),
-                        label: 'Agents',
-                        count: agents.length,
-                        colors: colors,
-                      ),
-                      for (final member in agents)
-                        _buildMemberTile(
-                          member,
-                          serverId,
-                          state,
-                          canManageMembers,
-                        ),
-                    ],
-                  ],
+              : _buildMemberListView(
+                  humans: humans,
+                  agents: agents,
+                  serverId: serverId,
+                  state: state,
+                  canManageMembers: canManageMembers,
                 ),
         ),
       ],
+    );
+  }
+
+  /// INV-MEMBERS-CACHE-1: ListView.builder for on-demand member tile
+  /// construction. Section headers are interleaved as flat items.
+  Widget _buildMemberListView({
+    required List<MemberProfile> humans,
+    required List<MemberProfile> agents,
+    required ServerScopeId serverId,
+    required MemberListState state,
+    required bool canManageMembers,
+  }) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    // Build flat item list: [humanHeader, ...humans, agentHeader, ...agents]
+    final hasHumans = humans.isNotEmpty;
+    final hasAgents = agents.isNotEmpty;
+    final itemCount = (hasHumans ? 1 + humans.length : 0) +
+        (hasAgents ? 1 + agents.length : 0);
+
+    return ListView.builder(
+      key: const ValueKey('members-list'),
+      itemCount: itemCount,
+      itemBuilder: (context, index) {
+        var offset = 0;
+        if (hasHumans) {
+          if (index == offset) {
+            return _SectionHeader(
+              key: const ValueKey('members-section-humans'),
+              label: 'Humans',
+              count: humans.length,
+              colors: colors,
+            );
+          }
+          offset++;
+          if (index < offset + humans.length) {
+            return _buildMemberTile(
+              humans[index - offset],
+              serverId,
+              state,
+              canManageMembers,
+            );
+          }
+          offset += humans.length;
+        }
+        if (hasAgents) {
+          if (index == offset) {
+            return _SectionHeader(
+              key: const ValueKey('members-section-agents'),
+              label: 'Agents',
+              count: agents.length,
+              colors: colors,
+            );
+          }
+          offset++;
+          if (index < offset + agents.length) {
+            return _buildMemberTile(
+              agents[index - offset],
+              serverId,
+              state,
+              canManageMembers,
+            );
+          }
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 
@@ -428,15 +461,6 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
         ),
       );
     }
-  }
-
-  bool _canManageMembers(List<MemberProfile> members) {
-    for (final member in members) {
-      if (member.isSelf) {
-        return member.role == 'owner' || member.role == 'admin';
-      }
-    }
-    return false;
   }
 }
 
