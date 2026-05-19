@@ -85,7 +85,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-AGENTS-INIT-1: load() fires exactly once per widget lifecycle',
-    skip: true,
     () async {
       final repo = _CountingAgentsRepository();
 
