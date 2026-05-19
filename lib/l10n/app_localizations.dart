@@ -1977,6 +1977,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'In: {name}'**
   String searchFilterInPrefix(String name);
+
+  /// No description provided for @searchRecentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent'**
+  String get searchRecentTitle;
+
+  /// No description provided for @searchRecentClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get searchRecentClear;
 }
 
 class _AppLocalizationsDelegate

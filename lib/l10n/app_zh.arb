@@ -347,5 +347,8 @@
   "searchFilterApply": "应用",
   "searchCouldNotOpenConversation": "无法打开会话。",
   "searchFilterFromPrefix": "来自: {name}",
-  "searchFilterInPrefix": "在: {name}"
+  "searchFilterInPrefix": "在: {name}",
+
+  "searchRecentTitle": "最近搜索",
+  "searchRecentClear": "清除"
 }

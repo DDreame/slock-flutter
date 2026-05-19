@@ -1,16 +1,28 @@
-// ignore_for_file: unused_local_variable
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/features/search/application/search_history_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   group('Search recent queries', () {
     test(
       'T1: Submitted query is saved to history',
-      skip: true,
       () {
         // Arrange
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+        );
         final sub = container.listen(searchHistoryProvider, (_, __) {});
         addTearDown(() {
           sub.close();
@@ -30,10 +42,13 @@ void main() {
 
     test(
       'T2: Recent queries displayed as chips below search field',
-      skip: true,
       () {
         // Arrange — seed history with 3 queries.
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+        );
         final sub = container.listen(searchHistoryProvider, (_, __) {});
         addTearDown(() {
           sub.close();
@@ -54,10 +69,13 @@ void main() {
 
     test(
       'T3: Tapping a chip fills the search field (query re-added to top)',
-      skip: true,
       () {
         // Arrange — seed history.
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+        );
         final sub = container.listen(searchHistoryProvider, (_, __) {});
         addTearDown(() {
           sub.close();
@@ -81,10 +99,13 @@ void main() {
 
     test(
       'T4: History limited to max N entries (LRU)',
-      skip: true,
       () {
         // Arrange
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+        );
         final sub = container.listen(searchHistoryProvider, (_, __) {});
         addTearDown(() {
           sub.close();
@@ -115,10 +136,13 @@ void main() {
 
     test(
       'T5: Clear history action removes all entries',
-      skip: true,
       () {
         // Arrange
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+        );
         final sub = container.listen(searchHistoryProvider, (_, __) {});
         addTearDown(() {
           sub.close();

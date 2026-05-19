@@ -1054,4 +1054,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String searchFilterInPrefix(String name) {
     return 'En: $name';
   }
+
+  @override
+  String get searchRecentTitle => 'Recientes';
+
+  @override
+  String get searchRecentClear => 'Borrar';
 }
