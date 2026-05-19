@@ -3,6 +3,7 @@ import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/notifications/foreground_notification_policy.dart';
 import 'package:slock_app/core/notifications/foreground_service_manager.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -33,6 +34,9 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// Also watches app lifecycle state and signals the background worker
 /// to suppress notifications while the app is in the foreground (via
 /// [ForegroundServiceManager.setWorkerForegroundActive]).
+const _batteryOptimizationPromptedKey =
+    'slock.backgroundNotifications.batteryOptimizationPrompted';
+
 final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
   // Serialize sync calls so concurrent state changes don't race
   // (e.g. _hydrateAuthenticatedSession sets state twice in quick
@@ -41,11 +45,46 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
   Future<void> pending = Future<void>.value();
   final diagnostics = ref.read(diagnosticsCollectorProvider);
 
+  Future<void> maybePromptBatteryOptimization(
+    ForegroundServiceManager manager,
+    SessionState session,
+    bool appReady,
+  ) async {
+    if (!session.isAuthenticated ||
+        session.token?.isNotEmpty != true ||
+        !appReady) {
+      return;
+    }
+
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      if (prefs.getBool(_batteryOptimizationPromptedKey) == true) {
+        return;
+      }
+      if (await manager.isIgnoringBatteryOptimizations) {
+        return;
+      }
+      await prefs.setBool(_batteryOptimizationPromptedKey, true);
+      await manager.requestIgnoreBatteryOptimizations();
+      diagnostics.info(
+        'foreground-service',
+        'Requested battery optimization exemption prompt',
+      );
+    } catch (e) {
+      diagnostics.warning(
+        'foreground-service',
+        'Battery optimization prompt unavailable: $e',
+      );
+    }
+  }
+
   Future<void> sync() async {
     final session = ref.read(sessionStoreProvider);
     final appReady = ref.read(appReadyProvider);
     final manager = ref.read(foregroundServiceManagerProvider);
     final running = await manager.isRunning;
+
+    await maybePromptBatteryOptimization(manager, session, appReady);
 
     final shouldStart = session.isAuthenticated &&
         session.token?.isNotEmpty == true &&
@@ -136,6 +175,7 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
       // Fire-and-forget — if service isn't running, native side
       // will ignore the call gracefully.
       manager.setWorkerForegroundActive(isResumed).catchError((_) {});
+      scheduleSync();
     },
   );
 

@@ -13,6 +13,8 @@ abstract class AndroidForegroundServicePlatformBridge {
   Future<void> refreshWorkerAuth();
   Future<void> setWorkerForegroundActive(bool active);
   Future<Map<String, dynamic>?> getWorkerDiagnostics();
+  Future<bool> isIgnoringBatteryOptimizations();
+  Future<void> requestIgnoreBatteryOptimizations();
 }
 
 class MethodChannelForegroundServiceBridge
@@ -65,6 +67,19 @@ class MethodChannelForegroundServiceBridge
         await _channel.invokeMapMethod<String, dynamic>('getWorkerDiagnostics');
     return result;
   }
+
+  @override
+  Future<bool> isIgnoringBatteryOptimizations() async {
+    final result = await _channel.invokeMethod<bool>(
+      'isIgnoringBatteryOptimizations',
+    );
+    return result ?? true;
+  }
+
+  @override
+  Future<void> requestIgnoreBatteryOptimizations() async {
+    await _channel.invokeMethod<void>('requestIgnoreBatteryOptimizations');
+  }
 }
 
 class AndroidForegroundServiceManager implements ForegroundServiceManager {
@@ -98,4 +113,12 @@ class AndroidForegroundServiceManager implements ForegroundServiceManager {
   @override
   Future<Map<String, dynamic>?> getWorkerDiagnostics() =>
       _bridge.getWorkerDiagnostics();
+
+  @override
+  Future<bool> get isIgnoringBatteryOptimizations =>
+      _bridge.isIgnoringBatteryOptimizations();
+
+  @override
+  Future<void> requestIgnoreBatteryOptimizations() =>
+      _bridge.requestIgnoreBatteryOptimizations();
 }

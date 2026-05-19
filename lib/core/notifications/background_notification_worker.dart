@@ -65,6 +65,8 @@ class BackgroundWorkerDiagnostics {
   const BackgroundWorkerDiagnostics({
     required this.isServiceAlive,
     required this.socketStatus,
+    required this.authStatus,
+    required this.foregroundActive,
     this.lastEventTime,
     this.lastNotificationAttempt,
     this.lastPermissionFailure,
@@ -72,6 +74,8 @@ class BackgroundWorkerDiagnostics {
 
   final bool isServiceAlive;
   final String socketStatus;
+  final String authStatus;
+  final bool foregroundActive;
   final DateTime? lastEventTime;
   final DateTime? lastNotificationAttempt;
   final DateTime? lastPermissionFailure;
@@ -138,6 +142,9 @@ class BackgroundNotificationWorker {
     return BackgroundWorkerDiagnostics(
       isServiceAlive: _active && !_disposed,
       socketStatus: _socket.isConnected ? 'connected' : 'disconnected',
+      authStatus:
+          _authProvider.token?.isNotEmpty == true ? 'authenticated' : 'missing',
+      foregroundActive: foregroundActive,
       lastEventTime: _lastEventTime,
       lastNotificationAttempt: _lastNotificationAttempt,
       lastPermissionFailure: _lastPermissionFailure,
@@ -216,6 +223,7 @@ class BackgroundNotificationWorker {
         // Attempt to reconnect.
         _scheduleReconnect();
       case BackgroundSocketStatus.connected:
+        foregroundActive = false;
         break;
     }
   }

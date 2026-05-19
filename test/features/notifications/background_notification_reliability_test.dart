@@ -12,8 +12,6 @@ import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
-// Phase A — all tests skip: true.
-//
 // INV-NOTIF-RELIABLE-1: foregroundActive resets on reconnection unless the
 // foreground bridge explicitly re-asserts foreground-active=true.
 void main() {
@@ -69,7 +67,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(sink.notifications, hasLength(1));
-    }, skip: true);
+    });
 
     test(
         'backgroundWorkerDiagnosticsProvider exposes service/auth/foreground '
@@ -101,7 +99,7 @@ void main() {
       expect(diagnostics['authStatus'], 'authenticated');
       expect(diagnostics['foregroundActive'], isFalse);
       expect(diagnostics['lastEventTime'], isNotNull);
-    }, skip: true);
+    });
 
     testWidgets(
         'foreground service restarts when unexpectedly stopped while '
@@ -134,7 +132,7 @@ void main() {
         reason: 'Authenticated service binding must detect an unexpected '
             'stop and restart the foreground service.',
       );
-    }, skip: true);
+    });
   });
 }
 
@@ -258,6 +256,12 @@ class _FakeForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<Map<String, dynamic>?> getWorkerDiagnostics() async => diagnostics;
+
+  @override
+  Future<bool> get isIgnoringBatteryOptimizations async => true;
+
+  @override
+  Future<void> requestIgnoreBatteryOptimizations() async {}
 }
 
 class _FakeSessionStore extends SessionStore {
