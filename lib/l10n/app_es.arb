@@ -346,5 +346,8 @@
   "searchFilterApply": "Aplicar",
   "searchCouldNotOpenConversation": "No se pudo abrir la conversación.",
   "searchFilterFromPrefix": "De: {name}",
-  "searchFilterInPrefix": "En: {name}"
+  "searchFilterInPrefix": "En: {name}",
+
+  "searchRecentTitle": "Recientes",
+  "searchRecentClear": "Borrar"
 }

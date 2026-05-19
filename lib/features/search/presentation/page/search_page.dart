@@ -6,6 +6,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
+import 'package:slock_app/features/search/application/search_history_store.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
 import 'package:slock_app/features/search/application/search_store.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
@@ -88,6 +89,12 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
               minHeight: 20,
             ),
           ),
+          onSubmitted: (value) {
+            final trimmed = value.trim();
+            if (trimmed.isNotEmpty) {
+              ref.read(searchHistoryProvider.notifier).addQuery(trimmed);
+            }
+          },
           onChanged: ref.read(searchStoreProvider.notifier).updateQuery,
         ),
         actions: [
@@ -127,9 +134,8 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
   Widget _buildBody(SearchState state) {
     final l10n = context.l10n;
     return switch (state.status) {
-      SearchStatus.idle => Center(
-          key: const ValueKey('search-idle'),
-          child: Text(l10n.searchIdleText),
+      SearchStatus.idle => _SearchIdleView(
+          controller: _controller,
         ),
       SearchStatus.searching when !state.hasResults => const Center(
           key: ValueKey('search-searching'),
@@ -474,6 +480,73 @@ class _SearchContactResultsList extends StatelessWidget {
           onTap: () => _openContactDm(context, contact),
         );
       },
+    );
+  }
+}
+
+class _SearchIdleView extends ConsumerWidget {
+  const _SearchIdleView({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(searchHistoryProvider);
+    final l10n = context.l10n;
+
+    if (history.isEmpty) {
+      return Center(
+        key: const ValueKey('search-idle'),
+        child: Text(l10n.searchIdleText),
+      );
+    }
+
+    return Padding(
+      key: const ValueKey('search-idle'),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l10n.searchRecentTitle,
+                style: AppTypography.label.copyWith(
+                  color:
+                      Theme.of(context).extension<AppColors>()?.textSecondary,
+                ),
+              ),
+              TextButton(
+                key: const ValueKey('search-history-clear'),
+                onPressed: () {
+                  ref.read(searchHistoryProvider.notifier).clearHistory();
+                },
+                child: Text(l10n.searchRecentClear),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              for (final query in history)
+                ActionChip(
+                  label: Text(query),
+                  onPressed: () {
+                    controller.text = query;
+                    controller.selection = TextSelection.fromPosition(
+                      TextPosition(offset: query.length),
+                    );
+                    ref.read(searchStoreProvider.notifier).updateQuery(query);
+                    ref.read(searchHistoryProvider.notifier).addQuery(query);
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

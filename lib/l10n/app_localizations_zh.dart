@@ -989,4 +989,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String searchFilterInPrefix(String name) {
     return '在: $name';
   }
+
+  @override
+  String get searchRecentTitle => '最近搜索';
+
+  @override
+  String get searchRecentClear => '清除';
 }
