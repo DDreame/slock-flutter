@@ -6,6 +6,8 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/dm_sort_preference.dart';
@@ -19,6 +21,17 @@ import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
+
+/// Narrowed select projection for DmsTabPage — only fields consumed by build().
+typedef _DmsTabProjection = ({
+  HomeListStatus status,
+  AppFailure? failure,
+  List<HomeDirectMessageSummary> directMessages,
+  List<HomeDirectMessageSummary> pinnedDirectMessages,
+  List<HomeDirectMessageSummary> hiddenDirectMessages,
+  List<AgentItem> agents,
+  List<AgentItem> pinnedAgents,
+});
 
 /// DMs tab — extracts the DM list from [HomePage].
 ///
@@ -44,7 +57,19 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(homeListStoreProvider);
+    final state = ref.watch(
+      homeListStoreProvider.select(
+        (s) => (
+          status: s.status,
+          failure: s.failure,
+          directMessages: s.directMessages,
+          pinnedDirectMessages: s.pinnedDirectMessages,
+          hiddenDirectMessages: s.hiddenDirectMessages,
+          agents: s.agents,
+          pinnedAgents: s.pinnedAgents,
+        ),
+      ),
+    );
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
     // refresh completes with failure — not on mutation errors.
     ref.listen(
@@ -141,7 +166,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   }
 
   Widget _buildDmList({
-    required HomeListState state,
+    required _DmsTabProjection state,
     required HomeListStore homeStore,
     required UnreadSourceProjectionState unreadState,
     required AppLocalizations l10n,
@@ -342,7 +367,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   }
 
   Widget _buildHiddenDmsTile({
-    required HomeListState state,
+    required _DmsTabProjection state,
     required HomeListStore homeStore,
     required AppLocalizations l10n,
   }) {

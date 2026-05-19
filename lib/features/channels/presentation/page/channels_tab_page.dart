@@ -47,7 +47,16 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(homeListStoreProvider);
+    final state = ref.watch(
+      homeListStoreProvider.select(
+        (s) => (
+          status: s.status,
+          failure: s.failure,
+          pinnedChannels: s.pinnedChannels,
+          channels: s.channels,
+        ),
+      ),
+    );
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
     // refresh completes with failure — not on mutation errors.
     ref.listen(
@@ -134,7 +143,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             key: const ValueKey('channels-tab-refresh'),
             onRefresh: homeStore.load,
             child: _buildChannelList(
-              state: state,
+              pinnedChannels: state.pinnedChannels,
+              channels: state.channels,
               homeStore: homeStore,
               unreadState: unreadState,
               managementState: managementState,
@@ -146,7 +156,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   }
 
   Widget _buildChannelList({
-    required HomeListState state,
+    required List<HomeChannelSummary> pinnedChannels,
+    required List<HomeChannelSummary> channels,
     required HomeListStore homeStore,
     required UnreadSourceProjectionState unreadState,
     required ChannelManagementState managementState,
@@ -156,8 +167,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
 
     // Combine pinned + unpinned channels.
     final allChannels = [
-      ...state.pinnedChannels,
-      ...state.channels,
+      ...pinnedChannels,
+      ...channels,
     ];
 
     // Apply sort preference via sortedChannelsProvider.
@@ -173,7 +184,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                 .toList();
           }();
 
-    final pinnedIds = state.pinnedChannels.map((c) => c.scopeId.value).toSet();
+    final pinnedIds = pinnedChannels.map((c) => c.scopeId.value).toSet();
 
     if (displayList.isEmpty && _searchQuery.isEmpty) {
       return ListView(
