@@ -55,7 +55,10 @@ final homeRealtimeDmMaterializationBindingProvider = Provider<void>((ref) {
     }
   });
 
-  ref.listen(homeListStoreProvider, (previous, next) {
+  ref.listen(
+      homeListStoreProvider
+          .select((s) => (status: s.status, serverScopeId: s.serverScopeId)),
+      (previous, next) {
     if (next.status != HomeListStatus.success ||
         next.serverScopeId == null ||
         pendingEvents.isEmpty) {
