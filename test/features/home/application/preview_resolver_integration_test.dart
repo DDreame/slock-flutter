@@ -30,7 +30,6 @@ void main() {
   group('Preview resolver integration', () {
     test(
       'T1: Attachment-only message resolves to attachment description (not empty/fallback)',
-      skip: true,
       () {
         // Simulate the current backfill path: PreviewBackfillService extracts
         // msg['content'] from the API response. For attachment-only messages,
@@ -52,7 +51,6 @@ void main() {
 
     test(
       'T2: Deleted message resolves to deletion placeholder',
-      skip: true,
       () {
         // Simulate the current backfill path for a deleted message:
         // API returns msg['content'] = '' (or original text) with isDeleted=true.
@@ -74,7 +72,6 @@ void main() {
 
     test(
       'T3: Voice message resolves to voice label',
-      skip: true,
       () {
         // Simulate the current backfill path for a voice message:
         // API returns msg['content'] = '' with audio attachment.
@@ -95,7 +92,6 @@ void main() {
 
     test(
       'T4: Normal text message still resolves correctly',
-      skip: true,
       () {
         // Normal text messages work fine through the legacy path because
         // content is non-empty. This test confirms the happy path still works

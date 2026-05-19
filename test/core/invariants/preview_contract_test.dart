@@ -478,24 +478,24 @@ void main() {
       expect(resolvePreviewText('hello', l10n: l10n), equals('hello'));
     });
 
-    test('null → fallback', () {
+    test('null → previewDeleted', () {
       expect(
         resolvePreviewText(null, l10n: l10n),
-        equals(l10n.previewFallback),
+        equals(l10n.previewDeleted),
       );
     });
 
-    test('empty string → fallback', () {
+    test('empty string → previewDeleted', () {
       expect(
         resolvePreviewText('', l10n: l10n),
-        equals(l10n.previewFallback),
+        equals(l10n.previewDeleted),
       );
     });
 
-    test('whitespace-only → fallback', () {
+    test('whitespace-only → previewDeleted', () {
       expect(
         resolvePreviewText('   ', l10n: l10n),
-        equals(l10n.previewFallback),
+        equals(l10n.previewDeleted),
       );
     });
   });

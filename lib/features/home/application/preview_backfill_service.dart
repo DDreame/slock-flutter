@@ -4,9 +4,12 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 
 // ---------------------------------------------------------------------------
 // #567: Channel/Inbox Preview Backfill
@@ -68,9 +71,16 @@ final previewMessageFetcherProvider = Provider<PreviewMessageFetcher>((ref) {
     final messages = data['messages'] as List?;
     if (messages == null || messages.isEmpty) return null;
     final msg = messages.first as Map<String, dynamic>;
+    final l10n = ref.read(appLocalizationsProvider);
     return PreviewFetchResult(
       messageId: msg['id'] as String? ?? '',
-      preview: msg['content'] as String? ?? '',
+      preview: MessagePreviewResolver.resolve(
+        l10n: l10n,
+        content: msg['content'] as String?,
+        messageType: msg['messageType'] as String? ?? msg['type'] as String?,
+        isDeleted: msg['isDeleted'] as bool? ?? false,
+        attachments: parseAttachments(msg['attachments']),
+      ),
       activityAt: DateTime.tryParse(msg['createdAt'] as String? ?? '') ??
           DateTime.now(),
     );
