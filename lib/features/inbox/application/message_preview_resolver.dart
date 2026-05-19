@@ -100,9 +100,14 @@ class MessagePreviewResolver {
 /// Legacy top-level function kept for backward compatibility.
 ///
 /// Used by Home row widgets that only have a raw preview string (already
-/// resolved at the data layer). Provides a final safety-net fallback.
+/// resolved at the data layer via [MessagePreviewResolver.resolve]).
+///
+/// After the backfill migration (#585), all preview strings are produced by
+/// [MessagePreviewResolver.resolve] which handles attachments, voice, system
+/// messages, etc. The only remaining case where this receives null/empty
+/// content is when a message was deleted server-side (content cleared).
 String resolvePreviewText(String? rawPreview,
     {required AppLocalizations l10n}) {
   if (rawPreview != null && rawPreview.trim().isNotEmpty) return rawPreview;
-  return l10n.previewFallback;
+  return l10n.previewDeleted;
 }
