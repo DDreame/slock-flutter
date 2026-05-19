@@ -11,13 +11,8 @@
 // T3: status change DOES fire status/channels select (active).
 // T4: channels change DOES fire status/channels select (active).
 //
-// Phase A: T1/T2 skip:true — current impl uses broad ref.watch(homeListStoreProvider).
-//          T3/T4 active — correctness proofs.
-//
-// Phase B:
-// Replace ref.watch(homeListStoreProvider) with
-// ref.watch(homeListStoreProvider.select((s) => (status: s.status, channels: s.channels)))
-// at tasks_page.dart line 100.
+// Phase B: lib fix applied — ref.watch uses .select((s) => (status: s.status,
+// channels: s.channels)). All tests active.
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -110,7 +105,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
@@ -150,7 +145,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
