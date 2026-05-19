@@ -153,7 +153,6 @@ void main() {
   test(
     'INV-PROJECTION-INBOX-SELECT-1: isRefreshing change does NOT notify '
     '(status, items) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -194,7 +193,6 @@ void main() {
   test(
     'INV-PROJECTION-INBOX-SELECT-1: filter change does NOT notify '
     '(status, items) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
