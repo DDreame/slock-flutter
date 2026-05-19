@@ -294,10 +294,10 @@ class _HomeAgentsSectionState extends ConsumerState<_HomeAgentsSection> {
   @override
   void initState() {
     super.initState();
-    final status = ref.read(agentsStoreProvider).status;
-    if (status == AgentsStatus.initial) {
-      Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
-    }
+    // INV-HOME-AGENTS-LOAD-GUARD-1: Delegate to ensureLoaded() instead of
+    // manually reimplementing the status guard.
+    Future.microtask(
+        () => ref.read(agentsStoreProvider.notifier).ensureLoaded());
   }
 
   @override
