@@ -46,7 +46,6 @@ void main() {
 
   test(
     'T1 — Non-DM server member name resolves correctly',
-    skip: true,
     () {
       // Bob is a server member but has no DM with the current user.
       // His name should still resolve via the full server members cache.
@@ -86,7 +85,6 @@ void main() {
 
   test(
     'T2 — Agent sender name resolves from agent store (not in HomeListStore)',
-    skip: true,
     () {
       // agent-j2 is an agent on the server but not visible in HomeListStore's
       // agents list (e.g. it was recently added or is in a different category).
@@ -127,7 +125,6 @@ void main() {
 
   test(
     'T3 — Unknown sender (not in members or agents) shows fallback',
-    skip: true,
     () {
       // Sender is completely unknown — not in any member/agent cache.
       // Should show "Member" or similar fallback, not blank/null.
@@ -168,7 +165,6 @@ void main() {
 
   test(
     'T4 — Channel name resolves for channels user has not visited',
-    skip: true,
     () {
       // This inbox item is from a channel that's NOT in HomeListStore
       // (user hasn't visited it / it's not in the sidebar). The full
