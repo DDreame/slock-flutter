@@ -39,7 +39,14 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
   @override
   Widget build(BuildContext context) {
     final controllerState = ref.watch(verifyEmailControllerProvider);
-    final session = ref.watch(sessionStoreProvider);
+    final session = ref.watch(
+      sessionStoreProvider.select(
+        (s) => (
+          isAuthenticated: s.isAuthenticated,
+          emailVerified: s.emailVerified,
+        ),
+      ),
+    );
     final canResend = session.isAuthenticated && session.emailVerified == false;
     final l10n = context.l10n;
 

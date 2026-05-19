@@ -87,6 +87,7 @@ class _FakeSavedMessagesStore extends SavedMessagesStore {
     loadCallCount++;
   }
 
+  @override
   void ensureLoaded() {
     if (state.status == SavedMessagesStatus.initial) {
       load();
@@ -109,7 +110,6 @@ void main() {
   test(
     'INV-VERIFY-EMAIL-SELECT-1: displayName change does NOT notify '
     '(isAuthenticated, emailVerified) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -153,7 +153,6 @@ void main() {
   test(
     'INV-VERIFY-EMAIL-SELECT-1: token change does NOT notify '
     '(isAuthenticated, emailVerified) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -285,7 +284,6 @@ void main() {
   test(
     'INV-SAVED-MESSAGES-LOAD-GUARD-1: ensureLoaded() skips when '
     'status == success',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
