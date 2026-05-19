@@ -482,9 +482,16 @@ _LastMessagePreview? _parseLastMessage(
     attachments: attachments,
   );
 
+  // If resolver could only produce a generic fallback (no real content),
+  // leave preview null so PreviewBackfillService can fetch actual content.
+  final bool isNoContentFallback = content.isEmpty &&
+      (attachments == null || attachments.isEmpty) &&
+      !isDeleted &&
+      messageType != 'system';
+
   return _LastMessagePreview(
     id: id,
-    content: preview,
+    content: isNoContentFallback ? null : preview,
     createdAt: createdAt,
   );
 }
@@ -492,12 +499,12 @@ _LastMessagePreview? _parseLastMessage(
 class _LastMessagePreview {
   const _LastMessagePreview({
     required this.id,
-    required this.content,
+    this.content,
     this.createdAt,
   });
 
   final String id;
-  final String content;
+  final String? content;
   final DateTime? createdAt;
 }
 

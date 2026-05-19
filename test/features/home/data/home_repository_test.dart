@@ -599,17 +599,17 @@ void main() {
           const ServerScopeId('server-1'),
         );
 
-        // Non-string content → resolves through MessagePreviewResolver fallback.
+        // Non-string content → no real content, preview null for backfill.
         expect(snapshot.channels[0].lastMessageId, 'msg-1');
-        expect(snapshot.channels[0].lastMessagePreview, 'New message');
+        expect(snapshot.channels[0].lastMessagePreview, isNull);
         expect(
           snapshot.channels[0].lastActivityAt,
           DateTime.utc(2026, 5, 1, 12),
         );
 
-        // Object content → resolves through MessagePreviewResolver fallback.
+        // Object content → no real content, preview null for backfill.
         expect(snapshot.channels[1].lastMessageId, 'msg-2');
-        expect(snapshot.channels[1].lastMessagePreview, 'New message');
+        expect(snapshot.channels[1].lastMessagePreview, isNull);
 
         // Missing id → lastMessage treated as absent.
         expect(snapshot.channels[2].lastMessageId, isNull);
