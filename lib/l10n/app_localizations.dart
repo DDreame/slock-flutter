@@ -1671,6 +1671,312 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not requested'**
   String get settingsNotificationNotRequested;
+
+  /// No description provided for @notificationSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Settings'**
+  String get notificationSettingsTitle;
+
+  /// No description provided for @notificationSettingsPermissionSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission'**
+  String get notificationSettingsPermissionSection;
+
+  /// No description provided for @notificationSettingsPushNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Push Notifications'**
+  String get notificationSettingsPushNotifications;
+
+  /// No description provided for @notificationSettingsFilterSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification Filter'**
+  String get notificationSettingsFilterSection;
+
+  /// No description provided for @notificationSettingsDiagnosticsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get notificationSettingsDiagnosticsSection;
+
+  /// No description provided for @notificationSettingsDeviceToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Token'**
+  String get notificationSettingsDeviceToken;
+
+  /// No description provided for @notificationSettingsPlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform'**
+  String get notificationSettingsPlatform;
+
+  /// No description provided for @notificationSettingsLastRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Registration'**
+  String get notificationSettingsLastRegistration;
+
+  /// No description provided for @notificationSettingsPermissionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission Status'**
+  String get notificationSettingsPermissionStatus;
+
+  /// No description provided for @notificationSettingsRecentEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Events'**
+  String get notificationSettingsRecentEvents;
+
+  /// No description provided for @notificationSettingsNoEvents.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent notification events.'**
+  String get notificationSettingsNoEvents;
+
+  /// No description provided for @notificationSettingsNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get notificationSettingsNotAvailable;
+
+  /// No description provided for @notificationSettingsNotRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Not registered yet'**
+  String get notificationSettingsNotRegistered;
+
+  /// No description provided for @notificationSettingsUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not update notification settings.'**
+  String get notificationSettingsUpdateFailed;
+
+  /// No description provided for @notificationSettingsRefreshRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh Device Registration'**
+  String get notificationSettingsRefreshRegistration;
+
+  /// No description provided for @notificationSettingsRetryAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry Notification Access'**
+  String get notificationSettingsRetryAccess;
+
+  /// No description provided for @notificationSettingsEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Push Notifications'**
+  String get notificationSettingsEnable;
+
+  /// No description provided for @notificationSettingsPermissionGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission granted'**
+  String get notificationSettingsPermissionGranted;
+
+  /// No description provided for @notificationSettingsPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission denied'**
+  String get notificationSettingsPermissionDenied;
+
+  /// No description provided for @notificationSettingsPermissionProvisional.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission provisional'**
+  String get notificationSettingsPermissionProvisional;
+
+  /// No description provided for @notificationSettingsPermissionUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission not requested yet'**
+  String get notificationSettingsPermissionUnknown;
+
+  /// No description provided for @notificationSettingsDeviceRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Device registered {date}.'**
+  String notificationSettingsDeviceRegistered(String date);
+
+  /// No description provided for @notificationSettingsDeviceNotRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Device registration not available yet.'**
+  String get notificationSettingsDeviceNotRegistered;
+
+  /// No description provided for @notificationSettingsResultGranted.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification access granted and device registration refreshed.'**
+  String get notificationSettingsResultGranted;
+
+  /// No description provided for @notificationSettingsResultProvisional.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification access is provisional; device registration refreshed.'**
+  String get notificationSettingsResultProvisional;
+
+  /// No description provided for @notificationSettingsResultDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification access was denied.'**
+  String get notificationSettingsResultDenied;
+
+  /// No description provided for @notificationSettingsResultUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification status is still unavailable on this device.'**
+  String get notificationSettingsResultUnknown;
+
+  /// No description provided for @searchHintText.
+  ///
+  /// In en, this message translates to:
+  /// **'Search messages, channels, or contacts...'**
+  String get searchHintText;
+
+  /// No description provided for @searchIdleText.
+  ///
+  /// In en, this message translates to:
+  /// **'Type to search messages, channels, or contacts.'**
+  String get searchIdleText;
+
+  /// No description provided for @searchNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found.'**
+  String get searchNoResults;
+
+  /// No description provided for @searchRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get searchRetry;
+
+  /// No description provided for @searchFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Search failed.'**
+  String get searchFailedFallback;
+
+  /// No description provided for @searchSectionChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get searchSectionChannels;
+
+  /// No description provided for @searchSectionContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get searchSectionContacts;
+
+  /// No description provided for @searchSectionMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get searchSectionMessages;
+
+  /// No description provided for @searchViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View all'**
+  String get searchViewAll;
+
+  /// No description provided for @searchLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get searchLoadMore;
+
+  /// No description provided for @searchFilterSender.
+  ///
+  /// In en, this message translates to:
+  /// **'Sender'**
+  String get searchFilterSender;
+
+  /// No description provided for @searchFilterChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel'**
+  String get searchFilterChannel;
+
+  /// No description provided for @searchFilterClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get searchFilterClear;
+
+  /// No description provided for @searchFilterNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest'**
+  String get searchFilterNewest;
+
+  /// No description provided for @searchFilterOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest'**
+  String get searchFilterOldest;
+
+  /// No description provided for @searchFilterBySenderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by sender'**
+  String get searchFilterBySenderTitle;
+
+  /// No description provided for @searchFilterBySenderHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter sender name…'**
+  String get searchFilterBySenderHint;
+
+  /// No description provided for @searchFilterByChannelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter by channel'**
+  String get searchFilterByChannelTitle;
+
+  /// No description provided for @searchFilterByChannelHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter channel name…'**
+  String get searchFilterByChannelHint;
+
+  /// No description provided for @searchFilterCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get searchFilterCancel;
+
+  /// No description provided for @searchFilterApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get searchFilterApply;
+
+  /// No description provided for @searchCouldNotOpenConversation.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open conversation.'**
+  String get searchCouldNotOpenConversation;
+
+  /// No description provided for @searchFilterFromPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'From: {name}'**
+  String searchFilterFromPrefix(String name);
+
+  /// No description provided for @searchFilterInPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'In: {name}'**
+  String searchFilterInPrefix(String name);
 }
 
 class _AppLocalizationsDelegate

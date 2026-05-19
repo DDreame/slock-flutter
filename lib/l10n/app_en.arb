@@ -333,5 +333,79 @@
   "settingsNotificationGranted": "Granted",
   "settingsNotificationDenied": "Denied",
   "settingsNotificationProvisional": "Provisional",
-  "settingsNotificationNotRequested": "Not requested"
+  "settingsNotificationNotRequested": "Not requested",
+
+  "notificationSettingsTitle": "Notification Settings",
+  "notificationSettingsPermissionSection": "Permission",
+  "notificationSettingsPushNotifications": "Push Notifications",
+  "notificationSettingsFilterSection": "Notification Filter",
+  "notificationSettingsDiagnosticsSection": "Diagnostics",
+  "notificationSettingsDeviceToken": "Device Token",
+  "notificationSettingsPlatform": "Platform",
+  "notificationSettingsLastRegistration": "Last Registration",
+  "notificationSettingsPermissionStatus": "Permission Status",
+  "notificationSettingsRecentEvents": "Recent Events",
+  "notificationSettingsNoEvents": "No recent notification events.",
+  "notificationSettingsNotAvailable": "Not available",
+  "notificationSettingsNotRegistered": "Not registered yet",
+  "notificationSettingsUpdateFailed": "Could not update notification settings.",
+  "notificationSettingsRefreshRegistration": "Refresh Device Registration",
+  "notificationSettingsRetryAccess": "Retry Notification Access",
+  "notificationSettingsEnable": "Enable Push Notifications",
+  "notificationSettingsPermissionGranted": "Permission granted",
+  "notificationSettingsPermissionDenied": "Permission denied",
+  "notificationSettingsPermissionProvisional": "Permission provisional",
+  "notificationSettingsPermissionUnknown": "Permission not requested yet",
+  "notificationSettingsDeviceRegistered": "Device registered {date}.",
+  "@notificationSettingsDeviceRegistered": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationSettingsDeviceNotRegistered": "Device registration not available yet.",
+  "notificationSettingsResultGranted": "Notification access granted and device registration refreshed.",
+  "notificationSettingsResultProvisional": "Notification access is provisional; device registration refreshed.",
+  "notificationSettingsResultDenied": "Notification access was denied.",
+  "notificationSettingsResultUnknown": "Notification status is still unavailable on this device.",
+
+  "searchHintText": "Search messages, channels, or contacts...",
+  "searchIdleText": "Type to search messages, channels, or contacts.",
+  "searchNoResults": "No results found.",
+  "searchRetry": "Retry",
+  "searchFailedFallback": "Search failed.",
+  "searchSectionChannels": "Channels",
+  "searchSectionContacts": "Contacts",
+  "searchSectionMessages": "Messages",
+  "searchViewAll": "View all",
+  "searchLoadMore": "Load more",
+  "searchFilterSender": "Sender",
+  "searchFilterChannel": "Channel",
+  "searchFilterClear": "Clear",
+  "searchFilterNewest": "Newest",
+  "searchFilterOldest": "Oldest",
+  "searchFilterBySenderTitle": "Filter by sender",
+  "searchFilterBySenderHint": "Enter sender name\u2026",
+  "searchFilterByChannelTitle": "Filter by channel",
+  "searchFilterByChannelHint": "Enter channel name\u2026",
+  "searchFilterCancel": "Cancel",
+  "searchFilterApply": "Apply",
+  "searchCouldNotOpenConversation": "Could not open conversation.",
+  "searchFilterFromPrefix": "From: {name}",
+  "@searchFilterFromPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "searchFilterInPrefix": "In: {name}",
+  "@searchFilterInPrefix": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

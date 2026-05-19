@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 
@@ -25,13 +26,15 @@ class _NotificationSettingsPageState
     final notificationState = ref.watch(notificationStoreProvider);
     final diagnostics = ref.watch(diagnosticsCollectorProvider);
     final theme = Theme.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notification Settings')),
+      appBar: AppBar(title: Text(l10n.notificationSettingsTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Permission', style: theme.textTheme.titleMedium),
+          Text(l10n.notificationSettingsPermissionSection,
+              style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Card(
             child: Column(
@@ -41,9 +44,9 @@ class _NotificationSettingsPageState
                     'notification-settings-permission-status',
                   ),
                   leading: const Icon(Icons.notifications_active_outlined),
-                  title: const Text('Push Notifications'),
+                  title: Text(l10n.notificationSettingsPushNotifications),
                   subtitle: Text(
-                    _permissionSubtitle(notificationState),
+                    _permissionSubtitle(notificationState, l10n),
                   ),
                 ),
                 const Divider(height: 1),
@@ -53,7 +56,7 @@ class _NotificationSettingsPageState
                   ),
                   leading: const Icon(Icons.refresh),
                   title: Text(
-                    _permissionActionLabel(notificationState),
+                    _permissionActionLabel(notificationState, l10n),
                   ),
                   trailing: _isUpdatingPermission
                       ? const SizedBox(
@@ -71,7 +74,8 @@ class _NotificationSettingsPageState
             ),
           ),
           const SizedBox(height: 20),
-          Text('Notification Filter', style: theme.textTheme.titleMedium),
+          Text(l10n.notificationSettingsFilterSection,
+              style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Card(
             child: RadioGroup<NotificationPreference>(
@@ -100,24 +104,26 @@ class _NotificationSettingsPageState
             ),
           ),
           const SizedBox(height: 20),
-          Text('Diagnostics', style: theme.textTheme.titleMedium),
+          Text(l10n.notificationSettingsDiagnosticsSection,
+              style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           Card(
             child: Column(
               children: [
                 ListTile(
                   key: const ValueKey('notification-diagnostics-token'),
-                  title: const Text('Device Token'),
+                  title: Text(l10n.notificationSettingsDeviceToken),
                   subtitle: Text(
-                    _truncatedToken(notificationState.pushToken),
+                    _truncatedToken(notificationState.pushToken, l10n),
                   ),
                 ),
                 const Divider(height: 1),
                 ListTile(
                   key: const ValueKey('notification-diagnostics-platform'),
-                  title: const Text('Platform'),
+                  title: Text(l10n.notificationSettingsPlatform),
                   subtitle: Text(
-                    notificationState.pushTokenPlatform ?? 'Not available',
+                    notificationState.pushTokenPlatform ??
+                        l10n.notificationSettingsNotAvailable,
                   ),
                 ),
                 const Divider(height: 1),
@@ -125,10 +131,10 @@ class _NotificationSettingsPageState
                   key: const ValueKey(
                     'notification-diagnostics-last-registration',
                   ),
-                  title: const Text('Last Registration'),
+                  title: Text(l10n.notificationSettingsLastRegistration),
                   subtitle: Text(
                     notificationState.pushTokenUpdatedAt?.toIso8601String() ??
-                        'Not registered yet',
+                        l10n.notificationSettingsNotRegistered,
                   ),
                 ),
                 const Divider(height: 1),
@@ -136,7 +142,7 @@ class _NotificationSettingsPageState
                   key: const ValueKey(
                     'notification-diagnostics-permission',
                   ),
-                  title: const Text('Permission Status'),
+                  title: Text(l10n.notificationSettingsPermissionStatus),
                   subtitle: Text(
                     notificationState.permissionStatus.name,
                   ),
@@ -145,11 +151,13 @@ class _NotificationSettingsPageState
             ),
           ),
           const SizedBox(height: 20),
-          Text('Recent Events', style: theme.textTheme.titleMedium),
+          Text(l10n.notificationSettingsRecentEvents,
+              style: theme.textTheme.titleMedium),
           const SizedBox(height: 8),
           _DiagnosticsEventsList(
             key: const ValueKey('notification-diagnostics-events'),
             diagnostics: diagnostics,
+            noEventsLabel: l10n.notificationSettingsNoEvents,
           ),
         ],
       ),
@@ -158,6 +166,7 @@ class _NotificationSettingsPageState
 
   Future<void> _updatePermission(BuildContext context) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
 
     setState(() {
       _isUpdatingPermission = true;
@@ -177,14 +186,14 @@ class _NotificationSettingsPageState
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(
-          content: Text(_permissionResultMessage(permissionStatus)),
+          content: Text(_permissionResultMessage(permissionStatus, l10n)),
         ),
       );
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Could not update notification settings.'),
+        SnackBar(
+          content: Text(l10n.notificationSettingsUpdateFailed),
         ),
       );
     } finally {
@@ -201,9 +210,11 @@ class _DiagnosticsEventsList extends StatelessWidget {
   const _DiagnosticsEventsList({
     super.key,
     required this.diagnostics,
+    required this.noEventsLabel,
   });
 
   final DiagnosticsCollector diagnostics;
+  final String noEventsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -214,9 +225,9 @@ class _DiagnosticsEventsList extends StatelessWidget {
         .toList();
 
     if (entries.isEmpty) {
-      return const Card(
+      return Card(
         child: ListTile(
-          title: Text('No recent notification events.'),
+          title: Text(noEventsLabel),
         ),
       );
     }
@@ -270,44 +281,57 @@ class _DiagnosticsEventsList extends StatelessWidget {
   }
 }
 
-String _truncatedToken(String? token) {
-  if (token == null) return 'Not available';
+String _truncatedToken(String? token, AppLocalizations l10n) {
+  if (token == null) return l10n.notificationSettingsNotAvailable;
   if (token.length <= 16) return token;
   return '${token.substring(0, 8)}...${token.substring(token.length - 8)}';
 }
 
-String _permissionSubtitle(NotificationState state) {
+String _permissionSubtitle(NotificationState state, AppLocalizations l10n) {
   final status = switch (state.permissionStatus) {
-    NotificationPermissionStatus.granted => 'Permission granted',
-    NotificationPermissionStatus.denied => 'Permission denied',
-    NotificationPermissionStatus.provisional => 'Permission provisional',
-    NotificationPermissionStatus.unknown => 'Permission not requested yet',
+    NotificationPermissionStatus.granted =>
+      l10n.notificationSettingsPermissionGranted,
+    NotificationPermissionStatus.denied =>
+      l10n.notificationSettingsPermissionDenied,
+    NotificationPermissionStatus.provisional =>
+      l10n.notificationSettingsPermissionProvisional,
+    NotificationPermissionStatus.unknown =>
+      l10n.notificationSettingsPermissionUnknown,
   };
   final tokenState = state.pushToken == null
-      ? 'Device registration not available yet.'
-      : 'Device registered ${state.pushTokenUpdatedAt?.toIso8601String() ?? 'recently'}.';
+      ? l10n.notificationSettingsDeviceNotRegistered
+      : l10n.notificationSettingsDeviceRegistered(
+          state.pushTokenUpdatedAt?.toIso8601String() ?? 'recently',
+        );
   return '$status\n$tokenState';
 }
 
-String _permissionActionLabel(NotificationState state) {
+String _permissionActionLabel(
+  NotificationState state,
+  AppLocalizations l10n,
+) {
   return switch (state.permissionStatus) {
     NotificationPermissionStatus.granted ||
     NotificationPermissionStatus.provisional =>
-      'Refresh Device Registration',
-    NotificationPermissionStatus.denied => 'Retry Notification Access',
-    NotificationPermissionStatus.unknown => 'Enable Push Notifications',
+      l10n.notificationSettingsRefreshRegistration,
+    NotificationPermissionStatus.denied => l10n.notificationSettingsRetryAccess,
+    NotificationPermissionStatus.unknown => l10n.notificationSettingsEnable,
   };
 }
 
-String _permissionResultMessage(NotificationPermissionStatus status) {
+String _permissionResultMessage(
+  NotificationPermissionStatus status,
+  AppLocalizations l10n,
+) {
   return switch (status) {
     NotificationPermissionStatus.granted =>
-      'Notification access granted and device registration refreshed.',
+      l10n.notificationSettingsResultGranted,
     NotificationPermissionStatus.provisional =>
-      'Notification access is provisional; device registration refreshed.',
-    NotificationPermissionStatus.denied => 'Notification access was denied.',
+      l10n.notificationSettingsResultProvisional,
+    NotificationPermissionStatus.denied =>
+      l10n.notificationSettingsResultDenied,
     NotificationPermissionStatus.unknown =>
-      'Notification status is still unavailable on this device.',
+      l10n.notificationSettingsResultUnknown,
   };
 }
 

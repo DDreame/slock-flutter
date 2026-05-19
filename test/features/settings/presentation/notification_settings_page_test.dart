@@ -6,6 +6,7 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/settings/presentation/page/notification_settings_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 
@@ -27,7 +28,11 @@ void main() {
           notificationStoreProvider.overrideWith(() => store),
           diagnosticsCollectorProvider.overrideWithValue(diagnostics),
         ],
-        child: const MaterialApp(home: NotificationSettingsPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: NotificationSettingsPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -47,7 +52,11 @@ void main() {
           notificationStoreProvider.overrideWith(() => store),
           diagnosticsCollectorProvider.overrideWithValue(diagnostics),
         ],
-        child: const MaterialApp(home: NotificationSettingsPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: NotificationSettingsPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -69,7 +78,11 @@ void main() {
           notificationStoreProvider.overrideWith(() => store),
           diagnosticsCollectorProvider.overrideWithValue(diagnostics),
         ],
-        child: const MaterialApp(home: NotificationSettingsPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: NotificationSettingsPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -96,7 +109,11 @@ void main() {
           notificationStoreProvider.overrideWith(() => store),
           diagnosticsCollectorProvider.overrideWithValue(diagnostics),
         ],
-        child: const MaterialApp(home: NotificationSettingsPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: NotificationSettingsPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -122,7 +139,11 @@ void main() {
           notificationStoreProvider.overrideWith(() => store),
           diagnosticsCollectorProvider.overrideWithValue(diagnostics),
         ],
-        child: const MaterialApp(home: NotificationSettingsPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: NotificationSettingsPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -151,7 +172,11 @@ void main() {
           notificationStoreProvider.overrideWith(() => store),
           diagnosticsCollectorProvider.overrideWithValue(diagnostics),
         ],
-        child: const MaterialApp(home: NotificationSettingsPage()),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: NotificationSettingsPage(),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -200,6 +225,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: theme,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const NotificationSettingsPage(),
         ),
       ),

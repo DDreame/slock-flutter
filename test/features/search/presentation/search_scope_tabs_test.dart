@@ -7,6 +7,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/search/data/search_repository.dart';
 import 'package:slock_app/features/search/data/search_repository_provider.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 
@@ -28,6 +29,8 @@ void main() {
       child: MaterialApp(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: const SearchPage(serverId: 'server-1'),
       ),
     );

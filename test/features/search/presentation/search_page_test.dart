@@ -8,6 +8,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/search/data/search_repository.dart';
 import 'package:slock_app/features/search/data/search_repository_provider.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 import 'package:slock_app/features/threads/application/thread_route.dart';
 
@@ -69,7 +70,11 @@ void main() {
             ),
           ),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
       ),
     );
 
@@ -146,7 +151,11 @@ void main() {
             ),
           ),
         ],
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
       ),
     );
 
@@ -200,6 +209,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const SearchPage(serverId: 'server-1'),
         ),
       ),
@@ -249,6 +260,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const SearchPage(serverId: 'server-1'),
         ),
       ),
@@ -278,6 +291,8 @@ void main() {
           searchRepositoryProvider.overrideWithValue(fakeRepo),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: SearchPage(serverId: 'server-1'),
         ),
       ),
@@ -346,6 +361,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const SearchPage(serverId: 'server-1'),
         ),
       ),
@@ -396,6 +413,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const SearchPage(serverId: 'server-1'),
         ),
       ),
@@ -431,6 +450,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const SearchPage(serverId: 'server-1'),
         ),
       ),
