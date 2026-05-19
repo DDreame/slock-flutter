@@ -7,6 +7,7 @@ import 'package:slock_app/core/realtime/providers.dart'
     show realtimeSocketOptionsProvider;
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 /// Persists auth credentials to SecureStorage whenever the
@@ -66,24 +67,29 @@ final backgroundWorkerAuthBindingProvider = Provider<void>((ref) {
   }
 
   // Listen to session changes (token refresh, login/logout).
-  ref.listen(sessionStoreProvider, (previous, next) async {
-    if (next.isAuthenticated && next.token != null && next.token!.isNotEmpty) {
-      await persistAndRefresh();
-    } else if (next.isUnauthenticated) {
-      try {
-        await persistence.clear();
-        diagnostics.info(
-          'background-worker-auth',
-          'Cleared background worker credentials',
-        );
-      } catch (e) {
-        diagnostics.error(
-          'background-worker-auth',
-          'Failed to clear credentials: $e',
-        );
+  ref.listen(
+    sessionStoreProvider.select((s) => (status: s.status, token: s.token)),
+    (previous, next) async {
+      if (next.status == AuthStatus.authenticated &&
+          next.token != null &&
+          next.token!.isNotEmpty) {
+        await persistAndRefresh();
+      } else if (next.status == AuthStatus.unauthenticated) {
+        try {
+          await persistence.clear();
+          diagnostics.info(
+            'background-worker-auth',
+            'Cleared background worker credentials',
+          );
+        } catch (e) {
+          diagnostics.error(
+            'background-worker-auth',
+            'Failed to clear credentials: $e',
+          );
+        }
       }
-    }
-  });
+    },
+  );
 
   // Listen to server selection changes (pure server switch without
   // session mutation).
