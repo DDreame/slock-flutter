@@ -24,9 +24,9 @@ class InboxStore extends Notifier<InboxState> {
     // Listen for realtime reconnection to trigger inbox refresh.
     // When the connection transitions from reconnecting → connected,
     // we must refresh to catch messages received during the disconnect.
-    ref.listen(realtimeServiceProvider, (prev, next) {
-      if (prev?.status == RealtimeConnectionStatus.reconnecting &&
-          next.status == RealtimeConnectionStatus.connected) {
+    ref.listen(realtimeServiceProvider.select((s) => s.status), (prev, next) {
+      if (prev == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
         if (state.status == InboxStatus.success) {
           refresh(reason: 'reconnect');
         }

@@ -15,10 +15,11 @@ class ConnectionStatusBanner extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final connectionState = ref.watch(realtimeServiceProvider);
-    final isDisconnected =
-        connectionState.status == RealtimeConnectionStatus.disconnected ||
-            connectionState.status == RealtimeConnectionStatus.reconnecting;
+    final status = ref.watch(
+      realtimeServiceProvider.select((s) => s.status),
+    );
+    final isDisconnected = status == RealtimeConnectionStatus.disconnected ||
+        status == RealtimeConnectionStatus.reconnecting;
 
     final colors = Theme.of(context).extension<AppColors>()!;
 
