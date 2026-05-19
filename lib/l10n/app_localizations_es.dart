@@ -883,4 +883,175 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsNotificationNotRequested => 'No solicitado';
+
+  @override
+  String get notificationSettingsTitle => 'Configuración de notificaciones';
+
+  @override
+  String get notificationSettingsPermissionSection => 'Permiso';
+
+  @override
+  String get notificationSettingsPushNotifications => 'Notificaciones push';
+
+  @override
+  String get notificationSettingsFilterSection => 'Filtro de notificaciones';
+
+  @override
+  String get notificationSettingsDiagnosticsSection => 'Diagnósticos';
+
+  @override
+  String get notificationSettingsDeviceToken => 'Token del dispositivo';
+
+  @override
+  String get notificationSettingsPlatform => 'Plataforma';
+
+  @override
+  String get notificationSettingsLastRegistration => 'Último registro';
+
+  @override
+  String get notificationSettingsPermissionStatus => 'Estado del permiso';
+
+  @override
+  String get notificationSettingsRecentEvents => 'Eventos recientes';
+
+  @override
+  String get notificationSettingsNoEvents =>
+      'No hay eventos de notificación recientes.';
+
+  @override
+  String get notificationSettingsNotAvailable => 'No disponible';
+
+  @override
+  String get notificationSettingsNotRegistered => 'Aún no registrado';
+
+  @override
+  String get notificationSettingsUpdateFailed =>
+      'No se pudo actualizar la configuración de notificaciones.';
+
+  @override
+  String get notificationSettingsRefreshRegistration =>
+      'Actualizar registro del dispositivo';
+
+  @override
+  String get notificationSettingsRetryAccess =>
+      'Reintentar acceso a notificaciones';
+
+  @override
+  String get notificationSettingsEnable => 'Activar notificaciones push';
+
+  @override
+  String get notificationSettingsPermissionGranted => 'Permiso concedido';
+
+  @override
+  String get notificationSettingsPermissionDenied => 'Permiso denegado';
+
+  @override
+  String get notificationSettingsPermissionProvisional => 'Permiso provisional';
+
+  @override
+  String get notificationSettingsPermissionUnknown =>
+      'Permiso no solicitado aún';
+
+  @override
+  String notificationSettingsDeviceRegistered(String date) {
+    return 'Dispositivo registrado $date.';
+  }
+
+  @override
+  String get notificationSettingsDeviceNotRegistered =>
+      'Registro del dispositivo no disponible aún.';
+
+  @override
+  String get notificationSettingsResultGranted =>
+      'Acceso a notificaciones concedido y registro del dispositivo actualizado.';
+
+  @override
+  String get notificationSettingsResultProvisional =>
+      'Acceso a notificaciones provisional; registro del dispositivo actualizado.';
+
+  @override
+  String get notificationSettingsResultDenied =>
+      'Acceso a notificaciones denegado.';
+
+  @override
+  String get notificationSettingsResultUnknown =>
+      'El estado de notificaciones aún no está disponible en este dispositivo.';
+
+  @override
+  String get searchHintText => 'Buscar mensajes, canales o contactos...';
+
+  @override
+  String get searchIdleText =>
+      'Escribe para buscar mensajes, canales o contactos.';
+
+  @override
+  String get searchNoResults => 'No se encontraron resultados.';
+
+  @override
+  String get searchRetry => 'Reintentar';
+
+  @override
+  String get searchFailedFallback => 'La búsqueda falló.';
+
+  @override
+  String get searchSectionChannels => 'Canales';
+
+  @override
+  String get searchSectionContacts => 'Contactos';
+
+  @override
+  String get searchSectionMessages => 'Mensajes';
+
+  @override
+  String get searchViewAll => 'Ver todo';
+
+  @override
+  String get searchLoadMore => 'Cargar más';
+
+  @override
+  String get searchFilterSender => 'Remitente';
+
+  @override
+  String get searchFilterChannel => 'Canal';
+
+  @override
+  String get searchFilterClear => 'Limpiar';
+
+  @override
+  String get searchFilterNewest => 'Más reciente';
+
+  @override
+  String get searchFilterOldest => 'Más antiguo';
+
+  @override
+  String get searchFilterBySenderTitle => 'Filtrar por remitente';
+
+  @override
+  String get searchFilterBySenderHint => 'Ingresa nombre del remitente…';
+
+  @override
+  String get searchFilterByChannelTitle => 'Filtrar por canal';
+
+  @override
+  String get searchFilterByChannelHint => 'Ingresa nombre del canal…';
+
+  @override
+  String get searchFilterCancel => 'Cancelar';
+
+  @override
+  String get searchFilterApply => 'Aplicar';
+
+  @override
+  String get searchCouldNotOpenConversation =>
+      'No se pudo abrir la conversación.';
+
+  @override
+  String searchFilterFromPrefix(String name) {
+    return 'De: $name';
+  }
+
+  @override
+  String searchFilterInPrefix(String name) {
+    return 'En: $name';
+  }
 }

@@ -13,6 +13,7 @@ import 'package:slock_app/features/search/presentation/widget/search_channel_res
 import 'package:slock_app/features/search/presentation/widget/search_contact_result_item.dart';
 import 'package:slock_app/features/search/presentation/widget/search_result_item.dart';
 import 'package:slock_app/features/search/presentation/widget/search_scope_tabs.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class SearchPage extends StatelessWidget {
   const SearchPage({super.key, required this.serverId});
@@ -58,6 +59,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(searchStoreProvider);
     final colors = Theme.of(context).extension<AppColors>();
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
@@ -69,7 +71,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
             color: colors?.text ?? Theme.of(context).colorScheme.onSurface,
           ),
           decoration: InputDecoration(
-            hintText: 'Search messages, channels, or contacts...',
+            hintText: l10n.searchHintText,
             hintStyle: AppTypography.body.copyWith(
               color: colors?.textTertiary ??
                   Theme.of(context).colorScheme.onSurfaceVariant,
@@ -123,22 +125,23 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
   }
 
   Widget _buildBody(SearchState state) {
+    final l10n = context.l10n;
     return switch (state.status) {
-      SearchStatus.idle => const Center(
-          key: ValueKey('search-idle'),
-          child: Text('Type to search messages, channels, or contacts.'),
+      SearchStatus.idle => Center(
+          key: const ValueKey('search-idle'),
+          child: Text(l10n.searchIdleText),
         ),
       SearchStatus.searching when !state.hasResults => const Center(
           key: ValueKey('search-searching'),
           child: CircularProgressIndicator(),
         ),
       SearchStatus.failure when !state.hasResults => _SearchFailureView(
-          message: state.failure?.message ?? 'Search failed.',
+          message: state.failure?.message ?? l10n.searchFailedFallback,
         ),
       _ when state.hasResults => _buildScopedResults(state),
-      SearchStatus.success when !state.hasResults => const Center(
-          key: ValueKey('search-empty'),
-          child: Text('No results found.'),
+      SearchStatus.success when !state.hasResults => Center(
+          key: const ValueKey('search-empty'),
+          child: Text(l10n.searchNoResults),
         ),
       _ => const SizedBox.shrink(),
     };
@@ -170,13 +173,15 @@ class _SearchAllResultsList extends StatelessWidget {
     final results = state.mergedResults;
     final channelResults = state.channelResults;
     final contactResults = state.contactResults;
+    final l10n = context.l10n;
 
     return ListView(
       key: const ValueKey('search-results'),
       padding: const EdgeInsets.all(16),
       children: [
         if (channelResults.isNotEmpty) ...[
-          _SectionHeader(label: 'Channels', count: channelResults.length),
+          _SectionHeader(
+              label: l10n.searchSectionChannels, count: channelResults.length),
           const SizedBox(height: 8),
           for (final channel in channelResults.take(3))
             Padding(
@@ -198,7 +203,8 @@ class _SearchAllResultsList extends StatelessWidget {
           const SizedBox(height: 16),
         ],
         if (contactResults.isNotEmpty) ...[
-          _SectionHeader(label: 'Contacts', count: contactResults.length),
+          _SectionHeader(
+              label: l10n.searchSectionContacts, count: contactResults.length),
           const SizedBox(height: 8),
           for (final contact in contactResults.take(3))
             Padding(
@@ -220,7 +226,8 @@ class _SearchAllResultsList extends StatelessWidget {
           const SizedBox(height: 16),
         ],
         if (results.isNotEmpty) ...[
-          _SectionHeader(label: 'Messages', count: results.length),
+          _SectionHeader(
+              label: l10n.searchSectionMessages, count: results.length),
           const SizedBox(height: 8),
           for (final result in results)
             Padding(
@@ -329,7 +336,7 @@ Future<void> _openContactDm(
   } on AppFailure {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Could not open conversation.')),
+      SnackBar(content: Text(context.l10n.searchCouldNotOpenConversation)),
     );
   }
 }
@@ -345,9 +352,9 @@ class _SearchMessageResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final results = state.mergedResults;
     if (results.isEmpty && !state.isRemoteSearching) {
-      return const Center(
-        key: ValueKey('search-empty'),
-        child: Text('No results found.'),
+      return Center(
+        key: const ValueKey('search-empty'),
+        child: Text(context.l10n.searchNoResults),
       );
     }
     final hasTrailer =
@@ -408,9 +415,9 @@ class _SearchChannelResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final results = state.channelResults;
     if (results.isEmpty) {
-      return const Center(
-        key: ValueKey('search-empty'),
-        child: Text('No results found.'),
+      return Center(
+        key: const ValueKey('search-empty'),
+        child: Text(context.l10n.searchNoResults),
       );
     }
     return ListView.separated(
@@ -449,9 +456,9 @@ class _SearchContactResultsList extends StatelessWidget {
   Widget build(BuildContext context) {
     final results = state.contactResults;
     if (results.isEmpty) {
-      return const Center(
-        key: ValueKey('search-empty'),
-        child: Text('No results found.'),
+      return Center(
+        key: const ValueKey('search-empty'),
+        child: Text(context.l10n.searchNoResults),
       );
     }
     return ListView.separated(
@@ -490,7 +497,7 @@ class _SearchFailureView extends ConsumerWidget {
             FilledButton(
               key: const ValueKey('search-retry'),
               onPressed: ref.read(searchStoreProvider.notifier).retry,
-              child: const Text('Retry'),
+              child: Text(context.l10n.searchRetry),
             ),
           ],
         ),
@@ -543,7 +550,7 @@ class _ViewAllButton extends StatelessWidget {
       child: TextButton(
         onPressed: onTap,
         child: Text(
-          'View all',
+          context.l10n.searchViewAll,
           style: AppTypography.label.copyWith(
             color: colors?.primary ?? Theme.of(context).colorScheme.primary,
           ),
@@ -564,6 +571,7 @@ class _FilterChipBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = ref.read(searchStoreProvider.notifier);
     final colors = Theme.of(context).extension<AppColors>();
+    final l10n = context.l10n;
 
     return Padding(
       key: const ValueKey('search-filter-bar'),
@@ -580,8 +588,8 @@ class _FilterChipBar extends StatelessWidget {
             key: const ValueKey('search-filter-sender'),
             label: Text(
               state.senderFilter != null
-                  ? 'From: ${state.senderFilter}'
-                  : 'Sender',
+                  ? l10n.searchFilterFromPrefix(state.senderFilter!)
+                  : l10n.searchFilterSender,
             ),
             selected: state.senderFilter != null,
             onSelected: (_) => _showSenderInput(context, store),
@@ -594,7 +602,9 @@ class _FilterChipBar extends StatelessWidget {
           ChoiceChip(
             key: const ValueKey('search-filter-sort'),
             label: Text(
-              state.sortBy == SearchSortBy.newest ? 'Newest' : 'Oldest',
+              state.sortBy == SearchSortBy.newest
+                  ? l10n.searchFilterNewest
+                  : l10n.searchFilterOldest,
             ),
             selected: state.sortBy != SearchSortBy.newest,
             onSelected: (_) {
@@ -611,8 +621,8 @@ class _FilterChipBar extends StatelessWidget {
             key: const ValueKey('search-filter-channel'),
             label: Text(
               state.channelFilter != null
-                  ? 'In: ${state.channelFilter}'
-                  : 'Channel',
+                  ? l10n.searchFilterInPrefix(state.channelFilter!)
+                  : l10n.searchFilterChannel,
             ),
             selected: state.channelFilter != null,
             onSelected: (_) => _showChannelInput(context, store),
@@ -625,7 +635,7 @@ class _FilterChipBar extends StatelessWidget {
           if (state.hasActiveFilters)
             ActionChip(
               key: const ValueKey('search-filter-clear'),
-              label: const Text('Clear'),
+              label: Text(l10n.searchFilterClear),
               avatar: Icon(
                 Icons.clear,
                 size: 16,
@@ -642,10 +652,11 @@ class _FilterChipBar extends StatelessWidget {
     BuildContext context,
     SearchStore store,
   ) async {
+    final l10n = context.l10n;
     final result = await _showTextInputDialog(
       context: context,
-      title: 'Filter by sender',
-      hintText: 'Enter sender name…',
+      title: l10n.searchFilterBySenderTitle,
+      hintText: l10n.searchFilterBySenderHint,
       initialValue: state.senderFilter,
     );
     if (result != null) {
@@ -657,10 +668,11 @@ class _FilterChipBar extends StatelessWidget {
     BuildContext context,
     SearchStore store,
   ) async {
+    final l10n = context.l10n;
     final result = await _showTextInputDialog(
       context: context,
-      title: 'Filter by channel',
-      hintText: 'Enter channel name…',
+      title: l10n.searchFilterByChannelTitle,
+      hintText: l10n.searchFilterByChannelHint,
       initialValue: state.channelFilter,
     );
     if (result != null) {
@@ -677,6 +689,7 @@ Future<String?> _showTextInputDialog({
   String? initialValue,
 }) {
   final controller = TextEditingController(text: initialValue);
+  final l10n = context.l10n;
   return showDialog<String>(
     context: context,
     builder: (context) => AlertDialog(
@@ -690,11 +703,11 @@ Future<String?> _showTextInputDialog({
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.searchFilterCancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, controller.text),
-          child: const Text('Apply'),
+          child: Text(l10n.searchFilterApply),
         ),
       ],
     ),
@@ -717,7 +730,7 @@ class _LoadMoreButton extends StatelessWidget {
         child: TextButton(
           onPressed: onTap,
           child: Text(
-            'Load more',
+            context.l10n.searchLoadMore,
             style: AppTypography.label.copyWith(
               color: colors?.primary ?? Theme.of(context).colorScheme.primary,
             ),

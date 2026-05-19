@@ -830,4 +830,163 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsNotificationNotRequested => '未请求';
+
+  @override
+  String get notificationSettingsTitle => '通知设置';
+
+  @override
+  String get notificationSettingsPermissionSection => '权限';
+
+  @override
+  String get notificationSettingsPushNotifications => '推送通知';
+
+  @override
+  String get notificationSettingsFilterSection => '通知过滤';
+
+  @override
+  String get notificationSettingsDiagnosticsSection => '诊断';
+
+  @override
+  String get notificationSettingsDeviceToken => '设备令牌';
+
+  @override
+  String get notificationSettingsPlatform => '平台';
+
+  @override
+  String get notificationSettingsLastRegistration => '最近注册';
+
+  @override
+  String get notificationSettingsPermissionStatus => '权限状态';
+
+  @override
+  String get notificationSettingsRecentEvents => '最近事件';
+
+  @override
+  String get notificationSettingsNoEvents => '暂无最近通知事件。';
+
+  @override
+  String get notificationSettingsNotAvailable => '不可用';
+
+  @override
+  String get notificationSettingsNotRegistered => '尚未注册';
+
+  @override
+  String get notificationSettingsUpdateFailed => '无法更新通知设置。';
+
+  @override
+  String get notificationSettingsRefreshRegistration => '刷新设备注册';
+
+  @override
+  String get notificationSettingsRetryAccess => '重试通知访问';
+
+  @override
+  String get notificationSettingsEnable => '启用推送通知';
+
+  @override
+  String get notificationSettingsPermissionGranted => '权限已授予';
+
+  @override
+  String get notificationSettingsPermissionDenied => '权限已拒绝';
+
+  @override
+  String get notificationSettingsPermissionProvisional => '权限为临时授予';
+
+  @override
+  String get notificationSettingsPermissionUnknown => '权限尚未请求';
+
+  @override
+  String notificationSettingsDeviceRegistered(String date) {
+    return '设备已注册于 $date。';
+  }
+
+  @override
+  String get notificationSettingsDeviceNotRegistered => '设备注册暂不可用。';
+
+  @override
+  String get notificationSettingsResultGranted => '通知访问已授权，设备注册已刷新。';
+
+  @override
+  String get notificationSettingsResultProvisional => '通知访问为临时授权，设备注册已刷新。';
+
+  @override
+  String get notificationSettingsResultDenied => '通知访问被拒绝。';
+
+  @override
+  String get notificationSettingsResultUnknown => '此设备上的通知状态仍不可用。';
+
+  @override
+  String get searchHintText => '搜索消息、频道或联系人...';
+
+  @override
+  String get searchIdleText => '输入以搜索消息、频道或联系人。';
+
+  @override
+  String get searchNoResults => '未找到结果。';
+
+  @override
+  String get searchRetry => '重试';
+
+  @override
+  String get searchFailedFallback => '搜索失败。';
+
+  @override
+  String get searchSectionChannels => '频道';
+
+  @override
+  String get searchSectionContacts => '联系人';
+
+  @override
+  String get searchSectionMessages => '消息';
+
+  @override
+  String get searchViewAll => '查看全部';
+
+  @override
+  String get searchLoadMore => '加载更多';
+
+  @override
+  String get searchFilterSender => '发送者';
+
+  @override
+  String get searchFilterChannel => '频道';
+
+  @override
+  String get searchFilterClear => '清除';
+
+  @override
+  String get searchFilterNewest => '最新';
+
+  @override
+  String get searchFilterOldest => '最早';
+
+  @override
+  String get searchFilterBySenderTitle => '按发送者筛选';
+
+  @override
+  String get searchFilterBySenderHint => '输入发送者名称…';
+
+  @override
+  String get searchFilterByChannelTitle => '按频道筛选';
+
+  @override
+  String get searchFilterByChannelHint => '输入频道名称…';
+
+  @override
+  String get searchFilterCancel => '取消';
+
+  @override
+  String get searchFilterApply => '应用';
+
+  @override
+  String get searchCouldNotOpenConversation => '无法打开会话。';
+
+  @override
+  String searchFilterFromPrefix(String name) {
+    return '来自: $name';
+  }
+
+  @override
+  String searchFilterInPrefix(String name) {
+    return '在: $name';
+  }
 }
