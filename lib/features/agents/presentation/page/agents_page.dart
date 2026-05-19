@@ -43,7 +43,23 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(agentsStoreProvider);
+    // INV-AGENTS-PAGE-SELECT-1: Narrow to consumed fields only.
+    // Excludes machines, activityLogs, isRefreshing — these don't affect
+    // the page build tree. activityLogs is consumed in _AgentDetailBody
+    // via its own scoped .select().
+    final state = ref.watch(
+      agentsStoreProvider.select(
+        (s) => (
+          status: s.status,
+          items: s.items,
+          isCreating: s.isCreating,
+          failure: s.failure,
+          savingAgentIds: s.savingAgentIds,
+          deletingAgentIds: s.deletingAgentIds,
+          controlActionAgentIds: s.controlActionAgentIds,
+        ),
+      ),
+    );
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
     // refresh completes with failure — not on mutation errors (create/update).
     ref.listen(
@@ -57,6 +73,12 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         }
       },
     );
+
+    // Helper to check busy state from record fields.
+    bool isBusy(String id) =>
+        state.savingAgentIds.contains(id) ||
+        state.deletingAgentIds.contains(id) ||
+        state.controlActionAgentIds.contains(id);
 
     if (widget.agentId != null) {
       AgentItem? agent;
@@ -73,13 +95,12 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         isFailure: state.status == AgentsStatus.failure,
         failureMessage: state.failure?.message,
         onRetry: ref.read(agentsStoreProvider.notifier).retry,
-        onEdit: agent == null || state.isBusy(agent.id) ? null : _editAgent,
-        onDelete: agent == null || state.isBusy(agent.id) ? null : _deleteAgent,
-        onStart: agent == null || state.isBusy(agent.id) ? null : _startAgent,
-        onStop: agent == null || state.isBusy(agent.id) ? null : _stopAgent,
-        onReset: agent == null || state.isBusy(agent.id) ? null : _resetAgent,
-        onMessage:
-            agent == null || state.isBusy(agent.id) ? null : _messageAgent,
+        onEdit: agent == null || isBusy(agent.id) ? null : _editAgent,
+        onDelete: agent == null || isBusy(agent.id) ? null : _deleteAgent,
+        onStart: agent == null || isBusy(agent.id) ? null : _startAgent,
+        onStop: agent == null || isBusy(agent.id) ? null : _stopAgent,
+        onReset: agent == null || isBusy(agent.id) ? null : _resetAgent,
+        onMessage: agent == null || isBusy(agent.id) ? null : _messageAgent,
       );
     }
 
@@ -130,7 +151,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
             ),
           ),
         AgentsStatus.success => _buildGroupedList(
-            state,
+            state.items,
             colors,
           ),
       },
@@ -138,12 +159,12 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   }
 
   Widget _buildGroupedList(
-    AgentsState state,
+    List<AgentItem> items,
     AppColors colors,
   ) {
     final groups = ref.watch(agentStatusGroupProjectionProvider);
-    final active = state.items.where((a) => a.isActive).length;
-    final stopped = state.items.length - active;
+    final active = items.where((a) => a.isActive).length;
+    final stopped = items.length - active;
 
     return _GroupedAgentsListView(
       groups: groups,
