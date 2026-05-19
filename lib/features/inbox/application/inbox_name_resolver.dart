@@ -29,7 +29,8 @@ class InboxNameResolver {
   ///   1. threadTitle (if non-empty)
   ///   2. channelName from API (if non-empty)
   ///   3. channelName from local store lookup by channelId
-  ///   4. channelId (raw ID — last resort)
+  ///   4. Derive display name from channelId (strip known prefix)
+  ///   5. channelId (raw ID — last resort)
   String resolveChannelName(InboxItem item) {
     if (item.threadTitle?.isNotEmpty == true) return item.threadTitle!;
     if (item.channelName?.isNotEmpty == true) return item.channelName!;
@@ -41,7 +42,8 @@ class InboxNameResolver {
       final parentName = channelNames[item.parentChannelId];
       if (parentName != null && parentName.isNotEmpty) return parentName;
     }
-    return item.channelId;
+    // Derive display name from channelId format (e.g. 'ch-backend' → 'backend').
+    return _deriveChannelDisplayName(item.channelId);
   }
 
   /// Resolves the sender display name.
@@ -49,12 +51,15 @@ class InboxNameResolver {
   /// Priority chain:
   ///   1. senderName from API (if non-empty)
   ///   2. displayName from local member/agent store by senderId
-  ///   3. null (no sender info available)
+  ///   3. Derive display name from senderId (strip known prefix, capitalize)
+  ///   4. Generic fallback: "Member"
   String? resolveSenderName({String? apiName, String? senderId}) {
     if (apiName != null && apiName.isNotEmpty) return apiName;
     if (senderId != null) {
       final localName = memberNames[senderId];
       if (localName != null && localName.isNotEmpty) return localName;
+      // Derive from senderId format (e.g. 'user-bob' → 'Bob').
+      return _deriveSenderDisplayName(senderId);
     }
     return null;
   }
@@ -95,5 +100,39 @@ class InboxNameResolver {
       case InboxItemKind.unknown:
         return item.channelId;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // ID-derived display name helpers (#590)
+  // ---------------------------------------------------------------------------
+
+  /// Derives a display name from a senderId when not found in any lookup.
+  ///
+  /// Known ID formats: 'user-<name>', 'agent-<name>'.
+  /// Strips the prefix and capitalizes the first letter.
+  /// Falls back to "Member" for unrecognized formats.
+  static String _deriveSenderDisplayName(String senderId) {
+    String? rawName;
+    if (senderId.startsWith('user-')) {
+      rawName = senderId.substring(5);
+    } else if (senderId.startsWith('agent-')) {
+      rawName = senderId.substring(6);
+    }
+    if (rawName != null && rawName.isNotEmpty) {
+      return rawName[0].toUpperCase() + rawName.substring(1);
+    }
+    return 'Member';
+  }
+
+  /// Derives a display name from a channelId when not in any lookup.
+  ///
+  /// Known ID format: 'ch-<name>'. Strips the prefix.
+  /// Falls back to the raw channelId for unrecognized formats.
+  static String _deriveChannelDisplayName(String channelId) {
+    if (channelId.startsWith('ch-')) {
+      final name = channelId.substring(3);
+      if (name.isNotEmpty) return name;
+    }
+    return channelId;
   }
 }
