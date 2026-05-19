@@ -8,9 +8,11 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/connection_status_banner.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/presentation/widget/empty_inbox_widget.dart';
 import 'package:slock_app/features/inbox/presentation/widget/inbox_item_tile.dart';
@@ -23,6 +25,15 @@ import 'package:slock_app/l10n/l10n.dart';
 // 3-tab filter (Unread | @Mentions | All), redesigned InboxItemTile,
 // bidirectional swipe (left=mark read, right=done), EmptyInboxWidget.
 // ---------------------------------------------------------------------------
+
+/// Record type for the body's narrowed .select() watch.
+typedef _InboxBodyState = ({
+  InboxStatus status,
+  List<InboxItem> items,
+  bool isRefreshing,
+  bool hasMore,
+  AppFailure? failure,
+});
 
 /// Full-screen inbox page.
 ///
@@ -54,7 +65,34 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final inboxState = ref.watch(inboxStoreProvider);
+
+    // INV-INBOX-SELECT-SPLIT-1: AppBar only needs status + totalUnreadCount.
+    final appBarState = ref.watch(
+      inboxStoreProvider.select(
+        (s) => (status: s.status, totalUnreadCount: s.totalUnreadCount),
+      ),
+    );
+
+    // INV-INBOX-SELECT-SPLIT-2: Body needs status + items + isRefreshing +
+    // hasMore + failure. Filter and totalUnreadCount changes do NOT trigger
+    // body rebuild.
+    final bodyState = ref.watch(
+      inboxStoreProvider.select(
+        (s) => (
+          status: s.status,
+          items: s.items,
+          isRefreshing: s.isRefreshing,
+          hasMore: s.hasMore,
+          failure: s.failure,
+        ),
+      ),
+    );
+
+    // Filter tabs — separate narrow select.
+    final filter = ref.watch(
+      inboxStoreProvider.select((s) => s.filter),
+    );
+
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
     // refresh completes with failure — not on mutation errors.
     ref.listen(
@@ -78,8 +116,8 @@ class _InboxPageState extends ConsumerState<InboxPage> {
         foregroundColor: colors.text,
         elevation: 0,
         actions: [
-          if (inboxState.status == InboxStatus.success &&
-              inboxState.totalUnreadCount > 0)
+          if (appBarState.status == InboxStatus.success &&
+              appBarState.totalUnreadCount > 0)
             IconButton(
               key: const ValueKey('inbox-mark-all-read'),
               icon: const Icon(Icons.done_all),
@@ -92,7 +130,7 @@ class _InboxPageState extends ConsumerState<InboxPage> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: _InboxFilterTabs(
-            currentFilter: inboxState.filter,
+            currentFilter: filter,
             onFilterChanged: (filter) {
               ref.read(inboxStoreProvider.notifier).setFilter(filter);
             },
@@ -102,13 +140,13 @@ class _InboxPageState extends ConsumerState<InboxPage> {
       body: Column(
         children: [
           const ConnectionStatusBanner(),
-          Expanded(child: _buildBody(colors, inboxState)),
+          Expanded(child: _buildBody(colors, bodyState)),
         ],
       ),
     );
   }
 
-  Widget _buildBody(AppColors colors, InboxState inboxState) {
+  Widget _buildBody(AppColors colors, _InboxBodyState inboxState) {
     // Skeleton: loading/initial with no items to display.
     // Uses items.isEmpty (not projections.isEmpty) to avoid triggering
     // inboxProjectionProvider → homeListStoreProvider during initial load.

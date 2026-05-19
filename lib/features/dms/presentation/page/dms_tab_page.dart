@@ -28,6 +28,12 @@ typedef _DmsTabProjection = ({
   List<HomeDirectMessageSummary> directMessages,
   List<HomeDirectMessageSummary> pinnedDirectMessages,
   List<HomeDirectMessageSummary> hiddenDirectMessages,
+});
+
+/// INV-DMS-AGENT-SET-CACHE-1: Narrowed select for agent name sets.
+/// Separated from _DmsTabProjection so DM data changes (directMessages,
+/// unread counts) do NOT trigger agent set re-derivation.
+typedef _DmsAgentProjection = ({
   List<AgentItem> agents,
   List<AgentItem> pinnedAgents,
 });
@@ -64,9 +70,15 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
           directMessages: s.directMessages,
           pinnedDirectMessages: s.pinnedDirectMessages,
           hiddenDirectMessages: s.hiddenDirectMessages,
-          agents: s.agents,
-          pinnedAgents: s.pinnedAgents,
         ),
+      ),
+    );
+    // INV-DMS-AGENT-SET-CACHE-1: Separate narrow select for agent data.
+    // DM list changes (directMessages, unread) do NOT trigger agent name
+    // set re-derivation.
+    final agentData = ref.watch(
+      homeListStoreProvider.select(
+        (s) => (agents: s.agents, pinnedAgents: s.pinnedAgents),
       ),
     );
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
@@ -159,6 +171,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             onRefresh: homeStore.load,
             child: _buildDmList(
               state: state,
+              agentData: agentData,
               homeStore: homeStore,
               dmUnreadCounts: dmUnreadCounts,
               l10n: l10n,
@@ -170,17 +183,20 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
 
   Widget _buildDmList({
     required _DmsTabProjection state,
+    required _DmsAgentProjection agentData,
     required HomeListStore homeStore,
     required Map<DirectMessageScopeId, int> dmUnreadCounts,
     required AppLocalizations l10n,
   }) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    // Build online agent name lookup for status dots.
+    // INV-DMS-AGENT-SET-CACHE-1: Agent name sets derived from the separate
+    // agentData select. When DM data changes but agents don't, the select
+    // returns the cached value and these sets use identical input.
     final onlineAgentNames = <String>{
-      for (final agent in state.agents)
+      for (final agent in agentData.agents)
         if (agent.isActive) agent.label,
-      for (final agent in state.pinnedAgents)
+      for (final agent in agentData.pinnedAgents)
         if (agent.isActive) agent.label,
     };
 
@@ -190,8 +206,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     // when the agents API call hasn't completed or failed.
     final persistedNames = ref.watch(persistedAgentNamesProvider);
     final allAgentNames = <String>{
-      for (final agent in state.agents) agent.label,
-      for (final agent in state.pinnedAgents) agent.label,
+      for (final agent in agentData.agents) agent.label,
+      for (final agent in agentData.pinnedAgents) agent.label,
       ...persistedNames,
     };
 

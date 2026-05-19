@@ -142,7 +142,6 @@ void main() {
   test(
     'INV-INBOX-SELECT-SPLIT-1: items change does NOT notify '
     '(status,totalUnreadCount) select',
-    skip: true, // Phase A — currently watches full state.
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -199,7 +198,6 @@ void main() {
   test(
     'INV-INBOX-SELECT-SPLIT-2: filter change does NOT notify '
     '(status,items,isRefreshing,hasMore,failure) select',
-    skip: true, // Phase A — currently watches full state.
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -340,7 +338,6 @@ void main() {
   test(
     'INV-DMS-AGENT-SET-CACHE-1: isRefreshing change does NOT notify '
     'agents select',
-    skip: true, // Phase A — currently recomputes on every build.
     () async {
       final container = ProviderContainer(
         overrides: [
