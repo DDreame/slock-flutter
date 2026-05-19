@@ -525,7 +525,9 @@ class _ConversationDetailScreenState
               focusNode: _composerFocusNode,
               state: state,
               isRecording: isRecording,
-              enterToSend: ref.watch(composerSettingsStoreProvider).enterToSend,
+              enterToSend: ref.watch(
+                composerSettingsStoreProvider.select((s) => s.enterToSend),
+              ),
               isFormattingToolbarVisible: _isFormattingToolbarVisible,
               isEmojiPickerVisible: _isEmojiPickerVisible,
               onToggleFormattingToolbar: () {
