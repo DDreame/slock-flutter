@@ -19,7 +19,6 @@ import 'package:slock_app/features/home/presentation/widgets/home_direct_message
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
-import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 
 /// Narrowed select projection for DmsTabPage — only fields consumed by build().
@@ -84,7 +83,12 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       },
     );
     final homeStore = ref.read(homeListStoreProvider.notifier);
-    final unreadState = ref.watch(unreadSourceProjectionProvider);
+    // INV-TAB-UNREAD-SELECT-2: Only consume dmUnreadCounts — channel unread
+    // changes must NOT rebuild the DMs tab.
+    final dmUnreadCounts = ref.watch(
+      unreadSourceProjectionProvider.select((s) => s.dmUnreadCounts),
+    );
+    final dmUnreadTotal = dmUnreadCounts.values.fold(0, (sum, c) => sum + c);
     final sortPreference = ref.watch(dmSortPreferenceProvider);
     final l10n = context.l10n;
 
@@ -111,8 +115,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
               );
             },
           ),
-          if (state.status == HomeListStatus.success &&
-              unreadState.dmUnreadTotal > 0)
+          if (state.status == HomeListStatus.success && dmUnreadTotal > 0)
             IconButton(
               key: const ValueKey('dms-tab-mark-all-read'),
               icon: const Icon(Icons.done_all),
@@ -157,7 +160,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             child: _buildDmList(
               state: state,
               homeStore: homeStore,
-              unreadState: unreadState,
+              dmUnreadCounts: dmUnreadCounts,
               l10n: l10n,
             ),
           ),
@@ -168,7 +171,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   Widget _buildDmList({
     required _DmsTabProjection state,
     required HomeListStore homeStore,
-    required UnreadSourceProjectionState unreadState,
+    required Map<DirectMessageScopeId, int> dmUnreadCounts,
     required AppLocalizations l10n,
   }) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -208,8 +211,26 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
                 .toList();
           }();
 
-    // Apply sort preference (sole ordering — no secondary unread-first).
-    final sorted = ref.watch(sortedDmsProvider(filtered));
+    // INV-TAB-SORT-CACHE-2: Inline sort instead of Provider.family.
+    // Provider.family with List arg never caches (reference equality),
+    // causing unconditional re-sort and stale provider slot accumulation.
+    final sortPreference = ref.watch(dmSortPreferenceProvider);
+    final sorted = List<HomeDirectMessageSummary>.of(filtered);
+    switch (sortPreference) {
+      case DmSortPreference.recentActivity:
+        sorted.sort((a, b) {
+          final aTime = a.lastActivityAt;
+          final bTime = b.lastActivityAt;
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime);
+        });
+      case DmSortPreference.alphabetical:
+        sorted.sort(
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+        );
+    }
 
     final pinnedIds =
         state.pinnedDirectMessages.map((dm) => dm.scopeId.value).toSet();
@@ -269,7 +290,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             isOnline: onlineAgentNames.contains(dm.title),
             isAgent: dm.isAgent || allAgentNames.contains(dm.title),
             homeStore: homeStore,
-            unreadState: unreadState,
+            dmUnreadCounts: dmUnreadCounts,
           ),
         if (state.hiddenDirectMessages.isNotEmpty && _searchQuery.isEmpty)
           _buildHiddenDmsTile(
@@ -330,9 +351,9 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     required bool isOnline,
     required bool isAgent,
     required HomeListStore homeStore,
-    required UnreadSourceProjectionState unreadState,
+    required Map<DirectMessageScopeId, int> dmUnreadCounts,
   }) {
-    final unreadCount = unreadState.dmUnreadCount(dm.scopeId);
+    final unreadCount = dmUnreadCounts[dm.scopeId] ?? 0;
 
     // Move actions are suppressed in this tab because the unread-first
     // merged view does not match the persisted sidebar order.
