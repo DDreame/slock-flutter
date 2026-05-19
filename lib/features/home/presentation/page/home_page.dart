@@ -270,7 +270,7 @@ class _SummaryCardBase extends StatelessWidget {
 
 const _maxVisibleGroups = 4;
 
-class _HomeAgentsSection extends ConsumerWidget {
+class _HomeAgentsSection extends ConsumerStatefulWidget {
   const _HomeAgentsSection({
     super.key,
     required this.onViewAll,
@@ -279,7 +279,21 @@ class _HomeAgentsSection extends ConsumerWidget {
   final VoidCallback onViewAll;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HomeAgentsSection> createState() => _HomeAgentsSectionState();
+}
+
+class _HomeAgentsSectionState extends ConsumerState<_HomeAgentsSection> {
+  @override
+  void initState() {
+    super.initState();
+    final status = ref.read(agentsStoreProvider).status;
+    if (status == AgentsStatus.initial) {
+      Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
 
@@ -291,21 +305,15 @@ class _HomeAgentsSection extends ConsumerWidget {
     final totalCount = agentsSnap.count;
     final visibleGroups = groups.take(_maxVisibleGroups).toList();
 
-    // Trigger initial load and reload on server switch. Placed here
-    // (not in HomePage.initState) so that agentsStoreProvider already
-    // has a listener via ref.watch above — preventing autoDispose from
-    // discarding the state before the async load completes.
+    // Reload on server switch.
     ref.listen(activeServerScopeIdProvider, (_, __) {
       ref.read(agentsStoreProvider.notifier).load();
     });
-    if (agentsSnap.status == AgentsStatus.initial) {
-      Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
-    }
 
     return _SummaryCardBase(
       accentColor: colors.primary,
       title: l10n.homeCardAgents,
-      onViewAll: onViewAll,
+      onViewAll: widget.onViewAll,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
