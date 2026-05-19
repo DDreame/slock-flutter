@@ -10,12 +10,8 @@
 // T2: Verify that a userId-select listener does NOT fire when avatarUrl changes.
 // T3: Verify that a userId-select listener DOES fire when userId changes.
 //
-// Phase A: T1/T2 skip:true — current impl uses broad ref.watch(sessionStoreProvider).userId
-//          T3 active — proves select fires correctly on userId change.
-//
-// Phase B:
-// Replace ref.watch(sessionStoreProvider).userId with
-// ref.watch(sessionStoreProvider.select((s) => s.userId)) at lines 2804, 2823.
+// Phase B: lib fix applied — ref.watch uses .select((s) => s.userId).
+// All tests active.
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,7 +96,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
@@ -143,7 +139,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
