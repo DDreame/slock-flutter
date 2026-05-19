@@ -17,16 +17,16 @@ void main() {
       expect(resolvePreviewText('Hello world', l10n: l10n), 'Hello world');
     });
 
-    test('returns previewDeleted when preview is null', () {
-      expect(resolvePreviewText(null, l10n: l10n), l10n.previewDeleted);
+    test('returns previewFallback when preview is null', () {
+      expect(resolvePreviewText(null, l10n: l10n), l10n.previewFallback);
     });
 
-    test('returns previewDeleted when preview is empty string', () {
-      expect(resolvePreviewText('', l10n: l10n), l10n.previewDeleted);
+    test('returns previewFallback when preview is empty string', () {
+      expect(resolvePreviewText('', l10n: l10n), l10n.previewFallback);
     });
 
-    test('returns previewDeleted when preview is whitespace-only', () {
-      expect(resolvePreviewText('   ', l10n: l10n), l10n.previewDeleted);
+    test('returns previewFallback when preview is whitespace-only', () {
+      expect(resolvePreviewText('   ', l10n: l10n), l10n.previewFallback);
     });
 
     test('preserves leading/trailing whitespace in non-empty preview', () {
