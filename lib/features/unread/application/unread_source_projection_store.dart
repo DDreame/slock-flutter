@@ -26,7 +26,14 @@ import 'package:slock_app/features/unread/application/unread_source_projection.d
 /// Home unread card) should read from this single provider.
 final unreadSourceProjectionProvider =
     Provider<UnreadSourceProjectionState>((ref) {
-  final inboxState = ref.watch(inboxStoreProvider);
+  // INV-PROJECTION-INBOX-SELECT-1: Only consume status + items from inbox.
+  // Mutations to filter, isRefreshing, totalUnreadCount, totalCount, hasMore,
+  // offset, failure do not trigger projection recomputation.
+  final (:status, :items) = ref.watch(
+    inboxStoreProvider.select(
+      (s) => (status: s.status, items: s.items),
+    ),
+  );
   // INV-PROJ-OPT-2: select() only the fields _visibilityContext() reads
   // so tier-2 loads (agents/tasks/machines/threads) don't trigger rebuilds.
   final homeVis = ref.watch(homeListStoreProvider.select(_selectVisibility));
@@ -40,9 +47,9 @@ final unreadSourceProjectionProvider =
   // listener from firing prematurely during auto-load (#572 + #541
   // interaction). UnreadListPage handles this case with a skeleton.
   if (serverId == null ||
-      inboxState.status == InboxStatus.initial ||
-      inboxState.status == InboxStatus.failure ||
-      (inboxState.status == InboxStatus.loading && inboxState.items.isEmpty)) {
+      status == InboxStatus.initial ||
+      status == InboxStatus.failure ||
+      (status == InboxStatus.loading && items.isEmpty)) {
     return const UnreadSourceProjectionState();
   }
 
@@ -50,7 +57,7 @@ final unreadSourceProjectionProvider =
   final nameResolver = _buildNameResolver(homeVis);
 
   return _projectSources(
-    inboxState.items,
+    items,
     serverId: serverId,
     l10n: ref.read(appLocalizationsProvider),
     visibleChannelIds: ctx.channelIds,
@@ -67,7 +74,12 @@ final unreadSourceProjectionProvider =
 /// visibility metadata. Items with [UnreadSourceProjection.unreadCount]
 /// of 0 are included (unlike [unreadSourceProjectionProvider]).
 final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
-  final inboxState = ref.watch(inboxStoreProvider);
+  // INV-PROJECTION-INBOX-SELECT-1: Only consume status + items from inbox.
+  final (:status, :items) = ref.watch(
+    inboxStoreProvider.select(
+      (s) => (status: s.status, items: s.items),
+    ),
+  );
   // INV-PROJ-OPT-2: select() only the fields _visibilityContext() reads
   // so tier-2 loads (agents/tasks/machines/threads) don't trigger rebuilds.
   final homeVis = ref.watch(homeListStoreProvider.select(_selectVisibility));
@@ -76,9 +88,9 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   // Guard: block projection when no meaningful data exists yet.
   // Same logic as unreadSourceProjectionProvider — see above.
   if (serverId == null ||
-      inboxState.status == InboxStatus.initial ||
-      inboxState.status == InboxStatus.failure ||
-      (inboxState.status == InboxStatus.loading && inboxState.items.isEmpty)) {
+      status == InboxStatus.initial ||
+      status == InboxStatus.failure ||
+      (status == InboxStatus.loading && items.isEmpty)) {
     return const [];
   }
 
@@ -86,7 +98,7 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   final nameResolver = _buildNameResolver(homeVis);
 
   return [
-    for (final item in inboxState.items)
+    for (final item in items)
       UnreadSourceProjection.fromProjection(
         projectInboxItem(
           item,
