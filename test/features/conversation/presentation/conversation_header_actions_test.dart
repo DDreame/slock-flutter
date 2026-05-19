@@ -94,7 +94,6 @@ void main() {
 
   testWidgets(
     'T1 — app bar does NOT contain Files shortcut button',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
@@ -111,7 +110,6 @@ void main() {
 
   testWidgets(
     'T2 — app bar does NOT contain Pinned shortcut button',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
@@ -128,7 +126,6 @@ void main() {
 
   testWidgets(
     'T3 — app bar still contains Search, Info, and Screenshot buttons',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(buildApp());
       await tester.pumpAndSettle();
