@@ -42,7 +42,8 @@ void main() {
       await worker.dispose();
     });
 
-    test('connected status clears stale foregroundActive before delivery '
+    test(
+        'connected status clears stale foregroundActive before delivery '
         '(INV-NOTIF-RELIABLE-1)', () async {
       await worker.start();
       worker.foregroundActive = true;
@@ -53,8 +54,7 @@ void main() {
       expect(
         worker.foregroundActive,
         isFalse,
-        reason:
-            'Reconnect must clear stale foreground-active suppression '
+        reason: 'Reconnect must clear stale foreground-active suppression '
             'unless the foreground bridge re-asserts true.',
       );
 
@@ -71,7 +71,8 @@ void main() {
       expect(sink.notifications, hasLength(1));
     }, skip: true);
 
-    test('backgroundWorkerDiagnosticsProvider exposes service/auth/foreground '
+    test(
+        'backgroundWorkerDiagnosticsProvider exposes service/auth/foreground '
         'state and last event time', () async {
       final manager = _FakeForegroundServiceManager(
         running: true,
@@ -102,7 +103,8 @@ void main() {
       expect(diagnostics['lastEventTime'], isNotNull);
     }, skip: true);
 
-    testWidgets('foreground service restarts when unexpectedly stopped while '
+    testWidgets(
+        'foreground service restarts when unexpectedly stopped while '
         'authenticated', (tester) async {
       final manager = _FakeForegroundServiceManager(running: true);
       final notificationStore = _FakeNotificationStore();
@@ -129,8 +131,7 @@ void main() {
       expect(
         manager.startServiceCount,
         greaterThan(startsAfterInitialSync),
-        reason:
-            'Authenticated service binding must detect an unexpected '
+        reason: 'Authenticated service binding must detect an unexpected '
             'stop and restart the foreground service.',
       );
     }, skip: true);
@@ -262,10 +263,10 @@ class _FakeForegroundServiceManager implements ForegroundServiceManager {
 class _FakeSessionStore extends SessionStore {
   @override
   SessionState build() => const SessionState(
-    status: AuthStatus.authenticated,
-    userId: 'user-1',
-    token: 'token-1',
-  );
+        status: AuthStatus.authenticated,
+        userId: 'user-1',
+        token: 'token-1',
+      );
 }
 
 class _FakeNotificationStore extends NotificationStore {
