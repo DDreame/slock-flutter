@@ -277,10 +277,14 @@ class _ConversationDetailScreenState
     ref.watch(typingRealtimeBindingProvider(typingScopeKey));
 
     if (_composerController.text != state.draft) {
-      _composerController.value = TextEditingValue(
-        text: state.draft,
-        selection: TextSelection.collapsed(offset: state.draft.length),
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _composerController.text != state.draft) {
+          _composerController.value = TextEditingValue(
+            text: state.draft,
+            selection: TextSelection.collapsed(offset: state.draft.length),
+          );
+        }
+      });
     }
 
     return Scaffold(

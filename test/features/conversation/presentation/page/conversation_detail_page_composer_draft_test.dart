@@ -5,16 +5,9 @@
 //   Draft restoration to TextEditingController must NOT occur synchronously
 //   during widget build(). It must be deferred via addPostFrameCallback.
 //
-// Strategy:
-// T1: Verify that a draft-aware widget defers controller mutation to
-//     post-frame callback (skip:true — current impl mutates in build).
-// T2: Anti-pattern proof — synchronous mutation in build fires immediately.
-//
-// Phase A: T1 skip:true — current implementation assigns directly in build().
-//
-// Phase B:
-// Wrap _composerController.value = ... in addPostFrameCallback at
-// conversation_detail_page.dart lines 279-283.
+// Phase B: lib fix applied — _composerController.value assignment wrapped in
+// addPostFrameCallback at conversation_detail_page.dart lines 279-283.
+// All tests active.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -25,6 +18,8 @@ import 'package:flutter_test/flutter_test.dart';
 // ---------------------------------------------------------------------------
 
 /// Simulates the Phase B pattern: deferred draft restoration.
+/// Captures the controller text at the moment build() returns so the test
+/// can verify no synchronous mutation occurred during the build method.
 class _DeferredDraftWidget extends StatefulWidget {
   const _DeferredDraftWidget({required this.draft});
   final String draft;
@@ -35,7 +30,10 @@ class _DeferredDraftWidget extends StatefulWidget {
 
 class _DeferredDraftWidgetState extends State<_DeferredDraftWidget> {
   final TextEditingController controller = TextEditingController();
-  bool _buildCompleted = false;
+
+  /// The controller text captured at the END of build(), before post-frame
+  /// callbacks run. If deferral is correct, this will be empty.
+  String controllerTextDuringBuild = '';
 
   @override
   void dispose() {
@@ -56,40 +54,8 @@ class _DeferredDraftWidgetState extends State<_DeferredDraftWidget> {
         }
       });
     }
-    _buildCompleted = true;
-    return TextField(controller: controller);
-  }
-
-  bool get buildCompleted => _buildCompleted;
-}
-
-/// Simulates the current (buggy) pattern: synchronous draft mutation in build.
-class _SyncDraftWidget extends StatefulWidget {
-  const _SyncDraftWidget({required this.draft});
-  final String draft;
-
-  @override
-  State<_SyncDraftWidget> createState() => _SyncDraftWidgetState();
-}
-
-class _SyncDraftWidgetState extends State<_SyncDraftWidget> {
-  final TextEditingController controller = TextEditingController();
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (controller.text != widget.draft) {
-      // Current pattern: synchronous mutation in build.
-      controller.value = TextEditingValue(
-        text: widget.draft,
-        selection: TextSelection.collapsed(offset: widget.draft.length),
-      );
-    }
+    // Capture what the controller holds at the end of build.
+    controllerTextDuringBuild = controller.text;
     return TextField(controller: controller);
   }
 }
@@ -102,11 +68,9 @@ void main() {
   // -------------------------------------------------------------------------
   // T1: Deferred draft restoration does NOT mutate controller during build.
   //
-  // After Phase B, the controller is updated in a post-frame callback.
-  // During the build frame, the controller retains its old value.
-  //
-  // skip:true — requires Phase B postFrameCallback fix in
-  // conversation_detail_page.dart.
+  // The widget captures controller.text at the end of build(). If the
+  // postFrameCallback pattern is correct, controller is still empty at that
+  // point; the draft value only appears after post-frame callbacks run.
   // -------------------------------------------------------------------------
   testWidgets(
     'INV-DRAFT-BUILD-1: draft restoration is deferred to post-frame callback',
@@ -117,61 +81,25 @@ void main() {
         ),
       );
 
-      // After first pump (build frame complete, post-frame not yet run):
       final state = tester.state<_DeferredDraftWidgetState>(
         find.byType(_DeferredDraftWidget),
       );
 
-      // Build has completed...
-      expect(state.buildCompleted, isTrue);
-
-      // ...but controller should NOT have the draft yet (deferred).
+      // The controller text captured during build() must be empty — proving
+      // the mutation was NOT synchronous.
       expect(
-        state.controller.text,
+        state.controllerTextDuringBuild,
         isEmpty,
-        reason: 'Controller must NOT be mutated during build frame '
+        reason: 'Controller must NOT be mutated during build() '
             '(INV-DRAFT-BUILD-1)',
       );
 
-      // After settling (post-frame callbacks run):
-      await tester.pump();
+      // After the full frame (post-frame callbacks have run), the controller
+      // should have the draft value.
       expect(
         state.controller.text,
         'Hello draft',
         reason: 'Controller must have draft value after post-frame callback',
-      );
-    },
-    skip: true, // Phase A: requires Phase B postFrameCallback fix
-  );
-
-  // -------------------------------------------------------------------------
-  // T2: Anti-pattern proof — synchronous mutation updates controller
-  // immediately during build.
-  //
-  // Demonstrates the bug: assigning to TextEditingController.value inside
-  // build() mutates state synchronously, which can trigger framework
-  // assertions ("setState() or markNeedsBuild() called during build").
-  // -------------------------------------------------------------------------
-  testWidgets(
-    'synchronous build-phase mutation updates controller immediately '
-    '(anti-pattern proof)',
-    (tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: _SyncDraftWidget(draft: 'Sync draft')),
-        ),
-      );
-
-      final state = tester.state<_SyncDraftWidgetState>(
-        find.byType(_SyncDraftWidget),
-      );
-
-      // Synchronous mutation: controller already has draft after build.
-      expect(
-        state.controller.text,
-        'Sync draft',
-        reason: 'Synchronous build-phase mutation updates immediately (proving '
-            'the anti-pattern)',
       );
     },
   );
