@@ -52,7 +52,7 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
     super.initState();
     Future.microtask(() {
       ref.read(memberListStoreProvider.notifier).ensureLoaded();
-      ref.read(agentsStoreProvider.notifier).load();
+      ref.read(agentsStoreProvider.notifier).ensureLoaded();
     });
   }
 

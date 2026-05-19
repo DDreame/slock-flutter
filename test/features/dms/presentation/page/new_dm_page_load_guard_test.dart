@@ -88,7 +88,6 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: new_dm_page calls load() not ensureLoaded()
   );
 
   // -------------------------------------------------------------------------
