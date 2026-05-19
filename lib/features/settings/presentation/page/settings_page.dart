@@ -29,7 +29,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(sessionStoreProvider);
+    final displayName = ref.watch(
+      sessionStoreProvider.select((s) => s.displayName),
+    );
     final notifSummary = ref.watch(
       notificationStoreProvider.select(
         (s) => (permStatus: s.permissionStatus, pref: s.notificationPreference),
@@ -53,7 +55,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               child: Row(
                 children: [
                   ProfileAvatar(
-                    displayName: session.displayName ?? '',
+                    displayName: displayName ?? '',
                     radius: 24,
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -62,14 +64,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          session.displayName ?? l10n.settingsSignedInFallback,
+                          displayName ?? l10n.settingsSignedInFallback,
                           style:
                               AppTypography.title.copyWith(color: colors.text),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          session.displayName ??
-                              l10n.settingsAccountUnavailable,
+                          displayName ?? l10n.settingsAccountUnavailable,
                           style: AppTypography.bodySmall.copyWith(
                             color: colors.textSecondary,
                           ),
