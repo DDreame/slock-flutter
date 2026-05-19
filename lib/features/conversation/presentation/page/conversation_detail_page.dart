@@ -1251,7 +1251,20 @@ class _ConversationMessageList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(conversationDetailStoreProvider);
+    // INV-CONV-MESSAGE-LIST-SELECT-1: Only watch the 9 fields consumed by
+    // the message list. Draft, uploadProgress, replyTo, isSending, etc.
+    // must NOT trigger full list rebuilds.
+    final state = ref.watch(conversationDetailStoreProvider.select((s) => (
+          messages: s.messages,
+          pendingMessages: s.pendingMessages,
+          target: s.target,
+          searchMatchIds: s.searchMatchIds,
+          currentSearchMatchIndex: s.currentSearchMatchIndex,
+          searchQuery: s.searchQuery,
+          isLoadingOlder: s.isLoadingOlder,
+          hasOlder: s.hasOlder,
+          historyLimited: s.historyLimited,
+        )));
     final pendingCount = state.pendingMessages.length;
     final totalCount = state.messages.length + pendingCount + 1;
     // Compute maxBubbleWidth once at the list level instead of per-message
@@ -1285,8 +1298,10 @@ class _ConversationMessageList extends ConsumerWidget {
           // Resolve timestamps for the items on both sides of this separator.
           // With reverse:true, item[index] is newer (below), item[index+1] is
           // older (above). Show a date chip when they fall on different days.
-          final newerDate = _dateForItemAt(index, pendingCount, state);
-          final olderDate = _dateForItemAt(index + 1, pendingCount, state);
+          final newerDate = _dateForItemAt(
+              index, pendingCount, state.pendingMessages, state.messages);
+          final olderDate = _dateForItemAt(
+              index + 1, pendingCount, state.pendingMessages, state.messages);
 
           // Check if this separator is the unread boundary.
           final isUnreadBoundary = index == unreadSepIndex;
@@ -1319,8 +1334,10 @@ class _ConversationMessageList extends ConsumerWidget {
           }
 
           // Grouped messages (same sender, <5min, same day) get a tighter gap.
-          final newerMsg = _messageForItemAt(index, pendingCount, state);
-          final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
+          final newerMsg =
+              _messageForItemAt(index, pendingCount, state.messages);
+          final olderMsg =
+              _messageForItemAt(index + 1, pendingCount, state.messages);
           if (newerMsg != null &&
               olderMsg != null &&
               _shouldGroupWith(newerMsg, olderMsg)) {
@@ -1345,7 +1362,8 @@ class _ConversationMessageList extends ConsumerWidget {
                 state.messages[state.messages.length - 1 - adjustedIndex];
             // Determine if this message should show its header by checking
             // the chronologically-previous message (index+1 in reversed list).
-            final olderMsg = _messageForItemAt(index + 1, pendingCount, state);
+            final olderMsg =
+                _messageForItemAt(index + 1, pendingCount, state.messages);
             final showHeader =
                 olderMsg == null || !_shouldGroupWith(message, olderMsg);
             final isCurrentSearchMatch = state.searchMatchIds.isNotEmpty &&
@@ -1375,7 +1393,11 @@ class _ConversationMessageList extends ConsumerWidget {
             );
           }
           // Last item (top of screen) = history header.
-          return _ConversationHistoryHeader(state: state);
+          return _ConversationHistoryHeader(
+            isLoadingOlder: state.isLoadingOlder,
+            hasOlder: state.hasOlder,
+            historyLimited: state.historyLimited,
+          );
         },
       ),
     );
@@ -1383,17 +1405,24 @@ class _ConversationMessageList extends ConsumerWidget {
 }
 
 /// Returns the unread message count for [target] from the projection store.
+/// INV-CONV-UNREAD-COUNT-SELECT-1: Narrows watch to only the specific
+/// target's count — prevents cross-channel unread changes from rebuilding
+/// the active conversation's message list.
 int _unreadCountForTarget(WidgetRef ref, ConversationDetailTarget target) {
-  final projection = ref.watch(unreadSourceProjectionProvider);
   switch (target.surface) {
     case ConversationSurface.channel:
       final scopeId = ChannelScopeId(
           serverId: target.serverId, value: target.conversationId);
-      return projection.channelUnreadCount(scopeId);
+      return ref.watch(
+        unreadSourceProjectionProvider
+            .select((s) => s.channelUnreadCount(scopeId)),
+      );
     case ConversationSurface.directMessage:
       final scopeId = DirectMessageScopeId(
           serverId: target.serverId, value: target.conversationId);
-      return projection.dmUnreadCount(scopeId);
+      return ref.watch(
+        unreadSourceProjectionProvider.select((s) => s.dmUnreadCount(scopeId)),
+      );
   }
 }
 
@@ -1479,12 +1508,12 @@ DateTime Function(DateTime) dateSeparatorToLocal = (dt) => dt.toLocal();
 ConversationMessageSummary? _messageForItemAt(
   int index,
   int pendingCount,
-  ConversationDetailState state,
+  List<ConversationMessageSummary> messages,
 ) {
   if (index < pendingCount) return null; // pending message
   final adjustedIndex = index - pendingCount;
-  if (adjustedIndex < state.messages.length) {
-    return state.messages[state.messages.length - 1 - adjustedIndex];
+  if (adjustedIndex < messages.length) {
+    return messages[messages.length - 1 - adjustedIndex];
   }
   return null; // header
 }
@@ -1507,14 +1536,15 @@ bool _shouldGroupWith(
 DateTime? _dateForItemAt(
   int index,
   int pendingCount,
-  ConversationDetailState state,
+  List<PendingMessage> pendingMessages,
+  List<ConversationMessageSummary> messages,
 ) {
   if (index < pendingCount) {
-    return state.pendingMessages[pendingCount - 1 - index].createdAt;
+    return pendingMessages[pendingCount - 1 - index].createdAt;
   }
   final adjustedIndex = index - pendingCount;
-  if (adjustedIndex < state.messages.length) {
-    return state.messages[state.messages.length - 1 - adjustedIndex].createdAt;
+  if (adjustedIndex < messages.length) {
+    return messages[messages.length - 1 - adjustedIndex].createdAt;
   }
   // Header item — no date.
   return null;
@@ -1566,13 +1596,19 @@ class _DateSeparatorWidget extends StatelessWidget {
 }
 
 class _ConversationHistoryHeader extends StatelessWidget {
-  const _ConversationHistoryHeader({required this.state});
+  const _ConversationHistoryHeader({
+    required this.isLoadingOlder,
+    required this.hasOlder,
+    required this.historyLimited,
+  });
 
-  final ConversationDetailState state;
+  final bool isLoadingOlder;
+  final bool hasOlder;
+  final bool historyLimited;
 
   @override
   Widget build(BuildContext context) {
-    if (state.isLoadingOlder) {
+    if (isLoadingOlder) {
       return const Center(
         key: ValueKey('conversation-loading-older'),
         child: Padding(
@@ -1586,13 +1622,13 @@ class _ConversationHistoryHeader extends StatelessWidget {
       );
     }
 
-    if (state.hasOlder) {
+    if (hasOlder) {
       return const SizedBox.shrink(
         key: ValueKey('conversation-has-older'),
       );
     }
 
-    if (state.historyLimited) {
+    if (historyLimited) {
       return const Center(
         key: ValueKey('conversation-history-limited'),
         child: Padding(

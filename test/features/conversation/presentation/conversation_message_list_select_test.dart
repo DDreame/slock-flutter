@@ -96,7 +96,6 @@ void main() {
   test(
     'INV-CONV-MESSAGE-LIST-SELECT-1: draft change does NOT notify '
     '9-field message list select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -217,7 +216,6 @@ void main() {
   test(
     'INV-CONV-UNREAD-COUNT-SELECT-1: other channel unread change does NOT '
     'notify target-specific select',
-    skip: true,
     () async {
       const channelScopeId = ChannelScopeId(
         serverId: ServerScopeId('server-1'),
