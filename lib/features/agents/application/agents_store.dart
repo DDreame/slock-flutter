@@ -287,6 +287,15 @@ class AgentsStore extends Notifier<AgentsState> {
     );
   }
 
+  /// Idempotent load trigger — only fires [load] when the store has not yet
+  /// loaded (status == initial). Safe to call from multiple entry points
+  /// (initState, ref.listen callbacks) without risking duplicate requests.
+  void ensureLoaded() {
+    if (state.status == AgentsStatus.initial) {
+      load();
+    }
+  }
+
   void retry() => load();
 
   /// Loads historical activity log entries from REST for [agentId]

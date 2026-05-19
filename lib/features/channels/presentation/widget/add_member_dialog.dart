@@ -74,7 +74,7 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
         .toSet();
     Future.microtask(() {
       ref.read(memberListStoreProvider.notifier).ensureLoaded();
-      ref.read(agentsStoreProvider.notifier).load();
+      ref.read(agentsStoreProvider.notifier).ensureLoaded();
     });
   }
 

@@ -37,7 +37,8 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
+    Future.microtask(
+        () => ref.read(agentsStoreProvider.notifier).ensureLoaded());
   }
 
   @override

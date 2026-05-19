@@ -44,8 +44,8 @@ class _TrackingAgentsStore extends AgentsStore {
     state = state.copyWith(status: AgentsStatus.success);
   }
 
-  /// Phase B will add this to the real AgentsStore.
-  /// For now, simulate the expected behavior in tests.
+  /// Overrides the real ensureLoaded so we can track calls through loadCallCount.
+  @override
   void ensureLoaded() {
     if (state.status == AgentsStatus.initial) {
       load();
@@ -93,7 +93,6 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: ensureLoaded() does not exist yet
   );
 
   // -------------------------------------------------------------------------
@@ -131,7 +130,6 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: ensureLoaded() does not exist yet
   );
 
   // -------------------------------------------------------------------------
