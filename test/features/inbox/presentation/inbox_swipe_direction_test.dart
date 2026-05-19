@@ -51,7 +51,6 @@ void main() {
   group('Inbox swipe direction', () {
     testWidgets(
       'T1: Left swipe (end-to-start) triggers mark-read',
-      skip: true,
       (tester) async {
         repo.items = [
           _makeItem(channelId: 'ch-1', channelName: '#general', unread: 3),
@@ -75,7 +74,6 @@ void main() {
 
     testWidgets(
       'T2: Right swipe (start-to-end) does nothing / is disabled',
-      skip: true,
       (tester) async {
         repo.items = [
           _makeItem(channelId: 'ch-1', channelName: '#general', unread: 2),
@@ -100,7 +98,6 @@ void main() {
 
     testWidgets(
       'T3: No "Done" option in long-press action sheet',
-      skip: true,
       (tester) async {
         repo.items = [
           _makeItem(channelId: 'ch-1', channelName: '#general', unread: 1),

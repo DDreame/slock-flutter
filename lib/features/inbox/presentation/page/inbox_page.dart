@@ -258,11 +258,6 @@ class _InboxPageState extends ConsumerState<InboxPage> {
           label: 'Mark Read',
           icon: Icons.mark_email_read,
         ),
-      const ListActionItem(
-        key: 'inbox-action-mark-done',
-        label: 'Done',
-        icon: Icons.done,
-      ),
     ];
 
     final result = await showListActionSheet(
@@ -274,8 +269,6 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     switch (result) {
       case 'inbox-action-mark-read':
         ref.read(inboxStoreProvider.notifier).markRead(channelId: channelId);
-      case 'inbox-action-mark-done':
-        ref.read(inboxStoreProvider.notifier).markDone(channelId: channelId);
     }
   }
 
@@ -336,35 +329,21 @@ class _SwipeableInboxItemState extends State<_SwipeableInboxItem> {
       onPointerCancel: (_) => _resetDrag(),
       child: Dismissible(
         key: ValueKey('swipe-action-${widget.channelId}'),
-        direction: DismissDirection.horizontal,
+        direction: DismissDirection.endToStart,
         dismissThresholds: const {
           DismissDirection.endToStart: 0.25,
-          DismissDirection.startToEnd: 0.25,
         },
-        // Right swipe background (startToEnd): mark done — green
-        background: _swipeBackground(
-          alignment: Alignment.centerLeft,
-          color: colors.success,
-          icon: Icons.done,
-          label: 'Done',
-        ),
         // Left swipe background (endToStart): mark read — blue
-        secondaryBackground: _swipeBackground(
+        background: _swipeBackground(
           alignment: Alignment.centerRight,
           color: colors.primary,
           icon: Icons.mark_email_read,
           label: 'Read',
         ),
-        confirmDismiss: (direction) async {
-          if (direction == DismissDirection.endToStart) {
-            // Left swipe → mark read (stays in list)
-            widget.onMarkRead();
-            return false;
-          } else {
-            // Right swipe → mark done (dismisses)
-            widget.onMarkDone();
-            return true;
-          }
+        confirmDismiss: (_) async {
+          // Left swipe shows visual "Read" indicator; actual mark-read is
+          // handled by tap (#586) and the long-press action menu.
+          return false;
         },
         child: GestureDetector(
           onTap: widget.onTap,
