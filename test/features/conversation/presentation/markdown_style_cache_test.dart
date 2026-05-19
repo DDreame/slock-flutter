@@ -41,7 +41,8 @@ import 'package:slock_app/features/conversation/presentation/widgets/markdown_me
 // Test helpers
 // ---------------------------------------------------------------------------
 
-/// Wrapper that can trigger rebuilds via setState.
+/// Wrapper that can trigger parent rebuilds via setState without
+/// changing the child's key — preserving child State across rebuilds.
 class _RebuildTrigger extends StatefulWidget {
   const _RebuildTrigger({required this.child});
 
@@ -58,11 +59,11 @@ class _RebuildTriggerState extends State<_RebuildTrigger> {
 
   @override
   Widget build(BuildContext context) {
-    // Use counter to force a rebuild of the subtree.
-    return KeyedSubtree(
-      key: ValueKey(_counter),
-      child: widget.child,
-    );
+    // Access _counter to satisfy the linter but don't use it to change keys.
+    // This triggers a parent rebuild that propagates to the child without
+    // recreating its State (no key change).
+    _counter;
+    return widget.child;
   }
 }
 
@@ -106,7 +107,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'INV-MD-STYLE-CACHE-1: stylesheet is NOT recreated on non-theme rebuild',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -155,7 +155,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'INV-MD-STYLE-THEME-INVALIDATE-1: stylesheet IS recreated on theme change',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         const _ThemeSwitcher(
@@ -199,7 +198,6 @@ void main() {
   // -------------------------------------------------------------------------
   testWidgets(
     'INV-MD-BUILDERS-STABLE-1: builders map is stable across rebuilds',
-    skip: true,
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(

@@ -97,7 +97,11 @@ enum MessageBubbleKind { self, other, agent }
 /// Style tokens follow the Z2 design spec with bubble-variant-aware colors:
 /// - **Self bubble**: code uses white overlay bg, links use white + underline
 /// - **Other/Agent bubble**: standard AppColors tokens
-class MarkdownMessageBody extends StatelessWidget {
+///
+/// INV-MD-STYLE-CACHE-1: Converted to StatefulWidget to cache the
+/// MarkdownStyleSheet and builders map. Rebuilt only when theme or
+/// widget properties (kind, baseStyle) change — not on every parent rebuild.
+class MarkdownMessageBody extends StatefulWidget {
   const MarkdownMessageBody({
     super.key,
     required this.content,
@@ -125,34 +129,65 @@ class MarkdownMessageBody extends StatelessWidget {
   final String? currentUserName;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    final styleSheet = _buildStyleSheet(context, colors);
+  State<MarkdownMessageBody> createState() => _MarkdownMessageBodyState();
+}
 
+/// Static ExtensionSet — block syntaxes + inline syntaxes are constant
+/// across all message bodies. Allocated once, never recreated.
+final md.ExtensionSet _kExtensionSet = md.ExtensionSet(
+  md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+  [
+    MentionSyntax(),
+    md.StrikethroughSyntax(),
+    ..._kGfmInlineSyntaxesWithoutAutolink,
+  ],
+);
+
+class _MarkdownMessageBodyState extends State<MarkdownMessageBody> {
+  // Cached stylesheet and builders — rebuilt only in
+  // didChangeDependencies (theme change) or didUpdateWidget (kind/style change).
+  late MarkdownStyleSheet _cachedStyleSheet;
+  late Map<String, MarkdownElementBuilder> _cachedBuilders;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _rebuildCache();
+  }
+
+  @override
+  void didUpdateWidget(covariant MarkdownMessageBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.kind != widget.kind ||
+        oldWidget.baseStyle != widget.baseStyle ||
+        oldWidget.currentUserName != widget.currentUserName) {
+      _rebuildCache();
+    }
+  }
+
+  void _rebuildCache() {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    _cachedStyleSheet = _buildStyleSheet(colors);
+    _cachedBuilders = {
+      'pre': _ScrollableCodeBlockBuilder(
+        maxHeight: _kCodeBlockMaxHeight,
+        codeStyle: _cachedStyleSheet.code!,
+        padding: _cachedStyleSheet.codeblockPadding!,
+      ),
+      'mention': MentionBuilder(currentUserName: widget.currentUserName),
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return MarkdownBody(
       key: const ValueKey('markdown-body'),
-      data: content,
-      styleSheet: styleSheet,
-      onTapLink: onLinkTap,
+      data: widget.content,
+      styleSheet: _cachedStyleSheet,
+      onTapLink: widget.onLinkTap,
       selectable: false,
-      builders: {
-        'pre': _ScrollableCodeBlockBuilder(
-          maxHeight: _kCodeBlockMaxHeight,
-          codeStyle: styleSheet.code!,
-          padding: styleSheet.codeblockPadding!,
-        ),
-        'mention': MentionBuilder(currentUserName: currentUserName),
-      },
-      // Only allow supported inline syntax + block elements.
-      // Use ExtensionSet.gitHubFlavored for strikethrough support.
-      extensionSet: md.ExtensionSet(
-        md.ExtensionSet.gitHubFlavored.blockSyntaxes,
-        [
-          MentionSyntax(),
-          md.StrikethroughSyntax(),
-          ..._kGfmInlineSyntaxesWithoutAutolink,
-        ],
-      ),
+      builders: _cachedBuilders,
+      extensionSet: _kExtensionSet,
       // Strip images — not supported in this scope
       sizedImageBuilder: (_) => const SizedBox.shrink(),
       shrinkWrap: true,
@@ -160,12 +195,9 @@ class MarkdownMessageBody extends StatelessWidget {
     );
   }
 
-  MarkdownStyleSheet _buildStyleSheet(
-    BuildContext context,
-    AppColors colors,
-  ) {
-    final isSelf = kind == MessageBubbleKind.self;
-    final effectiveBase = baseStyle ?? AppTypography.body;
+  MarkdownStyleSheet _buildStyleSheet(AppColors colors) {
+    final isSelf = widget.kind == MessageBubbleKind.self;
+    final effectiveBase = widget.baseStyle ?? AppTypography.body;
 
     // Text colors depend on bubble variant
     final textColor = isSelf ? colors.primaryForeground : colors.text;
