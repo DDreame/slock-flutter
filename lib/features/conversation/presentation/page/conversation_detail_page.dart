@@ -2870,10 +2870,16 @@ class _ConversationMessageCardState
       child: shellContent,
     );
 
-    // Read selection state from the store.
-    final detailState = ref.watch(conversationDetailStoreProvider);
-    final isSelectionMode = detailState.isSelectionMode;
-    final isSelected = detailState.selectedMessageIds.contains(message.id);
+    // Read selection state from the store — narrowed to 2 fields so that
+    // mutations to draft, uploadProgress, messages, etc. do NOT rebuild cards.
+    final (:isSelectionMode, :isSelected) = ref.watch(
+      conversationDetailStoreProvider.select(
+        (s) => (
+          isSelectionMode: s.isSelectionMode,
+          isSelected: s.selectedMessageIds.contains(message.id),
+        ),
+      ),
+    );
 
     // In selection mode, show a checkmark overlay on selected messages.
     Widget shellWithSelection = shell;
