@@ -37,6 +37,13 @@ class ChannelsTabPage extends ConsumerStatefulWidget {
 
 class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,11 +166,12 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     // Apply search filter.
     final displayList = _searchQuery.isEmpty
         ? sorted
-        : sorted
-            .where(
-              (c) => c.name.toLowerCase().contains(_searchQuery.toLowerCase()),
-            )
-            .toList();
+        : () {
+            final queryLower = _searchQuery.toLowerCase();
+            return sorted
+                .where((c) => c.name.toLowerCase().contains(queryLower))
+                .toList();
+          }();
 
     final pinnedIds = state.pinnedChannels.map((c) => c.scopeId.value).toSet();
 
@@ -231,9 +239,25 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       ),
       child: TextField(
         key: const ValueKey('channels-tab-search'),
+        controller: _searchController,
         decoration: InputDecoration(
           hintText: l10n.channelsTabSearchHint,
           prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? Tooltip(
+                  message: 'Clear search',
+                  child: IconButton(
+                    key: const ValueKey('search-clear-button'),
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                  ),
+                )
+              : null,
           isDense: true,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),

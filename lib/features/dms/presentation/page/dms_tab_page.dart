@@ -34,6 +34,13 @@ class DmsTabPage extends ConsumerStatefulWidget {
 
 class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -169,12 +176,12 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     // Apply search filter.
     final filtered = _searchQuery.isEmpty
         ? allDms
-        : allDms
-            .where(
-              (dm) =>
-                  dm.title.toLowerCase().contains(_searchQuery.toLowerCase()),
-            )
-            .toList();
+        : () {
+            final queryLower = _searchQuery.toLowerCase();
+            return allDms
+                .where((dm) => dm.title.toLowerCase().contains(queryLower))
+                .toList();
+          }();
 
     // Apply sort preference (sole ordering — no secondary unread-first).
     final sorted = ref.watch(sortedDmsProvider(filtered));
@@ -259,9 +266,25 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       ),
       child: TextField(
         key: const ValueKey('dms-tab-search'),
+        controller: _searchController,
         decoration: InputDecoration(
           hintText: l10n.dmsTabSearchHint,
           prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? Tooltip(
+                  message: 'Clear search',
+                  child: IconButton(
+                    key: const ValueKey('search-clear-button'),
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                      });
+                    },
+                  ),
+                )
+              : null,
           isDense: true,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
