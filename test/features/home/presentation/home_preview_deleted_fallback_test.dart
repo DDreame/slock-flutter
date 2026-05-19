@@ -6,18 +6,14 @@
 //   Null/empty preview on non-deleted messages shows generic fallback.
 //
 // Strategy:
-// T1: Verify that null preview on non-deleted message shows previewFallback
-//     (skip:true — current impl always returns previewDeleted for null).
+// T1: Verify that null preview on non-deleted message shows previewFallback.
 // T2: Verify that already-resolved "deleted" preview passes through unchanged.
 // T3: Verify that valid preview text passes through unchanged.
-// T4: Anti-pattern proof — current code returns previewDeleted for null preview.
+// T4: Verify that empty string preview shows previewFallback.
 //
-// Phase A: T1 skip:true — current resolvePreviewText has no isDeleted param.
-//
-// Phase B:
-// 1. Change resolvePreviewText fallback from l10n.previewDeleted to
-//    l10n.previewFallback — since deleted messages already have their preview
-//    resolved to l10n.previewDeleted at the data layer (_parseLastMessage).
+// Fix: Changed resolvePreviewText fallback from l10n.previewDeleted to
+// l10n.previewFallback — deleted messages already have their preview resolved
+// to l10n.previewDeleted at the data layer (_parseLastMessage).
 // =============================================================================
 
 import 'package:flutter_test/flutter_test.dart';
@@ -42,12 +38,9 @@ void main() {
   // When the home API returns null lastMessagePreview (new channel, backfill
   // not complete, race condition), the UI should show a neutral fallback
   // ("New message" / "新消息") — NOT "Message deleted" / "消息已删除".
-  //
-  // skip:true — current resolvePreviewText returns previewDeleted for null.
   // -------------------------------------------------------------------------
   test(
     'INV-PREVIEW-DELETE-1: null preview shows previewFallback (not previewDeleted)',
-    skip: true,
     () {
       final result = resolvePreviewText(null, l10n: _l10n);
       expect(
@@ -97,12 +90,9 @@ void main() {
 
   // -------------------------------------------------------------------------
   // T4: Empty string preview shows fallback (not deleted label).
-  //
-  // skip:true — current resolvePreviewText returns previewDeleted for empty.
   // -------------------------------------------------------------------------
   test(
     'INV-PREVIEW-DELETE-1: empty string preview shows previewFallback',
-    skip: true,
     () {
       final result = resolvePreviewText('', l10n: _l10n);
       expect(
@@ -110,25 +100,6 @@ void main() {
         _l10n.previewFallback,
         reason: 'Empty preview on non-deleted message must show generic '
             'fallback (INV-PREVIEW-DELETE-1)',
-      );
-    },
-  );
-
-  // -------------------------------------------------------------------------
-  // T5: Anti-pattern proof — current code returns previewDeleted for null.
-  //
-  // Demonstrates the bug: resolvePreviewText returns "Message deleted" for
-  // null input regardless of whether the message was actually deleted.
-  // -------------------------------------------------------------------------
-  test(
-    'current code returns previewDeleted for null preview (anti-pattern proof)',
-    () {
-      final result = resolvePreviewText(null, l10n: _l10n);
-      expect(
-        result,
-        _l10n.previewDeleted,
-        reason: 'Current fallback incorrectly shows previewDeleted for null '
-            '(proving the bug)',
       );
     },
   );

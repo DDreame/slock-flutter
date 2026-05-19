@@ -105,9 +105,10 @@ class MessagePreviewResolver {
 /// After the backfill migration (#585), all preview strings are produced by
 /// [MessagePreviewResolver.resolve] which handles attachments, voice, system
 /// messages, etc. The only remaining case where this receives null/empty
-/// content is when a message was deleted server-side (content cleared).
+/// content is when no preview is available (new channel, race condition, etc).
+/// Deleted messages have their preview resolved upstream in _parseLastMessage().
 String resolvePreviewText(String? rawPreview,
     {required AppLocalizations l10n}) {
   if (rawPreview != null && rawPreview.trim().isNotEmpty) return rawPreview;
-  return l10n.previewDeleted;
+  return l10n.previewFallback;
 }
