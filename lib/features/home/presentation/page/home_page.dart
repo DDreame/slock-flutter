@@ -284,8 +284,11 @@ class _HomeAgentsSection extends ConsumerWidget {
     final l10n = context.l10n;
 
     final groups = ref.watch(agentStatusGroupProjectionProvider);
-    final agentsState = ref.watch(agentsStoreProvider);
-    final totalCount = agentsState.items.length;
+    final agentsSnap = ref.watch(
+      agentsStoreProvider
+          .select((s) => (count: s.items.length, status: s.status)),
+    );
+    final totalCount = agentsSnap.count;
     final visibleGroups = groups.take(_maxVisibleGroups).toList();
 
     // Trigger initial load and reload on server switch. Placed here
@@ -295,7 +298,7 @@ class _HomeAgentsSection extends ConsumerWidget {
     ref.listen(activeServerScopeIdProvider, (_, __) {
       ref.read(agentsStoreProvider.notifier).load();
     });
-    if (agentsState.status == AgentsStatus.initial) {
+    if (agentsSnap.status == AgentsStatus.initial) {
       Future.microtask(() => ref.read(agentsStoreProvider.notifier).load());
     }
 
@@ -331,7 +334,7 @@ class _HomeAgentsSection extends ConsumerWidget {
                 group: group,
               ),
           ] else if (totalCount > 0 &&
-              agentsState.status == AgentsStatus.success) ...[
+              agentsSnap.status == AgentsStatus.success) ...[
             const SizedBox(height: AppSpacing.md),
             const _AgentsEmptyState(
               key: ValueKey('home-agents-empty'),
