@@ -160,7 +160,7 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
 
   ref.listen(
     sessionStoreProvider.select(
-      (s) => (isAuthenticated: s.isAuthenticated, token: s.token),
+      (s) => (status: s.status, token: s.token),
     ),
     (_, __) {
       scheduleSync();
