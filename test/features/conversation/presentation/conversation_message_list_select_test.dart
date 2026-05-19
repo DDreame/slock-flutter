@@ -251,7 +251,6 @@ void main() {
       );
 
       // Simulate other channel's unread changing.
-      // This requires invalidating the provider with a new state.
       container.updateOverrides([
         unreadSourceProjectionProvider.overrideWith((ref) {
           return UnreadSourceProjectionState(
@@ -260,7 +259,8 @@ void main() {
           );
         }),
       ]);
-      // Force re-read to trigger state change.
+      // Invalidate to force rebuild and trigger listener notification flow.
+      container.invalidate(unreadSourceProjectionProvider);
       container.read(unreadSourceProjectionProvider);
 
       expect(
@@ -317,6 +317,8 @@ void main() {
           );
         }),
       ]);
+      // Invalidate to force rebuild and trigger listener notification flow.
+      container.invalidate(unreadSourceProjectionProvider);
       container.read(unreadSourceProjectionProvider);
 
       expect(
