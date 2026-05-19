@@ -97,9 +97,12 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       },
     );
     final colors = Theme.of(context).extension<AppColors>()!;
-    final homeState = ref.watch(homeListStoreProvider);
-    final channels = homeState.status == HomeListStatus.success
-        ? homeState.channels
+    final homeSnap = ref.watch(
+      homeListStoreProvider
+          .select((s) => (status: s.status, channels: s.channels)),
+    );
+    final channels = homeSnap.status == HomeListStatus.success
+        ? homeSnap.channels
         : const <HomeChannelSummary>[];
 
     return Scaffold(
