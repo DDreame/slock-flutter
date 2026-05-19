@@ -116,7 +116,6 @@ void main() {
   test(
     'INV-SELECTION-BAR-SELECT-1: draft change does NOT notify '
     'selectedMessageIds.length select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -200,7 +199,6 @@ void main() {
   test(
     'INV-TRANSLATION-CACHE-SELECT-1: other message translation does NOT '
     'notify this-message select',
-    skip: true,
     () async {
       const thisMessageId = 'msg-abc';
       const otherMessageId = 'msg-xyz';
@@ -305,7 +303,6 @@ void main() {
   test(
     'INV-VOICE-STATE-SELECT-1: elapsed change does NOT notify '
     'recordingState select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
