@@ -70,7 +70,7 @@ void main() {
             'as a backfill-blocking fallback (INV-PREVIEW-BACKFILL-1)',
       );
     },
-    skip: true, // Phase A: requires Phase B fix
+    skip: false, // Phase B: fix applied
   );
 
   // -------------------------------------------------------------------------
