@@ -20,10 +20,8 @@ import '../../../stores/session/session_store_persistence_test.dart'
 final _testLifecycleProvider = StateProvider<AppLifecycleStatus>(
   (ref) => AppLifecycleStatus.paused,
 );
-final _testRealtimeProvider = StateProvider<RealtimeConnectionState>(
-  (ref) => const RealtimeConnectionState(
-    status: RealtimeConnectionStatus.connected,
-  ),
+final _testRealtimeProvider = StateProvider<RealtimeConnectionStatus>(
+  (ref) => RealtimeConnectionStatus.connected,
 );
 
 void main() {
@@ -41,9 +39,8 @@ void main() {
 
   ProviderContainer createContainer({
     AppLifecycleStatus initialLifecycle = AppLifecycleStatus.paused,
-    RealtimeConnectionState initialRealtime = const RealtimeConnectionState(
-      status: RealtimeConnectionStatus.connected,
-    ),
+    RealtimeConnectionStatus initialRealtime =
+        RealtimeConnectionStatus.connected,
   }) {
     final container = ProviderContainer(
       overrides: [
@@ -158,9 +155,7 @@ void main() {
   group('socket reconnect triggers refresh', () {
     test('reconnecting→connected triggers HomeListStore.load()', () async {
       final container = createContainer(
-        initialRealtime: const RealtimeConnectionState(
-          status: RealtimeConnectionStatus.reconnecting,
-        ),
+        initialRealtime: RealtimeConnectionStatus.reconnecting,
       );
 
       await container.read(homeListStoreProvider.notifier).load();
@@ -170,9 +165,7 @@ void main() {
 
       // Simulate reconnect → connected.
       container.read(_testRealtimeProvider.notifier).state =
-          const RealtimeConnectionState(
-        status: RealtimeConnectionStatus.connected,
-      );
+          RealtimeConnectionStatus.connected;
 
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
@@ -182,9 +175,7 @@ void main() {
     test('initial connecting→connected does NOT trigger extra refresh',
         () async {
       final container = createContainer(
-        initialRealtime: const RealtimeConnectionState(
-          status: RealtimeConnectionStatus.connecting,
-        ),
+        initialRealtime: RealtimeConnectionStatus.connecting,
       );
 
       await container.read(homeListStoreProvider.notifier).load();
@@ -194,9 +185,7 @@ void main() {
 
       // First connection (not reconnect) should not trigger refresh.
       container.read(_testRealtimeProvider.notifier).state =
-          const RealtimeConnectionState(
-        status: RealtimeConnectionStatus.connected,
-      );
+          RealtimeConnectionStatus.connected;
 
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
@@ -205,9 +194,7 @@ void main() {
 
     test('multiple rapid reconnects are debounced', () async {
       final container = createContainer(
-        initialRealtime: const RealtimeConnectionState(
-          status: RealtimeConnectionStatus.connected,
-        ),
+        initialRealtime: RealtimeConnectionStatus.connected,
       );
 
       await container.read(homeListStoreProvider.notifier).load();
@@ -218,14 +205,10 @@ void main() {
       // Rapid disconnect/reconnect cycles.
       for (var i = 0; i < 3; i++) {
         container.read(_testRealtimeProvider.notifier).state =
-            const RealtimeConnectionState(
-          status: RealtimeConnectionStatus.reconnecting,
-        );
+            RealtimeConnectionStatus.reconnecting;
         await Future<void>.delayed(const Duration(milliseconds: 10));
         container.read(_testRealtimeProvider.notifier).state =
-            const RealtimeConnectionState(
-          status: RealtimeConnectionStatus.connected,
-        );
+            RealtimeConnectionStatus.connected;
         await Future<void>.delayed(const Duration(milliseconds: 10));
       }
 
@@ -240,9 +223,7 @@ void main() {
         () async {
       final container = createContainer(
         initialLifecycle: AppLifecycleStatus.paused,
-        initialRealtime: const RealtimeConnectionState(
-          status: RealtimeConnectionStatus.reconnecting,
-        ),
+        initialRealtime: RealtimeConnectionStatus.reconnecting,
       );
 
       await container.read(homeListStoreProvider.notifier).load();
@@ -254,9 +235,7 @@ void main() {
       container.read(_testLifecycleProvider.notifier).state =
           AppLifecycleStatus.resumed;
       container.read(_testRealtimeProvider.notifier).state =
-          const RealtimeConnectionState(
-        status: RealtimeConnectionStatus.connected,
-      );
+          RealtimeConnectionStatus.connected;
 
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
@@ -295,9 +274,7 @@ void main() {
           _testLifecycleProvider
               .overrideWith((ref) => AppLifecycleStatus.paused),
           _testRealtimeProvider.overrideWith(
-            (ref) => const RealtimeConnectionState(
-              status: RealtimeConnectionStatus.connected,
-            ),
+            (ref) => RealtimeConnectionStatus.connected,
           ),
           homeRefreshLifecycleStatusProvider.overrideWith(
             (ref) => ref.watch(_testLifecycleProvider),
@@ -361,9 +338,7 @@ void main() {
           _testLifecycleProvider
               .overrideWith((ref) => AppLifecycleStatus.paused),
           _testRealtimeProvider.overrideWith(
-            (ref) => const RealtimeConnectionState(
-              status: RealtimeConnectionStatus.connected,
-            ),
+            (ref) => RealtimeConnectionStatus.connected,
           ),
           homeRefreshLifecycleStatusProvider.overrideWith(
             (ref) => ref.watch(_testLifecycleProvider),

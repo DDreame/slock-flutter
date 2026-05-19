@@ -21,11 +21,11 @@ final homeRefreshLifecycleStatusProvider = Provider<AppLifecycleStatus>((ref) {
   );
 });
 
-/// Provides the realtime connection state that the refresh binding
+/// Provides the realtime connection status that the refresh binding
 /// watches. Override in tests to simulate reconnection.
 final homeRefreshRealtimeStateProvider =
-    Provider<RealtimeConnectionState>((ref) {
-  return ref.watch(realtimeServiceProvider);
+    Provider<RealtimeConnectionStatus>((ref) {
+  return ref.watch(realtimeServiceProvider.select((s) => s.status));
 });
 
 /// Triggers [HomeListStore.refresh()] on:
@@ -61,12 +61,12 @@ final homeRefreshLifecycleBindingProvider = Provider<void>((ref) {
   );
 
   // Listen for realtime reconnection.
-  ref.listen<RealtimeConnectionState>(
+  ref.listen<RealtimeConnectionStatus>(
     homeRefreshRealtimeStateProvider,
     (previous, next) {
       if (previous == null) return;
-      if (previous.status == RealtimeConnectionStatus.reconnecting &&
-          next.status == RealtimeConnectionStatus.connected) {
+      if (previous == RealtimeConnectionStatus.reconnecting &&
+          next == RealtimeConnectionStatus.connected) {
         scheduleRefresh('reconnect');
       }
     },
