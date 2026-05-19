@@ -1,0 +1,169 @@
+// =============================================================================
+// #611 — realtimeServiceProvider .select() — inbox_store ref.listen
+//
+// Invariant: INV-REALTIME-SELECT-2
+//   InboxStore.build() ref.listen(realtimeServiceProvider, ...) at L27 only
+//   inspects prev?.status and next.status to detect reconnecting → connected
+//   transitions. Mutations to other RealtimeConnectionState fields
+//   (lastAnyEventAt, lastHeartbeatAt, reconnectAttempts, etc.) must NOT fire
+//   the listener.
+//
+// Strategy:
+// T1: lastAnyEventAt change must NOT fire status-select (skip:true).
+// T2: lastHeartbeatAt change must NOT fire status-select (skip:true).
+// T3: status change DOES fire status-select (active).
+//
+// Phase A: T1/T2 skip:true — current impl uses broad ref.listen.
+//          T3 active — correctness proof.
+//
+// Phase B:
+// Replace ref.listen(realtimeServiceProvider, ...) at inbox_store.dart L27 with
+// ref.listen(realtimeServiceProvider.select((s) => s.status), ...).
+// =============================================================================
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/core/core.dart';
+
+// ---------------------------------------------------------------------------
+// Fakes
+// ---------------------------------------------------------------------------
+
+class _ControllableRealtimeService extends RealtimeService {
+  @override
+  RealtimeConnectionState build() => const RealtimeConnectionState(
+        status: RealtimeConnectionStatus.connected,
+      );
+
+  void setLastAnyEventAtDirect(DateTime time) {
+    state = state.copyWith(lastAnyEventAt: time);
+  }
+
+  void setLastHeartbeatAtDirect(DateTime time) {
+    state = state.copyWith(lastHeartbeatAt: time);
+  }
+
+  void setStatusDirect(RealtimeConnectionStatus status) {
+    state = state.copyWith(status: status);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+void main() {
+  // -------------------------------------------------------------------------
+  // T1: lastAnyEventAt change must NOT fire status-select.
+  // -------------------------------------------------------------------------
+  test(
+    'INV-REALTIME-SELECT-2: lastAnyEventAt change does NOT notify '
+    'status select',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          realtimeServiceProvider
+              .overrideWith(() => _ControllableRealtimeService()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final keepAlive = container.listen(realtimeServiceProvider, (_, __) {});
+
+      int selectNotifyCount = 0;
+      container.listen(
+        realtimeServiceProvider.select((s) => s.status),
+        (_, __) => selectNotifyCount++,
+      );
+
+      final store = container.read(realtimeServiceProvider.notifier)
+          as _ControllableRealtimeService;
+      store.setLastAnyEventAtDirect(DateTime(2026, 5, 19, 10, 0, 0));
+
+      expect(
+        selectNotifyCount,
+        0,
+        reason: 'lastAnyEventAt change must not notify status select '
+            '(INV-REALTIME-SELECT-2)',
+      );
+
+      keepAlive.close();
+    },
+    skip: true, // Phase A: requires Phase B .select() fix
+  );
+
+  // -------------------------------------------------------------------------
+  // T2: lastHeartbeatAt change must NOT fire status-select.
+  // -------------------------------------------------------------------------
+  test(
+    'INV-REALTIME-SELECT-2: lastHeartbeatAt change does NOT notify '
+    'status select',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          realtimeServiceProvider
+              .overrideWith(() => _ControllableRealtimeService()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final keepAlive = container.listen(realtimeServiceProvider, (_, __) {});
+
+      int selectNotifyCount = 0;
+      container.listen(
+        realtimeServiceProvider.select((s) => s.status),
+        (_, __) => selectNotifyCount++,
+      );
+
+      final store = container.read(realtimeServiceProvider.notifier)
+          as _ControllableRealtimeService;
+      store.setLastHeartbeatAtDirect(DateTime(2026, 5, 19, 10, 0, 0));
+
+      expect(
+        selectNotifyCount,
+        0,
+        reason: 'lastHeartbeatAt change must not notify status select '
+            '(INV-REALTIME-SELECT-2)',
+      );
+
+      keepAlive.close();
+    },
+    skip: true, // Phase A: requires Phase B .select() fix
+  );
+
+  // -------------------------------------------------------------------------
+  // T3: status change DOES fire status-select.
+  // -------------------------------------------------------------------------
+  test(
+    'INV-REALTIME-SELECT-2: status change DOES notify status select',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          realtimeServiceProvider
+              .overrideWith(() => _ControllableRealtimeService()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final keepAlive = container.listen(realtimeServiceProvider, (_, __) {});
+
+      int selectNotifyCount = 0;
+      container.listen(
+        realtimeServiceProvider.select((s) => s.status),
+        (_, __) => selectNotifyCount++,
+      );
+
+      final store = container.read(realtimeServiceProvider.notifier)
+          as _ControllableRealtimeService;
+      store.setStatusDirect(RealtimeConnectionStatus.disconnected);
+
+      expect(
+        selectNotifyCount,
+        1,
+        reason: 'status change must notify status select',
+      );
+
+      keepAlive.close();
+    },
+  );
+}
