@@ -73,6 +73,14 @@ class _ScrollableCodeBlockBuilder extends MarkdownElementBuilder {
   }
 }
 
+/// Pre-computed inline syntaxes from GitHub Flavored Markdown without
+/// AutolinkExtensionSyntax. Computed once — avoids repeated .where()
+/// iteration on every message bubble rebuild.
+final List<md.InlineSyntax> _kGfmInlineSyntaxesWithoutAutolink = md
+    .ExtensionSet.gitHubFlavored.inlineSyntaxes
+    .where((s) => s is! md.AutolinkExtensionSyntax)
+    .toList(growable: false);
+
 /// Bubble kind for Markdown style token selection.
 ///
 /// Mirrors the visual kind enum from the conversation detail page
@@ -142,8 +150,7 @@ class MarkdownMessageBody extends StatelessWidget {
         [
           MentionSyntax(),
           md.StrikethroughSyntax(),
-          ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes
-              .where((s) => s is! md.AutolinkExtensionSyntax),
+          ..._kGfmInlineSyntaxesWithoutAutolink,
         ],
       ),
       // Strip images — not supported in this scope

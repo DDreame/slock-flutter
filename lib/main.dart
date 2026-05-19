@@ -131,6 +131,41 @@ class SlockApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeState = ref.watch(themeModeStoreProvider);
+    final router = ref.watch(appRouterProvider);
+    return _LifecycleBindingsActivator(
+      child: MaterialApp.router(
+        onGenerateTitle: (context) => context.l10n.appTitle,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: themeState.themeMode,
+        routerConfig: router,
+        builder: (context, child) =>
+            CrashRecoveryWrapper(child: child ?? const SizedBox.shrink()),
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+        debugShowCheckedModeBanner: false,
+      ),
+    );
+  }
+}
+
+/// Activates lifecycle binding providers without contributing to the
+/// widget tree output. Separated from [SlockApp] so that any internal
+/// state emission from these 15 service providers does NOT force
+/// [MaterialApp.router] to rebuild — only theme/router changes do.
+class _LifecycleBindingsActivator extends ConsumerWidget {
+  const _LifecycleBindingsActivator({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(realtimeLifecycleBindingProvider);
     ref.watch(foregroundServiceLifecycleBindingProvider);
     ref.watch(backgroundSyncLifecycleBindingProvider);
@@ -146,24 +181,6 @@ class SlockApp extends ConsumerWidget {
     ref.watch(presenceRealtimeBindingProvider);
     ref.watch(domainRuntimeEventRouterProvider);
     ref.watch(deepLinkLifecycleBindingProvider);
-    final themeState = ref.watch(themeModeStoreProvider);
-    final router = ref.watch(appRouterProvider);
-    return MaterialApp.router(
-      onGenerateTitle: (context) => context.l10n.appTitle,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: themeState.themeMode,
-      routerConfig: router,
-      builder: (context, child) =>
-          CrashRecoveryWrapper(child: child ?? const SizedBox.shrink()),
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ],
-      debugShowCheckedModeBanner: false,
-    );
+    return child;
   }
 }
