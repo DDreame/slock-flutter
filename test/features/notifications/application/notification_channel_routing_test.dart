@@ -6,7 +6,6 @@ void main() {
   group('Android notification channel routing', () {
     test(
       'T1: DM notification routes to DM channel',
-      skip: true,
       () {
         // Arrange — payload with direct_message type.
         final payload = <String, dynamic>{'type': 'direct_message'};
@@ -22,7 +21,6 @@ void main() {
 
     test(
       'T2: Mention notification routes to mention channel',
-      skip: true,
       () {
         // Arrange — payload with mention type.
         final payload = <String, dynamic>{'type': 'mention'};
@@ -38,7 +36,6 @@ void main() {
 
     test(
       'T3: General notification routes to default channel',
-      skip: true,
       () {
         // Arrange — payload with channel_message type.
         final payload = <String, dynamic>{'type': 'channel_message'};
@@ -54,7 +51,6 @@ void main() {
 
     test(
       'T4: Channel metadata includes correct importance levels',
-      skip: true,
       () {
         // Act
         final metadata = NotificationChannelRouter.channelMetadata;
