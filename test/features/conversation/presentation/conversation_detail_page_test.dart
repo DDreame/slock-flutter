@@ -2074,7 +2074,6 @@ class _FakeConversationRepository implements ConversationRepository {
     this.sentMessage,
     this.sendFailure,
     this.sendCompleter,
-    this.pinnedMessages = const [],
   });
 
   final ConversationDetailSnapshot snapshot;
@@ -2082,7 +2081,6 @@ class _FakeConversationRepository implements ConversationRepository {
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
   final Completer<ConversationMessageSummary>? sendCompleter;
-  final List<ConversationMessageSummary> pinnedMessages;
   final List<ConversationDetailTarget> requestedTargets = [];
   final List<int> olderRequests = [];
   final List<String> sentContents = [];
@@ -2209,7 +2207,7 @@ class _FakeConversationRepository implements ConversationRepository {
   Future<List<ConversationMessageSummary>> loadPinnedMessages(
     ConversationDetailTarget target,
   ) async {
-    return pinnedMessages;
+    return const [];
   }
 
   @override
