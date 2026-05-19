@@ -80,7 +80,6 @@ void main() {
   test(
     'INV-REALTIME-LIFECYCLE-SELECT-1: displayName change does NOT notify '
     'isAuthenticated select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -118,7 +117,6 @@ void main() {
   test(
     'INV-REALTIME-LIFECYCLE-SELECT-1: emailVerified change does NOT notify '
     'isAuthenticated select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -196,7 +194,6 @@ void main() {
   test(
     'INV-PUSH-TOKEN-LIFECYCLE-SELECT-1: displayName change does NOT notify '
     '(isAuthenticated, token) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
