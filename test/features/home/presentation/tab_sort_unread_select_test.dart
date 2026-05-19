@@ -153,7 +153,6 @@ void main() {
   test(
     'INV-TAB-SORT-CACHE-1: unrelated homeListStore field change does NOT '
     'notify channels select',
-    skip: true,
     () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
@@ -262,7 +261,6 @@ void main() {
   test(
     'INV-TAB-SORT-CACHE-2: unrelated homeListStore field change does NOT '
     'notify DMs select',
-    skip: true,
     () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
@@ -377,7 +375,6 @@ void main() {
   test(
     'INV-TAB-UNREAD-SELECT-1: DM unread change does NOT notify '
     'channelUnreadCounts select',
-    skip: true,
     () async {
       const channelScopeId = ChannelScopeId(
         serverId: ServerScopeId('server-1'),
@@ -500,7 +497,6 @@ void main() {
   test(
     'INV-TAB-UNREAD-SELECT-2: channel unread change does NOT notify '
     'dmUnreadCounts select',
-    skip: true,
     () async {
       const channelScopeId = ChannelScopeId(
         serverId: ServerScopeId('server-1'),
