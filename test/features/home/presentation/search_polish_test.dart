@@ -141,7 +141,6 @@ void main() {
   group('Search polish — channels', () {
     testWidgets(
       'T1: query toLowerCase called once outside loop (channels filter)',
-      skip: true,
       (tester) async {
         // Arrange — 50 channels, type a search query.
         final channels = List.generate(
@@ -181,7 +180,6 @@ void main() {
 
     testWidgets(
       'T2: query toLowerCase called once outside loop (DMs filter)',
-      skip: true,
       (tester) async {
         // Arrange — multiple DMs, type a search query.
         final dms = List.generate(
@@ -221,7 +219,6 @@ void main() {
   group('Search polish — clear button', () {
     testWidgets(
       'T3: search field has clear button when text is present',
-      skip: true,
       (tester) async {
         const snapshot = HomeWorkspaceSnapshot(
           serverId: serverId,
@@ -266,7 +263,6 @@ void main() {
 
     testWidgets(
       'T4: clear button has accessibility tooltip',
-      skip: true,
       (tester) async {
         const snapshot = HomeWorkspaceSnapshot(
           serverId: serverId,
