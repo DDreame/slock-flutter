@@ -109,7 +109,6 @@ void main() {
   test(
     'INV-SERVER-SWITCHER-SELECT-1: savingServerIds change does NOT notify '
     'server switcher select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -205,7 +204,6 @@ void main() {
   test(
     'INV-NEW-DM-AGENTS-SELECT-1: isRefreshing change does NOT notify '
     'status-only select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -279,7 +277,6 @@ void main() {
   test(
     'INV-NEW-DM-AGENTS-SELECT-1: machines change does NOT notify '
     '(status, items, failure) select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
