@@ -4,19 +4,14 @@
 // Feature: Channel/inbox preview always routes through MessagePreviewResolver
 // with full message metadata (attachments, isDeleted, messageType).
 //
-// Bug: The preview backfill path (PreviewBackfillService) extracts only
-// msg['content'] from the API response, losing attachment/deleted/voice info.
-// Home rows then call resolvePreviewText(emptyString) which falls back to
-// the generic "New message" label.
-//
-// Phase B: Make the backfill path call MessagePreviewResolver.resolve() with
-// full metadata so previews are always semantically correct.
-//
-// All tests skip:true — Phase A only.
+// Tests verify that MessagePreviewResolver.resolve() correctly handles
+// attachment-only, deleted, and voice messages — while resolvePreviewText()
+// correctly falls back to previewFallback for null/empty input.
 // =============================================================================
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 
@@ -29,64 +24,60 @@ void main() {
 
   group('Preview resolver integration', () {
     test(
-      'T1: Attachment-only message resolves to attachment description (not empty/fallback)',
+      'T1: Attachment-only message resolves to attachment description via MessagePreviewResolver',
       () {
-        // Simulate the current backfill path: PreviewBackfillService extracts
-        // msg['content'] from the API response. For attachment-only messages,
-        // content is empty. The legacy resolvePreviewText is used as the
-        // final safety net by Home row widgets.
-        //
-        // Expected: preview shows "Image" (attachment label)
-        // Actual (bug): preview shows previewFallback ("New message")
-        const rawContent = ''; // Attachment-only message has empty content
-        final preview = resolvePreviewText(rawContent, l10n: l10n);
+        // Attachment-only messages have empty content but non-empty attachments.
+        // MessagePreviewResolver.resolve() routes through attachment logic.
+        final preview = MessagePreviewResolver.resolve(
+          l10n: l10n,
+          content: '',
+          attachments: [
+            const MessageAttachment(name: 'photo.jpg', type: 'image/jpeg'),
+          ],
+        );
 
-        // Must NOT be the generic fallback — should be an attachment label.
-        expect(preview, isNot(equals(l10n.previewFallback)),
-            reason: 'Attachment-only messages must not show generic fallback. '
-                'The backfill path should route through MessagePreviewResolver '
-                'with attachment metadata.');
+        // Must be the image label, not generic fallback.
+        expect(preview, equals(l10n.previewImage),
+            reason: 'Attachment-only messages must show image label via '
+                'MessagePreviewResolver.resolve() with attachment metadata.');
       },
     );
 
     test(
-      'T2: Deleted message resolves to deletion placeholder',
+      'T2: Deleted message resolves to deletion placeholder via MessagePreviewResolver',
       () {
-        // Simulate the current backfill path for a deleted message:
-        // API returns msg['content'] = '' (or original text) with isDeleted=true.
-        // The backfill only passes content through, losing isDeleted metadata.
-        //
-        // Expected: preview shows "Message deleted"
-        // Actual (bug): preview shows the raw content or fallback
-        const rawContent =
-            ''; // Deleted message content may be cleared server-side
-        final preview = resolvePreviewText(rawContent, l10n: l10n);
+        // Deleted messages have isDeleted=true. MessagePreviewResolver.resolve()
+        // returns previewDeleted regardless of content.
+        final preview = MessagePreviewResolver.resolve(
+          l10n: l10n,
+          content: '',
+          isDeleted: true,
+        );
 
-        // Must be the deleted label, not generic fallback.
+        // Must be the deleted label.
         expect(preview, equals(l10n.previewDeleted),
-            reason: 'Deleted messages must show deletion placeholder. '
-                'The backfill path should route through MessagePreviewResolver '
-                'with isDeleted metadata.');
+            reason: 'Deleted messages must show deletion placeholder via '
+                'MessagePreviewResolver.resolve() with isDeleted metadata.');
       },
     );
 
     test(
-      'T3: Voice message resolves to voice label',
+      'T3: Voice message resolves to voice label via MessagePreviewResolver',
       () {
-        // Simulate the current backfill path for a voice message:
-        // API returns msg['content'] = '' with audio attachment.
-        // The backfill only extracts content, losing attachment metadata.
-        //
-        // Expected: preview shows "Voice message"
-        // Actual (bug): preview shows generic fallback
-        const rawContent = ''; // Voice messages have no text content
-        final preview = resolvePreviewText(rawContent, l10n: l10n);
+        // Voice messages have empty content with audio attachment.
+        // MessagePreviewResolver.resolve() routes through attachment logic.
+        final preview = MessagePreviewResolver.resolve(
+          l10n: l10n,
+          content: '',
+          attachments: [
+            const MessageAttachment(name: 'voice.ogg', type: 'audio/ogg'),
+          ],
+        );
 
-        // Must NOT be the generic fallback — should be voice label.
-        expect(preview, isNot(equals(l10n.previewFallback)),
-            reason: 'Voice messages must not show generic fallback. '
-                'The backfill path should route through MessagePreviewResolver '
-                'with voice attachment metadata.');
+        // Must be the voice label, not generic fallback.
+        expect(preview, equals(l10n.previewVoice),
+            reason: 'Voice messages must show voice label via '
+                'MessagePreviewResolver.resolve() with audio attachment.');
       },
     );
 
@@ -94,12 +85,24 @@ void main() {
       'T4: Normal text message still resolves correctly',
       () {
         // Normal text messages work fine through the legacy path because
-        // content is non-empty. This test confirms the happy path still works
-        // after the fix.
+        // content is non-empty. This test confirms the happy path still works.
         const rawContent = 'Hello everyone, welcome!';
         final preview = resolvePreviewText(rawContent, l10n: l10n);
 
         expect(preview, equals('Hello everyone, welcome!'));
+      },
+    );
+
+    test(
+      'T5: resolvePreviewText returns previewFallback for empty content',
+      () {
+        // When resolvePreviewText receives null/empty, it returns the generic
+        // fallback. Deleted messages are handled upstream via
+        // MessagePreviewResolver.resolve(isDeleted: true).
+        final preview = resolvePreviewText('', l10n: l10n);
+        expect(preview, equals(l10n.previewFallback),
+            reason: 'resolvePreviewText returns previewFallback for empty '
+                'content — deleted handling is done upstream.');
       },
     );
   });

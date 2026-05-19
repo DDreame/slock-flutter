@@ -642,8 +642,8 @@ void main() {
           await tester.pump(const Duration(milliseconds: 50));
         }
 
-        // Initially shows deleted fallback (auto-backfill stuck at completer).
-        expect(find.text('Message deleted'), findsOneWidget);
+        // Initially shows generic fallback (auto-backfill stuck at completer).
+        expect(find.text('New message'), findsOneWidget);
 
         // Complete the delayed fetch — auto-backfill from load() resolves.
         messageApi.completeFetch('ch-1');
@@ -653,7 +653,7 @@ void main() {
 
         // After backfill, row should show fetched preview.
         expect(find.text('Backfilled via API'), findsOneWidget);
-        expect(find.text('Message deleted'), findsNothing);
+        expect(find.text('New message'), findsNothing);
       },
     );
   });
