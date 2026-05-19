@@ -65,7 +65,7 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
   void initState() {
     super.initState();
     Future.microtask(
-      () => ref.read(channelMemberStoreProvider.notifier).load(),
+      () => ref.read(channelMemberStoreProvider.notifier).ensureLoaded(),
     );
   }
 

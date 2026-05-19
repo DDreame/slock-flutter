@@ -30,6 +30,15 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
     return const ChannelMemberState();
   }
 
+  /// Idempotent load guard — only fires [load] when status is initial.
+  /// Prevents redundant network requests when the page is revisited or
+  /// the store is already populated.
+  void ensureLoaded() {
+    if (state.status == ChannelMemberStatus.initial) {
+      load();
+    }
+  }
+
   Future<void> load() async {
     final serverId = ref.read(currentChannelMemberServerIdProvider);
     final channelId = ref.read(currentChannelMemberChannelIdProvider);
