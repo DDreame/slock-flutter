@@ -388,15 +388,20 @@ void main() {
         value: 'dm-1',
       );
 
+      // Use StateProvider so mutations guarantee synchronous notifications.
+      final stateProvider = StateProvider<UnreadSourceProjectionState>((ref) {
+        return UnreadSourceProjectionState(
+          channelUnreadCounts: {channelScopeId: 3},
+          dmUnreadCounts: {dmScopeId: 1},
+          isLoaded: true,
+        );
+      });
+
       final container = ProviderContainer(
         overrides: [
-          unreadSourceProjectionProvider.overrideWith((ref) {
-            return UnreadSourceProjectionState(
-              channelUnreadCounts: {channelScopeId: 3},
-              dmUnreadCounts: {dmScopeId: 1},
-              isLoaded: true,
-            );
-          }),
+          unreadSourceProjectionProvider.overrideWith(
+            (ref) => ref.watch(stateProvider),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -411,18 +416,12 @@ void main() {
       );
 
       // Simulate DM unread changing — channel counts unchanged.
-      container.updateOverrides([
-        unreadSourceProjectionProvider.overrideWith((ref) {
-          return UnreadSourceProjectionState(
-            channelUnreadCounts: {channelScopeId: 3},
-            dmUnreadCounts: {dmScopeId: 5},
-            isLoaded: true,
-          );
-        }),
-      ]);
-      // Invalidate to force rebuild and trigger listener notification flow.
-      container.invalidate(unreadSourceProjectionProvider);
-      container.read(unreadSourceProjectionProvider);
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
+        channelUnreadCounts: {channelScopeId: 3},
+        dmUnreadCounts: {dmScopeId: 5},
+        isLoaded: true,
+      );
 
       expect(
         selectNotifyCount,
@@ -447,14 +446,19 @@ void main() {
         value: 'general',
       );
 
+      // Use StateProvider so mutations guarantee synchronous notifications.
+      final stateProvider = StateProvider<UnreadSourceProjectionState>((ref) {
+        return UnreadSourceProjectionState(
+          channelUnreadCounts: {channelScopeId: 3},
+          isLoaded: true,
+        );
+      });
+
       final container = ProviderContainer(
         overrides: [
-          unreadSourceProjectionProvider.overrideWith((ref) {
-            return UnreadSourceProjectionState(
-              channelUnreadCounts: {channelScopeId: 3},
-              isLoaded: true,
-            );
-          }),
+          unreadSourceProjectionProvider.overrideWith(
+            (ref) => ref.watch(stateProvider),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -469,17 +473,11 @@ void main() {
       );
 
       // Simulate channel unread changing.
-      container.updateOverrides([
-        unreadSourceProjectionProvider.overrideWith((ref) {
-          return UnreadSourceProjectionState(
-            channelUnreadCounts: {channelScopeId: 7},
-            isLoaded: true,
-          );
-        }),
-      ]);
-      // Invalidate to force rebuild and trigger listener notification flow.
-      container.invalidate(unreadSourceProjectionProvider);
-      container.read(unreadSourceProjectionProvider);
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
+        channelUnreadCounts: {channelScopeId: 7},
+        isLoaded: true,
+      );
 
       expect(
         selectNotifyCount,
@@ -512,15 +510,20 @@ void main() {
         value: 'dm-1',
       );
 
+      // Use StateProvider so mutations guarantee synchronous notifications.
+      final stateProvider = StateProvider<UnreadSourceProjectionState>((ref) {
+        return UnreadSourceProjectionState(
+          channelUnreadCounts: {channelScopeId: 3},
+          dmUnreadCounts: {dmScopeId: 2},
+          isLoaded: true,
+        );
+      });
+
       final container = ProviderContainer(
         overrides: [
-          unreadSourceProjectionProvider.overrideWith((ref) {
-            return UnreadSourceProjectionState(
-              channelUnreadCounts: {channelScopeId: 3},
-              dmUnreadCounts: {dmScopeId: 2},
-              isLoaded: true,
-            );
-          }),
+          unreadSourceProjectionProvider.overrideWith(
+            (ref) => ref.watch(stateProvider),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -535,18 +538,12 @@ void main() {
       );
 
       // Simulate channel unread changing — DM counts unchanged.
-      container.updateOverrides([
-        unreadSourceProjectionProvider.overrideWith((ref) {
-          return UnreadSourceProjectionState(
-            channelUnreadCounts: {channelScopeId: 9},
-            dmUnreadCounts: {dmScopeId: 2},
-            isLoaded: true,
-          );
-        }),
-      ]);
-      // Invalidate to force rebuild and trigger listener notification flow.
-      container.invalidate(unreadSourceProjectionProvider);
-      container.read(unreadSourceProjectionProvider);
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
+        channelUnreadCounts: {channelScopeId: 9},
+        dmUnreadCounts: {dmScopeId: 2},
+        isLoaded: true,
+      );
 
       expect(
         selectNotifyCount,
@@ -571,14 +568,19 @@ void main() {
         value: 'dm-1',
       );
 
+      // Use StateProvider so mutations guarantee synchronous notifications.
+      final stateProvider = StateProvider<UnreadSourceProjectionState>((ref) {
+        return UnreadSourceProjectionState(
+          dmUnreadCounts: {dmScopeId: 2},
+          isLoaded: true,
+        );
+      });
+
       final container = ProviderContainer(
         overrides: [
-          unreadSourceProjectionProvider.overrideWith((ref) {
-            return UnreadSourceProjectionState(
-              dmUnreadCounts: {dmScopeId: 2},
-              isLoaded: true,
-            );
-          }),
+          unreadSourceProjectionProvider.overrideWith(
+            (ref) => ref.watch(stateProvider),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -593,17 +595,11 @@ void main() {
       );
 
       // Simulate DM unread changing.
-      container.updateOverrides([
-        unreadSourceProjectionProvider.overrideWith((ref) {
-          return UnreadSourceProjectionState(
-            dmUnreadCounts: {dmScopeId: 8},
-            isLoaded: true,
-          );
-        }),
-      ]);
-      // Invalidate to force rebuild and trigger listener notification flow.
-      container.invalidate(unreadSourceProjectionProvider);
-      container.read(unreadSourceProjectionProvider);
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
+        dmUnreadCounts: {dmScopeId: 8},
+        isLoaded: true,
+      );
 
       expect(
         selectNotifyCount,
