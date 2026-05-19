@@ -219,7 +219,12 @@ class _InboxPageState extends ConsumerState<InboxPage> {
                           .read(inboxStoreProvider.notifier)
                           .markDone(channelId: channelId);
                     },
-                    onTap: () => _navigateToProjection(projection),
+                    onTap: () {
+                      ref
+                          .read(inboxStoreProvider.notifier)
+                          .markRead(channelId: channelId);
+                      _navigateToProjection(projection);
+                    },
                     onLongPress: () =>
                         _showActionSheet(context, projection, channelId),
                   );
