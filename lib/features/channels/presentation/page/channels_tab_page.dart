@@ -21,7 +21,6 @@ import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
-import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 
 /// Channels tab — extracts the channel list from [HomePage].
@@ -71,7 +70,13 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       },
     );
     final homeStore = ref.read(homeListStoreProvider.notifier);
-    final unreadState = ref.watch(unreadSourceProjectionProvider);
+    // INV-TAB-UNREAD-SELECT-1: Only consume channelUnreadCounts — DM unread
+    // changes must NOT rebuild the channels tab.
+    final channelUnreadCounts = ref.watch(
+      unreadSourceProjectionProvider.select((s) => s.channelUnreadCounts),
+    );
+    final channelUnreadTotal =
+        channelUnreadCounts.values.fold(0, (sum, c) => sum + c);
     final managementState = ref.watch(channelManagementStoreProvider);
     final sortPreference = ref.watch(channelSortPreferenceProvider);
     final l10n = context.l10n;
@@ -99,8 +104,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               );
             },
           ),
-          if (state.status == HomeListStatus.success &&
-              unreadState.channelUnreadTotal > 0)
+          if (state.status == HomeListStatus.success && channelUnreadTotal > 0)
             IconButton(
               key: const ValueKey('channels-tab-mark-all-read'),
               icon: const Icon(Icons.done_all),
@@ -146,7 +150,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               pinnedChannels: state.pinnedChannels,
               channels: state.channels,
               homeStore: homeStore,
-              unreadState: unreadState,
+              channelUnreadCounts: channelUnreadCounts,
               managementState: managementState,
               l10n: l10n,
             ),
@@ -159,7 +163,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     required List<HomeChannelSummary> pinnedChannels,
     required List<HomeChannelSummary> channels,
     required HomeListStore homeStore,
-    required UnreadSourceProjectionState unreadState,
+    required Map<ChannelScopeId, int> channelUnreadCounts,
     required ChannelManagementState managementState,
     required AppLocalizations l10n,
   }) {
@@ -171,8 +175,26 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       ...channels,
     ];
 
-    // Apply sort preference via sortedChannelsProvider.
-    final sorted = ref.watch(sortedChannelsProvider(allChannels));
+    // INV-TAB-SORT-CACHE-1: Inline sort instead of Provider.family.
+    // Provider.family with List arg never caches (reference equality),
+    // causing unconditional re-sort and stale provider slot accumulation.
+    final sortPreference = ref.watch(channelSortPreferenceProvider);
+    final sorted = List<HomeChannelSummary>.of(allChannels);
+    switch (sortPreference) {
+      case ChannelSortPreference.recentActivity:
+        sorted.sort((a, b) {
+          final aTime = a.lastActivityAt;
+          final bTime = b.lastActivityAt;
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime);
+        });
+      case ChannelSortPreference.alphabetical:
+        sorted.sort(
+          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        );
+    }
 
     // Apply search filter.
     final displayList = _searchQuery.isEmpty
@@ -233,7 +255,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             channel: displayList[i],
             isPinned: pinnedIds.contains(displayList[i].scopeId.value),
             homeStore: homeStore,
-            unreadState: unreadState,
+            channelUnreadCounts: channelUnreadCounts,
             managementState: managementState,
           ),
       ],
@@ -287,10 +309,10 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     required HomeChannelSummary channel,
     required bool isPinned,
     required HomeListStore homeStore,
-    required UnreadSourceProjectionState unreadState,
+    required Map<ChannelScopeId, int> channelUnreadCounts,
     required ChannelManagementState managementState,
   }) {
-    final unreadCount = unreadState.channelUnreadCount(channel.scopeId);
+    final unreadCount = channelUnreadCounts[channel.scopeId] ?? 0;
 
     // Per-channel mute indicator: uses composite key to match the
     // in-memory muted IDs set (which is serverId-scoped).
