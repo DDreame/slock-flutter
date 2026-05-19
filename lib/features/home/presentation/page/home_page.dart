@@ -39,7 +39,15 @@ class HomePage extends ConsumerStatefulWidget {
 class _HomePageState extends ConsumerState<HomePage> {
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(homeListStoreProvider);
+    final state = ref.watch(
+      homeListStoreProvider.select((s) => (
+            status: s.status,
+            failure: s.failure,
+            isRefreshing: s.isRefreshing,
+            taskItems: s.taskItems,
+            taskLoadFailure: s.taskLoadFailure,
+          )),
+    );
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
     // refresh completes with failure — not on mutation errors.
     ref.listen(
