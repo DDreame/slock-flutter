@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
-import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
@@ -36,7 +35,6 @@ void main() {
       ProviderScope(
         overrides: [
           tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,

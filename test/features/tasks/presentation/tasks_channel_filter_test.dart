@@ -5,7 +5,6 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
-import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -24,7 +23,6 @@ Widget _buildApp(
   return ProviderScope(
     overrides: [
       tasksStoreProvider.overrideWith(() => store),
-      tasksRealtimeBindingProvider.overrideWith((ref) {}),
       homeListStoreProvider.overrideWith(() => _FakeHomeListStore(channels)),
     ],
     child: MaterialApp(
