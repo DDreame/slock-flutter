@@ -266,9 +266,10 @@ class _ConversationDetailScreenState
         }
       },
     );
-    final voiceState = ref.watch(voiceMessageStoreProvider);
-    final isRecording =
-        voiceState.recordingState == VoiceRecorderState.recording;
+    final voiceRecordingState = ref.watch(
+      voiceMessageStoreProvider.select((s) => s.recordingState),
+    );
+    final isRecording = voiceRecordingState == VoiceRecorderState.recording;
 
     // Initialize typing realtime binding — auto-binds/disposes via provider.
     final target = ref.read(currentConversationDetailTargetProvider);
@@ -3006,8 +3007,9 @@ class _ConversationMessageCardState
     );
 
     // If translation is cached for this message, wrap with overlay.
-    final cacheState = ref.watch(translationCacheStoreProvider);
-    final entry = cacheState.translations[message.id];
+    final entry = ref.watch(
+      translationCacheStoreProvider.select((s) => s.translations[message.id]),
+    );
     if (entry == null) return contentWidget;
 
     return TranslatedContentOverlay(
@@ -4690,8 +4692,10 @@ class _SelectionActionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final state = ref.watch(conversationDetailStoreProvider);
-    final selectedCount = state.selectedMessageIds.length;
+    final selectedCount = ref.watch(
+      conversationDetailStoreProvider
+          .select((s) => s.selectedMessageIds.length),
+    );
 
     return Container(
       key: const ValueKey('selection-action-bar'),
@@ -4731,7 +4735,9 @@ class _SelectionActionBar extends ConsumerWidget {
               tooltip: 'Save',
               onPressed: selectedCount > 0
                   ? () async {
-                      final ids = Set<String>.of(state.selectedMessageIds);
+                      final ids = Set<String>.of(ref
+                          .read(conversationDetailStoreProvider)
+                          .selectedMessageIds);
                       final result = await ref
                           .read(conversationDetailStoreProvider.notifier)
                           .batchSaveMessages(ids);
@@ -4753,8 +4759,10 @@ class _SelectionActionBar extends ConsumerWidget {
               onPressed: selectedCount > 0
                   ? () async {
                       // Gather selected messages in chronological order.
-                      final ids = state.selectedMessageIds;
-                      final selectedMessages = state.messages
+                      final detailState =
+                          ref.read(conversationDetailStoreProvider);
+                      final ids = detailState.selectedMessageIds;
+                      final selectedMessages = detailState.messages
                           .where((m) => ids.contains(m.id))
                           .toList()
                         ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
@@ -4812,7 +4820,9 @@ class _SelectionActionBar extends ConsumerWidget {
               tooltip: 'Delete',
               onPressed: selectedCount > 0
                   ? () async {
-                      final ids = Set<String>.of(state.selectedMessageIds);
+                      final ids = Set<String>.of(ref
+                          .read(conversationDetailStoreProvider)
+                          .selectedMessageIds);
                       final result = await ref
                           .read(conversationDetailStoreProvider.notifier)
                           .batchDeleteMessages(ids);
