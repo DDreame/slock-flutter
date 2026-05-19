@@ -280,41 +280,59 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       );
     }
 
-    return ListView(
-      children: [
-        _buildSearchField(l10n, colors),
-        if (sorted.isEmpty && _searchQuery.isNotEmpty)
-          Padding(
-            key: const ValueKey('dms-tab-search-empty'),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.pageHorizontal,
-              vertical: AppSpacing.lg,
-            ),
-            child: Center(
-              child: Text(
-                l10n.dmsTabEmpty,
-                style: AppTypography.body.copyWith(
-                  color: colors.textSecondary,
+    final hasSearchEmpty = sorted.isEmpty && _searchQuery.isNotEmpty;
+    final hasHiddenTile =
+        state.hiddenDirectMessages.isNotEmpty && _searchQuery.isEmpty;
+    // Item count: search field + optional search-empty + DM rows + optional hidden tile
+    final itemCount =
+        1 + (hasSearchEmpty ? 1 : 0) + sorted.length + (hasHiddenTile ? 1 : 0);
+
+    return ListView.builder(
+      itemCount: itemCount,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return _buildSearchField(l10n, colors);
+        }
+        var offset = 1;
+        if (hasSearchEmpty) {
+          if (index == offset) {
+            return Padding(
+              key: const ValueKey('dms-tab-search-empty'),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pageHorizontal,
+                vertical: AppSpacing.lg,
+              ),
+              child: Center(
+                child: Text(
+                  l10n.dmsTabEmpty,
+                  style: AppTypography.body.copyWith(
+                    color: colors.textSecondary,
+                  ),
                 ),
               ),
-            ),
-          ),
-        for (final dm in sorted)
-          _buildDmRow(
+            );
+          }
+          offset++;
+        }
+        final dataIndex = index - offset;
+        if (dataIndex < sorted.length) {
+          final dm = sorted[dataIndex];
+          return _buildDmRow(
             dm: dm,
             isPinned: pinnedIds.contains(dm.scopeId.value),
             isOnline: onlineAgentNames.contains(dm.title),
             isAgent: dm.isAgent || allAgentNames.contains(dm.title),
             homeStore: homeStore,
             dmUnreadCounts: dmUnreadCounts,
-          ),
-        if (state.hiddenDirectMessages.isNotEmpty && _searchQuery.isEmpty)
-          _buildHiddenDmsTile(
-            state: state,
-            homeStore: homeStore,
-            l10n: l10n,
-          ),
-      ],
+          );
+        }
+        // Last item: hidden DMs tile
+        return _buildHiddenDmsTile(
+          state: state,
+          homeStore: homeStore,
+          l10n: l10n,
+        );
+      },
     );
   }
 

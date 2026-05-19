@@ -21,7 +21,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
   @override
   MemberListState build() {
     ref.watch(currentMembersServerIdProvider);
-    return const MemberListState();
+    return MemberListState();
   }
 
   Future<void> ensureLoaded() async {
