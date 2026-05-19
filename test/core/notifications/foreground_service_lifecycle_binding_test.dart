@@ -59,11 +59,19 @@ class FakeForegroundServiceManager implements ForegroundServiceManager {
     return <String, dynamic>{
       'isServiceAlive': _running,
       'socketStatus': 'connected',
+      'authStatus': 'authenticated',
+      'foregroundActive': false,
       'lastEventTime': null,
       'lastNotificationAttempt': null,
       'lastPermissionFailure': null,
     };
   }
+
+  @override
+  Future<bool> get isIgnoringBatteryOptimizations async => true;
+
+  @override
+  Future<void> requestIgnoreBatteryOptimizations() async {}
 }
 
 class _ThrowingForegroundServiceManager implements ForegroundServiceManager {
@@ -91,6 +99,12 @@ class _ThrowingForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<Map<String, dynamic>?> getWorkerDiagnostics() async => null;
+
+  @override
+  Future<bool> get isIgnoringBatteryOptimizations async => true;
+
+  @override
+  Future<void> requestIgnoreBatteryOptimizations() async {}
 }
 
 void main() {

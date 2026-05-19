@@ -70,6 +70,8 @@ Future<void> _startWorker(MethodChannel methodChannel) async {
         return <String, dynamic>{
           'isServiceAlive': diag.isServiceAlive,
           'socketStatus': diag.socketStatus,
+          'authStatus': diag.authStatus,
+          'foregroundActive': diag.foregroundActive,
           'lastEventTime': diag.lastEventTime?.toIso8601String(),
           'lastNotificationAttempt':
               diag.lastNotificationAttempt?.toIso8601String(),

@@ -34,6 +34,12 @@ abstract class ForegroundServiceManager {
   /// Returns null when the service is not running or diagnostics
   /// are unavailable (e.g. on non-Android platforms).
   Future<Map<String, dynamic>?> getWorkerDiagnostics();
+
+  /// Whether Android is currently ignoring battery optimizations for Slock.
+  Future<bool> get isIgnoringBatteryOptimizations;
+
+  /// Open the Android battery optimization exemption prompt/settings.
+  Future<void> requestIgnoreBatteryOptimizations();
 }
 
 class NoOpForegroundServiceManager implements ForegroundServiceManager {
@@ -59,6 +65,12 @@ class NoOpForegroundServiceManager implements ForegroundServiceManager {
 
   @override
   Future<Map<String, dynamic>?> getWorkerDiagnostics() async => null;
+
+  @override
+  Future<bool> get isIgnoringBatteryOptimizations async => true;
+
+  @override
+  Future<void> requestIgnoreBatteryOptimizations() async {}
 }
 
 final foregroundServiceManagerProvider =

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/core/notifications/foreground_service_lifecycle_binding.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
@@ -41,6 +42,7 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
   @override
   Widget build(BuildContext context) {
     final collector = ref.watch(diagnosticsCollectorProvider);
+    final workerDiagnostics = ref.watch(backgroundWorkerDiagnosticsProvider);
     final allEntries = collector.entries;
     final entries = _filteredEntries(allEntries);
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -68,6 +70,12 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
       ),
       body: Column(
         children: [
+          _BackgroundWorkerDiagnosticsCard(
+            diagnostics: workerDiagnostics,
+            colors: colors,
+          ),
+          const Divider(height: 1),
+
           // --- Filter chips ---
           Padding(
             padding: const EdgeInsets.symmetric(
@@ -144,6 +152,84 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
                   ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _BackgroundWorkerDiagnosticsCard extends StatelessWidget {
+  const _BackgroundWorkerDiagnosticsCard({
+    required this.diagnostics,
+    required this.colors,
+  });
+
+  final AsyncValue<Map<String, dynamic>?> diagnostics;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pageHorizontal,
+        AppSpacing.md,
+        AppSpacing.pageHorizontal,
+        AppSpacing.sm,
+      ),
+      child: Container(
+        key: const ValueKey('background-worker-diagnostics'),
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          border: Border.all(color: colors.border),
+        ),
+        child: diagnostics.when(
+          loading: () => Text(
+            'Background worker: loading…',
+            style: AppTypography.body.copyWith(color: colors.textSecondary),
+          ),
+          error: (_, __) => Text(
+            'Background worker diagnostics unavailable',
+            style: AppTypography.body.copyWith(color: colors.error),
+          ),
+          data: (snapshot) {
+            if (snapshot == null) {
+              return Text(
+                'Background worker: not running',
+                style: AppTypography.body.copyWith(
+                  color: colors.textSecondary,
+                ),
+              );
+            }
+            final items = <String>[
+              'service=${snapshot['isServiceAlive']}',
+              'socket=${snapshot['socketStatus']}',
+              'auth=${snapshot['authStatus']}',
+              'foreground=${snapshot['foregroundActive']}',
+              'lastEvent=${snapshot['lastEventTime'] ?? 'none'}',
+            ];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Background worker',
+                  style: AppTypography.body.copyWith(
+                    color: colors.text,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  items.join(' • '),
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
