@@ -133,7 +133,8 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
         if (state.items.isEmpty) {
           return const Center(child: Text('No members in this channel.'));
         }
-        final currentUserId = ref.watch(sessionStoreProvider).userId;
+        final currentUserId =
+            ref.watch(sessionStoreProvider.select((s) => s.userId));
         return ListView.builder(
           itemCount: state.items.length,
           itemBuilder: (context, index) {
@@ -152,8 +153,8 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
   }
 
   bool _canManageMembers() {
-    final serverListState = ref.watch(serverListStoreProvider);
-    for (final server in serverListState.servers) {
+    final servers = ref.watch(serverListStoreProvider.select((s) => s.servers));
+    for (final server in servers) {
       if (server.id == widget.serverId) {
         return server.isAdmin;
       }

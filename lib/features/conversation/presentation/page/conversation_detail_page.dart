@@ -2801,7 +2801,8 @@ class _ConversationMessageCardState
             _ReactionRow(
               reactions: message.reactions,
               messageId: message.id,
-              currentUserId: ref.watch(sessionStoreProvider).userId,
+              currentUserId:
+                  ref.watch(sessionStoreProvider.select((s) => s.userId)),
             ),
             threadIndicator,
           ],
@@ -2820,7 +2821,8 @@ class _ConversationMessageCardState
               _ReactionRow(
                 reactions: message.reactions,
                 messageId: message.id,
-                currentUserId: ref.watch(sessionStoreProvider).userId,
+                currentUserId:
+                    ref.watch(sessionStoreProvider.select((s) => s.userId)),
               ),
               threadIndicator,
               if (_showPreciseTimestamp)

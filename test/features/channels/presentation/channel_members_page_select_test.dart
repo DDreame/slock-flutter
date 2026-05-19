@@ -14,14 +14,8 @@
 // T4: isCreating change must NOT fire servers-select (skip:true).
 // T5: servers change DOES fire servers-select (active).
 //
-// Phase A: T1/T2/T4 skip:true — broad watch in current impl.
-//          T3/T5 active — correctness proofs.
-//
-// Phase B:
-// - channel_members_page.dart L136: ref.watch(sessionStoreProvider).userId →
-//   ref.watch(sessionStoreProvider.select((s) => s.userId))
-// - channel_members_page.dart L155: ref.watch(serverListStoreProvider) →
-//   ref.watch(serverListStoreProvider.select((s) => s.servers))
+// Phase B: lib fixes applied — ref.watch uses .select() for both providers.
+// All tests active.
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -114,7 +108,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
@@ -151,7 +145,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
@@ -224,7 +218,7 @@ void main() {
 
       keepAlive.close();
     },
-    skip: true, // Phase A: requires Phase B .select() fix
+    skip: false, // Phase B: .select() fix applied
   );
 
   // -------------------------------------------------------------------------
