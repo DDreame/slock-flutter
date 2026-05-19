@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
-import 'package:slock_app/app/widgets/app_empty_view.dart';
 import 'package:slock_app/app/widgets/app_error_view.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
@@ -28,7 +27,7 @@ import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 //   3a. Direct AppErrorView unit test: construct the shared widget
 //       directly and verify rendering + retry callback fires
 //   4. Shared empty view: duplicate empty-state widgets should be
-//      replaced with a shared AppEmptyView component
+//      replaced with a shared component
 //
 // Invariants:
 //   INV-UIUNIFY-1: ThreadsPage success state wraps the list in a
@@ -39,12 +38,12 @@ import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 //                   (not a private _ThreadsFailureView)
 //   INV-UIUNIFY-3a: AppErrorView directly constructed renders message,
 //                    retry button, and fires onRetry callback on tap
-//   INV-UIUNIFY-4: AppEmptyView directly constructed renders icon,
+//   INV-UIUNIFY-4: Shared empty view directly constructed renders icon,
 //                   title, optional subtitle
 //
 // Phase A: All tests skip:true — threads page has no RefreshIndicator,
 // inbox tile uses GestureDetector, error views are private duplicates,
-// AppErrorView and AppEmptyView shared widgets do not exist yet.
+// AppErrorView shared widget does not exist yet.
 // ---------------------------------------------------------------------------
 
 void main() {
@@ -275,72 +274,6 @@ void main() {
         isTrue,
         reason: 'Tapping Retry must fire the onRetry callback '
             '(INV-UIUNIFY-3a)',
-      );
-    },
-  );
-
-  // -----------------------------------------------------------------------
-  // INV-UIUNIFY-4: AppEmptyView directly constructed renders icon,
-  // title, and optional subtitle.
-  //
-  // Setup: Construct AppEmptyView(icon:..., title:..., subtitle:...)
-  // directly. Verify:
-  //   - The icon is rendered
-  //   - The title text is rendered
-  //   - The subtitle text is rendered when provided
-  //
-  // This locks the shared empty-state widget's API contract so
-  // Phase B replaces all private empty-state duplicates.
-  //
-  // skip:true — AppEmptyView shared widget does not exist yet.
-  // -----------------------------------------------------------------------
-  testWidgets(
-    'AppEmptyView renders icon, title, and subtitle (INV-UIUNIFY-4)',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.light,
-          home: const Scaffold(
-            body: AppEmptyView(
-              icon: Icons.inbox_outlined,
-              title: 'No messages yet',
-              subtitle: 'Start a conversation to get going.',
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      // Widget must use the shared key.
-      expect(
-        find.byKey(const ValueKey('app-empty-view')),
-        findsOneWidget,
-        reason: 'AppEmptyView must have key app-empty-view '
-            '(INV-UIUNIFY-4)',
-      );
-
-      // Icon must be rendered.
-      expect(
-        find.byIcon(Icons.inbox_outlined),
-        findsOneWidget,
-        reason: 'AppEmptyView must render the provided icon '
-            '(INV-UIUNIFY-4)',
-      );
-
-      // Title text must be rendered.
-      expect(
-        find.text('No messages yet'),
-        findsOneWidget,
-        reason: 'AppEmptyView must render the title text '
-            '(INV-UIUNIFY-4)',
-      );
-
-      // Subtitle text must be rendered.
-      expect(
-        find.text('Start a conversation to get going.'),
-        findsOneWidget,
-        reason: 'AppEmptyView must render the subtitle text '
-            '(INV-UIUNIFY-4)',
       );
     },
   );

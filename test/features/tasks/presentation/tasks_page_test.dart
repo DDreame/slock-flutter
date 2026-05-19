@@ -4,7 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
-import 'package:slock_app/features/tasks/application/tasks_realtime_binding.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -23,7 +22,6 @@ void main() {
       ProviderScope(
         overrides: [
           tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
         child: MaterialApp(
             theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
@@ -198,7 +196,6 @@ void main() {
       ProviderScope(
         overrides: [
           tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
         child: MaterialApp(
             theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
@@ -224,7 +221,6 @@ void main() {
       ProviderScope(
         overrides: [
           tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
         child: MaterialApp(
             theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
@@ -255,7 +251,6 @@ void main() {
       ProviderScope(
         overrides: [
           tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
         child: MaterialApp(
             theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
@@ -289,7 +284,6 @@ void main() {
       ProviderScope(
         overrides: [
           tasksStoreProvider.overrideWith(() => store),
-          tasksRealtimeBindingProvider.overrideWith((ref) {}),
         ],
         child: MaterialApp(
             theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
@@ -363,7 +357,6 @@ void main() {
         ProviderScope(
           overrides: [
             tasksStoreProvider.overrideWith(() => store),
-            tasksRealtimeBindingProvider.overrideWith((ref) {}),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -405,7 +398,6 @@ void main() {
         ProviderScope(
           overrides: [
             tasksStoreProvider.overrideWith(() => store),
-            tasksRealtimeBindingProvider.overrideWith((ref) {}),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -451,7 +443,6 @@ void main() {
         ProviderScope(
           overrides: [
             tasksStoreProvider.overrideWith(() => store),
-            tasksRealtimeBindingProvider.overrideWith((ref) {}),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -591,7 +582,6 @@ Widget _buildApp(_FakeTasksStore store, {ThemeData? theme}) {
   return ProviderScope(
     overrides: [
       tasksStoreProvider.overrideWith(() => store),
-      tasksRealtimeBindingProvider.overrideWith((ref) {}),
     ],
     child: MaterialApp.router(
       routerConfig: router,
