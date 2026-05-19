@@ -22,7 +22,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
-import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/l10n/app_localizations_en.dart';
 
 // ---------------------------------------------------------------------------
