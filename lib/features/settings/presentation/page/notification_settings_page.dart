@@ -6,8 +6,17 @@ import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
-import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
+
+/// Narrowed select projection — only fields consumed by
+/// NotificationSettingsPage.build().
+typedef _NotifySettingsProjection = ({
+  NotificationPermissionStatus permissionStatus,
+  String? pushToken,
+  String? pushTokenPlatform,
+  DateTime? pushTokenUpdatedAt,
+  NotificationPreference notificationPreference,
+});
 
 class NotificationSettingsPage extends ConsumerStatefulWidget {
   const NotificationSettingsPage({super.key});
@@ -23,7 +32,17 @@ class _NotificationSettingsPageState
 
   @override
   Widget build(BuildContext context) {
-    final notificationState = ref.watch(notificationStoreProvider);
+    final notificationState = ref.watch(
+      notificationStoreProvider.select(
+        (s) => (
+          permissionStatus: s.permissionStatus,
+          pushToken: s.pushToken,
+          pushTokenPlatform: s.pushTokenPlatform,
+          pushTokenUpdatedAt: s.pushTokenUpdatedAt,
+          notificationPreference: s.notificationPreference,
+        ),
+      ),
+    );
     final diagnostics = ref.watch(diagnosticsCollectorProvider);
     final theme = Theme.of(context);
     final l10n = context.l10n;
@@ -287,7 +306,8 @@ String _truncatedToken(String? token, AppLocalizations l10n) {
   return '${token.substring(0, 8)}...${token.substring(token.length - 8)}';
 }
 
-String _permissionSubtitle(NotificationState state, AppLocalizations l10n) {
+String _permissionSubtitle(
+    _NotifySettingsProjection state, AppLocalizations l10n) {
   final status = switch (state.permissionStatus) {
     NotificationPermissionStatus.granted =>
       l10n.notificationSettingsPermissionGranted,
@@ -307,7 +327,7 @@ String _permissionSubtitle(NotificationState state, AppLocalizations l10n) {
 }
 
 String _permissionActionLabel(
-  NotificationState state,
+  _NotifySettingsProjection state,
   AppLocalizations l10n,
 ) {
   return switch (state.permissionStatus) {
