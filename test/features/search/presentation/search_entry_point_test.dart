@@ -2,17 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
 import 'package:slock_app/features/search/data/search_repository_provider.dart';
 import 'package:slock_app/features/search/presentation/page/search_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 import '../../../core/local_data/fake_conversation_local_store.dart';
 
 /// Tests for the search entry point (home page search icon) and navigation.
 void main() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  });
+
   group('search entry point', () {
     testWidgets('home page search button navigates to search route',
         (tester) async {
@@ -58,6 +68,7 @@ void main() {
             ),
             searchRepositoryProvider
                 .overrideWithValue(const _StaticSearchRepository()),
+            sharedPreferencesProvider.overrideWithValue(prefs),
           ],
           child: MaterialApp.router(
             routerConfig: router,
@@ -87,6 +98,7 @@ void main() {
             ),
             searchRepositoryProvider
                 .overrideWithValue(const _StaticSearchRepository()),
+            sharedPreferencesProvider.overrideWithValue(prefs),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
@@ -118,6 +130,7 @@ void main() {
             ),
             searchRepositoryProvider
                 .overrideWithValue(const _StaticSearchRepository()),
+            sharedPreferencesProvider.overrideWithValue(prefs),
           ],
           child: MaterialApp(
             theme: AppTheme.dark,
