@@ -9,9 +9,9 @@ import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
-import 'package:slock_app/stores/notification/notification_state.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
@@ -30,7 +30,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(sessionStoreProvider);
-    final notificationState = ref.watch(notificationStoreProvider);
+    final notifSummary = ref.watch(
+      notificationStoreProvider.select(
+        (s) => (permStatus: s.permissionStatus, pref: s.notificationPreference),
+      ),
+    );
     final themeState = ref.watch(themeModeStoreProvider);
     final biometricState = ref.watch(biometricStoreProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -153,7 +157,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 icon: Icons.notifications_active_outlined,
                 iconColor: colors.warning,
                 title: l10n.settingsNotificationSettingsTitle,
-                subtitle: _notificationSummary(notificationState, l10n),
+                subtitle: _notificationSummary(
+                  notifSummary.permStatus,
+                  notifSummary.pref,
+                  l10n,
+                ),
                 colors: colors,
                 onTap: () => context.push('/settings/notifications'),
               ),
@@ -491,8 +499,12 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-String _notificationSummary(NotificationState state, AppLocalizations l10n) {
-  final permission = switch (state.permissionStatus) {
+String _notificationSummary(
+  NotificationPermissionStatus permStatus,
+  NotificationPreference pref,
+  AppLocalizations l10n,
+) {
+  final permission = switch (permStatus) {
     NotificationPermissionStatus.granted => l10n.settingsNotificationGranted,
     NotificationPermissionStatus.denied => l10n.settingsNotificationDenied,
     NotificationPermissionStatus.provisional =>
@@ -500,6 +512,6 @@ String _notificationSummary(NotificationState state, AppLocalizations l10n) {
     NotificationPermissionStatus.unknown =>
       l10n.settingsNotificationNotRequested,
   };
-  final filter = state.notificationPreference.title;
+  final filter = pref.title;
   return '$permission \u00b7 $filter';
 }

@@ -79,7 +79,6 @@ void main() {
   test(
     'INV-SETTINGS-SELECT-1: visibleTarget change does NOT notify consumed-field '
     'select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -137,7 +136,6 @@ void main() {
   test(
     'INV-SETTINGS-SELECT-1: lifecycleStatus change does NOT notify '
     'consumed-field select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
