@@ -300,30 +300,36 @@ final domainRuntimeEventRouterProvider = Provider<void>(
       },
     );
 
-    ref.listen(homeListStoreProvider, (previous, next) {
-      if (next.status != HomeListStatus.success ||
-          next.serverScopeId == null ||
-          pendingDmBuffer.isEmpty) {
-        return;
-      }
-      final toReplay = List<_BufferedDmEvent>.of(pendingDmBuffer);
-      pendingDmBuffer.clear();
-      for (final buffered in toReplay) {
-        if (buffered.serverId != next.serverScopeId) continue;
-        unawaited(() async {
-          try {
-            await _materializeDm(
-              ref,
-              buffered.serverId,
-              buffered.channelId,
-              buffered.payload,
-            );
-          } catch (e, st) {
-            ref.read(crashReporterProvider).captureException(e, stackTrace: st);
-          }
-        }());
-      }
-    });
+    ref.listen(
+      homeListStoreProvider
+          .select((s) => (status: s.status, serverScopeId: s.serverScopeId)),
+      (previous, next) {
+        if (next.status != HomeListStatus.success ||
+            next.serverScopeId == null ||
+            pendingDmBuffer.isEmpty) {
+          return;
+        }
+        final toReplay = List<_BufferedDmEvent>.of(pendingDmBuffer);
+        pendingDmBuffer.clear();
+        for (final buffered in toReplay) {
+          if (buffered.serverId != next.serverScopeId) continue;
+          unawaited(() async {
+            try {
+              await _materializeDm(
+                ref,
+                buffered.serverId,
+                buffered.channelId,
+                buffered.payload,
+              );
+            } catch (e, st) {
+              ref
+                  .read(crashReporterProvider)
+                  .captureException(e, stackTrace: st);
+            }
+          }());
+        }
+      },
+    );
 
     // -----------------------------------------------------------------------
     // App lifecycle: refresh inbox on resume
