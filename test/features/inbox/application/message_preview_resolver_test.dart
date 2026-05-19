@@ -550,16 +550,16 @@ void main() {
       expect(resolvePreviewText('Hello world', l10n: l10n), 'Hello world');
     });
 
-    test('returns 新消息 when preview is null', () {
-      expect(resolvePreviewText(null, l10n: l10n), '新消息');
+    test('returns 消息已删除 when preview is null', () {
+      expect(resolvePreviewText(null, l10n: l10n), '消息已删除');
     });
 
-    test('returns 新消息 when preview is empty string', () {
-      expect(resolvePreviewText('', l10n: l10n), '新消息');
+    test('returns 消息已删除 when preview is empty string', () {
+      expect(resolvePreviewText('', l10n: l10n), '消息已删除');
     });
 
-    test('returns 新消息 when preview is whitespace-only', () {
-      expect(resolvePreviewText('   ', l10n: l10n), '新消息');
+    test('returns 消息已删除 when preview is whitespace-only', () {
+      expect(resolvePreviewText('   ', l10n: l10n), '消息已删除');
     });
 
     test('preserves leading/trailing whitespace in non-empty preview', () {
