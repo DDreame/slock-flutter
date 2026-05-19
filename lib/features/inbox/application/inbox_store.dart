@@ -20,6 +20,19 @@ class InboxStore extends Notifier<InboxState> {
   InboxState build() {
     // Watch the active server so the store rebuilds (state resets) on switch.
     ref.watch(activeServerScopeIdProvider);
+
+    // Listen for realtime reconnection to trigger inbox refresh.
+    // When the connection transitions from reconnecting → connected,
+    // we must refresh to catch messages received during the disconnect.
+    ref.listen(realtimeServiceProvider, (prev, next) {
+      if (prev?.status == RealtimeConnectionStatus.reconnecting &&
+          next.status == RealtimeConnectionStatus.connected) {
+        if (state.status == InboxStatus.success) {
+          refresh(reason: 'reconnect');
+        }
+      }
+    });
+
     // Schedule auto-load after state reset so InboxPage (indexedStack) does
     // not require initState() to re-fire on server switch (#572).
     Future.microtask(() {
