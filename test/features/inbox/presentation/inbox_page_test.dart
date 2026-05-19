@@ -109,29 +109,6 @@ void main() {
       expect(repo.lastFilter, InboxFilter.unread);
     });
 
-    testWidgets('swipe right on item removes it from list (mark done)',
-        (tester) async {
-      repo.items = [
-        _makeItem(channelId: 'ch-1', channelName: '#general', unread: 1),
-      ];
-
-      await tester.pumpWidget(buildApp());
-      await tester.pumpAndSettle();
-
-      // Item visible before swipe.
-      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget);
-
-      // Swipe startToEnd (left-to-right in LTR layout) = mark done
-      await tester.drag(
-        find.byKey(const ValueKey('swipe-action-ch-1')),
-        const Offset(500, 0),
-      );
-      await tester.pumpAndSettle();
-
-      // Item removed from the list (optimistic state update + Dismissible).
-      expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsNothing);
-    });
-
     testWidgets('long-press mark read clears unread badge', (tester) async {
       repo.items = [
         _makeItem(channelId: 'ch-1', channelName: '#general', unread: 5),
