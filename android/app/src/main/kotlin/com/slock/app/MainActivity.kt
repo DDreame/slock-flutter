@@ -28,6 +28,12 @@ class MainActivity : FlutterActivity() {
         private const val notificationPermissionRequestCode = 1001
         private const val notificationChannelId = "slock_messages"
         private const val notificationChannelName = "Messages"
+        private const val dmChannelId = "slock_direct_messages"
+        private const val dmChannelName = "Direct Messages"
+        private const val mentionChannelId = "slock_mentions"
+        private const val mentionChannelName = "Mentions"
+        private const val generalChannelId = "slock_general"
+        private const val generalChannelName = "General"
         private const val tag = "SlockNotifications"
     }
 
@@ -202,19 +208,50 @@ class MainActivity : FlutterActivity() {
 
     private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
+            val manager = getSystemService(NotificationManager::class.java) ?: return
+
+            // Legacy channel (kept for backwards compatibility).
+            val legacyChannel = NotificationChannel(
                 notificationChannelId,
                 notificationChannelName,
                 NotificationManager.IMPORTANCE_HIGH,
             )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+            manager.createNotificationChannel(legacyChannel)
+
+            // Type-specific channels.
+            val dmChannel = NotificationChannel(
+                dmChannelId,
+                dmChannelName,
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Notifications for direct messages"
+            }
+            manager.createNotificationChannel(dmChannel)
+
+            val mentionChannel = NotificationChannel(
+                mentionChannelId,
+                mentionChannelName,
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Notifications for @mentions"
+            }
+            manager.createNotificationChannel(mentionChannel)
+
+            val generalChannel = NotificationChannel(
+                generalChannelId,
+                generalChannelName,
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = "Notifications for channel messages and other activity"
+            }
+            manager.createNotificationChannel(generalChannel)
         }
     }
 
     private fun showLocalNotification(payload: Map<String, Any?>) {
         val title = payload["title"] as? String ?: "Slock"
         val body = payload["body"] as? String ?: ""
+        val channelId = resolveChannelId(payload)
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -239,7 +276,7 @@ class MainActivity : FlutterActivity() {
 
         ensureNotificationChannel()
 
-        val notification = NotificationCompat.Builder(this, notificationChannelId)
+        val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(applicationInfo.icon)
             .setContentTitle(title)
             .setContentText(body)
@@ -254,6 +291,14 @@ class MainActivity : FlutterActivity() {
             notificationManager.notify(notificationId, notification)
         } catch (e: SecurityException) {
             Log.w(tag, "Missing notification permission", e)
+        }
+    }
+
+    private fun resolveChannelId(payload: Map<String, Any?>): String {
+        return when (payload["type"] as? String) {
+            "direct_message" -> dmChannelId
+            "mention" -> mentionChannelId
+            else -> generalChannelId
         }
     }
 

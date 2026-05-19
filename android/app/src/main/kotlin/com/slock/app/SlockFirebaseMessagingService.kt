@@ -14,8 +14,14 @@ import com.google.firebase.messaging.RemoteMessage
 class SlockFirebaseMessagingService : FirebaseMessagingService() {
 
     companion object {
-        private const val notificationChannelId = "slock_messages"
-        private const val notificationChannelName = "Messages"
+        private const val legacyChannelId = "slock_messages"
+        private const val legacyChannelName = "Messages"
+        private const val dmChannelId = "slock_direct_messages"
+        private const val dmChannelName = "Direct Messages"
+        private const val mentionChannelId = "slock_mentions"
+        private const val mentionChannelName = "Mentions"
+        private const val generalChannelId = "slock_general"
+        private const val generalChannelName = "General"
         private const val tag = "SlockFCM"
     }
 
@@ -45,6 +51,7 @@ class SlockFirebaseMessagingService : FirebaseMessagingService() {
     private fun showBackgroundNotification(payload: Map<String, Any?>) {
         val title = payload["title"] as? String ?: "Slock"
         val body = payload["body"] as? String ?: ""
+        val channelId = resolveChannelId(payload)
 
         val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -67,9 +74,9 @@ class SlockFirebaseMessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        ensureNotificationChannel()
+        ensureNotificationChannels()
 
-        val notification = NotificationCompat.Builder(this, notificationChannelId)
+        val notification = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(applicationInfo.icon)
             .setContentTitle(title)
             .setContentText(body)
@@ -87,15 +94,53 @@ class SlockFirebaseMessagingService : FirebaseMessagingService() {
         }
     }
 
-    private fun ensureNotificationChannel() {
+    private fun resolveChannelId(payload: Map<String, Any?>): String {
+        return when (payload["type"] as? String) {
+            "direct_message" -> dmChannelId
+            "mention" -> mentionChannelId
+            else -> generalChannelId
+        }
+    }
+
+    private fun ensureNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                notificationChannelId,
-                notificationChannelName,
+            val manager = getSystemService(NotificationManager::class.java) ?: return
+
+            // Legacy channel (backwards compatibility).
+            val legacyChannel = NotificationChannel(
+                legacyChannelId,
+                legacyChannelName,
                 NotificationManager.IMPORTANCE_HIGH,
             )
-            val manager = getSystemService(NotificationManager::class.java)
-            manager?.createNotificationChannel(channel)
+            manager.createNotificationChannel(legacyChannel)
+
+            // Type-specific channels.
+            val dmChannel = NotificationChannel(
+                dmChannelId,
+                dmChannelName,
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Notifications for direct messages"
+            }
+            manager.createNotificationChannel(dmChannel)
+
+            val mentionChannel = NotificationChannel(
+                mentionChannelId,
+                mentionChannelName,
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Notifications for @mentions"
+            }
+            manager.createNotificationChannel(mentionChannel)
+
+            val generalChannel = NotificationChannel(
+                generalChannelId,
+                generalChannelName,
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = "Notifications for channel messages and other activity"
+            }
+            manager.createNotificationChannel(generalChannel)
         }
     }
 }
