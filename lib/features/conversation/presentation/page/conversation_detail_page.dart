@@ -2497,14 +2497,15 @@ class _ConversationMessageCardState
       );
     }
 
-    final savedIds = ref.watch(
-      conversationDetailStoreProvider.select((s) => s.savedMessageIds),
+    final isSaved = ref.watch(
+      conversationDetailStoreProvider.select(
+        (s) => s.savedMessageIds.contains(message.id),
+      ),
     );
     final currentUserId =
         ref.watch(sessionStoreProvider.select((session) => session.userId));
     final currentUserName = ref
         .watch(sessionStoreProvider.select((session) => session.displayName));
-    final isSaved = savedIds.contains(message.id);
     final visualKind =
         _resolveConversationMessageVisualKind(message, currentUserId);
     final senderLabel = switch (visualKind) {

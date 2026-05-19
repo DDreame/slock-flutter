@@ -255,7 +255,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-PERF-SAVED-1: saving msg-1 does NOT notify select for msg-2 or msg-3',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -278,6 +277,9 @@ void main() {
 
       // Trigger initial load.
       await container.read(conversationDetailStoreProvider.notifier).load();
+
+      // Allow unawaited refreshSavedMessageIds to settle.
+      await Future<void>.delayed(Duration.zero);
 
       // Per-message boolean selects (the Phase B pattern).
       int msg1NotifyCount = 0;
@@ -341,7 +343,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-PERF-SAVED-1: unsaving msg-2 does NOT notify select for msg-1 or msg-3',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -362,6 +363,9 @@ void main() {
       );
 
       await container.read(conversationDetailStoreProvider.notifier).load();
+
+      // Allow unawaited refreshSavedMessageIds to settle.
+      await Future<void>.delayed(Duration.zero);
 
       // Pre-save msg-1 and msg-2 to set up unsave scenario.
       await container
