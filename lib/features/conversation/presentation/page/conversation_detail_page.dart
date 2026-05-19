@@ -251,7 +251,29 @@ class _ConversationDetailScreenState
         ),
       );
     }
-    final state = ref.watch(conversationDetailStoreProvider);
+    // INV-SCAFFOLD-SELECT-1: Watch only scaffold-relevant fields so that
+    // messages/pendingMessages mutations (the hottest path) do NOT trigger
+    // a full scaffold rebuild. The message list has its own subscription via
+    // _ConversationMessageList.
+    ref.watch(conversationDetailStoreProvider.select((s) => (
+          status: s.status,
+          failure: s.failure,
+          draft: s.draft,
+          resolvedTitle: s.resolvedTitle,
+          description: s.description,
+          memberCount: s.memberCount,
+          isSearchActive: s.isSearchActive,
+          isEmpty: s.isEmpty,
+          isRefreshing: s.isRefreshing,
+          isSelectionMode: s.isSelectionMode,
+          sendFailure: s.sendFailure,
+          pendingAttachments: s.pendingAttachments,
+          replyToMessage: s.replyToMessage,
+          uploadProgress: s.uploadProgress,
+          isSending: s.isSending,
+          canSend: s.canSend,
+        )));
+    final state = ref.read(conversationDetailStoreProvider);
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
     // refresh completes with failure — not on pagination or mutation errors.
     ref.listen(
@@ -434,7 +456,6 @@ class _ConversationDetailScreenState
                             key: _screenshotBoundaryKey,
                             child: _ConversationMessageList(
                               controller: _scrollController,
-                              state: state,
                               onScrollToMessage: _scrollToMessageId,
                               highlightedMessageId: _highlightedMessageId,
                               messageKeyBuilder: _getMessageKey,
@@ -1209,14 +1230,12 @@ class _ConversationEmptyView extends StatelessWidget {
 class _ConversationMessageList extends ConsumerWidget {
   const _ConversationMessageList({
     required this.controller,
-    required this.state,
     this.onScrollToMessage,
     this.highlightedMessageId,
     this.messageKeyBuilder,
   });
 
   final ScrollController controller;
-  final ConversationDetailState state;
   final void Function(
           String messageId, List<ConversationMessageSummary> messages)?
       onScrollToMessage;
@@ -1230,6 +1249,7 @@ class _ConversationMessageList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(conversationDetailStoreProvider);
     final pendingCount = state.pendingMessages.length;
     final totalCount = state.messages.length + pendingCount + 1;
     // Compute maxBubbleWidth once at the list level instead of per-message

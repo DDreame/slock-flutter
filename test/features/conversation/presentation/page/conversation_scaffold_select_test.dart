@@ -47,6 +47,17 @@ class _ControllableDetailStore extends ConversationDetailStore {
           const ChannelScopeId(serverId: ServerScopeId('srv'), value: 'ch1'),
         ),
         status: ConversationDetailStatus.success,
+        // Start with a message so isEmpty is already false — adding/replacing
+        // messages won't flip isEmpty and won't fire the scaffold projection.
+        messages: [
+          ConversationMessageSummary(
+            id: 'seed-msg',
+            content: 'seed',
+            createdAt: DateTime(2026),
+            senderType: 'human',
+            messageType: 'default',
+          ),
+        ],
       );
 
   void setMessagesDirect(List<ConversationMessageSummary> msgs) {
@@ -121,7 +132,6 @@ void main() {
   // -------------------------------------------------------------------------
   test(
     'INV-SCAFFOLD-SELECT-1: messages change does NOT notify scaffold select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
@@ -169,7 +179,6 @@ void main() {
   test(
     'INV-SCAFFOLD-SELECT-1: pendingMessages change does NOT notify '
     'scaffold select',
-    skip: true,
     () async {
       final container = ProviderContainer(
         overrides: [
