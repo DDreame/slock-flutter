@@ -277,64 +277,6 @@ void main() {
   });
 
   group('InfoPageNavigation', () {
-    // T1: Files shortcut navigates to info page files section
-    testWidgets(
-      'files shortcut navigates to info page with initialSection: files',
-      (tester) async {
-        final observer = _RecordingNavigatorObserver();
-        await tester.pumpWidget(
-          _buildDetailPage(observer: observer, prefs: prefs),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap the files header shortcut button.
-        final filesShortcut = find.byKey(
-          const ValueKey('conversation-files-shortcut'),
-        );
-        expect(filesShortcut, findsOneWidget);
-        await tester.tap(filesShortcut);
-        await tester.pumpAndSettle();
-
-        // Verify ConversationInfoPage is the navigation target.
-        expect(find.byType(ConversationInfoPage), findsOneWidget);
-
-        // Verify initialSection was passed as files.
-        final infoPage = tester.widget<ConversationInfoPage>(
-          find.byType(ConversationInfoPage),
-        );
-        expect(infoPage.initialSection, ConversationInfoSection.files);
-      },
-    );
-
-    // T2: Pinned shortcut navigates to info page pinned section
-    testWidgets(
-      'pinned shortcut navigates to info page with initialSection: pinned',
-      (tester) async {
-        final observer = _RecordingNavigatorObserver();
-        await tester.pumpWidget(
-          _buildDetailPage(observer: observer, prefs: prefs),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap the pinned header shortcut button.
-        final pinnedShortcut = find.byKey(
-          const ValueKey('conversation-pinned-shortcut'),
-        );
-        expect(pinnedShortcut, findsOneWidget);
-        await tester.tap(pinnedShortcut);
-        await tester.pumpAndSettle();
-
-        // Verify ConversationInfoPage is the navigation target.
-        expect(find.byType(ConversationInfoPage), findsOneWidget);
-
-        // Verify initialSection was passed as pinned.
-        final infoPage = tester.widget<ConversationInfoPage>(
-          find.byType(ConversationInfoPage),
-        );
-        expect(infoPage.initialSection, ConversationInfoSection.pinned);
-      },
-    );
-
     // T3: Members shortcut navigates to info page members section
     testWidgets(
       'members shortcut navigates to info page with initialSection: members',
@@ -391,37 +333,6 @@ void main() {
           find.byKey(const ValueKey('conversation-info-files-section-active')),
           findsOneWidget,
         );
-      },
-    );
-
-    // T5: Header shortcuts navigate to ConversationInfoPage, not standalone
-    testWidgets(
-      'pinned shortcut navigates to ConversationInfoPage not PinnedMessagesPage',
-      (tester) async {
-        final observer = _RecordingNavigatorObserver();
-        await tester.pumpWidget(
-          _buildDetailPage(observer: observer, prefs: prefs),
-        );
-        await tester.pumpAndSettle();
-
-        // Tap the pinned shortcut (new unified key).
-        final pinnedShortcut = find.byKey(
-          const ValueKey('conversation-pinned-shortcut'),
-        );
-        expect(pinnedShortcut, findsOneWidget);
-        await tester.tap(pinnedShortcut);
-        await tester.pumpAndSettle();
-
-        // Must navigate to ConversationInfoPage.
-        expect(find.byType(ConversationInfoPage), findsOneWidget);
-
-        // Must NOT be on the old standalone PinnedMessagesPage.
-        // The old standalone key 'conversation-pinned-messages' should not
-        // trigger navigation to a separate pinned page route.
-        // We verify by checking the pushed route is a MaterialPageRoute whose
-        // target is ConversationInfoPage (captured by observer).
-        final pushes = observer.pushedRoutes.whereType<MaterialPageRoute>();
-        expect(pushes, isNotEmpty);
       },
     );
   });

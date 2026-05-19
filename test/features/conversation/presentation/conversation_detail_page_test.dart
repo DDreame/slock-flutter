@@ -34,11 +34,8 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart'
 import 'package:slock_app/features/translation/data/translation_settings.dart';
 
 void main() {
-  late SharedPreferences prefs;
-
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    prefs = await SharedPreferences.getInstance();
   });
   testWidgets('ChannelPage wrapper rebuilds typed channel scope', (
     tester,
@@ -1422,121 +1419,6 @@ void main() {
     );
   });
 
-  testWidgets('pin button is present on channel surface', (tester) async {
-    final target = ConversationDetailTarget.channel(
-      const ChannelScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'general',
-      ),
-    );
-    final repository = _FakeConversationRepository(
-      snapshot: ConversationDetailSnapshot(
-        target: target,
-        title: '#general',
-        messages: [
-          ConversationMessageSummary(
-            id: 'message-1',
-            content: 'Hello',
-            createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
-            senderType: 'human',
-            messageType: 'message',
-            seq: 1,
-          ),
-        ],
-        historyLimited: false,
-        hasOlder: false,
-      ),
-    );
-
-    await tester.pumpWidget(
-      _buildApp(
-        repository: repository,
-        child: ConversationDetailPage(target: target),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const ValueKey('conversation-pinned-shortcut')),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets(
-      'tapping pinned message pops page and returns messageId for scroll',
-      (tester) async {
-    final target = ConversationDetailTarget.channel(
-      const ChannelScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'general',
-      ),
-    );
-    final pinnedMessage = ConversationMessageSummary(
-      id: 'message-2',
-      content: 'Important pinned content',
-      createdAt: DateTime.parse('2026-05-07T10:01:00Z'),
-      senderType: 'human',
-      senderId: 'user-2',
-      senderName: 'Alice',
-      messageType: 'message',
-      seq: 2,
-      isPinned: true,
-    );
-    final repository = _FakeConversationRepository(
-      snapshot: ConversationDetailSnapshot(
-        target: target,
-        title: '#general',
-        messages: [
-          ConversationMessageSummary(
-            id: 'message-1',
-            content: 'Hello',
-            createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
-            senderType: 'human',
-            messageType: 'message',
-            seq: 1,
-          ),
-          pinnedMessage,
-        ],
-        historyLimited: false,
-        hasOlder: false,
-      ),
-      pinnedMessages: [pinnedMessage],
-    );
-
-    await tester.pumpWidget(
-      _buildApp(
-        repository: repository,
-        child: ConversationDetailPage(target: target),
-        prefs: prefs,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    // Tap pin shortcut to open info page with pinned section
-    await tester.tap(
-      find.byKey(const ValueKey('conversation-pinned-shortcut')),
-    );
-    await tester.pumpAndSettle();
-
-    // Tap the pinned section in info page to open pinned messages list
-    await tester.tap(
-      find.byKey(const ValueKey('conversation-info-pinned-section-active')),
-    );
-    await tester.pumpAndSettle();
-
-    // Verify pinned messages page is shown
-    expect(find.text('Pinned messages'), findsOneWidget);
-    expect(find.byKey(const ValueKey('pinned-msg-message-2')), findsOneWidget);
-
-    // Tap the pinned message row
-    await tester.tap(find.byKey(const ValueKey('pinned-msg-message-2')));
-    await tester.pumpAndSettle();
-
-    // Should have popped back to conversation detail page
-    expect(find.text('Pinned messages'), findsNothing);
-    expect(find.byKey(const ValueKey('message-message-1')), findsOneWidget);
-  });
-
   testWidgets('ConversationDetailPage renders screenshot button in AppBar', (
     tester,
   ) async {
@@ -2192,7 +2074,6 @@ class _FakeConversationRepository implements ConversationRepository {
     this.sentMessage,
     this.sendFailure,
     this.sendCompleter,
-    this.pinnedMessages = const [],
   });
 
   final ConversationDetailSnapshot snapshot;
@@ -2200,7 +2081,6 @@ class _FakeConversationRepository implements ConversationRepository {
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
   final Completer<ConversationMessageSummary>? sendCompleter;
-  final List<ConversationMessageSummary> pinnedMessages;
   final List<ConversationDetailTarget> requestedTargets = [];
   final List<int> olderRequests = [];
   final List<String> sentContents = [];
@@ -2327,7 +2207,7 @@ class _FakeConversationRepository implements ConversationRepository {
   Future<List<ConversationMessageSummary>> loadPinnedMessages(
     ConversationDetailTarget target,
   ) async {
-    return pinnedMessages;
+    return const [];
   }
 
   @override

@@ -329,57 +329,6 @@ class _ConversationDetailScreenState
                   .read(conversationDetailStoreProvider.notifier)
                   .toggleSearch,
             ),
-          if (state.status == ConversationDetailStatus.success &&
-              ref.read(currentConversationDetailTargetProvider).surface ==
-                  ConversationSurface.channel)
-            IconButton(
-              key: const ValueKey('conversation-files-shortcut'),
-              icon: const Icon(Icons.folder_outlined),
-              tooltip: 'Shared files',
-              onPressed: () {
-                final target =
-                    ref.read(currentConversationDetailTargetProvider);
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ConversationInfoPage(
-                      target: target,
-                      title: state.resolvedTitle,
-                      description: state.description,
-                      initialSection: ConversationInfoSection.files,
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (state.status == ConversationDetailStatus.success &&
-              ref.read(currentConversationDetailTargetProvider).surface ==
-                  ConversationSurface.channel)
-            IconButton(
-              key: const ValueKey('conversation-pinned-shortcut'),
-              icon: const Icon(Icons.push_pin_outlined),
-              tooltip: 'Pinned messages',
-              onPressed: () async {
-                final target =
-                    ref.read(currentConversationDetailTargetProvider);
-                final messageId = await Navigator.of(context).push<String>(
-                  MaterialPageRoute<String>(
-                    builder: (_) => ConversationInfoPage(
-                      target: target,
-                      title: state.resolvedTitle,
-                      description: state.description,
-                      initialSection: ConversationInfoSection.pinned,
-                    ),
-                  ),
-                );
-                if (messageId != null && mounted) {
-                  final currentState =
-                      ref.read(conversationDetailStoreProvider);
-                  if (currentState.status == ConversationDetailStatus.success) {
-                    _scrollToMessageId(messageId, currentState.messages);
-                  }
-                }
-              },
-            ),
           if (state.status == ConversationDetailStatus.success)
             IconButton(
               key: const ValueKey('conversation-members-shortcut'),
