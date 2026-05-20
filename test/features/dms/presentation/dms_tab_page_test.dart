@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +12,7 @@ import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
@@ -137,6 +140,9 @@ void main() {
 
     return ProviderScope(
       overrides: [
+        homeNowProvider.overrideWith(
+          (ref) => Stream.value(DateTime.now()),
+        ),
         activeServerScopeIdProvider.overrideWithValue(activeServerId),
         homeRepositoryProvider.overrideWithValue(homeRepository),
         sharedPreferencesProvider.overrideWithValue(prefs),
@@ -494,6 +500,9 @@ void main() {
   }) async {
     final container = ProviderContainer(
       overrides: [
+        homeNowProvider.overrideWith(
+          (ref) => Stream.value(DateTime.now()),
+        ),
         activeServerScopeIdProvider.overrideWithValue(serverId),
         homeRepositoryProvider.overrideWithValue(homeRepository),
         inboxRepositoryProvider.overrideWithValue(inboxRepository),
