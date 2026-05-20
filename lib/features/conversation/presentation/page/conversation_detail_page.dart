@@ -29,7 +29,7 @@ export 'package:slock_app/features/conversation/presentation/widgets/conversatio
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_search_overlay.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_selection_bar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
-import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/dm_scope_map_provider.dart';
 import 'package:slock_app/features/presence/application/presence_store.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
@@ -1355,19 +1355,9 @@ class _DmPresenceSubtitle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // #654: O(1) map lookup via dmScopeMapProvider instead of O(3n) linear scan.
     final peerId = ref.watch(
-      homeListStoreProvider.select((state) {
-        for (final dm in state.pinnedDirectMessages) {
-          if (dm.scopeId.value == conversationId) return dm.peerId;
-        }
-        for (final dm in state.directMessages) {
-          if (dm.scopeId.value == conversationId) return dm.peerId;
-        }
-        for (final dm in state.hiddenDirectMessages) {
-          if (dm.scopeId.value == conversationId) return dm.peerId;
-        }
-        return null;
-      }),
+      dmScopeMapProvider.select((map) => map[conversationId]?.peerId),
     );
     if (peerId == null) return const SizedBox.shrink();
 
