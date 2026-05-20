@@ -67,7 +67,9 @@ mixin _ConversationDetailCoreMixin
     List<ConversationMessageSummary> existing,
     ConversationMessageSummary next,
   ) {
-    if (existing.any((message) => message.id == next.id)) {
+    // INV-DEDUP-663-1: O(1) lookup via lazily-cached message ID Set.
+    final store = this as ConversationDetailStore;
+    if (store._messageIdSet.contains(next.id)) {
       return existing;
     }
     return [...existing, next];
@@ -136,6 +138,22 @@ class ConversationDetailStore
         _ConversationDetailSelectionMixin {
   int _requestEpoch = 0;
   final RequestCoordinator _coordinator = RequestCoordinator();
+
+  /// INV-DEDUP-663-1: Cached Set of message IDs for O(1) dedup lookup.
+  /// Invalidated (rebuilt lazily) whenever state.messages list changes.
+  List<ConversationMessageSummary>? _cachedMessageList;
+  Set<String> _cachedMessageIdSet = const {};
+
+  /// Returns the current message ID set, rebuilding lazily when the
+  /// messages list identity changes. O(1) amortized per dedup check.
+  Set<String> get _messageIdSet {
+    final currentMessages = state.messages;
+    if (!identical(currentMessages, _cachedMessageList)) {
+      _cachedMessageIdSet = {for (final m in currentMessages) m.id};
+      _cachedMessageList = currentMessages;
+    }
+    return _cachedMessageIdSet;
+  }
 
   /// Maximum duration a message can stay in [MessageSendStatus.sending]
   /// before being auto-transitioned to queued via the outbox.

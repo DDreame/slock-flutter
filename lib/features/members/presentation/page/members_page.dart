@@ -59,19 +59,31 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
   @override
   Widget build(BuildContext context) {
     ref.watch(membersRealtimeBindingProvider);
-    final state = ref.watch(memberListStoreProvider);
+    // INV-MEMBERS-663-SELECT-1: Scaffold-level watch narrowed to status,
+    // canManageMembers, isInvitingByEmail, and isEmpty. Member list content
+    // changes (query, per-member mutation states) no longer rebuild the scaffold.
+    final (:status, :canManageMembers, :isInvitingByEmail, :isEmpty) =
+        ref.watch(
+      memberListStoreProvider.select(
+        (s) => (
+          status: s.status,
+          canManageMembers: s.canManageMembers,
+          isInvitingByEmail: s.isInvitingByEmail,
+          isEmpty: s.members.isEmpty,
+        ),
+      ),
+    );
     final serverId = ref.read(currentMembersServerIdProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
-    final canManageMembers = state.canManageMembers;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Members'),
-        actions: state.status == MemberListStatus.success && canManageMembers
+        actions: status == MemberListStatus.success && canManageMembers
             ? [
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: state.isInvitingByEmail
+                  child: isInvitingByEmail
                       ? const Center(
                           child: SizedBox.square(
                             dimension: 18,
@@ -94,7 +106,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
               ]
             : null,
       ),
-      body: switch (state.status) {
+      body: switch (status) {
         MemberListStatus.initial || MemberListStatus.loading => const Center(
             key: ValueKey('members-loading'),
             child: CircularProgressIndicator(),
@@ -106,14 +118,14 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             onRetry: ref.read(memberListStoreProvider.notifier).load,
             onShareDiagnostics: () => DiagnosticShareSheet.show(context),
           ),
-        MemberListStatus.success when state.members.isEmpty => _EmptyState(
+        MemberListStatus.success when isEmpty => _EmptyState(
             key: const ValueKey('members-empty'),
             icon: Icons.group_outlined,
             message: 'No members yet.',
             colors: colors,
           ),
         MemberListStatus.success => _buildMemberList(
-            state,
+            ref.read(memberListStoreProvider),
             serverId,
             colors,
             canManageMembers,
