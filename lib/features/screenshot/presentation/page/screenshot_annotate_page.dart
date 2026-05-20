@@ -13,6 +13,7 @@ import 'package:slock_app/features/screenshot/presentation/widgets/annotation_ca
 import 'package:slock_app/features/screenshot/presentation/widgets/annotation_toolbar.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Full-screen page for annotating a captured screenshot.
 ///
@@ -128,8 +129,8 @@ class _ScreenshotAnnotatePageState
     final store = ref.read(screenshotStoreProvider.notifier);
 
     if (state.imagePath == null) {
-      return const Scaffold(
-        body: Center(child: Text('No screenshot captured')),
+      return Scaffold(
+        body: Center(child: Text(context.l10n.screenshotAnnotateNoCapture)),
       );
     }
 
@@ -144,24 +145,24 @@ class _ScreenshotAnnotatePageState
             store.reset();
             Navigator.of(context).pop();
           },
-          tooltip: 'Discard',
+          tooltip: context.l10n.screenshotAnnotateDiscardTooltip,
         ),
-        title: const Text(
-          'Annotate Screenshot',
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          context.l10n.screenshotAnnotateTitle,
+          style: const TextStyle(color: Colors.white),
         ),
         actions: [
           IconButton(
             key: const ValueKey('screenshot-save'),
             icon: const Icon(Icons.save_alt, color: Colors.white),
             onPressed: state.isExporting ? null : () => _onSave(store, state),
-            tooltip: 'Save to device',
+            tooltip: context.l10n.screenshotAnnotateSaveTooltip,
           ),
           IconButton(
             key: const ValueKey('screenshot-share'),
             icon: const Icon(Icons.share, color: Colors.white),
             onPressed: state.isExporting ? null : () => _onShare(store, state),
-            tooltip: 'Share',
+            tooltip: context.l10n.screenshotAnnotateShareTooltip,
           ),
         ],
       ),
@@ -405,22 +406,24 @@ class _ScreenshotAnnotatePageState
     final controller = TextEditingController();
     final text = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Text'),
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(dialogCtx.l10n.screenshotAnnotateAddTextTitle),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(hintText: 'Enter text...'),
-          onSubmitted: (value) => Navigator.of(context).pop(value),
+          decoration: InputDecoration(
+            hintText: dialogCtx.l10n.screenshotAnnotateTextHint,
+          ),
+          onSubmitted: (value) => Navigator.of(dialogCtx).pop(value),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: Text(dialogCtx.l10n.screenshotAnnotateCancel),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text),
-            child: const Text('Add'),
+            onPressed: () => Navigator.of(dialogCtx).pop(controller.text),
+            child: Text(dialogCtx.l10n.screenshotAnnotateAddButton),
           ),
         ],
       ),
@@ -466,7 +469,8 @@ class _ScreenshotAnnotatePageState
         store.setExporting(false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to export screenshot')),
+            SnackBar(
+                content: Text(context.l10n.screenshotAnnotateExportFailed)),
           );
         }
         return null;
@@ -499,7 +503,7 @@ class _ScreenshotAnnotatePageState
     try {
       await Share.shareXFiles(
         [XFile(exportedPath)],
-        subject: 'Screenshot',
+        subject: context.l10n.screenshotAnnotateShareSubject,
       );
     } catch (e) {
       if (mounted) {

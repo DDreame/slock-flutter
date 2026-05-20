@@ -1060,4 +1060,299 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get searchRecentClear => 'Borrar';
+
+  @override
+  String get machinesPageTitle => 'Machines';
+
+  @override
+  String get machinesAddButton => 'Add Machine';
+
+  @override
+  String get machinesLoadFailed => 'Failed to load machines.';
+
+  @override
+  String get machinesRegisterTitle => 'Register Machine';
+
+  @override
+  String get machinesRegisterAction => 'Register';
+
+  @override
+  String get machinesRegisterHelper =>
+      'Create a machine and reveal its API key once.';
+
+  @override
+  String get machinesRegisteredTitle => 'Machine Registered';
+
+  @override
+  String get machinesRegisterFailed => 'Failed to register machine.';
+
+  @override
+  String get machinesRenameTitle => 'Rename Machine';
+
+  @override
+  String get machinesRenameSaveAction => 'Save';
+
+  @override
+  String get machinesRenameHelper =>
+      'Update the machine label shown across the workspace.';
+
+  @override
+  String get machinesRenamedSnackbar => 'Machine renamed.';
+
+  @override
+  String get machinesRenameFailed => 'Failed to rename machine.';
+
+  @override
+  String get machinesRotatedApiKeyTitle => 'Rotated API Key';
+
+  @override
+  String get machinesRotateApiKeyFailed => 'Failed to rotate machine API key.';
+
+  @override
+  String get machinesDeleteTitle => 'Delete Machine?';
+
+  @override
+  String get machinesDeleteCancel => 'Cancel';
+
+  @override
+  String get machinesDeleteConfirm => 'Delete';
+
+  @override
+  String get machinesDeletedSnackbar => 'Machine deleted.';
+
+  @override
+  String get machinesDeleteFailed => 'Failed to delete machine.';
+
+  @override
+  String get machinesApiKeyRevealedNote =>
+      'This key is only revealed at creation or rotation time.';
+
+  @override
+  String get machinesApiKeyCopied => 'API key copied.';
+
+  @override
+  String get machinesCopyButton => 'Copy';
+
+  @override
+  String get machinesDoneButton => 'Done';
+
+  @override
+  String get machinesRetryButton => 'Retry';
+
+  @override
+  String get machinesLatestDaemon => 'Latest daemon';
+
+  @override
+  String get machinesEmptyTitle => 'No machines registered yet.';
+
+  @override
+  String get machinesEmptyDescription =>
+      'Register a machine to attach runtimes and admin operations to this server.';
+
+  @override
+  String get machinesRegisterButton => 'Register Machine';
+
+  @override
+  String get machinesMenuRename => 'Rename';
+
+  @override
+  String get machinesMenuRotateApiKey => 'Rotate API Key';
+
+  @override
+  String get machinesMenuDelete => 'Delete';
+
+  @override
+  String get machinesMetaHost => 'Host';
+
+  @override
+  String get machinesMetaOs => 'OS';
+
+  @override
+  String get machinesMetaDaemon => 'Daemon';
+
+  @override
+  String get machinesStatusOnline => 'Online';
+
+  @override
+  String get machinesStatusOffline => 'Offline';
+
+  @override
+  String get machinesStatusError => 'Error';
+
+  @override
+  String get machinesNameLabel => 'Machine name';
+
+  @override
+  String get machinesNameDialogCancel => 'Cancel';
+
+  @override
+  String get tasksLoadFailed => 'Failed to load tasks.';
+
+  @override
+  String get tasksEmptyAll => 'No tasks yet.';
+
+  @override
+  String get tasksNoChannelsAvailable => 'No channels available.';
+
+  @override
+  String get tasksCreatedSnackbar => 'Task created.';
+
+  @override
+  String get tasksCreateFailed => 'Failed to create task.';
+
+  @override
+  String get tasksUpdateFailed => 'Failed to update task.';
+
+  @override
+  String get tasksRetryAction => 'RETRY';
+
+  @override
+  String get tasksDeleteTitle => 'Delete Task?';
+
+  @override
+  String get tasksDeleteCancel => 'Cancel';
+
+  @override
+  String get tasksDeleteConfirm => 'Delete';
+
+  @override
+  String get tasksDeletedSnackbar => 'Task deleted.';
+
+  @override
+  String get tasksDeleteFailed => 'Failed to delete task.';
+
+  @override
+  String get tasksClaimFailed => 'Failed to claim task.';
+
+  @override
+  String get tasksUnclaimFailed => 'Failed to unclaim task.';
+
+  @override
+  String get tasksHeaderTitle => 'Tasks';
+
+  @override
+  String get tasksNewButton => 'New';
+
+  @override
+  String get tasksSummaryTodo => 'To Do';
+
+  @override
+  String get tasksSummaryInProgress => 'In Progress';
+
+  @override
+  String get tasksSummaryReview => 'Review';
+
+  @override
+  String get tasksSummaryDone => 'Done';
+
+  @override
+  String get tasksSummaryClosed => 'Closed';
+
+  @override
+  String get tasksEmptyChannel => 'No tasks in this channel.';
+
+  @override
+  String get tasksFilterAll => 'All';
+
+  @override
+  String get tasksSectionTodo => 'To Do';
+
+  @override
+  String get tasksSectionInProgress => 'In Progress';
+
+  @override
+  String get tasksSectionInReview => 'In Review';
+
+  @override
+  String get tasksSectionDone => 'Done';
+
+  @override
+  String get tasksSectionClosed => 'Closed';
+
+  @override
+  String get tasksActionsTooltip => 'Task actions';
+
+  @override
+  String get tasksSwipeDone => 'Done';
+
+  @override
+  String get tasksActionMarkDone => 'Mark Done';
+
+  @override
+  String get tasksActionClose => 'Close Task';
+
+  @override
+  String get tasksActionStart => 'Start';
+
+  @override
+  String get tasksActionMoveToReview => 'Move to Review';
+
+  @override
+  String get tasksActionReopen => 'Reopen';
+
+  @override
+  String get tasksActionRevertInProgress => 'Revert to In Progress';
+
+  @override
+  String get tasksActionRevertTodo => 'Revert to To Do';
+
+  @override
+  String get tasksActionClaim => 'Claim';
+
+  @override
+  String get tasksActionUnclaim => 'Unclaim';
+
+  @override
+  String get tasksActionDelete => 'Delete';
+
+  @override
+  String get tasksRetryButton => 'Retry';
+
+  @override
+  String get tasksCreateTitle => 'Create Task';
+
+  @override
+  String get tasksCreateChannelLabel => 'Channel';
+
+  @override
+  String get tasksCreateTitleLabel => 'Title';
+
+  @override
+  String get tasksCreateCancel => 'Cancel';
+
+  @override
+  String get tasksCreateConfirm => 'Create';
+
+  @override
+  String get screenshotAnnotateNoCapture => 'No screenshot captured';
+
+  @override
+  String get screenshotAnnotateDiscardTooltip => 'Discard';
+
+  @override
+  String get screenshotAnnotateTitle => 'Annotate Screenshot';
+
+  @override
+  String get screenshotAnnotateSaveTooltip => 'Save to device';
+
+  @override
+  String get screenshotAnnotateShareTooltip => 'Share';
+
+  @override
+  String get screenshotAnnotateAddTextTitle => 'Add Text';
+
+  @override
+  String get screenshotAnnotateTextHint => 'Enter text...';
+
+  @override
+  String get screenshotAnnotateCancel => 'Cancel';
+
+  @override
+  String get screenshotAnnotateAddButton => 'Add';
+
+  @override
+  String get screenshotAnnotateExportFailed => 'Failed to export screenshot';
+
+  @override
+  String get screenshotAnnotateShareSubject => 'Screenshot';
 }
