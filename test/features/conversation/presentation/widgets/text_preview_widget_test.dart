@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/text_preview_widget.dart';
@@ -14,12 +15,14 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: TextPreviewWidget(
-            attachment: attachment,
-            isMarkdown: true,
-            contentFetcher: (url) async => '# Hello\n\nThis is **bold**.',
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: TextPreviewWidget(
+              attachment: attachment,
+              isMarkdown: true,
+              contentFetcher: (url) async => '# Hello\n\nThis is **bold**.',
+            ),
           ),
         ),
       ),
@@ -40,12 +43,14 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: TextPreviewWidget(
-            attachment: attachment,
-            isMarkdown: false,
-            contentFetcher: (url) async => 'plain text content here',
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: TextPreviewWidget(
+              attachment: attachment,
+              isMarkdown: false,
+              contentFetcher: (url) async => 'plain text content here',
+            ),
           ),
         ),
       ),
@@ -67,13 +72,15 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: TextPreviewWidget(
-            attachment: attachment,
-            isMarkdown: false,
-            fallback: fallback,
-            contentFetcher: (url) async => throw Exception('network error'),
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: TextPreviewWidget(
+              attachment: attachment,
+              isMarkdown: false,
+              fallback: fallback,
+              contentFetcher: (url) async => throw Exception('network error'),
+            ),
           ),
         ),
       ),
@@ -92,12 +99,14 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: TextPreviewWidget(
-            attachment: attachment,
-            isMarkdown: false,
-            fallback: fallback,
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: TextPreviewWidget(
+              attachment: attachment,
+              isMarkdown: false,
+              fallback: fallback,
+            ),
           ),
         ),
       ),

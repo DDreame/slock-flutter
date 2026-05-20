@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
@@ -13,11 +14,13 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CsvPreviewWidget(
-            attachment: attachment,
-            contentFetcher: (url) async => 'Name,Age\nAlice,30\nBob,25',
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: CsvPreviewWidget(
+              attachment: attachment,
+              contentFetcher: (url) async => 'Name,Age\nAlice,30\nBob,25',
+            ),
           ),
         ),
       ),
@@ -41,12 +44,14 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CsvPreviewWidget(
-            attachment: attachment,
-            fallback: fallback,
-            contentFetcher: (url) async => throw Exception('network error'),
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: CsvPreviewWidget(
+              attachment: attachment,
+              fallback: fallback,
+              contentFetcher: (url) async => throw Exception('network error'),
+            ),
           ),
         ),
       ),
@@ -66,11 +71,13 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CsvPreviewWidget(
-            attachment: attachment,
-            fallback: fallback,
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: CsvPreviewWidget(
+              attachment: attachment,
+              fallback: fallback,
+            ),
           ),
         ),
       ),

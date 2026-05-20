@@ -70,7 +70,7 @@ final foregroundServiceLifecycleBindingProvider = Provider<void>((ref) {
         'foreground-service',
         'Requested battery optimization exemption prompt',
       );
-    } on Exception catch (e) {
+    } catch (e) {
       diagnostics.warning(
         'foreground-service',
         'Battery optimization prompt unavailable: $e',
