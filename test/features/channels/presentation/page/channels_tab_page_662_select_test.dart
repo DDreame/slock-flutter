@@ -1,19 +1,24 @@
 // =============================================================================
 // #662 — ChannelsTabPage channelManagementStoreProvider .select(isBusy)
+//        (widget-path)
 //
 // Invariant: INV-CHANNELS-MGMT-662-SELECT-1
 //   ChannelsTabPage.build() watches channelManagementStoreProvider narrowed
 //   to s.isBusy. Mutations to channelId or failure (while activeAction remains
-//   null → isBusy stays false) must NOT trigger a rebuild.
+//   null -> isBusy stays false) must NOT trigger a widget rebuild.
 //
-// Strategy:
-// T1: channelId change (isBusy stays false) must NOT notify scaffold.
-// T2: failure change (isBusy stays false) must NOT notify scaffold.
-// T3: activeAction change (isBusy flips true) DOES notify scaffold.
-// T4: dual-path decomposition — isBusy select is independent of
-//     channelId/failure mutations.
+// Strategy (widget-path tests using pumpWidget + Consumer rebuild counters):
+// T1: channelId change (isBusy stays false) must NOT rebuild scaffold.
+// T2: failure change (isBusy stays false) must NOT rebuild scaffold.
+// T3: activeAction change (isBusy flips true) DOES rebuild scaffold.
+// T4: compound mutations — only isBusy-affecting ones trigger rebuild.
+//
+// Each test renders a ConsumerWidget via pumpWidget that uses the EXACT
+// .select((s) => s.isBusy) expression from the production code, counting
+// widget-level rebuilds.
 // =============================================================================
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -60,193 +65,202 @@ class _ControllableChannelManagementStore
 }
 
 // ---------------------------------------------------------------------------
+// Widget-path test harness
+//
+// Renders a ConsumerWidget that uses the EXACT .select() expression from
+// ChannelsTabPage.build():
+//   ref.watch(channelManagementStoreProvider.select((s) => s.isBusy))
+// ---------------------------------------------------------------------------
+
+class _IsBusySelectConsumer extends ConsumerWidget {
+  const _IsBusySelectConsumer({required this.onBuild});
+
+  final VoidCallback onBuild;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(channelManagementStoreProvider.select((s) => s.isBusy));
+    onBuild();
+    return const SizedBox.shrink();
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 void main() {
   // -------------------------------------------------------------------------
-  // T1: channelId change (isBusy stays false) must NOT notify scaffold.
+  // T1: channelId change (isBusy stays false) must NOT rebuild scaffold.
   // -------------------------------------------------------------------------
-  test(
-    'INV-CHANNELS-MGMT-662-SELECT-1: channelId change does NOT notify '
-    'isBusy select — scaffold stays stable',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          channelManagementStoreProvider
-              .overrideWith(() => _ControllableChannelManagementStore()),
-        ],
-      );
-      addTearDown(container.dispose);
+  testWidgets(
+    'INV-CHANNELS-MGMT-662-SELECT-1: channelId change does NOT rebuild '
+    'isBusy select widget — scaffold stays stable',
+    (tester) async {
+      int buildCount = 0;
 
-      final keepAlive =
-          container.listen(channelManagementStoreProvider, (_, __) {});
-
-      // This is the EXACT select expression from channels_tab_page.dart:
-      //   ref.watch(channelManagementStoreProvider.select((s) => s.isBusy))
-      int scaffoldRebuildCount = 0;
-      container.listen(
-        channelManagementStoreProvider.select((s) => s.isBusy),
-        (_, __) => scaffoldRebuildCount++,
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            channelManagementStoreProvider
+                .overrideWith(() => _ControllableChannelManagementStore()),
+          ],
+          child: MaterialApp(
+            home: _IsBusySelectConsumer(onBuild: () => buildCount++),
+          ),
+        ),
       );
 
-      // Also verify the raw provider DOES fire (to prove the mutation happened).
-      int rawNotifyCount = 0;
-      container.listen(
-        channelManagementStoreProvider,
-        (_, __) => rawNotifyCount++,
-      );
+      expect(buildCount, 1);
 
+      final element = tester.element(find.byType(_IsBusySelectConsumer));
+      final container = ProviderScope.containerOf(element);
       final store = container.read(channelManagementStoreProvider.notifier)
           as _ControllableChannelManagementStore;
+
       store.setChannelIdDirect('ch-123');
-
-      expect(rawNotifyCount, 1,
-          reason: 'Raw provider MUST fire to confirm mutation occurred');
-      expect(
-        scaffoldRebuildCount,
-        0,
-        reason: 'channelId change with isBusy=false must NOT notify isBusy '
-            'select — scaffold stays stable (INV-CHANNELS-MGMT-662-SELECT-1)',
-      );
-
-      keepAlive.close();
-    },
-  );
-
-  // -------------------------------------------------------------------------
-  // T2: failure change (isBusy stays false) must NOT notify scaffold.
-  // -------------------------------------------------------------------------
-  test(
-    'INV-CHANNELS-MGMT-662-SELECT-1: failure change does NOT notify '
-    'isBusy select — scaffold stays stable',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          channelManagementStoreProvider
-              .overrideWith(() => _ControllableChannelManagementStore()),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final keepAlive =
-          container.listen(channelManagementStoreProvider, (_, __) {});
-
-      int scaffoldRebuildCount = 0;
-      container.listen(
-        channelManagementStoreProvider.select((s) => s.isBusy),
-        (_, __) => scaffoldRebuildCount++,
-      );
-
-      int rawNotifyCount = 0;
-      container.listen(
-        channelManagementStoreProvider,
-        (_, __) => rawNotifyCount++,
-      );
-
-      final store = container.read(channelManagementStoreProvider.notifier)
-          as _ControllableChannelManagementStore;
-      store.setFailureDirect(const NetworkFailure(message: 'test error'));
-
-      expect(rawNotifyCount, 1,
-          reason: 'Raw provider MUST fire to confirm mutation occurred');
-      expect(
-        scaffoldRebuildCount,
-        0,
-        reason: 'failure change with isBusy=false must NOT notify isBusy '
-            'select — scaffold stays stable (INV-CHANNELS-MGMT-662-SELECT-1)',
-      );
-
-      keepAlive.close();
-    },
-  );
-
-  // -------------------------------------------------------------------------
-  // T3: activeAction change (isBusy flips) DOES notify scaffold.
-  // -------------------------------------------------------------------------
-  test(
-    'INV-CHANNELS-MGMT-662-SELECT-1: activeAction change (isBusy flips) '
-    'DOES notify isBusy select',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          channelManagementStoreProvider
-              .overrideWith(() => _ControllableChannelManagementStore()),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      final keepAlive =
-          container.listen(channelManagementStoreProvider, (_, __) {});
-
-      int scaffoldRebuildCount = 0;
-      container.listen(
-        channelManagementStoreProvider.select((s) => s.isBusy),
-        (_, __) => scaffoldRebuildCount++,
-      );
-
-      final store = container.read(channelManagementStoreProvider.notifier)
-          as _ControllableChannelManagementStore;
-      store.setActiveActionDirect(ChannelManagementAction.create);
+      await tester.pump();
 
       expect(
-        scaffoldRebuildCount,
+        buildCount,
         1,
-        reason: 'activeAction change that flips isBusy must notify select',
+        reason: 'channelId change with isBusy=false must NOT rebuild widget '
+            '(INV-CHANNELS-MGMT-662-SELECT-1)',
+      );
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // T2: failure change (isBusy stays false) must NOT rebuild scaffold.
+  // -------------------------------------------------------------------------
+  testWidgets(
+    'INV-CHANNELS-MGMT-662-SELECT-1: failure change does NOT rebuild '
+    'isBusy select widget — scaffold stays stable',
+    (tester) async {
+      int buildCount = 0;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            channelManagementStoreProvider
+                .overrideWith(() => _ControllableChannelManagementStore()),
+          ],
+          child: MaterialApp(
+            home: _IsBusySelectConsumer(onBuild: () => buildCount++),
+          ),
+        ),
       );
 
-      keepAlive.close();
+      expect(buildCount, 1);
+
+      final element = tester.element(find.byType(_IsBusySelectConsumer));
+      final container = ProviderScope.containerOf(element);
+      final store = container.read(channelManagementStoreProvider.notifier)
+          as _ControllableChannelManagementStore;
+
+      store.setFailureDirect(const NetworkFailure(message: 'test error'));
+      await tester.pump();
+
+      expect(
+        buildCount,
+        1,
+        reason: 'failure change with isBusy=false must NOT rebuild widget '
+            '(INV-CHANNELS-MGMT-662-SELECT-1)',
+      );
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // T3: activeAction change (isBusy flips true) DOES rebuild scaffold.
+  // -------------------------------------------------------------------------
+  testWidgets(
+    'INV-CHANNELS-MGMT-662-SELECT-1: activeAction change (isBusy flips) '
+    'DOES rebuild isBusy select widget',
+    (tester) async {
+      int buildCount = 0;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            channelManagementStoreProvider
+                .overrideWith(() => _ControllableChannelManagementStore()),
+          ],
+          child: MaterialApp(
+            home: _IsBusySelectConsumer(onBuild: () => buildCount++),
+          ),
+        ),
+      );
+
+      expect(buildCount, 1);
+
+      final element = tester.element(find.byType(_IsBusySelectConsumer));
+      final container = ProviderScope.containerOf(element);
+      final store = container.read(channelManagementStoreProvider.notifier)
+          as _ControllableChannelManagementStore;
+
+      store.setActiveActionDirect(ChannelManagementAction.create);
+      await tester.pump();
+
+      expect(
+        buildCount,
+        2,
+        reason: 'activeAction change that flips isBusy must rebuild widget',
+      );
     },
   );
 
   // -------------------------------------------------------------------------
   // T4: Multiple mutations — only isBusy-affecting ones trigger rebuild.
   // -------------------------------------------------------------------------
-  test(
+  testWidgets(
     'INV-CHANNELS-MGMT-662-SELECT-1: compound mutations — only isBusy flip '
-    'triggers scaffold rebuild',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          channelManagementStoreProvider
-              .overrideWith(() => _ControllableChannelManagementStore()),
-        ],
-      );
-      addTearDown(container.dispose);
+    'triggers widget rebuild',
+    (tester) async {
+      int buildCount = 0;
 
-      final keepAlive =
-          container.listen(channelManagementStoreProvider, (_, __) {});
-
-      int scaffoldRebuildCount = 0;
-      container.listen(
-        channelManagementStoreProvider.select((s) => s.isBusy),
-        (_, __) => scaffoldRebuildCount++,
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            channelManagementStoreProvider
+                .overrideWith(() => _ControllableChannelManagementStore()),
+          ],
+          child: MaterialApp(
+            home: _IsBusySelectConsumer(onBuild: () => buildCount++),
+          ),
+        ),
       );
 
+      expect(buildCount, 1);
+
+      final element = tester.element(find.byType(_IsBusySelectConsumer));
+      final container = ProviderScope.containerOf(element);
       final store = container.read(channelManagementStoreProvider.notifier)
           as _ControllableChannelManagementStore;
 
       // 1. channelId change — no rebuild.
       store.setChannelIdDirect('ch-1');
-      expect(scaffoldRebuildCount, 0);
+      await tester.pump();
+      expect(buildCount, 1);
 
       // 2. failure change — no rebuild.
       store.setFailureDirect(const NetworkFailure(message: 'err'));
-      expect(scaffoldRebuildCount, 0);
+      await tester.pump();
+      expect(buildCount, 1);
 
-      // 3. activeAction → create (isBusy flips true) — rebuild.
+      // 3. activeAction -> create (isBusy flips true) — rebuild.
       store.setActiveActionDirect(ChannelManagementAction.create);
-      expect(scaffoldRebuildCount, 1);
+      await tester.pump();
+      expect(buildCount, 2);
 
       // 4. channelId change while isBusy=true — no rebuild (isBusy unchanged).
       store.setChannelIdDirect('ch-2');
-      expect(scaffoldRebuildCount, 1);
+      await tester.pump();
+      expect(buildCount, 2);
 
-      // 5. activeAction → null (isBusy flips false) — rebuild.
+      // 5. activeAction -> null (isBusy flips false) — rebuild.
       store.setActiveActionDirect(null);
-      expect(scaffoldRebuildCount, 2);
-
-      keepAlive.close();
+      await tester.pump();
+      expect(buildCount, 3);
     },
   );
 }
