@@ -1288,6 +1288,9 @@ void main() {
             agentsMachinesLoaderProvider.overrideWithValue(
               () async => const [],
             ),
+            homeNowProvider.overrideWith(
+              (ref) => Stream.value(DateTime.now()),
+            ),
           ],
         );
 
@@ -1385,6 +1388,9 @@ void main() {
             ),
             agentsMachinesLoaderProvider.overrideWithValue(
               () async => const [],
+            ),
+            homeNowProvider.overrideWith(
+              (ref) => Stream.value(DateTime.now()),
             ),
           ],
         );
@@ -1513,6 +1519,9 @@ void main() {
             ),
             agentsMachinesLoaderProvider.overrideWithValue(
               () async => const [],
+            ),
+            homeNowProvider.overrideWith(
+              (ref) => Stream.value(DateTime.now()),
             ),
           ],
         );
@@ -1834,6 +1843,9 @@ void main() {
             agentsMachinesLoaderProvider.overrideWithValue(
               () async => const [],
             ),
+            homeNowProvider.overrideWith(
+              (ref) => Stream.value(DateTime.now()),
+            ),
           ],
         );
 
@@ -1916,6 +1928,9 @@ void main() {
             ),
             agentsMachinesLoaderProvider.overrideWithValue(
               () async => const [],
+            ),
+            homeNowProvider.overrideWith(
+              (ref) => Stream.value(DateTime.now()),
             ),
           ],
         );
@@ -2218,6 +2233,9 @@ void main() {
               agentsMachinesLoaderProvider.overrideWithValue(
                 () async => const [],
               ),
+              homeNowProvider.overrideWith(
+                (ref) => Stream.value(DateTime.now()),
+              ),
             ],
             child: MaterialApp.router(
               routerConfig: router,
@@ -2334,6 +2352,9 @@ void main() {
             agentsMachinesLoaderProvider.overrideWithValue(
               () async => const [],
             ),
+            homeNowProvider.overrideWith(
+              (ref) => Stream.value(DateTime.now()),
+            ),
           ],
         );
 
@@ -2421,6 +2442,9 @@ void main() {
               ),
               agentsMachinesLoaderProvider.overrideWithValue(
                 () async => const [],
+              ),
+              homeNowProvider.overrideWith(
+                (ref) => Stream.value(DateTime.now()),
               ),
             ],
             child: MaterialApp.router(
@@ -2557,7 +2581,9 @@ Widget _buildApp({
       agentsMachinesLoaderProvider.overrideWithValue(
         () async => const [],
       ),
-      if (now != null) homeNowProvider.overrideWithValue(now),
+      homeNowProvider.overrideWith(
+        (ref) => Stream.value(now ?? DateTime.now()),
+      ),
     ],
     child: MaterialApp.router(
       routerConfig: router,

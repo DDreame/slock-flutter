@@ -652,8 +652,8 @@ Widget _buildApp({
       ),
       homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
       agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
-      homeNowProvider.overrideWithValue(
-        DateTime.parse('2026-05-18T00:00:00Z'),
+      homeNowProvider.overrideWith(
+        (ref) => Stream.value(DateTime.parse('2026-05-18T00:00:00Z')),
       ),
     ],
     child: MaterialApp.router(

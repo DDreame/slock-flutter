@@ -179,7 +179,9 @@ Widget _buildApp({
       agentsMachinesLoaderProvider.overrideWithValue(
         () async => const [],
       ),
-      homeNowProvider.overrideWithValue(DateTime(2026, 1, 1)),
+      homeNowProvider.overrideWith(
+        (ref) => Stream.value(DateTime(2026, 1, 1)),
+      ),
     ],
     child: MaterialApp.router(
       routerConfig: router,
