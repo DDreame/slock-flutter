@@ -50,6 +50,7 @@ import 'package:slock_app/features/home/application/preview_backfill_service.dar
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
@@ -655,6 +656,21 @@ class _NoOpThreadRepository implements ThreadRepository {
 
 class _NoOpInboxRepository implements InboxRepository {
   const _NoOpInboxRepository();
+
+  @override
+  Future<InboxResponse> fetchInbox(
+    ServerScopeId serverId, {
+    InboxFilter filter = InboxFilter.all,
+    int limit = 30,
+    int offset = 0,
+  }) async =>
+      const InboxResponse(
+        items: [],
+        totalCount: 0,
+        totalUnreadCount: 0,
+        hasMore: false,
+      );
+
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }
