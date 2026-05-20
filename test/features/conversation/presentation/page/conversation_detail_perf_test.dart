@@ -71,8 +71,7 @@ void main() {
 
         final countAfterLoad =
             ConversationDetailPage.debugAttachmentRegistrationCount;
-        expect(countAfterLoad, 1,
-            reason: 'Initial load should fire once');
+        expect(countAfterLoad, 1, reason: 'Initial load should fire once');
 
         // Simulate a non-message state emission (e.g. typing indicator,
         // reaction update, isRefreshing toggle). The store emits a new state
