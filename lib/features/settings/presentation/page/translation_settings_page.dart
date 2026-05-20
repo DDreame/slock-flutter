@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
@@ -66,7 +67,7 @@ class _TranslationSettingsPageState
               ),
             )
           : state.status == TranslationSettingsStatus.loading
-              ? const Center(child: CircularProgressIndicator())
+              ? const AppLoadingIndicator()
               : state.status == TranslationSettingsStatus.failure
                   ? Center(
                       child: Column(

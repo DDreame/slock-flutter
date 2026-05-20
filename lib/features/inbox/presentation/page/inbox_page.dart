@@ -8,13 +8,14 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/connection_status_banner.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
+import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
-import 'package:slock_app/features/inbox/presentation/widget/empty_inbox_widget.dart';
+import 'package:slock_app/app/widgets/empty_state_widget.dart';
 import 'package:slock_app/features/inbox/presentation/widget/inbox_item_tile.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -23,7 +24,7 @@ import 'package:slock_app/l10n/l10n.dart';
 // #509: Inbox page redesign — Z2 mockup.
 //
 // 3-tab filter (Unread | @Mentions | All), redesigned InboxItemTile,
-// bidirectional swipe (left=mark read, right=done), EmptyInboxWidget.
+// bidirectional swipe (left=mark read, right=done), EmptyStateWidget.
 // ---------------------------------------------------------------------------
 
 /// Record type for the body's narrowed .select() watch.
@@ -198,7 +199,12 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     }
 
     if (inboxState.items.isEmpty) {
-      return const EmptyInboxWidget(key: ValueKey('inbox-empty'));
+      return const EmptyStateWidget(
+        key: ValueKey('inbox-empty'),
+        icon: Icons.inbox_outlined,
+        title: 'All caught up!',
+        subtitle: 'No messages in your inbox',
+      );
     }
 
     final projections = ref.watch(inboxProjectionProvider);
@@ -317,15 +323,12 @@ class _InboxPageState extends ConsumerState<InboxPage> {
 
   void _showRefreshFailedSnackBar() {
     final l10n = context.l10n;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(l10n.refreshFailedSnackbar),
-        action: SnackBarAction(
-          label: l10n.refreshFailedRetry,
-          onPressed: () => ref.read(inboxStoreProvider.notifier).refresh(),
-        ),
-      ));
+    showAppSnackBarWithAction(
+      context,
+      l10n.refreshFailedSnackbar,
+      actionLabel: l10n.refreshFailedRetry,
+      onAction: () => ref.read(inboxStoreProvider.notifier).refresh(),
+    );
   }
 }
 

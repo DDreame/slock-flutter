@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/app_loading_indicator.dart';
+import 'package:slock_app/app/widgets/empty_state_widget.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_state.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_store.dart';
@@ -63,7 +65,7 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
       body: switch (state.status) {
         SavedMessagesStatus.initial ||
         SavedMessagesStatus.loading when state.items.isEmpty =>
-          const Center(child: CircularProgressIndicator()),
+          const AppLoadingIndicator(),
         SavedMessagesStatus.loading => _SavedMessagesListSurface(
             state: state,
             isRefreshing: true,
@@ -75,47 +77,15 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
             onRetry: ref.read(savedMessagesStoreProvider.notifier).retry,
           ),
         SavedMessagesStatus.success when state.items.isEmpty =>
-          const _SavedMessagesEmptyState(),
+          const EmptyStateWidget(
+            key: ValueKey('saved-messages-empty'),
+            icon: Icons.bookmark_outline,
+            title: 'No saved messages',
+            subtitle: 'Long-press a message and tap "Save" to bookmark it.\n'
+                'Saved messages appear here for quick reference.',
+          ),
         SavedMessagesStatus.success => _SavedMessagesListSurface(state: state),
       },
-    );
-  }
-}
-
-class _SavedMessagesEmptyState extends StatelessWidget {
-  const _SavedMessagesEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-
-    return Center(
-      key: const ValueKey('saved-messages-empty'),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.bookmark_outline,
-              size: 48,
-              color: colors.textSecondary,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'No saved messages',
-              style: AppTypography.title.copyWith(color: colors.text),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Long-press a message and tap "Save" to bookmark it.\n'
-              'Saved messages appear here for quick reference.',
-              textAlign: TextAlign.center,
-              style: AppTypography.body.copyWith(color: colors.textSecondary),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

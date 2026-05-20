@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
@@ -194,7 +195,7 @@ class _PeopleTab extends ConsumerWidget {
     return switch (state.status) {
       MemberListStatus.initial ||
       MemberListStatus.loading =>
-        const Center(child: CircularProgressIndicator()),
+        const AppLoadingIndicator(),
       MemberListStatus.failure => _ErrorContent(
           message: state.failure?.message ?? 'Failed to load members.',
           onRetry: ref.read(memberListStoreProvider.notifier).load,
@@ -248,7 +249,7 @@ class _AgentsTab extends ConsumerWidget {
     return switch (status) {
       AgentsStatus.initial ||
       AgentsStatus.loading =>
-        const Center(child: CircularProgressIndicator()),
+        const AppLoadingIndicator(),
       AgentsStatus.failure => _ErrorContent(
           message: failure?.message ?? 'Failed to load agents.',
           onRetry: () async => ref.read(agentsStoreProvider.notifier).retry(),

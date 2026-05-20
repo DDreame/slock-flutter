@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -125,7 +126,7 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
   ) {
     if (homeState.status == HomeListStatus.loading ||
         homeState.status == HomeListStatus.initial) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingIndicator();
     }
 
     final allChannels = [

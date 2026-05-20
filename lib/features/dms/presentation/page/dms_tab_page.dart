@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
+import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
@@ -532,15 +533,12 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
 
   void _showRefreshFailedSnackBar() {
     final l10n = context.l10n;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(l10n.refreshFailedSnackbar),
-        action: SnackBarAction(
-          label: l10n.refreshFailedRetry,
-          onPressed: () => ref.read(homeListStoreProvider.notifier).refresh(),
-        ),
-      ));
+    showAppSnackBarWithAction(
+      context,
+      l10n.refreshFailedSnackbar,
+      actionLabel: l10n.refreshFailedRetry,
+      onAction: () => ref.read(homeListStoreProvider.notifier).refresh(),
+    );
   }
 }
 

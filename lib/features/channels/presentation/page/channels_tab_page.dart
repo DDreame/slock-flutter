@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
+import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
@@ -390,7 +391,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     );
 
     if (channelId != null && mounted && pageContext.mounted) {
-      _showSnackBar(l10n.homeChannelCreated);
+      showAppSnackBar(context, l10n.homeChannelCreated);
       // Push instead of go to preserve the channels tab in the back stack.
       // context.go() replaces the entire stack, making back exit the app.
       pageContext.push(
@@ -423,14 +424,15 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                     channel.scopeId,
                     name: name,
                   );
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
-                  _showSnackBar(l10n.homeChannelUpdated);
+                  showAppSnackBar(context, l10n.homeChannelUpdated);
                 } on AppFailure catch (failure) {
-                  if (!mounted) return;
-                  _showSnackBar(
+                  if (!context.mounted) return;
+                  showAppSnackBar(
+                    context,
                     failure.message ?? l10n.homeChannelUpdateFailed,
                   );
                 }
@@ -466,14 +468,15 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               onConfirm: () async {
                 try {
                   await store.deleteChannel(channel.scopeId);
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
-                  _showSnackBar(l10n.homeChannelDeleted);
+                  showAppSnackBar(context, l10n.homeChannelDeleted);
                 } on AppFailure catch (failure) {
-                  if (!mounted) return;
-                  _showSnackBar(
+                  if (!context.mounted) return;
+                  showAppSnackBar(
+                    context,
                     failure.message ?? l10n.homeChannelDeleteFailed,
                   );
                 }
@@ -509,14 +512,15 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               onConfirm: () async {
                 try {
                   await store.leaveChannel(channel.scopeId);
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
-                  _showSnackBar(l10n.homeChannelLeft);
+                  showAppSnackBar(context, l10n.homeChannelLeft);
                 } on AppFailure catch (failure) {
-                  if (!mounted) return;
-                  _showSnackBar(
+                  if (!context.mounted) return;
+                  showAppSnackBar(
+                    context,
                     failure.message ?? l10n.homeChannelLeaveFailed,
                   );
                 }
@@ -528,23 +532,14 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     );
   }
 
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
-
   void _showRefreshFailedSnackBar() {
     final l10n = context.l10n;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(l10n.refreshFailedSnackbar),
-        action: SnackBarAction(
-          label: l10n.refreshFailedRetry,
-          onPressed: () => ref.read(homeListStoreProvider.notifier).refresh(),
-        ),
-      ));
+    showAppSnackBarWithAction(
+      context,
+      l10n.refreshFailedSnackbar,
+      actionLabel: l10n.refreshFailedRetry,
+      onAction: () => ref.read(homeListStoreProvider.notifier).refresh(),
+    );
   }
 }
 

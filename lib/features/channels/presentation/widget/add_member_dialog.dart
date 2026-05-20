@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
@@ -121,7 +122,7 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
     final memberState = ref.watch(memberListStoreProvider);
     if (memberState.status == MemberListStatus.initial ||
         memberState.status == MemberListStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingIndicator();
     }
     if (memberState.status == MemberListStatus.failure) {
       return Center(
@@ -153,7 +154,7 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
     final agentsState = ref.watch(agentsStoreProvider);
     if (agentsState.status == AgentsStatus.initial ||
         agentsState.status == AgentsStatus.loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingIndicator();
     }
     if (agentsState.status == AgentsStatus.failure) {
       return Center(
