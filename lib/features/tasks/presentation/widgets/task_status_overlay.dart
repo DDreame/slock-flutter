@@ -2,6 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
+import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 
 // ---------------------------------------------------------------------------
@@ -19,12 +21,26 @@ import 'package:slock_app/features/tasks/data/task_item.dart';
 //   5. Calls onStatusAccepted after animation completes
 // ---------------------------------------------------------------------------
 
-/// Z2 design tokens.
-const double _kDropZoneGap = 12;
-const double _kDropZoneRadius = 16;
+/// Z2 design tokens — overlay geometry.
+const double _kDropZoneGap = AppSpacing.md;
+const double _kDropZoneRadius = AppSpacing.radiusLg;
 const double _kHoverScale = 1.04;
 const double _kCurrentZoneOpacity = 0.4;
 const double _kBackdropBlur = 4;
+
+/// Overlay-specific alpha tokens.
+const double _kBackdropAlpha = 0.5;
+const double _kOverlayForegroundMutedAlpha = 0.7;
+const double _kOverlayForegroundDimAlpha = 0.6;
+const double _kOverlayForegroundSubtleAlpha = 0.54;
+const double _kSurfaceAlpha = 0.12;
+const double _kSurfaceHoverAlpha = 0.2;
+const double _kSurfaceAccentAlpha = 0.15;
+const double _kSurfaceBadgeAlpha = 0.1;
+const double _kBorderAlpha = 0.3;
+const double _kGlowAlpha = 0.15;
+const double _kSuccessIconBgAlpha = 0.3;
+const double _kStatusIconBgAlpha = 0.3;
 
 /// Success animation timing.
 const Duration _kSuccessPopDuration = Duration(milliseconds: 400);
@@ -111,8 +127,10 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
     return Material(
-      color: Colors.transparent,
+      color: colors.overlayBarrier.withValues(alpha: 0),
       child: Stack(
         children: [
           // Dark backdrop with blur.
@@ -123,7 +141,7 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
                 sigmaY: _kBackdropBlur,
               ),
               child: Container(
-                color: Colors.black.withValues(alpha: 0.5),
+                color: colors.overlayBarrier.withValues(alpha: _kBackdropAlpha),
               ),
             ),
           ),
@@ -131,8 +149,8 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
           // Content: success state or grid.
           Center(
             child: _acceptedStatus != null
-                ? _buildSuccessState()
-                : _buildGridState(),
+                ? _buildSuccessState(colors)
+                : _buildGridState(colors),
           ),
         ],
       ),
@@ -143,21 +161,21 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
   // Grid state (drop zone selection)
   // -------------------------------------------------------------------------
 
-  Widget _buildGridState() {
+  Widget _buildGridState(AppColors colors) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
+          Text(
             'Drop to change status',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: colors.overlayForeground,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.lg),
 
           // 2×2 grid of drop zones.
           SizedBox(
@@ -166,26 +184,30 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
               spacing: _kDropZoneGap,
               runSpacing: _kDropZoneGap,
               children: [
-                for (final status in _kDragStatuses) _buildDropZone(status),
+                for (final status in _kDragStatuses)
+                  _buildDropZone(status, colors),
               ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: AppSpacing.xl - AppSpacing.xs),
           Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 8,
+              horizontal: AppSpacing.xl - AppSpacing.xs,
+              vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
+              color: colors.overlayForeground
+                  .withValues(alpha: _kSurfaceAccentAlpha),
+              borderRadius:
+                  BorderRadius.circular(AppSpacing.xl - AppSpacing.xs),
             ),
-            child: const Text(
+            child: Text(
               'Release outside boxes to cancel',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white70,
+                color: colors.overlayForeground
+                    .withValues(alpha: _kOverlayForegroundMutedAlpha),
               ),
             ),
           ),
@@ -194,9 +216,9 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
     );
   }
 
-  Widget _buildDropZone(String status) {
+  Widget _buildDropZone(String status, AppColors colors) {
     final isCurrent = status == widget.currentStatus;
-    const zoneWidth = (320 - _kDropZoneGap) / 2;
+    const zoneWidth = (320 - AppSpacing.md) / 2;
 
     Widget zone = DragTarget<TaskItem>(
       key: ValueKey('drop-zone-$status'),
@@ -216,6 +238,7 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
           isCurrent: isCurrent,
           isHovering: isHovering,
           width: zoneWidth,
+          colors: colors,
         );
       },
     );
@@ -234,7 +257,7 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
   // Success state (green check pop + "Moved to X" + fade dismiss)
   // -------------------------------------------------------------------------
 
-  Widget _buildSuccessState() {
+  Widget _buildSuccessState(AppColors colors) {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -255,23 +278,23 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
             height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF10B981).withValues(alpha: 0.3),
+              color: colors.success.withValues(alpha: _kSuccessIconBgAlpha),
             ),
             alignment: Alignment.center,
-            child: const Icon(
+            child: Icon(
               Icons.check,
-              color: Color(0xFF10B981),
+              color: colors.success,
               size: 32,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
           Text(
             'Moved to ${_statusLabel(_acceptedStatus!)}',
             key: const ValueKey('drop-success-text'),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: colors.overlayForeground,
             ),
           ),
         ],
@@ -290,12 +313,14 @@ class _DropZoneBox extends StatelessWidget {
     required this.isCurrent,
     required this.isHovering,
     required this.width,
+    required this.colors,
   });
 
   final String status;
   final bool isCurrent;
   final bool isHovering;
   final double width;
+  final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
@@ -310,20 +335,22 @@ class _DropZoneBox extends StatelessWidget {
           : Matrix4.identity(),
       transformAlignment: Alignment.center,
       decoration: BoxDecoration(
-        color: isHovering
-            ? Colors.white.withValues(alpha: 0.2)
-            : Colors.white.withValues(alpha: 0.12),
+        color: colors.overlayForeground.withValues(
+          alpha: isHovering ? _kSurfaceHoverAlpha : _kSurfaceAlpha,
+        ),
         borderRadius: BorderRadius.circular(_kDropZoneRadius),
         border: Border.all(
-          color:
-              isHovering ? Colors.white : Colors.white.withValues(alpha: 0.3),
+          color: colors.overlayForeground.withValues(
+            alpha: isHovering ? 1.0 : _kBorderAlpha,
+          ),
           width: 2,
         ),
         boxShadow: isHovering
             ? [
                 BoxShadow(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  blurRadius: 24,
+                  color:
+                      colors.overlayForeground.withValues(alpha: _kGlowAlpha),
+                  blurRadius: AppSpacing.xl,
                 ),
               ]
             : null,
@@ -331,31 +358,36 @@ class _DropZoneBox extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _StatusIcon(status: status),
-          const SizedBox(height: 8),
+          _StatusIcon(status: status, colors: colors),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             _statusLabel(status),
             style: TextStyle(
               fontSize: isHovering ? 14 : 13,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: colors.overlayForeground,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           if (isCurrent)
             Container(
               key: const ValueKey('drop-zone-current-badge'),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 2,
               ),
-              child: const Text(
+              decoration: BoxDecoration(
+                color: colors.overlayForeground
+                    .withValues(alpha: _kSurfaceBadgeAlpha),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+              ),
+              child: Text(
                 'Current',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white54,
+                  color: colors.overlayForeground
+                      .withValues(alpha: _kOverlayForegroundSubtleAlpha),
                 ),
               ),
             )
@@ -365,8 +397,9 @@ class _DropZoneBox extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 color: isHovering
-                    ? Colors.white.withValues(alpha: 0.8)
-                    : Colors.white60,
+                    ? colors.overlayForeground.withValues(alpha: 0.8)
+                    : colors.overlayForeground
+                        .withValues(alpha: _kOverlayForegroundDimAlpha),
               ),
             ),
         ],
@@ -380,9 +413,10 @@ class _DropZoneBox extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _StatusIcon extends StatelessWidget {
-  const _StatusIcon({required this.status});
+  const _StatusIcon({required this.status, required this.colors});
 
   final String status;
+  final AppColors colors;
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +425,7 @@ class _StatusIcon extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: _statusIconBackground(status),
+        color: _statusIconBackground(status, colors),
       ),
       alignment: Alignment.center,
       child: Text(
@@ -436,12 +470,12 @@ String _statusEmoji(String status) {
   };
 }
 
-Color _statusIconBackground(String status) {
+Color _statusIconBackground(String status, AppColors colors) {
   return switch (status) {
-    'todo' => const Color(0xFF9CA3AF).withValues(alpha: 0.3),
-    'in_progress' => const Color(0xFF3B82F6).withValues(alpha: 0.3),
-    'in_review' => const Color(0xFFF59E0B).withValues(alpha: 0.3),
-    'done' => const Color(0xFF10B981).withValues(alpha: 0.3),
-    _ => const Color(0xFF9CA3AF).withValues(alpha: 0.3),
+    'todo' => colors.textTertiary.withValues(alpha: _kStatusIconBgAlpha),
+    'in_progress' => colors.primary.withValues(alpha: _kStatusIconBgAlpha),
+    'in_review' => colors.warning.withValues(alpha: _kStatusIconBgAlpha),
+    'done' => colors.success.withValues(alpha: _kStatusIconBgAlpha),
+    _ => colors.textTertiary.withValues(alpha: _kStatusIconBgAlpha),
   };
 }
