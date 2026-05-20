@@ -10,6 +10,7 @@ import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -26,6 +27,8 @@ Widget _buildApp(
       homeListStoreProvider.overrideWith(() => _FakeHomeListStore(channels)),
     ],
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: theme ?? AppTheme.light,
       home: const TasksPage(serverId: 'server-1'),
     ),
