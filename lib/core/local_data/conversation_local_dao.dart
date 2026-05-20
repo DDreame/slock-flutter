@@ -38,8 +38,14 @@ class ConversationLocalDao extends DatabaseAccessor<AppDatabase>
                 ? (current?.sortIndex ?? entry.sortIndex)
                 : entry.sortIndex,
             lastMessageId: Value(entry.lastMessageId ?? current?.lastMessageId),
+            // BUG-2 fix (#637): When lastMessageId is set but preview is null,
+            // this is the "needs backfill" signal from _parseLastMessage (#606).
+            // Clear old stale value — do NOT preserve via null-coalescing.
             lastMessagePreview: Value(
-              entry.lastMessagePreview ?? current?.lastMessagePreview,
+              entry.lastMessagePreview ??
+                  (entry.lastMessageId != null
+                      ? null
+                      : current?.lastMessagePreview),
             ),
             lastActivityAt:
                 Value(entry.lastActivityAt ?? current?.lastActivityAt),
