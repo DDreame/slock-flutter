@@ -12,6 +12,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_service.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
@@ -238,8 +239,9 @@ void main() {
               diagnosticShareServiceProvider
                   .overrideWithValue(mockShareService),
             ],
-            child: const MaterialApp(
-              home: Scaffold(body: DiagnosticShareSheet()),
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const Scaffold(body: DiagnosticShareSheet()),
             ),
           ),
         );
@@ -272,8 +274,9 @@ void main() {
               diagnosticShareServiceProvider
                   .overrideWithValue(mockShareService),
             ],
-            child: const MaterialApp(
-              home: Scaffold(body: DiagnosticShareSheet()),
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const Scaffold(body: DiagnosticShareSheet()),
             ),
           ),
         );
@@ -306,8 +309,9 @@ void main() {
               diagnosticShareServiceProvider
                   .overrideWithValue(mockShareService),
             ],
-            child: const MaterialApp(
-              home: Scaffold(body: DiagnosticShareSheet()),
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const Scaffold(body: DiagnosticShareSheet()),
             ),
           ),
         );
