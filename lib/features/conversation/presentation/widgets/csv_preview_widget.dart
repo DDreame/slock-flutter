@@ -1,90 +1,43 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
-import 'package:slock_app/features/conversation/data/conversation_repository.dart';
-
-/// Signature for the content-fetch callback. Tests inject a fake; production
-/// uses the default [_defaultFetcher] which goes through [Dio].
-typedef ContentFetcher = Future<String> Function(String url);
-
-Future<String> _defaultFetcher(String url) async {
-  final response = await Dio().get<String>(
-    url,
-    options: Options(responseType: ResponseType.plain),
-  );
-  return response.data ?? '';
-}
+import 'package:slock_app/features/conversation/presentation/widgets/fetch_preview_widget.dart';
 
 /// Inline preview for CSV attachments (INV-ATTACH-1).
 ///
 /// Fetches the CSV content from the attachment URL and renders the first
 /// [_maxRows] rows as a scrollable [Table]. On error, renders [fallback]
 /// which should be the generic file row (INV-ATTACH-2).
-class CsvPreviewWidget extends ConsumerStatefulWidget {
+class CsvPreviewWidget extends FetchPreviewWidget {
   const CsvPreviewWidget({
     super.key,
-    required this.attachment,
-    this.fallback,
-    this.contentFetcher,
+    required super.attachment,
+    super.fallback,
+    super.contentFetcher,
   });
-
-  final MessageAttachment attachment;
-
-  /// Widget to render on failure. When provided from the attachment router,
-  /// this is `_GenericFileAttachmentRow` which preserves file-open behavior.
-  final Widget? fallback;
-
-  /// Injectable content fetcher for testing.
-  final ContentFetcher? contentFetcher;
 
   @override
   ConsumerState<CsvPreviewWidget> createState() => _CsvPreviewWidgetState();
 }
 
-class _CsvPreviewWidgetState extends ConsumerState<CsvPreviewWidget> {
+class _CsvPreviewWidgetState extends FetchPreviewWidgetState<CsvPreviewWidget> {
   static const _maxRows = 10;
 
   List<List<String>>? _rows;
-  bool _loading = true;
-  bool _error = false;
 
   @override
-  void initState() {
-    super.initState();
-    _fetchCsv();
-  }
+  String get diagnosticsTag => 'CsvPreview';
 
-  Future<void> _fetchCsv() async {
-    final url = widget.attachment.url;
-    if (url == null || url.isEmpty) {
-      if (mounted) setState(() => _error = true);
-      return;
+  @override
+  void onFetchSuccess(String content) {
+    final lines = content.split('\n').where((l) => l.trim().isNotEmpty);
+    final rows = <List<String>>[];
+    for (final line in lines.take(_maxRows)) {
+      rows.add(_splitCsvLine(line));
     }
-    try {
-      final fetcher = widget.contentFetcher ?? _defaultFetcher;
-      final content = await fetcher(url);
-      if (!mounted) return;
-      final lines = content.split('\n').where((l) => l.trim().isNotEmpty);
-      final rows = <List<String>>[];
-      for (final line in lines.take(_maxRows)) {
-        rows.add(_splitCsvLine(line));
-      }
-      setState(() {
-        _rows = rows;
-        _loading = false;
-      });
-    } on Exception catch (e) {
-      ref.read(diagnosticsCollectorProvider).error(
-            'CsvPreview',
-            'Fetch failed for ${widget.attachment.name}: $e',
-          );
-      if (!mounted) return;
-      setState(() {
-        _error = true;
-        _loading = false;
-      });
-    }
+    setState(() {
+      _rows = rows;
+      loading = false;
+    });
   }
 
   /// Simple CSV line splitter — splits on commas, respecting double-quoted
@@ -109,41 +62,11 @@ class _CsvPreviewWidgetState extends ConsumerState<CsvPreviewWidget> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_error) {
-      return widget.fallback ??
-          _DefaultFallback(
-            key: ValueKey('csv-fallback-${widget.attachment.name}'),
-            name: widget.attachment.name,
-          );
-    }
-
-    if (_loading) {
-      return Padding(
-        key: ValueKey('csv-loading-${widget.attachment.name}'),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              widget.attachment.name,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      );
-    }
-
+  Widget buildContent(BuildContext context) {
     final rows = _rows!;
     if (rows.isEmpty) {
       return widget.fallback ??
-          _DefaultFallback(
+          DefaultPreviewFallback(
             key: ValueKey('csv-empty-${widget.attachment.name}'),
             name: widget.attachment.name,
           );
@@ -199,31 +122,6 @@ class _CsvPreviewWidgetState extends ConsumerState<CsvPreviewWidget> {
                 ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Simple fallback used when no [CsvPreviewWidget.fallback] is provided.
-class _DefaultFallback extends StatelessWidget {
-  const _DefaultFallback({super.key, required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.attach_file,
-            size: 16, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(name,
-              style: theme.textTheme.bodySmall,
-              overflow: TextOverflow.ellipsis),
         ),
       ],
     );

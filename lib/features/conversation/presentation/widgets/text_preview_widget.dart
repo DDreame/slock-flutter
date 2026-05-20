@@ -1,20 +1,7 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
-import 'package:slock_app/features/conversation/data/conversation_repository.dart';
-
-/// Signature for the content-fetch callback.
-typedef ContentFetcher = Future<String> Function(String url);
-
-Future<String> _defaultFetcher(String url) async {
-  final response = await Dio().get<String>(
-    url,
-    options: Options(responseType: ResponseType.plain),
-  );
-  return response.data ?? '';
-}
+import 'package:slock_app/features/conversation/presentation/widgets/fetch_preview_widget.dart';
 
 /// Inline preview for text-based attachments — Markdown or plain text
 /// (INV-ATTACH-1).
@@ -23,102 +10,41 @@ Future<String> _defaultFetcher(String url) async {
 /// renders plain text in a monospace font. Shows at most [_maxPreviewChars]
 /// characters; the rest is behind a "Show more" toggle.
 /// On error, renders [fallback] (INV-ATTACH-2).
-class TextPreviewWidget extends ConsumerStatefulWidget {
+class TextPreviewWidget extends FetchPreviewWidget {
   const TextPreviewWidget({
     super.key,
-    required this.attachment,
+    required super.attachment,
     required this.isMarkdown,
-    this.fallback,
-    this.contentFetcher,
+    super.fallback,
+    super.contentFetcher,
   });
 
-  final MessageAttachment attachment;
   final bool isMarkdown;
-
-  /// Widget to render on failure. When provided from the attachment router,
-  /// this is `_GenericFileAttachmentRow` which preserves file-open behavior.
-  final Widget? fallback;
-
-  /// Injectable content fetcher for testing.
-  final ContentFetcher? contentFetcher;
 
   @override
   ConsumerState<TextPreviewWidget> createState() => _TextPreviewWidgetState();
 }
 
-class _TextPreviewWidgetState extends ConsumerState<TextPreviewWidget> {
+class _TextPreviewWidgetState
+    extends FetchPreviewWidgetState<TextPreviewWidget> {
   static const _maxPreviewChars = 500;
 
   String? _content;
-  bool _loading = true;
-  bool _error = false;
   bool _expanded = false;
 
   @override
-  void initState() {
-    super.initState();
-    _fetchContent();
-  }
+  String get diagnosticsTag => 'TextPreview';
 
-  Future<void> _fetchContent() async {
-    final url = widget.attachment.url;
-    if (url == null || url.isEmpty) {
-      if (mounted) setState(() => _error = true);
-      return;
-    }
-    try {
-      final fetcher = widget.contentFetcher ?? _defaultFetcher;
-      final content = await fetcher(url);
-      if (!mounted) return;
-      setState(() {
-        _content = content;
-        _loading = false;
-      });
-    } on Exception catch (e) {
-      ref.read(diagnosticsCollectorProvider).error(
-            'TextPreview',
-            'Fetch failed for ${widget.attachment.name}: $e',
-          );
-      if (!mounted) return;
-      setState(() {
-        _error = true;
-        _loading = false;
-      });
-    }
+  @override
+  void onFetchSuccess(String content) {
+    setState(() {
+      _content = content;
+      loading = false;
+    });
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (_error) {
-      return widget.fallback ??
-          _DefaultFallback(
-            key: ValueKey('text-fallback-${widget.attachment.name}'),
-            name: widget.attachment.name,
-          );
-    }
-
-    if (_loading) {
-      return Padding(
-        key: ValueKey('text-loading-${widget.attachment.name}'),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              widget.attachment.name,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ],
-        ),
-      );
-    }
-
+  Widget buildContent(BuildContext context) {
     final content = _content ?? '';
     final truncated = content.length > _maxPreviewChars && !_expanded;
     final displayContent =
@@ -176,31 +102,6 @@ class _TextPreviewWidgetState extends ConsumerState<TextPreviewWidget> {
               ),
             ),
           ),
-      ],
-    );
-  }
-}
-
-/// Simple fallback used when no [TextPreviewWidget.fallback] is provided.
-class _DefaultFallback extends StatelessWidget {
-  const _DefaultFallback({super.key, required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.attach_file,
-            size: 16, color: theme.colorScheme.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(name,
-              style: theme.textTheme.bodySmall,
-              overflow: TextOverflow.ellipsis),
-        ),
       ],
     );
   }
