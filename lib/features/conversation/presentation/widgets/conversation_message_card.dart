@@ -21,7 +21,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/message_con
 import 'package:slock_app/features/conversation/presentation/widgets/message_context_menu.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
-import 'package:slock_app/features/members/presentation/widgets/member_profile_sheet.dart';
+import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -155,7 +155,10 @@ class ConversationMessageCardState
     }
   }
 
-  /// Opens the member profile sheet for the sender of a message. (#535)
+  /// Opens the member profile sheet for the sender of a message. (#535, #656)
+  ///
+  /// Shows a loading indicator immediately, then transitions to full profile
+  /// content once the network fetch completes.
   Future<void> _openSenderProfile(
     BuildContext context,
     ConversationMessageSummary message,
@@ -165,30 +168,30 @@ class ConversationMessageCardState
     if (senderId == null || senderId.isEmpty) return;
     final isAgent = message.senderType == 'agent';
 
-    try {
-      final profile = await ref
-          .read(profileRepositoryProvider)
-          .loadProfile(target.serverId, userId: senderId);
-      if (!context.mounted) return;
+    // #656: Show loading sheet immediately for visual feedback.
+    final profileFuture = ref
+        .read(profileRepositoryProvider)
+        .loadProfile(target.serverId, userId: senderId);
 
-      await showMemberProfileSheet(
-        context: context,
-        member: profile,
-        onMessageTap: () {
-          // Close the sheet first.
-          Navigator.of(context).pop();
-          // Open DM with the member (agent-aware branch).
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => _ProfileLoadingSheet(
+        key: const ValueKey('profile-loading-sheet'),
+        profileFuture: profileFuture,
+        onMessageTap: (profile) {
+          Navigator.of(sheetContext).pop();
           _openDirectMessage(target.serverId, senderId, isAgent: isAgent);
         },
-      );
-    } catch (e, st) {
-      ref.read(diagnosticsCollectorProvider).error(
-        'ConversationDetail',
-        'profile load failed: $e',
-        metadata: {'stackTrace': st.toString()},
-      );
-      // Fail-soft: if profile fetch fails, do nothing.
-    }
+        onError: (e, st) {
+          ref.read(diagnosticsCollectorProvider).error(
+            'ConversationDetail',
+            'profile load failed: $e',
+            metadata: {'stackTrace': st.toString()},
+          );
+        },
+      ),
+    );
   }
 
   /// Opens a direct message with the given user or agent. (#535)
@@ -743,6 +746,8 @@ class ConversationMessageCardState
       await ref
           .read(conversationDetailStoreProvider.notifier)
           .addReaction(widget.message.id, '👍');
+      // #656: Haptic feedback on successful reaction.
+      HapticFeedback.mediumImpact();
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
@@ -943,6 +948,8 @@ class ConversationMessageCardState
       await ref
           .read(conversationDetailStoreProvider.notifier)
           .addReaction(widget.message.id, emoji);
+      // #656: Haptic feedback on successful reaction.
+      HapticFeedback.mediumImpact();
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
@@ -1210,4 +1217,215 @@ class _QuotedMessageBlock extends StatelessWidget {
       ),
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// #656: Profile loading sheet — shows a loading indicator immediately,
+// then transitions to the full profile content once data arrives.
+// ---------------------------------------------------------------------------
+
+class _ProfileLoadingSheet extends StatefulWidget {
+  const _ProfileLoadingSheet({
+    super.key,
+    required this.profileFuture,
+    this.onMessageTap,
+    this.onError,
+  });
+
+  final Future<MemberProfile> profileFuture;
+  final void Function(MemberProfile)? onMessageTap;
+  final void Function(Object, StackTrace)? onError;
+
+  @override
+  State<_ProfileLoadingSheet> createState() => _ProfileLoadingSheetState();
+}
+
+class _ProfileLoadingSheetState extends State<_ProfileLoadingSheet> {
+  MemberProfile? _profile;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.profileFuture.then((profile) {
+      if (!mounted) return;
+      setState(() => _profile = profile);
+    }).catchError((Object e, StackTrace st) {
+      if (!mounted) return;
+      setState(() => _hasError = true);
+      widget.onError?.call(e, st);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    if (_hasError) {
+      // Close the sheet on error (fail-soft).
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.of(context).pop();
+      });
+      return const SizedBox.shrink();
+    }
+
+    if (_profile == null) {
+      // Loading state — show spinner with drag handle.
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                decoration: BoxDecoration(
+                  color: colors.textTertiary,
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              const CircularProgressIndicator(
+                key: ValueKey('profile-loading-indicator'),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Profile loaded — delegate to the existing member profile sheet widget.
+    final member = _profile!;
+    return _MemberProfileSheetContent(
+      member: member,
+      onMessageTap: widget.onMessageTap != null
+          ? () => widget.onMessageTap!(member)
+          : null,
+    );
+  }
+}
+
+/// Renders the member profile content (same layout as _MemberProfileSheet
+/// in member_profile_sheet.dart but inlined here to avoid double-sheet nesting).
+class _MemberProfileSheetContent extends StatelessWidget {
+  const _MemberProfileSheetContent({
+    required this.member,
+    this.onMessageTap,
+  });
+
+  final MemberProfile member;
+  final VoidCallback? onMessageTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xl,
+          vertical: AppSpacing.lg,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              key: const ValueKey('profile-sheet-handle'),
+              width: 32,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: colors.textTertiary,
+                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+              ),
+            ),
+
+            // Display name
+            Text(
+              member.displayName,
+              key: const ValueKey('profile-sheet-name'),
+              style: AppTypography.headline.copyWith(color: colors.text),
+              textAlign: TextAlign.center,
+            ),
+
+            // Username
+            if (member.username != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '@${member.username}',
+                key: const ValueKey('profile-sheet-username'),
+                style: AppTypography.bodySmall.copyWith(
+                  color: colors.textSecondary,
+                ),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.sm),
+
+            // Presence
+            if (member.presence != null) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    key: const ValueKey('profile-sheet-presence-dot'),
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _profilePresenceColor(colors, member.presence),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    _capitalizeProfilePresence(member.presence!),
+                    key: const ValueKey('profile-sheet-presence'),
+                    style: AppTypography.caption.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
+
+            // Message / DM button
+            if (onMessageTap != null)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  key: const ValueKey('member-profile-dm-action'),
+                  onPressed: onMessageTap,
+                  icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                  label: const Text('Message'),
+                ),
+              ),
+            if (onMessageTap != null) const SizedBox(height: AppSpacing.lg),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Color _profilePresenceColor(AppColors colors, String? presence) {
+  return switch (presence) {
+    'online' => colors.success,
+    'thinking' => colors.warning,
+    'working' => colors.primary,
+    'error' => colors.error,
+    _ => colors.textTertiary,
+  };
+}
+
+String _capitalizeProfilePresence(String presence) {
+  if (presence.isEmpty) return presence;
+  return presence[0].toUpperCase() + presence.substring(1);
 }
