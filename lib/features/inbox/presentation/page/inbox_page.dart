@@ -16,7 +16,7 @@ import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/app/widgets/empty_state_widget.dart';
-import 'package:slock_app/features/inbox/presentation/widget/inbox_item_tile.dart';
+import 'package:slock_app/features/inbox/presentation/widgets/inbox_item_tile.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 

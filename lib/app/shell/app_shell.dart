@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:slock_app/features/announcements/presentation/widget/announcement_banner.dart';
+import 'package:slock_app/features/announcements/presentation/widgets/announcement_banner.dart';
 import 'package:slock_app/features/inbox/application/inbox_unread_count_provider.dart';
 import 'package:slock_app/l10n/l10n.dart';
 

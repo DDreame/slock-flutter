@@ -20,7 +20,7 @@ import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
-import 'package:slock_app/features/agents/presentation/widget/agent_form_dialog.dart';
+import 'package:slock_app/features/agents/presentation/widgets/agent_form_dialog.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';

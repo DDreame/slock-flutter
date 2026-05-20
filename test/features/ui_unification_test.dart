@@ -5,7 +5,7 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/app/widgets/app_error_view.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
-import 'package:slock_app/features/inbox/presentation/widget/inbox_item_tile.dart';
+import 'package:slock_app/features/inbox/presentation/widgets/inbox_item_tile.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_state.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_store.dart';
