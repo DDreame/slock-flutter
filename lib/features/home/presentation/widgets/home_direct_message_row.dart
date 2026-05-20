@@ -7,6 +7,7 @@ import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
@@ -20,7 +21,7 @@ import 'package:slock_app/l10n/app_localizations.dart';
 @visibleForTesting
 final dmRowInitialsRegex = RegExp(r'\s+');
 
-class HomeDirectMessageRow extends StatelessWidget {
+class HomeDirectMessageRow extends ConsumerWidget {
   const HomeDirectMessageRow({
     super.key,
     required this.directMessage,
@@ -54,9 +55,10 @@ class HomeDirectMessageRow extends StatelessWidget {
   final VoidCallback? onMoveDown;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final hasUnread = unreadCount > 0;
+    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     return Material(
       color: hasUnread ? colors.primaryLight : Colors.transparent,
@@ -239,7 +241,8 @@ class HomeDirectMessageRow extends StatelessWidget {
                 children: [
                   if (directMessage.lastActivityAt != null)
                     Text(
-                      formatRelativeTime(directMessage.lastActivityAt!),
+                      formatRelativeTime(directMessage.lastActivityAt!,
+                          now: now),
                       style: AppTypography.caption.copyWith(
                         color: hasUnread ? colors.primary : colors.textTertiary,
                       ),

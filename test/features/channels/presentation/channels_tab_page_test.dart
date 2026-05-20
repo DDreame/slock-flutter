@@ -12,6 +12,7 @@ import 'package:slock_app/features/channels/data/channel_management_repository_p
 import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
@@ -139,6 +140,7 @@ void main() {
 
     return ProviderScope(
       overrides: [
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
         sharedPreferencesProvider.overrideWithValue(prefs),
         appLocalizationsProvider.overrideWithValue(
           lookupAppLocalizations(const Locale('en')),
@@ -483,6 +485,7 @@ void main() {
   }) async {
     final container = ProviderContainer(
       overrides: [
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
         sharedPreferencesProvider.overrideWithValue(prefs),
         appLocalizationsProvider.overrideWithValue(
           lookupAppLocalizations(const Locale('en')),
@@ -790,6 +793,9 @@ void main() {
       // priority directly, we use HomeChannelRow in isolation.
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
           child: MaterialApp(
             theme: AppTheme.light,
             locale: const Locale('en'),

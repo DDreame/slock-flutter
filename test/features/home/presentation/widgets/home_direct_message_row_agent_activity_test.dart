@@ -13,6 +13,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/presence/application/presence_store.dart';
@@ -66,7 +67,11 @@ void main() {
       'T1: thinking activity shows warning dot',
       // Phase B — agentActivity param now wired
       (tester) async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+        );
         addTearDown(container.dispose);
 
         await tester.pumpWidget(
@@ -95,7 +100,11 @@ void main() {
       'T2: working activity shows warning dot',
       // Phase B — DONE
       (tester) async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+        );
         addTearDown(container.dispose);
 
         await tester.pumpWidget(
@@ -124,7 +133,11 @@ void main() {
       'T3: error activity shows error dot',
       // Phase B — DONE
       (tester) async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+        );
         addTearDown(container.dispose);
 
         await tester.pumpWidget(
@@ -153,7 +166,11 @@ void main() {
       'T4: online activity shows success dot',
       // Phase B — DONE
       (tester) async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+        );
         addTearDown(container.dispose);
 
         await tester.pumpWidget(
@@ -182,7 +199,11 @@ void main() {
       'T5: offline activity shows tertiary dot',
       // Phase B — DONE
       (tester) async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+        );
         addTearDown(container.dispose);
 
         await tester.pumpWidget(
@@ -211,7 +232,11 @@ void main() {
       'T6: human DM row uses PresenceAvatar unchanged',
       // Phase B — DONE
       (tester) async {
-        final container = ProviderContainer();
+        final container = ProviderContainer(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
+        );
         final sub = container.listen(presenceStoreProvider, (_, __) {});
         addTearDown(() {
           sub.close();
