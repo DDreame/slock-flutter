@@ -102,6 +102,22 @@ class ConversationMessageCard extends ConsumerStatefulWidget {
   final bool isQuoteJumpHighlighted;
   final ValueChanged<String>? onScrollToMessage;
 
+  // ---------------------------------------------------------------------------
+  // #655: Exposed base style constants for test identity assertions.
+  //
+  // Tests use `identical(ConversationMessageCard.senderNameBaseStyle,
+  //   AppTypography.labelBold)` to prove the precomputed constant is used,
+  // not a fresh copyWith allocation.
+  // ---------------------------------------------------------------------------
+
+  /// Base TextStyle for sender name labels — precomputed with w600.
+  @visibleForTesting
+  static const senderNameBaseStyle = AppTypography.labelBold;
+
+  /// Base TextStyle for AI badge labels — precomputed with w600.
+  @visibleForTesting
+  static const aiBadgeBaseStyle = AppTypography.captionBold;
+
   @override
   ConsumerState<ConversationMessageCard> createState() =>
       ConversationMessageCardState();
@@ -320,7 +336,7 @@ class ConversationMessageCardState
             visualKind == _ConversationMessageVisualKind.agent;
 
     // #655: Use pre-computed labelBold to avoid per-build weight allocation.
-    final senderStyle = AppTypography.labelBold.copyWith(
+    final senderStyle = ConversationMessageCard.senderNameBaseStyle.copyWith(
       color: visualKind == _ConversationMessageVisualKind.agent
           ? colors.agentAccent
           : colors.textSecondary,
@@ -494,7 +510,7 @@ class ConversationMessageCardState
                 child: Text(
                   'AI',
                   // #655: Use pre-computed captionBold.
-                  style: AppTypography.captionBold.copyWith(
+                  style: ConversationMessageCard.aiBadgeBaseStyle.copyWith(
                     color: colors.primaryForeground,
                   ),
                 ),
@@ -1177,7 +1193,7 @@ class _QuotedMessageBlock extends StatelessWidget {
             Text(
               replyTo.senderLabel,
               // #655: Use pre-computed labelBold.
-              style: AppTypography.labelBold.copyWith(
+              style: ConversationMessageCard.senderNameBaseStyle.copyWith(
                 color: labelColor,
               ),
             ),

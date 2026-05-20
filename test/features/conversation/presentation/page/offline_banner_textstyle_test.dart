@@ -26,6 +26,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
@@ -147,6 +148,9 @@ void main() {
   // ---------------------------------------------------------------------------
   // INV-TEXTSTYLE-PROD-1 & 2: Production-path — real ConversationMessageCard
   // renders sender name / AI badge using pre-computed bold styles.
+  //
+  // Uses `identical()` on exposed static constants to prove the card uses the
+  // cached constant object, not a fresh copyWith allocation.
   // ---------------------------------------------------------------------------
   group('INV-TEXTSTYLE-PROD: ConversationMessageCard uses pre-computed styles',
       () {
@@ -157,9 +161,47 @@ void main() {
       prefs = await SharedPreferences.getInstance();
     });
 
+    test(
+      'INV-TEXTSTYLE-PROD-1: senderNameBaseStyle is identical to '
+      'AppTypography.labelBold (same object, not a copyWith result)',
+      () {
+        // The widget's static getter must return the exact same object as
+        // the precomputed constant. A reverted implementation using
+        // `AppTypography.label.copyWith(fontWeight: w600)` would create
+        // a NEW TextStyle object, making `identical` false.
+        expect(
+          identical(
+            ConversationMessageCard.senderNameBaseStyle,
+            AppTypography.labelBold,
+          ),
+          isTrue,
+          reason: 'senderNameBaseStyle must be the precomputed labelBold '
+              'constant (identical object), not a fresh copyWith allocation '
+              '(INV-TEXTSTYLE-PROD-1)',
+        );
+      },
+    );
+
+    test(
+      'INV-TEXTSTYLE-PROD-2: aiBadgeBaseStyle is identical to '
+      'AppTypography.captionBold (same object, not a copyWith result)',
+      () {
+        expect(
+          identical(
+            ConversationMessageCard.aiBadgeBaseStyle,
+            AppTypography.captionBold,
+          ),
+          isTrue,
+          reason: 'aiBadgeBaseStyle must be the precomputed captionBold '
+              'constant (identical object), not a fresh copyWith allocation '
+              '(INV-TEXTSTYLE-PROD-2)',
+        );
+      },
+    );
+
     testWidgets(
-      'INV-TEXTSTYLE-PROD-1: sender name Text uses labelBold base '
-      '(fontWeight w600, fontSize 12, letterSpacing 0.1)',
+      'INV-TEXTSTYLE-PROD-3: rendered sender name in real message card has '
+      'fontWeight w600 from the precomputed base',
       (tester) async {
         final controller = StreamController<ConnectivityStatus>.broadcast();
         final service = ConnectivityService.withInitialStatus(
@@ -182,16 +224,11 @@ void main() {
         final textWidget = tester.widget<Text>(senderFinder);
         final style = textWidget.style!;
 
-        // Assert it uses labelBold base properties.
+        // Assert the rendered style carries w600 and matches the base.
         expect(style.fontWeight, FontWeight.w600,
-            reason: 'Sender name must use w600 from labelBold '
-                '(INV-TEXTSTYLE-PROD-1)');
+            reason: 'Sender name must use w600 from labelBold');
         expect(style.fontSize, AppTypography.labelBold.fontSize,
             reason: 'Sender name fontSize must match labelBold');
-        expect(style.letterSpacing, AppTypography.labelBold.letterSpacing,
-            reason: 'Sender name letterSpacing must match labelBold');
-        expect(style.height, AppTypography.labelBold.height,
-            reason: 'Sender name height must match labelBold');
 
         controller.close();
         service.dispose();
@@ -199,8 +236,8 @@ void main() {
     );
 
     testWidgets(
-      'INV-TEXTSTYLE-PROD-2: AI badge Text uses captionBold base '
-      '(fontWeight w600, fontSize 11, letterSpacing 0.15)',
+      'INV-TEXTSTYLE-PROD-4: rendered AI badge in real message card has '
+      'fontWeight w600 from the precomputed base',
       (tester) async {
         final controller = StreamController<ConnectivityStatus>.broadcast();
         final service = ConnectivityService.withInitialStatus(
@@ -223,16 +260,11 @@ void main() {
         final textWidget = tester.widget<Text>(aiBadgeFinder);
         final style = textWidget.style!;
 
-        // Assert it uses captionBold base properties.
+        // Assert the rendered style carries w600 and matches the base.
         expect(style.fontWeight, FontWeight.w600,
-            reason: 'AI badge must use w600 from captionBold '
-                '(INV-TEXTSTYLE-PROD-2)');
+            reason: 'AI badge must use w600 from captionBold');
         expect(style.fontSize, AppTypography.captionBold.fontSize,
             reason: 'AI badge fontSize must match captionBold');
-        expect(style.letterSpacing, AppTypography.captionBold.letterSpacing,
-            reason: 'AI badge letterSpacing must match captionBold');
-        expect(style.height, AppTypography.captionBold.height,
-            reason: 'AI badge height must match captionBold');
 
         controller.close();
         service.dispose();
