@@ -78,13 +78,20 @@ class _ScreenshotAnnotatePageState
 
     final bytes = await file.readAsBytes();
     final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    final image = frame.image;
-
-    if (mounted) {
-      setState(() {
-        _imageSize = Size(image.width.toDouble(), image.height.toDouble());
-      });
+    try {
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      try {
+        if (mounted) {
+          setState(() {
+            _imageSize = Size(image.width.toDouble(), image.height.toDouble());
+          });
+        }
+      } finally {
+        image.dispose();
+      }
+    } finally {
+      codec.dispose();
     }
   }
 

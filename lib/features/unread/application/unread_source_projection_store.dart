@@ -54,7 +54,7 @@ final unreadSourceProjectionProvider =
   }
 
   final ctx = _visibilityContextFromSelected(homeVis);
-  final nameResolver = _buildNameResolver(homeVis);
+  final nameResolver = ref.read(_nameResolverCacheProvider)(homeVis);
 
   return _projectSources(
     items,
@@ -95,7 +95,7 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   }
 
   final ctx = _visibilityContextFromSelected(homeVis);
-  final nameResolver = _buildNameResolver(homeVis);
+  final nameResolver = ref.read(_nameResolverCacheProvider)(homeVis);
 
   return [
     for (final item in items)
@@ -158,54 +158,60 @@ _HomeVisibility _selectVisibility(HomeListState s) => (
 /// Memoized: returns cached resolver when the [_HomeVisibility] record is
 /// the same object reference (identity check), avoiding fresh Map allocations
 /// on every provider rebuild.
-_HomeVisibility? _lastResolverVisibility;
-InboxNameResolver? _cachedResolver;
+///
+/// #661: Cache is scoped to provider lifecycle (dies with ProviderContainer)
+/// instead of file-level statics that survive teardowns.
+final _nameResolverCacheProvider =
+    Provider<InboxNameResolver Function(_HomeVisibility)>((ref) {
+  _HomeVisibility? lastVis;
+  InboxNameResolver? cached;
 
-InboxNameResolver _buildNameResolver(_HomeVisibility vis) {
-  if (identical(vis, _lastResolverVisibility) && _cachedResolver != null) {
-    return _cachedResolver!;
-  }
-
-  final channelNames = <String, String>{};
-  final memberNames = <String, String>{};
-
-  if (vis.status == HomeListStatus.success) {
-    for (final ch in vis.pinnedChannels) {
-      channelNames[ch.scopeId.value] = ch.name;
+  return (vis) {
+    if (identical(vis, lastVis) && cached != null) {
+      return cached!;
     }
-    for (final ch in vis.channels) {
-      channelNames[ch.scopeId.value] = ch.name;
-    }
-    for (final dm in vis.pinnedDirectMessages) {
-      channelNames[dm.scopeId.value] = dm.title;
-      final peerId = dm.peerId;
-      if (peerId != null && peerId.isNotEmpty) {
-        memberNames[peerId] = dm.title;
+
+    final channelNames = <String, String>{};
+    final memberNames = <String, String>{};
+
+    if (vis.status == HomeListStatus.success) {
+      for (final ch in vis.pinnedChannels) {
+        channelNames[ch.scopeId.value] = ch.name;
+      }
+      for (final ch in vis.channels) {
+        channelNames[ch.scopeId.value] = ch.name;
+      }
+      for (final dm in vis.pinnedDirectMessages) {
+        channelNames[dm.scopeId.value] = dm.title;
+        final peerId = dm.peerId;
+        if (peerId != null && peerId.isNotEmpty) {
+          memberNames[peerId] = dm.title;
+        }
+      }
+      for (final dm in vis.directMessages) {
+        channelNames[dm.scopeId.value] = dm.title;
+        final peerId = dm.peerId;
+        if (peerId != null && peerId.isNotEmpty) {
+          memberNames[peerId] = dm.title;
+        }
+      }
+      for (final agent in vis.pinnedAgents) {
+        memberNames[agent.id] = agent.label;
+      }
+      for (final agent in vis.agents) {
+        memberNames[agent.id] = agent.label;
       }
     }
-    for (final dm in vis.directMessages) {
-      channelNames[dm.scopeId.value] = dm.title;
-      final peerId = dm.peerId;
-      if (peerId != null && peerId.isNotEmpty) {
-        memberNames[peerId] = dm.title;
-      }
-    }
-    for (final agent in vis.pinnedAgents) {
-      memberNames[agent.id] = agent.label;
-    }
-    for (final agent in vis.agents) {
-      memberNames[agent.id] = agent.label;
-    }
-  }
 
-  final resolver = InboxNameResolver(
-    channelNames: channelNames,
-    memberNames: memberNames,
-  );
-  _lastResolverVisibility = vis;
-  _cachedResolver = resolver;
-  return resolver;
-}
+    final resolver = InboxNameResolver(
+      channelNames: channelNames,
+      memberNames: memberNames,
+    );
+    lastVis = vis;
+    cached = resolver;
+    return resolver;
+  };
+});
 
 /// Builds visibility context from the selected [_HomeVisibility] record.
 _visibilityContextFromSelected(_HomeVisibility vis) {
