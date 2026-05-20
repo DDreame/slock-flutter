@@ -85,17 +85,19 @@ abstract class FetchPreviewWidgetState<T extends FetchPreviewWidget>
       }
       return;
     }
+    // Capture diagnostics reference before async gap so logging works
+    // even if the widget is disposed during the fetch (per #645 contract).
+    final diagnostics = ref.read(diagnosticsCollectorProvider);
     try {
       final fetcher = widget.contentFetcher ?? defaultContentFetcher;
       final content = await fetcher(url);
       if (!mounted) return;
       onFetchSuccess(content);
     } on Exception catch (e) {
-      if (!mounted) return;
-      ref.read(diagnosticsCollectorProvider).error(
-            diagnosticsTag,
-            'Fetch failed for ${widget.attachment.name}: $e',
-          );
+      diagnostics.error(
+        diagnosticsTag,
+        'Fetch failed for ${widget.attachment.name}: $e',
+      );
       if (!mounted) return;
       setState(() {
         hasError = true;

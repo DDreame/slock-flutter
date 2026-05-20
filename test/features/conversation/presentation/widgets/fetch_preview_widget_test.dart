@@ -24,7 +24,6 @@ import 'package:slock_app/features/conversation/presentation/widgets/fetch_previ
 
 class _TestPreviewWidget extends FetchPreviewWidget {
   const _TestPreviewWidget({
-    super.key,
     required super.attachment,
     super.fallback,
     super.contentFetcher,
@@ -279,7 +278,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ProviderScope(
+        const ProviderScope(
           child: MaterialApp(
             home: Scaffold(
               body: _TestPreviewWidget(
@@ -304,7 +303,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ProviderScope(
+        const ProviderScope(
           child: MaterialApp(
             home: Scaffold(
               body: _TestPreviewWidget(
