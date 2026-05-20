@@ -83,7 +83,20 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       }
     });
 
-    final state = ref.watch(tasksStoreProvider);
+    // INV-SELECT-TASKS-1: Only rebuild on layout-decision fields.
+    // Individual task item mutations within the list don't require page-level
+    // scaffold rebuild — only status transitions and empty/non-empty threshold.
+    // Items are watched independently by _TasksListSurface (ConsumerStatefulWidget)
+    // via tasksStoreProvider.select((s) => s.items).
+    final (:status, :isEmpty, :isRefreshing) = ref.watch(
+      tasksStoreProvider.select(
+        (s) => (
+          status: s.status,
+          isEmpty: s.items.isEmpty,
+          isRefreshing: s.isRefreshing,
+        ),
+      ),
+    );
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
     // refresh completes with failure — not on mutation errors.
     ref.listen(
@@ -107,10 +120,8 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
         : const <HomeChannelSummary>[];
 
     return Scaffold(
-      body: switch (state.status) {
-        TasksStatus.initial ||
-        TasksStatus.loading when state.items.isEmpty =>
-          ListView(
+      body: switch (status) {
+        TasksStatus.initial || TasksStatus.loading when isEmpty => ListView(
             key: const ValueKey('tasks-skeleton'),
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.pageHorizontal,
@@ -125,7 +136,6 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             ],
           ),
         TasksStatus.loading => _TasksListSurface(
-            items: state.items,
             colors: colors,
             isRefreshing: true,
             onStatusUpdate: _updateStatus,
@@ -136,10 +146,11 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             channels: channels,
           ),
         TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
-            message: state.failure?.message ?? context.l10n.tasksLoadFailed,
+            message: ref.read(tasksStoreProvider).failure?.message ??
+                context.l10n.tasksLoadFailed,
             onRetry: ref.read(tasksStoreProvider.notifier).retry,
           ),
-        TasksStatus.success when state.items.isEmpty => SafeArea(
+        TasksStatus.success when isEmpty => SafeArea(
             child: Column(
               children: [
                 _TasksHeader(colors: colors, onNew: _showCreateTaskDialog),
@@ -150,7 +161,6 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             ),
           ),
         TasksStatus.success => _TasksListSurface(
-            items: state.items,
             colors: colors,
             onStatusUpdate: _updateStatus,
             onDelete: _deleteTask,
@@ -441,9 +451,8 @@ class _SummaryChip extends StatelessWidget {
 // List surface
 // ---------------------------------------------------------------------------
 
-class _TasksListSurface extends StatefulWidget {
+class _TasksListSurface extends ConsumerStatefulWidget {
   const _TasksListSurface({
-    required this.items,
     required this.colors,
     required this.onStatusUpdate,
     required this.onDelete,
@@ -454,7 +463,6 @@ class _TasksListSurface extends StatefulWidget {
     this.channels = const [],
   });
 
-  final List<TaskItem> items;
   final AppColors colors;
   final Future<void> Function(TaskItem, String) onStatusUpdate;
   final Future<void> Function(TaskItem) onDelete;
@@ -465,21 +473,21 @@ class _TasksListSurface extends StatefulWidget {
   final List<HomeChannelSummary> channels;
 
   @override
-  State<_TasksListSurface> createState() => _TasksListSurfaceState();
+  ConsumerState<_TasksListSurface> createState() => _TasksListSurfaceState();
 }
 
-class _TasksListSurfaceState extends State<_TasksListSurface> {
+class _TasksListSurfaceState extends ConsumerState<_TasksListSurface> {
   String? _selectedChannelId; // null = All
 
   /// Build the ordered list of channel IDs for filter chips.
   ///
   /// Includes all channels from the home list (the server's channel set)
   /// that either have tasks or are available for filtering.
-  List<String> _filterChannelIds() {
+  List<String> _filterChannelIds(List<TaskItem> items) {
     // Start with channels that have tasks (preserving discovery order)
     final seen = <String>{};
     final ids = <String>[];
-    for (final item in widget.items) {
+    for (final item in items) {
       if (seen.add(item.channelId)) {
         ids.add(item.channelId);
       }
@@ -501,18 +509,22 @@ class _TasksListSurfaceState extends State<_TasksListSurface> {
     return channelId;
   }
 
-  List<TaskItem> get _filteredItems {
-    if (_selectedChannelId == null) return widget.items;
-    return widget.items
-        .where((t) => t.channelId == _selectedChannelId)
-        .toList();
+  List<TaskItem> _filteredItems(List<TaskItem> items) {
+    if (_selectedChannelId == null) return items;
+    return items.where((t) => t.channelId == _selectedChannelId).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredItems = _filteredItems;
+    // INV-TASKS-662-SELECT-2: List surface watches items independently so
+    // the scaffold above doesn't rebuild on item mutations within a non-empty
+    // list.
+    final items = ref.watch(
+      tasksStoreProvider.select((s) => s.items),
+    );
+    final filteredItems = _filteredItems(items);
     // #653: Compute filterChannelIds once instead of twice per build.
-    final filterChannelIds = _filterChannelIds();
+    final filterChannelIds = _filterChannelIds(items);
 
     return SafeArea(
       child: Column(
