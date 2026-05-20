@@ -1,0 +1,188 @@
+part of 'conversation_detail_store.dart';
+
+/// Reaction-related methods for [ConversationDetailStore].
+///
+/// Extracted from the monolithic store to improve readability (#640).
+mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
+  Future<void> addReaction(String messageId, String emoji) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final currentUserId = ref.read(sessionStoreProvider).userId;
+    if (currentUserId == null) return;
+
+    final previousMessages = state.messages;
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = _addReactionToMessage(
+      messages[index],
+      emoji: emoji,
+      userId: currentUserId,
+    );
+    state = state.copyWith(messages: messages);
+    _persistSession();
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      await repo.addReaction(target, messageId: messageId, emoji: emoji);
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(messages: previousMessages);
+      _persistSession();
+      rethrow;
+    }
+  }
+
+  Future<void> removeReaction(String messageId, String emoji) async {
+    final target = ref.read(currentConversationDetailTargetProvider);
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final currentUserId = ref.read(sessionStoreProvider).userId;
+    if (currentUserId == null) return;
+
+    final previousMessages = state.messages;
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = _removeReactionFromMessage(
+      messages[index],
+      emoji: emoji,
+      userId: currentUserId,
+    );
+    state = state.copyWith(messages: messages);
+    _persistSession();
+
+    try {
+      final repo = ref.read(conversationRepositoryProvider);
+      await repo.removeReaction(target, messageId: messageId, emoji: emoji);
+    } on AppFailure {
+      if (ref.read(currentConversationDetailTargetProvider) != target) return;
+      state = state.copyWith(messages: previousMessages);
+      _persistSession();
+      rethrow;
+    }
+  }
+
+  /// Toggles a reaction for the current user — adds if not yet reacted,
+  /// removes if already reacted.
+  Future<void> toggleReaction(String messageId, String emoji) async {
+    if (state.status != ConversationDetailStatus.success) return;
+
+    final index = state.messages.indexWhere((m) => m.id == messageId);
+    if (index == -1) return;
+
+    final currentUserId = ref.read(sessionStoreProvider).userId;
+    if (currentUserId == null) return;
+
+    final message = state.messages[index];
+    final existingReaction =
+        message.reactions.where((r) => r.emoji == emoji).firstOrNull;
+    final alreadyReacted = existingReaction != null &&
+        existingReaction.reactedByUser(currentUserId);
+
+    if (alreadyReacted) {
+      await removeReaction(messageId, emoji);
+    } else {
+      await addReaction(messageId, emoji);
+    }
+  }
+
+  void _handleReactionAdded(Object payload, ConversationDetailTarget target) {
+    final event = tryParseReactionEventPayload(payload);
+    if (event == null || event.channelId != target.conversationId) {
+      return;
+    }
+
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    final index = state.messages.indexWhere((m) => m.id == event.messageId);
+    if (index == -1) return;
+
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = _addReactionToMessage(
+      messages[index],
+      emoji: event.emoji,
+      userId: event.userId,
+    );
+    state = state.copyWith(messages: messages);
+    _persistSession();
+  }
+
+  void _handleReactionRemoved(
+    Object payload,
+    ConversationDetailTarget target,
+  ) {
+    final event = tryParseReactionEventPayload(payload);
+    if (event == null || event.channelId != target.conversationId) {
+      return;
+    }
+
+    if (state.status != ConversationDetailStatus.success) {
+      return;
+    }
+
+    final index = state.messages.indexWhere((m) => m.id == event.messageId);
+    if (index == -1) return;
+
+    final messages = List<ConversationMessageSummary>.of(state.messages);
+    messages[index] = _removeReactionFromMessage(
+      messages[index],
+      emoji: event.emoji,
+      userId: event.userId,
+    );
+    state = state.copyWith(messages: messages);
+    _persistSession();
+  }
+
+  ConversationMessageSummary _addReactionToMessage(
+    ConversationMessageSummary message, {
+    required String emoji,
+    required String userId,
+  }) {
+    final reactions = List<MessageReaction>.of(message.reactions);
+    final existingIndex = reactions.indexWhere((r) => r.emoji == emoji);
+    if (existingIndex != -1) {
+      final existing = reactions[existingIndex];
+      if (existing.userIds.contains(userId)) return message;
+      reactions[existingIndex] = MessageReaction(
+        emoji: emoji,
+        count: existing.count + 1,
+        userIds: [...existing.userIds, userId],
+      );
+    } else {
+      reactions.add(MessageReaction(
+        emoji: emoji,
+        count: 1,
+        userIds: [userId],
+      ));
+    }
+    return message.copyWith(reactions: reactions);
+  }
+
+  ConversationMessageSummary _removeReactionFromMessage(
+    ConversationMessageSummary message, {
+    required String emoji,
+    required String userId,
+  }) {
+    final reactions = List<MessageReaction>.of(message.reactions);
+    final existingIndex = reactions.indexWhere((r) => r.emoji == emoji);
+    if (existingIndex == -1) return message;
+    final existing = reactions[existingIndex];
+    if (!existing.userIds.contains(userId)) return message;
+    if (existing.count <= 1) {
+      reactions.removeAt(existingIndex);
+    } else {
+      reactions[existingIndex] = MessageReaction(
+        emoji: emoji,
+        count: existing.count - 1,
+        userIds: existing.userIds.where((id) => id != userId).toList(),
+      );
+    }
+    return message.copyWith(reactions: reactions);
+  }
+}
