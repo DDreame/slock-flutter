@@ -161,6 +161,22 @@ class ConversationDetailStore
   @visibleForTesting
   Set<String> get messageIdSetForTesting => _messageIdSet;
 
+  /// INV-DEDUP-663-1: Returns true when the cached Set was built from the
+  /// current [state.messages] list. Used to verify that [_appendDedupedMessage]
+  /// actually consults [_messageIdSet] on the hot path.
+  @visibleForTesting
+  bool get isMessageIdSetCacheWarm =>
+      identical(_cachedMessageList, state.messages);
+
+  /// INV-DEDUP-663-1: Exposes [_appendDedupedMessage] for direct hot-path
+  /// verification in tests.
+  @visibleForTesting
+  List<ConversationMessageSummary> appendDedupedMessageForTesting(
+    List<ConversationMessageSummary> existing,
+    ConversationMessageSummary next,
+  ) =>
+      _appendDedupedMessage(existing, next);
+
   /// Maximum duration a message can stay in [MessageSendStatus.sending]
   /// before being auto-transitioned to queued via the outbox.
   static const sendTimeoutDuration = Duration(seconds: 30);

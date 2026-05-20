@@ -335,4 +335,115 @@ void main() {
           reason: 'Same list identity must return cached Set');
     },
   );
+
+  // -------------------------------------------------------------------------
+  // T5: Hot-path verification — _appendDedupedMessage actually consults
+  // _messageIdSet. Would FAIL if line 72 were reverted to existing.any().
+  //
+  // Strategy: after load(), the Set cache is cold (load doesn't access
+  // _messageIdSet). Calling appendDedupedMessageForTesting warms it. We
+  // observe this via isMessageIdSetCacheWarm.
+  // -------------------------------------------------------------------------
+  test(
+    'INV-DEDUP-663-1: appendDedupedMessage consults _messageIdSet '
+    '(hot-path pinned)',
+    () async {
+      final repo = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#ch-1',
+          messages: [_msg('m-1', seq: 1), _msg('m-2', seq: 2)],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+
+      // After load, cache is cold — load() does not access _messageIdSet.
+      expect(
+        store.isMessageIdSetCacheWarm,
+        isFalse,
+        reason: 'Set cache must be cold immediately after load '
+            '(load does not consult _messageIdSet)',
+      );
+
+      // Call the append hot path with a duplicate message.
+      final state = container.read(conversationDetailStoreProvider);
+      final result = store.appendDedupedMessageForTesting(
+        state.messages,
+        _msg('m-1', seq: 1),
+      );
+
+      // Duplicate must be rejected.
+      expect(
+        identical(result, state.messages),
+        isTrue,
+        reason: 'Duplicate message must be rejected by Set.contains()',
+      );
+
+      // After the append path ran, cache must be warm — proving
+      // _appendDedupedMessage consulted _messageIdSet. If the code were
+      // reverted to existing.any(), the cache would remain cold and this
+      // assertion would FAIL.
+      expect(
+        store.isMessageIdSetCacheWarm,
+        isTrue,
+        reason: 'Set cache must be warm after appendDedupedMessage — '
+            'proves hot path consults _messageIdSet (INV-DEDUP-663-1)',
+      );
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // T6: Hot-path — non-duplicate append returns extended list and Set still
+  // reflects the append caller's messages.
+  // -------------------------------------------------------------------------
+  test(
+    'INV-DEDUP-663-1: appendDedupedMessage returns extended list for '
+    'non-duplicate',
+    () async {
+      final repo = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#ch-1',
+          messages: [_msg('m-1', seq: 1)],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+      final state = container.read(conversationDetailStoreProvider);
+
+      // Append a non-duplicate message.
+      final result = store.appendDedupedMessageForTesting(
+        state.messages,
+        _msg('m-new', seq: 5),
+      );
+
+      // Should return extended list.
+      expect(result.length, 2);
+      expect(result.last.id, 'm-new');
+
+      // Cache must be warm (proves _messageIdSet was consulted).
+      expect(store.isMessageIdSetCacheWarm, isTrue);
+    },
+  );
 }
