@@ -133,6 +133,10 @@ class ConversationDetailPage extends StatelessWidget {
   @visibleForTesting
   static int Function()? debugMessageGlobalKeyCount;
 
+  /// Test hook: incremented each time [_registerAttachmentDownloads] fires.
+  @visibleForTesting
+  static int debugAttachmentRegistrationCount = 0;
+
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
@@ -190,6 +194,7 @@ class _ConversationDetailScreenState
   Timer? _highlightTimer;
   QuoteJumpState _quoteJumpState = QuoteJumpState.idle;
   final Map<String, GlobalKey> _messageGlobalKeys = {};
+  int _lastRegisteredMessageCount = 0;
 
   GlobalKey _getMessageKey(String messageId) {
     return _messageGlobalKeys.putIfAbsent(messageId, () => GlobalKey());
@@ -870,6 +875,7 @@ class _ConversationDetailScreenState
   void _registerAttachmentDownloads(
     List<ConversationMessageSummary> messages,
   ) {
+    ConversationDetailPage.debugAttachmentRegistrationCount++;
     final scheduler = ref.read(downloadSchedulerProvider.notifier);
     for (final message in messages) {
       final attachments = message.attachments;
@@ -994,12 +1000,25 @@ class _ConversationDetailScreenState
       _autoTranslateIfNeeded(next.messages);
     }
 
-    // #566: Register attachment downloads on every state change (not just
-    // first load). After loadOlder() appends messages, the new attachments
-    // must also be enqueued. The scheduler's enqueue() deduplicates, so
-    // calling with all messages on every change is safe.
-    if (next.status == ConversationDetailStatus.success) {
+    // #566: Register attachment downloads only when messages actually change
+    // (new messages loaded/received). The scheduler deduplicates, but iterating
+    // all messages on every state emission (reactions, typing) is O(n×m) waste.
+    // Guard: only run when message count changes (loadOlder appends, realtime
+    // adds, or initial load).
+    if (next.status == ConversationDetailStatus.success &&
+        next.messages.length != _lastRegisteredMessageCount) {
+      _lastRegisteredMessageCount = next.messages.length;
       _registerAttachmentDownloads(next.messages);
+    }
+
+    // #651: Evict GlobalKeys for messages no longer in the loaded window.
+    // Prevents unbounded growth during long pagination sessions.
+    if (next.status == ConversationDetailStatus.success &&
+        _messageGlobalKeys.length > next.messages.length + 20) {
+      final activeIds = <String>{
+        for (final m in next.messages) m.id,
+      };
+      _messageGlobalKeys.removeWhere((id, _) => !activeIds.contains(id));
     }
 
     if (!_scrollController.hasClients) {
