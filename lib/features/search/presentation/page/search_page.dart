@@ -10,10 +10,10 @@ import 'package:slock_app/features/search/application/search_history_store.dart'
 import 'package:slock_app/features/search/application/search_state.dart';
 import 'package:slock_app/features/search/application/search_store.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
-import 'package:slock_app/features/search/presentation/widget/search_channel_result_item.dart';
-import 'package:slock_app/features/search/presentation/widget/search_contact_result_item.dart';
-import 'package:slock_app/features/search/presentation/widget/search_result_item.dart';
-import 'package:slock_app/features/search/presentation/widget/search_scope_tabs.dart';
+import 'package:slock_app/features/search/presentation/widgets/search_channel_result_item.dart';
+import 'package:slock_app/features/search/presentation/widgets/search_contact_result_item.dart';
+import 'package:slock_app/features/search/presentation/widgets/search_result_item.dart';
+import 'package:slock_app/features/search/presentation/widgets/search_scope_tabs.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 class SearchPage extends StatelessWidget {

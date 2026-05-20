@@ -17,7 +17,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
-import 'package:slock_app/features/tasks/presentation/widget/task_status_overlay.dart';
+import 'package:slock_app/features/tasks/presentation/widgets/task_status_overlay.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 // -- Filter chip Z2 spec tokens --

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/agents/presentation/widget/agent_form_dialog.dart';
+import 'package:slock_app/features/agents/presentation/widgets/agent_form_dialog.dart';
 
 void main() {
   testWidgets('dialog renders without overflow on narrow screen',

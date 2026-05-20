@@ -9,7 +9,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_member_state.dart';
 import 'package:slock_app/features/channels/application/channel_member_store.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
-import 'package:slock_app/features/channels/presentation/widget/add_member_dialog.dart';
+import 'package:slock_app/features/channels/presentation/widgets/add_member_dialog.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';

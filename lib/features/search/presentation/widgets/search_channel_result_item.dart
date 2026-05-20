@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
-import 'package:slock_app/features/search/presentation/widget/search_result_item.dart';
+import 'package:slock_app/features/search/presentation/widgets/search_result_item.dart';
 
 /// A search result item for channel/DM matches.
 class SearchChannelResultItem extends StatelessWidget {

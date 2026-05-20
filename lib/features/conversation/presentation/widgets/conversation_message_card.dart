@@ -29,7 +29,7 @@ import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/translation/application/translation_cache_store.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
 import 'package:slock_app/features/translation/data/translation_settings.dart';
-import 'package:slock_app/features/translation/presentation/widget/translated_content_overlay.dart';
+import 'package:slock_app/features/translation/presentation/widgets/translated_content_overlay.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 /// Precise timestamp label shown below a message bubble when tapped.

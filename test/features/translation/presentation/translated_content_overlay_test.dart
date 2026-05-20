@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/translation/application/translation_cache_store.dart';
-import 'package:slock_app/features/translation/presentation/widget/translated_content_overlay.dart';
+import 'package:slock_app/features/translation/presentation/widgets/translated_content_overlay.dart';
 
 void main() {
   Widget buildTestWidget({

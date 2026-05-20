@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/announcements/application/announcement_store.dart';
 import 'package:slock_app/features/announcements/data/announcement.dart';
-import 'package:slock_app/features/announcements/presentation/widget/announcement_banner.dart';
+import 'package:slock_app/features/announcements/presentation/widgets/announcement_banner.dart';
 
 void main() {
   testWidgets('banner renders announcement title (INV-ANNOUNCE-1)',
