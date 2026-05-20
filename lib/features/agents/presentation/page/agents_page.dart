@@ -5,6 +5,9 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
+import 'package:slock_app/app/widgets/snackbar_utils.dart';
+import 'package:slock_app/app/widgets/app_loading_indicator.dart';
+import 'package:slock_app/app/widgets/empty_state_widget.dart';
 import 'package:slock_app/app/widgets/role_badge.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/app/widgets/status_glow_ring.dart';
@@ -134,21 +137,17 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         ],
       ),
       body: switch (state.status) {
-        AgentsStatus.initial || AgentsStatus.loading => const Center(
-            child: CircularProgressIndicator(),
-          ),
+        AgentsStatus.initial ||
+        AgentsStatus.loading =>
+          const AppLoadingIndicator(),
         AgentsStatus.failure => _AgentsFailureView(
             message: state.failure?.message ?? 'Failed to load agents.',
             onRetry: ref.read(agentsStoreProvider.notifier).retry,
           ),
-        AgentsStatus.success when state.items.isEmpty => Center(
-            key: const ValueKey('agents-empty'),
-            child: Text(
-              'No agents yet.',
-              style: AppTypography.body.copyWith(
-                color: colors.textSecondary,
-              ),
-            ),
+        AgentsStatus.success when state.items.isEmpty => const EmptyStateWidget(
+            key: ValueKey('agents-empty'),
+            icon: Icons.smart_toy_outlined,
+            title: 'No agents yet.',
           ),
         AgentsStatus.success => _buildGroupedList(
             state.items,
@@ -195,7 +194,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   Future<AgentMutationInput?> _showAgentFormDialog({AgentItem? agent}) async {
     final serverId = _resolvedServerId();
     if (serverId == null) {
-      _showSnackBar('Select a server first.');
+      showAppSnackBar(context, 'Select a server first.');
       return null;
     }
 
@@ -218,12 +217,12 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       if (!mounted) {
         return;
       }
-      _showSnackBar('Agent created.');
+      showAppSnackBar(context, 'Agent created.');
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
       }
-      _showSnackBar(failure.message ?? 'Failed to create agent.');
+      showAppSnackBar(context, failure.message ?? 'Failed to create agent.');
     }
   }
 
@@ -238,12 +237,12 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       if (!mounted) {
         return;
       }
-      _showSnackBar('Agent updated.');
+      showAppSnackBar(context, 'Agent updated.');
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
       }
-      _showSnackBar(failure.message ?? 'Failed to update agent.');
+      showAppSnackBar(context, failure.message ?? 'Failed to update agent.');
     }
   }
 
@@ -281,7 +280,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         return;
       }
 
-      _showSnackBar('Agent deleted.');
+      showAppSnackBar(context, 'Agent deleted.');
 
       if (widget.agentId != null) {
         // Use GoRouter's canPop instead of Navigator.canPop so the check
@@ -304,7 +303,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       if (!mounted) {
         return;
       }
-      _showSnackBar(failure.message ?? 'Failed to delete agent.');
+      showAppSnackBar(context, failure.message ?? 'Failed to delete agent.');
     }
   }
 
@@ -313,7 +312,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       await ref.read(agentsStoreProvider.notifier).startAgent(agent.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      _showSnackBar(failure.message ?? 'Failed to start agent.');
+      showAppSnackBar(context, failure.message ?? 'Failed to start agent.');
     }
   }
 
@@ -347,7 +346,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       await ref.read(agentsStoreProvider.notifier).stopAgent(agent.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      _showSnackBar(failure.message ?? 'Failed to stop agent.');
+      showAppSnackBar(context, failure.message ?? 'Failed to stop agent.');
     }
   }
 
@@ -380,17 +379,17 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     try {
       await ref.read(agentsStoreProvider.notifier).resetAgent(agent.id);
       if (!mounted) return;
-      _showSnackBar('Agent reset.');
+      showAppSnackBar(context, 'Agent reset.');
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      _showSnackBar(failure.message ?? 'Failed to reset agent.');
+      showAppSnackBar(context, failure.message ?? 'Failed to reset agent.');
     }
   }
 
   Future<void> _messageAgent(AgentItem agent) async {
     final serverId = _resolvedServerId();
     if (serverId == null) {
-      _showSnackBar('Select a server first.');
+      showAppSnackBar(context, 'Select a server first.');
       return;
     }
     try {
@@ -403,27 +402,19 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       context.push('/servers/$serverId/dms/$channelId');
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      _showSnackBar(failure.message ?? 'Failed to open conversation.');
+      showAppSnackBar(
+          context, failure.message ?? 'Failed to open conversation.');
     }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showRefreshFailedSnackBar() {
     final l10n = context.l10n;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(l10n.refreshFailedSnackbar),
-        action: SnackBarAction(
-          label: l10n.refreshFailedRetry,
-          onPressed: () => ref.read(agentsStoreProvider.notifier).load(),
-        ),
-      ));
+    showAppSnackBarWithAction(
+      context,
+      l10n.refreshFailedSnackbar,
+      actionLabel: l10n.refreshFailedRetry,
+      onAction: () => ref.read(agentsStoreProvider.notifier).load(),
+    );
   }
 }
 
@@ -894,7 +885,7 @@ class _AgentDetailScaffold extends StatelessWidget {
       return Scaffold(
         appBar: AppBar(title: const Text('Agent')),
         body: isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const AppLoadingIndicator()
             : isFailure
                 ? _AgentsFailureView(
                     message: failureMessage ?? 'Failed to load agents.',

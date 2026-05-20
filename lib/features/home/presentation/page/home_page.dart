@@ -8,6 +8,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/app/widgets/skeleton_card.dart';
+import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/application/agent_status_group.dart';
 import 'package:slock_app/features/agents/application/agent_status_group_projection.dart';
@@ -170,15 +171,12 @@ class _HomePageState extends ConsumerState<HomePage> {
 
   void _showRefreshFailedSnackBar() {
     final l10n = context.l10n;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(l10n.refreshFailedSnackbar),
-        action: SnackBarAction(
-          label: l10n.refreshFailedRetry,
-          onPressed: () => ref.read(homeListStoreProvider.notifier).refresh(),
-        ),
-      ));
+    showAppSnackBarWithAction(
+      context,
+      l10n.refreshFailedSnackbar,
+      actionLabel: l10n.refreshFailedRetry,
+      onAction: () => ref.read(homeListStoreProvider.notifier).refresh(),
+    );
   }
 }
 

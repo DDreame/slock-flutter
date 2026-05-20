@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
@@ -25,7 +26,7 @@ class WorkspaceSettingsPage extends ConsumerWidget {
       body: switch (serverListState.status) {
         ServerListStatus.initial ||
         ServerListStatus.loading =>
-          const Center(child: CircularProgressIndicator()),
+          const AppLoadingIndicator(),
         ServerListStatus.failure => FriendlyErrorState(
             key: const ValueKey('workspace-settings-error'),
             title: l10n.workspaceSettingsUnavailableTitle,

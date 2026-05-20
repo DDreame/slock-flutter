@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_member_state.dart';
 import 'package:slock_app/features/channels/application/channel_member_store.dart';
@@ -113,7 +114,7 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
     switch (state.status) {
       case ChannelMemberStatus.initial:
       case ChannelMemberStatus.loading:
-        return const Center(child: CircularProgressIndicator());
+        return const AppLoadingIndicator();
       case ChannelMemberStatus.failure:
         return Center(
           child: Column(

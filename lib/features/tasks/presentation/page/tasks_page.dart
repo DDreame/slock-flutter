@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
+import 'package:slock_app/app/widgets/snackbar_utils.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
@@ -166,7 +167,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     final homeState = ref.read(homeListStoreProvider);
     final channels = homeState.channels;
     if (channels.isEmpty) {
-      _showSnackBar('No channels available.');
+      showAppSnackBar(context, 'No channels available.');
       return;
     }
 
@@ -185,10 +186,11 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
               if (dialogContext.mounted) {
                 Navigator.of(dialogContext).pop();
               }
-              _showSnackBar('Task created.');
+              showAppSnackBar(context, 'Task created.');
             } on AppFailure catch (failure) {
               if (!mounted) return;
-              _showSnackBar(failure.message ?? 'Failed to create task.');
+              showAppSnackBar(
+                  context, failure.message ?? 'Failed to create task.');
             }
           },
         );
@@ -205,15 +207,12 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       HapticFeedback.errorNotification();
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Text(failure.message ?? 'Failed to update task.'),
-          action: SnackBarAction(
-            label: 'RETRY',
-            onPressed: () => _updateStatus(task, newStatus),
-          ),
-        ));
+      showAppSnackBarWithAction(
+        context,
+        failure.message ?? 'Failed to update task.',
+        actionLabel: 'RETRY',
+        onAction: () => _updateStatus(task, newStatus),
+      );
     }
   }
 
@@ -248,10 +247,10 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     try {
       await ref.read(tasksStoreProvider.notifier).deleteTask(task.id);
       if (!mounted) return;
-      _showSnackBar('Task deleted.');
+      showAppSnackBar(context, 'Task deleted.');
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      _showSnackBar(failure.message ?? 'Failed to delete task.');
+      showAppSnackBar(context, failure.message ?? 'Failed to delete task.');
     }
   }
 
@@ -260,7 +259,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       await ref.read(tasksStoreProvider.notifier).claimTask(task.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      _showSnackBar(failure.message ?? 'Failed to claim task.');
+      showAppSnackBar(context, failure.message ?? 'Failed to claim task.');
     }
   }
 
@@ -269,27 +268,18 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       await ref.read(tasksStoreProvider.notifier).unclaimTask(task.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      _showSnackBar(failure.message ?? 'Failed to unclaim task.');
+      showAppSnackBar(context, failure.message ?? 'Failed to unclaim task.');
     }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showRefreshFailedSnackBar() {
     final l10n = context.l10n;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(l10n.refreshFailedSnackbar),
-        action: SnackBarAction(
-          label: l10n.refreshFailedRetry,
-          onPressed: () => ref.read(tasksStoreProvider.notifier).load(),
-        ),
-      ));
+    showAppSnackBarWithAction(
+      context,
+      l10n.refreshFailedSnackbar,
+      actionLabel: l10n.refreshFailedRetry,
+      onAction: () => ref.read(tasksStoreProvider.notifier).load(),
+    );
   }
 }
 
