@@ -1117,6 +1117,31 @@ class AppLocalizationsZh extends AppLocalizations {
   String get machinesNameDialogCancel => '取消';
 
   @override
+  String machinesDeleteMessage(String name) {
+    return '删除 $name？此操作将从服务器列表中移除该机器。';
+  }
+
+  @override
+  String machinesCopyApiKeyMessage(String name) {
+    return '请立即复制 $name 的 API 密钥。';
+  }
+
+  @override
+  String machinesSummaryCount(int count) {
+    return '$count 台机器';
+  }
+
+  @override
+  String machinesSummaryOnline(int count) {
+    return '$count 在线';
+  }
+
+  @override
+  String machinesApiKeyPrefix(String prefix) {
+    return '密钥 $prefix...';
+  }
+
+  @override
   String get tasksLoadFailed => '加载任务失败。';
 
   @override
@@ -1139,6 +1164,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get tasksDeleteTitle => '删除任务？';
+
+  @override
+  String tasksDeleteMessage(String title) {
+    return '删除「$title」？此操作无法撤销。';
+  }
 
   @override
   String get tasksDeleteCancel => '取消';
@@ -1255,6 +1285,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get tasksCreateConfirm => '创建';
 
   @override
+  String get tasksAccessibilityTodo => '待办';
+
+  @override
+  String get tasksAccessibilityInProgress => '进行中';
+
+  @override
+  String get tasksAccessibilityInReview => '审核中';
+
+  @override
+  String get tasksAccessibilityDone => '已完成';
+
+  @override
+  String get tasksAccessibilityClosed => '已取消';
+
+  @override
   String get screenshotAnnotateNoCapture => '未捕获截图';
 
   @override
@@ -1283,6 +1328,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get screenshotAnnotateExportFailed => '导出截图失败';
+
+  @override
+  String screenshotAnnotateExportError(String error) {
+    return '导出失败：$error';
+  }
+
+  @override
+  String screenshotAnnotateSaveFailed(String error) {
+    return '保存失败：$error';
+  }
 
   @override
   String get screenshotAnnotateShareSubject => '截图';

@@ -452,6 +452,46 @@
   "machinesStatusError": "Error",
   "machinesNameLabel": "Machine name",
   "machinesNameDialogCancel": "Cancel",
+  "machinesDeleteMessage": "Delete {name}? This removes the machine from the server list.",
+  "@machinesDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "machinesCopyApiKeyMessage": "Copy the API key for {name} now.",
+  "@machinesCopyApiKeyMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "machinesSummaryCount": "{count} machine(s)",
+  "@machinesSummaryCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "machinesSummaryOnline": "{count} online",
+  "@machinesSummaryOnline": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "machinesApiKeyPrefix": "Key {prefix}...",
+  "@machinesApiKeyPrefix": {
+    "placeholders": {
+      "prefix": {
+        "type": "String"
+      }
+    }
+  },
 
   "tasksLoadFailed": "Failed to load tasks.",
   "tasksEmptyAll": "No tasks yet.",
@@ -461,6 +501,14 @@
   "tasksUpdateFailed": "Failed to update task.",
   "tasksRetryAction": "RETRY",
   "tasksDeleteTitle": "Delete Task?",
+  "tasksDeleteMessage": "Delete \"{title}\"? This cannot be undone.",
+  "@tasksDeleteMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "tasksDeleteCancel": "Cancel",
   "tasksDeleteConfirm": "Delete",
   "tasksDeletedSnackbar": "Task deleted.",
@@ -499,6 +547,11 @@
   "tasksCreateTitleLabel": "Title",
   "tasksCreateCancel": "Cancel",
   "tasksCreateConfirm": "Create",
+  "tasksAccessibilityTodo": "To Do",
+  "tasksAccessibilityInProgress": "In Progress",
+  "tasksAccessibilityInReview": "In Review",
+  "tasksAccessibilityDone": "Done",
+  "tasksAccessibilityClosed": "Cancelled",
 
   "screenshotAnnotateNoCapture": "No screenshot captured",
   "screenshotAnnotateDiscardTooltip": "Discard",
@@ -510,5 +563,21 @@
   "screenshotAnnotateCancel": "Cancel",
   "screenshotAnnotateAddButton": "Add",
   "screenshotAnnotateExportFailed": "Failed to export screenshot",
+  "screenshotAnnotateExportError": "Export failed: {error}",
+  "@screenshotAnnotateExportError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "screenshotAnnotateSaveFailed": "Save failed: {error}",
+  "@screenshotAnnotateSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "screenshotAnnotateShareSubject": "Screenshot"
 }

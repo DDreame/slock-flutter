@@ -13,6 +13,7 @@ import 'package:slock_app/features/screenshot/presentation/widgets/annotation_ca
 import 'package:slock_app/features/screenshot/presentation/widgets/annotation_toolbar.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('ScreenshotAnnotatePage', () {
@@ -57,6 +58,7 @@ void main() {
           }),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: ScreenshotAnnotatePage(),
         ),
       );

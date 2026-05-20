@@ -7,6 +7,7 @@ import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('MachinesPage renders loaded machine list and daemon summary', (
@@ -214,6 +215,7 @@ Widget _buildApp(_FakeMachinesRepository repository, {ThemeData? theme}) {
       realtimeReductionIngressProvider.overrideWithValue(ingress),
     ],
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       theme: theme,
       home: MachinesPage(serverId: 'server-1'),
     ),

@@ -225,7 +225,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             return AlertDialog(
               title: Text(l10n.tasksDeleteTitle),
               content: Text(
-                'Delete "${task.title}"? This cannot be undone.',
+                l10n.tasksDeleteMessage(task.title),
               ),
               actions: [
                 TextButton(
@@ -817,13 +817,14 @@ Color _statusColor(String status, AppColors colors) {
 ///
 /// Used for screen reader announcements on status indicators and
 /// combined task row descriptions.
-String _statusAccessibilityLabel(String status) {
+String _statusAccessibilityLabel(String status, BuildContext context) {
+  final l10n = context.l10n;
   return switch (status) {
-    'todo' => 'To Do',
-    'in_progress' => 'In Progress',
-    'in_review' => 'In Review',
-    'done' => 'Done',
-    'closed' => 'Cancelled',
+    'todo' => l10n.tasksAccessibilityTodo,
+    'in_progress' => l10n.tasksAccessibilityInProgress,
+    'in_review' => l10n.tasksAccessibilityInReview,
+    'done' => l10n.tasksAccessibilityDone,
+    'closed' => l10n.tasksAccessibilityClosed,
     _ => status,
   };
 }
@@ -902,7 +903,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
     final isDraggable = !isClosed;
 
     // Build combined accessibility label for screen readers.
-    final statusLabel = _statusAccessibilityLabel(task.status);
+    final statusLabel = _statusAccessibilityLabel(task.status, context);
     final assigneePart =
         task.claimedByName != null ? ', ${task.claimedByName}' : '';
     final combinedLabel =

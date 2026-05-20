@@ -189,7 +189,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
             return AlertDialog(
               title: Text(l10n.machinesDeleteTitle),
               content: Text(
-                'Delete ${machine.name}? This removes the machine from the server list.',
+                l10n.machinesDeleteMessage(machine.name),
               ),
               actions: [
                 TextButton(
@@ -266,7 +266,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Copy the API key for $machineName now.'),
+              Text(l10n.machinesCopyApiKeyMessage(machineName)),
               const SizedBox(height: 12),
               Text(l10n.machinesApiKeyRevealedNote),
               const SizedBox(height: 16),
@@ -360,8 +360,8 @@ class _MachinesSuccessView extends StatelessWidget {
           Card(
             key: const ValueKey('machines-summary-card'),
             child: ListTile(
-              title: Text('${state.items.length} machine(s)'),
-              subtitle: Text('$connectedCount online'),
+              title: Text(l10n.machinesSummaryCount(state.items.length)),
+              subtitle: Text(l10n.machinesSummaryOnline(connectedCount)),
               trailing: state.latestDaemonVersion == null
                   ? null
                   : Column(
@@ -475,7 +475,12 @@ class _MachineCard extends StatelessWidget {
                         children: [
                           _StatusChip(status: machine.status),
                           if (machine.apiKeyPrefix != null)
-                            Chip(label: Text('Key ${machine.apiKeyPrefix}...')),
+                            Chip(
+                              label: Text(
+                                context.l10n.machinesApiKeyPrefix(
+                                    machine.apiKeyPrefix!),
+                              ),
+                            ),
                           ...machine.runtimes.map(
                             (runtime) => Chip(label: Text(runtime)),
                           ),

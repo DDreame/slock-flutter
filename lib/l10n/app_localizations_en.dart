@@ -1168,6 +1168,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get machinesNameDialogCancel => 'Cancel';
 
   @override
+  String machinesDeleteMessage(String name) {
+    return 'Delete $name? This removes the machine from the server list.';
+  }
+
+  @override
+  String machinesCopyApiKeyMessage(String name) {
+    return 'Copy the API key for $name now.';
+  }
+
+  @override
+  String machinesSummaryCount(int count) {
+    return '$count machine(s)';
+  }
+
+  @override
+  String machinesSummaryOnline(int count) {
+    return '$count online';
+  }
+
+  @override
+  String machinesApiKeyPrefix(String prefix) {
+    return 'Key $prefix...';
+  }
+
+  @override
   String get tasksLoadFailed => 'Failed to load tasks.';
 
   @override
@@ -1190,6 +1215,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tasksDeleteTitle => 'Delete Task?';
+
+  @override
+  String tasksDeleteMessage(String title) {
+    return 'Delete \"$title\"? This cannot be undone.';
+  }
 
   @override
   String get tasksDeleteCancel => 'Cancel';
@@ -1306,6 +1336,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tasksCreateConfirm => 'Create';
 
   @override
+  String get tasksAccessibilityTodo => 'To Do';
+
+  @override
+  String get tasksAccessibilityInProgress => 'In Progress';
+
+  @override
+  String get tasksAccessibilityInReview => 'In Review';
+
+  @override
+  String get tasksAccessibilityDone => 'Done';
+
+  @override
+  String get tasksAccessibilityClosed => 'Cancelled';
+
+  @override
   String get screenshotAnnotateNoCapture => 'No screenshot captured';
 
   @override
@@ -1334,6 +1379,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get screenshotAnnotateExportFailed => 'Failed to export screenshot';
+
+  @override
+  String screenshotAnnotateExportError(String error) {
+    return 'Export failed: $error';
+  }
+
+  @override
+  String screenshotAnnotateSaveFailed(String error) {
+    return 'Save failed: $error';
+  }
 
   @override
   String get screenshotAnnotateShareSubject => 'Screenshot';

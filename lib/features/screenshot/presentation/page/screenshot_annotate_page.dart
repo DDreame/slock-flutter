@@ -482,7 +482,10 @@ class _ScreenshotAnnotatePageState
       store.setExporting(false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
+          SnackBar(
+            content:
+                Text(context.l10n.screenshotAnnotateExportError(e.toString())),
+          ),
         );
       }
       return null;
@@ -508,7 +511,10 @@ class _ScreenshotAnnotatePageState
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Save failed: $e')),
+          SnackBar(
+            content:
+                Text(context.l10n.screenshotAnnotateSaveFailed(e.toString())),
+          ),
         );
       }
     }

@@ -8,6 +8,7 @@ import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('keeps tasks list visible while reloading', (tester) async {
@@ -328,7 +329,7 @@ void main() {
         findsOneWidget,
         reason: 'INV-TASK-CLOSED-1: Closed tasks should have their own section',
       );
-      expect(find.text('已关闭'), findsOneWidget);
+      expect(find.text('Closed'), findsOneWidget);
 
       // Status symbol should be ✕
       expect(find.text('✕'), findsWidgets);
@@ -370,7 +371,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('关闭任务'),
+        find.text('Close Task'),
         findsOneWidget,
         reason:
             'INV-TASK-CLOSED-2: Action sheet should include Close Task option',
@@ -411,7 +412,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('关闭任务'),
+        find.text('Close Task'),
         findsOneWidget,
         reason:
             'INV-TASK-CLOSED-2: Done tasks must also show Close Task option',
@@ -462,7 +463,7 @@ void main() {
         reason: 'Closed tasks should not show Mark Done',
       );
       expect(
-        find.text('关闭任务'),
+        find.text('Close Task'),
         findsNothing,
         reason: 'Closed tasks should not show Close Task',
       );
@@ -499,7 +500,10 @@ void main() {
 
       // Verify closed count is 2 and shown separately
       expect(
-        find.text('Closed'),
+        find.descendant(
+          of: summaryHeader,
+          matching: find.text('Closed'),
+        ),
         findsOneWidget,
         reason: 'INV-TASK-CLOSED-3: Summary should have a Closed column',
       );
@@ -584,6 +588,7 @@ Widget _buildApp(_FakeTasksStore store, {ThemeData? theme}) {
       tasksStoreProvider.overrideWith(() => store),
     ],
     child: MaterialApp.router(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       routerConfig: router,
       theme: theme ?? AppTheme.light,
     ),

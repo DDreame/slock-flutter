@@ -2230,6 +2230,36 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get machinesNameDialogCancel;
 
+  /// No description provided for @machinesDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}? This removes the machine from the server list.'**
+  String machinesDeleteMessage(String name);
+
+  /// No description provided for @machinesCopyApiKeyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the API key for {name} now.'**
+  String machinesCopyApiKeyMessage(String name);
+
+  /// No description provided for @machinesSummaryCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} machine(s)'**
+  String machinesSummaryCount(int count);
+
+  /// No description provided for @machinesSummaryOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} online'**
+  String machinesSummaryOnline(int count);
+
+  /// No description provided for @machinesApiKeyPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Key {prefix}...'**
+  String machinesApiKeyPrefix(String prefix);
+
   /// No description provided for @tasksLoadFailed.
   ///
   /// In en, this message translates to:
@@ -2277,6 +2307,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete Task?'**
   String get tasksDeleteTitle;
+
+  /// No description provided for @tasksDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{title}\"? This cannot be undone.'**
+  String tasksDeleteMessage(String title);
 
   /// No description provided for @tasksDeleteCancel.
   ///
@@ -2506,6 +2542,36 @@ abstract class AppLocalizations {
   /// **'Create'**
   String get tasksCreateConfirm;
 
+  /// No description provided for @tasksAccessibilityTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To Do'**
+  String get tasksAccessibilityTodo;
+
+  /// No description provided for @tasksAccessibilityInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get tasksAccessibilityInProgress;
+
+  /// No description provided for @tasksAccessibilityInReview.
+  ///
+  /// In en, this message translates to:
+  /// **'In Review'**
+  String get tasksAccessibilityInReview;
+
+  /// No description provided for @tasksAccessibilityDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get tasksAccessibilityDone;
+
+  /// No description provided for @tasksAccessibilityClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get tasksAccessibilityClosed;
+
   /// No description provided for @screenshotAnnotateNoCapture.
   ///
   /// In en, this message translates to:
@@ -2565,6 +2631,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failed to export screenshot'**
   String get screenshotAnnotateExportFailed;
+
+  /// No description provided for @screenshotAnnotateExportError.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String screenshotAnnotateExportError(String error);
+
+  /// No description provided for @screenshotAnnotateSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed: {error}'**
+  String screenshotAnnotateSaveFailed(String error);
 
   /// No description provided for @screenshotAnnotateShareSubject.
   ///

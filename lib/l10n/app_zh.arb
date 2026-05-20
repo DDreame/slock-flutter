@@ -392,6 +392,11 @@
   "machinesStatusError": "错误",
   "machinesNameLabel": "机器名称",
   "machinesNameDialogCancel": "取消",
+  "machinesDeleteMessage": "删除 {name}？此操作将从服务器列表中移除该机器。",
+  "machinesCopyApiKeyMessage": "请立即复制 {name} 的 API 密钥。",
+  "machinesSummaryCount": "{count} 台机器",
+  "machinesSummaryOnline": "{count} 在线",
+  "machinesApiKeyPrefix": "密钥 {prefix}...",
 
   "tasksLoadFailed": "加载任务失败。",
   "tasksEmptyAll": "暂无任务。",
@@ -401,6 +406,7 @@
   "tasksUpdateFailed": "更新任务失败。",
   "tasksRetryAction": "重试",
   "tasksDeleteTitle": "删除任务？",
+  "tasksDeleteMessage": "删除「{title}」？此操作无法撤销。",
   "tasksDeleteCancel": "取消",
   "tasksDeleteConfirm": "删除",
   "tasksDeletedSnackbar": "任务已删除。",
@@ -439,6 +445,11 @@
   "tasksCreateTitleLabel": "标题",
   "tasksCreateCancel": "取消",
   "tasksCreateConfirm": "创建",
+  "tasksAccessibilityTodo": "待办",
+  "tasksAccessibilityInProgress": "进行中",
+  "tasksAccessibilityInReview": "审核中",
+  "tasksAccessibilityDone": "已完成",
+  "tasksAccessibilityClosed": "已取消",
 
   "screenshotAnnotateNoCapture": "未捕获截图",
   "screenshotAnnotateDiscardTooltip": "放弃",
@@ -450,5 +461,7 @@
   "screenshotAnnotateCancel": "取消",
   "screenshotAnnotateAddButton": "添加",
   "screenshotAnnotateExportFailed": "导出截图失败",
+  "screenshotAnnotateExportError": "导出失败：{error}",
+  "screenshotAnnotateSaveFailed": "保存失败：{error}",
   "screenshotAnnotateShareSubject": "截图"
 }
