@@ -472,6 +472,58 @@ void main() {
     expect(repo.loadCount, greaterThan(1));
   });
 
+  // -----------------------------------------------------------------------
+  // INV-REFRESH-SWR-1: Pull-to-refresh does NOT show skeleton flash.
+  //
+  // When the user pulls to refresh on an already-loaded list, the
+  // RefreshIndicator triggers homeStore.refresh() (SWR pattern) which
+  // keeps status == success and shows no skeleton items.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'pull-to-refresh keeps content visible — no skeleton flash '
+    '(INV-REFRESH-SWR-1)',
+    (tester) async {
+      final repo = _MutableFakeHomeRepository(sampleSnapshot);
+
+      await tester.pumpWidget(buildApp(homeRepository: repo));
+      await tester.pumpAndSettle();
+
+      // Channels are visible before refresh.
+      expect(
+        find.byKey(const ValueKey('channels-tab-general')),
+        findsOneWidget,
+      );
+
+      // Trigger pull-to-refresh gesture.
+      await tester.fling(
+        find.byKey(const ValueKey('channels-tab-general')),
+        const Offset(0, 300),
+        1000,
+      );
+
+      // Pump a single frame (mid-refresh).
+      await tester.pump();
+
+      // ASSERT: skeleton must NOT appear.
+      expect(
+        find.byKey(const ValueKey('channels-skeleton')),
+        findsNothing,
+        reason: 'Pull-to-refresh must NOT show skeleton — SWR keeps '
+            'existing content visible (INV-REFRESH-SWR-1)',
+      );
+
+      // ASSERT: channel rows must still be visible.
+      expect(
+        find.byKey(const ValueKey('channels-tab-general')),
+        findsOneWidget,
+        reason: 'Channel rows must remain visible during refresh '
+            '(INV-REFRESH-SWR-1)',
+      );
+
+      await tester.pumpAndSettle();
+    },
+  );
+
   // -----------------------------------------------------------------
   // Mark-all-read button (INV-MARK-ALL)
   // -----------------------------------------------------------------

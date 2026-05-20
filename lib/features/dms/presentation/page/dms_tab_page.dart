@@ -170,7 +170,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
           ),
         HomeListStatus.success => RefreshIndicator(
             key: const ValueKey('dms-tab-refresh'),
-            onRefresh: homeStore.load,
+            onRefresh: homeStore.refresh,
             child: _buildDmList(
               state: state,
               agentData: agentData,

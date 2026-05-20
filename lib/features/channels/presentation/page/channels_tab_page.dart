@@ -146,7 +146,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
           ),
         HomeListStatus.success => RefreshIndicator(
             key: const ValueKey('channels-tab-refresh'),
-            onRefresh: homeStore.load,
+            onRefresh: homeStore.refresh,
             child: _buildChannelList(
               pinnedChannels: state.pinnedChannels,
               channels: state.channels,

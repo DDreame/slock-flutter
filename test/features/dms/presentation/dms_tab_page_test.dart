@@ -416,6 +416,54 @@ void main() {
     expect(repo.loadCount, greaterThan(1));
   });
 
+  // -----------------------------------------------------------------------
+  // INV-REFRESH-SWR-1: Pull-to-refresh does NOT show skeleton flash.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'pull-to-refresh keeps DM list visible — no skeleton flash '
+    '(INV-REFRESH-SWR-1)',
+    (tester) async {
+      final repo = _MutableFakeHomeRepository(sampleSnapshot);
+
+      await tester.pumpWidget(buildApp(homeRepository: repo));
+      await tester.pumpAndSettle();
+
+      // DMs are visible before refresh.
+      expect(
+        find.byKey(const ValueKey('dms-tab-dm-alice')),
+        findsOneWidget,
+      );
+
+      // Trigger pull-to-refresh gesture.
+      await tester.fling(
+        find.byKey(const ValueKey('dms-tab-dm-alice')),
+        const Offset(0, 300),
+        1000,
+      );
+
+      // Pump a single frame (mid-refresh).
+      await tester.pump();
+
+      // ASSERT: skeleton must NOT appear.
+      expect(
+        find.byKey(const ValueKey('dms-skeleton')),
+        findsNothing,
+        reason: 'Pull-to-refresh must NOT show skeleton — SWR keeps '
+            'existing content visible (INV-REFRESH-SWR-1)',
+      );
+
+      // ASSERT: DM rows must still be visible.
+      expect(
+        find.byKey(const ValueKey('dms-tab-dm-alice')),
+        findsOneWidget,
+        reason: 'DM rows must remain visible during refresh '
+            '(INV-REFRESH-SWR-1)',
+      );
+
+      await tester.pumpAndSettle();
+    },
+  );
+
   testWidgets('new DM navigates to DM route after selecting a member', (
     tester,
   ) async {
