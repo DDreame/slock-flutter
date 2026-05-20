@@ -1,7 +1,9 @@
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
@@ -12,7 +14,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/composer_ke
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
 
-class ConversationComposer extends StatelessWidget {
+class ConversationComposer extends ConsumerWidget {
   const ConversationComposer({
     super.key,
     required this.controller,
@@ -55,7 +57,7 @@ class ConversationComposer extends StatelessWidget {
   final bool enterToSend;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     return SafeArea(
       top: false,
@@ -139,7 +141,7 @@ class ConversationComposer extends StatelessWidget {
                       tooltip: 'Attach file',
                       onPressed: state.isSending
                           ? null
-                          : () => _showAttachOptions(context),
+                          : () => _showAttachOptions(context, ref),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.xs),
@@ -315,7 +317,7 @@ class ConversationComposer extends StatelessWidget {
     );
   }
 
-  Future<void> _showAttachOptions(BuildContext context) async {
+  Future<void> _showAttachOptions(BuildContext context, WidgetRef ref) async {
     final colors = Theme.of(context).extension<AppColors>()!;
     final option = await showModalBottomSheet<_AttachOption>(
       context: context,
@@ -348,7 +350,7 @@ class ConversationComposer extends StatelessWidget {
       case _AttachOption.gallery:
         await _pickGallery();
       case _AttachOption.camera:
-        await _pickCamera(context);
+        await _pickCamera(context, ref);
       case _AttachOption.file:
         await _pickFile();
     }
@@ -368,7 +370,7 @@ class ConversationComposer extends StatelessWidget {
     ));
   }
 
-  Future<void> _pickCamera(BuildContext context) async {
+  Future<void> _pickCamera(BuildContext context, WidgetRef ref) async {
     try {
       final picker = ImagePicker();
       final photo = await picker.pickImage(source: ImageSource.camera);
@@ -381,7 +383,10 @@ class ConversationComposer extends StatelessWidget {
         name: name,
         mimeType: mimeType,
       ));
-    } catch (e) {
+    } on Exception catch (e) {
+      ref
+          .read(diagnosticsCollectorProvider)
+          .error('Composer', 'Camera capture failed: $e');
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

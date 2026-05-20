@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 /// Signature for the content-fetch callback.
@@ -21,7 +23,7 @@ Future<String> _defaultFetcher(String url) async {
 /// renders plain text in a monospace font. Shows at most [_maxPreviewChars]
 /// characters; the rest is behind a "Show more" toggle.
 /// On error, renders [fallback] (INV-ATTACH-2).
-class TextPreviewWidget extends StatefulWidget {
+class TextPreviewWidget extends ConsumerStatefulWidget {
   const TextPreviewWidget({
     super.key,
     required this.attachment,
@@ -41,10 +43,10 @@ class TextPreviewWidget extends StatefulWidget {
   final ContentFetcher? contentFetcher;
 
   @override
-  State<TextPreviewWidget> createState() => _TextPreviewWidgetState();
+  ConsumerState<TextPreviewWidget> createState() => _TextPreviewWidgetState();
 }
 
-class _TextPreviewWidgetState extends State<TextPreviewWidget> {
+class _TextPreviewWidgetState extends ConsumerState<TextPreviewWidget> {
   static const _maxPreviewChars = 500;
 
   String? _content;
@@ -72,7 +74,11 @@ class _TextPreviewWidgetState extends State<TextPreviewWidget> {
         _content = content;
         _loading = false;
       });
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'TextPreview',
+            'Fetch failed for ${widget.attachment.name}: $e',
+          );
       if (!mounted) return;
       setState(() {
         _error = true;

@@ -723,13 +723,16 @@ class _ConversationDetailScreenState
 
       await recorder.start(outputPath: outputPath);
       store.setRecordingState(VoiceRecorderState.recording);
-    } catch (e) {
+    } on Exception catch (e) {
       // Clean up any partial subscriptions.
       _voiceStateSub?.cancel();
       _voiceAmplitudeSub?.cancel();
       _voiceElapsedSub?.cancel();
       store.reset();
 
+      ref
+          .read(diagnosticsCollectorProvider)
+          .error('VoiceRecording', 'Recording start failed: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

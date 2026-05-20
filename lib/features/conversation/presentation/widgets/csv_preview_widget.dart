@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 /// Signature for the content-fetch callback. Tests inject a fake; production
@@ -19,7 +21,7 @@ Future<String> _defaultFetcher(String url) async {
 /// Fetches the CSV content from the attachment URL and renders the first
 /// [_maxRows] rows as a scrollable [Table]. On error, renders [fallback]
 /// which should be the generic file row (INV-ATTACH-2).
-class CsvPreviewWidget extends StatefulWidget {
+class CsvPreviewWidget extends ConsumerStatefulWidget {
   const CsvPreviewWidget({
     super.key,
     required this.attachment,
@@ -37,10 +39,10 @@ class CsvPreviewWidget extends StatefulWidget {
   final ContentFetcher? contentFetcher;
 
   @override
-  State<CsvPreviewWidget> createState() => _CsvPreviewWidgetState();
+  ConsumerState<CsvPreviewWidget> createState() => _CsvPreviewWidgetState();
 }
 
-class _CsvPreviewWidgetState extends State<CsvPreviewWidget> {
+class _CsvPreviewWidgetState extends ConsumerState<CsvPreviewWidget> {
   static const _maxRows = 10;
 
   List<List<String>>? _rows;
@@ -72,7 +74,11 @@ class _CsvPreviewWidgetState extends State<CsvPreviewWidget> {
         _rows = rows;
         _loading = false;
       });
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'CsvPreview',
+            'Fetch failed for ${widget.attachment.name}: $e',
+          );
       if (!mounted) return;
       setState(() {
         _error = true;

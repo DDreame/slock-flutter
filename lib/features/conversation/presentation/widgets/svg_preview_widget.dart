@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 
 /// Signature for the content-fetch callback.
@@ -19,7 +21,7 @@ Future<String> _defaultFetcher(String url) async {
 /// Fetches the SVG content from the attachment URL and renders it inline
 /// using [SvgPicture.string]. Constrained to 200×280 to match image
 /// preview dimensions. On error, renders [fallback] (INV-ATTACH-2).
-class SvgPreviewWidget extends StatefulWidget {
+class SvgPreviewWidget extends ConsumerStatefulWidget {
   const SvgPreviewWidget({
     super.key,
     required this.attachment,
@@ -37,10 +39,10 @@ class SvgPreviewWidget extends StatefulWidget {
   final ContentFetcher? contentFetcher;
 
   @override
-  State<SvgPreviewWidget> createState() => _SvgPreviewWidgetState();
+  ConsumerState<SvgPreviewWidget> createState() => _SvgPreviewWidgetState();
 }
 
-class _SvgPreviewWidgetState extends State<SvgPreviewWidget> {
+class _SvgPreviewWidgetState extends ConsumerState<SvgPreviewWidget> {
   String? _svgContent;
   bool _loading = true;
   bool _error = false;
@@ -72,7 +74,11 @@ class _SvgPreviewWidgetState extends State<SvgPreviewWidget> {
         _svgContent = content;
         _loading = false;
       });
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'SvgPreview',
+            'Fetch failed for ${widget.attachment.name}: $e',
+          );
       if (!mounted) return;
       setState(() {
         _error = true;

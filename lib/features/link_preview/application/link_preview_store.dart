@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import '../data/link_metadata.dart';
 import '../data/link_preview_service.dart';
 
@@ -21,7 +22,10 @@ final linkPreviewServiceProvider = Provider<LinkPreviewService>((ref) {
 /// - `AsyncError` on transient network failure (retryable on next access)
 final linkPreviewCacheProvider = StateNotifierProvider<LinkPreviewCacheNotifier,
     Map<String, AsyncValue<LinkMetadata?>>>((ref) {
-  return LinkPreviewCacheNotifier(ref.watch(linkPreviewServiceProvider));
+  return LinkPreviewCacheNotifier(
+    ref.watch(linkPreviewServiceProvider),
+    ref.read(diagnosticsCollectorProvider),
+  );
 });
 
 /// Notifier that manages the link preview cache.
@@ -31,9 +35,10 @@ final linkPreviewCacheProvider = StateNotifierProvider<LinkPreviewCacheNotifier,
 /// URL via [fetch] refreshes its recency so it survives longer.
 class LinkPreviewCacheNotifier
     extends StateNotifier<Map<String, AsyncValue<LinkMetadata?>>> {
-  LinkPreviewCacheNotifier(this._service) : super({});
+  LinkPreviewCacheNotifier(this._service, this._diagnostics) : super({});
 
   final LinkPreviewService _service;
+  final DiagnosticsCollector _diagnostics;
 
   /// Maximum number of cached link previews.
   static const maxSize = 100;
@@ -59,7 +64,8 @@ class LinkPreviewCacheNotifier
     try {
       final metadata = await _service.fetchMetadata(url);
       state = _trimToMax({...state, url: AsyncValue.data(metadata)});
-    } catch (e, st) {
+    } on Exception catch (e, st) {
+      _diagnostics.error('LinkPreview', 'Metadata fetch failed for $url: $e');
       // Transient failure — store as error so widget can show fallback.
       state = _trimToMax({...state, url: AsyncValue.error(e, st)});
     }

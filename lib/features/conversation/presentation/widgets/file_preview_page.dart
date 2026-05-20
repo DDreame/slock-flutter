@@ -187,7 +187,10 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
           _loading = false;
         });
       }
-    } catch (e) {
+    } on Exception catch (e) {
+      ref
+          .read(diagnosticsCollectorProvider)
+          .error('FilePreview', 'PDF download failed: $e');
       if (mounted) {
         setState(() {
           _error = 'Failed to download PDF.';

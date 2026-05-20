@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/annotation.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
@@ -478,7 +479,11 @@ class _ScreenshotAnnotatePageState
 
       store.setExportedPath(exportedPath);
       return exportedPath;
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'ScreenshotAnnotate',
+            'Export failed: $e',
+          );
       store.setExporting(false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -508,7 +513,11 @@ class _ScreenshotAnnotatePageState
         [XFile(exportedPath)],
         subject: context.l10n.screenshotAnnotateShareSubject,
       );
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'ScreenshotAnnotate',
+            'Save/share failed: $e',
+          );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
