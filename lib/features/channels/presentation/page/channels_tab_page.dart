@@ -424,13 +424,13 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                     channel.scopeId,
                     name: name,
                   );
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
                   showAppSnackBar(context, l10n.homeChannelUpdated);
                 } on AppFailure catch (failure) {
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   showAppSnackBar(
                     context,
                     failure.message ?? l10n.homeChannelUpdateFailed,
@@ -468,13 +468,13 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               onConfirm: () async {
                 try {
                   await store.deleteChannel(channel.scopeId);
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
                   showAppSnackBar(context, l10n.homeChannelDeleted);
                 } on AppFailure catch (failure) {
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   showAppSnackBar(
                     context,
                     failure.message ?? l10n.homeChannelDeleteFailed,
@@ -512,13 +512,13 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               onConfirm: () async {
                 try {
                   await store.leaveChannel(channel.scopeId);
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   if (dialogContext.mounted) {
                     Navigator.of(dialogContext).pop();
                   }
                   showAppSnackBar(context, l10n.homeChannelLeft);
                 } on AppFailure catch (failure) {
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   showAppSnackBar(
                     context,
                     failure.message ?? l10n.homeChannelLeaveFailed,
