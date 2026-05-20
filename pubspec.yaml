@@ -55,7 +55,11 @@ dev_dependencies:
   glados: ^1.1.7
 
 dependency_overrides:
+  # Pinned to fix url_launcher_android crash on API 33+ when launching intents.
+  # Remove after url_launcher ^6.3.15 is released with the fix.
   url_launcher_android: 6.3.14
+  # Pinned to fix record_linux build failure on Ubuntu 22.04 CI runners.
+  # Remove after record ^5.3.0 bundles updated Linux support.
   record_linux: 1.3.0
 
 hooks:
