@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/skeleton_list_item.dart';
 import 'package:slock_app/app/widgets/swipe_to_mark_read.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
@@ -193,11 +194,11 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     // INV-DMS-AGENT-SET-CACHE-1: Agent name sets derived from the separate
     // agentData select. When DM data changes but agents don't, the select
     // returns the cached value and these sets use identical input.
-    final onlineAgentNames = <String>{
+    final agentStatusByName = <String, AgentDisplayStatus>{
       for (final agent in agentData.agents)
-        if (agent.isActive) agent.label,
+        agent.label: resolveDisplayStatus(agent),
       for (final agent in agentData.pinnedAgents)
-        if (agent.isActive) agent.label,
+        agent.label: resolveDisplayStatus(agent),
     };
 
     // Build all-agent name lookup for AGENT badge.
@@ -320,8 +321,9 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
           return _buildDmRow(
             dm: dm,
             isPinned: pinnedIds.contains(dm.scopeId.value),
-            isOnline: onlineAgentNames.contains(dm.title),
+            isOnline: agentStatusByName[dm.title] == AgentDisplayStatus.online,
             isAgent: dm.isAgent || allAgentNames.contains(dm.title),
+            agentActivity: agentStatusByName[dm.title],
             homeStore: homeStore,
             dmUnreadCounts: dmUnreadCounts,
           );
@@ -386,6 +388,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     required bool isAgent,
     required HomeListStore homeStore,
     required Map<DirectMessageScopeId, int> dmUnreadCounts,
+    AgentDisplayStatus? agentActivity,
   }) {
     final unreadCount = dmUnreadCounts[dm.scopeId] ?? 0;
 
@@ -404,6 +407,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
         isPinned: isPinned,
         isOnline: isOnline,
         isAgent: isAgent,
+        agentActivity: agentActivity,
         onTap: () {
           context.push(homeStore.directMessageRoutePath(dm.scopeId));
           // Deferred mark-read: brief delay before clearing unread

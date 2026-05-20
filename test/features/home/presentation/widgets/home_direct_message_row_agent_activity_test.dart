@@ -64,7 +64,7 @@ void main() {
     // T1: Agent with 'thinking' activity shows warning-colored pulse dot.
     testWidgets(
       'T1: thinking activity shows warning dot',
-      skip: true, // Phase A — will pass after Phase B adds agentActivity param
+      // Phase B — agentActivity param now wired
       (tester) async {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -93,7 +93,7 @@ void main() {
     // T2: Agent with 'working' activity shows warning-colored pulse dot.
     testWidgets(
       'T2: working activity shows warning dot',
-      skip: true, // Phase A
+      // Phase B — DONE
       (tester) async {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -122,7 +122,7 @@ void main() {
     // T3: Agent with 'error' activity shows error-colored dot.
     testWidgets(
       'T3: error activity shows error dot',
-      skip: true, // Phase A
+      // Phase B — DONE
       (tester) async {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -151,7 +151,7 @@ void main() {
     // T4: Agent with 'online' activity shows success-colored dot.
     testWidgets(
       'T4: online activity shows success dot',
-      skip: true, // Phase A
+      // Phase B — DONE
       (tester) async {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -180,7 +180,7 @@ void main() {
     // T5: Agent with 'offline' activity shows tertiary-colored dot.
     testWidgets(
       'T5: offline activity shows tertiary dot',
-      skip: true, // Phase A
+      // Phase B — DONE
       (tester) async {
         final container = ProviderContainer();
         addTearDown(container.dispose);
@@ -209,7 +209,7 @@ void main() {
     // T6: Human DM rows still use PresenceAvatar (no agentActivity param).
     testWidgets(
       'T6: human DM row uses PresenceAvatar unchanged',
-      skip: true, // Phase A
+      // Phase B — DONE
       (tester) async {
         final container = ProviderContainer();
         final sub = container.listen(presenceStoreProvider, (_, __) {});
