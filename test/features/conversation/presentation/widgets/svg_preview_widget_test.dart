@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/svg_preview_widget.dart';
@@ -14,14 +15,16 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SvgPreviewWidget(
-            attachment: attachment,
-            contentFetcher: (url) async =>
-                '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
-                '<circle cx="50" cy="50" r="40" fill="red"/>'
-                '</svg>',
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: SvgPreviewWidget(
+              attachment: attachment,
+              contentFetcher: (url) async =>
+                  '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">'
+                  '<circle cx="50" cy="50" r="40" fill="red"/>'
+                  '</svg>',
+            ),
           ),
         ),
       ),
@@ -42,12 +45,14 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SvgPreviewWidget(
-            attachment: attachment,
-            fallback: fallback,
-            contentFetcher: (url) async => throw Exception('network error'),
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: SvgPreviewWidget(
+              attachment: attachment,
+              fallback: fallback,
+              contentFetcher: (url) async => throw Exception('network error'),
+            ),
           ),
         ),
       ),
@@ -66,11 +71,13 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SvgPreviewWidget(
-            attachment: attachment,
-            fallback: fallback,
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: SvgPreviewWidget(
+              attachment: attachment,
+              fallback: fallback,
+            ),
           ),
         ),
       ),

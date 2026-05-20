@@ -26,7 +26,7 @@ class _ApiPushTokenRepository implements PushTokenRepository {
       );
     } on AppFailure {
       rethrow;
-    } catch (e) {
+    } on Exception catch (e) {
       throw UnknownFailure(message: e.toString());
     }
   }
@@ -46,7 +46,7 @@ class _ApiPushTokenRepository implements PushTokenRepository {
       );
     } on AppFailure {
       rethrow;
-    } catch (e) {
+    } on Exception catch (e) {
       throw UnknownFailure(message: e.toString());
     }
   }

@@ -161,7 +161,11 @@ class _ProfileSuccessBody extends ConsumerWidget {
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'ProfilePage',
+            'Avatar upload failed: $e',
+          );
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(

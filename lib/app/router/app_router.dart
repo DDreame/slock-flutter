@@ -5,6 +5,7 @@ import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
 import 'package:slock_app/core/telemetry/crash_breadcrumb_observer.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/app/shell/app_shell.dart';
 import 'package:slock_app/features/agents/presentation/page/agents_page.dart';
 import 'package:slock_app/features/auth/presentation/page/forgot_password_page.dart';
@@ -662,7 +663,10 @@ class _ShareTargetRoute extends StatelessWidget {
           // so the user can retry.
           ref.read(shareIntentStoreProvider.notifier).consume();
           if (context.mounted) context.go('/home');
-        } catch (e) {
+        } on Exception catch (e) {
+          ref
+              .read(diagnosticsCollectorProvider)
+              .error('ShareIntent', 'Share send failed: $e');
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(

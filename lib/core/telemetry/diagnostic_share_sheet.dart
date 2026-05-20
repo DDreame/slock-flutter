@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/telemetry/diagnostic_log_service.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_service.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
 // --- Component-level sizing constants ---
 
@@ -102,7 +103,11 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
         _statusMessage = 'Copied to clipboard';
         _isBusy = false;
       });
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'DiagnosticShareSheet',
+            'Copy to clipboard failed: $e',
+          );
       if (!mounted) return;
       setState(() {
         _statusMessage = 'Copy failed';
@@ -128,7 +133,11 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
             : null;
         _isBusy = false;
       });
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'DiagnosticShareSheet',
+            'Share failed: $e',
+          );
       if (!mounted) return;
       setState(() {
         _statusMessage = 'Share failed';
@@ -152,7 +161,11 @@ class _DiagnosticShareSheetState extends ConsumerState<DiagnosticShareSheet> {
         _statusMessage = 'Saved to $path';
         _isBusy = false;
       });
-    } catch (e) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'DiagnosticShareSheet',
+            'Save to file failed: $e',
+          );
       if (!mounted) return;
       setState(() {
         _statusMessage = 'Save failed';
