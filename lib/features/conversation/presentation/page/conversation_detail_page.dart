@@ -24,6 +24,8 @@ import 'package:slock_app/features/conversation/data/typing_realtime_binding.dar
 import 'package:slock_app/features/conversation/presentation/page/conversation_info_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_composer.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_list.dart';
+export 'package:slock_app/features/conversation/presentation/widgets/conversation_message_list.dart'
+    show dateSeparatorToLocal;
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_search_overlay.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_selection_bar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
