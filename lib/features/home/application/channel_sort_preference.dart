@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
@@ -55,6 +56,9 @@ class ChannelSortPreferenceNotifier extends Notifier<ChannelSortPreference> {
 
 /// Given a list of channels, returns them sorted according to the
 /// current [channelSortPreferenceProvider].
+///
+/// DEPRECATED: This family provider never caches because List arguments
+/// use reference equality. Use [sortedChannelListProvider] instead.
 final sortedChannelsProvider =
     Provider.family<List<HomeChannelSummary>, List<HomeChannelSummary>>(
   (ref, channels) {
@@ -80,3 +84,50 @@ final sortedChannelsProvider =
     return sorted;
   },
 );
+
+// ---------------------------------------------------------------------------
+// #652: Memoized sorted channel list provider
+//
+// INV-TAB-SORT-CACHE-1: Sort computation only re-runs when the raw channel
+// list or sort preference changes — NOT on unread count, typing, or other
+// unrelated state changes. The old Provider.family approach never cached
+// because List uses reference equality. This derived provider watches
+// narrowed selects so Riverpod's built-in caching prevents redundant sorts.
+// ---------------------------------------------------------------------------
+
+/// Memoized sorted channel list. Re-sorts only when the underlying channel
+/// list or sort preference changes.
+///
+/// Watches `homeListStoreProvider.select((s) => s.channels)` and
+/// `homeListStoreProvider.select((s) => s.pinnedChannels)` — since the home
+/// store's `copyWith()` preserves List references when those fields are
+/// unchanged, `.select()` correctly skips rebuilds on unrelated state changes
+/// (unread counts, isRefreshing, etc.).
+final sortedChannelListProvider = Provider<List<HomeChannelSummary>>((ref) {
+  final channels = ref.watch(
+    homeListStoreProvider.select((s) => s.channels),
+  );
+  final pinnedChannels = ref.watch(
+    homeListStoreProvider.select((s) => s.pinnedChannels),
+  );
+  final preference = ref.watch(channelSortPreferenceProvider);
+
+  final combined = [...pinnedChannels, ...channels];
+  switch (preference) {
+    case ChannelSortPreference.recentActivity:
+      combined.sort((a, b) {
+        final aTime = a.lastActivityAt;
+        final bTime = b.lastActivityAt;
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+        return bTime.compareTo(aTime);
+      });
+    case ChannelSortPreference.alphabetical:
+      combined.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
+  }
+
+  return combined;
+});
