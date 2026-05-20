@@ -413,27 +413,36 @@ void _handleMessageNew(
   final matchedDirectMessage =
       _matchDirectMessageScopeId(homeState, incoming.conversationId);
 
+  final l10n = ref.read(appLocalizationsProvider);
   final preview = MessagePreviewResolver.resolveFromMessage(
     incoming.message,
-    l10n: ref.read(appLocalizationsProvider),
+    l10n: l10n,
   );
+
+  // BUG-3 fix (#637): If the resolver can only produce the generic fallback
+  // (empty content + no attachments + not deleted/system), the WS event
+  // lacks meaningful preview data. Do NOT write "New message" — skip the
+  // preview update so backfill can fetch the actual content later.
+  final isGenericFallback = preview == l10n.previewFallback;
 
   final notifier = ref.read(homeListStoreProvider.notifier);
 
   if (matchedChannel != null && matchedDirectMessage == null) {
-    unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
-          serverId: homeState.serverScopeId!,
-          conversationId: incoming.conversationId,
-          messageId: incoming.message.id,
-          preview: preview,
-          activityAt: incoming.message.createdAt,
-        ));
-    notifier.updateChannelLastMessage(
-      conversationId: incoming.conversationId,
-      messageId: incoming.message.id,
-      preview: preview,
-      activityAt: incoming.message.createdAt,
-    );
+    if (!isGenericFallback) {
+      unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
+            serverId: homeState.serverScopeId!,
+            conversationId: incoming.conversationId,
+            messageId: incoming.message.id,
+            preview: preview,
+            activityAt: incoming.message.createdAt,
+          ));
+      notifier.updateChannelLastMessage(
+        conversationId: incoming.conversationId,
+        messageId: incoming.message.id,
+        preview: preview,
+        activityAt: incoming.message.createdAt,
+      );
+    }
     if (!isSelfMessage && !isOpen) {
       // InboxStore refresh (debounced above) propagates the count
       // via unreadSourceProjectionProvider.
@@ -441,19 +450,21 @@ void _handleMessageNew(
     return;
   }
   if (matchedDirectMessage != null && matchedChannel == null) {
-    unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
-          serverId: homeState.serverScopeId!,
-          conversationId: incoming.conversationId,
-          messageId: incoming.message.id,
-          preview: preview,
-          activityAt: incoming.message.createdAt,
-        ));
-    notifier.updateDmLastMessage(
-      conversationId: incoming.conversationId,
-      messageId: incoming.message.id,
-      preview: preview,
-      activityAt: incoming.message.createdAt,
-    );
+    if (!isGenericFallback) {
+      unawaited(ref.read(homeRepositoryProvider).persistConversationActivity(
+            serverId: homeState.serverScopeId!,
+            conversationId: incoming.conversationId,
+            messageId: incoming.message.id,
+            preview: preview,
+            activityAt: incoming.message.createdAt,
+          ));
+      notifier.updateDmLastMessage(
+        conversationId: incoming.conversationId,
+        messageId: incoming.message.id,
+        preview: preview,
+        activityAt: incoming.message.createdAt,
+      );
+    }
     if (!isSelfMessage && !isOpen) {
       // InboxStore refresh (debounced above) propagates the count
       // via unreadSourceProjectionProvider.

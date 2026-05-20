@@ -232,6 +232,111 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
 
     state = PreviewBackfillState(isRunning: false, filled: filled);
   }
+
+  /// BUG-1 fix (#637): Backfill missing previews for DMs.
+  ///
+  /// Mirrors [backfill] but operates on [HomeDirectMessageSummary] and calls
+  /// [HomeListStore.backfillDmPreview] instead of backfillChannelPreview.
+  /// Does NOT guard on isRunning (can run concurrently with channel backfill).
+  Future<void> backfillDirectMessages(
+    List<HomeDirectMessageSummary> directMessages,
+  ) async {
+    final needsBackfill =
+        directMessages.where((d) => d.lastMessagePreview == null).toList();
+    if (needsBackfill.isEmpty) return;
+
+    final serverId = ref.read(activeServerScopeIdProvider);
+    if (serverId == null) return;
+
+    // --- Phase 1: SQLite cache lookup ---
+    final remainingAfterCache = <HomeDirectMessageSummary>[];
+    try {
+      final localStore = ref.read(conversationLocalStoreProvider);
+      final cached = await localStore.listConversationSummaries(
+        serverId.value,
+        surface: 'direct_message',
+      );
+
+      final cacheMap = <String, LocalConversationSummaryRecord>{};
+      for (final record in cached) {
+        cacheMap[record.conversationId] = record;
+      }
+
+      final homeStore = ref.read(homeListStoreProvider.notifier);
+
+      for (final dm in needsBackfill) {
+        final id = dm.scopeId.value;
+        final record = cacheMap[id];
+        if (record != null &&
+            record.lastMessagePreview != null &&
+            record.lastMessagePreview!.isNotEmpty &&
+            record.lastMessageId != null) {
+          homeStore.backfillDmPreview(
+            conversationId: id,
+            messageId: record.lastMessageId!,
+            preview: record.lastMessagePreview!,
+            activityAt: record.lastActivityAt ?? DateTime.now(),
+          );
+        } else {
+          remainingAfterCache.add(dm);
+        }
+      }
+    } catch (_) {
+      remainingAfterCache
+        ..clear()
+        ..addAll(needsBackfill);
+    }
+
+    // --- Phase 2: Lazy-load from API ---
+    if (remainingAfterCache.isEmpty) return;
+
+    final fetcher = ref.read(previewMessageFetcherProvider);
+    final homeStore = ref.read(homeListStoreProvider.notifier);
+
+    Future<void> fetchOne(HomeDirectMessageSummary dm) async {
+      final id = dm.scopeId.value;
+      try {
+        final result = await fetcher(serverId.value, id);
+        if (result != null) {
+          homeStore.backfillDmPreview(
+            conversationId: id,
+            messageId: result.messageId,
+            preview: result.preview,
+            activityAt: result.activityAt,
+          );
+        }
+      } catch (_) {
+        // Silently skip — best-effort backfill.
+      }
+    }
+
+    // Concurrency-limited fetch loop (same cap as channel backfill).
+    final allDone = Completer<void>();
+    var nextIndex = 0;
+    var inFlight = 0;
+    final pending = List<HomeDirectMessageSummary>.of(remainingAfterCache);
+
+    void pump() {
+      while (inFlight < maxConcurrent && nextIndex < pending.length) {
+        final dm = pending[nextIndex++];
+        inFlight++;
+        fetchOne(dm).whenComplete(() {
+          inFlight--;
+          if (nextIndex >= pending.length && inFlight == 0) {
+            if (!allDone.isCompleted) allDone.complete();
+          } else {
+            pump();
+          }
+        });
+      }
+      if (pending.isEmpty && inFlight == 0 && !allDone.isCompleted) {
+        allDone.complete();
+      }
+    }
+
+    pump();
+    await allDone.future;
+  }
 }
 
 final previewBackfillServiceProvider =

@@ -34,7 +34,7 @@
 //     correctly (skip:true — verifies end-to-end fetcher→resolver path).
 //
 // Phase A: All tests skip:true.
-// Phase B: Fix all 3 bugs, un-skip tests.
+// Phase B: Fix all 3 bugs, un-skip tests. ← DONE
 // =============================================================================
 
 import 'dart:ui';
@@ -201,7 +201,6 @@ void main() {
   // =========================================================================
   test(
     'BUG-1: DM with null lastMessagePreview should trigger backfill',
-    skip: true,
     () async {
       // Setup: Home store loaded with 1 DM that has null preview.
       // After load(), the backfill service should be called for DMs too.
@@ -293,7 +292,6 @@ void main() {
   // =========================================================================
   test(
     'BUG-2: SQLite upsert with null preview must NOT restore old "New message"',
-    skip: true,
     () async {
       // Setup: Local store already has a stale "New message" preview.
       // When we upsert with messageId set but preview null, the old value
@@ -354,7 +352,6 @@ void main() {
   // =========================================================================
   test(
     'BUG-3a: Realtime message:new with attachments resolves attachment label',
-    skip: true,
     () async {
       // Setup: Channel receives a message:new via WS with content=""
       // but with image attachment. The resolved preview should be
@@ -467,7 +464,6 @@ void main() {
   test(
     'BUG-3b: Realtime message:new with empty content and no attachments '
     'must NOT write "New message" as preview',
-    skip: true,
     () async {
       // Setup: Channel receives a message:new via WS with content=""
       // and no attachments. This happens when WS doesn't include
@@ -586,7 +582,6 @@ void main() {
   // =========================================================================
   test(
     'BUG-1+3: Fetcher resolves attachment-only API response to correct label',
-    skip: true,
     () async {
       // Setup: The production previewMessageFetcherProvider receives a raw
       // API response with content="" and an image attachment. It must resolve

@@ -22,8 +22,10 @@ class FakeConversationLocalStore implements ConversationLocalStore {
             ? (current?.sortIndex ?? entry.sortIndex)
             : entry.sortIndex,
         lastMessageId: entry.lastMessageId ?? current?.lastMessageId,
-        lastMessagePreview:
-            entry.lastMessagePreview ?? current?.lastMessagePreview,
+        // Mirror BUG-2 fix (#637): when messageId is set but preview is null,
+        // clear old stale value instead of preserving it.
+        lastMessagePreview: entry.lastMessagePreview ??
+            (entry.lastMessageId != null ? null : current?.lastMessagePreview),
         lastActivityAt: entry.lastActivityAt ?? current?.lastActivityAt,
       );
     }

@@ -222,6 +222,18 @@ class HomeListStore extends Notifier<HomeListState> {
             .catchError((_) {}),
       );
 
+      // BUG-1 fix (#637): Also backfill DMs with null preview.
+      unawaited(
+        ref
+            .read(previewBackfillServiceProvider.notifier)
+            .backfillDirectMessages(
+              _allDirectMessages
+                  .where((d) => d.lastMessagePreview == null)
+                  .toList(),
+            )
+            .catchError((_) {}),
+      );
+
       // Tier 2: supplemental data — load independently, merge as
       // each completes. Failures are silently absorbed.
       unawaited(_loadAndMergeSupplemental(serverScopeId));
@@ -596,6 +608,31 @@ class HomeListStore extends Notifier<HomeListState> {
       lastActivityAt: activityAt,
     );
     _allChannels = channels;
+    _emitPersonalizedState();
+  }
+
+  /// Applies a backfilled preview to a DM.
+  ///
+  /// Mirror of [backfillChannelPreview] for direct messages.
+  /// Skips if a realtime preview already exists for [conversationId].
+  void backfillDmPreview({
+    required String conversationId,
+    required String messageId,
+    required String preview,
+    required DateTime activityAt,
+  }) {
+    if (state.status != HomeListStatus.success) return;
+    if (_realtimePreviewIds.contains(conversationId)) return;
+    final index =
+        _allDirectMessages.indexWhere((d) => d.scopeId.value == conversationId);
+    if (index == -1) return;
+    final dms = List<HomeDirectMessageSummary>.of(_allDirectMessages);
+    dms[index] = dms[index].copyWith(
+      lastMessageId: messageId,
+      lastMessagePreview: preview,
+      lastActivityAt: activityAt,
+    );
+    _allDirectMessages = dms;
     _emitPersonalizedState();
   }
 
