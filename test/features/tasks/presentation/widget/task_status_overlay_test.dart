@@ -9,6 +9,7 @@ import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #508: Task panel drag interaction — Phase A + B
@@ -363,6 +364,8 @@ Widget _buildApp(_FakeTasksStore store) {
       tasksStoreProvider.overrideWith(() => store),
     ],
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.light,
       home: const TasksPage(serverId: 'server-1'),
     ),

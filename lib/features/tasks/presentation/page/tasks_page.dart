@@ -136,15 +136,15 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             channels: channels,
           ),
         TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
-            message: state.failure?.message ?? 'Failed to load tasks.',
+            message: state.failure?.message ?? context.l10n.tasksLoadFailed,
             onRetry: ref.read(tasksStoreProvider.notifier).retry,
           ),
         TasksStatus.success when state.items.isEmpty => SafeArea(
             child: Column(
               children: [
                 _TasksHeader(colors: colors, onNew: _showCreateTaskDialog),
-                const Expanded(
-                  child: Center(child: Text('No tasks yet.')),
+                Expanded(
+                  child: Center(child: Text(context.l10n.tasksEmptyAll)),
                 ),
               ],
             ),
@@ -167,7 +167,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     final homeState = ref.read(homeListStoreProvider);
     final channels = homeState.channels;
     if (channels.isEmpty) {
-      showAppSnackBar(context, 'No channels available.');
+      showAppSnackBar(context, context.l10n.tasksNoChannelsAvailable);
       return;
     }
 
@@ -186,11 +186,11 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
               if (dialogContext.mounted) {
                 Navigator.of(dialogContext).pop();
               }
-              showAppSnackBar(context, 'Task created.');
+              showAppSnackBar(context, context.l10n.tasksCreatedSnackbar);
             } on AppFailure catch (failure) {
               if (!mounted) return;
               showAppSnackBar(
-                  context, failure.message ?? 'Failed to create task.');
+                  context, failure.message ?? context.l10n.tasksCreateFailed);
             }
           },
         );
@@ -209,34 +209,35 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       HapticFeedback.errorNotification();
       showAppSnackBarWithAction(
         context,
-        failure.message ?? 'Failed to update task.',
-        actionLabel: 'RETRY',
+        failure.message ?? context.l10n.tasksUpdateFailed,
+        actionLabel: context.l10n.tasksRetryAction,
         onAction: () => _updateStatus(task, newStatus),
       );
     }
   }
 
   Future<void> _deleteTask(TaskItem task) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) {
             final colorScheme = Theme.of(dialogContext).colorScheme;
             return AlertDialog(
-              title: const Text('Delete Task?'),
+              title: Text(l10n.tasksDeleteTitle),
               content: Text(
-                'Delete "${task.title}"? This cannot be undone.',
+                l10n.tasksDeleteMessage(task.title),
               ),
               actions: [
                 TextButton(
                   key: const ValueKey('task-delete-cancel'),
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.tasksDeleteCancel),
                 ),
                 FilledButton(
                   key: const ValueKey('task-delete-confirm'),
                   style: appDestructiveFilledButtonStyle(colorScheme),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Delete'),
+                  child: Text(l10n.tasksDeleteConfirm),
                 ),
               ],
             );
@@ -247,10 +248,10 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     try {
       await ref.read(tasksStoreProvider.notifier).deleteTask(task.id);
       if (!mounted) return;
-      showAppSnackBar(context, 'Task deleted.');
+      showAppSnackBar(context, l10n.tasksDeletedSnackbar);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(context, failure.message ?? 'Failed to delete task.');
+      showAppSnackBar(context, failure.message ?? l10n.tasksDeleteFailed);
     }
   }
 
@@ -259,7 +260,8 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       await ref.read(tasksStoreProvider.notifier).claimTask(task.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(context, failure.message ?? 'Failed to claim task.');
+      showAppSnackBar(
+          context, failure.message ?? context.l10n.tasksClaimFailed);
     }
   }
 
@@ -268,7 +270,8 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       await ref.read(tasksStoreProvider.notifier).unclaimTask(task.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(context, failure.message ?? 'Failed to unclaim task.');
+      showAppSnackBar(
+          context, failure.message ?? context.l10n.tasksUnclaimFailed);
     }
   }
 
@@ -305,7 +308,7 @@ class _TasksHeader extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            'Tasks',
+            context.l10n.tasksHeaderTitle,
             style: AppTypography.displayMedium.copyWith(color: colors.text),
           ),
           const Spacer(),
@@ -321,7 +324,7 @@ class _TasksHeader extends StatelessWidget {
                 vertical: AppSpacing.sm,
               ),
             ),
-            child: const Text('New'),
+            child: Text(context.l10n.tasksNewButton),
           ),
         ],
       ),
@@ -349,6 +352,8 @@ class _TasksSummaryHeader extends StatelessWidget {
     final doneCount = count('done');
     final closedCount = count('closed');
 
+    final l10n = context.l10n;
+
     return Padding(
       key: const ValueKey('tasks-summary-header'),
       padding: const EdgeInsets.symmetric(
@@ -359,35 +364,35 @@ class _TasksSummaryHeader extends StatelessWidget {
           _SummaryChip(
             symbol: '○',
             count: todoCount,
-            label: 'To Do',
+            label: l10n.tasksSummaryTodo,
             color: colors.textTertiary,
           ),
           const SizedBox(width: AppSpacing.lg),
           _SummaryChip(
             symbol: '◐',
             count: progressCount,
-            label: 'In Progress',
+            label: l10n.tasksSummaryInProgress,
             color: colors.primary,
           ),
           const SizedBox(width: AppSpacing.lg),
           _SummaryChip(
             symbol: '◑',
             count: reviewCount,
-            label: 'Review',
+            label: l10n.tasksSummaryReview,
             color: colors.warning,
           ),
           const SizedBox(width: AppSpacing.lg),
           _SummaryChip(
             symbol: '●',
             count: doneCount,
-            label: 'Done',
+            label: l10n.tasksSummaryDone,
             color: colors.success,
           ),
           const SizedBox(width: AppSpacing.lg),
           _SummaryChip(
             symbol: '✕',
             count: closedCount,
-            label: 'Closed',
+            label: l10n.tasksSummaryClosed,
             color: colors.textTertiary,
           ),
         ],
@@ -528,9 +533,9 @@ class _TasksListSurfaceState extends State<_TasksListSurface> {
               key: ValueKey('tasks-refresh-indicator'),
             ),
           if (filteredItems.isEmpty && _selectedChannelId != null)
-            const Expanded(
+            Expanded(
               child: Center(
-                child: Text('No tasks in this channel.'),
+                child: Text(context.l10n.tasksEmptyChannel),
               ),
             )
           else
@@ -584,7 +589,7 @@ class _TasksChannelFilterBar extends StatelessWidget {
           children: [
             _FilterChip(
               key: const ValueKey('task-filter-all'),
-              label: '全部',
+              label: context.l10n.tasksFilterAll,
               isSelected: selectedChannelId == null,
               colors: colors,
               onTap: () => onSelected(null),
@@ -758,7 +763,7 @@ class _TaskSectionLabel extends StatelessWidget {
         AppSpacing.xs,
       ),
       child: Text(
-        _statusLabel(status),
+        _statusLabel(status, context),
         style: AppTypography.label.copyWith(
           color: colors.textTertiary,
           fontWeight: FontWeight.w600,
@@ -767,13 +772,14 @@ class _TaskSectionLabel extends StatelessWidget {
     );
   }
 
-  static String _statusLabel(String status) {
+  static String _statusLabel(String status, BuildContext context) {
+    final l10n = context.l10n;
     return switch (status) {
-      'todo' => 'To Do',
-      'in_progress' => 'In Progress',
-      'in_review' => 'In Review',
-      'done' => 'Done',
-      'closed' => '已关闭',
+      'todo' => l10n.tasksSectionTodo,
+      'in_progress' => l10n.tasksSectionInProgress,
+      'in_review' => l10n.tasksSectionInReview,
+      'done' => l10n.tasksSectionDone,
+      'closed' => l10n.tasksSectionClosed,
       _ => status,
     };
   }
@@ -811,13 +817,14 @@ Color _statusColor(String status, AppColors colors) {
 ///
 /// Used for screen reader announcements on status indicators and
 /// combined task row descriptions.
-String _statusAccessibilityLabel(String status) {
+String _statusAccessibilityLabel(String status, BuildContext context) {
+  final l10n = context.l10n;
   return switch (status) {
-    'todo' => 'To Do',
-    'in_progress' => 'In Progress',
-    'in_review' => 'In Review',
-    'done' => 'Done',
-    'closed' => 'Cancelled',
+    'todo' => l10n.tasksAccessibilityTodo,
+    'in_progress' => l10n.tasksAccessibilityInProgress,
+    'in_review' => l10n.tasksAccessibilityInReview,
+    'done' => l10n.tasksAccessibilityDone,
+    'closed' => l10n.tasksAccessibilityClosed,
     _ => status,
   };
 }
@@ -896,7 +903,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
     final isDraggable = !isClosed;
 
     // Build combined accessibility label for screen readers.
-    final statusLabel = _statusAccessibilityLabel(task.status);
+    final statusLabel = _statusAccessibilityLabel(task.status, context);
     final assigneePart =
         task.claimedByName != null ? ', ${task.claimedByName}' : '';
     final combinedLabel =
@@ -974,7 +981,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
                 height: 32,
                 child: IconButton(
                   key: ValueKey('task-actions-${task.id}'),
-                  tooltip: 'Task actions',
+                  tooltip: context.l10n.tasksActionsTooltip,
                   icon: Icon(
                     Icons.more_horiz,
                     size: 20,
@@ -1042,7 +1049,7 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
         itemKey: task.id,
         enabled: true,
         action: SwipeActionConfig(
-          label: 'Done',
+          label: context.l10n.tasksSwipeDone,
           icon: Icons.check_circle_outline,
           color: colors.success,
         ),
@@ -1114,65 +1121,66 @@ class _TaskRowState extends ConsumerState<_TaskRow> {
 
   Future<void> _showTaskActions(BuildContext context) async {
     final task = widget.task;
+    final l10n = context.l10n;
     final actions = <ListActionItem>[
       if (task.status != 'done' && task.status != 'closed')
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-done',
-          label: 'Mark Done',
+          label: l10n.tasksActionMarkDone,
           icon: Icons.check_circle_outline,
         ),
       if (task.status != 'closed')
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-close',
-          label: '关闭任务',
+          label: l10n.tasksActionClose,
           icon: Icons.close,
         ),
       if (task.status == 'todo')
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-start',
-          label: 'Start',
+          label: l10n.tasksActionStart,
           icon: Icons.play_arrow,
         ),
       if (task.status == 'in_progress')
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-review',
-          label: 'Move to Review',
+          label: l10n.tasksActionMoveToReview,
           icon: Icons.rate_review_outlined,
         ),
       if (task.status == 'done' || task.status == 'closed')
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-reopen',
-          label: 'Reopen',
+          label: l10n.tasksActionReopen,
           icon: Icons.replay,
         ),
       if (task.status == 'in_review')
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-revert-in-progress',
-          label: 'Revert to In Progress',
+          label: l10n.tasksActionRevertInProgress,
           icon: Icons.undo,
         ),
       if (task.status == 'in_progress')
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-revert-todo',
-          label: 'Revert to To Do',
+          label: l10n.tasksActionRevertTodo,
           icon: Icons.undo,
         ),
       if (task.claimedById == null)
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-claim',
-          label: 'Claim',
+          label: l10n.tasksActionClaim,
           icon: Icons.person_add,
         ),
       if (task.claimedById != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-unclaim',
-          label: 'Unclaim',
+          label: l10n.tasksActionUnclaim,
           icon: Icons.person_remove,
         ),
       if (!task.isLegacy)
-        const ListActionItem(
+        ListActionItem(
           key: 'task-action-delete',
-          label: 'Delete',
+          label: l10n.tasksActionDelete,
           icon: Icons.delete_outline,
           isDestructive: true,
         ),
@@ -1234,7 +1242,7 @@ class _TasksFailureView extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             FilledButton(
               onPressed: onRetry,
-              child: const Text('Retry'),
+              child: Text(context.l10n.tasksRetryButton),
             ),
           ],
         ),
@@ -1279,16 +1287,18 @@ class _CreateTaskDialogState extends State<_CreateTaskDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return AlertDialog(
       key: const ValueKey('create-task-dialog'),
-      title: const Text('Create Task'),
+      title: Text(l10n.tasksCreateTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<String>(
             key: const ValueKey('task-channel-dropdown'),
             initialValue: _selectedChannelId,
-            decoration: const InputDecoration(labelText: 'Channel'),
+            decoration:
+                InputDecoration(labelText: l10n.tasksCreateChannelLabel),
             items: [
               for (final channel in widget.channels)
                 DropdownMenuItem(
@@ -1304,7 +1314,7 @@ class _CreateTaskDialogState extends State<_CreateTaskDialog> {
           TextField(
             key: const ValueKey('task-title-field'),
             controller: _titleController,
-            decoration: const InputDecoration(labelText: 'Title'),
+            decoration: InputDecoration(labelText: l10n.tasksCreateTitleLabel),
             autofocus: true,
             textCapitalization: TextCapitalization.sentences,
           ),
@@ -1313,7 +1323,7 @@ class _CreateTaskDialogState extends State<_CreateTaskDialog> {
       actions: [
         TextButton(
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.tasksCreateCancel),
         ),
         FilledButton(
           onPressed: _isSubmitting ? null : _submit,
@@ -1323,7 +1333,7 @@ class _CreateTaskDialogState extends State<_CreateTaskDialog> {
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Create'),
+              : Text(l10n.tasksCreateConfirm),
         ),
       ],
     );

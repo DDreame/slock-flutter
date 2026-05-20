@@ -995,4 +995,350 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get searchRecentClear => '清除';
+
+  @override
+  String get machinesPageTitle => '机器';
+
+  @override
+  String get machinesAddButton => '添加机器';
+
+  @override
+  String get machinesLoadFailed => '加载机器列表失败。';
+
+  @override
+  String get machinesRegisterTitle => '注册机器';
+
+  @override
+  String get machinesRegisterAction => '注册';
+
+  @override
+  String get machinesRegisterHelper => '创建机器并显示一次其 API 密钥。';
+
+  @override
+  String get machinesRegisteredTitle => '机器已注册';
+
+  @override
+  String get machinesRegisterFailed => '注册机器失败。';
+
+  @override
+  String get machinesRenameTitle => '重命名机器';
+
+  @override
+  String get machinesRenameSaveAction => '保存';
+
+  @override
+  String get machinesRenameHelper => '更新在工作区中显示的机器名称。';
+
+  @override
+  String get machinesRenamedSnackbar => '机器已重命名。';
+
+  @override
+  String get machinesRenameFailed => '重命名机器失败。';
+
+  @override
+  String get machinesRotatedApiKeyTitle => 'API 密钥已轮换';
+
+  @override
+  String get machinesRotateApiKeyFailed => '轮换机器 API 密钥失败。';
+
+  @override
+  String get machinesDeleteTitle => '删除机器？';
+
+  @override
+  String get machinesDeleteCancel => '取消';
+
+  @override
+  String get machinesDeleteConfirm => '删除';
+
+  @override
+  String get machinesDeletedSnackbar => '机器已删除。';
+
+  @override
+  String get machinesDeleteFailed => '删除机器失败。';
+
+  @override
+  String get machinesApiKeyRevealedNote => '此密钥仅在创建或轮换时显示一次。';
+
+  @override
+  String get machinesApiKeyCopied => 'API 密钥已复制。';
+
+  @override
+  String get machinesCopyButton => '复制';
+
+  @override
+  String get machinesDoneButton => '完成';
+
+  @override
+  String get machinesRetryButton => '重试';
+
+  @override
+  String get machinesLatestDaemon => '最新守护进程';
+
+  @override
+  String get machinesEmptyTitle => '暂无已注册的机器。';
+
+  @override
+  String get machinesEmptyDescription => '注册机器以将运行时和管理操作附加到此服务器。';
+
+  @override
+  String get machinesRegisterButton => '注册机器';
+
+  @override
+  String get machinesMenuRename => '重命名';
+
+  @override
+  String get machinesMenuRotateApiKey => '轮换 API 密钥';
+
+  @override
+  String get machinesMenuDelete => '删除';
+
+  @override
+  String get machinesMetaHost => '主机';
+
+  @override
+  String get machinesMetaOs => '操作系统';
+
+  @override
+  String get machinesMetaDaemon => '守护进程';
+
+  @override
+  String get machinesStatusOnline => '在线';
+
+  @override
+  String get machinesStatusOffline => '离线';
+
+  @override
+  String get machinesStatusError => '错误';
+
+  @override
+  String get machinesNameLabel => '机器名称';
+
+  @override
+  String get machinesNameDialogCancel => '取消';
+
+  @override
+  String machinesDeleteMessage(String name) {
+    return '删除 $name？此操作将从服务器列表中移除该机器。';
+  }
+
+  @override
+  String machinesCopyApiKeyMessage(String name) {
+    return '请立即复制 $name 的 API 密钥。';
+  }
+
+  @override
+  String machinesSummaryCount(int count) {
+    return '$count 台机器';
+  }
+
+  @override
+  String machinesSummaryOnline(int count) {
+    return '$count 在线';
+  }
+
+  @override
+  String machinesApiKeyPrefix(String prefix) {
+    return '密钥 $prefix...';
+  }
+
+  @override
+  String get tasksLoadFailed => '加载任务失败。';
+
+  @override
+  String get tasksEmptyAll => '暂无任务。';
+
+  @override
+  String get tasksNoChannelsAvailable => '暂无可用频道。';
+
+  @override
+  String get tasksCreatedSnackbar => '任务已创建。';
+
+  @override
+  String get tasksCreateFailed => '创建任务失败。';
+
+  @override
+  String get tasksUpdateFailed => '更新任务失败。';
+
+  @override
+  String get tasksRetryAction => '重试';
+
+  @override
+  String get tasksDeleteTitle => '删除任务？';
+
+  @override
+  String tasksDeleteMessage(String title) {
+    return '删除「$title」？此操作无法撤销。';
+  }
+
+  @override
+  String get tasksDeleteCancel => '取消';
+
+  @override
+  String get tasksDeleteConfirm => '删除';
+
+  @override
+  String get tasksDeletedSnackbar => '任务已删除。';
+
+  @override
+  String get tasksDeleteFailed => '删除任务失败。';
+
+  @override
+  String get tasksClaimFailed => '认领任务失败。';
+
+  @override
+  String get tasksUnclaimFailed => '取消认领任务失败。';
+
+  @override
+  String get tasksHeaderTitle => '任务';
+
+  @override
+  String get tasksNewButton => '新建';
+
+  @override
+  String get tasksSummaryTodo => '待办';
+
+  @override
+  String get tasksSummaryInProgress => '进行中';
+
+  @override
+  String get tasksSummaryReview => '审核';
+
+  @override
+  String get tasksSummaryDone => '已完成';
+
+  @override
+  String get tasksSummaryClosed => '已关闭';
+
+  @override
+  String get tasksEmptyChannel => '此频道暂无任务。';
+
+  @override
+  String get tasksFilterAll => '全部';
+
+  @override
+  String get tasksSectionTodo => '待办';
+
+  @override
+  String get tasksSectionInProgress => '进行中';
+
+  @override
+  String get tasksSectionInReview => '审核中';
+
+  @override
+  String get tasksSectionDone => '已完成';
+
+  @override
+  String get tasksSectionClosed => '已关闭';
+
+  @override
+  String get tasksActionsTooltip => '任务操作';
+
+  @override
+  String get tasksSwipeDone => '完成';
+
+  @override
+  String get tasksActionMarkDone => '标记完成';
+
+  @override
+  String get tasksActionClose => '关闭任务';
+
+  @override
+  String get tasksActionStart => '开始';
+
+  @override
+  String get tasksActionMoveToReview => '移至审核';
+
+  @override
+  String get tasksActionReopen => '重新打开';
+
+  @override
+  String get tasksActionRevertInProgress => '恢复为进行中';
+
+  @override
+  String get tasksActionRevertTodo => '恢复为待办';
+
+  @override
+  String get tasksActionClaim => '认领';
+
+  @override
+  String get tasksActionUnclaim => '取消认领';
+
+  @override
+  String get tasksActionDelete => '删除';
+
+  @override
+  String get tasksRetryButton => '重试';
+
+  @override
+  String get tasksCreateTitle => '创建任务';
+
+  @override
+  String get tasksCreateChannelLabel => '频道';
+
+  @override
+  String get tasksCreateTitleLabel => '标题';
+
+  @override
+  String get tasksCreateCancel => '取消';
+
+  @override
+  String get tasksCreateConfirm => '创建';
+
+  @override
+  String get tasksAccessibilityTodo => '待办';
+
+  @override
+  String get tasksAccessibilityInProgress => '进行中';
+
+  @override
+  String get tasksAccessibilityInReview => '审核中';
+
+  @override
+  String get tasksAccessibilityDone => '已完成';
+
+  @override
+  String get tasksAccessibilityClosed => '已取消';
+
+  @override
+  String get screenshotAnnotateNoCapture => '未捕获截图';
+
+  @override
+  String get screenshotAnnotateDiscardTooltip => '放弃';
+
+  @override
+  String get screenshotAnnotateTitle => '标注截图';
+
+  @override
+  String get screenshotAnnotateSaveTooltip => '保存到设备';
+
+  @override
+  String get screenshotAnnotateShareTooltip => '分享';
+
+  @override
+  String get screenshotAnnotateAddTextTitle => '添加文字';
+
+  @override
+  String get screenshotAnnotateTextHint => '输入文字...';
+
+  @override
+  String get screenshotAnnotateCancel => '取消';
+
+  @override
+  String get screenshotAnnotateAddButton => '添加';
+
+  @override
+  String get screenshotAnnotateExportFailed => '导出截图失败';
+
+  @override
+  String screenshotAnnotateExportError(String error) {
+    return '导出失败：$error';
+  }
+
+  @override
+  String screenshotAnnotateSaveFailed(String error) {
+    return '保存失败：$error';
+  }
+
+  @override
+  String get screenshotAnnotateShareSubject => '截图';
 }

@@ -1989,6 +1989,666 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear'**
   String get searchRecentClear;
+
+  /// No description provided for @machinesPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Machines'**
+  String get machinesPageTitle;
+
+  /// No description provided for @machinesAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Machine'**
+  String get machinesAddButton;
+
+  /// No description provided for @machinesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load machines.'**
+  String get machinesLoadFailed;
+
+  /// No description provided for @machinesRegisterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Register Machine'**
+  String get machinesRegisterTitle;
+
+  /// No description provided for @machinesRegisterAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get machinesRegisterAction;
+
+  /// No description provided for @machinesRegisterHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a machine and reveal its API key once.'**
+  String get machinesRegisterHelper;
+
+  /// No description provided for @machinesRegisteredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Machine Registered'**
+  String get machinesRegisteredTitle;
+
+  /// No description provided for @machinesRegisterFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to register machine.'**
+  String get machinesRegisterFailed;
+
+  /// No description provided for @machinesRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename Machine'**
+  String get machinesRenameTitle;
+
+  /// No description provided for @machinesRenameSaveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get machinesRenameSaveAction;
+
+  /// No description provided for @machinesRenameHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Update the machine label shown across the workspace.'**
+  String get machinesRenameHelper;
+
+  /// No description provided for @machinesRenamedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Machine renamed.'**
+  String get machinesRenamedSnackbar;
+
+  /// No description provided for @machinesRenameFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to rename machine.'**
+  String get machinesRenameFailed;
+
+  /// No description provided for @machinesRotatedApiKeyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotated API Key'**
+  String get machinesRotatedApiKeyTitle;
+
+  /// No description provided for @machinesRotateApiKeyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to rotate machine API key.'**
+  String get machinesRotateApiKeyFailed;
+
+  /// No description provided for @machinesDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Machine?'**
+  String get machinesDeleteTitle;
+
+  /// No description provided for @machinesDeleteCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get machinesDeleteCancel;
+
+  /// No description provided for @machinesDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get machinesDeleteConfirm;
+
+  /// No description provided for @machinesDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Machine deleted.'**
+  String get machinesDeletedSnackbar;
+
+  /// No description provided for @machinesDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete machine.'**
+  String get machinesDeleteFailed;
+
+  /// No description provided for @machinesApiKeyRevealedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'This key is only revealed at creation or rotation time.'**
+  String get machinesApiKeyRevealedNote;
+
+  /// No description provided for @machinesApiKeyCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'API key copied.'**
+  String get machinesApiKeyCopied;
+
+  /// No description provided for @machinesCopyButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get machinesCopyButton;
+
+  /// No description provided for @machinesDoneButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get machinesDoneButton;
+
+  /// No description provided for @machinesRetryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get machinesRetryButton;
+
+  /// No description provided for @machinesLatestDaemon.
+  ///
+  /// In en, this message translates to:
+  /// **'Latest daemon'**
+  String get machinesLatestDaemon;
+
+  /// No description provided for @machinesEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No machines registered yet.'**
+  String get machinesEmptyTitle;
+
+  /// No description provided for @machinesEmptyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Register a machine to attach runtimes and admin operations to this server.'**
+  String get machinesEmptyDescription;
+
+  /// No description provided for @machinesRegisterButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Register Machine'**
+  String get machinesRegisterButton;
+
+  /// No description provided for @machinesMenuRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get machinesMenuRename;
+
+  /// No description provided for @machinesMenuRotateApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate API Key'**
+  String get machinesMenuRotateApiKey;
+
+  /// No description provided for @machinesMenuDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get machinesMenuDelete;
+
+  /// No description provided for @machinesMetaHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Host'**
+  String get machinesMetaHost;
+
+  /// No description provided for @machinesMetaOs.
+  ///
+  /// In en, this message translates to:
+  /// **'OS'**
+  String get machinesMetaOs;
+
+  /// No description provided for @machinesMetaDaemon.
+  ///
+  /// In en, this message translates to:
+  /// **'Daemon'**
+  String get machinesMetaDaemon;
+
+  /// No description provided for @machinesStatusOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get machinesStatusOnline;
+
+  /// No description provided for @machinesStatusOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get machinesStatusOffline;
+
+  /// No description provided for @machinesStatusError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get machinesStatusError;
+
+  /// No description provided for @machinesNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Machine name'**
+  String get machinesNameLabel;
+
+  /// No description provided for @machinesNameDialogCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get machinesNameDialogCancel;
+
+  /// No description provided for @machinesDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}? This removes the machine from the server list.'**
+  String machinesDeleteMessage(String name);
+
+  /// No description provided for @machinesCopyApiKeyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy the API key for {name} now.'**
+  String machinesCopyApiKeyMessage(String name);
+
+  /// No description provided for @machinesSummaryCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} machine(s)'**
+  String machinesSummaryCount(int count);
+
+  /// No description provided for @machinesSummaryOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} online'**
+  String machinesSummaryOnline(int count);
+
+  /// No description provided for @machinesApiKeyPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Key {prefix}...'**
+  String machinesApiKeyPrefix(String prefix);
+
+  /// No description provided for @tasksLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load tasks.'**
+  String get tasksLoadFailed;
+
+  /// No description provided for @tasksEmptyAll.
+  ///
+  /// In en, this message translates to:
+  /// **'No tasks yet.'**
+  String get tasksEmptyAll;
+
+  /// No description provided for @tasksNoChannelsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No channels available.'**
+  String get tasksNoChannelsAvailable;
+
+  /// No description provided for @tasksCreatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Task created.'**
+  String get tasksCreatedSnackbar;
+
+  /// No description provided for @tasksCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create task.'**
+  String get tasksCreateFailed;
+
+  /// No description provided for @tasksUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update task.'**
+  String get tasksUpdateFailed;
+
+  /// No description provided for @tasksRetryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'RETRY'**
+  String get tasksRetryAction;
+
+  /// No description provided for @tasksDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Task?'**
+  String get tasksDeleteTitle;
+
+  /// No description provided for @tasksDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{title}\"? This cannot be undone.'**
+  String tasksDeleteMessage(String title);
+
+  /// No description provided for @tasksDeleteCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get tasksDeleteCancel;
+
+  /// No description provided for @tasksDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get tasksDeleteConfirm;
+
+  /// No description provided for @tasksDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Task deleted.'**
+  String get tasksDeletedSnackbar;
+
+  /// No description provided for @tasksDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete task.'**
+  String get tasksDeleteFailed;
+
+  /// No description provided for @tasksClaimFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to claim task.'**
+  String get tasksClaimFailed;
+
+  /// No description provided for @tasksUnclaimFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to unclaim task.'**
+  String get tasksUnclaimFailed;
+
+  /// No description provided for @tasksHeaderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tasks'**
+  String get tasksHeaderTitle;
+
+  /// No description provided for @tasksNewButton.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get tasksNewButton;
+
+  /// No description provided for @tasksSummaryTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To Do'**
+  String get tasksSummaryTodo;
+
+  /// No description provided for @tasksSummaryInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get tasksSummaryInProgress;
+
+  /// No description provided for @tasksSummaryReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Review'**
+  String get tasksSummaryReview;
+
+  /// No description provided for @tasksSummaryDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get tasksSummaryDone;
+
+  /// No description provided for @tasksSummaryClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get tasksSummaryClosed;
+
+  /// No description provided for @tasksEmptyChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'No tasks in this channel.'**
+  String get tasksEmptyChannel;
+
+  /// No description provided for @tasksFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get tasksFilterAll;
+
+  /// No description provided for @tasksSectionTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To Do'**
+  String get tasksSectionTodo;
+
+  /// No description provided for @tasksSectionInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get tasksSectionInProgress;
+
+  /// No description provided for @tasksSectionInReview.
+  ///
+  /// In en, this message translates to:
+  /// **'In Review'**
+  String get tasksSectionInReview;
+
+  /// No description provided for @tasksSectionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get tasksSectionDone;
+
+  /// No description provided for @tasksSectionClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get tasksSectionClosed;
+
+  /// No description provided for @tasksActionsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Task actions'**
+  String get tasksActionsTooltip;
+
+  /// No description provided for @tasksSwipeDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get tasksSwipeDone;
+
+  /// No description provided for @tasksActionMarkDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark Done'**
+  String get tasksActionMarkDone;
+
+  /// No description provided for @tasksActionClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close Task'**
+  String get tasksActionClose;
+
+  /// No description provided for @tasksActionStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get tasksActionStart;
+
+  /// No description provided for @tasksActionMoveToReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to Review'**
+  String get tasksActionMoveToReview;
+
+  /// No description provided for @tasksActionReopen.
+  ///
+  /// In en, this message translates to:
+  /// **'Reopen'**
+  String get tasksActionReopen;
+
+  /// No description provided for @tasksActionRevertInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert to In Progress'**
+  String get tasksActionRevertInProgress;
+
+  /// No description provided for @tasksActionRevertTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'Revert to To Do'**
+  String get tasksActionRevertTodo;
+
+  /// No description provided for @tasksActionClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim'**
+  String get tasksActionClaim;
+
+  /// No description provided for @tasksActionUnclaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Unclaim'**
+  String get tasksActionUnclaim;
+
+  /// No description provided for @tasksActionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get tasksActionDelete;
+
+  /// No description provided for @tasksRetryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get tasksRetryButton;
+
+  /// No description provided for @tasksCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Task'**
+  String get tasksCreateTitle;
+
+  /// No description provided for @tasksCreateChannelLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel'**
+  String get tasksCreateChannelLabel;
+
+  /// No description provided for @tasksCreateTitleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get tasksCreateTitleLabel;
+
+  /// No description provided for @tasksCreateCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get tasksCreateCancel;
+
+  /// No description provided for @tasksCreateConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get tasksCreateConfirm;
+
+  /// No description provided for @tasksAccessibilityTodo.
+  ///
+  /// In en, this message translates to:
+  /// **'To Do'**
+  String get tasksAccessibilityTodo;
+
+  /// No description provided for @tasksAccessibilityInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get tasksAccessibilityInProgress;
+
+  /// No description provided for @tasksAccessibilityInReview.
+  ///
+  /// In en, this message translates to:
+  /// **'In Review'**
+  String get tasksAccessibilityInReview;
+
+  /// No description provided for @tasksAccessibilityDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get tasksAccessibilityDone;
+
+  /// No description provided for @tasksAccessibilityClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get tasksAccessibilityClosed;
+
+  /// No description provided for @screenshotAnnotateNoCapture.
+  ///
+  /// In en, this message translates to:
+  /// **'No screenshot captured'**
+  String get screenshotAnnotateNoCapture;
+
+  /// No description provided for @screenshotAnnotateDiscardTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get screenshotAnnotateDiscardTooltip;
+
+  /// No description provided for @screenshotAnnotateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Annotate Screenshot'**
+  String get screenshotAnnotateTitle;
+
+  /// No description provided for @screenshotAnnotateSaveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to device'**
+  String get screenshotAnnotateSaveTooltip;
+
+  /// No description provided for @screenshotAnnotateShareTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get screenshotAnnotateShareTooltip;
+
+  /// No description provided for @screenshotAnnotateAddTextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Text'**
+  String get screenshotAnnotateAddTextTitle;
+
+  /// No description provided for @screenshotAnnotateTextHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter text...'**
+  String get screenshotAnnotateTextHint;
+
+  /// No description provided for @screenshotAnnotateCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get screenshotAnnotateCancel;
+
+  /// No description provided for @screenshotAnnotateAddButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get screenshotAnnotateAddButton;
+
+  /// No description provided for @screenshotAnnotateExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to export screenshot'**
+  String get screenshotAnnotateExportFailed;
+
+  /// No description provided for @screenshotAnnotateExportError.
+  ///
+  /// In en, this message translates to:
+  /// **'Export failed: {error}'**
+  String screenshotAnnotateExportError(String error);
+
+  /// No description provided for @screenshotAnnotateSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Save failed: {error}'**
+  String screenshotAnnotateSaveFailed(String error);
+
+  /// No description provided for @screenshotAnnotateShareSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot'**
+  String get screenshotAnnotateShareSubject;
 }
 
 class _AppLocalizationsDelegate

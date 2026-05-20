@@ -8,6 +8,7 @@ import 'package:slock_app/features/machines/application/machines_state.dart';
 import 'package:slock_app/features/machines/application/machines_store.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class MachinesPage extends StatelessWidget {
   MachinesPage({super.key, required String serverId})
@@ -46,7 +47,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
     final state = ref.watch(machinesStoreProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Machines')),
+      appBar: AppBar(title: Text(context.l10n.machinesPageTitle)),
       floatingActionButton: state.status == MachinesStatus.success
           ? FloatingActionButton.extended(
               key: const ValueKey('machines-create-fab'),
@@ -58,7 +59,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.add),
-              label: const Text('Add Machine'),
+              label: Text(context.l10n.machinesAddButton),
             )
           : null,
       body: switch (state.status) {
@@ -67,7 +68,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
             child: CircularProgressIndicator(),
           ),
         MachinesStatus.failure => _MachinesFailureView(
-            message: state.failure?.message ?? 'Failed to load machines.',
+            message: state.failure?.message ?? context.l10n.machinesLoadFailed,
             onRetry: ref.read(machinesStoreProvider.notifier).load,
           ),
         MachinesStatus.success => _MachinesSuccessView(
@@ -83,12 +84,13 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
   }
 
   Future<void> _createMachine() async {
+    final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
     final name = await _showMachineNameDialog(
-      title: 'Register Machine',
-      actionLabel: 'Register',
+      title: l10n.machinesRegisterTitle,
+      actionLabel: l10n.machinesRegisterAction,
       initialValue: '',
-      helperText: 'Create a machine and reveal its API key once.',
+      helperText: l10n.machinesRegisterHelper,
     );
     if (name == null) {
       return;
@@ -104,7 +106,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       await _showApiKeyDialog(
         machineName: result.machine.name,
         apiKey: result.apiKey,
-        title: 'Machine Registered',
+        title: l10n.machinesRegisteredTitle,
       );
     } on AppFailure catch (failure) {
       if (!mounted) {
@@ -112,19 +114,20 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       }
       messenger.showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? 'Failed to register machine.'),
+          content: Text(failure.message ?? l10n.machinesRegisterFailed),
         ),
       );
     }
   }
 
   Future<void> _renameMachine(MachineItem machine) async {
+    final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
     final name = await _showMachineNameDialog(
-      title: 'Rename Machine',
-      actionLabel: 'Save',
+      title: l10n.machinesRenameTitle,
+      actionLabel: l10n.machinesRenameSaveAction,
       initialValue: machine.name,
-      helperText: 'Update the machine label shown across the workspace.',
+      helperText: l10n.machinesRenameHelper,
     );
     if (name == null || name == machine.name) {
       return;
@@ -137,18 +140,20 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       if (!mounted) {
         return;
       }
-      messenger.showSnackBar(const SnackBar(content: Text('Machine renamed.')));
+      messenger
+          .showSnackBar(SnackBar(content: Text(l10n.machinesRenamedSnackbar)));
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
       }
       messenger.showSnackBar(
-        SnackBar(content: Text(failure.message ?? 'Failed to rename machine.')),
+        SnackBar(content: Text(failure.message ?? l10n.machinesRenameFailed)),
       );
     }
   }
 
   Future<void> _rotateApiKey(MachineItem machine) async {
+    final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
 
     try {
@@ -161,7 +166,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       await _showApiKeyDialog(
         machineName: machine.name,
         apiKey: apiKey,
-        title: 'Rotated API Key',
+        title: l10n.machinesRotatedApiKeyTitle,
       );
     } on AppFailure catch (failure) {
       if (!mounted) {
@@ -169,31 +174,32 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       }
       messenger.showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? 'Failed to rotate machine API key.'),
+          content: Text(failure.message ?? l10n.machinesRotateApiKeyFailed),
         ),
       );
     }
   }
 
   Future<void> _deleteMachine(MachineItem machine) async {
+    final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
-              title: const Text('Delete Machine?'),
+              title: Text(l10n.machinesDeleteTitle),
               content: Text(
-                'Delete ${machine.name}? This removes the machine from the server list.',
+                l10n.machinesDeleteMessage(machine.name),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(l10n.machinesDeleteCancel),
                 ),
                 FilledButton(
                   key: const ValueKey('machines-confirm-delete'),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Delete'),
+                  child: Text(l10n.machinesDeleteConfirm),
                 ),
               ],
             );
@@ -209,13 +215,14 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       if (!mounted) {
         return;
       }
-      messenger.showSnackBar(const SnackBar(content: Text('Machine deleted.')));
+      messenger
+          .showSnackBar(SnackBar(content: Text(l10n.machinesDeletedSnackbar)));
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
       }
       messenger.showSnackBar(
-        SnackBar(content: Text(failure.message ?? 'Failed to delete machine.')),
+        SnackBar(content: Text(failure.message ?? l10n.machinesDeleteFailed)),
       );
     }
   }
@@ -248,6 +255,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       return;
     }
 
+    final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
     await showDialog<void>(
       context: context,
@@ -258,11 +266,9 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Copy the API key for $machineName now.'),
+              Text(l10n.machinesCopyApiKeyMessage(machineName)),
               const SizedBox(height: 12),
-              const Text(
-                'This key is only revealed at creation or rotation time.',
-              ),
+              Text(l10n.machinesApiKeyRevealedNote),
               const SizedBox(height: 16),
               SelectableText(
                 apiKey,
@@ -279,14 +285,14 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
                   return;
                 }
                 messenger.showSnackBar(
-                  const SnackBar(content: Text('API key copied.')),
+                  SnackBar(content: Text(l10n.machinesApiKeyCopied)),
                 );
               },
-              child: const Text('Copy'),
+              child: Text(l10n.machinesCopyButton),
             ),
             FilledButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Done'),
+              child: Text(l10n.machinesDoneButton),
             ),
           ],
         );
@@ -312,7 +318,10 @@ class _MachinesFailureView extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.machinesRetryButton),
+            ),
           ],
         ),
       ),
@@ -339,6 +348,7 @@ class _MachinesSuccessView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final connectedCount = state.items.where((item) => item.isOnline).length;
 
     return RefreshIndicator(
@@ -350,15 +360,15 @@ class _MachinesSuccessView extends StatelessWidget {
           Card(
             key: const ValueKey('machines-summary-card'),
             child: ListTile(
-              title: Text('${state.items.length} machine(s)'),
-              subtitle: Text('$connectedCount online'),
+              title: Text(l10n.machinesSummaryCount(state.items.length)),
+              subtitle: Text(l10n.machinesSummaryOnline(connectedCount)),
               trailing: state.latestDaemonVersion == null
                   ? null
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text('Latest daemon'),
+                        Text(l10n.machinesLatestDaemon),
                         Text(state.latestDaemonVersion!),
                       ],
                     ),
@@ -392,6 +402,7 @@ class _MachinesEmptyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -400,13 +411,13 @@ class _MachinesEmptyCard extends StatelessWidget {
           children: [
             const Icon(Icons.memory_outlined, size: 40),
             const SizedBox(height: 12),
-            const Text(
-              'No machines registered yet.',
+            Text(
+              l10n.machinesEmptyTitle,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Register a machine to attach runtimes and admin operations to this server.',
+            Text(
+              l10n.machinesEmptyDescription,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -414,7 +425,7 @@ class _MachinesEmptyCard extends StatelessWidget {
               key: const ValueKey('machines-create-empty'),
               onPressed: isCreating ? null : onCreate,
               icon: const Icon(Icons.add),
-              label: const Text('Register Machine'),
+              label: Text(l10n.machinesRegisterButton),
             ),
           ],
         ),
@@ -464,7 +475,12 @@ class _MachineCard extends StatelessWidget {
                         children: [
                           _StatusChip(status: machine.status),
                           if (machine.apiKeyPrefix != null)
-                            Chip(label: Text('Key ${machine.apiKeyPrefix}...')),
+                            Chip(
+                              label: Text(
+                                context.l10n.machinesApiKeyPrefix(
+                                    machine.apiKeyPrefix!),
+                              ),
+                            ),
                           ...machine.runtimes.map(
                             (runtime) => Chip(label: Text(runtime)),
                           ),
@@ -492,18 +508,18 @@ class _MachineCard extends StatelessWidget {
                           onDelete();
                       }
                     },
-                    itemBuilder: (context) => const [
+                    itemBuilder: (ctx) => [
                       PopupMenuItem(
                         value: _MachineAction.rename,
-                        child: Text('Rename'),
+                        child: Text(ctx.l10n.machinesMenuRename),
                       ),
                       PopupMenuItem(
                         value: _MachineAction.rotateApiKey,
-                        child: Text('Rotate API Key'),
+                        child: Text(ctx.l10n.machinesMenuRotateApiKey),
                       ),
                       PopupMenuItem(
                         value: _MachineAction.delete,
-                        child: Text('Delete'),
+                        child: Text(ctx.l10n.machinesMenuDelete),
                       ),
                     ],
                   ),
@@ -515,11 +531,20 @@ class _MachineCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 if (machine.hostname != null)
-                  _MachineMeta(label: 'Host', value: machine.hostname!),
+                  _MachineMeta(
+                    label: context.l10n.machinesMetaHost,
+                    value: machine.hostname!,
+                  ),
                 if (machine.os != null)
-                  _MachineMeta(label: 'OS', value: machine.os!),
+                  _MachineMeta(
+                    label: context.l10n.machinesMetaOs,
+                    value: machine.os!,
+                  ),
                 if (machine.daemonVersion != null)
-                  _MachineMeta(label: 'Daemon', value: machine.daemonVersion!),
+                  _MachineMeta(
+                    label: context.l10n.machinesMetaDaemon,
+                    value: machine.daemonVersion!,
+                  ),
               ],
             ),
           ],
@@ -571,17 +596,18 @@ class _StatusChip extends StatelessWidget {
     final colors = appStatusColors(Theme.of(context).colorScheme, tone);
 
     return Chip(
-      label: Text(_statusLabel(status)),
+      label: Text(_statusLabel(status, context)),
       backgroundColor: colors.container,
       labelStyle: TextStyle(color: colors.onContainer),
     );
   }
 
-  String _statusLabel(String raw) {
+  String _statusLabel(String raw, BuildContext context) {
+    final l10n = context.l10n;
     return switch (raw) {
-      'online' => 'Online',
-      'offline' => 'Offline',
-      'error' => 'Error',
+      'online' => l10n.machinesStatusOnline,
+      'offline' => l10n.machinesStatusOffline,
+      'error' => l10n.machinesStatusError,
       _ => raw,
     };
   }
@@ -632,7 +658,8 @@ class _MachineNameDialogState extends State<_MachineNameDialog> {
             key: const ValueKey('machines-name-field'),
             controller: _controller,
             autofocus: true,
-            decoration: const InputDecoration(labelText: 'Machine name'),
+            decoration:
+                InputDecoration(labelText: context.l10n.machinesNameLabel),
             onSubmitted: (_) => _submit(),
           ),
         ],
@@ -640,7 +667,7 @@ class _MachineNameDialogState extends State<_MachineNameDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.machinesNameDialogCancel),
         ),
         FilledButton(
           key: const ValueKey('machines-name-submit'),

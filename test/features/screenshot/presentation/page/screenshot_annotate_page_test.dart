@@ -13,6 +13,7 @@ import 'package:slock_app/features/screenshot/presentation/widgets/annotation_ca
 import 'package:slock_app/features/screenshot/presentation/widgets/annotation_toolbar.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('ScreenshotAnnotatePage', () {
@@ -57,6 +58,8 @@ void main() {
           }),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: ScreenshotAnnotatePage(),
         ),
       );
@@ -97,6 +100,8 @@ void main() {
             }),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
@@ -158,6 +163,8 @@ void main() {
             }),
           ],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ScreenshotAnnotatePage(),
           ),
         ),
@@ -188,6 +195,8 @@ void main() {
             }),
           ],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ScreenshotAnnotatePage(),
           ),
         ),
@@ -215,6 +224,8 @@ void main() {
             }),
           ],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ScreenshotAnnotatePage(),
           ),
         ),
@@ -299,6 +310,8 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
           ),
         ),
@@ -360,6 +373,8 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ScreenshotAnnotatePage(),
           ),
         ),

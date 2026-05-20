@@ -8,6 +8,7 @@ import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/presentation/page/tasks_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   TaskItem makeTask({
@@ -72,6 +73,8 @@ void main() {
         tasksStoreProvider.overrideWith(() => store),
       ],
       child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: router,
         theme: theme ?? AppTheme.light,
       ),
