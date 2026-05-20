@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -192,6 +194,78 @@ void main() {
       );
     },
   );
+
+  // -----------------------------------------------------------------------
+  // INV-QUOTE-JUMP-TEMPORAL: The loading spinner must appear BEFORE the
+  // fetch completes, and notFound must appear only AFTER the fetch fails.
+  //
+  // This pins the temporal contract from #649: users see a spinner during
+  // the async fetch, and "Message not available" only after load finishes
+  // without finding the target. A regression to "immediate error flash"
+  // will break this test.
+  // -----------------------------------------------------------------------
+  testWidgets(
+    'Quote-jump shows loading during fetch, notFound only after '
+    '(INV-QUOTE-JUMP-TEMPORAL)',
+    (tester) async {
+      final loadCompleter = Completer<ConversationMessagePage>();
+      final repo = _DelayedLoadFakeRepository(
+        snapshot: _makeSnapshotMissingTarget(),
+        loadOlderCompleter: loadCompleter,
+      );
+
+      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpAndSettle();
+
+      // msg-5 has a quoted block referencing msg-1 (not loaded).
+      final quotedBlock = find.byKey(const ValueKey('quoted-msg-5'));
+      expect(quotedBlock, findsOneWidget);
+
+      // Tap the quoted block to trigger _handleQuoteJumpMissing.
+      await tester.tap(quotedBlock);
+
+      // Pump a single frame — the setState for loading has fired, but
+      // loadOlder is still pending (gated by Completer).
+      await tester.pump();
+
+      // ASSERT: loading indicator must be visible.
+      expect(
+        find.byKey(const ValueKey('quote-jump-loading')),
+        findsOneWidget,
+        reason: 'Loading spinner must appear while fetch is in-flight '
+            '(INV-QUOTE-JUMP-TEMPORAL)',
+      );
+      // ASSERT: "not found" must NOT be visible yet.
+      expect(
+        find.byKey(const ValueKey('quote-jump-not-found')),
+        findsNothing,
+        reason: 'Not-found must not appear before fetch completes '
+            '(INV-QUOTE-JUMP-TEMPORAL)',
+      );
+
+      // Complete the fetch — returns empty (target not found).
+      loadCompleter.complete(const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+      ));
+      await tester.pumpAndSettle();
+
+      // ASSERT: loading gone, notFound visible.
+      expect(
+        find.byKey(const ValueKey('quote-jump-loading')),
+        findsNothing,
+        reason: 'Loading spinner must disappear after fetch completes '
+            '(INV-QUOTE-JUMP-TEMPORAL)',
+      );
+      expect(
+        find.byKey(const ValueKey('quote-jump-not-found')),
+        findsOneWidget,
+        reason: 'Not-found must appear after fetch completes without '
+            'finding the target (INV-QUOTE-JUMP-TEMPORAL)',
+      );
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -309,7 +383,7 @@ ConversationDetailSnapshot _makeSnapshotMissingTarget() {
   );
 }
 
-Widget _buildConversationApp(_FakeConversationRepository repo) {
+Widget _buildConversationApp(ConversationRepository repo) {
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
       serverId: ServerScopeId('server-1'),
@@ -357,6 +431,144 @@ class _FakeConversationRepository implements ConversationRepository {
       historyLimited: false,
       hasOlder: false,
     );
+  }
+
+  @override
+  Future<ConversationMessagePage> loadNewerMessages(
+    ConversationDetailTarget target, {
+    required int afterSeq,
+  }) async {
+    return const ConversationMessagePage(
+      messages: [],
+      historyLimited: false,
+      hasOlder: false,
+      hasNewer: false,
+    );
+  }
+
+  @override
+  Future<String> uploadAttachment(
+    ConversationDetailTarget target,
+    PendingAttachment attachment, {
+    void Function(int sent, int total)? onSendProgress,
+    CancelToken? cancelToken,
+  }) async {
+    return 'attachment-1';
+  }
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content, {
+    List<String>? attachmentIds,
+    String? replyToId,
+    CancelToken? cancelToken,
+  }) async {
+    return ConversationMessageSummary(
+      id: 'sent-1',
+      content: content,
+      createdAt: DateTime.now(),
+      senderType: 'human',
+      messageType: 'message',
+      seq: 999,
+    );
+  }
+
+  @override
+  Future<ConversationMessageSummary> persistMessage(
+    ConversationDetailTarget target, {
+    required ConversationMessageSummary message,
+    String? senderId,
+  }) async {
+    return message;
+  }
+
+  @override
+  Future<ConversationMessageSummary?> updateStoredMessageContent(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {
+    return null;
+  }
+
+  @override
+  Future<void> editMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String content,
+  }) async {}
+
+  @override
+  Future<void> deleteMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> pinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<void> unpinMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+
+  @override
+  Future<List<ConversationMessageSummary>> loadPinnedMessages(
+    ConversationDetailTarget target,
+  ) async =>
+      [];
+
+  @override
+  Future<void> addReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeReaction(
+    ConversationDetailTarget target, {
+    required String messageId,
+    required String emoji,
+  }) async {}
+
+  @override
+  Future<void> removeStoredMessage(
+    ConversationDetailTarget target, {
+    required String messageId,
+  }) async {}
+}
+
+/// A variant of [_FakeConversationRepository] where [loadOlderMessages]
+/// is gated by a [Completer], allowing tests to assert the loading state
+/// before the fetch resolves.
+class _DelayedLoadFakeRepository implements ConversationRepository {
+  _DelayedLoadFakeRepository({
+    required this.snapshot,
+    required this.loadOlderCompleter,
+  });
+
+  final ConversationDetailSnapshot snapshot;
+  final Completer<ConversationMessagePage> loadOlderCompleter;
+
+  @override
+  Future<ConversationDetailSnapshot> loadConversation(
+    ConversationDetailTarget target,
+  ) async {
+    return snapshot;
+  }
+
+  @override
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  }) {
+    return loadOlderCompleter.future;
   }
 
   @override
