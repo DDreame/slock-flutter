@@ -80,7 +80,7 @@ class HomeDirectMessageRow extends StatelessWidget {
                 SizedBox(
                   width: 32,
                   height: 32,
-                  child: directMessage.peerId != null
+                  child: directMessage.peerId != null && !isAgent
                       ? PresenceAvatar(
                           key: ValueKey(
                             'dm-presence-${directMessage.scopeId.routeParam}',
@@ -124,9 +124,7 @@ class HomeDirectMessageRow extends StatelessWidget {
                                 width: 10,
                                 height: 10,
                                 decoration: BoxDecoration(
-                                  color: isOnline
-                                      ? colors.success
-                                      : colors.textTertiary,
+                                  color: _resolveStatusDotColor(colors),
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: hasUnread
@@ -316,5 +314,24 @@ class HomeDirectMessageRow extends StatelessWidget {
     if (words.isEmpty || words[0].isEmpty) return '?';
     if (words.length == 1) return words[0][0].toUpperCase();
     return '${words[0][0]}${words[1][0]}'.toUpperCase();
+  }
+
+  /// Resolves the status dot color from [agentActivity] when available,
+  /// falling back to [isOnline] binary for backward compatibility.
+  Color _resolveStatusDotColor(AppColors colors) {
+    final activity = agentActivity;
+    if (activity != null) {
+      return switch (activity) {
+        AgentDisplayStatus.thinking ||
+        AgentDisplayStatus.working =>
+          colors.warning,
+        AgentDisplayStatus.error => colors.error,
+        AgentDisplayStatus.online => colors.success,
+        AgentDisplayStatus.offline ||
+        AgentDisplayStatus.stopped =>
+          colors.textTertiary,
+      };
+    }
+    return isOnline ? colors.success : colors.textTertiary;
   }
 }
