@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
@@ -54,7 +55,7 @@ final unreadSourceProjectionProvider =
   }
 
   final ctx = _visibilityContextFromSelected(homeVis);
-  final nameResolver = ref.read(_nameResolverCacheProvider)(homeVis);
+  final nameResolver = ref.read(nameResolverCacheProvider)(homeVis);
 
   return _projectSources(
     items,
@@ -95,7 +96,7 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
   }
 
   final ctx = _visibilityContextFromSelected(homeVis);
-  final nameResolver = ref.read(_nameResolverCacheProvider)(homeVis);
+  final nameResolver = ref.read(nameResolverCacheProvider)(homeVis);
 
   return [
     for (final item in items)
@@ -124,7 +125,10 @@ final inboxProjectionProvider = Provider<List<UnreadSourceProjection>>((ref) {
 /// and name resolution need. Used as the select() output so tier-2 field
 /// changes (tasks, machines, threads) don't trigger projection rebuilds
 /// (INV-PROJ-OPT-2).
-typedef _HomeVisibility = ({
+///
+/// Exposed for test access to [nameResolverCacheProvider] closure signature.
+@visibleForTesting
+typedef HomeVisibilitySelect = ({
   HomeListStatus status,
   List<HomeChannelSummary> pinnedChannels,
   List<HomeChannelSummary> channels,
@@ -138,7 +142,7 @@ typedef _HomeVisibility = ({
 /// [HomeListState]. Riverpod compares the previous and next record by
 /// equality; since all inner lists are immutable value objects, identity
 /// equality is sufficient to detect changes.
-_HomeVisibility _selectVisibility(HomeListState s) => (
+HomeVisibilitySelect _selectVisibility(HomeListState s) => (
       status: s.status,
       pinnedChannels: s.pinnedChannels,
       channels: s.channels,
@@ -148,22 +152,27 @@ _HomeVisibility _selectVisibility(HomeListState s) => (
       agents: s.agents,
     );
 
-/// Builds an [InboxNameResolver] from the selected [_HomeVisibility] record.
+/// Builds an [InboxNameResolver] from the selected [HomeVisibilitySelect] record.
 ///
 /// Populates `channelNames` from both pinned and regular channels/DMs so
 /// that [projectInboxItem] can resolve display names when the API returns
 /// null/empty values. Populates `memberNames` from DM peer data and agent
 /// data so sender name fallback resolves via local stores.
 ///
-/// Memoized: returns cached resolver when the [_HomeVisibility] record is
+/// Memoized: returns cached resolver when the [HomeVisibilitySelect] record is
 /// the same object reference (identity check), avoiding fresh Map allocations
 /// on every provider rebuild.
 ///
 /// #661: Cache is scoped to provider lifecycle (dies with ProviderContainer)
 /// instead of file-level statics that survive teardowns.
-final _nameResolverCacheProvider =
-    Provider<InboxNameResolver Function(_HomeVisibility)>((ref) {
-  _HomeVisibility? lastVis;
+///
+/// Exposed (non-underscore) for test verification of memoization contract
+/// (INV-CACHE-LIFECYCLE-2). Production code accesses only via the two
+/// projection providers above.
+@visibleForTesting
+final nameResolverCacheProvider =
+    Provider<InboxNameResolver Function(HomeVisibilitySelect)>((ref) {
+  HomeVisibilitySelect? lastVis;
   InboxNameResolver? cached;
 
   return (vis) {
@@ -213,8 +222,8 @@ final _nameResolverCacheProvider =
   };
 });
 
-/// Builds visibility context from the selected [_HomeVisibility] record.
-_visibilityContextFromSelected(_HomeVisibility vis) {
+/// Builds visibility context from the selected [HomeVisibilitySelect] record.
+_visibilityContextFromSelected(HomeVisibilitySelect vis) {
   final channelIds = <String>{};
   final dmIds = <String>{};
 

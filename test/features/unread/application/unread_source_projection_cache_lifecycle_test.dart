@@ -5,14 +5,15 @@
 // INV-CACHE-LIFECYCLE-1: Name resolver cache is scoped to ProviderContainer.
 //                         Disposing container A and creating container B must
 //                         NOT reuse container A's cached resolver.
-// INV-CACHE-LIFECYCLE-2: Within the same container, identity-equal
-//                         _HomeVisibility produces the same InboxNameResolver
-//                         instance (memoization works).
+// INV-CACHE-LIFECYCLE-2: Within the same container, invoking the resolver
+//                         closure with the same identity-equal input returns
+//                         the same InboxNameResolver instance (memoization).
 // =============================================================================
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -113,8 +114,8 @@ void main() {
     );
 
     test(
-      'INV-CACHE-LIFECYCLE-2: within one container, identity-equal '
-      'visibility produces same resolver (memoization works)',
+      'INV-CACHE-LIFECYCLE-2: same visibility identity → same resolver '
+      'instance (closure-level memoization)',
       () {
         final container = createContainer(
           homeState: const HomeListState(
@@ -129,15 +130,36 @@ void main() {
         );
         addTearDown(container.dispose);
 
-        // Read twice — provider caches, so both calls return identical
-        // projection (same resolver was used).
-        final state1 = container.read(unreadSourceProjectionProvider);
-        final state2 = container.read(unreadSourceProjectionProvider);
+        // Read the resolver closure directly from the cache provider.
+        final resolverFn = container.read(nameResolverCacheProvider);
 
-        // Same object reference (Provider caches computed value).
-        expect(identical(state1, state2), isTrue,
-            reason: 'Provider must cache projection — reads should return same '
-                'instance (INV-CACHE-LIFECYCLE-2)');
+        // Construct a single visibility record and call the closure twice.
+        // Identity-equal input must return the same InboxNameResolver.
+        const HomeVisibilitySelect vis = (
+          status: HomeListStatus.success,
+          pinnedChannels: <HomeChannelSummary>[],
+          channels: [
+            HomeChannelSummary(
+              scopeId: channelGeneral,
+              name: 'general',
+            ),
+          ],
+          pinnedDirectMessages: <HomeDirectMessageSummary>[],
+          directMessages: <HomeDirectMessageSummary>[],
+          pinnedAgents: <AgentItem>[],
+          agents: <AgentItem>[],
+        );
+
+        final resolver1 = resolverFn(vis);
+        final resolver2 = resolverFn(vis);
+
+        expect(
+          identical(resolver1, resolver2),
+          isTrue,
+          reason: 'Same identity-equal _HomeVisibility input must return '
+              'the same InboxNameResolver instance — proving closure-level '
+              'memoization works (INV-CACHE-LIFECYCLE-2)',
+        );
       },
     );
   });
