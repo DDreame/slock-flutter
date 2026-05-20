@@ -49,6 +49,64 @@ typedef ConversationAppBarActionsBuilder = List<Widget> Function(
   ConversationDetailState state,
 );
 
+/// State machine for quote-jump UI feedback (#649).
+///
+/// Separates "loading" (spinner during loadOlder) from "not found" (error
+/// shown only after load completes and target message is missing).
+enum QuoteJumpState { idle, loading, notFound }
+
+/// Overlay widget rendered during quote-jump loading or not-found states.
+///
+/// Exposed as public API for Phase A testability.
+class QuoteJumpOverlay extends StatelessWidget {
+  const QuoteJumpOverlay({super.key, required this.state});
+
+  final QuoteJumpState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (state) {
+      QuoteJumpState.idle => const SizedBox.shrink(),
+      QuoteJumpState.loading => const Center(
+          child: Card(
+            key: ValueKey('quote-jump-loading'),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 12),
+                  Text('Loading message…'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      QuoteJumpState.notFound => const Center(
+          child: Card(
+            key: ValueKey('quote-jump-not-found'),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, size: 16),
+                  SizedBox(width: 12),
+                  Text('Message not available'),
+                ],
+              ),
+            ),
+          ),
+        ),
+    };
+  }
+}
+
 class ConversationDetailPage extends StatelessWidget {
   const ConversationDetailPage({
     super.key,
@@ -130,7 +188,7 @@ class _ConversationDetailScreenState
   // Quote-jump highlight state.
   String? _highlightedMessageId;
   Timer? _highlightTimer;
-  bool _isQuoteJumpLoading = false;
+  QuoteJumpState _quoteJumpState = QuoteJumpState.idle;
   final Map<String, GlobalKey> _messageGlobalKeys = {};
 
   GlobalKey _getMessageKey(String messageId) {
@@ -430,24 +488,11 @@ class _ConversationDetailScreenState
                               messageKeyBuilder: _getMessageKey,
                             ),
                           ),
-                          if (_isQuoteJumpLoading)
-                            const Positioned.fill(
-                              child: Align(
-                                alignment: Alignment.center,
-                                child: Card(
-                                  key: ValueKey('quote-jump-loading'),
-                                  child: Padding(
-                                    padding: EdgeInsets.all(16),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.info_outline, size: 16),
-                                        SizedBox(width: 12),
-                                        Text('Message not available'),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                          if (_quoteJumpState != QuoteJumpState.idle)
+                            Positioned.fill(
+                              child: QuoteJumpOverlay(
+                                key: const ValueKey('quote-jump-overlay'),
+                                state: _quoteJumpState,
                               ),
                             ),
                           if (_showScrollToBottom)
@@ -1076,7 +1121,7 @@ class _ConversationDetailScreenState
     // Set the highlight immediately so the widget tree rebuilds with it.
     setState(() {
       _highlightedMessageId = messageId;
-      _isQuoteJumpLoading = false;
+      _quoteJumpState = QuoteJumpState.idle;
     });
 
     // Use post-frame callback to ensure the widget is built before scrolling.
@@ -1114,9 +1159,9 @@ class _ConversationDetailScreenState
 
   /// Handles quote-jump when the target message is not in the loaded window.
   /// Attempts to load older messages; if the target is still not found,
-  /// shows a persistent feedback widget keyed [quote-jump-loading].
+  /// shows a persistent "not found" feedback widget.
   Future<void> _handleQuoteJumpMissing(String messageId) async {
-    setState(() => _isQuoteJumpLoading = true);
+    setState(() => _quoteJumpState = QuoteJumpState.loading);
 
     final notifier = ref.read(conversationDetailStoreProvider.notifier);
     final state = ref.read(conversationDetailStoreProvider);
@@ -1134,9 +1179,9 @@ class _ConversationDetailScreenState
       }
     }
 
-    // Still not found — show persistent feedback.
+    // Still not found — show "not found" feedback.
     if (mounted) {
-      setState(() => _isQuoteJumpLoading = true);
+      setState(() => _quoteJumpState = QuoteJumpState.notFound);
     }
   }
 

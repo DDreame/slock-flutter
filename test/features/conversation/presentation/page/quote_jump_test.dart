@@ -119,13 +119,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // At minimum: either the target message is now visible, or there
-      // is a loading indicator / snackbar with feedback.
+      // is a loading indicator / "not found" feedback.
       final targetVisible = find.byKey(const ValueKey('message-shell-msg-1'));
-      final feedbackVisible = find.byKey(const ValueKey('quote-jump-loading'));
+      final loadingVisible = find.byKey(const ValueKey('quote-jump-loading'));
+      final notFoundVisible =
+          find.byKey(const ValueKey('quote-jump-not-found'));
 
       expect(
         targetVisible.evaluate().isNotEmpty ||
-            feedbackVisible.evaluate().isNotEmpty,
+            loadingVisible.evaluate().isNotEmpty ||
+            notFoundVisible.evaluate().isNotEmpty,
         isTrue,
         reason: 'After tapping quoted block for out-of-window message, '
             'either the target message is loaded or a feedback widget '
