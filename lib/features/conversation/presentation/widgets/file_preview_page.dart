@@ -85,8 +85,11 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       try {
         final file = File(path);
         if (file.existsSync()) file.deleteSync();
-      } catch (_) {
-        // Best-effort cleanup; ignore failures.
+      } on Exception catch (e) {
+        ref.read(diagnosticsCollectorProvider).warning(
+              'FilePreview',
+              'Temp file cleanup failed for $path: $e',
+            );
       }
     }
     _tempFiles.clear();
@@ -153,7 +156,11 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
           });
         }
       }
-    } catch (_) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'FilePreview',
+            'Signed URL fallback failed for ${att.name}: $e',
+          );
       if (mounted) {
         if (att.url != null) {
           setState(() => _signedUrl = att.url);
@@ -233,7 +240,11 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       await Dio().download(url, filePath);
       _tempFiles.add(filePath);
       await Share.shareXFiles([XFile(filePath)]);
-    } catch (_) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'FilePreview',
+            'Share file failed for ${widget.attachment.name}: $e',
+          );
       if (mounted) {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()

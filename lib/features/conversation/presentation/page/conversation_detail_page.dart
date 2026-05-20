@@ -627,8 +627,11 @@ class _ConversationDetailScreenState
           _mentionMembersLoaded = true;
         });
       }
-    } catch (_) {
-      // Silently fail — mention suggestions are optional.
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'ConversationDetail',
+            'Mention member load failed: $e',
+          );
     }
   }
 
@@ -691,7 +694,11 @@ class _ConversationDetailScreenState
         );
         return;
       }
-    } catch (_) {
+    } on Exception catch (e) {
+      ref.read(diagnosticsCollectorProvider).error(
+            'ConversationDetail',
+            'Mic permission check failed: $e',
+          );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

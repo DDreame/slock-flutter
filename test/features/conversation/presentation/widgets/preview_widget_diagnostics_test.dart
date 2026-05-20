@@ -12,6 +12,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/core/telemetry/diagnostic_share_service.dart';
+import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
@@ -218,4 +220,129 @@ void main() {
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // INV-CATCH-DIAG-2: DiagnosticShareSheet logs errors to diagnostics
+  // ---------------------------------------------------------------------------
+  group('INV-CATCH-DIAG-2: DiagnosticShareSheet error diagnostics', () {
+    testWidgets(
+      'Copy failure logs error to DiagnosticsCollector',
+      (tester) async {
+        final collector = DiagnosticsCollector();
+        final mockShareService = _ThrowingShareService();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              diagnosticsCollectorProvider.overrideWithValue(collector),
+              diagnosticShareServiceProvider
+                  .overrideWithValue(mockShareService),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: DiagnosticShareSheet()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap the "Copy to Clipboard" action tile.
+        await tester.tap(find.byKey(const ValueKey('share-sheet-copy')));
+        await tester.pumpAndSettle();
+
+        final errors = collector.entries
+            .where((e) => e.level == DiagnosticsLevel.error)
+            .toList();
+        expect(errors, isNotEmpty,
+            reason: 'DiagnosticShareSheet must log error on copy failure');
+        expect(errors.first.tag, 'DiagnosticShareSheet');
+        expect(errors.first.message, contains('Copy to clipboard failed'));
+      },
+    );
+
+    testWidgets(
+      'Share failure logs error to DiagnosticsCollector',
+      (tester) async {
+        final collector = DiagnosticsCollector();
+        final mockShareService = _ThrowingShareService();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              diagnosticsCollectorProvider.overrideWithValue(collector),
+              diagnosticShareServiceProvider
+                  .overrideWithValue(mockShareService),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: DiagnosticShareSheet()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap the "Share" action tile.
+        await tester.tap(find.byKey(const ValueKey('share-sheet-share')));
+        await tester.pumpAndSettle();
+
+        final errors = collector.entries
+            .where((e) => e.level == DiagnosticsLevel.error)
+            .toList();
+        expect(errors, isNotEmpty,
+            reason: 'DiagnosticShareSheet must log error on share failure');
+        expect(errors.first.tag, 'DiagnosticShareSheet');
+        expect(errors.first.message, contains('Share failed'));
+      },
+    );
+
+    testWidgets(
+      'Save failure logs error to DiagnosticsCollector',
+      (tester) async {
+        final collector = DiagnosticsCollector();
+        final mockShareService = _ThrowingShareService();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              diagnosticsCollectorProvider.overrideWithValue(collector),
+              diagnosticShareServiceProvider
+                  .overrideWithValue(mockShareService),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: DiagnosticShareSheet()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap the "Save to File" action tile.
+        await tester.tap(find.byKey(const ValueKey('share-sheet-save')));
+        await tester.pumpAndSettle();
+
+        final errors = collector.entries
+            .where((e) => e.level == DiagnosticsLevel.error)
+            .toList();
+        expect(errors, isNotEmpty,
+            reason: 'DiagnosticShareSheet must log error on save failure');
+        expect(errors.first.tag, 'DiagnosticShareSheet');
+        expect(errors.first.message, contains('Save to file failed'));
+      },
+    );
+  });
+}
+
+/// Mock [DiagnosticShareService] that throws on every operation.
+class _ThrowingShareService implements DiagnosticShareService {
+  @override
+  Future<DiagnosticShareResult> copyToClipboard(String text) async {
+    throw Exception('clipboard unavailable');
+  }
+
+  @override
+  Future<DiagnosticShareResult> shareText(String text) async {
+    throw Exception('share sheet unavailable');
+  }
+
+  @override
+  Future<String> saveToFile(String text, {String? filename}) async {
+    throw Exception('disk full');
+  }
 }
