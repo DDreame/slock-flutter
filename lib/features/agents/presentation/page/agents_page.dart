@@ -152,6 +152,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         AgentsStatus.success => _buildGroupedList(
             state.items,
             colors,
+            ref.watch(agentStatusGroupProjectionProvider),
           ),
       },
     );
@@ -160,8 +161,9 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   Widget _buildGroupedList(
     List<AgentItem> items,
     AppColors colors,
+    // #653: ref.watch moved to build() — pass groups as parameter.
+    List<AgentStatusGroup> groups,
   ) {
-    final groups = ref.watch(agentStatusGroupProjectionProvider);
     final active = items.where((a) => a.isActive).length;
     final stopped = items.length - active;
 
