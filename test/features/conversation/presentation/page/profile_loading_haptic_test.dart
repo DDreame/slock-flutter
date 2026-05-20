@@ -117,11 +117,13 @@ void main() {
       'INV-HAPTIC-REACTION-1: HapticFeedback.mediumImpact() fires on '
       'successful quick-react (double-tap)',
       (tester) async {
-        final hapticCalls = <String>[];
+        final hapticLog = <String>[];
         tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
           SystemChannels.platform,
           (MethodCall call) async {
-            hapticCalls.add(call.method);
+            if (call.method == 'HapticFeedback.vibrate') {
+              hapticLog.add(call.arguments as String);
+            }
             return null;
           },
         );
@@ -135,18 +137,24 @@ void main() {
         final messageFinder = find.byKey(const ValueKey('message-msg-1'));
         expect(messageFinder, findsOneWidget);
 
+        // Clear haptic log BEFORE the action to isolate post-reaction haptics
+        // from any pre-existing gesture haptics.
+        hapticLog.clear();
+
         await tester.tap(messageFinder);
         await tester.pump(const Duration(milliseconds: 50));
         await tester.tap(messageFinder);
         await tester.pumpAndSettle();
 
-        // HapticFeedback.mediumImpact() calls
-        // 'HapticFeedback.vibrate' with 'HapticFeedbackType.mediumImpact'.
+        // The reaction success path fires HapticFeedback.mediumImpact(),
+        // which sends 'HapticFeedbackType.mediumImpact' as the argument.
+        // The gesture wrapper may also fire 'HapticFeedbackType.lightImpact'
+        // for the double-tap itself, but we specifically need mediumImpact.
         expect(
-          hapticCalls.contains('HapticFeedback.vibrate'),
+          hapticLog.contains('HapticFeedbackType.mediumImpact'),
           isTrue,
-          reason: 'HapticFeedback must fire on successful reaction '
-              '(INV-HAPTIC-REACTION-1)',
+          reason: 'HapticFeedback.mediumImpact must fire after successful '
+              'addReaction() (INV-HAPTIC-REACTION-1). Got: $hapticLog',
         );
 
         // Clean up.
@@ -166,11 +174,13 @@ void main() {
       'INV-HAPTIC-MENTION-1: HapticFeedback.mediumImpact() fires when '
       'user selects a mention suggestion',
       (tester) async {
-        final hapticCalls = <String>[];
+        final hapticLog = <String>[];
         tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
           SystemChannels.platform,
           (MethodCall call) async {
-            hapticCalls.add(call.method);
+            if (call.method == 'HapticFeedback.vibrate') {
+              hapticLog.add(call.arguments as String);
+            }
             return null;
           },
         );
@@ -186,21 +196,28 @@ void main() {
         await tester.enterText(inputFinder, '@');
         await tester.pumpAndSettle();
 
-        // Tap the first suggestion.
+        // Suggestion overlay MUST appear (unconditional assertion).
         final suggestionFinder =
             find.byKey(const ValueKey('mention-suggestion-0'));
-        if (suggestionFinder.evaluate().isNotEmpty) {
-          hapticCalls.clear();
-          await tester.tap(suggestionFinder);
-          await tester.pumpAndSettle();
+        expect(
+          suggestionFinder,
+          findsOneWidget,
+          reason: 'Mention suggestion must appear after typing @ '
+              '(INV-HAPTIC-MENTION-1 precondition)',
+        );
 
-          expect(
-            hapticCalls.contains('HapticFeedback.vibrate'),
-            isTrue,
-            reason: 'HapticFeedback must fire on mention selection '
-                '(INV-HAPTIC-MENTION-1)',
-          );
-        }
+        // Clear haptic log BEFORE tapping suggestion.
+        hapticLog.clear();
+        await tester.tap(suggestionFinder);
+        await tester.pumpAndSettle();
+
+        // Assert specifically mediumImpact (not lightImpact or other types).
+        expect(
+          hapticLog.contains('HapticFeedbackType.mediumImpact'),
+          isTrue,
+          reason: 'HapticFeedback.mediumImpact must fire after selecting '
+              'a mention suggestion (INV-HAPTIC-MENTION-1). Got: $hapticLog',
+        );
 
         // Clean up.
         tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
