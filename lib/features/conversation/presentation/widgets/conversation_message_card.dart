@@ -173,6 +173,11 @@ class ConversationMessageCardState
         .read(profileRepositoryProvider)
         .loadProfile(target.serverId, userId: senderId);
 
+    // Prevent unhandled-future-error: the bottom-sheet route transition spans
+    // multiple frames, so _ProfileLoadingSheet.initState may not attach its
+    // .catchError() handler before this future completes with an error.
+    profileFuture.ignore();
+
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -1367,6 +1372,29 @@ class _MemberProfileSheetContent extends StatelessWidget {
               ),
             ],
             const SizedBox(height: AppSpacing.sm),
+
+            // Role badge
+            if (member.role != null) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Container(
+                key: const ValueKey('profile-sheet-role'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.surfaceAlt,
+                  borderRadius:
+                      BorderRadius.circular(AppSpacing.radiusSm),
+                ),
+                child: Text(
+                  _capitalizeProfilePresence(member.role!),
+                  style: AppTypography.caption.copyWith(
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
 
             // Presence
             if (member.presence != null) ...[
