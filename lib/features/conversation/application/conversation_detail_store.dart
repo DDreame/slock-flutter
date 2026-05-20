@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
@@ -154,6 +155,11 @@ class ConversationDetailStore
     }
     return _cachedMessageIdSet;
   }
+
+  /// INV-DEDUP-663-1: Exposes [_messageIdSet] for test verification of
+  /// Set-based dedup invalidation.
+  @visibleForTesting
+  Set<String> get messageIdSetForTesting => _messageIdSet;
 
   /// Maximum duration a message can stay in [MessageSendStatus.sending]
   /// before being auto-transitioned to queued via the outbox.

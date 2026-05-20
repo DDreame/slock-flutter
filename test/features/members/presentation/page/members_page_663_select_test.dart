@@ -112,6 +112,21 @@ class _MembersScaffoldSelectConsumer extends ConsumerWidget {
   }
 }
 
+/// INV-MEMBERS-663-SELECT-2: Mirrors _MembersBody.build() which watches
+/// the full memberListStoreProvider state (no .select() narrowing).
+class _MembersBodyFullConsumer extends ConsumerWidget {
+  const _MembersBodyFullConsumer({required this.onBuild});
+
+  final VoidCallback onBuild;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(memberListStoreProvider);
+    onBuild();
+    return const SizedBox.shrink();
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -415,6 +430,102 @@ void main() {
       store.setIsInvitingByEmailDirect(true);
       await tester.pump();
       expect(buildCount, 3);
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // T8: Dual-path — body consumer watches full state and DOES rebuild on
+  // query/mutation changes, while scaffold select does NOT.
+  // INV-MEMBERS-663-SELECT-2: Body leaf watches full memberListStoreProvider.
+  // -------------------------------------------------------------------------
+  testWidgets(
+    'INV-MEMBERS-663-SELECT-2: body rebuilds on query/mutation changes '
+    'while scaffold does NOT',
+    (tester) async {
+      int scaffoldBuildCount = 0;
+      int bodyBuildCount = 0;
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            currentMembersServerIdProvider
+                .overrideWithValue(const ServerScopeId('s1')),
+            memberListStoreProvider
+                .overrideWith(() => _ControllableMemberListStore()),
+          ],
+          child: MaterialApp(
+            home: Column(
+              children: [
+                _MembersScaffoldSelectConsumer(
+                  onBuild: () => scaffoldBuildCount++,
+                ),
+                _MembersBodyFullConsumer(
+                  onBuild: () => bodyBuildCount++,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(scaffoldBuildCount, 1);
+      expect(bodyBuildCount, 1);
+
+      final element =
+          tester.element(find.byType(_MembersScaffoldSelectConsumer));
+      final container = ProviderScope.containerOf(element);
+      final store = container.read(memberListStoreProvider.notifier)
+          as _ControllableMemberListStore;
+
+      // 1. query change — body rebuilds, scaffold does NOT.
+      store.setQueryDirect('alice');
+      await tester.pump();
+      expect(
+        scaffoldBuildCount,
+        1,
+        reason: 'scaffold must NOT rebuild on query change',
+      );
+      expect(
+        bodyBuildCount,
+        2,
+        reason: 'body MUST rebuild on query change',
+      );
+
+      // 2. updatingRoleMemberIds change — body rebuilds, scaffold does NOT.
+      store.setUpdatingRoleMemberIdsDirect({'m-1'});
+      await tester.pump();
+      expect(
+        scaffoldBuildCount,
+        1,
+        reason: 'scaffold must NOT rebuild on updatingRoleMemberIds change',
+      );
+      expect(
+        bodyBuildCount,
+        3,
+        reason: 'body MUST rebuild on updatingRoleMemberIds change',
+      );
+
+      // 3. openingDirectMessageMemberId change — body rebuilds, scaffold
+      //    does NOT.
+      store.setOpeningDirectMessageMemberIdDirect('m-1');
+      await tester.pump();
+      expect(
+        scaffoldBuildCount,
+        1,
+        reason: 'scaffold must NOT rebuild on '
+            'openingDirectMessageMemberId change',
+      );
+      expect(
+        bodyBuildCount,
+        4,
+        reason: 'body MUST rebuild on openingDirectMessageMemberId change',
+      );
+
+      // 4. status change — BOTH rebuild.
+      store.setStatusDirect(MemberListStatus.loading);
+      await tester.pump();
+      expect(scaffoldBuildCount, 2, reason: 'scaffold rebuilds on status');
+      expect(bodyBuildCount, 5, reason: 'body rebuilds on status');
     },
   );
 }
