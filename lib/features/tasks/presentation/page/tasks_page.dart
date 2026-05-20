@@ -344,13 +344,16 @@ class _TasksSummaryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    int count(String status) => items.where((t) => t.status == status).length;
-
-    final todoCount = count('todo');
-    final progressCount = count('in_progress');
-    final reviewCount = count('in_review');
-    final doneCount = count('done');
-    final closedCount = count('closed');
+    // #653: Single-pass frequency map instead of 5× .where().length.
+    final counts = <String, int>{};
+    for (final t in items) {
+      counts[t.status] = (counts[t.status] ?? 0) + 1;
+    }
+    final todoCount = counts['todo'] ?? 0;
+    final progressCount = counts['in_progress'] ?? 0;
+    final reviewCount = counts['in_review'] ?? 0;
+    final doneCount = counts['done'] ?? 0;
+    final closedCount = counts['closed'] ?? 0;
 
     final l10n = context.l10n;
 
@@ -505,13 +508,11 @@ class _TasksListSurfaceState extends State<_TasksListSurface> {
         .toList();
   }
 
-  bool get _showFilterBar {
-    return _filterChannelIds().length > 1;
-  }
-
   @override
   Widget build(BuildContext context) {
     final filteredItems = _filteredItems;
+    // #653: Compute filterChannelIds once instead of twice per build.
+    final filterChannelIds = _filterChannelIds();
 
     return SafeArea(
       child: Column(
@@ -520,9 +521,9 @@ class _TasksListSurfaceState extends State<_TasksListSurface> {
           _TasksHeader(colors: widget.colors, onNew: widget.onNew),
           _TasksSummaryHeader(items: filteredItems, colors: widget.colors),
           const SizedBox(height: AppSpacing.md),
-          if (_showFilterBar)
+          if (filterChannelIds.length > 1)
             _TasksChannelFilterBar(
-              channelIds: _filterChannelIds(),
+              channelIds: filterChannelIds,
               channelName: _channelName,
               selectedChannelId: _selectedChannelId,
               colors: widget.colors,
