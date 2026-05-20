@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/csv_preview_widget.dart';
@@ -21,11 +22,13 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: CsvPreviewWidget(
-              attachment: attachment,
-              contentFetcher: (url) async => 'a,b\n1,2',
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: CsvPreviewWidget(
+                attachment: attachment,
+                contentFetcher: (url) async => 'a,b\n1,2',
+              ),
             ),
           ),
         ),
@@ -45,13 +48,15 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SvgPreviewWidget(
-              attachment: attachment,
-              contentFetcher: (url) async =>
-                  '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
-                  '<rect width="10" height="10"/></svg>',
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: SvgPreviewWidget(
+                attachment: attachment,
+                contentFetcher: (url) async =>
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">'
+                    '<rect width="10" height="10"/></svg>',
+              ),
             ),
           ),
         ),
@@ -71,12 +76,14 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TextPreviewWidget(
-              attachment: attachment,
-              isMarkdown: true,
-              contentFetcher: (url) async => '# Title',
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TextPreviewWidget(
+                attachment: attachment,
+                isMarkdown: true,
+                contentFetcher: (url) async => '# Title',
+              ),
             ),
           ),
         ),
@@ -97,12 +104,14 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TextPreviewWidget(
-              attachment: attachment,
-              isMarkdown: false,
-              contentFetcher: (url) async => 'hello',
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: TextPreviewWidget(
+                attachment: attachment,
+                isMarkdown: false,
+                contentFetcher: (url) async => 'hello',
+              ),
             ),
           ),
         ),
