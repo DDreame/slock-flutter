@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
@@ -709,6 +710,8 @@ class _ConversationDetailScreenState
     // Notify the store about draft change.
     ref.read(conversationDetailStoreProvider.notifier).updateDraft(newText);
     _closeMentionOverlay();
+    // #656: Haptic feedback on mention selection.
+    HapticFeedback.mediumImpact();
   }
 
   Future<void> _captureAndAnnotate() async {
