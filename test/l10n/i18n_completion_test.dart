@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/application/tasks_store.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
@@ -125,11 +126,12 @@ void main() {
             overrides: [
               tasksStoreProvider.overrideWith(() => store),
             ],
-            child: const MaterialApp(
-              locale: Locale('zh'),
+            child: MaterialApp(
+              locale: const Locale('zh'),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: TasksPage(serverId: 'server-1'),
+              theme: AppTheme.light,
+              home: const TasksPage(serverId: 'server-1'),
             ),
           ),
         );

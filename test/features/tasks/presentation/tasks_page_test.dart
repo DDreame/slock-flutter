@@ -338,13 +338,19 @@ void main() {
       await tester.pumpWidget(_buildApp(store));
       await tester.pumpAndSettle();
 
-      // Section label should say "已关闭"
+      // Section label should say "Closed"
       expect(
         find.byKey(const ValueKey('task-section-closed')),
         findsOneWidget,
         reason: 'INV-TASK-CLOSED-1: Closed tasks should have their own section',
       );
-      expect(find.text('Closed'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('task-section-closed')),
+          matching: find.text('Closed'),
+        ),
+        findsOneWidget,
+      );
 
       // Status symbol should be ✕
       expect(find.text('✕'), findsWidgets);
