@@ -1384,8 +1384,7 @@ class _MemberProfileSheetContent extends StatelessWidget {
                 ),
                 decoration: BoxDecoration(
                   color: colors.surfaceAlt,
-                  borderRadius:
-                      BorderRadius.circular(AppSpacing.radiusSm),
+                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
                 child: Text(
                   _capitalizeProfilePresence(member.role!),
