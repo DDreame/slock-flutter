@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/presentation/widgets/task_status_overlay.dart';
 
 void main() {
@@ -305,7 +306,7 @@ void main() {
   // ---------------------------------------------------------------------------
   group('INV-THEME-TOKEN-3: success animation uses theme tokens', () {
     testWidgets(
-      'success icon color matches AppColors.success',
+      'success state icon container color is AppColors.success @ 0.3',
       (tester) async {
         final colors = AppTheme.light.extension<AppColors>()!;
 
@@ -313,25 +314,69 @@ void main() {
           MaterialApp(
             theme: AppTheme.light,
             home: Scaffold(
-              body: TaskStatusOverlay(
-                currentStatus: 'todo',
-                onStatusAccepted: (_) {},
+              body: Stack(
+                children: [
+                  // The overlay under test.
+                  TaskStatusOverlay(
+                    currentStatus: 'todo',
+                    onStatusAccepted: (_) {},
+                  ),
+                  // Drag source ON TOP so hit test reaches it.
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: Draggable<TaskItem>(
+                      key: const ValueKey('test-draggable'),
+                      data: _testTaskItem,
+                      feedback: const SizedBox(width: 50, height: 50),
+                      child: const SizedBox.square(
+                        dimension: 50,
+                        child: ColoredBox(color: Color(0x01000000)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         );
         await tester.pump();
 
-        // The success state renders after a drop is accepted.
-        // Verify the token value is correct and usable.
-        expect(colors.success, isA<Color>());
-        // The success color in light mode is green.
-        expect(colors.success.g, greaterThan(colors.success.r));
+        // Perform drag from draggable to the "done" drop zone.
+        final from = tester.getCenter(
+          find.byKey(const ValueKey('test-draggable')),
+        );
+        final to = tester.getCenter(
+          find.byKey(const ValueKey('drop-zone-done')),
+        );
+        final gesture = await tester.startGesture(from);
+        await tester.pump();
+        // Cross touch slop threshold to initiate drag.
+        await gesture.moveBy(const Offset(0, 20));
+        await tester.pump();
+        await gesture.moveTo(to);
+        await tester.pump();
+        await gesture.up();
+        await tester.pump();
+
+        // Now the overlay is in success state.
+        final successIcon = find.byKey(const ValueKey('drop-success-icon'));
+        expect(successIcon, findsOneWidget,
+            reason: 'Success state must render after drop');
+
+        // Verify the success icon container color.
+        final container = tester.widget<Container>(successIcon);
+        final decoration = container.decoration as BoxDecoration;
+        expect(
+          decoration.color,
+          equals(colors.success.withValues(alpha: 0.3)),
+          reason: 'Success icon bg must be colors.success @ 0.3 alpha',
+        );
       },
     );
 
     testWidgets(
-      'success icon container uses AppColors.success background',
+      'success state check Icon uses AppColors.success color',
       (tester) async {
         final colors = AppTheme.light.extension<AppColors>()!;
 
@@ -339,22 +384,128 @@ void main() {
           MaterialApp(
             theme: AppTheme.light,
             home: Scaffold(
-              body: TaskStatusOverlay(
-                currentStatus: 'todo',
-                onStatusAccepted: (_) {},
+              body: Stack(
+                children: [
+                  TaskStatusOverlay(
+                    currentStatus: 'todo',
+                    onStatusAccepted: (_) {},
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: Draggable<TaskItem>(
+                      key: const ValueKey('test-draggable'),
+                      data: _testTaskItem,
+                      feedback: const SizedBox(width: 50, height: 50),
+                      child: const SizedBox.square(
+                        dimension: 50,
+                        child: ColoredBox(color: Color(0x01000000)),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         );
         await tester.pump();
 
-        // We verify the success token resolves correctly for both themes.
-        final darkColors = AppTheme.dark.extension<AppColors>()!;
-        // Light success is 0xFF22C55E, dark is 0xFF4ADE80 — both greens.
-        expect(colors.success.g, greaterThan(0.5));
-        expect(darkColors.success.g, greaterThan(0.5));
-        // Both are distinct (not hardcoded to the same value).
-        expect(colors.success, isNot(equals(darkColors.success)));
+        // Drag to "done" zone to trigger success state.
+        final from = tester.getCenter(
+          find.byKey(const ValueKey('test-draggable')),
+        );
+        final to = tester.getCenter(
+          find.byKey(const ValueKey('drop-zone-done')),
+        );
+        final gesture = await tester.startGesture(from);
+        await tester.pump();
+        await gesture.moveBy(const Offset(0, 20));
+        await tester.pump();
+        await gesture.moveTo(to);
+        await tester.pump();
+        await gesture.up();
+        await tester.pump();
+
+        // Find the Icon inside the success container.
+        final successIcon = find.byKey(const ValueKey('drop-success-icon'));
+        expect(successIcon, findsOneWidget);
+
+        final icon = find.descendant(
+          of: successIcon,
+          matching: find.byType(Icon),
+        );
+        expect(icon, findsOneWidget);
+
+        final iconWidget = tester.widget<Icon>(icon);
+        expect(
+          iconWidget.color,
+          equals(colors.success),
+          reason: 'Success check icon must use colors.success directly',
+        );
+      },
+    );
+
+    testWidgets(
+      'success state text uses AppColors.overlayForeground',
+      (tester) async {
+        final colors = AppTheme.light.extension<AppColors>()!;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: Stack(
+                children: [
+                  TaskStatusOverlay(
+                    currentStatus: 'todo',
+                    onStatusAccepted: (_) {},
+                  ),
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    child: Draggable<TaskItem>(
+                      key: const ValueKey('test-draggable'),
+                      data: _testTaskItem,
+                      feedback: const SizedBox(width: 50, height: 50),
+                      child: const SizedBox.square(
+                        dimension: 50,
+                        child: ColoredBox(color: Color(0x01000000)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Drag to "done" zone to trigger success state.
+        final from = tester.getCenter(
+          find.byKey(const ValueKey('test-draggable')),
+        );
+        final to = tester.getCenter(
+          find.byKey(const ValueKey('drop-zone-done')),
+        );
+        final gesture = await tester.startGesture(from);
+        await tester.pump();
+        await gesture.moveBy(const Offset(0, 20));
+        await tester.pump();
+        await gesture.moveTo(to);
+        await tester.pump();
+        await gesture.up();
+        await tester.pump();
+
+        // Find the success text.
+        final successText = find.byKey(const ValueKey('drop-success-text'));
+        expect(successText, findsOneWidget);
+
+        final textWidget = tester.widget<Text>(successText);
+        expect(
+          textWidget.style?.color,
+          equals(colors.overlayForeground),
+          reason: 'Success text must use colors.overlayForeground',
+        );
       },
     );
   });
@@ -363,6 +514,20 @@ void main() {
 // =============================================================================
 // Test helpers
 // =============================================================================
+
+/// A minimal TaskItem for drag-and-drop simulation.
+final _testTaskItem = TaskItem(
+  id: 'test-task-1',
+  taskNumber: 1,
+  title: 'Test task',
+  status: 'todo',
+  channelId: 'ch-1',
+  channelType: 'channel',
+  createdById: 'user-1',
+  createdByName: 'Tester',
+  createdByType: 'human',
+  createdAt: DateTime(2026, 1, 1),
+);
 
 /// Finds a circular Container with [size]×[size] dimensions inside [ancestor].
 /// Returns its BoxDecoration color, or null if not found.
