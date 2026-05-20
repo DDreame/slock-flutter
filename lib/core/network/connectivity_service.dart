@@ -105,3 +105,33 @@ final connectivityServiceProvider = Provider<ConnectivityService>((ref) {
 Future<ConnectivityService> initConnectivityService() async {
   return ConnectivityService.fromPlugin();
 }
+
+// ---------------------------------------------------------------------------
+// #655: Riverpod-native connectivity status provider
+//
+// Replaces raw StreamBuilder usage in widgets with a proper Provider that
+// benefits from Riverpod lifecycle, caching, and .select() narrowing.
+// ---------------------------------------------------------------------------
+
+/// Riverpod provider exposing the current [ConnectivityStatus].
+///
+/// Emits the initial status synchronously and updates on connectivity changes.
+/// Widgets can watch this directly instead of using raw StreamBuilder:
+/// ```dart
+/// final isOffline = ref.watch(connectivityStatusProvider) ==
+///     ConnectivityStatus.offline;
+/// ```
+final connectivityStatusProvider = Provider<ConnectivityStatus>((ref) {
+  final service = ref.watch(connectivityServiceProvider);
+  // Seed with current status.
+  var current = service.status;
+
+  // Listen to the stream and self-invalidate on changes.
+  final subscription = service.statusStream.listen((status) {
+    current = status;
+    ref.invalidateSelf();
+  });
+  ref.onDispose(subscription.cancel);
+
+  return current;
+});

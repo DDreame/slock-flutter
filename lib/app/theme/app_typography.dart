@@ -71,6 +71,31 @@ abstract final class AppTypography {
     height: 1.3,
   );
 
+  // ---------------------------------------------------------------------------
+  // #655: Pre-computed weight variants for scroll hot-path.
+  //
+  // Avoids redundant copyWith(fontWeight: FontWeight.w600) allocations
+  // in per-message-card builds during fast scroll (50× per frame).
+  // ---------------------------------------------------------------------------
+
+  /// Label with bold weight — sender names, section headers.
+  /// Pre-computed to avoid per-build `.copyWith(fontWeight: w600)`.
+  static const labelBold = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.1,
+    height: 1.35,
+  );
+
+  /// Caption with bold weight — AI badge, compact labels.
+  /// Pre-computed to avoid per-build `.copyWith(fontWeight: w600)`.
+  static const captionBold = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.15,
+    height: 1.3,
+  );
+
   /// Returns a complete [TextTheme] built from design tokens,
   /// colored with [textColor].
   static TextTheme textTheme(Color textColor) {

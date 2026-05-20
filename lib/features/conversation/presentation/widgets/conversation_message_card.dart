@@ -319,11 +319,11 @@ class ConversationMessageCardState
         visualKind == _ConversationMessageVisualKind.other ||
             visualKind == _ConversationMessageVisualKind.agent;
 
-    final senderStyle = AppTypography.label.copyWith(
+    // #655: Use pre-computed labelBold to avoid per-build weight allocation.
+    final senderStyle = AppTypography.labelBold.copyWith(
       color: visualKind == _ConversationMessageVisualKind.agent
           ? colors.agentAccent
           : colors.textSecondary,
-      fontWeight: FontWeight.w600,
     );
     final timestampStyle = AppTypography.caption.copyWith(
       color: foregroundColor.withValues(alpha: 0.78),
@@ -493,9 +493,9 @@ class ConversationMessageCardState
                 ),
                 child: Text(
                   'AI',
-                  style: AppTypography.caption.copyWith(
+                  // #655: Use pre-computed captionBold.
+                  style: AppTypography.captionBold.copyWith(
                     color: colors.primaryForeground,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -1176,9 +1176,9 @@ class _QuotedMessageBlock extends StatelessWidget {
           children: [
             Text(
               replyTo.senderLabel,
-              style: AppTypography.label.copyWith(
+              // #655: Use pre-computed labelBold.
+              style: AppTypography.labelBold.copyWith(
                 color: labelColor,
-                fontWeight: FontWeight.w600,
               ),
             ),
             Text(
