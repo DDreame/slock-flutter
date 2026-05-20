@@ -7,22 +7,30 @@
 // INV-KEYS-EVICT-1: _messageGlobalKeys stays bounded after pagination
 // =============================================================================
 
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
-import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
-import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 void main() {
-  setUp(() {
+  late SharedPreferences prefs;
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
     ConversationDetailPage.debugAttachmentRegistrationCount = 0;
   });
 
@@ -33,11 +41,11 @@ void main() {
     testWidgets(
       'fires on initial load (messages appear)',
       (tester) async {
-        final repo = _FakeConversationRepository(
-          snapshot: _makeSnapshot(messageCount: 3),
+        final store = _ControllableConversationDetailStore(
+          initialMessages: _makeMessages(3),
         );
 
-        await tester.pumpWidget(_buildApp(repo));
+        await tester.pumpWidget(_buildApp(store: store, prefs: prefs));
         await tester.pumpAndSettle();
 
         // Should have fired exactly once on initial load.
@@ -54,25 +62,23 @@ void main() {
       'does NOT re-fire when message count is unchanged '
       '(reaction/typing state change)',
       (tester) async {
-        final repo = _FakeConversationRepository(
-          snapshot: _makeSnapshot(messageCount: 3),
+        final store = _ControllableConversationDetailStore(
+          initialMessages: _makeMessages(3),
         );
 
-        await tester.pumpWidget(_buildApp(repo));
+        await tester.pumpWidget(_buildApp(store: store, prefs: prefs));
         await tester.pumpAndSettle();
 
         final countAfterLoad =
             ConversationDetailPage.debugAttachmentRegistrationCount;
+        expect(countAfterLoad, 1,
+            reason: 'Initial load should fire once');
 
-        // Simulate a non-message state emission (e.g. typing indicator).
-        // The store will re-emit but messages.length stays the same.
-        // We trigger this by calling refresh which re-loads same data.
-        repo.snapshot = _makeSnapshot(messageCount: 3);
-
-        // Force a rebuild without changing message count — simulate via
-        // a size change that triggers a rebuild.
-        await tester.pumpWidget(_buildApp(repo));
-        await tester.pumpAndSettle();
+        // Simulate a non-message state emission (e.g. typing indicator,
+        // reaction update, isRefreshing toggle). The store emits a new state
+        // with the SAME messages but different metadata.
+        store.emitNonMessageChange();
+        await tester.pump();
 
         // Should NOT have fired again (same message count).
         expect(
@@ -90,14 +96,14 @@ void main() {
   // ---------------------------------------------------------------------------
   group('INV-KEYS-EVICT-1: GlobalKeys eviction', () {
     testWidgets(
-      'keys are bounded after messages are removed from state',
+      'keys are bounded after messages shrink (messages.length + 20)',
       (tester) async {
         // Start with 50 messages to build up keys.
-        final repo = _FakeConversationRepository(
-          snapshot: _makeSnapshot(messageCount: 50),
+        final store = _ControllableConversationDetailStore(
+          initialMessages: _makeMessages(50),
         );
 
-        await tester.pumpWidget(_buildApp(repo));
+        await tester.pumpWidget(_buildApp(store: store, prefs: prefs));
         await tester.pumpAndSettle();
 
         final keyCountAfterLoad =
@@ -105,29 +111,24 @@ void main() {
         expect(keyCountAfterLoad, greaterThan(0),
             reason: 'Should have created keys for visible messages');
 
-        // Now simulate pagination that replaces with fewer messages.
-        // After state update with fewer messages, eviction should trigger
-        // when key count > messages.length + 20.
-        // We need keyCount to exceed that threshold to trigger eviction.
-        // Since the test renders all 50 and keys grow, when we switch to
-        // a smaller set, eviction fires.
-        repo.snapshot = _makeSnapshot(messageCount: 5);
-
-        // Force a complete rebuild to trigger state change.
-        await tester.pumpWidget(_buildApp(repo));
-        await tester.pumpAndSettle();
+        // Now simulate state emission with fewer messages (pagination shrink).
+        // The eviction guard fires when keys > messages.length + 20.
+        // With 50 keys accumulated and only 5 messages in new state,
+        // 50 > 5 + 20 = true, so eviction runs.
+        store.emitNewMessages(_makeMessages(5));
+        await tester.pump();
 
         final keyCountAfterShrink =
             ConversationDetailPage.debugMessageGlobalKeyCount?.call() ?? 0;
 
-        // Keys should have been evicted. The count should be at most
-        // messages.length (5) because we evict anything not in current
-        // message set when count > messages.length + 20.
+        // Production guard: evicts keys not in current message set.
+        // After eviction, only keys matching the 5 current messages remain.
+        // Assert tight bound: messages.length + 20 = 25.
         expect(
           keyCountAfterShrink,
-          lessThanOrEqualTo(50),
-          reason: 'GlobalKeys must not grow unboundedly '
-              '(INV-KEYS-EVICT-1)',
+          lessThanOrEqualTo(25),
+          reason: 'GlobalKeys must be bounded to messages.length + 20 '
+              'after eviction (INV-KEYS-EVICT-1)',
         );
       },
     );
@@ -138,49 +139,50 @@ void main() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-ConversationDetailSnapshot _makeSnapshot({required int messageCount}) {
-  return ConversationDetailSnapshot(
-    target: ConversationDetailTarget.channel(
-      const ChannelScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'ch-1',
+final _target = ConversationDetailTarget.channel(
+  const ChannelScopeId(
+    serverId: ServerScopeId('server-1'),
+    value: 'ch-1',
+  ),
+);
+
+List<ConversationMessageSummary> _makeMessages(int count) {
+  return List.generate(
+    count,
+    (i) => ConversationMessageSummary(
+      id: 'msg-$i',
+      content: 'Message $i',
+      createdAt: DateTime.parse('2026-05-16T14:00:00Z').add(
+        Duration(minutes: i),
       ),
+      senderType: 'human',
+      messageType: 'message',
+      seq: i + 1,
     ),
-    title: '#general',
-    messages: List.generate(
-      messageCount,
-      (i) => ConversationMessageSummary(
-        id: 'msg-$i',
-        content: 'Message $i',
-        createdAt: DateTime.parse('2026-05-16T14:00:00Z').add(
-          Duration(minutes: i),
-        ),
-        senderType: 'human',
-        messageType: 'message',
-        seq: i + 1,
-      ),
-    ),
-    historyLimited: false,
-    hasOlder: false,
   );
 }
 
-Widget _buildApp(_FakeConversationRepository repo) {
-  final target = ConversationDetailTarget.channel(
-    const ChannelScopeId(
-      serverId: ServerScopeId('server-1'),
-      value: 'ch-1',
-    ),
-  );
-
+Widget _buildApp({
+  required _ControllableConversationDetailStore store,
+  required SharedPreferences prefs,
+}) {
   return ProviderScope(
     overrides: [
-      conversationRepositoryProvider.overrideWithValue(repo),
+      conversationDetailStoreProvider.overrideWith(() => store),
+      conversationDetailSessionStoreProvider
+          .overrideWith(() => _FakeConversationDetailSessionStore()),
+      voiceMessageStoreProvider.overrideWith(() => _FakeVoiceMessageStore()),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      realtimeReductionIngressProvider
+          .overrideWithValue(RealtimeReductionIngress()),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
-      home: ConversationDetailPage(target: target),
+      home: ConversationDetailPage(
+        target: _target,
+        registerOpenTarget: false,
+      ),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
     ),
@@ -191,139 +193,61 @@ Widget _buildApp(_FakeConversationRepository repo) {
 // Fakes
 // ---------------------------------------------------------------------------
 
-class _FakeConversationRepository implements ConversationRepository {
-  _FakeConversationRepository({required this.snapshot});
+/// A controllable store that starts with given messages (status=success)
+/// and allows explicit state emissions for testing guards.
+class _ControllableConversationDetailStore extends ConversationDetailStore {
+  _ControllableConversationDetailStore({
+    required this.initialMessages,
+  });
 
-  ConversationDetailSnapshot snapshot;
+  final List<ConversationMessageSummary> initialMessages;
 
   @override
-  Future<ConversationDetailSnapshot> loadConversation(
-    ConversationDetailTarget target,
-  ) async {
-    return snapshot;
+  ConversationDetailState build() => ConversationDetailState(
+        target: _target,
+        status: ConversationDetailStatus.success,
+        messages: initialMessages,
+      );
+
+  @override
+  Future<void> ensureLoaded() async {
+    // Already loaded via build().
   }
 
   @override
-  Future<ConversationMessagePage> loadOlderMessages(
-    ConversationDetailTarget target, {
-    required int beforeSeq,
-  }) async {
-    return const ConversationMessagePage(
-      messages: [],
-      historyLimited: false,
-      hasOlder: false,
-    );
+  Future<void> refresh({String reason = 'manual'}) async {}
+
+  @override
+  Future<void> loadOlder() async {}
+
+  @override
+  Future<void> loadNewer() async {}
+
+  /// Emit a state change that does NOT alter messages (simulates typing,
+  /// reaction update, or refresh status toggle). This is the exact scenario
+  /// where the attachment guard must NOT fire.
+  void emitNonMessageChange() {
+    state = state.copyWith(isRefreshing: !state.isRefreshing);
   }
 
-  @override
-  Future<ConversationMessagePage> loadNewerMessages(
-    ConversationDetailTarget target, {
-    required int afterSeq,
-  }) async {
-    return const ConversationMessagePage(
-      messages: [],
-      historyLimited: false,
-      hasOlder: false,
-      hasNewer: false,
-    );
+  /// Emit a state change with a new message list (simulates pagination
+  /// or message removal). Triggers the eviction guard if key count exceeds
+  /// messages.length + 20.
+  void emitNewMessages(List<ConversationMessageSummary> messages) {
+    state = state.copyWith(messages: messages);
   }
+}
 
+class _FakeConversationDetailSessionStore
+    extends ConversationDetailSessionStore {
   @override
-  Future<String> uploadAttachment(
-    ConversationDetailTarget target,
-    PendingAttachment attachment, {
-    void Function(int sent, int total)? onSendProgress,
-    CancelToken? cancelToken,
-  }) async {
-    return 'attachment-1';
-  }
+  Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() =>
+      const {};
+}
 
+class _FakeVoiceMessageStore extends VoiceMessageStore {
   @override
-  Future<ConversationMessageSummary> sendMessage(
-    ConversationDetailTarget target,
-    String content, {
-    List<String>? attachmentIds,
-    String? replyToId,
-    CancelToken? cancelToken,
-  }) async {
-    return ConversationMessageSummary(
-      id: 'sent-1',
-      content: content,
-      createdAt: DateTime.now(),
-      senderType: 'human',
-      messageType: 'message',
-      seq: 999,
-    );
-  }
-
-  @override
-  Future<ConversationMessageSummary> persistMessage(
-    ConversationDetailTarget target, {
-    required ConversationMessageSummary message,
-    String? senderId,
-  }) async {
-    return message;
-  }
-
-  @override
-  Future<ConversationMessageSummary?> updateStoredMessageContent(
-    ConversationDetailTarget target, {
-    required String messageId,
-    required String content,
-  }) async {
-    return null;
-  }
-
-  @override
-  Future<void> editMessage(
-    ConversationDetailTarget target, {
-    required String messageId,
-    required String content,
-  }) async {}
-
-  @override
-  Future<void> deleteMessage(
-    ConversationDetailTarget target, {
-    required String messageId,
-  }) async {}
-
-  @override
-  Future<void> pinMessage(
-    ConversationDetailTarget target, {
-    required String messageId,
-  }) async {}
-
-  @override
-  Future<void> unpinMessage(
-    ConversationDetailTarget target, {
-    required String messageId,
-  }) async {}
-
-  @override
-  Future<List<ConversationMessageSummary>> loadPinnedMessages(
-    ConversationDetailTarget target,
-  ) async =>
-      [];
-
-  @override
-  Future<void> addReaction(
-    ConversationDetailTarget target, {
-    required String messageId,
-    required String emoji,
-  }) async {}
-
-  @override
-  Future<void> removeReaction(
-    ConversationDetailTarget target, {
-    required String messageId,
-    required String emoji,
-  }) async {}
-
-  @override
-  Future<void> removeStoredMessage(
-    ConversationDetailTarget target, {
-    required String messageId,
-  }) async {}
+  VoiceMessageState build() => const VoiceMessageState();
 }
 
 class _FakeSessionStore extends SessionStore {
