@@ -170,32 +170,9 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   }) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    // Combine pinned + unpinned channels.
-    final allChannels = [
-      ...pinnedChannels,
-      ...channels,
-    ];
-
-    // INV-TAB-SORT-CACHE-1: Inline sort instead of Provider.family.
-    // Provider.family with List arg never caches (reference equality),
-    // causing unconditional re-sort and stale provider slot accumulation.
-    final sortPreference = ref.watch(channelSortPreferenceProvider);
-    final sorted = List<HomeChannelSummary>.of(allChannels);
-    switch (sortPreference) {
-      case ChannelSortPreference.recentActivity:
-        sorted.sort((a, b) {
-          final aTime = a.lastActivityAt;
-          final bTime = b.lastActivityAt;
-          if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-          return bTime.compareTo(aTime);
-        });
-      case ChannelSortPreference.alphabetical:
-        sorted.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        );
-    }
+    // INV-TAB-SORT-CACHE-1: Use memoized provider — sort only re-runs when
+    // the channel list or sort preference changes, NOT on unread count updates.
+    final sorted = ref.watch(sortedChannelListProvider);
 
     // Apply search filter.
     final displayList = _searchQuery.isEmpty
