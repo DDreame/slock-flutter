@@ -83,7 +83,18 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       }
     });
 
-    final state = ref.watch(tasksStoreProvider);
+    // INV-SELECT-TASKS-1: Only rebuild on layout-decision fields.
+    // Individual task item mutations within the list don't require page-level
+    // scaffold rebuild — only status transitions and empty/non-empty threshold.
+    final (:status, :isEmpty, :isRefreshing) = ref.watch(
+      tasksStoreProvider.select(
+        (s) => (
+          status: s.status,
+          isEmpty: s.items.isEmpty,
+          isRefreshing: s.isRefreshing,
+        ),
+      ),
+    );
     // INV-NET-DEGRADE-2: surface refresh failure via snackbar only when a
     // refresh completes with failure — not on mutation errors.
     ref.listen(
@@ -107,10 +118,8 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
         : const <HomeChannelSummary>[];
 
     return Scaffold(
-      body: switch (state.status) {
-        TasksStatus.initial ||
-        TasksStatus.loading when state.items.isEmpty =>
-          ListView(
+      body: switch (status) {
+        TasksStatus.initial || TasksStatus.loading when isEmpty => ListView(
             key: const ValueKey('tasks-skeleton'),
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.pageHorizontal,
@@ -125,7 +134,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             ],
           ),
         TasksStatus.loading => _TasksListSurface(
-            items: state.items,
+            items: ref.read(tasksStoreProvider).items,
             colors: colors,
             isRefreshing: true,
             onStatusUpdate: _updateStatus,
@@ -136,10 +145,11 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             channels: channels,
           ),
         TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
-            message: state.failure?.message ?? context.l10n.tasksLoadFailed,
+            message: ref.read(tasksStoreProvider).failure?.message ??
+                context.l10n.tasksLoadFailed,
             onRetry: ref.read(tasksStoreProvider.notifier).retry,
           ),
-        TasksStatus.success when state.items.isEmpty => SafeArea(
+        TasksStatus.success when isEmpty => SafeArea(
             child: Column(
               children: [
                 _TasksHeader(colors: colors, onNew: _showCreateTaskDialog),
@@ -150,7 +160,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             ),
           ),
         TasksStatus.success => _TasksListSurface(
-            items: state.items,
+            items: ref.read(tasksStoreProvider).items,
             colors: colors,
             onStatusUpdate: _updateStatus,
             onDelete: _deleteTask,

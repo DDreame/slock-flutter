@@ -42,7 +42,11 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    final inboxState = ref.watch(inboxStoreProvider);
+    // INV-SELECT-UNREAD-1: Only filter consumed from inbox — status/items/etc.
+    // changes are covered by unreadSourceProjectionProvider.
+    final (:filter, :hasMore) = ref.watch(
+      inboxStoreProvider.select((s) => (filter: s.filter, hasMore: s.hasMore)),
+    );
     final projectionState = ref.watch(unreadSourceProjectionProvider);
     final items = projectionState.visibleSources;
     final hiddenItems = projectionState.hiddenSources;
@@ -57,27 +61,27 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
         actions: [
           _FilterChip(
             key: const ValueKey('unread-filter-chip'),
-            currentFilter: inboxState.filter,
+            currentFilter: filter,
             onChanged: (filter) {
               ref.read(inboxStoreProvider.notifier).setFilter(filter);
             },
           ),
         ],
       ),
-      body: _buildBody(colors, l10n, inboxState, items, hiddenItems),
+      body: _buildBody(
+          colors, l10n, projectionState.isLoaded, items, hiddenItems, hasMore),
     );
   }
 
   Widget _buildBody(
     AppColors colors,
     AppLocalizations l10n,
-    InboxState inboxState,
+    bool isLoaded,
     List<ConversationProjection> items,
     List<ConversationProjection> hiddenItems,
+    bool hasMore,
   ) {
-    if (inboxState.status == InboxStatus.loading &&
-        items.isEmpty &&
-        hiddenItems.isEmpty) {
+    if (!isLoaded && items.isEmpty && hiddenItems.isEmpty) {
       // Skeleton instead of spinner during filter-switch loading.
       // Previously showed CircularProgressIndicator which gave no
       // indication of content structure (#510 BUG 2).
@@ -131,7 +135,7 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
         onNotification: (notification) {
           if (notification is ScrollEndNotification &&
               notification.metrics.extentAfter < 200 &&
-              inboxState.hasMore) {
+              hasMore) {
             ref.read(inboxStoreProvider.notifier).loadMore();
           }
           return false;
@@ -139,7 +143,7 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
         child: ListView.builder(
           key: const ValueKey('unread-list-view'),
           padding: const EdgeInsets.all(AppSpacing.md),
-          itemCount: totalCount + (inboxState.hasMore ? 1 : 0),
+          itemCount: totalCount + (hasMore ? 1 : 0),
           itemBuilder: (context, index) {
             // Visible sources.
             if (index < visibleCount) {

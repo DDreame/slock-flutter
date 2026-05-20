@@ -78,7 +78,11 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     );
     final channelUnreadTotal =
         channelUnreadCounts.values.fold(0, (sum, c) => sum + c);
-    final managementState = ref.watch(channelManagementStoreProvider);
+    // INV-SELECT-CHANNELS-1: Only isBusy consumed — other management state
+    // fields (e.g. operationResult) don't require tab rebuild.
+    final isBusy = ref.watch(
+      channelManagementStoreProvider.select((s) => s.isBusy),
+    );
     final sortPreference = ref.watch(channelSortPreferenceProvider);
     final l10n = context.l10n;
 
@@ -152,7 +156,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
               channels: state.channels,
               homeStore: homeStore,
               channelUnreadCounts: channelUnreadCounts,
-              managementState: managementState,
+              managementIsBusy: isBusy,
               l10n: l10n,
             ),
           ),
@@ -165,7 +169,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     required List<HomeChannelSummary> channels,
     required HomeListStore homeStore,
     required Map<ChannelScopeId, int> channelUnreadCounts,
-    required ChannelManagementState managementState,
+    required bool managementIsBusy,
     required AppLocalizations l10n,
   }) {
     final colors = Theme.of(context).extension<AppColors>()!;
@@ -251,7 +255,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
           homeStore: homeStore,
           channelUnreadCounts: channelUnreadCounts,
           mutedIds: mutedIds,
-          managementState: managementState,
+          managementIsBusy: managementIsBusy,
         );
       },
     );
@@ -306,7 +310,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     required HomeListStore homeStore,
     required Map<ChannelScopeId, int> channelUnreadCounts,
     required Set<String> mutedIds,
-    required ChannelManagementState managementState,
+    required bool managementIsBusy,
   }) {
     final unreadCount = channelUnreadCounts[channel.scopeId] ?? 0;
 
@@ -335,7 +339,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         unreadCount: unreadCount,
         isPinned: isPinned,
         isMuted: isMuted,
-        isMutating: managementState.isBusy,
+        isMutating: managementIsBusy,
         onTap: () {
           context.push(homeStore.channelRoutePath(channel.scopeId));
           // Deferred mark-read: brief delay before clearing unread
