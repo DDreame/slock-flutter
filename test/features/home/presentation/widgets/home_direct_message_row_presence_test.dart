@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/presence/application/presence_store.dart';
@@ -50,7 +51,11 @@ void main() {
 
   group('HomeDirectMessageRow — presence integration', () {
     testWidgets('uses PresenceAvatar when peerId is set', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+        ],
+      );
       final sub = container.listen(presenceStoreProvider, (_, __) {});
       addTearDown(() {
         sub.close();
@@ -82,7 +87,11 @@ void main() {
     });
 
     testWidgets('shows yellow dot when peer is idle', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+        ],
+      );
       final sub = container.listen(presenceStoreProvider, (_, __) {});
       addTearDown(() {
         sub.close();
@@ -107,7 +116,11 @@ void main() {
     });
 
     testWidgets('shows gray dot when peer is offline', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+        ],
+      );
       final sub = container.listen(presenceStoreProvider, (_, __) {});
       addTearDown(() {
         sub.close();
@@ -131,7 +144,11 @@ void main() {
 
     testWidgets('falls back to inline status dot when peerId is null',
         (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+        ],
+      );
       final sub = container.listen(presenceStoreProvider, (_, __) {});
       addTearDown(() {
         sub.close();
@@ -161,7 +178,11 @@ void main() {
     });
 
     testWidgets('presence dot updates reactively', (tester) async {
-      final container = ProviderContainer();
+      final container = ProviderContainer(
+        overrides: [
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+        ],
+      );
       final sub = container.listen(presenceStoreProvider, (_, __) {});
       addTearDown(() {
         sub.close();

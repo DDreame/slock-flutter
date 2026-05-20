@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
@@ -81,6 +82,9 @@ void main() {
       // verify the key/widget structure exists.
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
           child: MaterialApp(
             theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -198,6 +202,9 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [
+            homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
+          ],
           child: MaterialApp(
             theme: AppTheme.light,
             localizationsDelegates: AppLocalizations.localizationsDelegates,

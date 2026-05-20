@@ -21,6 +21,7 @@ import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/application/preview_backfill_service.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
@@ -580,6 +581,8 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
+              homeNowProvider
+                  .overrideWith((ref) => Stream.value(DateTime.now())),
               appLocalizationsProvider.overrideWithValue(
                 lookupAppLocalizations(const Locale('en')),
               ),

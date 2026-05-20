@@ -461,7 +461,7 @@ class _HomeTasksSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    final now = ref.watch(homeNowProvider);
+    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     // Memoized filtered+sorted+sliced task list from provider.
     final visibleTasks = ref.watch(homeTaskSectionProvider);
@@ -839,7 +839,7 @@ class _InboxUnreadListContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    final now = ref.watch(homeNowProvider);
+    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     final visible = unreadItems.take(_maxVisibleUnreads).toList();
     final overflowCount = unreadItems.length - visible.length;

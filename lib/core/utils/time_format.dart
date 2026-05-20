@@ -1,7 +1,7 @@
-String formatRelativeTime(DateTime dt) {
+String formatRelativeTime(DateTime dt, {DateTime? now}) {
   final local = dt.toLocal();
-  final now = DateTime.now();
-  final diff = now.difference(local);
+  final currentTime = now ?? DateTime.now();
+  final diff = currentTime.difference(local);
 
   if (diff.inMinutes < 1) return 'just now';
   if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
