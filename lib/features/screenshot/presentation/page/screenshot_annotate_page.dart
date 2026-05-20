@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/screenshot/application/screenshot_store.dart';
 import 'package:slock_app/features/screenshot/data/annotation.dart';
+import 'package:slock_app/features/screenshot/data/image_dimensions_decoder.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_capture_service.dart';
 import 'package:slock_app/features/screenshot/data/screenshot_state.dart';
 import 'package:slock_app/features/screenshot/presentation/widgets/annotation_canvas.dart';
@@ -77,13 +77,11 @@ class _ScreenshotAnnotatePageState
     if (!file.existsSync()) return;
 
     final bytes = await file.readAsBytes();
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    final image = frame.image;
+    final size = await decodeImageDimensions(bytes);
 
     if (mounted) {
       setState(() {
-        _imageSize = Size(image.width.toDouble(), image.height.toDouble());
+        _imageSize = size;
       });
     }
   }
