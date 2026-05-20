@@ -8,6 +8,8 @@
 // INV-TEXTSTYLE-CONST-1: AppTypography.labelBold is pre-computed with w600
 //                         (no per-build copyWith for fontWeight).
 // INV-TEXTSTYLE-CONST-2: AppTypography.captionBold is pre-computed with w600.
+// INV-TEXTSTYLE-PROD-1: ConversationMessageCard sender name uses labelBold base.
+// INV-TEXTSTYLE-PROD-2: ConversationMessageCard AI badge uses captionBold base.
 // =============================================================================
 
 import 'dart:async';
@@ -141,6 +143,102 @@ void main() {
       },
     );
   });
+
+  // ---------------------------------------------------------------------------
+  // INV-TEXTSTYLE-PROD-1 & 2: Production-path — real ConversationMessageCard
+  // renders sender name / AI badge using pre-computed bold styles.
+  // ---------------------------------------------------------------------------
+  group('INV-TEXTSTYLE-PROD: ConversationMessageCard uses pre-computed styles',
+      () {
+    late SharedPreferences prefs;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      prefs = await SharedPreferences.getInstance();
+    });
+
+    testWidgets(
+      'INV-TEXTSTYLE-PROD-1: sender name Text uses labelBold base '
+      '(fontWeight w600, fontSize 12, letterSpacing 0.1)',
+      (tester) async {
+        final controller = StreamController<ConnectivityStatus>.broadcast();
+        final service = ConnectivityService.withInitialStatus(
+          ConnectivityStatus.online,
+          controller: controller,
+        );
+
+        await tester.pumpWidget(_buildAppWithAgentMessage(
+          prefs: prefs,
+          connectivityService: service,
+        ));
+        await tester.pumpAndSettle();
+
+        // Find the sender name text 'BotAgent'.
+        final senderFinder = find.text('BotAgent');
+        expect(senderFinder, findsOneWidget,
+            reason: 'Agent sender name must render');
+
+        // Extract the Text widget's effective style.
+        final textWidget = tester.widget<Text>(senderFinder);
+        final style = textWidget.style!;
+
+        // Assert it uses labelBold base properties.
+        expect(style.fontWeight, FontWeight.w600,
+            reason: 'Sender name must use w600 from labelBold '
+                '(INV-TEXTSTYLE-PROD-1)');
+        expect(style.fontSize, AppTypography.labelBold.fontSize,
+            reason: 'Sender name fontSize must match labelBold');
+        expect(style.letterSpacing, AppTypography.labelBold.letterSpacing,
+            reason: 'Sender name letterSpacing must match labelBold');
+        expect(style.height, AppTypography.labelBold.height,
+            reason: 'Sender name height must match labelBold');
+
+        controller.close();
+        service.dispose();
+      },
+    );
+
+    testWidgets(
+      'INV-TEXTSTYLE-PROD-2: AI badge Text uses captionBold base '
+      '(fontWeight w600, fontSize 11, letterSpacing 0.15)',
+      (tester) async {
+        final controller = StreamController<ConnectivityStatus>.broadcast();
+        final service = ConnectivityService.withInitialStatus(
+          ConnectivityStatus.online,
+          controller: controller,
+        );
+
+        await tester.pumpWidget(_buildAppWithAgentMessage(
+          prefs: prefs,
+          connectivityService: service,
+        ));
+        await tester.pumpAndSettle();
+
+        // Find the 'AI' badge text.
+        final aiBadgeFinder = find.text('AI');
+        expect(aiBadgeFinder, findsOneWidget,
+            reason: 'AI badge must render for agent messages');
+
+        // Extract the Text widget's effective style.
+        final textWidget = tester.widget<Text>(aiBadgeFinder);
+        final style = textWidget.style!;
+
+        // Assert it uses captionBold base properties.
+        expect(style.fontWeight, FontWeight.w600,
+            reason: 'AI badge must use w600 from captionBold '
+                '(INV-TEXTSTYLE-PROD-2)');
+        expect(style.fontSize, AppTypography.captionBold.fontSize,
+            reason: 'AI badge fontSize must match captionBold');
+        expect(style.letterSpacing, AppTypography.captionBold.letterSpacing,
+            reason: 'AI badge letterSpacing must match captionBold');
+        expect(style.height, AppTypography.captionBold.height,
+            reason: 'AI badge height must match captionBold');
+
+        controller.close();
+        service.dispose();
+      },
+    );
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +260,37 @@ Widget _buildApp({
     overrides: [
       conversationDetailStoreProvider
           .overrideWith(() => _FakeConversationDetailStore()),
+      conversationDetailSessionStoreProvider
+          .overrideWith(() => _FakeSessionDetailStore()),
+      voiceMessageStoreProvider.overrideWith(() => _FakeVoiceMessageStore()),
+      sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      realtimeReductionIngressProvider
+          .overrideWithValue(RealtimeReductionIngress()),
+      connectivityServiceProvider.overrideWithValue(connectivityService),
+    ],
+    child: MaterialApp(
+      theme: AppTheme.light,
+      home: ConversationDetailPage(
+        target: _target,
+        registerOpenTarget: false,
+      ),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+    ),
+  );
+}
+
+/// Build app with an agent message so the sender label + AI badge render.
+Widget _buildAppWithAgentMessage({
+  required SharedPreferences prefs,
+  required ConnectivityService connectivityService,
+}) {
+  return ProviderScope(
+    overrides: [
+      conversationDetailStoreProvider
+          .overrideWith(() => _FakeConversationDetailStoreWithAgent()),
       conversationDetailSessionStoreProvider
           .overrideWith(() => _FakeSessionDetailStore()),
       voiceMessageStoreProvider.overrideWith(() => _FakeVoiceMessageStore()),
@@ -238,4 +367,38 @@ class _FakeHomeListStore extends HomeListStore {
   HomeListState build() => const HomeListState(
         status: HomeListStatus.success,
       );
+}
+
+/// Fake store returning an agent-type message so the sender label and
+/// AI badge render in the production widget tree.
+class _FakeConversationDetailStoreWithAgent extends ConversationDetailStore {
+  @override
+  ConversationDetailState build() => ConversationDetailState(
+        target: _target,
+        status: ConversationDetailStatus.success,
+        messages: [
+          ConversationMessageSummary(
+            id: 'msg-agent-1',
+            content: 'Hello from bot',
+            createdAt: DateTime.parse('2026-05-20T10:00:00Z'),
+            senderId: 'agent-1',
+            senderType: 'agent',
+            messageType: 'message',
+            senderName: 'BotAgent',
+            seq: 1,
+          ),
+        ],
+      );
+
+  @override
+  Future<void> ensureLoaded() async {}
+
+  @override
+  Future<void> refresh({String reason = 'manual'}) async {}
+
+  @override
+  Future<void> loadOlder() async {}
+
+  @override
+  Future<void> loadNewer() async {}
 }
