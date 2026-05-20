@@ -26,6 +26,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.onErrorContainer,
     required this.agentAccent,
     required this.agentLight,
+    required this.overlayBarrier,
+    required this.overlayForeground,
   });
 
   /// Light-mode token set.
@@ -47,6 +49,8 @@ class AppColors extends ThemeExtension<AppColors> {
     onErrorContainer: Color(0xFFB91C1C),
     agentAccent: Color(0xFF8B5CF6),
     agentLight: Color(0xFFF5F3FF),
+    overlayBarrier: Color(0xFF000000),
+    overlayForeground: Color(0xFFFFFFFF),
   );
 
   /// Dark-mode token set.
@@ -68,6 +72,8 @@ class AppColors extends ThemeExtension<AppColors> {
     onErrorContainer: Color(0xFFFCA5A5),
     agentAccent: Color(0xFFA78BFA),
     agentLight: Color(0xFF1E1533),
+    overlayBarrier: Color(0xFF000000),
+    overlayForeground: Color(0xFFFFFFFF),
   );
 
   /// Main page/scaffold background.
@@ -121,6 +127,12 @@ class AppColors extends ThemeExtension<AppColors> {
   /// Agent light background (agent bubble tint, agent cards).
   final Color agentLight;
 
+  /// Overlay barrier/backdrop color (scrim behind modals, drag overlays).
+  final Color overlayBarrier;
+
+  /// Overlay foreground text color (text on dark overlay backdrops).
+  final Color overlayForeground;
+
   @override
   AppColors copyWith({
     Color? background,
@@ -140,6 +152,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? onErrorContainer,
     Color? agentAccent,
     Color? agentLight,
+    Color? overlayBarrier,
+    Color? overlayForeground,
   }) {
     return AppColors(
       background: background ?? this.background,
@@ -159,6 +173,8 @@ class AppColors extends ThemeExtension<AppColors> {
       onErrorContainer: onErrorContainer ?? this.onErrorContainer,
       agentAccent: agentAccent ?? this.agentAccent,
       agentLight: agentLight ?? this.agentLight,
+      overlayBarrier: overlayBarrier ?? this.overlayBarrier,
+      overlayForeground: overlayForeground ?? this.overlayForeground,
     );
   }
 
@@ -185,6 +201,9 @@ class AppColors extends ThemeExtension<AppColors> {
           Color.lerp(onErrorContainer, other.onErrorContainer, t)!,
       agentAccent: Color.lerp(agentAccent, other.agentAccent, t)!,
       agentLight: Color.lerp(agentLight, other.agentLight, t)!,
+      overlayBarrier: Color.lerp(overlayBarrier, other.overlayBarrier, t)!,
+      overlayForeground:
+          Color.lerp(overlayForeground, other.overlayForeground, t)!,
     );
   }
 }

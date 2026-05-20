@@ -28,12 +28,11 @@ const double _kHoverScale = 1.04;
 const double _kCurrentZoneOpacity = 0.4;
 const double _kBackdropBlur = 4;
 
-/// Overlay-specific color tokens — always rendered on dark backdrop.
-const Color _kOverlayText = Colors.white;
-const Color _kOverlayTextMuted = Colors.white70;
-const Color _kOverlayTextDimmed = Colors.white60;
-const Color _kOverlayTextSubtle = Colors.white54;
+/// Overlay-specific alpha tokens.
 const double _kBackdropAlpha = 0.5;
+const double _kOverlayForegroundMutedAlpha = 0.7;
+const double _kOverlayForegroundDimAlpha = 0.6;
+const double _kOverlayForegroundSubtleAlpha = 0.54;
 const double _kSurfaceAlpha = 0.12;
 const double _kSurfaceHoverAlpha = 0.2;
 const double _kSurfaceAccentAlpha = 0.15;
@@ -131,7 +130,7 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return Material(
-      color: Colors.transparent,
+      color: colors.overlayBarrier.withValues(alpha: 0),
       child: Stack(
         children: [
           // Dark backdrop with blur.
@@ -142,7 +141,7 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
                 sigmaY: _kBackdropBlur,
               ),
               child: Container(
-                color: Colors.black.withValues(alpha: _kBackdropAlpha),
+                color: colors.overlayBarrier.withValues(alpha: _kBackdropAlpha),
               ),
             ),
           ),
@@ -168,12 +167,12 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
+          Text(
             'Drop to change status',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: _kOverlayText,
+              color: colors.overlayForeground,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -198,15 +197,17 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
               vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
-              color: _kOverlayText.withValues(alpha: _kSurfaceAccentAlpha),
+              color: colors.overlayForeground
+                  .withValues(alpha: _kSurfaceAccentAlpha),
               borderRadius:
                   BorderRadius.circular(AppSpacing.xl - AppSpacing.xs),
             ),
-            child: const Text(
+            child: Text(
               'Release outside boxes to cancel',
               style: TextStyle(
                 fontSize: 12,
-                color: _kOverlayTextMuted,
+                color: colors.overlayForeground
+                    .withValues(alpha: _kOverlayForegroundMutedAlpha),
               ),
             ),
           ),
@@ -290,10 +291,10 @@ class _TaskStatusOverlayState extends State<TaskStatusOverlay>
           Text(
             'Moved to ${_statusLabel(_acceptedStatus!)}',
             key: const ValueKey('drop-success-text'),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: _kOverlayText,
+              color: colors.overlayForeground,
             ),
           ),
         ],
@@ -334,12 +335,12 @@ class _DropZoneBox extends StatelessWidget {
           : Matrix4.identity(),
       transformAlignment: Alignment.center,
       decoration: BoxDecoration(
-        color: _kOverlayText.withValues(
+        color: colors.overlayForeground.withValues(
           alpha: isHovering ? _kSurfaceHoverAlpha : _kSurfaceAlpha,
         ),
         borderRadius: BorderRadius.circular(_kDropZoneRadius),
         border: Border.all(
-          color: _kOverlayText.withValues(
+          color: colors.overlayForeground.withValues(
             alpha: isHovering ? 1.0 : _kBorderAlpha,
           ),
           width: 2,
@@ -347,7 +348,8 @@ class _DropZoneBox extends StatelessWidget {
         boxShadow: isHovering
             ? [
                 BoxShadow(
-                  color: _kOverlayText.withValues(alpha: _kGlowAlpha),
+                  color:
+                      colors.overlayForeground.withValues(alpha: _kGlowAlpha),
                   blurRadius: AppSpacing.xl,
                 ),
               ]
@@ -363,7 +365,7 @@ class _DropZoneBox extends StatelessWidget {
             style: TextStyle(
               fontSize: isHovering ? 14 : 13,
               fontWeight: FontWeight.w600,
-              color: _kOverlayText,
+              color: colors.overlayForeground,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
@@ -375,15 +377,17 @@ class _DropZoneBox extends StatelessWidget {
                 vertical: 2,
               ),
               decoration: BoxDecoration(
-                color: _kOverlayText.withValues(alpha: _kSurfaceBadgeAlpha),
+                color: colors.overlayForeground
+                    .withValues(alpha: _kSurfaceBadgeAlpha),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
               ),
-              child: const Text(
+              child: Text(
                 'Current',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: _kOverlayTextSubtle,
+                  color: colors.overlayForeground
+                      .withValues(alpha: _kOverlayForegroundSubtleAlpha),
                 ),
               ),
             )
@@ -393,8 +397,9 @@ class _DropZoneBox extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 color: isHovering
-                    ? _kOverlayText.withValues(alpha: 0.8)
-                    : _kOverlayTextDimmed,
+                    ? colors.overlayForeground.withValues(alpha: 0.8)
+                    : colors.overlayForeground
+                        .withValues(alpha: _kOverlayForegroundDimAlpha),
               ),
             ),
         ],

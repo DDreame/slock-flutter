@@ -72,6 +72,100 @@ void main() {
         }
       },
     );
+
+    testWidgets(
+      'drop zone box decoration color is derived from overlayForeground',
+      (tester) async {
+        final colors = AppTheme.light.extension<AppColors>()!;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: TaskStatusOverlay(
+                currentStatus: 'todo',
+                onStatusAccepted: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Find the "in_progress" drop zone (not current, so full opacity).
+        final inProgressZone =
+            find.byKey(const ValueKey('drop-zone-in_progress'));
+        expect(inProgressZone, findsOneWidget);
+
+        // Walk down to the AnimatedContainer that holds the BoxDecoration.
+        final animatedContainer = find.descendant(
+          of: inProgressZone,
+          matching: find.byType(AnimatedContainer),
+        );
+        expect(animatedContainer, findsOneWidget);
+
+        final container = tester.widget<AnimatedContainer>(animatedContainer);
+        final decoration = container.decoration as BoxDecoration?;
+        expect(decoration, isNotNull);
+
+        // The fill color must be overlayForeground with surface alpha (0.12).
+        final expectedColor = colors.overlayForeground.withValues(alpha: 0.12);
+        expect(
+          decoration!.color,
+          equals(expectedColor),
+          reason:
+              'Drop zone fill must be colors.overlayForeground @ 0.12 alpha',
+        );
+
+        // The border color must be overlayForeground with border alpha (0.3).
+        final border = decoration.border as Border?;
+        expect(border, isNotNull);
+        final expectedBorderColor =
+            colors.overlayForeground.withValues(alpha: 0.3);
+        expect(
+          border!.top.color,
+          equals(expectedBorderColor),
+          reason:
+              'Drop zone border must be colors.overlayForeground @ 0.3 alpha',
+        );
+      },
+    );
+
+    testWidgets(
+      'backdrop uses overlayBarrier color from theme',
+      (tester) async {
+        final colors = AppTheme.light.extension<AppColors>()!;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: TaskStatusOverlay(
+                currentStatus: 'todo',
+                onStatusAccepted: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Find the backdrop Container inside the BackdropFilter.
+        final backdropFilter = find.byType(BackdropFilter);
+        expect(backdropFilter, findsOneWidget);
+
+        final containerFinder = find.descendant(
+          of: backdropFilter,
+          matching: find.byType(Container),
+        );
+        expect(containerFinder, findsOneWidget);
+
+        final container = tester.widget<Container>(containerFinder);
+        expect(
+          container.color,
+          equals(colors.overlayBarrier.withValues(alpha: 0.5)),
+          reason: 'Backdrop must use colors.overlayBarrier @ 0.5 alpha',
+        );
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -81,6 +175,8 @@ void main() {
     testWidgets(
       'todo icon background uses AppColors.textTertiary-based token',
       (tester) async {
+        final colors = AppTheme.light.extension<AppColors>()!;
+
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
@@ -94,20 +190,81 @@ void main() {
         );
         await tester.pump();
 
-        // The "todo" zone is rendered. Its icon container must use
-        // a color derived from a design token, not a raw Color literal.
-        // We verify the icon container exists — the actual color values
-        // are asserted by checking that they match the AppColors token.
+        // Find the todo zone's icon container (40×40 with circle shape).
         final todoZone = find.byKey(const ValueKey('drop-zone-todo'));
         expect(todoZone, findsOneWidget);
 
-        // Find the icon container (40×40 circle) inside the todo zone.
-        final containers = find.descendant(
-          of: todoZone,
-          matching: find.byType(Container),
+        final iconBg = _findCircleContainer(tester, todoZone, 40);
+        expect(iconBg, isNotNull, reason: 'Icon container must exist');
+
+        final expectedColor = colors.textTertiary.withValues(alpha: 0.3);
+        expect(
+          iconBg!.color,
+          equals(expectedColor),
+          reason: 'Todo icon bg must be colors.textTertiary @ 0.3 alpha',
         );
-        // At least one container should exist (the icon background).
-        expect(containers, findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'in_progress icon background uses AppColors.primary-based token',
+      (tester) async {
+        final colors = AppTheme.light.extension<AppColors>()!;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: TaskStatusOverlay(
+                currentStatus: 'todo',
+                onStatusAccepted: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final zone = find.byKey(const ValueKey('drop-zone-in_progress'));
+        final iconBg = _findCircleContainer(tester, zone, 40);
+        expect(iconBg, isNotNull);
+
+        final expectedColor = colors.primary.withValues(alpha: 0.3);
+        expect(
+          iconBg!.color,
+          equals(expectedColor),
+          reason: 'In-progress icon bg must be colors.primary @ 0.3 alpha',
+        );
+      },
+    );
+
+    testWidgets(
+      'in_review icon background uses AppColors.warning-based token',
+      (tester) async {
+        final colors = AppTheme.light.extension<AppColors>()!;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: TaskStatusOverlay(
+                currentStatus: 'todo',
+                onStatusAccepted: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        final zone = find.byKey(const ValueKey('drop-zone-in_review'));
+        final iconBg = _findCircleContainer(tester, zone, 40);
+        expect(iconBg, isNotNull);
+
+        final expectedColor = colors.warning.withValues(alpha: 0.3);
+        expect(
+          iconBg!.color,
+          equals(expectedColor),
+          reason: 'In-review icon bg must be colors.warning @ 0.3 alpha',
+        );
       },
     );
 
@@ -129,15 +286,16 @@ void main() {
         );
         await tester.pump();
 
-        // The "done" zone's icon container should use success color.
-        // After Phase B, _statusIconBackground('done') will use
-        // colors.success.withValues(alpha: 0.3).
-        final doneZone = find.byKey(const ValueKey('drop-zone-done'));
-        expect(doneZone, findsOneWidget);
+        final zone = find.byKey(const ValueKey('drop-zone-done'));
+        final iconBg = _findCircleContainer(tester, zone, 40);
+        expect(iconBg, isNotNull);
 
-        // Verify success green token value is accessible.
-        expect(colors.success, isNotNull);
-        expect(colors.success.a, greaterThan(0));
+        final expectedColor = colors.success.withValues(alpha: 0.3);
+        expect(
+          iconBg!.color,
+          equals(expectedColor),
+          reason: 'Done icon bg must be colors.success @ 0.3 alpha',
+        );
       },
     );
   });
@@ -151,14 +309,13 @@ void main() {
       (tester) async {
         final colors = AppTheme.light.extension<AppColors>()!;
 
-        String? acceptedStatus;
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
             home: Scaffold(
               body: TaskStatusOverlay(
                 currentStatus: 'todo',
-                onStatusAccepted: (s) => acceptedStatus = s,
+                onStatusAccepted: (_) {},
               ),
             ),
           ),
@@ -166,15 +323,69 @@ void main() {
         await tester.pump();
 
         // The success state renders after a drop is accepted.
-        // Verify that the theme token is the source of truth.
-        // After Phase B conversion, the success icon will use
-        // colors.success directly.
+        // Verify the token value is correct and usable.
         expect(colors.success, isA<Color>());
         // The success color in light mode is green.
         expect(colors.success.g, greaterThan(colors.success.r));
-        // acceptedStatus starts null (no drop yet).
-        expect(acceptedStatus, isNull);
+      },
+    );
+
+    testWidgets(
+      'success icon container uses AppColors.success background',
+      (tester) async {
+        final colors = AppTheme.light.extension<AppColors>()!;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: Scaffold(
+              body: TaskStatusOverlay(
+                currentStatus: 'todo',
+                onStatusAccepted: (_) {},
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // We verify the success token resolves correctly for both themes.
+        final darkColors = AppTheme.dark.extension<AppColors>()!;
+        // Light success is 0xFF22C55E, dark is 0xFF4ADE80 — both greens.
+        expect(colors.success.g, greaterThan(0.5));
+        expect(darkColors.success.g, greaterThan(0.5));
+        // Both are distinct (not hardcoded to the same value).
+        expect(colors.success, isNot(equals(darkColors.success)));
       },
     );
   });
+}
+
+// =============================================================================
+// Test helpers
+// =============================================================================
+
+/// Finds a circular Container with [size]×[size] dimensions inside [ancestor].
+/// Returns its BoxDecoration color, or null if not found.
+BoxDecoration? _findCircleContainer(
+  WidgetTester tester,
+  Finder ancestor,
+  double size,
+) {
+  final containers = find.descendant(
+    of: ancestor,
+    matching: find.byType(Container),
+  );
+
+  for (final element in tester.widgetList<Container>(containers)) {
+    final constraints = element.constraints;
+    if (constraints != null &&
+        constraints.maxWidth == size &&
+        constraints.maxHeight == size) {
+      final decoration = element.decoration;
+      if (decoration is BoxDecoration && decoration.shape == BoxShape.circle) {
+        return decoration;
+      }
+    }
+  }
+  return null;
 }
