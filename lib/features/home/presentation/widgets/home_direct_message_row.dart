@@ -6,6 +6,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agent_display_status.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
@@ -28,6 +29,7 @@ class HomeDirectMessageRow extends StatelessWidget {
     this.isPinned = false,
     this.isOnline = false,
     this.isAgent = false,
+    this.agentActivity,
     this.onTogglePin,
     this.onHide,
     this.onMoveUp,
@@ -40,6 +42,12 @@ class HomeDirectMessageRow extends StatelessWidget {
   final bool isPinned;
   final bool isOnline;
   final bool isAgent;
+
+  /// Rich agent activity status from [agentsStoreProvider].
+  ///
+  /// When non-null, the status dot color is derived from this value
+  /// instead of the boolean [isOnline]. Only set for agent DM rows.
+  final AgentDisplayStatus? agentActivity;
   final VoidCallback? onTogglePin;
   final VoidCallback? onHide;
   final VoidCallback? onMoveUp;
