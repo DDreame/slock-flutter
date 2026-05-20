@@ -25,7 +25,10 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
         ],
         child: MaterialApp(
-            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -199,7 +202,10 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
         ],
         child: MaterialApp(
-            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -224,7 +230,10 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
         ],
         child: MaterialApp(
-            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -254,7 +263,10 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
         ],
         child: MaterialApp(
-            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -287,7 +299,10 @@ void main() {
           tasksStoreProvider.overrideWith(() => store),
         ],
         child: MaterialApp(
-            theme: AppTheme.light, home: const TasksPage(serverId: 'server-1')),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: AppTheme.light,
+            home: const TasksPage(serverId: 'server-1')),
       ),
     );
     await tester.pump();
@@ -360,6 +375,8 @@ void main() {
             tasksStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const TasksPage(serverId: 'server-1'),
           ),
@@ -401,6 +418,8 @@ void main() {
             tasksStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const TasksPage(serverId: 'server-1'),
           ),
@@ -446,6 +465,8 @@ void main() {
             tasksStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const TasksPage(serverId: 'server-1'),
           ),
@@ -589,6 +610,7 @@ Widget _buildApp(_FakeTasksStore store, {ThemeData? theme}) {
     ],
     child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
       theme: theme ?? AppTheme.light,
     ),

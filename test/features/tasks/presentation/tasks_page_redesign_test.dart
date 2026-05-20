@@ -74,6 +74,7 @@ void main() {
       ],
       child: MaterialApp.router(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         routerConfig: router,
         theme: theme ?? AppTheme.light,
       ),

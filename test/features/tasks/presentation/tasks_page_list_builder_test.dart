@@ -192,6 +192,7 @@ Widget _buildApp(_FakeTasksStore store) {
     ],
     child: MaterialApp.router(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
       theme: AppTheme.light,
     ),

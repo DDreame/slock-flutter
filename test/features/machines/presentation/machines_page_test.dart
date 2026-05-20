@@ -216,6 +216,7 @@ Widget _buildApp(_FakeMachinesRepository repository, {ThemeData? theme}) {
     ],
     child: MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: theme,
       home: MachinesPage(serverId: 'server-1'),
     ),

@@ -59,6 +59,7 @@ void main() {
         ],
         child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: ScreenshotAnnotatePage(),
         ),
       );
@@ -99,6 +100,8 @@ void main() {
             }),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Builder(
               builder: (context) => ElevatedButton(
                 onPressed: () => Navigator.of(context).push(
@@ -160,6 +163,8 @@ void main() {
             }),
           ],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ScreenshotAnnotatePage(),
           ),
         ),
@@ -190,6 +195,8 @@ void main() {
             }),
           ],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ScreenshotAnnotatePage(),
           ),
         ),
@@ -217,6 +224,8 @@ void main() {
             }),
           ],
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ScreenshotAnnotatePage(),
           ),
         ),
@@ -301,6 +310,8 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             routerConfig: router,
           ),
         ),
@@ -362,6 +373,8 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: ScreenshotAnnotatePage(),
           ),
         ),
