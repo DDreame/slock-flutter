@@ -251,11 +251,11 @@ void main() {
   });
 
   // -----------------------------------------------------------------------
-  // INV-LIFECYCLE-1: TasksStore (currently autoDispose — Phase B target)
+  // INV-LIFECYCLE-688: TasksStore autoDispose behavior
   // -----------------------------------------------------------------------
-  group('INV-LIFECYCLE-1: TasksStore lifecycle', () {
+  group('INV-LIFECYCLE-688: TasksStore lifecycle', () {
     test(
-      'state persists after listener removal (keepAlive behavior)',
+      'state resets after listener removal and re-attach (autoDispose behavior)',
       () async {
         final container = ProviderContainer(
           overrides: [
@@ -271,15 +271,17 @@ void main() {
         await container.read(tasksStoreProvider.notifier).load();
         expect(container.read(tasksStoreProvider).status, TasksStatus.success);
 
-        // Tab switch: close listener.
+        // Tab switch/scope teardown: close listener.
         sub.close();
         await Future.delayed(Duration.zero);
 
-        // keepAlive: state should be retained.
+        // autoDispose: state should be released and recreated fresh.
         final state = container.read(tasksStoreProvider);
-        expect(state.status, TasksStatus.success,
-            reason: 'INV-LIFECYCLE-1: TasksStore must retain state '
-                'after listener removal (keepAlive)');
+        expect(state.status, TasksStatus.initial,
+            reason: 'INV-LIFECYCLE-688: TasksStore must release state '
+                'after listener removal (autoDispose)');
+        expect(state.items, isEmpty,
+            reason: 'Fresh TasksStore state should not retain old items');
       },
     );
   });
