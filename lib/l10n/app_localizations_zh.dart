@@ -1341,4 +1341,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get screenshotAnnotateShareSubject => '截图';
+
+  @override
+  String get dateSeparatorToday => '今天';
+
+  @override
+  String get dateSeparatorYesterday => '昨天';
 }

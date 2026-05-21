@@ -11,6 +11,7 @@ import 'package:slock_app/features/conversation/application/message_send_status.
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Maximum bubble width as a fraction of available space.
 const bubbleMaxWidthFraction = 0.78;
@@ -71,6 +72,8 @@ class ConversationMessageList extends ConsumerWidget {
             ? pendingCount + unreadCount - 1
             : -1;
 
+    final toLocal = ref.watch(dateSeparatorToLocalProvider);
+
     return Semantics(
       label: 'Message list',
       child: ListView.separated(
@@ -96,7 +99,7 @@ class ConversationMessageList extends ConsumerWidget {
           // Date separator takes priority — wrap with unread divider if needed.
           if (newerDate != null &&
               olderDate != null &&
-              !_isSameDay(newerDate, olderDate)) {
+              !_isSameDay(newerDate, olderDate, toLocal)) {
             if (isUnreadBoundary) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
@@ -127,7 +130,7 @@ class ConversationMessageList extends ConsumerWidget {
               _messageForItemAt(index + 1, pendingCount, state.messages);
           if (newerMsg != null &&
               olderMsg != null &&
-              _shouldGroupWith(newerMsg, olderMsg)) {
+              _shouldGroupWith(newerMsg, olderMsg, toLocal)) {
             return const SizedBox(height: 3);
           }
           return const SizedBox(height: 12);
@@ -151,8 +154,8 @@ class ConversationMessageList extends ConsumerWidget {
             // the chronologically-previous message (index+1 in reversed list).
             final olderMsg =
                 _messageForItemAt(index + 1, pendingCount, state.messages);
-            final showHeader =
-                olderMsg == null || !_shouldGroupWith(message, olderMsg);
+            final showHeader = olderMsg == null ||
+                !_shouldGroupWith(message, olderMsg, toLocal);
             final isCurrentSearchMatch = state.searchMatchIds.isNotEmpty &&
                 state.currentSearchMatchIndex < state.searchMatchIds.length &&
                 state.searchMatchIds[state.currentSearchMatchIndex] ==
@@ -257,9 +260,9 @@ class _UnreadDivider extends StatelessWidget {
 }
 
 /// Normalizes a [DateTime] to the user's local timezone for day-boundary
-/// comparison. Override in tests to simulate non-UTC timezones.
-@visibleForTesting
-DateTime Function(DateTime) dateSeparatorToLocal = (dt) => dt.toLocal();
+/// comparison. Override in tests via `ProviderScope.overrides`.
+final dateSeparatorToLocalProvider =
+    Provider<DateTime Function(DateTime)>((ref) => (dt) => dt.toLocal());
 
 /// Resolve the [ConversationMessageSummary] at [index], or null for pending/header.
 ConversationMessageSummary? _messageForItemAt(
@@ -280,12 +283,13 @@ ConversationMessageSummary? _messageForItemAt(
 bool _shouldGroupWith(
   ConversationMessageSummary newer,
   ConversationMessageSummary older,
+  DateTime Function(DateTime) toLocal,
 ) {
   if (newer.isSystem || older.isSystem) return false;
   if (newer.senderId == null || newer.senderId != older.senderId) return false;
   final diff = newer.createdAt.difference(older.createdAt).abs();
   if (diff > const Duration(minutes: 5)) return false;
-  if (!_isSameDay(newer.createdAt, older.createdAt)) return false;
+  if (!_isSameDay(newer.createdAt, older.createdAt, toLocal)) return false;
   return true;
 }
 
@@ -308,20 +312,24 @@ DateTime? _dateForItemAt(
 }
 
 /// True when [a] and [b] fall on the same local calendar day.
-bool _isSameDay(DateTime a, DateTime b) {
-  final la = dateSeparatorToLocal(a);
-  final lb = dateSeparatorToLocal(b);
+bool _isSameDay(DateTime a, DateTime b, DateTime Function(DateTime) toLocal) {
+  final la = toLocal(a);
+  final lb = toLocal(b);
   return la.year == lb.year && la.month == lb.month && la.day == lb.day;
 }
 
-class _DateSeparatorWidget extends StatelessWidget {
+class _DateSeparatorWidget extends ConsumerWidget {
   const _DateSeparatorWidget({super.key, required this.date});
 
   final DateTime date;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final toLocal = ref.watch(dateSeparatorToLocalProvider);
+    final l10n = context.l10n;
+    final locale = Localizations.localeOf(context).languageCode;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Center(
@@ -332,7 +340,7 @@ class _DateSeparatorWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            _formatDateLabel(date),
+            _formatDateLabel(date, toLocal, l10n, locale),
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -341,15 +349,20 @@ class _DateSeparatorWidget extends StatelessWidget {
       ),
     );
   }
+}
 
-  static String _formatDateLabel(DateTime date) {
-    final local = dateSeparatorToLocal(date);
-    final now = DateTime.now();
-    if (_isSameDay(local, now)) return 'Today';
-    final yesterday = now.subtract(const Duration(days: 1));
-    if (_isSameDay(local, yesterday)) return 'Yesterday';
-    return DateFormat.MMMEd().format(local);
-  }
+String _formatDateLabel(
+  DateTime date,
+  DateTime Function(DateTime) toLocal,
+  AppLocalizations l10n,
+  String locale,
+) {
+  final local = toLocal(date);
+  final now = DateTime.now();
+  if (_isSameDay(local, now, toLocal)) return l10n.dateSeparatorToday;
+  final yesterday = now.subtract(const Duration(days: 1));
+  if (_isSameDay(local, yesterday, toLocal)) return l10n.dateSeparatorYesterday;
+  return DateFormat.MMMEd(locale).format(local);
 }
 
 class _ConversationHistoryHeader extends StatelessWidget {

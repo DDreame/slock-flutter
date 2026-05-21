@@ -579,5 +579,8 @@
       }
     }
   },
-  "screenshotAnnotateShareSubject": "Screenshot"
+  "screenshotAnnotateShareSubject": "Screenshot",
+
+  "dateSeparatorToday": "Today",
+  "dateSeparatorYesterday": "Yesterday"
 }

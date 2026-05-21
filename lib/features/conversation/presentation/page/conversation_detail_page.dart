@@ -26,7 +26,7 @@ import 'package:slock_app/features/conversation/presentation/page/conversation_i
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_composer.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_list.dart';
 export 'package:slock_app/features/conversation/presentation/widgets/conversation_message_list.dart'
-    show dateSeparatorToLocal;
+    show dateSeparatorToLocalProvider;
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_search_overlay.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_selection_bar.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';

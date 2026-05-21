@@ -2649,6 +2649,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Screenshot'**
   String get screenshotAnnotateShareSubject;
+
+  /// No description provided for @dateSeparatorToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get dateSeparatorToday;
+
+  /// No description provided for @dateSeparatorYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get dateSeparatorYesterday;
 }
 
 class _AppLocalizationsDelegate
