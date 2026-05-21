@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// ignore: depend_on_referenced_packages
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
@@ -52,6 +54,125 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('composer-attach')), findsOneWidget);
+  });
+
+  testWidgets('rejects oversized picked file with snackbar', (tester) async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+    fakeFilePicker.result = FilePickerResult([
+      PlatformFile(
+        name: 'huge.zip',
+        size: 51 * 1024 * 1024,
+        path: '/tmp/huge.zip',
+      ),
+    ]);
+
+    await tester.pumpWidget(buildApp(repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('composer-attach')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('File'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(
+      find.byKey(const ValueKey('attachment-size-error-snackbar')),
+      findsOneWidget,
+    );
+    expect(find.text('File too large. Maximum size: 50 MB'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('composer-pending-attachments')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('rejects oversized gallery media with snackbar', (tester) async {
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+    fakeFilePicker.result = FilePickerResult([
+      PlatformFile(
+        name: 'huge.mp4',
+        size: 51 * 1024 * 1024,
+        path: '/tmp/huge.mp4',
+      ),
+    ]);
+
+    await tester.pumpWidget(buildApp(repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('composer-attach')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Photo & Video'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(
+      find.byKey(const ValueKey('attachment-size-error-snackbar')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('composer-pending-attachments')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('rejects oversized camera capture with snackbar', (tester) async {
+    final originalImagePicker = ImagePickerPlatform.instance;
+    final fakeImagePicker = _FakeImagePickerPlatform();
+    ImagePickerPlatform.instance = fakeImagePicker;
+    addTearDown(() {
+      ImagePickerPlatform.instance = originalImagePicker;
+    });
+
+    fakeImagePicker.result = XFile.fromData(
+      Uint8List(0),
+      name: 'huge-camera.jpg',
+      path: '/tmp/huge-camera.jpg',
+      length: 51 * 1024 * 1024,
+    );
+
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: const [],
+        historyLimited: false,
+        hasOlder: false,
+      ),
+    );
+
+    await tester.pumpWidget(buildApp(repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('composer-attach')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Camera'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(
+      find.byKey(const ValueKey('attachment-size-error-snackbar')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('composer-pending-attachments')),
+      findsNothing,
+    );
   });
 
   testWidgets('picking a file shows pending chip in composer', (tester) async {
@@ -395,5 +516,17 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
   }) async {
     throw UnimplementedError();
+  }
+}
+
+class _FakeImagePickerPlatform extends ImagePickerPlatform {
+  XFile? result;
+
+  @override
+  Future<XFile?> getImageFromSource({
+    required ImageSource source,
+    ImagePickerOptions options = const ImagePickerOptions(),
+  }) async {
+    return result;
   }
 }

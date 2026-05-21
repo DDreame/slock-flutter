@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -346,36 +348,56 @@ class ConversationComposer extends ConsumerWidget {
       ),
     );
     if (option == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
     switch (option) {
       case _AttachOption.gallery:
-        await _pickGallery();
+        await _pickGallery(messenger);
       case _AttachOption.camera:
-        await _pickCamera(context, ref);
+        await _pickCamera(ref, messenger);
       case _AttachOption.file:
-        await _pickFile();
+        await _pickFile(messenger);
     }
   }
 
-  Future<void> _pickGallery() async {
+  Future<void> _pickGallery(ScaffoldMessengerState messenger) async {
     final result = await FilePicker.platform.pickFiles(type: FileType.media);
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
-    if (file.path == null) return;
+    final path = file.path;
+    if (path == null) return;
+    if (!await _isWithinFileSizeLimit(
+      messenger,
+      path: path,
+      fallbackSizeBytes: file.size,
+    )) {
+      return;
+    }
     final extension = file.extension ?? '';
     final mimeType = _mimeFromExtension(extension);
     onPickAttachment(PendingAttachment(
-      path: file.path!,
+      path: path,
       name: file.name,
       mimeType: mimeType,
     ));
   }
 
-  Future<void> _pickCamera(BuildContext context, WidgetRef ref) async {
+  Future<void> _pickCamera(
+    WidgetRef ref,
+    ScaffoldMessengerState messenger,
+  ) async {
     try {
       final picker = ImagePicker();
       final photo = await picker.pickImage(source: ImageSource.camera);
       if (photo == null) return;
       final name = photo.name;
+      final photoLength = await photo.length();
+      if (!await _isWithinFileSizeLimit(
+        messenger,
+        path: photo.path,
+        fallbackSizeBytes: photoLength,
+      )) {
+        return;
+      }
       final ext = name.split('.').last;
       final mimeType = _mimeFromExtension(ext);
       onPickAttachment(PendingAttachment(
@@ -387,8 +409,7 @@ class ConversationComposer extends ConsumerWidget {
       ref
           .read(diagnosticsCollectorProvider)
           .error('Composer', 'Camera capture failed: $e');
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(
           key: ValueKey('camera-error-snackbar'),
           content: Text('Camera unavailable. Please check permissions.'),
@@ -397,18 +418,57 @@ class ConversationComposer extends ConsumerWidget {
     }
   }
 
-  Future<void> _pickFile() async {
+  Future<void> _pickFile(ScaffoldMessengerState messenger) async {
     final result = await FilePicker.platform.pickFiles();
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
-    if (file.path == null) return;
+    final path = file.path;
+    if (path == null) return;
+    if (!await _isWithinFileSizeLimit(
+      messenger,
+      path: path,
+      fallbackSizeBytes: file.size,
+    )) {
+      return;
+    }
     final extension = file.extension ?? '';
     final mimeType = _mimeFromExtension(extension);
     onPickAttachment(PendingAttachment(
-      path: file.path!,
+      path: path,
       name: file.name,
       mimeType: mimeType,
     ));
+  }
+
+  Future<bool> _isWithinFileSizeLimit(
+    ScaffoldMessengerState messenger, {
+    required String path,
+    required int fallbackSizeBytes,
+  }) async {
+    final size = _fileSize(path, fallbackSizeBytes);
+    if (size <= _maxAttachmentSizeBytes) return true;
+    messenger.showSnackBar(
+      const SnackBar(
+        key: ValueKey('attachment-size-error-snackbar'),
+        content: Text('File too large. Maximum size: 50 MB'),
+      ),
+    );
+    return false;
+  }
+
+  int _fileSize(String path, int fallbackSizeBytes) {
+    if (fallbackSizeBytes > _maxAttachmentSizeBytes) {
+      return fallbackSizeBytes;
+    }
+    final file = File(path);
+    try {
+      if (file.existsSync()) {
+        return file.lengthSync();
+      }
+    } on FileSystemException {
+      return fallbackSizeBytes;
+    }
+    return fallbackSizeBytes;
   }
 
   static String _mimeFromExtension(String ext) {
@@ -432,6 +492,8 @@ class ConversationComposer extends ConsumerWidget {
     };
   }
 }
+
+const _maxAttachmentSizeBytes = 50 * 1024 * 1024;
 
 enum _AttachOption { gallery, camera, file }
 

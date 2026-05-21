@@ -140,7 +140,8 @@ void main() {
       await pumpLockPage(tester);
       await tester.pumpAndSettle();
 
-      expect(find.text('Authentication unavailable.'), findsOneWidget);
+      expect(
+          find.text('Authentication failed. Try again (1/3).'), findsOneWidget);
       expect(
         find.byKey(const ValueKey('biometric-lock-retry')),
         findsOneWidget,
