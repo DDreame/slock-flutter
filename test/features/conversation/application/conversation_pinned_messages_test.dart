@@ -420,6 +420,109 @@ void main() {
       final state = container.read(pinnedMessagesStoreProvider);
       expect(state.messages, isEmpty);
     });
+
+    test('addMessage is no-op for duplicate message IDs', () async {
+      final pinnedMessages = [
+        ConversationMessageSummary(
+          id: 'message-2',
+          content: 'Pinned',
+          createdAt: DateTime.parse('2026-05-07T10:01:00Z'),
+          senderType: 'human',
+          senderId: 'user-2',
+          messageType: 'message',
+          seq: 2,
+          isPinned: true,
+        ),
+      ];
+      final repository = _FakeConversationRepository(
+        snapshot: baseSnapshot(),
+        pinnedMessages: pinnedMessages,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(pinnedMessagesStoreProvider.notifier).load();
+
+      // Add duplicate — should be no-op.
+      container.read(pinnedMessagesStoreProvider.notifier).addMessage(
+            ConversationMessageSummary(
+              id: 'message-2',
+              content: 'Pinned duplicate',
+              createdAt: DateTime.parse('2026-05-07T10:01:00Z'),
+              senderType: 'human',
+              senderId: 'user-2',
+              messageType: 'message',
+              seq: 2,
+              isPinned: true,
+            ),
+          );
+
+      final state = container.read(pinnedMessagesStoreProvider);
+      expect(state.messages.length, 1);
+    });
+
+    test('addMessage is no-op when state is not success', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: baseSnapshot(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Don't call load() — state remains initial.
+      container.read(pinnedMessagesStoreProvider.notifier).addMessage(
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'New pin',
+              createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+              senderType: 'human',
+              senderId: 'user-1',
+              messageType: 'message',
+              seq: 1,
+            ),
+          );
+
+      final state = container.read(pinnedMessagesStoreProvider);
+      expect(state.status, PinnedMessagesStatus.initial);
+      expect(state.messages, isEmpty);
+    });
+
+    test('removeMessage is no-op when state is not success', () async {
+      final repository = _FakeConversationRepository(
+        snapshot: baseSnapshot(),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Don't call load() — state remains initial.
+      container
+          .read(pinnedMessagesStoreProvider.notifier)
+          .removeMessage('message-2');
+
+      final state = container.read(pinnedMessagesStoreProvider);
+      expect(state.status, PinnedMessagesStatus.initial);
+      expect(state.messages, isEmpty);
+    });
   });
 
   group('pinned list sync from conversation store', () {
