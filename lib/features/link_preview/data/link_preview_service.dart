@@ -85,10 +85,16 @@ class LinkPreviewService {
 
     final body = response.data;
     if (response.statusCode != 200 || body == null) {
+      await _drainBody(body);
       return null;
     }
 
-    return _parseHtml(await _readBodyCapped(body), url);
+    try {
+      return _parseHtml(await _readBodyCapped(body), url);
+    } catch (_) {
+      await _drainBody(body);
+      rethrow;
+    }
   }
 
   /// Closes the underlying HTTP client.
@@ -97,6 +103,15 @@ class LinkPreviewService {
   /// teardown via `ref.onDispose`).
   void close() {
     _dio.close();
+  }
+
+  Future<void> _drainBody(ResponseBody? body) async {
+    if (body == null) return;
+    try {
+      await body.stream.drain<void>();
+    } catch (_) {
+      // Best-effort cleanup only; preserve the original fetch outcome.
+    }
   }
 
   Future<String> _readBodyCapped(ResponseBody body) async {

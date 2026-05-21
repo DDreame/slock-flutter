@@ -32,6 +32,7 @@ class RealtimeReductionIngress {
   }
 
   Future<void> dispose() async {
+    _lastAcceptedSeqByScope.clear();
     await _acceptedEventsController.close();
   }
 }

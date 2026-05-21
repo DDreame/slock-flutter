@@ -97,6 +97,9 @@ class DownloadPriorityScheduler
     // Skip if already tracked or previously completed.
     if (_entries.containsKey(id) || _completed.contains(id)) return;
 
+    _deferredQueue.remove(id);
+    _visibleQueue.remove(id);
+
     _entries[id] = _DownloadEntry(
       id: id,
       download: download,
@@ -125,8 +128,10 @@ class DownloadPriorityScheduler
       // Cancel if in-flight, move to deferred.
       if (_inFlight.contains(id)) {
         _inFlight.remove(id);
-        _entries[id]?.onCancel?.call();
-        _deferredQueue.add(id);
+        _entries.remove(id)?.onCancel?.call();
+        if (!_deferredQueue.contains(id)) {
+          _deferredQueue.add(id);
+        }
       } else {
         _visibleQueue.remove(id);
         if (!_deferredQueue.contains(id)) {
