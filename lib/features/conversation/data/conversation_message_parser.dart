@@ -187,11 +187,21 @@ MessageUpdatedPayload? tryParseMessageUpdatedPayload(Object? payload) {
       : Map<String, dynamic>.from(payload);
   final id = readOptionalConversationPayloadString(map['id']);
   final channelId = readOptionalConversationPayloadString(map['channelId']);
-  final content = readOptionalConversationPayloadString(map['content']);
-  if (id == null || channelId == null || content == null) {
+  if (id == null || channelId == null) {
     return null;
   }
-  return MessageUpdatedPayload(id: id, channelId: channelId, content: content);
+  // Content must be present in the payload (key exists) but may be an empty
+  // string — editing a message to empty is a valid operation. Distinguish
+  // "field absent" (null / key not in JSON) from "field is empty string".
+  if (!map.containsKey('content')) {
+    return null;
+  }
+  final rawContent = map['content'];
+  if (rawContent is! String) {
+    return null;
+  }
+  return MessageUpdatedPayload(
+      id: id, channelId: channelId, content: rawContent);
 }
 
 class MessageDeletedPayload {

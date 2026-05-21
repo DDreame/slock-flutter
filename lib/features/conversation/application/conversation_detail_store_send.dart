@@ -141,12 +141,15 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       _startSendTimeout(localId, target, content, replyToId: replyToId);
     }
 
+    var failedUploadCount = 0;
+    var totalAttachmentCount = 0;
     try {
       final repo = ref.read(conversationRepositoryProvider);
 
       List<String>? attachmentIds;
       if (pendingFiles != null) {
         attachmentIds = <String>[];
+        totalAttachmentCount = pendingFiles.length;
         final compressor = ref.read(imageCompressorProvider);
 
         for (var i = 0; i < pendingFiles.length; i++) {
@@ -202,14 +205,35 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
               cancelToken: cancelToken,
             );
             attachmentIds.add(id);
-          } on DioException catch (e) {
+          } on DioException catch (e, st) {
             if (e.type == DioExceptionType.cancel) {
               // Cancelled by user — skip this attachment
             } else {
-              // Other Dio error — skip
+              failedUploadCount++;
+              ref.read(diagnosticsCollectorProvider).error(
+                'conversation-send',
+                'Attachment upload failed: ${e.message}',
+                metadata: {
+                  'attachmentIndex': '$i',
+                  'attachmentName': file.name,
+                  'dioType': '${e.type}',
+                  'statusCode': '${e.response?.statusCode}',
+                  'stackTrace': '$st',
+                },
+              );
             }
-          } on AppFailure {
-            // Skip failed uploads
+          } on AppFailure catch (e, st) {
+            failedUploadCount++;
+            ref.read(diagnosticsCollectorProvider).error(
+              'conversation-send',
+              'Attachment upload failed: ${e.message}',
+              metadata: {
+                'attachmentIndex': '$i',
+                'attachmentName': file.name,
+                'causeType': e.causeType ?? 'unknown',
+                'stackTrace': '$st',
+              },
+            );
           } finally {
             _uploadCancelTokens.remove(i);
             final compressedPath = compressedPathToDelete;
@@ -237,8 +261,10 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
         );
 
         if (attachmentIds.isEmpty && content.isEmpty) {
-          throw const UnknownFailure(
-            message: 'All attachment uploads failed.',
+          throw UnknownFailure(
+            message: failedUploadCount == 1
+                ? '1 attachment failed to upload.'
+                : '$failedUploadCount attachments failed to upload.',
             causeType: 'uploadFailure',
           );
         }
@@ -284,6 +310,21 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
         clearReplyToMessage: true,
       );
       _persistSession();
+
+      // Surface partial upload failure after clearing the send-level failure,
+      // so the user sees which attachments were lost even though the message
+      // itself sent successfully.
+      if (failedUploadCount > 0) {
+        state = state.copyWith(
+          sendFailure: UnknownFailure(
+            message: failedUploadCount == 1
+                ? '1 attachment failed to upload.'
+                : '$failedUploadCount of $totalAttachmentCount attachments '
+                    'failed to upload.',
+            causeType: 'partialUploadFailure',
+          ),
+        );
+      }
 
       // After delay, remove sent indicator and add canonical message
       _scheduleSentRemoval(localId, target, confirmedMessage: message);
@@ -340,6 +381,17 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
             }
             return m;
           }).toList(),
+          // Surface partial upload loss alongside send failure so the user
+          // knows which attachments were dropped before the send attempt.
+          sendFailure: failedUploadCount > 0
+              ? UnknownFailure(
+                  message: failedUploadCount == 1
+                      ? '1 attachment failed to upload.'
+                      : '$failedUploadCount of $totalAttachmentCount '
+                          'attachments failed to upload.',
+                  causeType: 'partialUploadFailure',
+                )
+              : null,
         );
         _persistSession();
 
