@@ -82,9 +82,41 @@ class PendingMessage {
           runtimeType == other.runtimeType &&
           localId == other.localId &&
           content == other.content &&
+          listEquals(attachmentIds, other.attachmentIds) &&
+          replyToId == other.replyToId &&
           status == other.status &&
-          createdAt == other.createdAt;
+          createdAt == other.createdAt &&
+          _failureEquals(failure, other.failure);
 
   @override
-  int get hashCode => Object.hash(localId, content, status, createdAt);
+  int get hashCode => Object.hash(
+        localId,
+        content,
+        attachmentIds == null ? null : Object.hashAll(attachmentIds!),
+        replyToId,
+        status,
+        createdAt,
+        _failureHash(failure),
+      );
+}
+
+bool _failureEquals(AppFailure? left, AppFailure? right) {
+  if (identical(left, right)) return true;
+  if (left == null || right == null) return false;
+  return left.runtimeType == right.runtimeType &&
+      left.message == right.message &&
+      left.statusCode == right.statusCode &&
+      left.requestId == right.requestId &&
+      left.causeType == right.causeType;
+}
+
+Object? _failureHash(AppFailure? failure) {
+  if (failure == null) return null;
+  return Object.hash(
+    failure.runtimeType,
+    failure.message,
+    failure.statusCode,
+    failure.requestId,
+    failure.causeType,
+  );
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,6 +66,42 @@ void main() {
           container.read(linkPreviewCacheProvider)['https://example.com'];
 
       expect(identical(firstValue, secondValue), isTrue);
+    });
+
+    test('concurrent fetches for same URL share one service request', () async {
+      final service = _ControlledLinkPreviewService();
+      final controlledContainer = ProviderContainer(
+        overrides: [
+          linkPreviewServiceProvider.overrideWithValue(service),
+        ],
+      );
+      addTearDown(controlledContainer.dispose);
+
+      final notifier = controlledContainer.read(
+        linkPreviewCacheProvider.notifier,
+      );
+      final firstFetch = notifier.fetch('https://example.com');
+      final secondFetch = notifier.fetch('https://example.com');
+
+      expect(service.calls, 1);
+
+      service.complete(
+        const LinkMetadata(
+          url: 'https://example.com',
+          title: 'Example',
+          domain: 'example.com',
+        ),
+      );
+      await Future.wait([firstFetch, secondFetch]);
+
+      expect(service.calls, 1);
+      expect(
+        controlledContainer
+            .read(linkPreviewCacheProvider)['https://example.com']
+            ?.value
+            ?.title,
+        'Example',
+      );
     });
 
     test('fetch stores null metadata when page has no OG tags', () async {
@@ -174,5 +212,22 @@ class _FailingLinkPreviewService extends LinkPreviewService {
   @override
   Future<LinkMetadata?> fetchMetadata(String url) async {
     throw Exception('Network error');
+  }
+}
+
+class _ControlledLinkPreviewService extends LinkPreviewService {
+  _ControlledLinkPreviewService() : super(dio: Dio());
+
+  int calls = 0;
+  final Completer<LinkMetadata?> _completer = Completer<LinkMetadata?>();
+
+  @override
+  Future<LinkMetadata?> fetchMetadata(String url) {
+    calls += 1;
+    return _completer.future;
+  }
+
+  void complete(LinkMetadata? metadata) {
+    _completer.complete(metadata);
   }
 }

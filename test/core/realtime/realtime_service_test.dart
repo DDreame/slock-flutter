@@ -142,6 +142,39 @@ void main() {
     expect(state.reconnectAttempts, 1);
     expect(state.disconnectReason, contains('heartbeat age'));
   });
+
+  test('forceReconnect ignores overlapping reconnect attempts', () async {
+    final ingress = RealtimeReductionIngress();
+    final socket = FakeRealtimeSocketClient();
+    final disconnectCompleter = Completer<void>();
+    socket.disconnectGate = disconnectCompleter.future;
+
+    final container = ProviderContainer(
+      overrides: [
+        realtimeReductionIngressProvider.overrideWithValue(ingress),
+        realtimeSocketClientProvider.overrideWithValue(socket),
+      ],
+    );
+    addTearDown(() async {
+      container.dispose();
+      await ingress.dispose();
+    });
+
+    final service = container.read(realtimeServiceProvider.notifier);
+    final firstReconnect = service.forceReconnect(reason: 'watchdog stale');
+    await Future<void>.delayed(Duration.zero);
+    final secondReconnect = service.forceReconnect(reason: 'watchdog stale');
+    await Future<void>.delayed(Duration.zero);
+
+    expect(socket.disconnectCalls, 1);
+    expect(socket.connectCalls, 0);
+
+    disconnectCompleter.complete();
+    await Future.wait([firstReconnect, secondReconnect]);
+
+    expect(socket.disconnectCalls, 1);
+    expect(socket.connectCalls, 1);
+  });
 }
 
 class FakeRealtimeSocketClient implements RealtimeSocketClient {
@@ -151,6 +184,8 @@ class FakeRealtimeSocketClient implements RealtimeSocketClient {
   bool _isConnected = false;
   int connectCalls = 0;
   int disconnectCalls = 0;
+  Future<void>? connectGate;
+  Future<void>? disconnectGate;
 
   @override
   Stream<RealtimeSocketSignal> get signals => _signalsController.stream;
@@ -161,12 +196,14 @@ class FakeRealtimeSocketClient implements RealtimeSocketClient {
   @override
   Future<void> connect() async {
     connectCalls += 1;
+    await connectGate;
     _isConnected = true;
   }
 
   @override
   Future<void> disconnect() async {
     disconnectCalls += 1;
+    await disconnectGate;
     _isConnected = false;
   }
 

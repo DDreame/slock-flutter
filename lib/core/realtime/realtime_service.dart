@@ -29,6 +29,7 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
   StreamSubscription<RealtimeSocketSignal>? _signalsSubscription;
   RealtimeSocketClient? _boundSocketClient;
   Timer? _watchdogTimer;
+  bool _isReconnecting = false;
 
   @override
   RealtimeConnectionState build() {
@@ -59,19 +60,26 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
   }
 
   Future<void> forceReconnect({required String reason}) async {
+    if (_isReconnecting) return;
+    _isReconnecting = true;
     final socketClient = _boundSocketClient ?? _socketClient;
-    _bindSignalsIfNeeded(socketClient);
-    state = state.copyWith(
-      status: RealtimeConnectionStatus.reconnecting,
-      reconnectAttempts: state.reconnectAttempts + 1,
-      lastForcedReconnectAt: _clock(),
-      disconnectReason: reason,
-    );
-    await socketClient.disconnect();
-    await socketClient.connect();
+    try {
+      _bindSignalsIfNeeded(socketClient);
+      state = state.copyWith(
+        status: RealtimeConnectionStatus.reconnecting,
+        reconnectAttempts: state.reconnectAttempts + 1,
+        lastForcedReconnectAt: _clock(),
+        disconnectReason: reason,
+      );
+      await socketClient.disconnect();
+      await socketClient.connect();
+    } finally {
+      _isReconnecting = false;
+    }
   }
 
   void _disposeResources() {
+    _isReconnecting = false;
     _stopWatchdog();
 
     final signalsSubscription = _signalsSubscription;
