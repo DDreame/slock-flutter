@@ -31,6 +31,12 @@ class MessageContentWidget extends ConsumerStatefulWidget {
     this.currentUserName,
   });
 
+  /// Build counter for rebuild-detection tests. Incremented in debug mode
+  /// only via assert(); zero-cost in release builds.
+  /// Reset manually in test setUp.
+  @visibleForTesting
+  static int debugBuildCount = 0;
+
   final ConversationMessageSummary message;
   final bool isSystem;
   final MessageBubbleKind kind;
@@ -80,6 +86,10 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    assert(() {
+      MessageContentWidget.debugBuildCount++;
+      return true;
+    }());
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
 
@@ -156,8 +166,9 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
     // Append link preview card if a URL was detected.
     if (_detectedUrl == null) return textWidget;
 
-    final cache = ref.watch(linkPreviewCacheProvider);
-    final asyncMeta = cache[_detectedUrl];
+    final asyncMeta = ref.watch(
+      linkPreviewCacheProvider.select((cache) => cache[_detectedUrl]),
+    );
 
     // No data yet or loading — just show the text.
     if (asyncMeta == null || asyncMeta is AsyncLoading) {

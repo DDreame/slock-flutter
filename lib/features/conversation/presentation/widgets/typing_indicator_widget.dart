@@ -10,10 +10,21 @@ import 'package:slock_app/features/conversation/application/typing_indicator_sto
 class TypingIndicatorWidget extends ConsumerWidget {
   const TypingIndicatorWidget({super.key});
 
+  /// Build counter for rebuild-detection tests. Incremented in debug mode
+  /// only via assert(); zero-cost in release builds.
+  /// Reset manually in test setUp.
+  @visibleForTesting
+  static int debugBuildCount = 0;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(typingIndicatorStoreProvider);
-    final displayText = state.displayText;
+    assert(() {
+      debugBuildCount++;
+      return true;
+    }());
+    final displayText = ref.watch(
+      typingIndicatorStoreProvider.select((s) => s.displayText),
+    );
 
     if (displayText == null) {
       return const SizedBox.shrink();
