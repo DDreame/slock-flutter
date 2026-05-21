@@ -6,12 +6,10 @@
 // Tests the DeepLinkDedupGuard logic that prevents duplicate route pushes when
 // Android OEMs re-emit the cold-start launch intent on uriLinkStream.
 //
-// Scenarios covered:
-// 1. Cold-start URI set, stream re-emits same URI → skip (dedup).
-// 2. Cold-start URI set, stream emits different URI → dispatch.
-// 3. No cold-start URI, stream event → dispatch normally.
-// 4. After first dedup, subsequent stream events always dispatch.
-// 5. Integration: concurrent initial + stream with same URI → dispatched once.
+// Both race orderings are tested:
+// 1. getInitialLink resolves first, stream re-emits same URI → dispatched once.
+// 2. Stream fires first (OEM race), getInitialLink resolves same URI → once.
+// Plus: different URIs, no cold-start, subsequent events always pass through.
 // =============================================================================
 
 import 'package:flutter_test/flutter_test.dart';
@@ -25,93 +23,137 @@ void main() {
       guard = DeepLinkDedupGuard();
     });
 
-    test('skips first stream event that matches cold-start URI', () {
-      final uri = Uri.parse('https://app.slock.ai/invite/abc123');
-      guard.setInitialUri(uri);
+    group('Race order 1: getInitialLink resolves first, stream re-emits', () {
+      test('initial dispatches, duplicate stream event is blocked', () {
+        final uri = Uri.parse('https://app.slock.ai/invite/abc123');
 
-      // First stream event matches initial → should be skipped.
-      expect(guard.shouldDispatch(uri), isFalse);
+        // getInitialLink resolves first.
+        expect(guard.shouldDispatchInitial(uri), isTrue);
+
+        // Stream re-emits same URI → blocked.
+        expect(guard.shouldDispatchStream(uri), isFalse);
+      });
     });
 
-    test('dispatches first stream event that differs from cold-start URI', () {
-      final initial = Uri.parse('https://app.slock.ai/invite/abc123');
-      final stream = Uri.parse('https://app.slock.ai/channels/ch1');
-      guard.setInitialUri(initial);
+    group('Race order 2: stream fires first, getInitialLink resolves later',
+        () {
+      test('stream dispatches, duplicate initial is blocked', () {
+        final uri = Uri.parse('https://app.slock.ai/invite/abc123');
 
-      // Different URI → should dispatch.
-      expect(guard.shouldDispatch(stream), isTrue);
+        // Stream fires first (OEM race).
+        expect(guard.shouldDispatchStream(uri), isTrue);
+
+        // getInitialLink resolves same URI → blocked.
+        expect(guard.shouldDispatchInitial(uri), isFalse);
+      });
     });
 
-    test('dispatches when no cold-start URI exists', () {
-      guard.setInitialUri(null);
+    group('Integration — exactly-once dispatch', () {
+      test(
+        'order 1: initial first + stream duplicate → total dispatch = 1',
+        () {
+          final uri = Uri.parse('slock://servers/s1/channels/c1');
+          final dispatched = <Uri>[];
 
-      final uri = Uri.parse('https://app.slock.ai/invite/abc123');
-      expect(guard.shouldDispatch(uri), isTrue);
-    });
+          // Simulate: getInitialLink resolves.
+          if (guard.shouldDispatchInitial(uri)) {
+            dispatched.add(uri);
+          }
 
-    test('all subsequent stream events dispatch after first dedup', () {
-      final initial = Uri.parse('https://app.slock.ai/invite/abc123');
-      guard.setInitialUri(initial);
+          // Simulate: stream re-emits same URI.
+          if (guard.shouldDispatchStream(uri)) {
+            dispatched.add(uri);
+          }
 
-      // First → deduped.
-      guard.shouldDispatch(initial);
+          expect(dispatched, hasLength(1));
+          expect(dispatched.first, uri);
+        },
+      );
 
-      // Subsequent events always dispatch, even if same URI.
-      expect(guard.shouldDispatch(initial), isTrue);
-      expect(
-        guard.shouldDispatch(Uri.parse('https://app.slock.ai/other')),
-        isTrue,
+      test(
+        'order 2: stream first + initial duplicate → total dispatch = 1',
+        () {
+          final uri = Uri.parse('slock://servers/s1/channels/c1');
+          final dispatched = <Uri>[];
+
+          // Simulate: stream fires first (OEM race).
+          if (guard.shouldDispatchStream(uri)) {
+            dispatched.add(uri);
+          }
+
+          // Simulate: getInitialLink resolves same URI.
+          if (guard.shouldDispatchInitial(uri)) {
+            dispatched.add(uri);
+          }
+
+          expect(dispatched, hasLength(1));
+          expect(dispatched.first, uri);
+        },
       );
     });
 
-    test(
-      'dispatches stream event if setInitialUri not yet called (race: stream fires before getInitialLink resolves)',
-      () {
-        // Stream fires before getInitialLink resolves — guard has no initial
-        // URI yet, so _consumed is false and _initialUri is null → dispatch.
-        final uri = Uri.parse('https://app.slock.ai/invite/abc123');
-        expect(guard.shouldDispatch(uri), isTrue);
-      },
-    );
+    group('Different URIs from each source', () {
+      test('both dispatch when URIs differ', () {
+        final initial = Uri.parse('https://app.slock.ai/invite/abc');
+        final stream = Uri.parse('https://app.slock.ai/channels/ch1');
 
-    test(
-      'integration: simulates concurrent cold-start + stream duplicate → dispatched exactly once',
-      () {
-        final uri = Uri.parse('slock://servers/s1/channels/c1');
-        final dispatched = <Uri>[];
+        // getInitialLink resolves with one URI.
+        expect(guard.shouldDispatchInitial(initial), isTrue);
 
-        // Simulate the full flow:
-        // 1. getInitialLink resolves → handler dispatches + dedup records.
-        guard.setInitialUri(uri);
-        dispatched.add(uri); // This represents handler.handleDeepLink(uri)
+        // Stream fires different URI → also dispatches.
+        expect(guard.shouldDispatchStream(stream), isTrue);
+      });
 
-        // 2. uriLinkStream fires same URI → dedup blocks.
-        if (guard.shouldDispatch(uri)) {
-          dispatched.add(uri);
-        }
+      test('both dispatch when stream fires different URI first', () {
+        final stream = Uri.parse('https://app.slock.ai/channels/ch1');
+        final initial = Uri.parse('https://app.slock.ai/invite/abc');
 
-        // Exactly one dispatch.
-        expect(dispatched, hasLength(1));
-        expect(dispatched.first, uri);
-      },
-    );
+        // Stream fires first with one URI.
+        expect(guard.shouldDispatchStream(stream), isTrue);
 
-    test(
-      'integration: cold-start null + stream event → dispatches normally',
-      () {
+        // getInitialLink resolves with different URI → also dispatches.
+        expect(guard.shouldDispatchInitial(initial), isTrue);
+      });
+    });
+
+    group('No cold-start link (getInitialLink returns null)', () {
+      test('stream events dispatch normally', () {
+        // getInitialLink returns null — no shouldDispatchInitial call.
         final uri = Uri.parse('https://app.slock.ai/invite/token');
-        final dispatched = <Uri>[];
+        expect(guard.shouldDispatchStream(uri), isTrue);
+      });
+    });
 
-        // No cold-start link.
-        guard.setInitialUri(null);
+    group('Subsequent stream events after first dedup', () {
+      test('all pass through after first stream event consumed', () {
+        final coldStart = Uri.parse('https://app.slock.ai/invite/abc');
+        final subsequent = Uri.parse('https://app.slock.ai/channels/ch2');
 
-        // Stream fires → should dispatch.
-        if (guard.shouldDispatch(uri)) {
-          dispatched.add(uri);
-        }
+        // Initial dispatches.
+        guard.shouldDispatchInitial(coldStart);
 
-        expect(dispatched, hasLength(1));
-      },
-    );
+        // First stream event (duplicate) → blocked.
+        expect(guard.shouldDispatchStream(coldStart), isFalse);
+
+        // Subsequent stream events always pass through.
+        expect(guard.shouldDispatchStream(subsequent), isTrue);
+        expect(guard.shouldDispatchStream(coldStart), isTrue);
+      });
+
+      test('subsequent events pass even when stream fired first', () {
+        final uri = Uri.parse('https://app.slock.ai/invite/abc');
+        final later = Uri.parse('https://app.slock.ai/other');
+
+        // Stream fires first.
+        guard.shouldDispatchStream(uri);
+
+        // Initial blocked (duplicate).
+        guard.shouldDispatchInitial(uri);
+
+        // Subsequent stream events always pass through.
+        expect(guard.shouldDispatchStream(later), isTrue);
+        expect(guard.shouldDispatchStream(uri), isTrue);
+      });
+    });
   });
 }
