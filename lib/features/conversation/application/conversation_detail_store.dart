@@ -246,6 +246,7 @@ class ConversationDetailStore
     outbox.registerDrainCallback(targetKey, _onOutboxDrain);
 
     ref.onDispose(() {
+      _sendMixinDisposed = true;
       unawaited(subscription.cancel());
       _coordinator.dispose();
       for (final timer in _sentRemovalTimers) {

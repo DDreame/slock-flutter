@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/push_token/data/push_token_repository.dart';
@@ -90,6 +91,24 @@ Future<void> _register(
   }
 }
 
+/// Timeout for deregister calls to prevent indefinite hangs (#716).
+@visibleForTesting
+const deregisterTimeout = Duration(seconds: 10);
+
+/// Deregister old token (with timeout), then register new token.
+///
+/// Exposed for testing; production code calls this internally.
+@visibleForTesting
+Future<void> deregisterThenRegisterForTest(
+  PushTokenRepository repo,
+  String oldToken,
+  String newToken, {
+  String? platform,
+  required CrashReporter crashReporter,
+}) =>
+    _deregisterThenRegister(repo, oldToken, newToken,
+        platform: platform, crashReporter: crashReporter);
+
 Future<void> _deregisterThenRegister(
   PushTokenRepository repo,
   String oldToken,
@@ -98,8 +117,10 @@ Future<void> _deregisterThenRegister(
   required CrashReporter crashReporter,
 }) async {
   try {
-    await repo.deregisterToken(token: oldToken);
+    await repo.deregisterToken(token: oldToken).timeout(deregisterTimeout);
   } on StateError catch (_) {
+  } on TimeoutException catch (_) {
+    // Deregister hung — proceed with registration anyway (#716).
   } catch (e, s) {
     crashReporter.captureException(e, stackTrace: s);
   }

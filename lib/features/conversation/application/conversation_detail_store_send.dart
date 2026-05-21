@@ -10,6 +10,10 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
   final Map<String, Timer> _sendTimeoutTimers = {};
   final Map<String, CancelToken> _sendCancelTokens = {};
 
+  /// Guard flag: set true in onDispose, checked by Timer callbacks to
+  /// prevent StateError from ref.read after provider disposal (#716).
+  bool _sendMixinDisposed = false;
+
   void updateDraft(String value) {
     state = state.copyWith(
       draft: value,
@@ -565,6 +569,8 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
     late final Timer timer;
     timer = Timer(ConversationDetailStore.sentIndicatorDuration, () {
       _sentRemovalTimers.remove(timer);
+      // Guard: if disposed, ref.read will throw StateError (#716).
+      if (_sendMixinDisposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) {
         return;
       }
