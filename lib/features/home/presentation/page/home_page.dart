@@ -25,7 +25,6 @@ import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
-import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -45,7 +44,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             status: s.status,
             failure: s.failure,
             isRefreshing: s.isRefreshing,
-            taskItems: s.taskItems,
             taskLoadFailure: s.taskLoadFailure,
           )),
     );
@@ -139,7 +137,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                       itemBuilder: (_, index) => switch (index) {
                         0 => _HomeTasksSection(
                             key: const ValueKey('home-card-tasks'),
-                            taskItems: state.taskItems,
                             taskLoadFailure: state.taskLoadFailure,
                             onViewAll: () => _pushServerRoute('tasks'),
                           ),
@@ -447,13 +444,10 @@ class _AgentGroupRow extends StatelessWidget {
 class _HomeTasksSection extends ConsumerWidget {
   const _HomeTasksSection({
     super.key,
-    required this.taskItems,
     required this.onViewAll,
     this.taskLoadFailure,
   });
 
-  /// Raw task items — only used for overflow count calculation.
-  final List<TaskItem> taskItems;
   final VoidCallback onViewAll;
   final AppFailure? taskLoadFailure;
 
@@ -466,12 +460,17 @@ class _HomeTasksSection extends ConsumerWidget {
     // Memoized filtered+sorted+sliced task list from provider.
     final visibleTasks = ref.watch(homeTaskSectionProvider);
 
-    // Overflow: total active minus visible (max 5).
-    final activeCount = taskItems
-        .where(
-          (task) => task.status == 'in_progress' || task.status == 'todo',
-        )
-        .length;
+    // INV-SELECT-669: Use .select() to derive active count from the store
+    // instead of O(n) inline .where() on every rebuild.
+    final activeCount = ref.watch(
+      homeListStoreProvider.select(
+        (s) => s.taskItems
+            .where(
+              (task) => task.status == 'in_progress' || task.status == 'todo',
+            )
+            .length,
+      ),
+    );
     final overflowCount = activeCount - visibleTasks.length;
 
     return _SummaryCardBase(

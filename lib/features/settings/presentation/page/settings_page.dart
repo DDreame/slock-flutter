@@ -37,8 +37,14 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         (s) => (permStatus: s.permissionStatus, pref: s.notificationPreference),
       ),
     );
-    final themeState = ref.watch(themeModeStoreProvider);
-    final biometricState = ref.watch(biometricStoreProvider);
+    // INV-SELECT-669: Narrow watches to only the fields used on this page.
+    final themePreference = ref.watch(
+      themeModeStoreProvider.select((s) => s.preference),
+    );
+    final biometric = ref.watch(
+      biometricStoreProvider
+          .select((s) => (availability: s.availability, enabled: s.enabled)),
+    );
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = ref.watch(appLocalizationsProvider);
 
@@ -186,7 +192,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 icon: Icons.palette_outlined,
                 iconColor: colors.primary,
                 title: l10n.settingsThemeTitle,
-                subtitle: themeState.preference.title,
+                subtitle: themePreference.title,
                 subtitleKey: const ValueKey(
                   'settings-appearance-subtitle',
                 ),
@@ -221,8 +227,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             const SizedBox(height: AppSpacing.sectionGap),
 
             // --- Security section (only shown when biometric hardware available) ---
-            if (biometricState.availability ==
-                BiometricAvailability.available) ...[
+            if (biometric.availability == BiometricAvailability.available) ...[
               SizedBox(
                 key: const ValueKey('settings-section-security'),
                 width: double.infinity,
@@ -239,13 +244,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   icon: Icons.fingerprint,
                   iconColor: colors.primary,
                   title: l10n.settingsBiometricLockTitle,
-                  subtitle: biometricState.enabled
+                  subtitle: biometric.enabled
                       ? l10n.settingsBiometricLockEnabled
                       : l10n.settingsBiometricLockDisabled,
                   colors: colors,
                   trailing: Switch.adaptive(
                     key: const ValueKey('settings-biometric-switch'),
-                    value: biometricState.enabled,
+                    value: biometric.enabled,
                     onChanged: (enabled) {
                       ref
                           .read(biometricStoreProvider.notifier)
