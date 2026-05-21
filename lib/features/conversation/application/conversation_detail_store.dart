@@ -260,6 +260,10 @@ class ConversationDetailStore
         if (!token.isCancelled) token.cancel('Disposed');
       }
       _sendCancelTokens.clear();
+      for (final token in _uploadCancelTokens.values) {
+        if (!token.isCancelled) token.cancel('Disposed');
+      }
+      _uploadCancelTokens.clear();
       // Unregister outbox drain callback using captured reference.
       outbox.unregisterDrainCallback(targetKey);
     });

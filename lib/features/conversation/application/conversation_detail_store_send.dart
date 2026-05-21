@@ -154,6 +154,7 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
           final cancelToken = CancelToken();
           _uploadCancelTokens[i] = cancelToken;
 
+          String? compressedPathToDelete;
           try {
             // Compress image if applicable and large
             var uploadFile = file;
@@ -162,6 +163,9 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
                 final size = await compressor.getFileSize(file.path);
                 if (size > DefaultImageCompressor.compressionThresholdBytes) {
                   final compressed = await compressor.compress(file.path);
+                  if (compressed != file.path) {
+                    compressedPathToDelete = compressed;
+                  }
                   uploadFile = PendingAttachment(
                     path: compressed,
                     name: file.name,
@@ -208,6 +212,21 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
             // Skip failed uploads
           } finally {
             _uploadCancelTokens.remove(i);
+            final compressedPath = compressedPathToDelete;
+            if (compressedPath != null) {
+              try {
+                await compressor.deleteCompressedFile(
+                  originalPath: file.path,
+                  compressedPath: compressedPath,
+                );
+              } catch (e, st) {
+                ref.read(diagnosticsCollectorProvider).warning(
+                  'conversation-send',
+                  'Compressed image cleanup failed: $e',
+                  metadata: {'stackTrace': '$st'},
+                );
+              }
+            }
           }
         }
 
