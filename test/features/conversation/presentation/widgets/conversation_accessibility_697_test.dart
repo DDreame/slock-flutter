@@ -3,14 +3,18 @@
 // =============================================================================
 // #697 — Conversation accessibility: Semantics on interactive widgets
 //
-// Tests that each of the four fixes produces the expected Semantics nodes:
-// 1. MessageGestureWrapper — 'Message actions' with custom semantic actions
+// Tests that each of the four fixes exposes labels in the RENDERED semantics
+// tree (what TalkBack/VoiceOver actually consume). Uses tester.getSemantics()
+// with matchesSemantics — validates the accessibility tree directly.
+//
+// 1. MessageGestureWrapper — 'Message actions' button with custom actions
 // 2. _ReactionChip — '$emoji reaction, $count' button
 // 3. EmojiPickerSheet — 'React with $emoji' button per emoji
 // 4. _ImageAttachmentPreview — 'Image attachment' / name button
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
@@ -18,17 +22,6 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_reactions.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
-
-/// Finder that locates a [Semantics] widget by its [label] property.
-///
-/// Unlike [find.bySemanticsLabel], which queries the rendered semantics tree
-/// (subject to merging), this searches the widget tree directly.
-Finder _findSemanticsWithLabel(String label) {
-  return find.byWidgetPredicate(
-    (widget) => widget is Semantics && widget.properties.label == label,
-    description: 'Semantics(label: "$label")',
-  );
-}
 
 /// Helper to create a MaterialApp with the AppColors theme extension.
 Widget _wrapWithTheme(Widget child) {
@@ -42,61 +35,78 @@ Widget _wrapWithTheme(Widget child) {
 
 void main() {
   group('#697 — MessageGestureWrapper semantics', () {
-    testWidgets('has Semantics widget with "Message actions" label',
+    testWidgets(
+        'exposes "Message actions" button label in rendered semantics tree',
         (tester) async {
+      final handle = tester.ensureSemantics();
+
       await tester.pumpWidget(
         _wrapWithTheme(
           MessageGestureWrapper(
             onLongPress: () {},
             enableSwipeReply: true,
             onSwipeReply: () {},
-            child: Text('Hello'),
+            child: SizedBox.shrink(),
           ),
         ),
       );
 
-      expect(_findSemanticsWithLabel('Message actions'), findsOneWidget);
-    });
-
-    testWidgets('Semantics has button=true', (tester) async {
-      await tester.pumpWidget(
-        _wrapWithTheme(
-          MessageGestureWrapper(
-            onLongPress: () {},
-            enableSwipeReply: true,
-            onSwipeReply: () {},
-            child: Text('Hello'),
-          ),
+      final semantics = tester.getSemantics(find.byType(MessageGestureWrapper));
+      expect(
+        semantics,
+        matchesSemantics(
+          label: 'Message actions',
+          isButton: true,
+          hasTapAction: true,
+          hasLongPressAction: true,
+          hasScrollLeftAction: true,
+          hasScrollRightAction: true,
+          customActions: <CustomSemanticsAction>[
+            CustomSemanticsAction(label: 'Show message menu'),
+            CustomSemanticsAction(label: 'Reply'),
+          ],
         ),
       );
 
-      final finder = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label == 'Message actions' &&
-            widget.properties.button == true,
-      );
-      expect(finder, findsOneWidget);
+      handle.dispose();
     });
 
     testWidgets('still present when swipeReply disabled', (tester) async {
+      final handle = tester.ensureSemantics();
+
       await tester.pumpWidget(
         _wrapWithTheme(
           MessageGestureWrapper(
             onLongPress: () {},
             enableSwipeReply: false,
-            child: Text('Hello'),
+            child: SizedBox.shrink(),
           ),
         ),
       );
 
-      expect(_findSemanticsWithLabel('Message actions'), findsOneWidget);
+      final semantics = tester.getSemantics(find.byType(MessageGestureWrapper));
+      expect(
+        semantics,
+        matchesSemantics(
+          label: 'Message actions',
+          isButton: true,
+          hasTapAction: true,
+          hasLongPressAction: true,
+          customActions: <CustomSemanticsAction>[
+            CustomSemanticsAction(label: 'Show message menu'),
+          ],
+        ),
+      );
+
+      handle.dispose();
     });
   });
 
   group('#697 — EmojiPickerSheet semantics', () {
-    testWidgets('each emoji has Semantics with "React with" prefix',
+    testWidgets('each emoji exposes "React with" button label in rendered tree',
         (tester) async {
+      final handle = tester.ensureSemantics();
+
       await tester.pumpWidget(
         _wrapWithTheme(
           Builder(
@@ -118,20 +128,29 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      // Verify that at least one emoji item has a Semantics with
-      // 'React with' prefix label.
-      final finder = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label != null &&
-            widget.properties.label!.startsWith('React with '),
+      // Find the first emoji InkWell by key and check its semantics.
+      final firstEmojiKey = find.byKey(ValueKey('emoji-\u{1F44D}'));
+      expect(firstEmojiKey, findsOneWidget);
+
+      final semantics = tester.getSemantics(firstEmojiKey);
+      expect(
+        semantics,
+        matchesSemantics(
+          label: 'React with \u{1F44D}',
+          isButton: true,
+          hasTapAction: true,
+        ),
       );
-      expect(finder, findsWidgets);
+
+      handle.dispose();
     });
   });
 
   group('#697 — ReactionChip semantics', () {
-    testWidgets('has Semantics with emoji and count label', (tester) async {
+    testWidgets('exposes emoji and count button label in rendered tree',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+
       await tester.pumpWidget(
         ProviderScope(
           child: _wrapWithTheme(
@@ -146,13 +165,25 @@ void main() {
         ),
       );
 
+      final chipFinder = find.byKey(ValueKey('reaction-\u{1F44D}'));
+      expect(chipFinder, findsOneWidget);
+
+      final semantics = tester.getSemantics(chipFinder);
       expect(
-        _findSemanticsWithLabel('\u{1F44D} reaction, 3'),
-        findsOneWidget,
+        semantics,
+        matchesSemantics(
+          label: '\u{1F44D} reaction, 3',
+          isButton: true,
+          hasTapAction: true,
+        ),
       );
+
+      handle.dispose();
     });
 
-    testWidgets('chip has button=true', (tester) async {
+    testWidgets('chip has isButton flag in semantics', (tester) async {
+      final handle = tester.ensureSemantics();
+
       await tester.pumpWidget(
         ProviderScope(
           child: _wrapWithTheme(
@@ -168,18 +199,28 @@ void main() {
         ),
       );
 
-      final finder = find.byWidgetPredicate(
-        (widget) =>
-            widget is Semantics &&
-            widget.properties.label == '\u{2764}\u{FE0F} reaction, 1' &&
-            widget.properties.button == true,
+      final chipFinder = find.byKey(ValueKey('reaction-\u{2764}\u{FE0F}'));
+      expect(chipFinder, findsOneWidget);
+
+      final semantics = tester.getSemantics(chipFinder);
+      expect(
+        semantics,
+        matchesSemantics(
+          label: '\u{2764}\u{FE0F} reaction, 1',
+          isButton: true,
+          hasTapAction: true,
+        ),
       );
-      expect(finder, findsOneWidget);
+
+      handle.dispose();
     });
   });
 
   group('#697 — ImageAttachmentPreview semantics', () {
-    testWidgets('has Semantics with attachment name as label', (tester) async {
+    testWidgets('exposes attachment name button in rendered semantics tree',
+        (tester) async {
+      final handle = tester.ensureSemantics();
+
       await tester.pumpWidget(
         ProviderScope(
           child: _wrapWithTheme(
@@ -199,10 +240,22 @@ void main() {
 
       await tester.pump();
 
-      expect(_findSemanticsWithLabel('screenshot.png'), findsOneWidget);
+      final imgFinder = find.byKey(ValueKey('image-preview-screenshot.png'));
+      expect(imgFinder, findsOneWidget);
+
+      final semantics = tester.getSemantics(imgFinder);
+      expect(
+        semantics,
+        matchesSemantics(
+            label: 'screenshot.png', isButton: true, hasTapAction: true),
+      );
+
+      handle.dispose();
     });
 
     testWidgets('uses fallback label when name is empty', (tester) async {
+      final handle = tester.ensureSemantics();
+
       await tester.pumpWidget(
         ProviderScope(
           child: _wrapWithTheme(
@@ -222,7 +275,18 @@ void main() {
 
       await tester.pump();
 
-      expect(_findSemanticsWithLabel('Image attachment'), findsOneWidget);
+      // Key uses empty name: 'image-preview-'
+      final imgFinder = find.byKey(ValueKey('image-preview-'));
+      expect(imgFinder, findsOneWidget);
+
+      final semantics = tester.getSemantics(imgFinder);
+      expect(
+        semantics,
+        matchesSemantics(
+            label: 'Image attachment', isButton: true, hasTapAction: true),
+      );
+
+      handle.dispose();
     });
   });
 }

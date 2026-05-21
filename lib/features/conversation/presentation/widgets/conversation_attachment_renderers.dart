@@ -178,8 +178,11 @@ class _ImageAttachmentPreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Semantics(
+      container: true,
+      excludeSemantics: true,
       button: true,
       label: attachment.name.isNotEmpty ? attachment.name : 'Image attachment',
+      onTap: () => _openFullScreen(context),
       child: GestureDetector(
         key: ValueKey('image-preview-${attachment.id ?? attachment.name}'),
         onTap: () => _openFullScreen(context),

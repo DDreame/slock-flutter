@@ -146,8 +146,11 @@ class EmojiPickerSheet extends StatelessWidget {
               runSpacing: AppSpacing.xs,
               children: reactionEmojis.map((emoji) {
                 return Semantics(
+                  container: true,
+                  excludeSemantics: true,
                   button: true,
                   label: 'React with $emoji',
+                  onTap: () => Navigator.of(context).pop(emoji),
                   child: InkWell(
                     key: ValueKey('emoji-$emoji'),
                     onTap: () => Navigator.of(context).pop(emoji),
@@ -255,8 +258,11 @@ class _ReactionChip extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Semantics(
+      container: true,
+      excludeSemantics: true,
       button: true,
       label: '$emoji reaction, $count',
+      onTap: () => _onTap(context, ref),
       child: InkWell(
         onTap: () => _onTap(context, ref),
         borderRadius: BorderRadius.circular(AppSpacing.radiusFull),

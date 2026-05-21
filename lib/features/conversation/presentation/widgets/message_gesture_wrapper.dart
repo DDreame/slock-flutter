@@ -253,6 +253,7 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
     }
 
     return Semantics(
+      container: true,
       button: true,
       label: 'Message actions',
       customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
