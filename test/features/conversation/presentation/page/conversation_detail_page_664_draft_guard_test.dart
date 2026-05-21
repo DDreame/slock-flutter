@@ -211,6 +211,10 @@ void main() {
   // -------------------------------------------------------------------------
   // T4: Contrast — unguarded widget DOES stack callbacks (regression proof).
   // This test demonstrates the bug that Fix B prevents.
+  //
+  // Each setDraft() + pump() pair simulates a separate frame where the widget
+  // rebuilds with a mismatch — the unguarded version schedules a new
+  // addPostFrameCallback on every frame, stacking them.
   // -------------------------------------------------------------------------
   testWidgets(
     'INV-DRAFT-664-STACK-1: unguarded widget stacks callbacks (regression '
@@ -228,14 +232,18 @@ void main() {
 
       final state = key.currentState!;
 
-      // Trigger 3 rapid rebuilds — each schedules a new callback.
+      // Trigger 3 draft changes across separate frames so each build()
+      // schedules a fresh addPostFrameCallback (the stacking bug).
       state.setDraft('stacked-1');
+      await tester.pump(); // Frame 1 — builds with mismatch, schedules CB #1
+
       state.setDraft('stacked-2');
+      await tester.pump(); // Frame 2 — builds with mismatch, schedules CB #2
+
       state.setDraft('stacked-3');
+      await tester.pump(); // Frame 3 — builds with mismatch, schedules CB #3
 
-      await tester.pump();
-
-      // Unguarded: multiple callbacks stacked (one per build that saw mismatch).
+      // Unguarded: each frame stacked a new callback. All three fired.
       expect(
         state.callbackFiredCount,
         greaterThan(1),
