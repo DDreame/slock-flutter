@@ -4,76 +4,88 @@
 // Fix 1 Invariant: INV-SELECT-671-LINKPREVIEW
 //   MessageContentWidget watches linkPreviewCacheProvider via
 //   .select((cache) => cache[_detectedUrl]) so that resolving URL-B does
-//   NOT cause a widget displaying URL-A to rebuild.
+//   NOT cause the widget displaying URL-A to rebuild.
 //
 // Fix 2 Invariant: INV-SELECT-671-TYPING
 //   TypingIndicatorWidget watches typingIndicatorStoreProvider via
 //   .select((s) => s.displayText) so that mutations to the store that
 //   don't change displayText (e.g. timer refresh of same typer) don't
 //   cause a rebuild.
+//
+// Both groups render REAL production widgets and use
+// debugOnRebuildDirtyWidget to detect actual rebuilds at the widget
+// boundary.
 // =============================================================================
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/conversation/application/typing_indicator_store.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/message_content_widget.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/typing_indicator_widget.dart';
 import 'package:slock_app/features/link_preview/application/link_preview_store.dart';
 import 'package:slock_app/features/link_preview/data/link_metadata.dart';
+import 'package:slock_app/features/link_preview/data/link_preview_service.dart';
 
 // ---------------------------------------------------------------------------
-// Fix 1: Link Preview — probe widget that mirrors the .select() expression
+// Fakes
 // ---------------------------------------------------------------------------
 
-/// A probe that watches the link preview cache for a specific URL,
-/// matching the exact .select() expression used in MessageContentWidget.
-/// Counts rebuild invocations.
-class _LinkPreviewProbe extends ConsumerWidget {
-  const _LinkPreviewProbe({required this.url, required this.onBuild});
-
-  final String url;
-  final VoidCallback onBuild;
+/// LinkPreviewService that never makes real HTTP calls.
+/// Returns null metadata (no OG tags) for any URL so the widget shows
+/// the fallback link chip rather than a full preview card.
+class _NoOpLinkPreviewService extends LinkPreviewService {
+  _NoOpLinkPreviewService() : super(dio: Dio());
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    onBuild();
-    final asyncMeta = ref.watch(
-      linkPreviewCacheProvider.select((cache) => cache[url]),
-    );
-    final label = asyncMeta?.valueOrNull?.title ?? 'none';
-    return Text(label, textDirection: TextDirection.ltr);
-  }
+  Future<LinkMetadata?> fetchMetadata(String url) async => null;
 }
 
-// ---------------------------------------------------------------------------
-// Fix 2: Typing Indicator — probe widget that mirrors the .select()
-// ---------------------------------------------------------------------------
-
-/// A probe that watches typingIndicatorStoreProvider.select((s) => s.displayText)
-/// matching the exact expression used in TypingIndicatorWidget.
-class _TypingDisplayTextProbe extends ConsumerWidget {
-  const _TypingDisplayTextProbe({required this.onBuild});
-
-  final VoidCallback onBuild;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    onBuild();
-    final displayText = ref.watch(
-      typingIndicatorStoreProvider.select((s) => s.displayText),
-    );
-    return Text(displayText ?? 'idle', textDirection: TextDirection.ltr);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Controllable store for typing indicator
-// ---------------------------------------------------------------------------
-
+/// Controllable TypingIndicatorStore for production widget tests.
 class _ControllableTypingIndicatorStore extends TypingIndicatorStore {
   @override
   TypingIndicatorState build() {
-    ref.onDispose(() {});
+    // Register the same disposal logic as the real store so timers
+    // are properly cleaned up when the provider is disposed.
+    ref.onDispose(() {
+      clearAll();
+    });
     return const TypingIndicatorState();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rebuild tracking helper
+// ---------------------------------------------------------------------------
+
+/// Tracks rebuilds of a specific widget type using debugOnRebuildDirtyWidget.
+///
+/// Only counts RE-builds (builtOnce == true), not the initial build.
+class _RebuildTracker {
+  _RebuildTracker(this._targetTypeName);
+
+  final String _targetTypeName;
+  int rebuildCount = 0;
+
+  void install() {
+    rebuildCount = 0;
+    debugOnRebuildDirtyWidget = (Element element, bool builtOnce) {
+      if (builtOnce &&
+          element.widget.runtimeType.toString() == _targetTypeName) {
+        rebuildCount++;
+      }
+    };
+  }
+
+  void reset() {
+    rebuildCount = 0;
+  }
+
+  void uninstall() {
+    debugOnRebuildDirtyWidget = null;
   }
 }
 
@@ -83,248 +95,341 @@ class _ControllableTypingIndicatorStore extends TypingIndicatorStore {
 
 void main() {
   // ---------------------------------------------------------------------------
-  // Fix 1: linkPreviewCache .select() — rebuild isolation
+  // Fix 1: linkPreviewCache .select() — production widget rebuild isolation
   // ---------------------------------------------------------------------------
-  group('Fix 1: linkPreview rebuild storm isolation', () {
+  group('Fix 1: MessageContentWidget rebuild isolation (production widget)',
+      () {
+    late ProviderContainer container;
+    late _RebuildTracker tracker;
+
+    setUp(() {
+      tracker = _RebuildTracker('MessageContentWidget');
+    });
+
+    tearDown(() {
+      tracker.uninstall();
+      container.dispose();
+    });
+
     testWidgets(
-      'INV-SELECT-671-LINKPREVIEW: resolving URL-B does NOT rebuild widget '
-      'watching URL-A',
+      'INV-SELECT-671-LINKPREVIEW: resolving URL-B does NOT rebuild '
+      'MessageContentWidget watching URL-A',
       (tester) async {
-        int probeBuilds = 0;
         const urlA = 'https://example.com/page-a';
         const urlB = 'https://example.com/page-b';
 
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
+        container = ProviderContainer(
+          overrides: [
+            linkPreviewServiceProvider
+                .overrideWithValue(_NoOpLinkPreviewService()),
+          ],
+        );
+
+        // Pre-seed cache with URL-A resolved so the widget renders preview.
+        final notifier = container.read(linkPreviewCacheProvider.notifier);
+        notifier.state = {
+          urlA: const AsyncValue.data(
+            LinkMetadata(
+              url: urlA,
+              title: 'Page A Title',
+              domain: 'example.com',
+            ),
+          ),
+        };
 
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: _LinkPreviewProbe(
-              url: urlA,
-              onBuild: () => probeBuilds++,
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: Scaffold(
+                body: MessageContentWidget(
+                  message: ConversationMessageSummary(
+                    id: 'msg-1',
+                    content: 'Check out $urlA for details',
+                    createdAt: DateTime(2026, 5, 21),
+                    senderType: 'human',
+                    messageType: 'text',
+                  ),
+                ),
+              ),
             ),
           ),
         );
 
-        // Initial build.
-        expect(probeBuilds, 1);
-        expect(find.text('none'), findsOneWidget);
+        // Let initState microtask fire (fetch attempt — no-op service).
+        await tester.pump();
 
-        // Resolve URL-B in the cache (irrelevant to our probe).
-        final notifier = container.read(linkPreviewCacheProvider.notifier);
-        // Directly mutate state to inject URL-B entry.
+        // Verify the widget is rendering with the preview data.
+        expect(find.text('Page A Title'), findsOneWidget);
+
+        // --- Install tracker AFTER initial build ---
+        tracker.install();
+
+        // Resolve URL-B (irrelevant to this widget).
         notifier.state = {
           ...notifier.state,
           urlB: const AsyncValue.data(
             LinkMetadata(
               url: urlB,
-              title: 'Page B',
+              title: 'Page B Title',
               domain: 'example.com',
             ),
           ),
         };
         await tester.pump();
 
-        // Probe should NOT have rebuilt — URL-A entry is still null.
-        expect(probeBuilds, 1,
-            reason:
-                'Resolving a different URL must not trigger rebuild of widget '
-                'watching URL-A');
+        // MessageContentWidget MUST NOT have rebuilt.
+        expect(tracker.rebuildCount, 0,
+            reason: 'Resolving an unrelated URL must not rebuild '
+                'MessageContentWidget when using .select()');
 
-        // Now resolve URL-A — probe SHOULD rebuild.
+        // Now update URL-A — this SHOULD trigger a rebuild.
+        tracker.reset();
         notifier.state = {
           ...notifier.state,
           urlA: const AsyncValue.data(
             LinkMetadata(
               url: urlA,
-              title: 'Page A',
+              title: 'Updated Page A',
               domain: 'example.com',
             ),
           ),
         };
         await tester.pump();
 
-        expect(probeBuilds, 2,
-            reason: 'Resolving URL-A must trigger rebuild of widget watching '
-                'URL-A');
-        expect(find.text('Page A'), findsOneWidget);
+        expect(tracker.rebuildCount, 1,
+            reason:
+                'Updating the watched URL must trigger exactly one rebuild');
+        expect(find.text('Updated Page A'), findsOneWidget);
       },
     );
 
     testWidgets(
-      'INV-SELECT-671-LINKPREVIEW: transitioning URL-A from loading to data '
-      'triggers rebuild',
+      'INV-SELECT-671-LINKPREVIEW: transitioning own URL from loading to data '
+      'rebuilds MessageContentWidget',
       (tester) async {
-        int probeBuilds = 0;
         const urlA = 'https://example.com/page-a';
 
-        final container = ProviderContainer();
-        addTearDown(container.dispose);
+        container = ProviderContainer(
+          overrides: [
+            linkPreviewServiceProvider
+                .overrideWithValue(_NoOpLinkPreviewService()),
+          ],
+        );
 
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: _LinkPreviewProbe(
-              url: urlA,
-              onBuild: () => probeBuilds++,
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: Scaffold(
+                body: MessageContentWidget(
+                  message: ConversationMessageSummary(
+                    id: 'msg-2',
+                    content: 'Visit $urlA now',
+                    createdAt: DateTime(2026, 5, 21),
+                    senderType: 'human',
+                    messageType: 'text',
+                  ),
+                ),
+              ),
             ),
           ),
         );
 
-        expect(probeBuilds, 1);
+        // Let initState microtask fire.
+        await tester.pump();
+
+        // Install tracker after initial build.
+        tracker.install();
 
         // Set URL-A to loading.
         final notifier = container.read(linkPreviewCacheProvider.notifier);
         notifier.state = {urlA: const AsyncValue<LinkMetadata?>.loading()};
         await tester.pump();
 
-        // Loading is a different value from null, so should rebuild.
-        expect(probeBuilds, 2);
-        expect(find.text('none'), findsOneWidget);
+        expect(tracker.rebuildCount, 1,
+            reason: 'Loading state is different from null — triggers rebuild');
 
         // Resolve URL-A to data.
+        tracker.reset();
         notifier.state = {
           urlA: const AsyncValue.data(
             LinkMetadata(
               url: urlA,
-              title: 'Resolved',
+              title: 'Resolved Title',
               domain: 'example.com',
             ),
           ),
         };
         await tester.pump();
 
-        expect(probeBuilds, 3);
-        expect(find.text('Resolved'), findsOneWidget);
+        expect(tracker.rebuildCount, 1,
+            reason: 'Data state is different from loading — triggers rebuild');
+        expect(find.text('Resolved Title'), findsOneWidget);
       },
     );
   });
 
   // ---------------------------------------------------------------------------
-  // Fix 2: typingIndicator .select() — rebuild isolation
+  // Fix 2: typingIndicator .select() — production widget rebuild isolation
   // ---------------------------------------------------------------------------
-  group('Fix 2: typing indicator displayText .select() isolation', () {
-    testWidgets(
-      'INV-SELECT-671-TYPING: refreshing same typer does NOT rebuild widget',
-      (tester) async {
-        int probeBuilds = 0;
+  group('Fix 2: TypingIndicatorWidget rebuild isolation (production widget)',
+      () {
+    late ProviderContainer container;
+    late _RebuildTracker tracker;
+    late TypingIndicatorStore store;
 
-        final container = ProviderContainer(
+    setUp(() {
+      tracker = _RebuildTracker('TypingIndicatorWidget');
+    });
+
+    tearDown(() {
+      tracker.uninstall();
+      // clearAll cancels all expiry timers before container disposal.
+      store.clearAll();
+      container.dispose();
+    });
+
+    testWidgets(
+      'INV-SELECT-671-TYPING: refreshing same typer does NOT rebuild '
+      'TypingIndicatorWidget',
+      (tester) async {
+        container = ProviderContainer(
           overrides: [
             typingIndicatorStoreProvider
                 .overrideWith(() => _ControllableTypingIndicatorStore()),
           ],
         );
-        addTearDown(container.dispose);
 
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: _TypingDisplayTextProbe(onBuild: () => probeBuilds++),
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const Scaffold(
+                body: TypingIndicatorWidget(),
+              ),
+            ),
           ),
         );
+        await tester.pump();
 
-        expect(probeBuilds, 1);
-        expect(find.text('idle'), findsOneWidget);
+        // Initially hidden (no typers).
+        expect(find.byKey(const ValueKey('typing-indicator')), findsNothing);
 
-        // Add Alice — displayText changes from null to "Alice is typing..."
-        final store = container.read(typingIndicatorStoreProvider.notifier);
+        // Add Alice — widget should rebuild and show indicator.
+        store = container.read(typingIndicatorStoreProvider.notifier);
         store.addTyper(userId: 'u1', displayName: 'Alice');
         await tester.pump();
 
-        expect(probeBuilds, 2);
         expect(find.text('Alice is typing...'), findsOneWidget);
 
-        // Refresh Alice (same user, same displayName) — displayText unchanged.
+        // Install tracker AFTER the first meaningful render.
+        tracker.install();
+
+        // Refresh Alice (same userId, same displayName).
+        // This mutates the store state (timer reset, new list object)
+        // but displayText remains "Alice is typing...".
         store.addTyper(userId: 'u1', displayName: 'Alice');
         await tester.pump();
 
-        expect(probeBuilds, 2,
-            reason: 'Refreshing the same typer does not change displayText, '
-                'so widget must not rebuild');
+        expect(tracker.rebuildCount, 0,
+            reason: 'Refreshing the same typer does not change displayText — '
+                'widget must not rebuild when using .select()');
+
+        // Verify the display is still correct.
+        expect(find.text('Alice is typing...'), findsOneWidget);
       },
     );
 
     testWidgets(
-      'INV-SELECT-671-TYPING: adding a second typer DOES rebuild widget',
+      'INV-SELECT-671-TYPING: adding a second typer DOES rebuild '
+      'TypingIndicatorWidget',
       (tester) async {
-        int probeBuilds = 0;
-
-        final container = ProviderContainer(
+        container = ProviderContainer(
           overrides: [
             typingIndicatorStoreProvider
                 .overrideWith(() => _ControllableTypingIndicatorStore()),
           ],
         );
-        addTearDown(container.dispose);
 
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: _TypingDisplayTextProbe(onBuild: () => probeBuilds++),
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const Scaffold(
+                body: TypingIndicatorWidget(),
+              ),
+            ),
           ),
         );
-
-        expect(probeBuilds, 1);
-
-        // Add Alice.
-        final store = container.read(typingIndicatorStoreProvider.notifier);
-        store.addTyper(userId: 'u1', displayName: 'Alice');
         await tester.pump();
 
-        expect(probeBuilds, 2);
+        // Add Alice.
+        store = container.read(typingIndicatorStoreProvider.notifier);
+        store.addTyper(userId: 'u1', displayName: 'Alice');
+        await tester.pump();
         expect(find.text('Alice is typing...'), findsOneWidget);
 
-        // Add Bob — displayText changes to "Alice and Bob are typing..."
+        // Install tracker.
+        tracker.install();
+
+        // Add Bob — displayText changes from "Alice is typing..." to
+        // "Alice and Bob are typing..."
         store.addTyper(userId: 'u2', displayName: 'Bob');
         await tester.pump();
 
-        expect(probeBuilds, 3,
-            reason: 'Adding a second typer changes displayText, '
-                'so widget must rebuild');
+        expect(tracker.rebuildCount, 1,
+            reason: 'Adding a second typer changes displayText — widget must '
+                'rebuild');
         expect(find.text('Alice and Bob are typing...'), findsOneWidget);
       },
     );
 
     testWidgets(
-      'INV-SELECT-671-TYPING: removing typer back to idle rebuilds widget',
+      'INV-SELECT-671-TYPING: removing last typer rebuilds '
+      'TypingIndicatorWidget back to hidden',
       (tester) async {
-        int probeBuilds = 0;
-
-        final container = ProviderContainer(
+        container = ProviderContainer(
           overrides: [
             typingIndicatorStoreProvider
                 .overrideWith(() => _ControllableTypingIndicatorStore()),
           ],
         );
-        addTearDown(container.dispose);
 
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: _TypingDisplayTextProbe(onBuild: () => probeBuilds++),
+            child: MaterialApp(
+              theme: AppTheme.light,
+              home: const Scaffold(
+                body: TypingIndicatorWidget(),
+              ),
+            ),
           ),
         );
-
-        expect(probeBuilds, 1);
-        expect(find.text('idle'), findsOneWidget);
-
-        // Add Alice.
-        final store = container.read(typingIndicatorStoreProvider.notifier);
-        store.addTyper(userId: 'u1', displayName: 'Alice');
         await tester.pump();
 
-        expect(probeBuilds, 2);
+        // Add Alice.
+        store = container.read(typingIndicatorStoreProvider.notifier);
+        store.addTyper(userId: 'u1', displayName: 'Alice');
+        await tester.pump();
         expect(find.text('Alice is typing...'), findsOneWidget);
 
-        // Remove Alice — back to null/idle.
+        // Install tracker.
+        tracker.install();
+
+        // Remove Alice — displayText changes from "Alice is typing..." to null.
         store.removeTyper('u1');
         await tester.pump();
 
-        expect(probeBuilds, 3,
-            reason: 'Removing the last typer changes displayText back to null');
-        expect(find.text('idle'), findsOneWidget);
+        expect(tracker.rebuildCount, 1,
+            reason: 'Removing the last typer changes displayText to null — '
+                'widget must rebuild');
+        expect(find.byKey(const ValueKey('typing-indicator')), findsNothing);
       },
     );
   });
