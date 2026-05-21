@@ -145,15 +145,19 @@ class EmojiPickerSheet extends StatelessWidget {
               spacing: AppSpacing.xs,
               runSpacing: AppSpacing.xs,
               children: reactionEmojis.map((emoji) {
-                return InkWell(
-                  key: ValueKey('emoji-$emoji'),
-                  onTap: () => Navigator.of(context).pop(emoji),
-                  borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    child: Text(
-                      emoji,
-                      style: const TextStyle(fontSize: 28),
+                return Semantics(
+                  button: true,
+                  label: 'React with $emoji',
+                  child: InkWell(
+                    key: ValueKey('emoji-$emoji'),
+                    onTap: () => Navigator.of(context).pop(emoji),
+                    borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      child: Text(
+                        emoji,
+                        style: const TextStyle(fontSize: 28),
+                      ),
                     ),
                   ),
                 );
@@ -250,37 +254,41 @@ class _ReactionChip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return InkWell(
-      onTap: () => _onTap(context, ref),
-      borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: isOwn
-              ? colors.primary.withValues(alpha: 0.15)
-              : colors.surfaceAlt,
-          borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          border: Border.all(
-            color: isOwn ? colors.primary : colors.border,
-            width: 1,
+    return Semantics(
+      button: true,
+      label: '$emoji reaction, $count',
+      child: InkWell(
+        onTap: () => _onTap(context, ref),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 16)),
-            const SizedBox(width: 4),
-            Text(
-              '$count',
-              style: AppTypography.caption.copyWith(
-                color: isOwn ? colors.primary : colors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
+          decoration: BoxDecoration(
+            color: isOwn
+                ? colors.primary.withValues(alpha: 0.15)
+                : colors.surfaceAlt,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+            border: Border.all(
+              color: isOwn ? colors.primary : colors.border,
+              width: 1,
             ),
-          ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 4),
+              Text(
+                '$count',
+                style: AppTypography.caption.copyWith(
+                  color: isOwn ? colors.primary : colors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

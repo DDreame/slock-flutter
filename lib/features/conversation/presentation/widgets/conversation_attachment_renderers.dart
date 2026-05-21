@@ -177,77 +177,82 @@ class _ImageAttachmentPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GestureDetector(
-      key: ValueKey('image-preview-${attachment.id ?? attachment.name}'),
-      onTap: () => _openFullScreen(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxHeight: 200,
-                maxWidth: 280,
-              ),
-              child: Hero(
-                tag: HeroTags.imageAttachment(attachment.id ?? attachment.name),
-                child: CachedNetworkImage(
-                  imageUrl: attachment.thumbnailUrl ?? attachment.url!,
-                  memCacheWidth: 280,
-                  fit: BoxFit.cover,
-                  progressIndicatorBuilder: (context, url, progress) {
-                    return SizedBox(
-                      height: 120,
-                      width: 200,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          value: progress.progress,
-                        ),
-                      ),
-                    );
-                  },
-                  errorWidget: (context, url, error) {
-                    return Container(
-                      height: 80,
-                      width: 200,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.broken_image_outlined,
-                            color: theme.colorScheme.onSurfaceVariant,
+    return Semantics(
+      button: true,
+      label: attachment.name.isNotEmpty ? attachment.name : 'Image attachment',
+      child: GestureDetector(
+        key: ValueKey('image-preview-${attachment.id ?? attachment.name}'),
+        onTap: () => _openFullScreen(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxHeight: 200,
+                  maxWidth: 280,
+                ),
+                child: Hero(
+                  tag: HeroTags.imageAttachment(
+                      attachment.id ?? attachment.name),
+                  child: CachedNetworkImage(
+                    imageUrl: attachment.thumbnailUrl ?? attachment.url!,
+                    memCacheWidth: 280,
+                    fit: BoxFit.cover,
+                    progressIndicatorBuilder: (context, url, progress) {
+                      return SizedBox(
+                        height: 120,
+                        width: 200,
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            value: progress.progress,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            attachment.name,
-                            style: theme.textTheme.labelSmall?.copyWith(
+                        ),
+                      );
+                    },
+                    errorWidget: (context, url, error) {
+                      return Container(
+                        height: 80,
+                        width: 200,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.broken_image_outlined,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                            const SizedBox(height: 4),
+                            Text(
+                              attachment.name,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            attachment.name,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            const SizedBox(height: 2),
+            Text(
+              attachment.name,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

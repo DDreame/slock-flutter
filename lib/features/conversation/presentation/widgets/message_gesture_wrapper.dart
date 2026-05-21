@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 /// Minimum horizontal displacement (in logical pixels) required to trigger
@@ -251,20 +252,33 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
       );
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: _handleTap,
-      onLongPress: widget.onLongPress != null ? _handleLongPress : null,
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      onHorizontalDragStart:
-          widget.enableSwipeReply ? _onHorizontalDragStart : null,
-      onHorizontalDragUpdate:
-          widget.enableSwipeReply ? _onHorizontalDragUpdate : null,
-      onHorizontalDragEnd:
-          widget.enableSwipeReply ? _onHorizontalDragEnd : null,
-      child: inner,
+    return Semantics(
+      button: true,
+      label: 'Message actions',
+      customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
+        if (widget.onLongPress != null)
+          const CustomSemanticsAction(label: 'Show message menu'):
+              _handleLongPress,
+        if (widget.enableSwipeReply)
+          const CustomSemanticsAction(label: 'Reply'): () {
+            widget.onSwipeReply?.call();
+          },
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _handleTap,
+        onLongPress: widget.onLongPress != null ? _handleLongPress : null,
+        onTapDown: _handleTapDown,
+        onTapUp: _handleTapUp,
+        onTapCancel: _handleTapCancel,
+        onHorizontalDragStart:
+            widget.enableSwipeReply ? _onHorizontalDragStart : null,
+        onHorizontalDragUpdate:
+            widget.enableSwipeReply ? _onHorizontalDragUpdate : null,
+        onHorizontalDragEnd:
+            widget.enableSwipeReply ? _onHorizontalDragEnd : null,
+        child: inner,
+      ),
     );
   }
 }
