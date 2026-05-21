@@ -61,8 +61,12 @@ class SessionStore extends Notifier<SessionState> {
       if (refreshToken != null && refreshToken.isNotEmpty) {
         await SessionStorageKeys.clear(_storage);
       }
-    } catch (_) {
-      // Storage read failure — fall through to unauthenticated.
+    } catch (e, st) {
+      ref.read(crashReporterProvider).captureException(
+        e,
+        stackTrace: st,
+        extra: {'source': 'SessionStore.restoreSession'},
+      );
     }
     state = const SessionState(status: AuthStatus.unauthenticated);
   }

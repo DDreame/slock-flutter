@@ -74,66 +74,6 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // T1: Default sort is recent activity (most-recently-active first)
-  // -------------------------------------------------------------------------
-  test(
-    'DmListStore sorts by recent activity (default)',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(serverId),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      // Default should be recentActivity.
-      final sortPref = container.read(dmSortPreferenceProvider);
-      expect(sortPref, DmSortPreference.recentActivity);
-
-      // Given DMs with different lastActivityAt timestamps:
-      final dms = [dmAlice, dmBob, dmCharlie];
-
-      // Apply sort via the sorted DMs provider.
-      final sorted = container.read(sortedDmsProvider(dms));
-
-      // Most-recently-active first: Charlie (May 18) > bob (May 15) > Alice (May 10).
-      expect(sorted.map((d) => d.title).toList(), ['Charlie', 'bob', 'Alice']);
-    },
-  );
-
-  // -------------------------------------------------------------------------
-  // T2: Alphabetical sort preference returns DMs sorted A-Z
-  // -------------------------------------------------------------------------
-  test(
-    'DmListStore sorts alphabetically when preference is A-Z',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(serverId),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          // Override sort preference to alphabetical.
-          dmSortPreferenceProvider.overrideWith(
-            () => _FixedDmSortPreferenceNotifier(
-              DmSortPreference.alphabetical,
-            ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      // Given DMs in non-alphabetical order:
-      final dms = [dmCharlie, dmAlice, dmBob];
-
-      // Apply sort via the sorted DMs provider.
-      final sorted = container.read(sortedDmsProvider(dms));
-
-      // Case-insensitive alphabetical: Alice < bob < Charlie.
-      expect(sorted.map((d) => d.title).toList(), ['Alice', 'bob', 'Charlie']);
-    },
-  );
-
-  // -------------------------------------------------------------------------
   // T3: Sort preference persists across restarts
   // -------------------------------------------------------------------------
   test(
@@ -257,6 +197,20 @@ void main() {
       );
 
       // Default sort: recent activity (DMs ordered by lastActivityAt desc).
+      final charlieDefaultPos = tester.getTopLeft(
+        find.byKey(const ValueKey('dms-tab-dm-charlie')),
+      );
+      final bobDefaultPos = tester.getTopLeft(
+        find.byKey(const ValueKey('dms-tab-dm-bob')),
+      );
+      final aliceDefaultPos = tester.getTopLeft(
+        find.byKey(const ValueKey('dms-tab-dm-alice')),
+      );
+      expect(charlieDefaultPos.dy < bobDefaultPos.dy, isTrue,
+          reason: 'Charlie should be above bob in recent-activity sort');
+      expect(bobDefaultPos.dy < aliceDefaultPos.dy, isTrue,
+          reason: 'bob should be above Alice in recent-activity sort');
+
       // Tap sort toggle to switch to alphabetical.
       await tester.tap(find.byKey(const ValueKey('dms-sort-toggle')));
       await tester.pumpAndSettle();
@@ -284,17 +238,6 @@ void main() {
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
-
-class _FixedDmSortPreferenceNotifier extends DmSortPreferenceNotifier {
-  _FixedDmSortPreferenceNotifier(this._value);
-  final DmSortPreference _value;
-
-  @override
-  DmSortPreference build() => _value;
-
-  @override
-  void setSortPreference(DmSortPreference preference) {}
-}
 
 class _FakeHomeRepository implements HomeRepository {
   const _FakeHomeRepository(this.snapshot);

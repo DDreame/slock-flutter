@@ -168,8 +168,12 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
                     mimeType: file.mimeType,
                   );
                 }
-              } catch (_) {
-                // Fall back to original on compression failure
+              } catch (e, st) {
+                ref.read(diagnosticsCollectorProvider).error(
+                  'conversation-send',
+                  'Image compression failed, falling back to original: $e',
+                  metadata: {'stackTrace': '$st'},
+                );
               }
             }
 
