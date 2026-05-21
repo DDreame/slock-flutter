@@ -1265,14 +1265,19 @@ class _ProfileLoadingSheetState extends State<_ProfileLoadingSheet> {
   @override
   void initState() {
     super.initState();
-    widget.profileFuture.then((profile) {
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final profile = await widget.profileFuture;
       if (!mounted) return;
       setState(() => _profile = profile);
-    }).catchError((Object e, StackTrace st) {
+    } catch (e, st) {
       if (!mounted) return;
       setState(() => _hasError = true);
       widget.onError?.call(e, st);
-    });
+    }
   }
 
   @override
