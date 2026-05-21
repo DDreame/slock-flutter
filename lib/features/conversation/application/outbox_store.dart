@@ -60,11 +60,21 @@ class OutboxMessage {
         content: json['content'] as String,
         createdAt: DateTime.parse(json['createdAt'] as String),
         replyToId: json['replyToId'] as String?,
-        status: OutboxMessageStatus.values.byName(
-          json['status'] as String? ?? 'pending',
-        ),
+        status: _parseStatus(json['status'] as String?),
         failureMessage: json['failureMessage'] as String?,
       );
+
+  /// Parse status string with graceful fallback to [OutboxMessageStatus.pending]
+  /// for unrecognized values. Prevents a single corrupt entry from discarding
+  /// the entire outbox queue (#708).
+  static OutboxMessageStatus _parseStatus(String? raw) {
+    if (raw == null) return OutboxMessageStatus.pending;
+    try {
+      return OutboxMessageStatus.values.byName(raw);
+    } catch (_) {
+      return OutboxMessageStatus.pending;
+    }
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -232,8 +242,12 @@ class OutboxStore extends Notifier<OutboxState> {
   /// If [localId] is provided, it is used as the outbox entry's local ID
   /// (allowing the caller to share the same ID with its optimistic message).
   ///
-  /// Deduplicates: if the target already has a pending message with the
-  /// same content and replyToId, the enqueue is a no-op.
+  /// Deduplicates:
+  /// - Primary: if [localId] is provided and an existing entry with the same
+  ///   localId exists, the enqueue is a no-op (#708 — prevents false-dedup
+  ///   when two messages share content but have different localIds).
+  /// - Fallback: if no [localId] is provided, deduplicates on content +
+  ///   replyToId (legacy behavior for callers that don't supply an ID).
   void enqueue(
     ConversationDetailTarget target,
     String content, {
@@ -241,16 +255,22 @@ class OutboxStore extends Notifier<OutboxState> {
     String? localId,
   }) {
     final targetKey = outboxTargetKey(target);
-
-    // Deduplicate: skip if same content + replyToId already pending.
     final existing = state.items[targetKey] ?? [];
-    final isDuplicate = existing.any(
-      (m) =>
-          m.status == OutboxMessageStatus.pending &&
-          m.content == content &&
-          m.replyToId == replyToId,
-    );
-    if (isDuplicate) return;
+
+    // Primary dedup: localId match (handles the race with localId assignment).
+    if (localId != null) {
+      final hasLocalId = existing.any((m) => m.localId == localId);
+      if (hasLocalId) return;
+    } else {
+      // Fallback dedup: content + replyToId when no localId provided.
+      final isDuplicate = existing.any(
+        (m) =>
+            m.status == OutboxMessageStatus.pending &&
+            m.content == content &&
+            m.replyToId == replyToId,
+      );
+      if (isDuplicate) return;
+    }
 
     localId ??=
         'outbox-${++_localIdCounter}-${DateTime.now().millisecondsSinceEpoch}';
@@ -318,6 +338,9 @@ class OutboxStore extends Notifier<OutboxState> {
   }
 
   /// Drain all conversations.
+  ///
+  /// Re-checks connectivity before each target to avoid wasting attempts
+  /// after a mid-drain network drop (#708).
   Future<void> drainAll() async {
     if (_isDraining) return;
     _isDraining = true;
@@ -325,6 +348,11 @@ class OutboxStore extends Notifier<OutboxState> {
       // Snapshot keys before iterating (state may mutate).
       final keys = state.items.keys.toList();
       for (final key in keys) {
+        // Re-check connectivity before each target — if the device went
+        // offline mid-drain, stop early so remaining targets aren't attempted.
+        final connectivity = ref.read(connectivityServiceProvider);
+        if (!connectivity.isOnline) break;
+
         final target = _targetFromKey(key);
         if (target == null) continue;
         await drain(target);
