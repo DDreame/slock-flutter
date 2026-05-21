@@ -189,7 +189,7 @@ void main() {
 
     test('token push emits diagnostic with platform-specific source', () async {
       await readStore().init();
-      diagnostics.entries.clear(); // Clear init-time diagnostics
+      diagnostics.clear(); // Clear init-time diagnostics
 
       fakeInitializer.tokenController.add('new-fcm-token');
       await Future<void>.delayed(Duration.zero);
@@ -210,7 +210,7 @@ void main() {
       // First push → sets the token.
       fakeInitializer.tokenController.add('same-token');
       await Future<void>.delayed(Duration.zero);
-      diagnostics.entries.clear();
+      diagnostics.clear();
 
       // Second push with same value → no diagnostic.
       fakeInitializer.tokenController.add('same-token');
@@ -227,7 +227,7 @@ void main() {
 
       fakeInitializer.tokenController.add('token-v1');
       await Future<void>.delayed(Duration.zero);
-      diagnostics.entries.clear();
+      diagnostics.clear();
 
       fakeInitializer.tokenController.add('token-v2');
       await Future<void>.delayed(Duration.zero);
