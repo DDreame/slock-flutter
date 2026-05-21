@@ -31,6 +31,11 @@ class MessageContentWidget extends ConsumerStatefulWidget {
     this.currentUserName,
   });
 
+  /// Build counter for rebuild-detection tests. Incremented in debug mode
+  /// on every [build] invocation. Reset manually in test setUp.
+  @visibleForTesting
+  static int debugBuildCount = 0;
+
   final ConversationMessageSummary message;
   final bool isSystem;
   final MessageBubbleKind kind;
@@ -80,6 +85,10 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
 
   @override
   Widget build(BuildContext context) {
+    assert(() {
+      MessageContentWidget.debugBuildCount++;
+      return true;
+    }());
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
 

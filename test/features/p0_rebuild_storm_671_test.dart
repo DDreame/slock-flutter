@@ -13,8 +13,8 @@
 //   cause a rebuild.
 //
 // Both groups render REAL production widgets and use
-// debugOnRebuildDirtyWidget to detect actual rebuilds at the widget
-// boundary.
+// @visibleForTesting static debugBuildCount on the production widgets
+// to detect actual rebuilds at the widget boundary.
 // =============================================================================
 
 import 'package:dio/dio.dart';
@@ -45,47 +45,43 @@ class _NoOpLinkPreviewService extends LinkPreviewService {
 }
 
 /// Controllable TypingIndicatorStore for production widget tests.
+///
+/// Overrides addTyper/removeTyper/clearAll to perform state-only mutations
+/// WITHOUT allocating real Timer objects. This avoids "Timer is still pending"
+/// failures in the test harness.
 class _ControllableTypingIndicatorStore extends TypingIndicatorStore {
   @override
   TypingIndicatorState build() {
-    // Register the same disposal logic as the real store so timers
-    // are properly cleaned up when the provider is disposed.
-    ref.onDispose(() {
-      clearAll();
-    });
+    ref.onDispose(() {});
     return const TypingIndicatorState();
   }
-}
 
-// ---------------------------------------------------------------------------
-// Rebuild tracking helper
-// ---------------------------------------------------------------------------
-
-/// Tracks rebuilds of a specific widget type using debugOnRebuildDirtyWidget.
-///
-/// Only counts RE-builds (builtOnce == true), not the initial build.
-class _RebuildTracker {
-  _RebuildTracker(this._targetTypeName);
-
-  final String _targetTypeName;
-  int rebuildCount = 0;
-
-  void install() {
-    rebuildCount = 0;
-    debugOnRebuildDirtyWidget = (Element element, bool builtOnce) {
-      if (builtOnce &&
-          element.widget.runtimeType.toString() == _targetTypeName) {
-        rebuildCount++;
-      }
-    };
+  @override
+  void addTyper({
+    required String userId,
+    required String displayName,
+    Duration expiry = kTypingIndicatorExpiry,
+  }) {
+    // State-only mutation — no real Timer allocation.
+    final existing = state.activeTypers;
+    final updated = existing.where((t) => t.userId != userId).toList()
+      ..add(ActiveTyper(userId: userId, displayName: displayName));
+    state = state.copyWith(activeTypers: updated);
   }
 
-  void reset() {
-    rebuildCount = 0;
+  @override
+  void removeTyper(String userId) {
+    // State-only mutation — no timer interaction.
+    final updated =
+        state.activeTypers.where((t) => t.userId != userId).toList();
+    if (updated.length != state.activeTypers.length) {
+      state = state.copyWith(activeTypers: updated);
+    }
   }
 
-  void uninstall() {
-    debugOnRebuildDirtyWidget = null;
+  @override
+  void clearAll() {
+    state = const TypingIndicatorState();
   }
 }
 
@@ -100,14 +96,12 @@ void main() {
   group('Fix 1: MessageContentWidget rebuild isolation (production widget)',
       () {
     late ProviderContainer container;
-    late _RebuildTracker tracker;
 
     setUp(() {
-      tracker = _RebuildTracker('MessageContentWidget');
+      MessageContentWidget.debugBuildCount = 0;
     });
 
     tearDown(() {
-      tracker.uninstall();
       container.dispose();
     });
 
@@ -163,8 +157,8 @@ void main() {
         // Verify the widget is rendering with the preview data.
         expect(find.text('Page A Title'), findsOneWidget);
 
-        // --- Install tracker AFTER initial build ---
-        tracker.install();
+        // Record build count after initial render.
+        final countAfterInitial = MessageContentWidget.debugBuildCount;
 
         // Resolve URL-B (irrelevant to this widget).
         notifier.state = {
@@ -180,12 +174,14 @@ void main() {
         await tester.pump();
 
         // MessageContentWidget MUST NOT have rebuilt.
-        expect(tracker.rebuildCount, 0,
-            reason: 'Resolving an unrelated URL must not rebuild '
-                'MessageContentWidget when using .select()');
+        expect(
+          MessageContentWidget.debugBuildCount,
+          countAfterInitial,
+          reason: 'Resolving an unrelated URL must not rebuild '
+              'MessageContentWidget when using .select()',
+        );
 
         // Now update URL-A — this SHOULD trigger a rebuild.
-        tracker.reset();
         notifier.state = {
           ...notifier.state,
           urlA: const AsyncValue.data(
@@ -198,9 +194,11 @@ void main() {
         };
         await tester.pump();
 
-        expect(tracker.rebuildCount, 1,
-            reason:
-                'Updating the watched URL must trigger exactly one rebuild');
+        expect(
+          MessageContentWidget.debugBuildCount,
+          countAfterInitial + 1,
+          reason: 'Updating the watched URL must trigger exactly one rebuild',
+        );
         expect(find.text('Updated Page A'), findsOneWidget);
       },
     );
@@ -241,19 +239,21 @@ void main() {
         // Let initState microtask fire.
         await tester.pump();
 
-        // Install tracker after initial build.
-        tracker.install();
+        // Record count after initial render.
+        final countAfterInitial = MessageContentWidget.debugBuildCount;
 
         // Set URL-A to loading.
         final notifier = container.read(linkPreviewCacheProvider.notifier);
         notifier.state = {urlA: const AsyncValue<LinkMetadata?>.loading()};
         await tester.pump();
 
-        expect(tracker.rebuildCount, 1,
-            reason: 'Loading state is different from null — triggers rebuild');
+        expect(
+          MessageContentWidget.debugBuildCount,
+          countAfterInitial + 1,
+          reason: 'Loading state is different from null — triggers rebuild',
+        );
 
         // Resolve URL-A to data.
-        tracker.reset();
         notifier.state = {
           urlA: const AsyncValue.data(
             LinkMetadata(
@@ -265,8 +265,11 @@ void main() {
         };
         await tester.pump();
 
-        expect(tracker.rebuildCount, 1,
-            reason: 'Data state is different from loading — triggers rebuild');
+        expect(
+          MessageContentWidget.debugBuildCount,
+          countAfterInitial + 2,
+          reason: 'Data state is different from loading — triggers rebuild',
+        );
         expect(find.text('Resolved Title'), findsOneWidget);
       },
     );
@@ -278,17 +281,13 @@ void main() {
   group('Fix 2: TypingIndicatorWidget rebuild isolation (production widget)',
       () {
     late ProviderContainer container;
-    late _RebuildTracker tracker;
     late TypingIndicatorStore store;
 
     setUp(() {
-      tracker = _RebuildTracker('TypingIndicatorWidget');
+      TypingIndicatorWidget.debugBuildCount = 0;
     });
 
     tearDown(() {
-      tracker.uninstall();
-      // clearAll cancels all expiry timers before container disposal.
-      store.clearAll();
       container.dispose();
     });
 
@@ -326,18 +325,21 @@ void main() {
 
         expect(find.text('Alice is typing...'), findsOneWidget);
 
-        // Install tracker AFTER the first meaningful render.
-        tracker.install();
+        // Record build count after Alice is displayed.
+        final countAfterAlice = TypingIndicatorWidget.debugBuildCount;
 
         // Refresh Alice (same userId, same displayName).
-        // This mutates the store state (timer reset, new list object)
-        // but displayText remains "Alice is typing...".
+        // This mutates the store state (new list object) but displayText
+        // remains "Alice is typing..." — .select() should suppress rebuild.
         store.addTyper(userId: 'u1', displayName: 'Alice');
         await tester.pump();
 
-        expect(tracker.rebuildCount, 0,
-            reason: 'Refreshing the same typer does not change displayText — '
-                'widget must not rebuild when using .select()');
+        expect(
+          TypingIndicatorWidget.debugBuildCount,
+          countAfterAlice,
+          reason: 'Refreshing the same typer does not change displayText — '
+              'widget must not rebuild when using .select()',
+        );
 
         // Verify the display is still correct.
         expect(find.text('Alice is typing...'), findsOneWidget);
@@ -374,17 +376,20 @@ void main() {
         await tester.pump();
         expect(find.text('Alice is typing...'), findsOneWidget);
 
-        // Install tracker.
-        tracker.install();
+        // Record count.
+        final countAfterAlice = TypingIndicatorWidget.debugBuildCount;
 
         // Add Bob — displayText changes from "Alice is typing..." to
         // "Alice and Bob are typing..."
         store.addTyper(userId: 'u2', displayName: 'Bob');
         await tester.pump();
 
-        expect(tracker.rebuildCount, 1,
-            reason: 'Adding a second typer changes displayText — widget must '
-                'rebuild');
+        expect(
+          TypingIndicatorWidget.debugBuildCount,
+          countAfterAlice + 1,
+          reason: 'Adding a second typer changes displayText — widget must '
+              'rebuild',
+        );
         expect(find.text('Alice and Bob are typing...'), findsOneWidget);
       },
     );
@@ -419,16 +424,19 @@ void main() {
         await tester.pump();
         expect(find.text('Alice is typing...'), findsOneWidget);
 
-        // Install tracker.
-        tracker.install();
+        // Record count.
+        final countAfterAlice = TypingIndicatorWidget.debugBuildCount;
 
         // Remove Alice — displayText changes from "Alice is typing..." to null.
         store.removeTyper('u1');
         await tester.pump();
 
-        expect(tracker.rebuildCount, 1,
-            reason: 'Removing the last typer changes displayText to null — '
-                'widget must rebuild');
+        expect(
+          TypingIndicatorWidget.debugBuildCount,
+          countAfterAlice + 1,
+          reason: 'Removing the last typer changes displayText to null — '
+              'widget must rebuild',
+        );
         expect(find.byKey(const ValueKey('typing-indicator')), findsNothing);
       },
     );
