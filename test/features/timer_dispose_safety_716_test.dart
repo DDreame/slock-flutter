@@ -51,70 +51,153 @@ void main() {
     });
   });
 
-  group('#716B — P2: ConversationDetailSendMixin Timer dispose guard', () {
-    // This tests the pattern rather than the full store (which requires
-    // extensive setup). The fix adds a _sendMixinDisposed guard to the
-    // Timer callback. The ConversationDetailStore is too complex to unit
-    // test in isolation without RuntimeAppFixture, so we verify the
-    // pattern via C (same guard pattern).
-    test('Timer callback is guarded by _sendMixinDisposed flag (compiles)',
-        () async {
-      // This test confirms the fix compiles and the pattern is sound.
-      // The actual runtime protection is verified by the typing indicator
-      // test (same pattern) and by CI integration tests.
-      expect(true, isTrue);
+  group('#716B — P2: _disposed guard prevents StateError on Timer fire', () {
+    // The ConversationDetailSendMixin's _sendMixinDisposed guard uses the
+    // same pattern as ListTypingIndicatorNotifier's _disposed guard: a bool
+    // flag checked at the top of a Timer callback to prevent ref.read/state
+    // mutation after disposal. We prove the pattern works with a minimal
+    // Notifier that replicates the exact behavior:
+    //   1. Starts a Timer that mutates state on fire.
+    //   2. onDispose sets _disposed = true (but does NOT cancel the timer,
+    //      simulating the race window the guard protects against).
+    //   3. Timer fires after disposal → guard prevents StateError.
+
+    test(
+        'Timer callback guarded by _disposed flag is no-op after disposal '
+        '(pattern proof for send mixin + typing indicator)', () {
+      fakeAsync((async) {
+        final container = ProviderContainer();
+        final sub = container.listen(_disposedGuardPatternProvider, (_, __) {});
+
+        final notifier = container.read(_disposedGuardPatternProvider.notifier);
+
+        // Start a 2-second timer that will attempt to set state.
+        notifier.startTimer();
+
+        // Verify timer hasn't fired yet.
+        expect(container.read(_disposedGuardPatternProvider), 0);
+
+        // Close subscription → disposal scheduled on next microtask.
+        sub.close();
+        // Flush microtasks → onDispose runs, sets _disposed = true.
+        // NOTE: Timer is intentionally NOT cancelled in onDispose to
+        // simulate the race window.
+        async.flushMicrotasks();
+
+        // Advance time past the 2-second timer. Without the _disposed
+        // guard, this would throw StateError (setting state on disposed
+        // notifier). With the guard, it's a no-op.
+        async.elapse(const Duration(seconds: 3));
+
+        // If we get here, the _disposed guard prevented the crash.
+        // Also verify state was NOT mutated (guard returned early).
+        expect(notifier.timerFiredAfterDispose, isTrue,
+            reason: 'Timer DID fire (proving test exercises the path)');
+        expect(notifier.stateMutationAttempted, isFalse,
+            reason: 'Guard prevented state mutation');
+
+        container.dispose();
+      });
     });
   });
 
-  group('#716C — P2: ListTypingIndicatorNotifier Timer dispose guard', () {
-    test('timer fires after dispose — no error thrown', () async {
-      final container = ProviderContainer();
-      // Keep provider alive long enough to add a typer.
-      final sub = container.listen(
-          listTypingIndicatorStoreProvider('ch-1'), (_, __) {});
+  group('#716C — P2: ListTypingIndicatorNotifier dispose guards', () {
+    test('addTyper after full disposal is no-op — no StateError', () {
+      fakeAsync((async) {
+        final container = ProviderContainer();
+        final sub = container.listen(
+            listTypingIndicatorStoreProvider('ch-1'), (_, __) {});
 
-      final notifier =
-          container.read(listTypingIndicatorStoreProvider('ch-1').notifier);
-      notifier.addTyper(userId: 'user-1', displayName: 'Alice');
+        final notifier =
+            container.read(listTypingIndicatorStoreProvider('ch-1').notifier);
 
-      // Verify typing is active.
-      final stateBeforeDispose =
-          container.read(listTypingIndicatorStoreProvider('ch-1'));
-      expect(stateBeforeDispose.isActive, isTrue);
+        // Add a typer to prove the provider works before disposal.
+        notifier.addTyper(userId: 'user-1', displayName: 'Alice');
+        expect(
+            container.read(listTypingIndicatorStoreProvider('ch-1')).isActive,
+            isTrue);
 
-      // Dispose — simulates rapid scroll removing the widget.
-      sub.close();
-      // Force disposal of the auto-dispose provider.
-      await Future<void>.delayed(Duration.zero);
+        // Close subscription → disposal on next microtask.
+        sub.close();
+        // Flush microtasks → onDispose runs: _disposed = true, timers
+        // cancelled, maps cleared.
+        async.flushMicrotasks();
 
-      // The 5-second timer is still pending. When it fires, it should not
-      // throw a StateError. We can't easily advance time here, but we can
-      // verify that the dispose happened cleanly.
-      // The real protection is the _disposed guard in the timer callback.
-      container.dispose();
+        // Calling addTyper on the disposed notifier. Without the
+        // `if (_disposed) return;` guard, this would reach
+        // `state = ListTypingIndicatorState(...)` which throws
+        // StateError on a disposed AutoDisposeNotifier.
+        notifier.addTyper(userId: 'user-2', displayName: 'Bob');
 
-      // No exception = test passes.
+        // Advance time to prove any timer created by addTyper (which
+        // shouldn't happen due to early return) doesn't fire.
+        async.elapse(const Duration(seconds: 6));
+
+        container.dispose();
+        // No exception = _disposed guard in addTyper() works.
+      });
     });
 
-    test('addTyper after dispose does not crash', () async {
-      final container = ProviderContainer();
-      final sub = container.listen(
-          listTypingIndicatorStoreProvider('ch-2'), (_, __) {});
+    test('removeTyper after disposal is safe — no StateError', () {
+      fakeAsync((async) {
+        final container = ProviderContainer();
+        final sub = container.listen(
+            listTypingIndicatorStoreProvider('ch-2'), (_, __) {});
 
-      final notifier =
-          container.read(listTypingIndicatorStoreProvider('ch-2').notifier);
+        final notifier =
+            container.read(listTypingIndicatorStoreProvider('ch-2').notifier);
+        notifier.addTyper(userId: 'user-1', displayName: 'Alice');
 
-      sub.close();
-      await Future<void>.delayed(Duration.zero);
+        sub.close();
+        async.flushMicrotasks();
 
-      // Calling addTyper on a disposed notifier should be guarded.
-      // With the _disposed flag, this becomes a no-op.
-      notifier.addTyper(userId: 'user-1', displayName: 'Alice');
+        // removeTyper on disposed notifier — would throw if state is set.
+        notifier.removeTyper('user-1');
 
-      container.dispose();
-      // No exception = test passes.
+        container.dispose();
+      });
     });
   });
+}
+
+// ---------------------------------------------------------------------------
+// Pattern test notifier — reproduces the exact _disposed guard pattern used
+// in ConversationDetailSendMixin and ListTypingIndicatorNotifier.
+// ---------------------------------------------------------------------------
+
+final _disposedGuardPatternProvider =
+    NotifierProvider.autoDispose<_DisposedGuardPatternNotifier, int>(
+  _DisposedGuardPatternNotifier.new,
+);
+
+class _DisposedGuardPatternNotifier extends AutoDisposeNotifier<int> {
+  bool _disposed = false;
+  bool timerFiredAfterDispose = false;
+  bool stateMutationAttempted = false;
+
+  @override
+  int build() {
+    ref.onDispose(() {
+      _disposed = true;
+      // NOTE: Intentionally NOT cancelling the timer here to simulate the
+      // race condition the _disposed guard protects against. In production,
+      // timers ARE cancelled in onDispose, but the guard is defense-in-depth
+      // for edge cases (e.g., timer fires in the same event loop iteration).
+    });
+    return 0;
+  }
+
+  void startTimer() {
+    Timer(const Duration(seconds: 2), () {
+      if (_disposed) {
+        // Guard fired — record that the timer DID execute but was blocked.
+        timerFiredAfterDispose = true;
+        return;
+      }
+      stateMutationAttempted = true;
+      state = state + 1;
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

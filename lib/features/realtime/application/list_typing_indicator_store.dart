@@ -100,6 +100,8 @@ class ListTypingIndicatorNotifier
 
   /// Remove a specific user's typing indicator.
   void removeTyper(String userId) {
+    if (_disposed) return;
+
     _timers[userId]?.cancel();
     _timers.remove(userId);
     _typers.remove(userId);
