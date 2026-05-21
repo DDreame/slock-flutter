@@ -17,10 +17,7 @@ class TypingIndicatorWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    assert(() {
-      debugBuildCount++;
-      return true;
-    }());
+    debugBuildCount++;
     final displayText = ref.watch(
       typingIndicatorStoreProvider.select((s) => s.displayText),
     );

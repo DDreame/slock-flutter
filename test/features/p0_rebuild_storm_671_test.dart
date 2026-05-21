@@ -157,6 +157,10 @@ void main() {
         // Verify the widget is rendering with the preview data.
         expect(find.text('Page A Title'), findsOneWidget);
 
+        // Sanity check: counter incremented during initial builds.
+        expect(MessageContentWidget.debugBuildCount, greaterThan(0),
+            reason: 'Widget must have built at least once');
+
         // Record build count after initial render.
         final countAfterInitial = MessageContentWidget.debugBuildCount;
 
@@ -239,6 +243,10 @@ void main() {
         // Let initState microtask fire.
         await tester.pump();
 
+        // Sanity check: counter incremented during initial builds.
+        expect(MessageContentWidget.debugBuildCount, greaterThan(0),
+            reason: 'Widget must have built at least once');
+
         // Record count after initial render.
         final countAfterInitial = MessageContentWidget.debugBuildCount;
 
@@ -315,6 +323,10 @@ void main() {
         );
         await tester.pump();
 
+        // Sanity check: counter incremented during initial builds.
+        expect(TypingIndicatorWidget.debugBuildCount, greaterThan(0),
+            reason: 'Widget must have built at least once');
+
         // Initially hidden (no typers).
         expect(find.byKey(const ValueKey('typing-indicator')), findsNothing);
 
@@ -327,6 +339,8 @@ void main() {
 
         // Record build count after Alice is displayed.
         final countAfterAlice = TypingIndicatorWidget.debugBuildCount;
+        expect(countAfterAlice, greaterThan(1),
+            reason: 'Adding Alice must have triggered at least one rebuild');
 
         // Refresh Alice (same userId, same displayName).
         // This mutates the store state (new list object) but displayText

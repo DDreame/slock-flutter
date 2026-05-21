@@ -85,10 +85,7 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
 
   @override
   Widget build(BuildContext context) {
-    assert(() {
-      MessageContentWidget.debugBuildCount++;
-      return true;
-    }());
+    MessageContentWidget.debugBuildCount++;
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
 
