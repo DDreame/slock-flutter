@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+
+AppLocalizations _conversationL10n(BuildContext context) =>
+    AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
 
 /// Shows a modal bottom sheet with message context menu actions.
 ///
@@ -29,6 +33,7 @@ void showMessageContextMenu({
   VoidCallback? onTranslate,
   VoidCallback? onSelect,
 }) {
+  final l10n = _conversationL10n(context);
   showModalBottomSheet<void>(
     context: context,
     builder: (_) => SafeArea(
@@ -40,7 +45,7 @@ void showMessageContextMenu({
               ListTile(
                 key: const ValueKey('ctx-action-edit'),
                 leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit message'),
+                title: Text(l10n.conversationContextEditMessage),
                 onTap: () {
                   Navigator.of(context).pop();
                   onEdit();
@@ -49,7 +54,7 @@ void showMessageContextMenu({
             ListTile(
               key: const ValueKey('ctx-action-reply'),
               leading: const Icon(Icons.reply_outlined),
-              title: const Text('Reply'),
+              title: Text(l10n.conversationContextReply),
               onTap: () {
                 Navigator.of(context).pop();
                 onReply();
@@ -59,7 +64,7 @@ void showMessageContextMenu({
               ListTile(
                 key: const ValueKey('ctx-action-select'),
                 leading: const Icon(Icons.checklist_outlined),
-                title: const Text('Select'),
+                title: Text(l10n.conversationContextSelect),
                 onTap: () {
                   Navigator.of(context).pop();
                   onSelect();
@@ -68,7 +73,7 @@ void showMessageContextMenu({
             ListTile(
               key: const ValueKey('ctx-action-react'),
               leading: const Icon(Icons.emoji_emotions_outlined),
-              title: const Text('React'),
+              title: Text(l10n.conversationContextReact),
               onTap: () {
                 Navigator.of(context).pop();
                 onReact();
@@ -78,7 +83,7 @@ void showMessageContextMenu({
               ListTile(
                 key: const ValueKey('ctx-action-translate'),
                 leading: const Icon(Icons.translate),
-                title: const Text('Translate'),
+                title: Text(l10n.conversationContextTranslate),
                 onTap: () {
                   Navigator.of(context).pop();
                   onTranslate();
@@ -87,7 +92,7 @@ void showMessageContextMenu({
             ListTile(
               key: const ValueKey('ctx-action-copy'),
               leading: const Icon(Icons.copy_outlined),
-              title: const Text('Copy text'),
+              title: Text(l10n.conversationContextCopyText),
               onTap: () {
                 Navigator.of(context).pop();
                 onCopy();
@@ -96,7 +101,7 @@ void showMessageContextMenu({
             ListTile(
               key: const ValueKey('ctx-action-forward'),
               leading: const Icon(Icons.shortcut_outlined),
-              title: const Text('Forward'),
+              title: Text(l10n.conversationContextForward),
               onTap: () {
                 Navigator.of(context).pop();
                 onForward();
@@ -106,7 +111,9 @@ void showMessageContextMenu({
               key: const ValueKey('ctx-action-save'),
               leading:
                   Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
-              title: Text(isSaved ? 'Unsave message' : 'Save message'),
+              title: Text(isSaved
+                  ? l10n.conversationContextUnsaveMessage
+                  : l10n.conversationContextSaveMessage),
               onTap: () {
                 Navigator.of(context).pop();
                 onSave();
@@ -116,7 +123,9 @@ void showMessageContextMenu({
               key: const ValueKey('ctx-action-pin'),
               leading: Icon(
                   message.isPinned ? Icons.push_pin : Icons.push_pin_outlined),
-              title: Text(message.isPinned ? 'Unpin message' : 'Pin message'),
+              title: Text(message.isPinned
+                  ? l10n.conversationContextUnpinMessage
+                  : l10n.conversationContextPinMessage),
               onTap: () {
                 Navigator.of(context).pop();
                 onPin();
@@ -126,7 +135,7 @@ void showMessageContextMenu({
               ListTile(
                 key: const ValueKey('ctx-action-reply-thread'),
                 leading: const Icon(Icons.forum_outlined),
-                title: const Text('Reply in thread'),
+                title: Text(l10n.conversationContextReplyInThread),
                 onTap: () {
                   Navigator.of(context).pop();
                   onReplyInThread();
@@ -136,7 +145,7 @@ void showMessageContextMenu({
               ListTile(
                 key: const ValueKey('ctx-action-create-task'),
                 leading: const Icon(Icons.task_alt),
-                title: const Text('Create task'),
+                title: Text(l10n.conversationContextCreateTask),
                 onTap: () {
                   Navigator.of(context).pop();
                   onCreateTask();
@@ -146,7 +155,7 @@ void showMessageContextMenu({
               ListTile(
                 key: const ValueKey('ctx-action-delete'),
                 leading: const Icon(Icons.delete_outline),
-                title: const Text('Delete message'),
+                title: Text(l10n.conversationContextDeleteMessage),
                 onTap: () {
                   Navigator.of(context).pop();
                   onDelete();

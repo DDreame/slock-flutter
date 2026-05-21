@@ -31,6 +31,10 @@ import 'package:slock_app/features/translation/application/translation_settings_
 import 'package:slock_app/features/translation/data/translation_settings.dart';
 import 'package:slock_app/features/translation/presentation/widgets/translated_content_overlay.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+
+AppLocalizations _conversationL10n(BuildContext context) =>
+    AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
 
 /// Precise timestamp label shown below a message bubble when tapped.
 /// Displays the full date and time in HH:mm:ss format.
@@ -276,7 +280,7 @@ class ConversationMessageCardState
         child: Align(
           alignment: Alignment.center,
           child: Text(
-            '[Message deleted]',
+            _conversationL10n(context).conversationMessageDeletedPlaceholder,
             style: AppTypography.body.copyWith(
               color: colors.textSecondary,
               fontStyle: FontStyle.italic,
@@ -759,7 +763,8 @@ class ConversationMessageCardState
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to add reaction.'),
+            content: Text(failure.message ??
+                _conversationL10n(context).conversationReactionFailedFallback),
           ),
         );
     }
@@ -961,7 +966,8 @@ class ConversationMessageCardState
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to add reaction.'),
+            content: Text(failure.message ??
+                _conversationL10n(context).conversationReactionFailedFallback),
           ),
         );
     }
@@ -985,17 +991,21 @@ class ConversationMessageCardState
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('Delete message?'),
-            content: const Text('This message will be permanently deleted.'),
+            title:
+                Text(_conversationL10n(context).conversationDeleteDialogTitle),
+            content: Text(
+                _conversationL10n(context).conversationDeleteDialogContent),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: Text(
+                    _conversationL10n(context).conversationDeleteDialogCancel),
               ),
               TextButton(
                 key: const ValueKey('delete-message-confirm'),
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Delete'),
+                child: Text(
+                    _conversationL10n(context).conversationDeleteDialogConfirm),
               ),
             ],
           ),
@@ -1011,14 +1021,17 @@ class ConversationMessageCardState
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Message deleted.')));
+        ..showSnackBar(SnackBar(
+            content:
+                Text(_conversationL10n(context).conversationDeleteSuccess)));
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to delete message.'),
+            content: Text(failure.message ??
+                _conversationL10n(context).conversationDeleteFailedFallback),
           ),
         );
     }
@@ -1133,19 +1146,19 @@ Future<void> _confirmAndLaunchUrl(BuildContext context, String? href) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Open Link'),
+      title: Text(_conversationL10n(context).conversationOpenLinkTitle),
       content: Text(
-        'Open $href?',
+        _conversationL10n(context).conversationOpenLinkContent(href),
         style: TextStyle(color: colors.textSecondary),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Cancel'),
+          child: Text(_conversationL10n(context).conversationOpenLinkCancel),
         ),
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Open'),
+          child: Text(_conversationL10n(context).conversationOpenLinkConfirm),
         ),
       ],
     ),

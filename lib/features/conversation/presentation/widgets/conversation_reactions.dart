@@ -6,6 +6,10 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+
+AppLocalizations _conversationL10n(BuildContext context) =>
+    AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
 
 class EditMessageDialog extends StatefulWidget {
   const EditMessageDialog({
@@ -49,7 +53,8 @@ class _EditMessageDialogState extends State<EditMessageDialog> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Message edited.')));
+        ..showSnackBar(SnackBar(
+            content: Text(_conversationL10n(context).conversationEditSuccess)));
     } on AppFailure catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -57,7 +62,8 @@ class _EditMessageDialogState extends State<EditMessageDialog> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(e.message ?? 'Failed to edit message.'),
+            content: Text(e.message ??
+                _conversationL10n(context).conversationEditFailedFallback),
           ),
         );
     }
@@ -73,7 +79,7 @@ class _EditMessageDialogState extends State<EditMessageDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       key: const ValueKey('edit-message-dialog'),
-      title: const Text('Edit message'),
+      title: Text(_conversationL10n(context).conversationEditDialogTitle),
       content: TextField(
         key: const ValueKey('edit-message-field'),
         controller: _controller,
@@ -86,12 +92,12 @@ class _EditMessageDialogState extends State<EditMessageDialog> {
         TextButton(
           key: const ValueKey('edit-message-cancel'),
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(_conversationL10n(context).conversationEditDialogCancel),
         ),
         TextButton(
           key: const ValueKey('edit-message-save'),
           onPressed: _hasChanged && !_saving ? _onSave : null,
-          child: const Text('Save'),
+          child: Text(_conversationL10n(context).conversationEditDialogSave),
         ),
       ],
     );
@@ -134,10 +140,10 @@ class EmojiPickerSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(bottom: AppSpacing.sm),
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: Text(
-                'React with emoji',
+                _conversationL10n(context).conversationReactWithEmojiTitle,
                 style: AppTypography.title,
               ),
             ),
@@ -149,7 +155,8 @@ class EmojiPickerSheet extends StatelessWidget {
                   container: true,
                   excludeSemantics: true,
                   button: true,
-                  label: 'React with $emoji',
+                  label: _conversationL10n(context)
+                      .conversationReactWithEmojiSemantics(emoji),
                   onTap: () => Navigator.of(context).pop(emoji),
                   child: InkWell(
                     key: ValueKey('emoji-$emoji'),
@@ -249,7 +256,9 @@ class _ReactionChip extends ConsumerWidget {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to update reaction.'),
+            content: Text(failure.message ??
+                _conversationL10n(context)
+                    .conversationReactionUpdateFailedFallback),
           ),
         );
     }

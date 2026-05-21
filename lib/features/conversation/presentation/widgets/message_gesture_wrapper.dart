@@ -4,6 +4,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+
+AppLocalizations _conversationL10n(BuildContext context) =>
+    AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
 
 /// Minimum horizontal displacement (in logical pixels) required to trigger
 /// a swipe-to-reply.
@@ -252,16 +256,18 @@ class _MessageGestureWrapperState extends State<MessageGestureWrapper>
       );
     }
 
+    final l10n = _conversationL10n(context);
     return Semantics(
       container: true,
       button: true,
-      label: 'Message actions',
+      label: l10n.conversationMessageActionsSemantics,
       customSemanticsActions: <CustomSemanticsAction, VoidCallback>{
         if (widget.onLongPress != null)
-          const CustomSemanticsAction(label: 'Show message menu'):
-              _handleLongPress,
+          CustomSemanticsAction(
+            label: l10n.conversationShowMessageMenuSemantics,
+          ): _handleLongPress,
         if (widget.enableSwipeReply)
-          const CustomSemanticsAction(label: 'Reply'): () {
+          CustomSemanticsAction(label: l10n.conversationReplySemantics): () {
             widget.onSwipeReply?.call();
           },
       },
