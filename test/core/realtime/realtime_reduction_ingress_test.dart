@@ -133,4 +133,29 @@ void main() {
     expect(accepted, isTrue);
     expect(acceptedEvents, hasLength(1));
   });
+
+  test('dispose closes acceptedEvents and clears tracked sequence state',
+      () async {
+    final ingress = RealtimeReductionIngress();
+    ingress.accept(
+      RealtimeEventEnvelope(
+        eventType: 'message.created',
+        scopeKey: 'server:1/channel:2',
+        seq: 10,
+        payload: const {'id': 'm1'},
+        receivedAt: DateTime(2026),
+      ),
+    );
+
+    expect(ingress.lastSeqByScope, isNotEmpty);
+
+    await ingress.dispose();
+
+    expect(ingress.lastSeqByScope, isEmpty);
+    expect(ingress.acceptedEvents.isBroadcast, isTrue);
+    expect(
+      ingress.acceptedEvents.isEmpty,
+      completion(isTrue),
+    );
+  });
 }

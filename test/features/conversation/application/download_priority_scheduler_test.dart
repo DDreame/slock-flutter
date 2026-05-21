@@ -313,6 +313,41 @@ void main() {
       },
     );
 
+    test(
+      'cancelled in-flight download can be re-enqueued with same id (#710)',
+      () async {
+        final downloader = FakeDownloader();
+        final container = ProviderContainer(
+          overrides: [
+            downloadSchedulerProvider
+                .overrideWith(() => DownloadPriorityScheduler()),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final sub = container.listen(downloadSchedulerProvider, (_, __) {});
+        addTearDown(sub.close);
+
+        final scheduler = container.read(downloadSchedulerProvider.notifier);
+        final first = downloader.createCancellableDownload('retry');
+        scheduler.enqueue('retry', first.download, onCancel: first.onCancel);
+        scheduler.onVisibilityChanged('retry', true);
+        await Future<void>.delayed(Duration.zero);
+
+        scheduler.onVisibilityChanged('retry', false);
+        await Future<void>.delayed(Duration.zero);
+
+        final second = downloader.createCancellableDownload('retry');
+        scheduler.enqueue('retry', second.download, onCancel: second.onCancel);
+        scheduler.onVisibilityChanged('retry', true);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(downloader.startOrder, ['retry', 'retry']);
+
+        downloader.completeAll();
+      },
+    );
+
     // T6: Integration — ConversationDetailPage wiring
     testWidgets(
       'ConversationDetailPage wires attachment downloads to scheduler',

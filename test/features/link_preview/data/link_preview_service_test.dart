@@ -258,6 +258,19 @@ void main() {
         throwsA(isA<DioException>()),
       );
     });
+
+    test(
+        'fetchMetadata drains stream before returning null on non-200 response',
+        () async {
+      final body = _DrainTrackingResponseBody(statusCode: 404);
+      final service = LinkPreviewService(dio: _createResponseDio(body));
+
+      final meta = await service.fetchMetadata('https://example.com/missing');
+
+      expect(meta, isNull);
+      expect(body.wasListened, isTrue);
+      expect(body.wasDrained, isTrue);
+    });
   });
 }
 
@@ -352,4 +365,57 @@ class _ChunkedMockAdapter implements HttpClientAdapter {
 
   @override
   void close({bool force = false}) {}
+}
+
+Dio _createResponseDio(ResponseBody body) {
+  final dio = Dio(
+    BaseOptions(validateStatus: (_) => true),
+  );
+  dio.httpClientAdapter = _ResponseAdapter(body);
+  return dio;
+}
+
+class _ResponseAdapter implements HttpClientAdapter {
+  _ResponseAdapter(this.body);
+
+  final ResponseBody body;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return body;
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _DrainTrackingResponseBody extends ResponseBody {
+  _DrainTrackingResponseBody({required int statusCode})
+      : super(
+          _trackingStream(),
+          statusCode,
+          headers: {
+            'content-type': ['text/html; charset=utf-8'],
+          },
+        );
+
+  bool wasListened = false;
+  bool wasDrained = false;
+
+  static Stream<Uint8List> _trackingStream() async* {
+    yield Uint8List.fromList(utf8.encode('<html></html>'));
+  }
+
+  @override
+  Stream<Uint8List> get stream {
+    wasListened = true;
+    return super.stream.map((chunk) {
+      wasDrained = true;
+      return Uint8List.fromList(chunk);
+    });
+  }
 }
