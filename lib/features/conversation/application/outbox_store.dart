@@ -334,6 +334,19 @@ class OutboxStore extends Notifier<OutboxState> {
     }
   }
 
+  /// Clear all outbox items (memory + persistence).
+  ///
+  /// Called during logout to prevent previous user's queued messages from
+  /// draining under the next user's session.
+  void clearAll() {
+    state = const OutboxState();
+    try {
+      ref.read(sharedPreferencesProvider).remove(_prefsKey);
+    } catch (_) {
+      // Best-effort; ignore failures during cleanup.
+    }
+  }
+
   void _removeItem(String targetKey, String localId) {
     final current = Map<String, List<OutboxMessage>>.from(state.items);
     final list = current[targetKey];
