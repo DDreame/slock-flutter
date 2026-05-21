@@ -7,7 +7,7 @@ import 'package:slock_app/features/agents/application/agents_state.dart';
 import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
-import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
+import 'package:slock_app/features/channels/application/channel_member_store.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
@@ -185,12 +185,9 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
   Future<void> _addHuman(MemberProfile human) async {
     setState(() => _addingIds.add(human.id));
     try {
-      final repo = ref.read(channelMemberRepositoryProvider);
-      await repo.addHumanMember(
-        ServerScopeId(widget.serverId),
-        channelId: widget.channelId,
-        userId: human.id,
-      );
+      await ref.read(channelMemberStoreProvider.notifier).addHumanMember(
+            human.id,
+          );
       _added = true;
       if (mounted) {
         setState(() {
@@ -212,12 +209,9 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
   Future<void> _addAgent(AgentItem agent) async {
     setState(() => _addingIds.add(agent.id));
     try {
-      final repo = ref.read(channelMemberRepositoryProvider);
-      await repo.addAgentMember(
-        ServerScopeId(widget.serverId),
-        channelId: widget.channelId,
-        agentId: agent.id,
-      );
+      await ref.read(channelMemberStoreProvider.notifier).addAgentMember(
+            agent.id,
+          );
       _added = true;
       if (mounted) {
         setState(() {

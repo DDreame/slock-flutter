@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
+import 'package:slock_app/features/channels/application/channel_member_store.dart';
+import 'package:slock_app/features/channels/presentation/widgets/add_member_dialog.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository.dart';
@@ -127,6 +132,56 @@ void main() {
     expect(find.text('Alice'), findsOneWidget);
   });
 
+  testWidgets(
+      'add member dialog refreshes ChannelMemberStore after success (#715)',
+      (tester) async {
+    final channelMemberRepository = _FakeChannelMemberRepository(members: []);
+    final memberRepository = _FakeMemberRepository(
+      members: const [
+        MemberProfile(id: 'user-2', displayName: 'Bob'),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sessionStoreProvider.overrideWith(() {
+            return _FakeSessionStore(
+              const SessionState(
+                status: AuthStatus.authenticated,
+                userId: 'current-user',
+              ),
+            );
+          }),
+          currentChannelMemberServerIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
+          currentChannelMemberChannelIdProvider.overrideWithValue('channel-1'),
+          channelMemberRepositoryProvider
+              .overrideWithValue(channelMemberRepository),
+          memberRepositoryProvider.overrideWithValue(memberRepository),
+          agentsRepositoryProvider.overrideWithValue(_FakeAgentsRepository()),
+          agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(
+            body: AddMemberDialog(
+              serverId: 'server-1',
+              channelId: 'channel-1',
+              existingMembers: [],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.add_circle_outline));
+    await tester.pumpAndSettle();
+
+    expect(channelMemberRepository.addedHumanUserIds, ['user-2']);
+    expect(channelMemberRepository.listCallCount, 1);
+  });
+
   group('message action', () {
     testWidgets('shows message icon for non-self human members',
         (tester) async {
@@ -229,15 +284,19 @@ class _FakeSessionStore extends SessionStore {
 }
 
 class _FakeChannelMemberRepository implements ChannelMemberRepository {
-  _FakeChannelMemberRepository({required this.members});
+  _FakeChannelMemberRepository({required List<ChannelMember> members})
+      : members = List<ChannelMember>.of(members);
 
   final List<ChannelMember> members;
+  final List<String> addedHumanUserIds = [];
+  int listCallCount = 0;
 
   @override
   Future<List<ChannelMember>> listMembers(
     ServerScopeId serverId, {
     required String channelId,
   }) async {
+    listCallCount += 1;
     return members;
   }
 
@@ -246,7 +305,15 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
     ServerScopeId serverId, {
     required String channelId,
     required String userId,
-  }) async {}
+  }) async {
+    addedHumanUserIds.add(userId);
+    members.add(ChannelMember(
+      id: 'member-$userId',
+      channelId: channelId,
+      userId: userId,
+      userName: userId,
+    ));
+  }
 
   @override
   Future<void> addAgentMember(
@@ -271,10 +338,14 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
 }
 
 class _FakeMemberRepository implements MemberRepository {
+  _FakeMemberRepository({this.members = const []});
+
+  final List<MemberProfile> members;
   final List<String> openedDmUserIds = [];
 
   @override
-  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async => [];
+  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async =>
+      members;
 
   @override
   Future<String> createInvite(ServerScopeId serverId) async => 'invite';
@@ -307,4 +378,25 @@ class _FakeMemberRepository implements MemberRepository {
     required String agentId,
   }) async =>
       'dm-agent-$agentId';
+}
+
+class _FakeAgentsRepository implements AgentsRepository {
+  @override
+  Future<List<AgentItem>> listAgents() async => const [];
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
 }
