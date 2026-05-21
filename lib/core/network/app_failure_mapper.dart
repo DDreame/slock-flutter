@@ -120,6 +120,27 @@ class AppFailureMapper {
           requestId: requestId,
           causeType: causeType,
         );
+      case 408:
+        return TimeoutFailure(
+          message: message,
+          statusCode: statusCode,
+          requestId: requestId,
+          causeType: causeType,
+        );
+      case 409:
+        return ConflictFailure(
+          message: message,
+          statusCode: statusCode,
+          requestId: requestId,
+          causeType: causeType,
+        );
+      case 422:
+        return ValidationFailure(
+          message: message,
+          statusCode: statusCode,
+          requestId: requestId,
+          causeType: causeType,
+        );
       case 429:
         return RateLimitFailure(
           message: message,
