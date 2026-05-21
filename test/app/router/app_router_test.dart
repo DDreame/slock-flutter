@@ -1487,6 +1487,9 @@ void main() {
           splashControllerProvider.overrideWith(
             () => _StallingSplashController(),
           ),
+          serverListRepositoryProvider.overrideWithValue(
+            _FakeServerListRepository(['server-1']),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -1494,6 +1497,7 @@ void main() {
       await container
           .read(sessionStoreProvider.notifier)
           .login(email: 'a@b.com', password: 'p');
+      await container.read(serverListStoreProvider.notifier).load();
       container.read(appReadyProvider.notifier).state = true;
 
       final router = container.read(appRouterProvider);
@@ -1599,6 +1603,9 @@ void main() {
           splashControllerProvider.overrideWith(
             () => _StallingSplashController(),
           ),
+          serverListRepositoryProvider.overrideWithValue(
+            _FakeServerListRepository(['s1']),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -1606,6 +1613,7 @@ void main() {
       await container
           .read(sessionStoreProvider.notifier)
           .login(email: 'a@b.com', password: 'p');
+      await container.read(serverListStoreProvider.notifier).load();
       container.read(appReadyProvider.notifier).state = true;
 
       final router = container.read(appRouterProvider);
@@ -1711,6 +1719,9 @@ void main() {
           splashControllerProvider.overrideWith(
             () => _StallingSplashController(),
           ),
+          serverListRepositoryProvider.overrideWithValue(
+            _FakeServerListRepository(['s1']),
+          ),
         ],
       );
       addTearDown(container.dispose);
@@ -1718,6 +1729,7 @@ void main() {
       await container
           .read(sessionStoreProvider.notifier)
           .login(email: 'a@b.com', password: 'p');
+      await container.read(serverListStoreProvider.notifier).load();
       container.read(appReadyProvider.notifier).state = true;
 
       final router = container.read(appRouterProvider);

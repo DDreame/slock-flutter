@@ -576,6 +576,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         });
       }
     } else if (isNotificationDeepLink(next)) {
+      final serverId = extractDeepLinkServerId(next);
+      if (serverId != null) {
+        final servers = ref.read(serverListStoreProvider).servers;
+        if (!servers.any((s) => s.id == serverId)) return;
+      }
       // Push onto existing stack so back returns to the previous
       // in-app screen instead of wiping the navigation stack.
       WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -126,6 +126,53 @@ void main() {
         expect(router.routeInformationProvider.value.uri.path, '/home');
       },
     );
+
+    testWidgets(
+      'runtime notification tap for non-member server is rejected on /home',
+      (tester) async {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            splashControllerProvider
+                .overrideWith(() => _StallingSplashController()),
+            serverListRepositoryProvider.overrideWithValue(
+              _FakeServerListRepository(['server-1']),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        await container.read(serverListStoreProvider.notifier).load();
+        container.read(appReadyProvider.notifier).state = true;
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(router.routeInformationProvider.value.uri.path, '/home');
+
+        // Simulate a notification tap for a server the user has left.
+        // This goes through the runtime listener path (app_router.dart:557).
+        container.read(pendingDeepLinkProvider.notifier).state =
+            '/servers/left-server/agents/a1';
+        await tester.pumpAndSettle();
+
+        // Should reject — user is not a member of 'left-server'
+        expect(container.read(pendingDeepLinkProvider), isNull);
+        expect(router.routeInformationProvider.value.uri.path, '/home');
+      },
+    );
   });
 
   group('#680 — voice store reset on dispose', () {
