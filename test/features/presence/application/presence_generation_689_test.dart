@@ -84,31 +84,32 @@ void main() {
       expect(container.read(presenceStoreProvider).generation, gen2);
     });
 
-    test('equality is O(1) via generation — same gen means equal', () {
+    test('equality is content-based (mapEquals) not generation-based', () {
       final a = PresenceState(
         statuses: {'u1': UserPresenceStatus.online},
         generation: 5,
       );
       final b = PresenceState(
         statuses: {'u1': UserPresenceStatus.online},
-        generation: 5,
+        generation: 99,
       );
+      // Same content → equal (regardless of generation).
       expect(a, equals(b));
     });
 
-    test('equality: different generation means not equal', () {
+    test('equality: different content means not equal', () {
       final a = PresenceState(
         statuses: {'u1': UserPresenceStatus.online},
         generation: 5,
       );
       final b = PresenceState(
-        statuses: {'u1': UserPresenceStatus.online},
-        generation: 6,
+        statuses: {'u1': UserPresenceStatus.idle},
+        generation: 5,
       );
       expect(a, isNot(equals(b)));
     });
 
-    test('presence updates still propagate via listener', () {
+    test('updateShouldNotify uses generation for O(1) notification', () {
       final store = container.read(presenceStoreProvider.notifier);
       final states = <PresenceState>[];
       container.listen(presenceStoreProvider, (_, next) {
@@ -119,6 +120,7 @@ void main() {
       store.setIdle('user-1');
       store.setOffline('user-1');
 
+      // Each mutation has a new generation → each notifies.
       expect(states.length, 3);
       expect(states[0].statusOf('user-1'), UserPresenceStatus.online);
       expect(states[1].statusOf('user-1'), UserPresenceStatus.idle);

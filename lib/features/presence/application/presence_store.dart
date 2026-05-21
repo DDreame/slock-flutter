@@ -10,10 +10,9 @@ enum UserPresenceStatus {
 
 /// Immutable state holding user presence information.
 ///
-/// Uses a monotonic [generation] counter for O(1) equality instead of
-/// O(n) mapEquals on [statuses]. Each mutation in [PresenceStore] produces
-/// a new generation, so two instances are equal iff they are the same
-/// generation (or both empty with generation 0).
+/// Content-based equality via [mapEquals] for correctness. The O(1) notification
+/// optimization lives in [PresenceStore.updateShouldNotify] which uses the
+/// [generation] counter to skip redundant notifications.
 @immutable
 class PresenceState {
   const PresenceState({
@@ -24,7 +23,8 @@ class PresenceState {
   /// Map from user ID to their current presence status.
   final Map<String, UserPresenceStatus> statuses;
 
-  /// Monotonic counter incremented on each mutation. Enables O(1) equality.
+  /// Monotonic counter incremented on each store mutation. Used by
+  /// [PresenceStore.updateShouldNotify] for O(1) notification filtering.
   final int generation;
 
   /// Convenience: set of user IDs that are online.
@@ -55,10 +55,17 @@ class PresenceState {
       identical(this, other) ||
       other is PresenceState &&
           runtimeType == other.runtimeType &&
-          generation == other.generation;
+          mapEquals(statuses, other.statuses);
 
   @override
-  int get hashCode => generation.hashCode;
+  int get hashCode {
+    // XOR of entry hashes — order-independent.
+    var h = 0;
+    for (final entry in statuses.entries) {
+      h ^= Object.hash(entry.key, entry.value);
+    }
+    return h;
+  }
 }
 
 final presenceStoreProvider =
@@ -69,9 +76,13 @@ final presenceStoreProvider =
 class PresenceStore extends AutoDisposeNotifier<PresenceState> {
   int _generation = 0;
 
+  /// O(1) notification filtering via generation counter. When the store's
+  /// own mutation methods are used, each produces a unique generation so this
+  /// short-circuits to a cheap int comparison. Falls back to content equality
+  /// for external state assignments (e.g. test helpers) that bypass generation.
   @override
   bool updateShouldNotify(PresenceState previous, PresenceState next) =>
-      previous != next;
+      previous.generation != next.generation || previous != next;
   @override
   PresenceState build() => const PresenceState();
 
