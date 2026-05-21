@@ -262,6 +262,73 @@ void main() {
     expect(bobOffset.dy, lessThan(charlieOffset.dy));
   });
 
+  // -----------------------------------------------------------------
+  // #674: Alphabetical sort with mixed-case titles
+  // -----------------------------------------------------------------
+
+  testWidgets(
+    'alphabetical sort orders mixed-case titles case-insensitively',
+    (tester) async {
+      // DMs with mixed-case titles that would sort incorrectly if
+      // case-sensitive (uppercase before lowercase in ASCII).
+      const mixedCaseSnapshot = HomeWorkspaceSnapshot(
+        serverId: serverId,
+        channels: [],
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: serverId,
+              value: 'dm-zebra',
+            ),
+            title: 'zebra', // lowercase z
+          ),
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: serverId,
+              value: 'dm-alice',
+            ),
+            title: 'ALICE', // uppercase A
+          ),
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: serverId,
+              value: 'dm-mango',
+            ),
+            title: 'Mango', // mixed-case M
+          ),
+        ],
+      );
+
+      // Set sort preference to alphabetical.
+      await prefs.setString('dm_sort_preference', 'alphabetical');
+
+      await tester.pumpWidget(
+        buildApp(
+          homeRepository: const _FakeHomeRepository(mixedCaseSnapshot),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // All three should appear.
+      expect(find.byKey(const ValueKey('dms-tab-dm-alice')), findsOneWidget);
+      expect(find.byKey(const ValueKey('dms-tab-dm-mango')), findsOneWidget);
+      expect(find.byKey(const ValueKey('dms-tab-dm-zebra')), findsOneWidget);
+
+      // Assert ordering: ALICE < Mango < zebra (case-insensitive).
+      final aliceY =
+          tester.getTopLeft(find.byKey(const ValueKey('dms-tab-dm-alice'))).dy;
+      final mangoY =
+          tester.getTopLeft(find.byKey(const ValueKey('dms-tab-dm-mango'))).dy;
+      final zebraY =
+          tester.getTopLeft(find.byKey(const ValueKey('dms-tab-dm-zebra'))).dy;
+
+      expect(aliceY, lessThan(mangoY),
+          reason: 'ALICE should sort before Mango (case-insensitive)');
+      expect(mangoY, lessThan(zebraY),
+          reason: 'Mango should sort before zebra (case-insensitive)');
+    },
+  );
+
   testWidgets('search filters DMs by title', (tester) async {
     await tester.pumpWidget(
       buildApp(

@@ -245,8 +245,13 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
           return bTime.compareTo(aTime);
         });
       case DmSortPreference.alphabetical:
+        // Pre-compute lowercased titles to avoid O(n log n) redundant
+        // String allocations inside the comparator.
+        final lowerTitles = {
+          for (final dm in sorted) dm: dm.title.toLowerCase()
+        };
         sorted.sort(
-          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+          (a, b) => lowerTitles[a]!.compareTo(lowerTitles[b]!),
         );
     }
 

@@ -206,13 +206,13 @@ class _PeopleTab extends ConsumerWidget {
 
   Widget _buildFilteredList(MemberListState state) {
     final nonSelfMembers = state.members.where((m) => !m.isSelf).toList();
+    // Hoist toLowerCase() outside iteration to avoid per-item allocation.
+    final lowerQuery = searchQuery.toLowerCase();
     final filtered = searchQuery.isEmpty
         ? nonSelfMembers
         : nonSelfMembers
             .where(
-              (m) => m.displayName
-                  .toLowerCase()
-                  .contains(searchQuery.toLowerCase()),
+              (m) => m.displayName.toLowerCase().contains(lowerQuery),
             )
             .toList();
 
@@ -259,13 +259,15 @@ class _AgentsTab extends ConsumerWidget {
   }
 
   Widget _buildFilteredList(List<AgentItem> items) {
+    // Hoist toLowerCase() outside iteration to avoid per-item allocation.
+    final lowerQuery = searchQuery.toLowerCase();
     final filtered = searchQuery.isEmpty
         ? items
         : items
             .where(
               (a) =>
-                  a.label.toLowerCase().contains(searchQuery.toLowerCase()) ||
-                  a.name.toLowerCase().contains(searchQuery.toLowerCase()),
+                  a.label.toLowerCase().contains(lowerQuery) ||
+                  a.name.toLowerCase().contains(lowerQuery),
             )
             .toList();
 
