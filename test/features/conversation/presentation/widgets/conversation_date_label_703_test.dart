@@ -146,11 +146,56 @@ void main() {
       final resultB = containerB.read(dateSeparatorToLocalProvider)(utcDate);
       expect(resultB, utcDate.toLocal());
     });
+
+    testWidgets(
+        'non-idempotent override: toLocal applied exactly once per date '
+        '(regression for double-apply bug)', (tester) async {
+      // This test uses a non-idempotent transform (subtract 12h).
+      // With the old double-apply bug, the message date would be shifted
+      // 24h back while `now` is only shifted 12h — misclassifying "Today"
+      // as "Yesterday". The fix ensures toLocal is applied exactly once.
+      //
+      // Scenario: UTC date = now - 2h. With subtract-12h override:
+      //   message local = now - 14h (still "today" in local terms)
+      //   now local = now - 12h (same calendar day as message)
+      // → label should be "Today".
+      final messageDate = DateTime.now().subtract(const Duration(hours: 2));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            dateSeparatorToLocalProvider.overrideWithValue(
+                (dt) => dt.subtract(const Duration(hours: 12))),
+          ],
+          child: MaterialApp(
+            locale: const Locale('en'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            home: _DateLabelTestWidget(date: messageDate),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // With correct single-apply: message and now are shifted the same
+      // amount → same calendar day → "Today".
+      // With double-apply bug: message shifted 24h, now shifted 12h →
+      // could cross day boundary → "Yesterday" (wrong).
+      expect(
+        find.text('Today'),
+        findsOneWidget,
+        reason: 'Non-idempotent provider must be applied exactly once; '
+            'double-apply would shift message to a different day than now',
+      );
+    });
   });
 }
 
 /// Minimal widget that renders a date label using the same logic as
 /// production [_DateSeparatorWidget] — reads the l10n and provider.
+///
+/// Mirrors the production `_formatDateLabel()` exactly: passes raw dates
+/// to `_isSameDay()` which applies `toLocal` once to each input.
 class _DateLabelTestWidget extends ConsumerWidget {
   const _DateLabelTestWidget({required this.date});
 
@@ -162,22 +207,30 @@ class _DateLabelTestWidget extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final locale = Localizations.localeOf(context).languageCode;
 
-    final local = toLocal(date);
+    // Pass raw dates — _isSameDay applies toLocal once to each.
     final now = DateTime.now();
 
     String label;
-    if (_isSameLocalDay(local, now)) {
+    if (_isSameDay(date, now, toLocal)) {
       label = l10n.dateSeparatorToday;
-    } else if (_isSameLocalDay(local, now.subtract(const Duration(days: 1)))) {
+    } else if (_isSameDay(
+        date, now.subtract(const Duration(days: 1)), toLocal)) {
       label = l10n.dateSeparatorYesterday;
     } else {
-      label = DateFormat.MMMEd(locale).format(local);
+      label = DateFormat.MMMEd(locale).format(toLocal(date));
     }
 
     return Scaffold(body: Center(child: Text(label)));
   }
 
-  static bool _isSameLocalDay(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+  /// Mirrors production `_isSameDay`: applies toLocal once to each input.
+  static bool _isSameDay(
+    DateTime a,
+    DateTime b,
+    DateTime Function(DateTime) toLocal,
+  ) {
+    final la = toLocal(a);
+    final lb = toLocal(b);
+    return la.year == lb.year && la.month == lb.month && la.day == lb.day;
   }
 }

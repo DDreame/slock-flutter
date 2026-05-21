@@ -357,12 +357,14 @@ String _formatDateLabel(
   AppLocalizations l10n,
   String locale,
 ) {
-  final local = toLocal(date);
+  // Pass raw dates to _isSameDay — it applies toLocal once to each input.
+  // Do NOT pre-convert `date` before passing to _isSameDay, or the transform
+  // would be applied twice (once here, once inside _isSameDay).
   final now = DateTime.now();
-  if (_isSameDay(local, now, toLocal)) return l10n.dateSeparatorToday;
+  if (_isSameDay(date, now, toLocal)) return l10n.dateSeparatorToday;
   final yesterday = now.subtract(const Duration(days: 1));
-  if (_isSameDay(local, yesterday, toLocal)) return l10n.dateSeparatorYesterday;
-  return DateFormat.MMMEd(locale).format(local);
+  if (_isSameDay(date, yesterday, toLocal)) return l10n.dateSeparatorYesterday;
+  return DateFormat.MMMEd(locale).format(toLocal(date));
 }
 
 class _ConversationHistoryHeader extends StatelessWidget {
