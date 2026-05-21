@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
@@ -28,6 +29,18 @@ class PinnedMessagesState {
       error: error ?? this.error,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PinnedMessagesState &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          error == other.error &&
+          listEquals(messages, other.messages);
+
+  @override
+  int get hashCode => Object.hash(status, error, messages.length);
 }
 
 final pinnedMessagesStoreProvider =

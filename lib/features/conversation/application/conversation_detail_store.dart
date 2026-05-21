@@ -80,7 +80,9 @@ mixin _ConversationDetailCoreMixin
     List<ConversationMessageSummary> existing,
     List<ConversationMessageSummary> olderMessages,
   ) {
-    final existingIds = existing.map((message) => message.id).toSet();
+    // INV-DEDUP-668: Reuse lazily-cached _messageIdSet for O(1) lookup.
+    final store = this as ConversationDetailStore;
+    final existingIds = store._messageIdSet;
     final dedupedOlder = olderMessages
         .where((message) => !existingIds.contains(message.id))
         .toList(growable: false);
@@ -94,7 +96,9 @@ mixin _ConversationDetailCoreMixin
     List<ConversationMessageSummary> existing,
     List<ConversationMessageSummary> newerMessages,
   ) {
-    final existingIds = existing.map((message) => message.id).toSet();
+    // INV-DEDUP-668: Reuse lazily-cached _messageIdSet for O(1) lookup.
+    final store = this as ConversationDetailStore;
+    final existingIds = store._messageIdSet;
     final dedupedNewer = newerMessages
         .where((message) => !existingIds.contains(message.id))
         .toList(growable: false);
@@ -176,6 +180,22 @@ class ConversationDetailStore
     ConversationMessageSummary next,
   ) =>
       _appendDedupedMessage(existing, next);
+
+  /// INV-DEDUP-668: Exposes [_prependDedupedMessages] for batch-path testing.
+  @visibleForTesting
+  List<ConversationMessageSummary> prependDedupedMessagesForTesting(
+    List<ConversationMessageSummary> existing,
+    List<ConversationMessageSummary> olderMessages,
+  ) =>
+      _prependDedupedMessages(existing, olderMessages);
+
+  /// INV-DEDUP-668: Exposes [_appendDedupedMessages] for batch-path testing.
+  @visibleForTesting
+  List<ConversationMessageSummary> appendDedupedMessagesForTesting(
+    List<ConversationMessageSummary> existing,
+    List<ConversationMessageSummary> newerMessages,
+  ) =>
+      _appendDedupedMessages(existing, newerMessages);
 
   /// Maximum duration a message can stay in [MessageSendStatus.sending]
   /// before being auto-transitioned to queued via the outbox.
