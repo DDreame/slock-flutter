@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/link_preview/data/link_preview_service.dart';
@@ -223,6 +227,28 @@ void main() {
       expect(meta!.imageUrl, 'https://example.com/images/preview.jpg');
     });
 
+    test('fetchMetadata reads at most 256KB while parsing head metadata',
+        () async {
+      const head = '<html><head>'
+          '<meta property="og:title" content="Capped Title">'
+          '<meta property="og:description" content="Head metadata">'
+          '</head><body>';
+      final adapter = _ChunkedMockAdapter(
+        utf8.encode(head.padRight(4096, ' ')),
+        List<int>.filled(1024 * 1024, 65),
+      );
+      final dio = Dio()..httpClientAdapter = adapter;
+      final service = LinkPreviewService(dio: dio);
+
+      final meta = await service.fetchMetadata('https://example.com/large');
+
+      expect(meta, isNotNull);
+      expect(meta!.title, 'Capped Title');
+      expect(meta.description, 'Head metadata');
+      expect(adapter.bytesEmitted,
+          lessThanOrEqualTo(LinkPreviewService.maxPreviewHtmlBytes));
+    });
+
     test('fetchMetadata throws on non-200 status', () async {
       final service = LinkPreviewService(
         dio: _createMockDio('', statusCode: 404),
@@ -266,6 +292,57 @@ class _MockAdapter implements HttpClientAdapter {
     }
     return ResponseBody.fromString(
       html,
+      200,
+      headers: {
+        'content-type': ['text/html; charset=utf-8'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+class _ChunkedMockAdapter implements HttpClientAdapter {
+  _ChunkedMockAdapter(this.headBytes, this.tailBytes);
+
+  final List<int> headBytes;
+  final List<int> tailBytes;
+  int bytesEmitted = 0;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    late StreamController<Uint8List> controller;
+    var offset = 0;
+    controller = StreamController<Uint8List>(
+      onListen: () {
+        controller.add(Uint8List.fromList(headBytes));
+        bytesEmitted += headBytes.length;
+        Timer.periodic(Duration.zero, (timer) {
+          if (controller.isClosed) {
+            timer.cancel();
+            return;
+          }
+          if (offset >= tailBytes.length) {
+            timer.cancel();
+            unawaited(controller.close());
+            return;
+          }
+          final end = (offset + 4096).clamp(0, tailBytes.length);
+          final chunk = tailBytes.sublist(offset, end);
+          offset = end;
+          bytesEmitted += chunk.length;
+          controller.add(Uint8List.fromList(chunk));
+        });
+      },
+    );
+
+    return ResponseBody(
+      controller.stream,
       200,
       headers: {
         'content-type': ['text/html; charset=utf-8'],

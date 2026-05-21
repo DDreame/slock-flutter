@@ -127,6 +127,9 @@ final translationCacheStoreProvider =
 /// Caches batch-translated results keyed by messageId. The cache is
 /// AutoDispose so it's cleared when the conversation page is disposed.
 class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
+  static const _maxCacheSize = 200;
+  static const _cacheTrimCount = 50;
+
   @override
   bool updateShouldNotify(
     TranslationCacheState previous,
@@ -182,7 +185,7 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
         status: TranslationEntryStatus.pending,
       );
     }
-    state = state.copyWith(translations: pending);
+    state = state.copyWith(translations: _trimTranslations(pending));
 
     try {
       final repo = ref.read(translationRepositoryProvider);
@@ -195,6 +198,7 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
       // Merge results into cache.
       final updated = Map<String, TranslationEntry>.from(state.translations);
       for (final result in results) {
+        updated.remove(result.messageId);
         updated[result.messageId] = TranslationEntry(
           messageId: result.messageId,
           translatedContent: result.translatedContent,
@@ -211,6 +215,7 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
       // Mark any uncached IDs not in results as failed.
       for (final id in uncached) {
         if (!results.any((r) => r.messageId == id)) {
+          updated.remove(id);
           updated[id] = TranslationEntry(
             messageId: id,
             status: TranslationEntryStatus.failed,
@@ -218,7 +223,7 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
         }
       }
 
-      state = state.copyWith(translations: updated);
+      state = state.copyWith(translations: _trimTranslations(updated));
     } on AppFailure {
       // Mark all pending as failed.
       final failed = Map<String, TranslationEntry>.from(state.translations);
@@ -226,12 +231,13 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
         final existing = failed[id];
         if (existing != null &&
             existing.status == TranslationEntryStatus.pending) {
+          failed.remove(id);
           failed[id] = existing.copyWith(
             status: TranslationEntryStatus.failed,
           );
         }
       }
-      state = state.copyWith(translations: failed);
+      state = state.copyWith(translations: _trimTranslations(failed));
     }
   }
 
@@ -240,7 +246,7 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
     // Remove from cache to allow re-translation.
     final cleaned = Map<String, TranslationEntry>.from(state.translations)
       ..remove(messageId);
-    state = state.copyWith(translations: cleaned);
+    state = state.copyWith(translations: _trimTranslations(cleaned));
 
     await translateMessages([messageId]);
 
@@ -251,6 +257,21 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
         showTranslation: {...state.showTranslation, messageId: true},
       );
     }
+  }
+
+  Map<String, TranslationEntry> _trimTranslations(
+    Map<String, TranslationEntry> translations,
+  ) {
+    if (translations.length <= _maxCacheSize) return translations;
+
+    final trimmed = Map<String, TranslationEntry>.from(translations);
+    final removeCount = (trimmed.length - _maxCacheSize) > _cacheTrimCount
+        ? trimmed.length - _maxCacheSize
+        : _cacheTrimCount;
+    for (final key in trimmed.keys.take(removeCount).toList()) {
+      trimmed.remove(key);
+    }
+    return trimmed;
   }
 
   /// Clears the entire translation cache.

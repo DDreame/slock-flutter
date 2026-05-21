@@ -129,6 +129,33 @@ void main() {
           state.translations['msg-2']?.status, TranslationEntryStatus.failed);
     });
 
+    test('evicts oldest entries when cache exceeds safety cap', () async {
+      final results = List.generate(
+        210,
+        (i) => TranslationResult(
+          messageId: 'msg-$i',
+          translatedContent: 'translated-$i',
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          status: TranslationStatus.translated,
+        ),
+      );
+      final fakeRepo = _FakeTranslationRepository(batchResults: results);
+      final container = createContainer(repo: fakeRepo);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(translationCacheStoreProvider.notifier);
+      await notifier.translateMessages([
+        for (var i = 0; i < 210; i++) 'msg-$i',
+      ]);
+
+      final translations =
+          container.read(translationCacheStoreProvider).translations;
+      expect(translations.length, lessThanOrEqualTo(200));
+      expect(translations.containsKey('msg-0'), isFalse);
+      expect(translations.containsKey('msg-209'), isTrue);
+    });
+
     test('no-ops when serverId is null', () async {
       final fakeRepo = _FakeTranslationRepository();
       final container = createContainer(serverId: null, repo: fakeRepo);
