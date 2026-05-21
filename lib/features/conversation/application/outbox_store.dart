@@ -359,6 +359,14 @@ class OutboxStore extends Notifier<OutboxState> {
       }
     } finally {
       _isDraining = false;
+      // If still online with pending items, schedule a fresh drain to
+      // handle targets added/missed during this drain cycle (#717).
+      if (state.items.isNotEmpty) {
+        final connectivity = ref.read(connectivityServiceProvider);
+        if (connectivity.isOnline) {
+          Future.microtask(() => drainAll());
+        }
+      }
     }
   }
 

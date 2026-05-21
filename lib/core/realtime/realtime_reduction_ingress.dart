@@ -6,6 +6,7 @@ class RealtimeReductionIngress {
   final StreamController<RealtimeEventEnvelope> _acceptedEventsController =
       StreamController<RealtimeEventEnvelope>.broadcast();
   final Map<String, int> _lastAcceptedSeqByScope = <String, int>{};
+  bool _disposed = false;
 
   Stream<RealtimeEventEnvelope> get acceptedEvents =>
       _acceptedEventsController.stream;
@@ -14,6 +15,8 @@ class RealtimeReductionIngress {
       Map<String, int>.unmodifiable(_lastAcceptedSeqByScope);
 
   bool accept(RealtimeEventEnvelope envelope) {
+    if (_disposed) return false;
+
     final seq = envelope.seq;
     var emitEnvelope = envelope;
     if (seq != null) {
@@ -32,6 +35,7 @@ class RealtimeReductionIngress {
   }
 
   Future<void> dispose() async {
+    _disposed = true;
     _lastAcceptedSeqByScope.clear();
     await _acceptedEventsController.close();
   }

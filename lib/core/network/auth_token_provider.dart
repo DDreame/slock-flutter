@@ -49,7 +49,13 @@ final refreshAuthTokenProvider = Provider<RefreshAuthToken>((ref) {
       return newAccessToken;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
-        await sessionStore.logout();
+        // Before logout, verify the refresh token hasn't been rotated by a
+        // parallel successful refresh. Skip logout if already rotated (#717).
+        final currentRefreshToken =
+            await storage.read(key: SessionStorageKeys.refreshToken);
+        if (currentRefreshToken == refreshToken) {
+          await sessionStore.logout();
+        }
       }
       return null;
     }
