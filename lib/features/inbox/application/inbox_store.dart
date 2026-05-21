@@ -15,6 +15,7 @@ final inboxStoreProvider = NotifierProvider<InboxStore, InboxState>(
 
 class InboxStore extends Notifier<InboxState> {
   final RequestCoordinator _coordinator = RequestCoordinator();
+  bool _isLoadingMore = false;
 
   @override
   InboxState build() {
@@ -115,11 +116,16 @@ class InboxStore extends Notifier<InboxState> {
 
   /// Load the next page of inbox items (pagination).
   Future<void> loadMore() async {
-    if (!state.hasMore || state.status == InboxStatus.loading) return;
+    if (_isLoadingMore ||
+        !state.hasMore ||
+        state.status == InboxStatus.loading) {
+      return;
+    }
 
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
+    _isLoadingMore = true;
     try {
       final response = await ref.read(inboxRepositoryProvider).fetchInbox(
             serverId,
@@ -137,6 +143,8 @@ class InboxStore extends Notifier<InboxState> {
       );
     } on AppFailure catch (failure) {
       state = state.copyWith(failure: failure);
+    } finally {
+      _isLoadingMore = false;
     }
   }
 
@@ -175,10 +183,9 @@ class InboxStore extends Notifier<InboxState> {
             .where((i) => i.channelId == channelId)
             .fold<int>(0, (sum, i) => sum + i.unreadCount));
 
-    // In unread, mentions, or dms filter mode, remove items that are now read.
+    // In unread or mentions filter mode, remove items that are now read.
     final filteredItems = state.filter == InboxFilter.unread ||
-            state.filter == InboxFilter.mentions ||
-            state.filter == InboxFilter.dms
+            state.filter == InboxFilter.mentions
         ? updatedItems
             .where((i) => i.channelId != channelId)
             .toList(growable: false)
@@ -250,10 +257,9 @@ class InboxStore extends Notifier<InboxState> {
       return item;
     }).toList(growable: false);
 
-    // In unread, mentions, or dms filter mode, all items become read → empty the list.
+    // In unread or mentions filter mode, all items become read → empty the list.
     final filteredItems = state.filter == InboxFilter.unread ||
-            state.filter == InboxFilter.mentions ||
-            state.filter == InboxFilter.dms
+            state.filter == InboxFilter.mentions
         ? <InboxItem>[]
         : updatedItems;
 

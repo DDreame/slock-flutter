@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -142,6 +144,70 @@ void main() {
     expect(profileRepository.requests, [
       (const ServerScopeId('server-1'), 'other-456'),
     ]);
+  });
+
+  test('stale profile response does not overwrite rapid target switch (#712)',
+      () async {
+    final profileRepository = _ControllableProfileRepository();
+    final container = ProviderContainer(
+      overrides: [
+        _testProfileTargetProvider.overrideWith(
+          (ref) => const ProfileTarget(
+            userId: 'user-a',
+            serverId: ServerScopeId('server-1'),
+          ),
+        ),
+        currentProfileTargetProvider.overrideWith(
+          (ref) => ref.watch(_testProfileTargetProvider),
+        ),
+        sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+        profileRepositoryProvider.overrideWithValue(profileRepository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(
+      container.read(profileDetailStoreProvider).status,
+      ProfileDetailStatus.loading,
+    );
+    await _flushMicrotasks();
+    expect(profileRepository.requests.map((request) => request.$2), ['user-a']);
+
+    container.read(_testProfileTargetProvider.notifier).state =
+        const ProfileTarget(
+      userId: 'user-b',
+      serverId: ServerScopeId('server-1'),
+    );
+    container.invalidate(profileDetailStoreProvider);
+    expect(
+      container.read(profileDetailStoreProvider).status,
+      ProfileDetailStatus.loading,
+    );
+    await _flushMicrotasks();
+    expect(profileRepository.requests.map((request) => request.$2), [
+      'user-a',
+      'user-b',
+    ]);
+
+    profileRepository.complete(
+      'user-a',
+      const MemberProfile(id: 'user-a', displayName: 'Stale A'),
+    );
+    await _flushMicrotasks();
+
+    var state = container.read(profileDetailStoreProvider);
+    expect(state.status, ProfileDetailStatus.loading);
+    expect(state.profile, isNull);
+
+    profileRepository.complete(
+      'user-b',
+      const MemberProfile(id: 'user-b', displayName: 'Fresh B'),
+    );
+    await _flushMicrotasks();
+
+    state = container.read(profileDetailStoreProvider);
+    expect(state.status, ProfileDetailStatus.success);
+    expect(state.profile?.id, 'user-b');
   });
 
   test('server-scoped remote load failure sets failure state', () async {
@@ -301,4 +367,26 @@ class _FakeMemberRepository implements MemberRepository {
     required String agentId,
   }) async =>
       'dm-agent-$agentId';
+}
+
+final _testProfileTargetProvider = StateProvider<ProfileTarget>(
+  (ref) => const ProfileTarget(),
+);
+
+class _ControllableProfileRepository implements ProfileRepository {
+  final List<(ServerScopeId, String)> requests = [];
+  final Map<String, Completer<MemberProfile>> _completers = {};
+
+  @override
+  Future<MemberProfile> loadProfile(
+    ServerScopeId serverId, {
+    required String userId,
+  }) {
+    requests.add((serverId, userId));
+    return _completers.putIfAbsent(userId, Completer<MemberProfile>.new).future;
+  }
+
+  void complete(String userId, MemberProfile profile) {
+    _completers[userId]!.complete(profile);
+  }
 }

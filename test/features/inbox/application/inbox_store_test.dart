@@ -198,6 +198,63 @@ void main() {
       }
     });
 
+    test('deduplicates concurrent loadMore calls for same offset (#712)',
+        () async {
+      final repo = _ControllableInboxRepository();
+      repo.nextResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            unreadCount: 1,
+          ),
+        ],
+        totalCount: 2,
+        totalUnreadCount: 2,
+        hasMore: true,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          inboxRepositoryProvider.overrideWithValue(repo),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+      expect(repo.fetchCallCount, 1);
+
+      repo.fetchCompleter = Completer<InboxResponse>();
+      final first = container.read(inboxStoreProvider.notifier).loadMore();
+      final second = container.read(inboxStoreProvider.notifier).loadMore();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repo.fetchCallCount, 2);
+
+      repo.fetchCompleter!.complete(
+        const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.dm,
+              channelId: 'dm-1',
+              unreadCount: 1,
+            ),
+          ],
+          totalCount: 2,
+          totalUnreadCount: 2,
+          hasMore: false,
+        ),
+      );
+      await Future.wait([first, second]);
+
+      final state = container.read(inboxStoreProvider);
+      expect(state.items.map((item) => item.channelId), ['ch-1', 'dm-1']);
+      expect(
+          state.items.where((item) => item.channelId == 'dm-1'), hasLength(1));
+      expect(state.offset, 2);
+    });
+
     test('does nothing when hasMore is false', () async {
       final fixture = RuntimeAppFixture();
       fixture.seedInbox([
@@ -364,6 +421,43 @@ void main() {
         await fixture.dispose();
       }
     });
+
+    test('retains DM item in dms filter after markRead (#712)', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-1',
+            channelName: 'Bob',
+            unreadCount: 2,
+          ),
+        ],
+        totalCount: 1,
+        totalUnreadCount: 2,
+        hasMore: false,
+      );
+
+      await fixture.boot();
+      try {
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .load(filter: InboxFilter.dms);
+
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .markRead(channelId: 'dm-1');
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.filter, InboxFilter.dms);
+        expect(state.items.map((item) => item.channelId), ['dm-1']);
+        expect(state.items.single.unreadCount, 0);
+        expect(state.totalCount, 1);
+        expect(state.offset, 1);
+      } finally {
+        await fixture.dispose();
+      }
+    });
   });
 
   // Before: "optimistically removes item" and "calls repository markItemDone"
@@ -430,6 +524,43 @@ void main() {
         for (final item in state.items) {
           expect(item.unreadCount, 0);
         }
+      } finally {
+        await fixture.dispose();
+      }
+    });
+
+    test('retains DM items in dms filter after markAllRead (#712)', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-1',
+            unreadCount: 2,
+          ),
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-2',
+            unreadCount: 1,
+          ),
+        ],
+        totalCount: 2,
+        totalUnreadCount: 3,
+        hasMore: false,
+      );
+
+      await fixture.boot();
+      try {
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .load(filter: InboxFilter.dms);
+        await fixture.container.read(inboxStoreProvider.notifier).markAllRead();
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(state.items.map((item) => item.channelId), ['dm-1', 'dm-2']);
+        expect(state.items.every((item) => item.unreadCount == 0), isTrue);
+        expect(state.totalCount, 2);
+        expect(state.offset, 2);
       } finally {
         await fixture.dispose();
       }
@@ -875,6 +1006,7 @@ void main() {
 class _ControllableInboxRepository implements InboxRepository {
   InboxResponse? nextResponse;
   Completer<InboxResponse>? fetchCompleter;
+  int fetchCallCount = 0;
 
   @override
   Future<InboxResponse> fetchInbox(
@@ -883,6 +1015,7 @@ class _ControllableInboxRepository implements InboxRepository {
     int limit = 30,
     int offset = 0,
   }) async {
+    fetchCallCount += 1;
     if (fetchCompleter != null) {
       return fetchCompleter!.future;
     }
