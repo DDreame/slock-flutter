@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/profile/application/profile_detail_store.dart';
+import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/features/profile/data/profile_repository_provider.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -15,6 +18,10 @@ import 'package:slock_app/stores/session/session_store.dart';
 /// NOT re-invoked. Detection: if build() fires, a NEW Scaffold widget
 /// instance is created; if build() is skipped, the same Scaffold instance
 /// remains in the element tree (checked via `identical()`).
+///
+/// Container access uses an element INSIDE ProfilePage's inner ProviderScope
+/// (via `find.byType(Scaffold)`) so the `currentProfileTargetProvider` override
+/// is visible.
 void main() {
   testWidgets(
     'scaffold widget instance unchanged when avatarUrl mutates (rebuild skipped)',
@@ -41,10 +48,12 @@ void main() {
       // Capture the Scaffold widget instance produced by _ProfileDetailScreenState.build().
       final scaffoldBefore = tester.widget<Scaffold>(find.byType(Scaffold));
 
-      // Mutate only profile data (avatarUrl) — does NOT change status/failure/hasProfile/isSelf.
+      // Access the INNER container (inside ProfilePage's ProviderScope).
       final container = ProviderScope.containerOf(
-        tester.element(find.byType(ProfilePage)),
+        tester.element(find.byType(Scaffold)),
       );
+
+      // Mutate only profile data (avatarUrl) — does NOT change status/failure/hasProfile/isSelf.
       container
           .read(profileDetailStoreProvider.notifier)
           .updateAvatarUrl('https://new-avatar.png');
@@ -63,7 +72,7 @@ void main() {
   );
 
   testWidgets(
-    'scaffold widget instance unchanged after second avatarUrl mutation',
+    'scaffold widget instance unchanged after multiple avatar upload ticks',
     (tester) async {
       await tester.pumpWidget(
         ProviderScope(
@@ -83,7 +92,7 @@ void main() {
       final scaffoldBefore = tester.widget<Scaffold>(find.byType(Scaffold));
 
       final container = ProviderScope.containerOf(
-        tester.element(find.byType(ProfilePage)),
+        tester.element(find.byType(Scaffold)),
       );
       final notifier = container.read(profileDetailStoreProvider.notifier);
 
@@ -106,44 +115,50 @@ void main() {
   );
 
   testWidgets(
-    'scaffold DOES rebuild when a scaffold-watched field changes (regression guard)',
+    'scaffold IS rebuilt on status transition (technique validation)',
     (tester) async {
-      // Use a self-profile (no remote load needed).
+      // Use a remote profile target that transitions loading → success.
+      // This changes the `status` select, which MUST trigger a scaffold rebuild.
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+            profileRepositoryProvider
+                .overrideWithValue(const _DelayedProfileRepository()),
           ],
           child: MaterialApp(
             theme: AppTheme.light,
             supportedLocales: AppLocalizations.supportedLocales,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
-            home: const ProfilePage(),
+            home: const ProfilePage(serverId: 'server-1', userId: 'other-456'),
           ),
         ),
       );
-      await tester.pumpAndSettle();
-
-      expect(find.text('My Profile'), findsOneWidget);
-
-      final scaffoldBefore = tester.widget<Scaffold>(find.byType(Scaffold));
-
-      // Force a rebuild by invalidating the provider (resets status from success → initial → success).
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(ProfilePage)),
-      );
-      container.invalidate(profileDetailStoreProvider);
+      // One pump to trigger the microtask-scheduled _loadProfile.
       await tester.pump();
 
-      // Status changed (even momentarily), so _ProfileDetailScreenState.build()
-      // MUST have been called, producing a new Scaffold instance.
-      final scaffoldAfter = tester.widget<Scaffold>(find.byType(Scaffold));
+      // Page is in loading state — capture scaffold.
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      final scaffoldDuringLoading =
+          tester.widget<Scaffold>(find.byType(Scaffold));
+
+      // Let the profile load complete (status: loading → success).
+      await tester.pumpAndSettle();
+
+      // Status changed, so _ProfileDetailScreenState.build() was called,
+      // producing a new Scaffold instance — proves identical() is valid.
+      final scaffoldAfterSuccess =
+          tester.widget<Scaffold>(find.byType(Scaffold));
       expect(
-        identical(scaffoldBefore, scaffoldAfter),
+        identical(scaffoldDuringLoading, scaffoldAfterSuccess),
         isFalse,
-        reason: 'Scaffold must rebuild when status changes — '
-            'proves the identical() technique is valid.',
+        reason:
+            'Scaffold must rebuild when status changes (loading → success) — '
+            'proves the identical() technique detects real rebuilds.',
       );
+
+      // Verify the profile rendered successfully.
+      expect(find.text('Bob'), findsOneWidget);
     },
   );
 }
@@ -156,4 +171,22 @@ class _FakeSessionStore extends SessionStore {
         displayName: 'Alice',
         token: 'test-token',
       );
+}
+
+class _DelayedProfileRepository implements ProfileRepository {
+  const _DelayedProfileRepository();
+
+  @override
+  Future<MemberProfile> loadProfile(
+    ServerScopeId serverId, {
+    required String userId,
+  }) async {
+    // Small delay to simulate network fetch.
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    return const MemberProfile(
+      id: 'other-456',
+      displayName: 'Bob',
+      username: 'bob',
+    );
+  }
 }
