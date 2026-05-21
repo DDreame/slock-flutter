@@ -104,6 +104,10 @@ class ConversationDetailSessionEntry {
 
 class ConversationDetailSessionStore extends Notifier<
     Map<ConversationDetailTarget, ConversationDetailSessionEntry>> {
+  /// Maximum number of cached session entries. Beyond this, oldest-accessed
+  /// entries are evicted (LRU) to bound memory usage.
+  static const maxEntries = 8;
+
   @override
   Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() {
     return const {};
@@ -116,13 +120,20 @@ class ConversationDetailSessionStore extends Notifier<
     if (detailState.status != ConversationDetailStatus.success) {
       return;
     }
-    state = {
-      ...state,
-      detailState.target: ConversationDetailSessionEntry.fromState(
-        detailState,
-        scrollOffset: scrollOffset,
-      ),
-    };
+    final updated =
+        Map<ConversationDetailTarget, ConversationDetailSessionEntry>.from(
+            state);
+    // Remove existing entry so re-insertion moves it to "most recent" position.
+    updated.remove(detailState.target);
+    updated[detailState.target] = ConversationDetailSessionEntry.fromState(
+      detailState,
+      scrollOffset: scrollOffset,
+    );
+    // Evict oldest entries if over capacity.
+    while (updated.length > maxEntries) {
+      updated.remove(updated.keys.first);
+    }
+    state = updated;
   }
 
   void saveScrollOffset(ConversationDetailTarget target, double scrollOffset) {
