@@ -8,6 +8,10 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/application/message_export_service.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_export_card.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+
+AppLocalizations _conversationL10n(BuildContext context) =>
+    AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
 
 /// Bottom action bar shown during multi-select mode. (#537)
 ///
@@ -19,6 +23,7 @@ class SelectionActionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = _conversationL10n(context);
     final selectedCount = ref.watch(
       conversationDetailStoreProvider
           .select((s) => s.selectedMessageIds.length),
@@ -43,14 +48,14 @@ class SelectionActionBar extends ConsumerWidget {
             IconButton(
               key: const ValueKey('selection-action-cancel'),
               icon: const Icon(Icons.close),
-              tooltip: 'Cancel',
+              tooltip: l10n.conversationSelectionCancel,
               onPressed: () => ref
                   .read(conversationDetailStoreProvider.notifier)
                   .exitSelectionMode(),
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
-              '$selectedCount selected',
+              l10n.conversationSelectionSelected(selectedCount),
               style: AppTypography.body.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -59,7 +64,7 @@ class SelectionActionBar extends ConsumerWidget {
             IconButton(
               key: const ValueKey('selection-action-save'),
               icon: const Icon(Icons.bookmark_outline),
-              tooltip: 'Save',
+              tooltip: l10n.conversationSelectionSave,
               onPressed: selectedCount > 0
                   ? () async {
                       final ids = Set<String>.of(ref
@@ -71,7 +76,7 @@ class SelectionActionBar extends ConsumerWidget {
                       if (!context.mounted) return;
                       _showBatchResultSnackbar(
                         context,
-                        action: 'saved',
+                        action: l10n.conversationSelectionActionSaved,
                         succeeded: result.succeeded,
                         failed: result.failed,
                       );
@@ -82,7 +87,7 @@ class SelectionActionBar extends ConsumerWidget {
             IconButton(
               key: const ValueKey('selection-action-export'),
               icon: const Icon(Icons.image_outlined),
-              tooltip: 'Export as image',
+              tooltip: l10n.conversationSelectionExportAsImage,
               onPressed: selectedCount > 0
                   ? () async {
                       // Gather selected messages in chronological order.
@@ -144,7 +149,7 @@ class SelectionActionBar extends ConsumerWidget {
             IconButton(
               key: const ValueKey('selection-action-delete'),
               icon: Icon(Icons.delete_outline, color: colors.error),
-              tooltip: 'Delete',
+              tooltip: l10n.conversationSelectionDelete,
               onPressed: selectedCount > 0
                   ? () async {
                       final ids = Set<String>.of(ref
@@ -156,7 +161,7 @@ class SelectionActionBar extends ConsumerWidget {
                       if (!context.mounted) return;
                       _showBatchResultSnackbar(
                         context,
-                        action: 'deleted',
+                        action: l10n.conversationSelectionActionDeleted,
                         succeeded: result.succeeded,
                         failed: result.failed,
                       );
@@ -179,13 +184,20 @@ class SelectionActionBar extends ConsumerWidget {
     messenger.hideCurrentSnackBar();
 
     final String message;
+    final l10n = _conversationL10n(context);
     if (failed == 0) {
-      message = '$succeeded message${succeeded == 1 ? '' : 's'} $action.';
+      message = l10n.conversationSelectionBatchSucceeded(succeeded, action);
     } else if (succeeded == 0) {
-      message = 'Failed to ${action == 'deleted' ? 'delete' : 'save'} '
-          '$failed message${failed == 1 ? '' : 's'}.';
+      final verb = action == l10n.conversationSelectionActionDeleted
+          ? l10n.conversationSelectionActionDeleteVerb
+          : l10n.conversationSelectionActionSaveVerb;
+      message = l10n.conversationSelectionBatchFailed(verb, failed);
     } else {
-      message = '$succeeded $action, $failed failed.';
+      message = l10n.conversationSelectionBatchPartial(
+        succeeded,
+        action,
+        failed,
+      );
     }
 
     messenger.showSnackBar(

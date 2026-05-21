@@ -15,6 +15,10 @@ import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/composer_keyboard_handler.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+
+AppLocalizations _conversationL10n(BuildContext context) =>
+    AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
 
 class ConversationComposer extends ConsumerWidget {
   const ConversationComposer({
@@ -61,6 +65,7 @@ class ConversationComposer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = _conversationL10n(context);
     return SafeArea(
       top: false,
       child: Padding(
@@ -84,7 +89,8 @@ class ConversationComposer extends ConsumerWidget {
             ],
             if (state.sendFailure != null) ...[
               Text(
-                state.sendFailure?.message ?? 'Failed to send message.',
+                state.sendFailure?.message ??
+                    l10n.conversationComposerSendFailedFallback,
                 key: const ValueKey('composer-send-error'),
                 style: TextStyle(
                   color: colors.error,
@@ -140,7 +146,7 @@ class ConversationComposer extends ConsumerWidget {
                     child: IconButton(
                       icon: const Icon(Icons.attach_file, size: 20),
                       padding: EdgeInsets.zero,
-                      tooltip: 'Attach file',
+                      tooltip: l10n.conversationComposerAttachTooltip,
                       onPressed: state.isSending
                           ? null
                           : () => _showAttachOptions(context, ref),
@@ -165,7 +171,7 @@ class ConversationComposer extends ConsumerWidget {
                             isFormattingToolbarVisible ? colors.primary : null,
                       ),
                       padding: EdgeInsets.zero,
-                      tooltip: 'Formatting',
+                      tooltip: l10n.conversationComposerFormattingTooltip,
                       onPressed: onToggleFormattingToolbar,
                     ),
                   ),
@@ -187,7 +193,7 @@ class ConversationComposer extends ConsumerWidget {
                         color: isEmojiPickerVisible ? colors.primary : null,
                       ),
                       padding: EdgeInsets.zero,
-                      tooltip: 'Emoji',
+                      tooltip: l10n.conversationComposerEmojiTooltip,
                       onPressed: onToggleEmojiPicker,
                     ),
                   ),
@@ -211,7 +217,7 @@ class ConversationComposer extends ConsumerWidget {
                         minLines: 1,
                         maxLines: 4,
                         decoration: InputDecoration(
-                          hintText: 'Write a message',
+                          hintText: l10n.conversationComposerHint,
                           border: OutlineInputBorder(
                             borderRadius:
                                 BorderRadius.circular(AppSpacing.radiusFull),
@@ -329,18 +335,21 @@ class ConversationComposer extends ConsumerWidget {
           children: [
             ListTile(
               leading: Icon(Icons.photo_library, color: colors.text),
-              title: const Text('Photo & Video'),
+              title: Text(_conversationL10n(context)
+                  .conversationComposerAttachPhotoVideo),
               onTap: () => Navigator.pop(ctx, _AttachOption.gallery),
             ),
             ListTile(
               key: const ValueKey('attach-camera'),
               leading: Icon(Icons.camera_alt, color: colors.text),
-              title: const Text('Camera'),
+              title: Text(
+                  _conversationL10n(context).conversationComposerAttachCamera),
               onTap: () => Navigator.pop(ctx, _AttachOption.camera),
             ),
             ListTile(
               leading: Icon(Icons.insert_drive_file, color: colors.text),
-              title: const Text('File'),
+              title: Text(
+                  _conversationL10n(context).conversationComposerAttachFile),
               onTap: () => Navigator.pop(ctx, _AttachOption.file),
             ),
           ],
@@ -353,7 +362,7 @@ class ConversationComposer extends ConsumerWidget {
       case _AttachOption.gallery:
         await _pickGallery(messenger);
       case _AttachOption.camera:
-        await _pickCamera(ref, messenger);
+        await _pickCamera(ref, messenger, _conversationL10n(context));
       case _AttachOption.file:
         await _pickFile(messenger);
     }
@@ -384,6 +393,7 @@ class ConversationComposer extends ConsumerWidget {
   Future<void> _pickCamera(
     WidgetRef ref,
     ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
   ) async {
     try {
       final picker = ImagePicker();
@@ -410,9 +420,11 @@ class ConversationComposer extends ConsumerWidget {
           .read(diagnosticsCollectorProvider)
           .error('Composer', 'Camera capture failed: $e');
       messenger.showSnackBar(
-        const SnackBar(
-          key: ValueKey('camera-error-snackbar'),
-          content: Text('Camera unavailable. Please check permissions.'),
+        SnackBar(
+          key: const ValueKey('camera-error-snackbar'),
+          content: Text(
+            l10n.conversationComposerCameraUnavailable,
+          ),
         ),
       );
     }

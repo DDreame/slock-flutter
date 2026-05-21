@@ -1347,4 +1347,191 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get dateSeparatorYesterday => '昨天';
+
+  @override
+  String get conversationComposerHint => '写消息';
+
+  @override
+  String get conversationComposerAttachPhotoVideo => '照片和视频';
+
+  @override
+  String get conversationComposerAttachCamera => '相机';
+
+  @override
+  String get conversationComposerAttachFile => '文件';
+
+  @override
+  String get conversationComposerSendFailedFallback => '发送消息失败。';
+
+  @override
+  String get conversationComposerAttachTooltip => '附加文件';
+
+  @override
+  String get conversationComposerFormattingTooltip => '格式设置';
+
+  @override
+  String get conversationComposerEmojiTooltip => '表情';
+
+  @override
+  String get conversationComposerCameraUnavailable => '相机不可用。请检查权限。';
+
+  @override
+  String get conversationContextEditMessage => '编辑消息';
+
+  @override
+  String get conversationContextReply => '回复';
+
+  @override
+  String get conversationContextSelect => '选择';
+
+  @override
+  String get conversationContextReact => '回应';
+
+  @override
+  String get conversationContextTranslate => '翻译';
+
+  @override
+  String get conversationContextCopyText => '复制文本';
+
+  @override
+  String get conversationContextForward => '转发';
+
+  @override
+  String get conversationContextSaveMessage => '保存消息';
+
+  @override
+  String get conversationContextUnsaveMessage => '取消保存消息';
+
+  @override
+  String get conversationContextPinMessage => '置顶消息';
+
+  @override
+  String get conversationContextUnpinMessage => '取消置顶消息';
+
+  @override
+  String get conversationContextReplyInThread => '在线程中回复';
+
+  @override
+  String get conversationContextCreateTask => '创建任务';
+
+  @override
+  String get conversationContextDeleteMessage => '删除消息';
+
+  @override
+  String get conversationSelectionCancel => '取消';
+
+  @override
+  String get conversationSelectionSave => '保存';
+
+  @override
+  String get conversationSelectionExportAsImage => '导出为图片';
+
+  @override
+  String get conversationSelectionDelete => '删除';
+
+  @override
+  String conversationSelectionSelected(int count) {
+    return '已选择 $count 项';
+  }
+
+  @override
+  String conversationSelectionBatchSucceeded(int count, String action) {
+    return '已$action $count 条。';
+  }
+
+  @override
+  String conversationSelectionBatchFailed(String action, int count) {
+    return '$action $count 条消息失败。';
+  }
+
+  @override
+  String conversationSelectionBatchPartial(
+      int succeeded, String action, int failed) {
+    return '已$action $succeeded 条，$failed 条失败。';
+  }
+
+  @override
+  String get conversationSelectionActionSaveVerb => '保存';
+
+  @override
+  String get conversationSelectionActionSaved => '保存';
+
+  @override
+  String get conversationSelectionActionDeleteVerb => '删除';
+
+  @override
+  String get conversationSelectionActionDeleted => '删除';
+
+  @override
+  String get conversationEditDialogTitle => '编辑消息';
+
+  @override
+  String get conversationEditDialogCancel => '取消';
+
+  @override
+  String get conversationEditDialogSave => '保存';
+
+  @override
+  String get conversationEditSuccess => '消息已编辑。';
+
+  @override
+  String get conversationEditFailedFallback => '编辑消息失败。';
+
+  @override
+  String get conversationMessageDeletedPlaceholder => '[消息已删除]';
+
+  @override
+  String get conversationReactionFailedFallback => '添加回应失败。';
+
+  @override
+  String get conversationReactWithEmojiTitle => '用表情回应';
+
+  @override
+  String conversationReactWithEmojiSemantics(String emoji) {
+    return '用 $emoji 回应';
+  }
+
+  @override
+  String get conversationReactionUpdateFailedFallback => '更新回应失败。';
+
+  @override
+  String get conversationDeleteDialogTitle => '删除消息？';
+
+  @override
+  String get conversationDeleteDialogContent => '此消息将被永久删除。';
+
+  @override
+  String get conversationDeleteDialogCancel => '取消';
+
+  @override
+  String get conversationDeleteDialogConfirm => '删除';
+
+  @override
+  String get conversationDeleteSuccess => '消息已删除。';
+
+  @override
+  String get conversationDeleteFailedFallback => '删除消息失败。';
+
+  @override
+  String get conversationOpenLinkTitle => '打开链接';
+
+  @override
+  String conversationOpenLinkContent(String url) {
+    return '打开 $url？';
+  }
+
+  @override
+  String get conversationOpenLinkCancel => '取消';
+
+  @override
+  String get conversationOpenLinkConfirm => '打开';
+
+  @override
+  String get conversationMessageActionsSemantics => '消息操作';
+
+  @override
+  String get conversationShowMessageMenuSemantics => '显示消息菜单';
+
+  @override
+  String get conversationReplySemantics => '回复';
 }

@@ -2661,6 +2661,355 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Yesterday'**
   String get dateSeparatorYesterday;
+
+  /// No description provided for @conversationComposerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a message'**
+  String get conversationComposerHint;
+
+  /// No description provided for @conversationComposerAttachPhotoVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo & Video'**
+  String get conversationComposerAttachPhotoVideo;
+
+  /// No description provided for @conversationComposerAttachCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get conversationComposerAttachCamera;
+
+  /// No description provided for @conversationComposerAttachFile.
+  ///
+  /// In en, this message translates to:
+  /// **'File'**
+  String get conversationComposerAttachFile;
+
+  /// No description provided for @conversationComposerSendFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send message.'**
+  String get conversationComposerSendFailedFallback;
+
+  /// No description provided for @conversationComposerAttachTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach file'**
+  String get conversationComposerAttachTooltip;
+
+  /// No description provided for @conversationComposerFormattingTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Formatting'**
+  String get conversationComposerFormattingTooltip;
+
+  /// No description provided for @conversationComposerEmojiTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Emoji'**
+  String get conversationComposerEmojiTooltip;
+
+  /// No description provided for @conversationComposerCameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera unavailable. Please check permissions.'**
+  String get conversationComposerCameraUnavailable;
+
+  /// No description provided for @conversationContextEditMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit message'**
+  String get conversationContextEditMessage;
+
+  /// No description provided for @conversationContextReply.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get conversationContextReply;
+
+  /// No description provided for @conversationContextSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get conversationContextSelect;
+
+  /// No description provided for @conversationContextReact.
+  ///
+  /// In en, this message translates to:
+  /// **'React'**
+  String get conversationContextReact;
+
+  /// No description provided for @conversationContextTranslate.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate'**
+  String get conversationContextTranslate;
+
+  /// No description provided for @conversationContextCopyText.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy text'**
+  String get conversationContextCopyText;
+
+  /// No description provided for @conversationContextForward.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward'**
+  String get conversationContextForward;
+
+  /// No description provided for @conversationContextSaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Save message'**
+  String get conversationContextSaveMessage;
+
+  /// No description provided for @conversationContextUnsaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave message'**
+  String get conversationContextUnsaveMessage;
+
+  /// No description provided for @conversationContextPinMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin message'**
+  String get conversationContextPinMessage;
+
+  /// No description provided for @conversationContextUnpinMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin message'**
+  String get conversationContextUnpinMessage;
+
+  /// No description provided for @conversationContextReplyInThread.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply in thread'**
+  String get conversationContextReplyInThread;
+
+  /// No description provided for @conversationContextCreateTask.
+  ///
+  /// In en, this message translates to:
+  /// **'Create task'**
+  String get conversationContextCreateTask;
+
+  /// No description provided for @conversationContextDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete message'**
+  String get conversationContextDeleteMessage;
+
+  /// No description provided for @conversationSelectionCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get conversationSelectionCancel;
+
+  /// No description provided for @conversationSelectionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get conversationSelectionSave;
+
+  /// No description provided for @conversationSelectionExportAsImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as image'**
+  String get conversationSelectionExportAsImage;
+
+  /// No description provided for @conversationSelectionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get conversationSelectionDelete;
+
+  /// No description provided for @conversationSelectionSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String conversationSelectionSelected(int count);
+
+  /// No description provided for @conversationSelectionBatchSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {action}.'**
+  String conversationSelectionBatchSucceeded(int count, String action);
+
+  /// No description provided for @conversationSelectionBatchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to {action} {count} message(s).'**
+  String conversationSelectionBatchFailed(String action, int count);
+
+  /// No description provided for @conversationSelectionBatchPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'{succeeded} {action}, {failed} failed.'**
+  String conversationSelectionBatchPartial(
+      int succeeded, String action, int failed);
+
+  /// No description provided for @conversationSelectionActionSaveVerb.
+  ///
+  /// In en, this message translates to:
+  /// **'save'**
+  String get conversationSelectionActionSaveVerb;
+
+  /// No description provided for @conversationSelectionActionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'saved'**
+  String get conversationSelectionActionSaved;
+
+  /// No description provided for @conversationSelectionActionDeleteVerb.
+  ///
+  /// In en, this message translates to:
+  /// **'delete'**
+  String get conversationSelectionActionDeleteVerb;
+
+  /// No description provided for @conversationSelectionActionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'deleted'**
+  String get conversationSelectionActionDeleted;
+
+  /// No description provided for @conversationEditDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit message'**
+  String get conversationEditDialogTitle;
+
+  /// No description provided for @conversationEditDialogCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get conversationEditDialogCancel;
+
+  /// No description provided for @conversationEditDialogSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get conversationEditDialogSave;
+
+  /// No description provided for @conversationEditSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Message edited.'**
+  String get conversationEditSuccess;
+
+  /// No description provided for @conversationEditFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to edit message.'**
+  String get conversationEditFailedFallback;
+
+  /// No description provided for @conversationMessageDeletedPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'[Message deleted]'**
+  String get conversationMessageDeletedPlaceholder;
+
+  /// No description provided for @conversationReactionFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to add reaction.'**
+  String get conversationReactionFailedFallback;
+
+  /// No description provided for @conversationReactWithEmojiTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'React with emoji'**
+  String get conversationReactWithEmojiTitle;
+
+  /// No description provided for @conversationReactWithEmojiSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'React with {emoji}'**
+  String conversationReactWithEmojiSemantics(String emoji);
+
+  /// No description provided for @conversationReactionUpdateFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update reaction.'**
+  String get conversationReactionUpdateFailedFallback;
+
+  /// No description provided for @conversationDeleteDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete message?'**
+  String get conversationDeleteDialogTitle;
+
+  /// No description provided for @conversationDeleteDialogContent.
+  ///
+  /// In en, this message translates to:
+  /// **'This message will be permanently deleted.'**
+  String get conversationDeleteDialogContent;
+
+  /// No description provided for @conversationDeleteDialogCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get conversationDeleteDialogCancel;
+
+  /// No description provided for @conversationDeleteDialogConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get conversationDeleteDialogConfirm;
+
+  /// No description provided for @conversationDeleteSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Message deleted.'**
+  String get conversationDeleteSuccess;
+
+  /// No description provided for @conversationDeleteFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete message.'**
+  String get conversationDeleteFailedFallback;
+
+  /// No description provided for @conversationOpenLinkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Link'**
+  String get conversationOpenLinkTitle;
+
+  /// No description provided for @conversationOpenLinkContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {url}?'**
+  String conversationOpenLinkContent(String url);
+
+  /// No description provided for @conversationOpenLinkCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get conversationOpenLinkCancel;
+
+  /// No description provided for @conversationOpenLinkConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get conversationOpenLinkConfirm;
+
+  /// No description provided for @conversationMessageActionsSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Message actions'**
+  String get conversationMessageActionsSemantics;
+
+  /// No description provided for @conversationShowMessageMenuSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Show message menu'**
+  String get conversationShowMessageMenuSemantics;
+
+  /// No description provided for @conversationReplySemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Reply'**
+  String get conversationReplySemantics;
 }
 
 class _AppLocalizationsDelegate

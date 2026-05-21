@@ -1398,4 +1398,195 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateSeparatorYesterday => 'Yesterday';
+
+  @override
+  String get conversationComposerHint => 'Write a message';
+
+  @override
+  String get conversationComposerAttachPhotoVideo => 'Photo & Video';
+
+  @override
+  String get conversationComposerAttachCamera => 'Camera';
+
+  @override
+  String get conversationComposerAttachFile => 'File';
+
+  @override
+  String get conversationComposerSendFailedFallback =>
+      'Failed to send message.';
+
+  @override
+  String get conversationComposerAttachTooltip => 'Attach file';
+
+  @override
+  String get conversationComposerFormattingTooltip => 'Formatting';
+
+  @override
+  String get conversationComposerEmojiTooltip => 'Emoji';
+
+  @override
+  String get conversationComposerCameraUnavailable =>
+      'Camera unavailable. Please check permissions.';
+
+  @override
+  String get conversationContextEditMessage => 'Edit message';
+
+  @override
+  String get conversationContextReply => 'Reply';
+
+  @override
+  String get conversationContextSelect => 'Select';
+
+  @override
+  String get conversationContextReact => 'React';
+
+  @override
+  String get conversationContextTranslate => 'Translate';
+
+  @override
+  String get conversationContextCopyText => 'Copy text';
+
+  @override
+  String get conversationContextForward => 'Forward';
+
+  @override
+  String get conversationContextSaveMessage => 'Save message';
+
+  @override
+  String get conversationContextUnsaveMessage => 'Unsave message';
+
+  @override
+  String get conversationContextPinMessage => 'Pin message';
+
+  @override
+  String get conversationContextUnpinMessage => 'Unpin message';
+
+  @override
+  String get conversationContextReplyInThread => 'Reply in thread';
+
+  @override
+  String get conversationContextCreateTask => 'Create task';
+
+  @override
+  String get conversationContextDeleteMessage => 'Delete message';
+
+  @override
+  String get conversationSelectionCancel => 'Cancel';
+
+  @override
+  String get conversationSelectionSave => 'Save';
+
+  @override
+  String get conversationSelectionExportAsImage => 'Export as image';
+
+  @override
+  String get conversationSelectionDelete => 'Delete';
+
+  @override
+  String conversationSelectionSelected(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String conversationSelectionBatchSucceeded(int count, String action) {
+    return '$count $action.';
+  }
+
+  @override
+  String conversationSelectionBatchFailed(String action, int count) {
+    return 'Failed to $action $count message(s).';
+  }
+
+  @override
+  String conversationSelectionBatchPartial(
+      int succeeded, String action, int failed) {
+    return '$succeeded $action, $failed failed.';
+  }
+
+  @override
+  String get conversationSelectionActionSaveVerb => 'save';
+
+  @override
+  String get conversationSelectionActionSaved => 'saved';
+
+  @override
+  String get conversationSelectionActionDeleteVerb => 'delete';
+
+  @override
+  String get conversationSelectionActionDeleted => 'deleted';
+
+  @override
+  String get conversationEditDialogTitle => 'Edit message';
+
+  @override
+  String get conversationEditDialogCancel => 'Cancel';
+
+  @override
+  String get conversationEditDialogSave => 'Save';
+
+  @override
+  String get conversationEditSuccess => 'Message edited.';
+
+  @override
+  String get conversationEditFailedFallback => 'Failed to edit message.';
+
+  @override
+  String get conversationMessageDeletedPlaceholder => '[Message deleted]';
+
+  @override
+  String get conversationReactionFailedFallback => 'Failed to add reaction.';
+
+  @override
+  String get conversationReactWithEmojiTitle => 'React with emoji';
+
+  @override
+  String conversationReactWithEmojiSemantics(String emoji) {
+    return 'React with $emoji';
+  }
+
+  @override
+  String get conversationReactionUpdateFailedFallback =>
+      'Failed to update reaction.';
+
+  @override
+  String get conversationDeleteDialogTitle => 'Delete message?';
+
+  @override
+  String get conversationDeleteDialogContent =>
+      'This message will be permanently deleted.';
+
+  @override
+  String get conversationDeleteDialogCancel => 'Cancel';
+
+  @override
+  String get conversationDeleteDialogConfirm => 'Delete';
+
+  @override
+  String get conversationDeleteSuccess => 'Message deleted.';
+
+  @override
+  String get conversationDeleteFailedFallback => 'Failed to delete message.';
+
+  @override
+  String get conversationOpenLinkTitle => 'Open Link';
+
+  @override
+  String conversationOpenLinkContent(String url) {
+    return 'Open $url?';
+  }
+
+  @override
+  String get conversationOpenLinkCancel => 'Cancel';
+
+  @override
+  String get conversationOpenLinkConfirm => 'Open';
+
+  @override
+  String get conversationMessageActionsSemantics => 'Message actions';
+
+  @override
+  String get conversationShowMessageMenuSemantics => 'Show message menu';
+
+  @override
+  String get conversationReplySemantics => 'Reply';
 }
