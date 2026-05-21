@@ -100,8 +100,8 @@ class _ControllableHomeListStore extends HomeListStore {
             createdAt: DateTime(2026, 5, 21),
           ),
         ],
-        channels: [],
-        directMessages: [],
+        channels: const [],
+        directMessages: const [],
       );
 
   void renameTask(String id, String newTitle) {
@@ -229,6 +229,30 @@ GoRouter _buildSettingsRouter() {
 
 final _enL10n = lookupAppLocalizations(const Locale('en'));
 
+/// Widget-path probe mirroring the exact `.select()` watch in `_HomeTasksSection`.
+/// Records build count so tests can assert rebuild behavior.
+class _ActiveCountProbe extends ConsumerWidget {
+  const _ActiveCountProbe({required this.onBuild});
+
+  final VoidCallback onBuild;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    onBuild();
+    // Exact same .select() expression as _HomeTasksSection in home_page.dart.
+    final activeCount = ref.watch(
+      homeListStoreProvider.select(
+        (s) => s.taskItems
+            .where(
+              (task) => task.status == 'in_progress' || task.status == 'todo',
+            )
+            .length,
+      ),
+    );
+    return Text('$activeCount', textDirection: TextDirection.ltr);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -249,10 +273,10 @@ void main() {
                   .overrideWithValue(const ServerScopeId('srv-1')),
               searchStoreProvider.overrideWith(() => store),
             ],
-            child: MaterialApp(
+            child: const MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const SearchPage(serverId: 'srv-1'),
+              home: SearchPage(serverId: 'srv-1'),
             ),
           ),
         );
@@ -276,10 +300,10 @@ void main() {
                   .overrideWithValue(const ServerScopeId('srv-1')),
               searchStoreProvider.overrideWith(() => store),
             ],
-            child: MaterialApp(
+            child: const MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const SearchPage(serverId: 'srv-1'),
+              home: SearchPage(serverId: 'srv-1'),
             ),
           ),
         );
@@ -308,10 +332,10 @@ void main() {
                   .overrideWithValue(const ServerScopeId('srv-1')),
               searchStoreProvider.overrideWith(() => store),
             ],
-            child: MaterialApp(
+            child: const MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: const SearchPage(serverId: 'srv-1'),
+              home: SearchPage(serverId: 'srv-1'),
             ),
           ),
         );
@@ -332,84 +356,69 @@ void main() {
   // ---------------------------------------------------------------------------
   // Fix 2: Home page — activeCount via .select()
   // ---------------------------------------------------------------------------
-  group('Fix 2: Home page activeCount .select()', () {
-    // Container-level test is sufficient here because _HomeTasksSection is a
-    // private widget not testable independently, and the .select() is the
-    // direct mechanism. The behavioral proof is that the select only fires
-    // on count changes.
-    test(
-      'INV-SELECT-669-HOME: task rename (same count) does NOT fire activeCount select',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            homeListStoreProvider
-                .overrideWith(() => _ControllableHomeListStore()),
-          ],
-        );
-        addTearDown(container.dispose);
+  group('Fix 2: Home page activeCount .select() widget-path', () {
+    testWidgets(
+      'INV-SELECT-669-HOME: task rename (same count) does NOT rebuild probe',
+      (tester) async {
+        final store = _ControllableHomeListStore();
+        int buildCount = 0;
 
-        final keepAlive = container.listen(homeListStoreProvider, (_, __) {});
-
-        int selectNotifyCount = 0;
-        container.listen(
-          homeListStoreProvider.select(
-            (s) => s.taskItems
-                .where(
-                  (task) =>
-                      task.status == 'in_progress' || task.status == 'todo',
-                )
-                .length,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              homeListStoreProvider.overrideWith(() => store),
+            ],
+            child: MaterialApp(
+              home: _ActiveCountProbe(
+                onBuild: () => buildCount++,
+              ),
+            ),
           ),
-          (_, __) => selectNotifyCount++,
         );
+        await tester.pump();
 
-        final store = container.read(homeListStoreProvider.notifier)
-            as _ControllableHomeListStore;
+        // Initial build.
+        expect(buildCount, 1);
 
-        // Rename a task — active count stays 2.
+        // Rename a task — active count stays 2 (in_progress + todo).
         store.renameTask('t-1', 'Renamed Task One');
-        expect(selectNotifyCount, 0,
-            reason: 'task rename must not fire activeCount select');
+        await tester.pump();
 
-        keepAlive.close();
+        // No rebuild — count didn't change.
+        expect(buildCount, 1,
+            reason: 'task rename must not rebuild the widget');
       },
     );
 
-    test(
-      'INV-SELECT-669-HOME: task status change (count changes) DOES fire select',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            homeListStoreProvider
-                .overrideWith(() => _ControllableHomeListStore()),
-          ],
-        );
-        addTearDown(container.dispose);
+    testWidgets(
+      'INV-SELECT-669-HOME: task status change (count changes) DOES rebuild probe',
+      (tester) async {
+        final store = _ControllableHomeListStore();
+        int buildCount = 0;
 
-        final keepAlive = container.listen(homeListStoreProvider, (_, __) {});
-
-        int selectNotifyCount = 0;
-        container.listen(
-          homeListStoreProvider.select(
-            (s) => s.taskItems
-                .where(
-                  (task) =>
-                      task.status == 'in_progress' || task.status == 'todo',
-                )
-                .length,
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              homeListStoreProvider.overrideWith(() => store),
+            ],
+            child: MaterialApp(
+              home: _ActiveCountProbe(
+                onBuild: () => buildCount++,
+              ),
+            ),
           ),
-          (_, __) => selectNotifyCount++,
         );
+        await tester.pump();
 
-        final store = container.read(homeListStoreProvider.notifier)
-            as _ControllableHomeListStore;
+        expect(buildCount, 1);
 
         // Mark t-2 as done — active count drops from 2 → 1.
         store.changeTaskStatus('t-2', 'done');
-        expect(selectNotifyCount, 1,
-            reason: 'active count change must fire select');
+        await tester.pump();
 
-        keepAlive.close();
+        // Rebuild — count changed.
+        expect(buildCount, 2,
+            reason: 'active count change must rebuild the widget');
       },
     );
   });
