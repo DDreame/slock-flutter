@@ -58,9 +58,13 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(searchStoreProvider);
     final colors = Theme.of(context).extension<AppColors>();
     final l10n = context.l10n;
+
+    // INV-SELECT-669: Only watch query.isNotEmpty for the clear button.
+    final showClearButton = ref.watch(
+      searchStoreProvider.select((s) => s.query.isNotEmpty),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -98,7 +102,7 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
           onChanged: ref.read(searchStoreProvider.notifier).updateQuery,
         ),
         actions: [
-          if (state.query.isNotEmpty)
+          if (showClearButton)
             IconButton(
               key: const ValueKey('search-clear'),
               icon: const Icon(Icons.close),
@@ -109,33 +113,48 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
-          SearchScopeTabs(
-            activeScope: state.scope,
-            messageCount:
-                state.status == SearchStatus.idle ? null : state.messageCount,
-            channelCount:
-                state.status == SearchStatus.idle ? null : state.channelCount,
-            contactCount:
-                state.status == SearchStatus.idle ? null : state.contactCount,
-            onScopeChanged: ref.read(searchStoreProvider.notifier).setScope,
-          ),
-          if (state.status != SearchStatus.idle)
-            _FilterChipBar(state: state, ref: ref),
-          Expanded(
-            child: _buildBody(state),
-          ),
-        ],
-      ),
+      body: _SearchBody(controller: _controller),
+    );
+  }
+}
+
+/// INV-SELECT-669: Separate consumer for search body — watches only
+/// status/scope/results/filters without triggering AppBar rebuilds.
+class _SearchBody extends ConsumerWidget {
+  const _SearchBody({required this.controller});
+
+  final TextEditingController? controller;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(searchStoreProvider);
+
+    return Column(
+      children: [
+        SearchScopeTabs(
+          activeScope: state.scope,
+          messageCount:
+              state.status == SearchStatus.idle ? null : state.messageCount,
+          channelCount:
+              state.status == SearchStatus.idle ? null : state.channelCount,
+          contactCount:
+              state.status == SearchStatus.idle ? null : state.contactCount,
+          onScopeChanged: ref.read(searchStoreProvider.notifier).setScope,
+        ),
+        if (state.status != SearchStatus.idle)
+          _FilterChipBar(state: state, ref: ref),
+        Expanded(
+          child: _buildBody(context, state),
+        ),
+      ],
     );
   }
 
-  Widget _buildBody(SearchState state) {
+  Widget _buildBody(BuildContext context, SearchState state) {
     final l10n = context.l10n;
     return switch (state.status) {
       SearchStatus.idle => _SearchIdleView(
-          controller: _controller,
+          controller: controller,
         ),
       SearchStatus.searching when !state.hasResults => const Center(
           key: ValueKey('search-searching'),
@@ -487,7 +506,7 @@ class _SearchContactResultsList extends StatelessWidget {
 class _SearchIdleView extends ConsumerWidget {
   const _SearchIdleView({required this.controller});
 
-  final TextEditingController controller;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -535,8 +554,8 @@ class _SearchIdleView extends ConsumerWidget {
                 ActionChip(
                   label: Text(query),
                   onPressed: () {
-                    controller.text = query;
-                    controller.selection = TextSelection.fromPosition(
+                    controller?.text = query;
+                    controller?.selection = TextSelection.fromPosition(
                       TextPosition(offset: query.length),
                     );
                     ref.read(searchStoreProvider.notifier).updateQuery(query);
