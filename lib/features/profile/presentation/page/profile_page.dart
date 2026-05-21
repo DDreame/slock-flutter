@@ -10,7 +10,6 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/core/hero/hero_tags.dart';
 import 'package:slock_app/features/profile/application/avatar_upload_service.dart';
 import 'package:slock_app/features/profile/application/profile_detail_store.dart';
-import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -69,16 +68,29 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(profileDetailStoreProvider);
+    final status = ref.watch(
+      profileDetailStoreProvider.select((s) => s.status),
+    );
+    final failure = ref.watch(
+      profileDetailStoreProvider.select((s) => s.failure),
+    );
+    final hasProfile = ref.watch(
+      profileDetailStoreProvider.select((s) => s.profile != null),
+    );
     final target = ref.watch(currentProfileTargetProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
-    final profile = state.profile;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(profile?.isSelf == true ? 'My Profile' : 'Profile'),
+        title: Text(
+          ref.watch(
+            profileDetailStoreProvider.select((s) => s.profile?.isSelf == true),
+          )
+              ? 'My Profile'
+              : 'Profile',
+        ),
       ),
-      body: switch (state.status) {
+      body: switch (status) {
         ProfileDetailStatus.initial ||
         ProfileDetailStatus.loading =>
           const Center(
@@ -93,7 +105,7 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    state.failure?.message ?? 'Profile not available.',
+                    failure?.message ?? 'Profile not available.',
                     textAlign: TextAlign.center,
                     style: AppTypography.body.copyWith(
                       color: colors.textSecondary,
@@ -109,11 +121,9 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
               ),
             ),
           ),
-        ProfileDetailStatus.success when profile != null => _ProfileSuccessBody(
-            profile: profile,
+        ProfileDetailStatus.success when hasProfile => _ProfileSuccessBody(
             target: target,
             colors: colors,
-            isOpeningDm: state.isOpeningDirectMessage,
             onMessage: () => _openDirectMessage(target),
           ),
         _ => Center(
@@ -130,17 +140,13 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
 
 class _ProfileSuccessBody extends ConsumerWidget {
   const _ProfileSuccessBody({
-    required this.profile,
     required this.target,
     required this.colors,
-    required this.isOpeningDm,
     required this.onMessage,
   });
 
-  final MemberProfile profile;
   final ProfileTarget target;
   final AppColors colors;
-  final bool isOpeningDm;
   final VoidCallback onMessage;
 
   Future<void> _handleAvatarEdit(BuildContext context, WidgetRef ref) async {
@@ -176,6 +182,15 @@ class _ProfileSuccessBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(
+      profileDetailStoreProvider.select((s) => s.profile),
+    );
+    final isOpeningDm = ref.watch(
+      profileDetailStoreProvider.select((s) => s.isOpeningDirectMessage),
+    );
+
+    if (profile == null) return const SizedBox.shrink();
+
     return SingleChildScrollView(
       key: const ValueKey('profile-success'),
       padding: const EdgeInsets.all(AppSpacing.xl),
