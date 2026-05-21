@@ -17,6 +17,7 @@ import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   testWidgets('ThreadsPage renders followed threads and marks them done', (
@@ -340,6 +341,8 @@ void main() {
         child: MaterialApp.router(
           routerConfig: router,
           theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
         ),
       ),
     );
@@ -514,7 +517,12 @@ Widget _buildApp({
           conversationRepositoryProvider
               .overrideWithValue(conversationRepository),
       ],
-      child: MaterialApp(theme: AppTheme.light, home: child),
+      child: MaterialApp(
+        theme: AppTheme.light,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: child,
+      ),
     ),
   );
 }
@@ -527,7 +535,12 @@ Widget _buildAppWithContainer({
     goRouter: _testGoRouter(),
     child: UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(theme: AppTheme.light, home: child),
+      child: MaterialApp(
+        theme: AppTheme.light,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        home: child,
+      ),
     ),
   );
 }
