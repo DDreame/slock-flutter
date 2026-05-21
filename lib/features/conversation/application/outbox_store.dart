@@ -71,10 +71,22 @@ class OutboxMessage {
       identical(this, other) ||
       other is OutboxMessage &&
           runtimeType == other.runtimeType &&
-          localId == other.localId;
+          localId == other.localId &&
+          content == other.content &&
+          createdAt == other.createdAt &&
+          replyToId == other.replyToId &&
+          status == other.status &&
+          failureMessage == other.failureMessage;
 
   @override
-  int get hashCode => localId.hashCode;
+  int get hashCode => Object.hash(
+        localId,
+        content,
+        createdAt,
+        replyToId,
+        status,
+        failureMessage,
+      );
 }
 
 /// State for the outbox store.

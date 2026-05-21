@@ -28,6 +28,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/outbox_store.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/preview_backfill_service.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/realtime/application/list_typing_indicator_store.dart';
@@ -72,6 +74,13 @@ class _ThrowingNotificationStore extends NotificationStore {
   Future<void> setNotificationPreference(
     NotificationPreference preference,
   ) async {}
+}
+
+/// Stub HomeListStore that does nothing — prevents real build() from
+/// scheduling load() microtask that accesses un-overridden providers.
+class _StubHomeListStore extends HomeListStore {
+  @override
+  HomeListState build() => const HomeListState();
 }
 
 // ---------------------------------------------------------------------------
@@ -332,6 +341,53 @@ void main() {
       expect(a == b, isTrue);
       expect(a.hashCode, b.hashCode);
     });
+
+    test(
+        'INV-EQ-673-OUTBOX: status change (pending → failed) DOES trigger notification',
+        () {
+      final container = ProviderContainer(
+        overrides: [
+          outboxStoreProvider.overrideWith(() => _ControllableOutboxStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      int notifyCount = 0;
+      container.listen(
+        outboxStoreProvider,
+        (_, __) => notifyCount++,
+        fireImmediately: false,
+      );
+
+      final store = container.read(outboxStoreProvider.notifier)
+          as _ControllableOutboxStore;
+
+      final msg = OutboxMessage(
+        localId: 'local-1',
+        content: 'Hello',
+        createdAt: DateTime(2026, 5, 21),
+        status: OutboxMessageStatus.pending,
+      );
+
+      store.setStateDirect(OutboxState(items: {
+        'ch-1': [msg]
+      }));
+      expect(notifyCount, 1);
+
+      // Same localId, different status → must notify.
+      final msgFailed = OutboxMessage(
+        localId: 'local-1',
+        content: 'Hello',
+        createdAt: DateTime(2026, 5, 21),
+        status: OutboxMessageStatus.failed,
+        failureMessage: 'Server rejected',
+      );
+      store.setStateDirect(OutboxState(items: {
+        'ch-1': [msgFailed]
+      }));
+      expect(notifyCount, 2,
+          reason: 'status change (pending → failed) must notify');
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -503,6 +559,7 @@ void main() {
           previewMessageFetcherProvider.overrideWithValue(
             (_, __) async => throw Exception('Network timeout'),
           ),
+          homeListStoreProvider.overrideWith(() => _StubHomeListStore()),
         ],
       );
       addTearDown(container.dispose);
@@ -531,7 +588,7 @@ void main() {
   // ---------------------------------------------------------------------------
   group('Fix 5: NotificationSettingsPage catch → diagnostics', () {
     testWidgets(
-        'INV-TELEMETRY-673-NOTIFICATION: permission error logs to diagnostics',
+        'INV-TELEMETRY-673-NOTIFICATION: permission error logs to diagnostics and appears in UI',
         (tester) async {
       final diagnostics = DiagnosticsCollector();
 
@@ -562,12 +619,23 @@ void main() {
           .where((e) => e.level == DiagnosticsLevel.error)
           .toList();
       expect(errors, hasLength(1));
-      expect(errors.first.tag, 'NotificationSettings');
+      expect(errors.first.tag, 'notification');
       expect(
         errors.first.message,
         contains('Permission update failed'),
       );
       expect(errors.first.metadata, containsPair('stackTrace', isNotEmpty));
+
+      // Verify the error appears in the diagnostics panel UI (tag == 'notification').
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('notification-diagnostics-events')),
+        200,
+      );
+      expect(
+        find.textContaining('Permission update failed'),
+        findsOneWidget,
+        reason: 'telemetry error must surface in diagnostics UI panel',
+      );
     });
   });
 }

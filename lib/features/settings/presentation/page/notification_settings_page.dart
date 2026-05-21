@@ -208,9 +208,9 @@ class _NotificationSettingsPageState
           content: Text(_permissionResultMessage(permissionStatus, l10n)),
         ),
       );
-    } on Exception catch (e, st) {
+    } catch (e, st) {
       ref.read(diagnosticsCollectorProvider).error(
-        'NotificationSettings',
+        'notification',
         'Permission update failed: $e',
         metadata: {'stackTrace': '$st'},
       );
