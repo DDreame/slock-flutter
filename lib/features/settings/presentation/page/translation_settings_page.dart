@@ -23,10 +23,20 @@ class TranslationSettingsPage extends ConsumerStatefulWidget {
 
 class _TranslationSettingsPageState
     extends ConsumerState<TranslationSettingsPage> {
+  bool _loadPending = false;
+
   @override
   void initState() {
     super.initState();
+    _scheduleLoad();
+  }
+
+  /// Schedules a post-frame load with dedup guard to prevent stacking.
+  void _scheduleLoad() {
+    if (_loadPending) return;
+    _loadPending = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPending = false;
       if (!mounted) return;
       ref.read(translationSettingsStoreProvider.notifier).ensureLoaded();
     });
@@ -43,10 +53,7 @@ class _TranslationSettingsPageState
       translationSettingsStoreProvider.select((s) => s.status),
       (prev, next) {
         if (next == TranslationSettingsStatus.initial) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            ref.read(translationSettingsStoreProvider.notifier).ensureLoaded();
-          });
+          _scheduleLoad();
         }
       },
     );

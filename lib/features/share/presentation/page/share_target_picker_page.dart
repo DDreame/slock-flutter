@@ -138,18 +138,19 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
       ...homeState.directMessages,
     ];
 
+    final lowerQuery = _query.toLowerCase();
     final filteredChannels = _query.isEmpty
         ? allChannels
         : allChannels
             .where(
-              (ch) => ch.name.toLowerCase().contains(_query.toLowerCase()),
+              (ch) => ch.name.toLowerCase().contains(lowerQuery),
             )
             .toList();
     final filteredDms = _query.isEmpty
         ? allDms
         : allDms
             .where(
-              (dm) => dm.title.toLowerCase().contains(_query.toLowerCase()),
+              (dm) => dm.title.toLowerCase().contains(lowerQuery),
             )
             .toList();
 
