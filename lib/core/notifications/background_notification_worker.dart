@@ -223,7 +223,10 @@ class BackgroundNotificationWorker {
         // Attempt to reconnect.
         _scheduleReconnect();
       case BackgroundSocketStatus.connected:
-        foregroundActive = false;
+        // No-op: foregroundActive is owned exclusively by the lifecycle
+        // binding (setForegroundActive). Resetting it here on reconnect
+        // would cause duplicate notifications while the app is in the
+        // foreground (#711).
         break;
     }
   }
