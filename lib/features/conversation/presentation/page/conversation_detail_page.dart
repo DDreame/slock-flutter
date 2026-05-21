@@ -214,10 +214,12 @@ class _ConversationDetailScreenState
   StreamSubscription<VoiceRecorderState>? _voiceStateSub;
   StreamSubscription<double>? _voiceAmplitudeSub;
   StreamSubscription<Duration>? _voiceElapsedSub;
+  late final VoiceMessageStore _voiceMessageStore;
 
   @override
   void initState() {
     super.initState();
+    _voiceMessageStore = ref.read(voiceMessageStoreProvider.notifier);
     // Register test hook for observing GlobalKey map size.
     ConversationDetailPage.debugMessageGlobalKeyCount =
         () => _messageGlobalKeys.length;
@@ -258,6 +260,8 @@ class _ConversationDetailScreenState
     _voiceAmplitudeSub?.cancel();
     _voiceElapsedSub?.cancel();
     _voiceRecorder?.dispose();
+    // Deferred to avoid "modify provider during tree finalization" error.
+    Future.microtask(_voiceMessageStore.reset);
     _stateSubscription?.close();
     _translationSettingsSub?.close();
     _deferredMarkReadSub?.close();

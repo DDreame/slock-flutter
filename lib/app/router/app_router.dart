@@ -218,7 +218,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               return pending;
             }
           } else if (isNotificationDeepLink(pending)) {
-            return pending;
+            final pendingServerId = extractDeepLinkServerId(pending);
+            if (pendingServerId != null) {
+              final servers = ref.read(serverListStoreProvider).servers;
+              if (servers.any((s) => s.id == pendingServerId)) {
+                return pending;
+              }
+              // Server not in membership list — reject silently
+            } else {
+              // No server scope (e.g. /profile/u1) — allow
+              return pending;
+            }
           }
         }
       }
@@ -375,7 +385,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/file-preview',
         builder: (context, state) {
-          final attachment = state.extra as MessageAttachment;
+          final attachment = state.extra as MessageAttachment?;
+          if (attachment == null) {
+            return const _FilePreviewFallback();
+          }
           return FilePreviewPage(attachment: attachment);
         },
       ),
@@ -680,6 +693,37 @@ class _ShareTargetRoute extends StatelessWidget {
         ref.read(shareIntentStoreProvider.notifier).consume();
         context.go('/home');
       },
+    );
+  }
+}
+
+/// Fallback shown when `/file-preview` is navigated without [state.extra].
+///
+/// This can happen when GoRouter loses serialized extras across process
+/// restores or notification deep-links. Instead of crashing, show a
+/// user-friendly message and provide a way back.
+class _FilePreviewFallback extends StatelessWidget {
+  const _FilePreviewFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('File Preview')),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.broken_image_outlined, size: 64),
+            const SizedBox(height: 16),
+            const Text('File preview unavailable'),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => context.pop(),
+              child: const Text('Go back'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
