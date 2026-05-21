@@ -43,6 +43,9 @@ class FakeAndroidNotificationPlatformBridge
   Stream<Map<String, dynamic>> get onForegroundMessage => const Stream.empty();
 
   @override
+  Stream<String> get onTokenChanged => const Stream.empty();
+
+  @override
   Future<void> showLocalNotification(Map<String, dynamic> payload) async {}
 }
 
