@@ -50,6 +50,10 @@ class ListTypingIndicatorNotifier
   /// Per-user expiry timers (5-second auto-clear).
   final Map<String, Timer> _timers = {};
 
+  /// Guard: set true in onDispose to prevent timer callbacks from
+  /// mutating state on a stale notifier (#716).
+  bool _disposed = false;
+
   @override
   bool updateShouldNotify(
     ListTypingIndicatorState previous,
@@ -60,6 +64,7 @@ class ListTypingIndicatorNotifier
   @override
   ListTypingIndicatorState build(String arg) {
     ref.onDispose(() {
+      _disposed = true;
       for (final timer in _timers.values) {
         timer.cancel();
       }
@@ -75,6 +80,8 @@ class ListTypingIndicatorNotifier
     required String userId,
     required String displayName,
   }) {
+    if (_disposed) return;
+
     // Cancel existing timer for this user (refresh).
     _timers[userId]?.cancel();
 
@@ -82,6 +89,7 @@ class ListTypingIndicatorNotifier
 
     // Start 5-second expiry timer.
     _timers[userId] = Timer(const Duration(seconds: 5), () {
+      if (_disposed) return;
       _typers.remove(userId);
       _timers.remove(userId);
       state = ListTypingIndicatorState(displayText: _buildDisplayText());
@@ -92,6 +100,8 @@ class ListTypingIndicatorNotifier
 
   /// Remove a specific user's typing indicator.
   void removeTyper(String userId) {
+    if (_disposed) return;
+
     _timers[userId]?.cancel();
     _timers.remove(userId);
     _typers.remove(userId);
