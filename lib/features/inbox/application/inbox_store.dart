@@ -22,6 +22,10 @@ class InboxStore extends Notifier<InboxState> {
     // Watch the active server so the store rebuilds (state resets) on switch.
     ref.watch(activeServerScopeIdProvider);
 
+    // Reset _isLoadingMore so pagination isn't stuck if a server switch
+    // happens while loadMore is in-flight (#714).
+    _isLoadingMore = false;
+
     // Listen for realtime reconnection to trigger inbox refresh.
     // When the connection transitions from reconnecting → connected,
     // we must refresh to catch messages received during the disconnect.
@@ -161,10 +165,13 @@ class InboxStore extends Notifier<InboxState> {
   /// Switch filter mode and reload.
   Future<void> setFilter(InboxFilter filter) => load(filter: filter);
 
-  /// Mark a single item as read (optimistic update).
+  /// Mark a single item as read (optimistic update with rollback on failure).
   Future<void> markRead({required String channelId}) async {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
+
+    // Capture pre-mutation state for rollback on API failure (#714).
+    final previousState = state;
 
     // Optimistic: zero out unreadCount and clear isMentioned for the item.
     final updatedItems = state.items.map((item) {
@@ -206,7 +213,8 @@ class InboxStore extends Notifier<InboxState> {
           .read(inboxRepositoryProvider)
           .markItemRead(serverId, channelId: channelId);
     } on AppFailure {
-      // Silently handle — refresh will correct state.
+      // Rollback optimistic update — badge must reflect server truth (#714).
+      state = previousState;
     }
   }
 
