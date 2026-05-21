@@ -70,6 +70,24 @@ void main() {
   });
 
   group('#708A — P0: Corrupt status deserialization', () {
+    // Use an offline connectivity service for deserialization tests to prevent
+    // the startup auto-drain (Future.microtask(() => drainAll())) from firing
+    // and accessing providers after container disposal.
+    late StreamController<ConnectivityStatus> offlineController;
+    late ConnectivityService offlineService;
+
+    setUp(() {
+      offlineController = StreamController<ConnectivityStatus>.broadcast();
+      offlineService = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: offlineController,
+      );
+    });
+
+    tearDown(() {
+      offlineController.close();
+    });
+
     test('corrupt status string falls back to pending (entry preserved)',
         () async {
       final targetKey = outboxTargetKey(target);
@@ -99,10 +117,11 @@ void main() {
       await prefs.setString('outbox_queue', queueJson);
 
       // Create a new container to simulate app restart with corrupt data.
+      // Uses offline connectivity to prevent startup auto-drain.
       final newContainer = ProviderContainer(
         overrides: [
           conversationRepositoryProvider.overrideWithValue(repository),
-          connectivityServiceProvider.overrideWithValue(connectivityService),
+          connectivityServiceProvider.overrideWithValue(offlineService),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );
@@ -136,7 +155,7 @@ void main() {
       final newContainer = ProviderContainer(
         overrides: [
           conversationRepositoryProvider.overrideWithValue(repository),
-          connectivityServiceProvider.overrideWithValue(connectivityService),
+          connectivityServiceProvider.overrideWithValue(offlineService),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );
@@ -175,7 +194,7 @@ void main() {
       final newContainer = ProviderContainer(
         overrides: [
           conversationRepositoryProvider.overrideWithValue(repository),
-          connectivityServiceProvider.overrideWithValue(connectivityService),
+          connectivityServiceProvider.overrideWithValue(offlineService),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );
