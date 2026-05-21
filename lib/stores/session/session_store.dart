@@ -158,9 +158,10 @@ class SessionStore extends Notifier<SessionState> {
 
   Future<void> logout() async {
     // Clear outbox before wiping auth — prevents previous user's queued
-    // messages from draining under the next user's session.
+    // messages from draining under the next user's session. Awaited so the
+    // SharedPreferences key is durably removed before logout completes.
     try {
-      ref.read(outboxStoreProvider.notifier).clearAll();
+      await ref.read(outboxStoreProvider.notifier).clearAll();
     } on Object {
       // OutboxStore may not be initialized (e.g. minimal test env without
       // SharedPreferences). In production, outbox is always available.

@@ -337,11 +337,12 @@ class OutboxStore extends Notifier<OutboxState> {
   /// Clear all outbox items (memory + persistence).
   ///
   /// Called during logout to prevent previous user's queued messages from
-  /// draining under the next user's session.
-  void clearAll() {
+  /// draining under the next user's session. Returns a [Future] so the
+  /// caller can await durable removal of the persisted key.
+  Future<void> clearAll() async {
     state = const OutboxState();
     try {
-      ref.read(sharedPreferencesProvider).remove(_prefsKey);
+      await ref.read(sharedPreferencesProvider).remove(_prefsKey);
     } catch (_) {
       // Best-effort; ignore failures during cleanup.
     }
