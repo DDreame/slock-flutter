@@ -612,9 +612,25 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
     super.dispose();
   }
 
+  /// RFC 5322 simplified email regex — validates local@domain structure.
+  static final _emailRegex = RegExp(
+    r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$",
+  );
+
   bool get _isValidEmail {
+    final text = _emailController.text;
+    if (text.contains('\n')) return false;
+    final email = text.trim();
+    if (email.isEmpty) return false;
+    return _emailRegex.hasMatch(email);
+  }
+
+  /// Returns error text for inline TextField decoration, or null if valid/empty.
+  String? get _emailErrorText {
     final email = _emailController.text.trim();
-    return email.isNotEmpty && email.contains('@') && !email.startsWith('@');
+    if (email.isEmpty) return null;
+    if (!_isValidEmail) return 'Enter a valid email address';
+    return null;
   }
 
   Future<void> _sendEmail() async {
@@ -707,9 +723,10 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
                     controller: _emailController,
                     autofocus: true,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email',
                       hintText: 'user@example.com',
+                      errorText: _emailErrorText,
                     ),
                     onChanged: (_) => setState(() {}),
                   ),
