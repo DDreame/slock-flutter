@@ -157,6 +157,7 @@ void main() {
 
       expect(state().items.length, 1);
       expect(state().items[0].userId, 'u1');
+      expect(state().failure?.message, 'Remove failed');
     });
 
     test('removeAgentMember optimistically removes', () async {
@@ -187,6 +188,7 @@ void main() {
 
       expect(state().items.length, 1);
       expect(state().items[0].agentId, 'a1');
+      expect(state().failure?.message, 'Remove failed');
     });
 
     test('retry delegates to load', () async {

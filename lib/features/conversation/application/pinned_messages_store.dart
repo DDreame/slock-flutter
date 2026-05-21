@@ -40,7 +40,7 @@ class PinnedMessagesState {
           listEquals(messages, other.messages);
 
   @override
-  int get hashCode => Object.hash(status, error, messages.length);
+  int get hashCode => Object.hash(status, error, Object.hashAll(messages));
 }
 
 final pinnedMessagesStoreProvider =

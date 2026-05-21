@@ -652,6 +652,7 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(messages: previousMessages);
+      _persistSession();
       rethrow;
     }
   }
@@ -675,6 +676,7 @@ class ConversationDetailStore
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(messages: previousMessages);
+      _persistSession();
       rethrow;
     }
   }

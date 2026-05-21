@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
@@ -95,6 +98,50 @@ void main() {
 
       final state = container.read(conversationDetailStoreProvider);
       expect(state.messages.first.content, 'Original content');
+    });
+
+    test('failure rollback persists restored content to session cache (#718)',
+        () async {
+      const failure = ServerFailure(
+        message: 'Forbidden.',
+        statusCode: 403,
+      );
+      final editCompleter = Completer<void>();
+      final repository = _FakeConversationRepository(
+        snapshot: twoMessageSnapshot(),
+        editFailure: failure,
+        editCompleter: editCompleter,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final editFuture = container
+          .read(conversationDetailStoreProvider.notifier)
+          .editMessage('message-1', 'Will revert');
+      await Future<void>.value();
+
+      container
+          .read(conversationDetailSessionStoreProvider.notifier)
+          .saveSuccessState(
+            container.read(conversationDetailStoreProvider),
+            scrollOffset: 12,
+          );
+
+      editCompleter.complete();
+      await expectLater(editFuture, throwsA(isA<ServerFailure>()));
+
+      final cached =
+          container.read(conversationDetailSessionStoreProvider)[target]!;
+      expect(cached.messages.first.content, 'Original content');
+      expect(cached.scrollOffset, 12);
     });
 
     test('does nothing when state is not success', () async {
@@ -286,6 +333,51 @@ void main() {
       expect(state.messages.map((m) => m.id), ['message-1', 'message-2']);
     });
 
+    test(
+        'failure rollback persists restored deleted flag to session cache (#718)',
+        () async {
+      const failure = ServerFailure(
+        message: 'Forbidden.',
+        statusCode: 403,
+      );
+      final deleteCompleter = Completer<void>();
+      final repository = _FakeConversationRepository(
+        snapshot: twoMessageSnapshot(),
+        deleteFailure: failure,
+        deleteCompleter: deleteCompleter,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final deleteFuture = container
+          .read(conversationDetailStoreProvider.notifier)
+          .deleteMessage('message-1');
+      await Future<void>.value();
+
+      container
+          .read(conversationDetailSessionStoreProvider.notifier)
+          .saveSuccessState(
+            container.read(conversationDetailStoreProvider),
+            scrollOffset: 24,
+          );
+
+      deleteCompleter.complete();
+      await expectLater(deleteFuture, throwsA(isA<ServerFailure>()));
+
+      final cached =
+          container.read(conversationDetailSessionStoreProvider)[target]!;
+      expect(cached.messages.first.isDeleted, isFalse);
+      expect(cached.scrollOffset, 24);
+    });
+
     test('message:deleted realtime event marks message as deleted', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
@@ -337,11 +429,15 @@ class _FakeConversationRepository implements ConversationRepository {
     required this.snapshot,
     this.editFailure,
     this.deleteFailure,
+    this.editCompleter,
+    this.deleteCompleter,
   });
 
   final ConversationDetailSnapshot snapshot;
   final AppFailure? editFailure;
   final AppFailure? deleteFailure;
+  final Completer<void>? editCompleter;
+  final Completer<void>? deleteCompleter;
   final Map<String, String> editedMessages = {};
   final List<String> deletedMessageIds = [];
 
@@ -428,6 +524,9 @@ class _FakeConversationRepository implements ConversationRepository {
     required String content,
   }) async {
     editedMessages[messageId] = content;
+    if (editCompleter != null) {
+      await editCompleter!.future;
+    }
     if (editFailure != null) {
       throw editFailure!;
     }
@@ -439,6 +538,9 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
   }) async {
     deletedMessageIds.add(messageId);
+    if (deleteCompleter != null) {
+      await deleteCompleter!.future;
+    }
     if (deleteFailure != null) {
       throw deleteFailure!;
     }

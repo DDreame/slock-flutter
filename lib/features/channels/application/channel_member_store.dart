@@ -114,8 +114,8 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
         channelId: channelId,
         userId: userId,
       );
-    } on AppFailure {
-      state = state.copyWith(items: previousItems);
+    } on AppFailure catch (failure) {
+      state = state.copyWith(items: previousItems, failure: failure);
       rethrow;
     }
   }
@@ -135,8 +135,8 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
         channelId: channelId,
         agentId: agentId,
       );
-    } on AppFailure {
-      state = state.copyWith(items: previousItems);
+    } on AppFailure catch (failure) {
+      state = state.copyWith(items: previousItems, failure: failure);
       rethrow;
     }
   }

@@ -48,6 +48,39 @@ void main() {
     );
   }
 
+  group('PinnedMessagesState equality', () {
+    test('hashCode includes message contents for same-length lists (#718)', () {
+      final first = ConversationMessageSummary(
+        id: 'message-1',
+        content: 'First',
+        createdAt: DateTime.parse('2026-05-07T10:00:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 1,
+      );
+      final second = ConversationMessageSummary(
+        id: 'message-2',
+        content: 'Second',
+        createdAt: DateTime.parse('2026-05-07T10:01:00Z'),
+        senderType: 'human',
+        messageType: 'message',
+        seq: 2,
+      );
+
+      final a = PinnedMessagesState(
+        status: PinnedMessagesStatus.success,
+        messages: [first],
+      );
+      final b = PinnedMessagesState(
+        status: PinnedMessagesStatus.success,
+        messages: [second],
+      );
+
+      expect(a, isNot(b));
+      expect(a.hashCode, isNot(b.hashCode));
+    });
+  });
+
   group('pinMessage', () {
     test('optimistically pins and calls API', () async {
       final repository = _FakeConversationRepository(
