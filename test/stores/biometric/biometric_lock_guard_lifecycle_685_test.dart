@@ -61,7 +61,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       // Background timestamp recorded.
-      expect(container.read(biometricStoreProvider).lastBackgroundAt, isNotNull);
+      expect(
+          container.read(biometricStoreProvider).lastBackgroundAt, isNotNull);
 
       // Simulate long background by overriding timestamp.
       final longAgo = DateTime.now().subtract(const Duration(minutes: 10));

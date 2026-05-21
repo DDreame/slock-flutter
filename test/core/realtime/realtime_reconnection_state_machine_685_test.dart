@@ -93,7 +93,8 @@ void main() {
       expect(readState().disconnectReason, 'timeout #3');
     });
 
-    test('connected signal transitions status and clears reason (attempts stay cumulative)',
+    test(
+        'connected signal transitions status and clears reason (attempts stay cumulative)',
         () async {
       final service = container.read(realtimeServiceProvider.notifier);
       await service.connect();
@@ -168,7 +169,8 @@ void main() {
       expect(readState().lastDisconnectedAt, fakeNow);
     });
 
-    test('multi-cycle: error → connected → error → connected accumulates attempts',
+    test(
+        'multi-cycle: error → connected → error → connected accumulates attempts',
         () async {
       final service = container.read(realtimeServiceProvider.notifier);
       await service.connect();
