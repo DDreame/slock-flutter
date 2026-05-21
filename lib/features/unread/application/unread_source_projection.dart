@@ -165,9 +165,16 @@ class UnreadSourceProjectionState {
         other is UnreadSourceProjectionState &&
             runtimeType == other.runtimeType &&
             isLoaded == other.isLoaded &&
-            listEquals(sources, other.sources);
+            listEquals(sources, other.sources) &&
+            mapEquals(channelUnreadCounts, other.channelUnreadCounts) &&
+            mapEquals(dmUnreadCounts, other.dmUnreadCounts);
   }
 
   @override
-  int get hashCode => Object.hash(isLoaded, Object.hashAll(sources));
+  int get hashCode => Object.hash(
+        isLoaded,
+        Object.hashAll(sources),
+        Object.hashAll(channelUnreadCounts.entries),
+        Object.hashAll(dmUnreadCounts.entries),
+      );
 }
