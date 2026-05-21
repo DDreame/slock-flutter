@@ -32,7 +32,8 @@ class MessageContentWidget extends ConsumerStatefulWidget {
   });
 
   /// Build counter for rebuild-detection tests. Incremented in debug mode
-  /// on every [build] invocation. Reset manually in test setUp.
+  /// only via assert(); zero-cost in release builds.
+  /// Reset manually in test setUp.
   @visibleForTesting
   static int debugBuildCount = 0;
 
@@ -85,7 +86,10 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
 
   @override
   Widget build(BuildContext context) {
-    MessageContentWidget.debugBuildCount++;
+    assert(() {
+      MessageContentWidget.debugBuildCount++;
+      return true;
+    }());
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
 

@@ -11,13 +11,17 @@ class TypingIndicatorWidget extends ConsumerWidget {
   const TypingIndicatorWidget({super.key});
 
   /// Build counter for rebuild-detection tests. Incremented in debug mode
-  /// on every [build] invocation. Reset manually in test setUp.
+  /// only via assert(); zero-cost in release builds.
+  /// Reset manually in test setUp.
   @visibleForTesting
   static int debugBuildCount = 0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    debugBuildCount++;
+    assert(() {
+      debugBuildCount++;
+      return true;
+    }());
     final displayText = ref.watch(
       typingIndicatorStoreProvider.select((s) => s.displayText),
     );
