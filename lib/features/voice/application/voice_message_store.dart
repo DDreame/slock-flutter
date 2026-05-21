@@ -149,7 +149,11 @@ class VoiceWaveformCacheNotifier
 ///
 /// Populated when the user sends a voice recording so the inline player
 /// can display the real waveform captured during recording.
-final voiceWaveformCacheProvider = StateNotifierProvider<
+///
+/// AutoDispose: scoped to conversation page lifecycle. Cleared when the
+/// user navigates away, preventing 50-entry permanent memory leak.
+/// LRU eviction (maxSize=50) still applies while the cache is alive.
+final voiceWaveformCacheProvider = AutoDisposeStateNotifierProvider<
     VoiceWaveformCacheNotifier, Map<String, List<double>>>(
   (ref) => VoiceWaveformCacheNotifier(),
 );

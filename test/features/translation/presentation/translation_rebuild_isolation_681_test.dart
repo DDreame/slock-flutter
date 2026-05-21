@@ -201,4 +201,40 @@ void main() {
       expect(stateAfter.elapsed, Duration.zero);
     });
   });
+
+  group('#681 — voiceWaveformCacheProvider autoDispose', () {
+    test('waveform cache auto-disposes when all listeners are removed',
+        () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // Add a listener (simulates conversation page watching the cache).
+      final sub = container.listen(
+        voiceWaveformCacheProvider,
+        (_, __) {},
+      );
+
+      // Populate the cache while listener is active.
+      container
+          .read(voiceWaveformCacheProvider.notifier)
+          .put('voice_123.m4a', [0.3, 0.7, 0.5]);
+      container
+          .read(voiceWaveformCacheProvider.notifier)
+          .put('voice_456.m4a', [0.1, 0.9]);
+      expect(container.read(voiceWaveformCacheProvider), hasLength(2));
+
+      // Remove the listener (simulates page disposal).
+      sub.close();
+
+      // Allow Riverpod's autoDispose scheduling to complete.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      // Re-read the provider — autoDispose should have reset it.
+      // A new instance is created with empty cache.
+      final cacheAfter = container.read(voiceWaveformCacheProvider);
+      expect(cacheAfter, isEmpty,
+          reason: 'Waveform cache must be empty after autoDispose reset');
+    });
+  });
 }
