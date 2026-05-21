@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
-import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 
 final channelManagementStoreProvider = NotifierProvider.autoDispose<
@@ -17,10 +16,10 @@ class ChannelManagementStore
 
   Future<String> createChannel(
     String name, {
+    required ServerScopeId serverId,
     String? description,
     bool? isPrivate,
   }) async {
-    final serverId = _requireServerId();
     state = state.copyWith(
       activeAction: ChannelManagementAction.create,
       clearFailure: true,
@@ -118,14 +117,6 @@ class ChannelManagementStore
       );
       rethrow;
     }
-  }
-
-  ServerScopeId _requireServerId() {
-    final serverId = ref.read(activeServerScopeIdProvider);
-    if (serverId != null) {
-      return serverId;
-    }
-    throw const UnknownFailure(message: 'No active server selected.');
   }
 
   Future<void> _refreshHomeList() {

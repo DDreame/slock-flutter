@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 
 /// Full-page form for creating a new channel.
 ///
@@ -19,6 +20,7 @@ class CreateChannelPage extends ConsumerStatefulWidget {
 class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
+  late final ServerScopeId? _serverId;
   bool _isPrivate = false;
 
   @override
@@ -26,6 +28,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
     super.initState();
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
+    _serverId = ref.read(activeServerScopeIdProvider);
   }
 
   @override
@@ -111,10 +114,20 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
     final name = _nameController.text.trim();
     final description = _descriptionController.text.trim();
     final store = ref.read(channelManagementStoreProvider.notifier);
+    final serverId = _serverId;
+    if (serverId == null) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('No active server selected.')),
+        );
+      return;
+    }
 
     try {
       final channelId = await store.createChannel(
         name,
+        serverId: serverId,
         description: description.isEmpty ? null : description,
         isPrivate: _isPrivate,
       );

@@ -26,9 +26,14 @@
 // INV-LINK-DISPATCH-1: Deep link dispatch calls GoRouter.go() with the
 //                      correct path and parameters
 // ---------------------------------------------------------------------------
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/router/pending_deep_link_provider.dart';
+import 'package:slock_app/core/deep_link/deep_link_handler.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
 // Test-local seam: mirrors the production DeepLinkHandler API that Phase B
@@ -46,12 +51,24 @@ final _testAuthProvider = StateProvider<bool>((ref) => false);
 /// Minimal router interface recording go/push calls.
 /// Phase B: replaced by GoRouter.
 class _FakeRouter {
-  _FakeRouter({this.onGo, this.onPush});
+  _FakeRouter({this.onGo, this.onPush, String initialLocation = '/'})
+      : _location = Uri.parse(initialLocation);
+
   final void Function(String path)? onGo;
   final void Function(String path)? onPush;
+  Uri _location;
 
-  void go(String path) => onGo?.call(path);
-  void push(String path) => onPush?.call(path);
+  Uri get currentUri => _location;
+
+  void go(String path) {
+    _location = Uri.parse(path);
+    onGo?.call(path);
+  }
+
+  void push(String path) {
+    _location = Uri.parse(path);
+    onPush?.call(path);
+  }
 }
 
 /// Test-local deep link handler seam.
@@ -152,9 +169,15 @@ class _TestableDeepLinkHandler {
   void _dispatch(String path) {
     if (isInviteDeepLink(path)) {
       _router.go(path);
-    } else {
+    } else if (!_isCurrentRoute(path)) {
       _router.push(path);
     }
+  }
+
+  bool _isCurrentRoute(String path) {
+    final targetUri = Uri.parse(path);
+    final currentUri = _router.currentUri;
+    return currentUri.path == targetUri.path;
   }
 }
 
@@ -418,6 +441,62 @@ void main() {
     );
 
     test(
+      'does not push duplicate route when already viewing target conversation (#719)',
+      () {
+        final pushedPaths = <String>[];
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        container.read(_testAuthProvider.notifier).state = true;
+
+        final handler = _TestableDeepLinkHandler(
+          router: _FakeRouter(
+            initialLocation: '/servers/s1/channels/c1',
+            onPush: pushedPaths.add,
+          ),
+          ref: container,
+        );
+
+        handler.handleDeepLink(
+          Uri.parse('slock://servers/s1/channels/c1?messageId=m1'),
+        );
+
+        expect(pushedPaths, isEmpty);
+      },
+    );
+
+    test(
+      'production handler does not push when current route path matches (#719)',
+      () {
+        final router = GoRouter(
+          initialLocation: '/servers/s1/channels/c1',
+          routes: [
+            GoRoute(
+              path: '/servers/:serverId/channels/:channelId',
+              builder: (context, state) => const SizedBox.shrink(),
+            ),
+          ],
+        );
+        addTearDown(router.dispose);
+        final container = ProviderContainer(
+          overrides: [
+            sessionStoreProvider
+                .overrideWith(() => _AuthenticatedSessionStore()),
+          ],
+        );
+        addTearDown(container.dispose);
+        final handler = DeepLinkHandler(router: router, ref: container);
+
+        handler.handleDeepLink(
+          Uri.parse('slock://servers/s1/channels/c1?messageId=m1'),
+        );
+
+        expect(router.routeInformationProvider.value.uri.path,
+            '/servers/s1/channels/c1');
+        expect(router.canPop(), isFalse);
+      },
+    );
+
+    test(
       'does not dispatch when session is unauthenticated (stores instead)',
       () {
         final navigatedPaths = <String>[];
@@ -447,4 +526,12 @@ void main() {
       },
     );
   });
+}
+
+class _AuthenticatedSessionStore extends SessionStore {
+  @override
+  SessionState build() => const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'user-1',
+      );
 }

@@ -12,6 +12,10 @@ import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 
+final _testActiveServerProvider = StateProvider<ServerScopeId?>(
+  (ref) => const ServerScopeId('server-1'),
+);
+
 void main() {
   late _FakeChannelManagementRepository fakeRepo;
 
@@ -19,12 +23,14 @@ void main() {
     fakeRepo = _FakeChannelManagementRepository();
   });
 
-  Widget buildApp() {
+  Widget buildApp({List<Override> extraOverrides = const []}) {
     return ProviderScope(
       overrides: [
         channelManagementRepositoryProvider.overrideWithValue(fakeRepo),
-        activeServerScopeIdProvider
-            .overrideWithValue(const ServerScopeId('server-1')),
+        activeServerScopeIdProvider.overrideWith(
+          (ref) => ref.watch(_testActiveServerProvider),
+        ),
+        ...extraOverrides,
         homeRepositoryProvider.overrideWithValue(_FakeHomeRepository()),
         sidebarOrderRepositoryProvider
             .overrideWithValue(const _FakeSidebarOrderRepository()),
@@ -108,6 +114,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('create-channel-submit')));
       await tester.pumpAndSettle();
 
+      expect(fakeRepo.lastCreateServerId, const ServerScopeId('server-1'));
       expect(fakeRepo.lastCreateName, 'design');
       expect(fakeRepo.lastCreateDescription, 'Design discussions');
       expect(fakeRepo.lastCreateIsPrivate, true);
@@ -130,6 +137,31 @@ void main() {
       expect(fakeRepo.lastCreateIsPrivate, false);
     });
 
+    testWidgets('submit uses server captured when form opened (#719)',
+        (tester) async {
+      await tester.pumpWidget(buildApp());
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(CreateChannelPage)),
+      );
+      container.read(_testActiveServerProvider.notifier).state =
+          const ServerScopeId('server-2');
+      await tester.pump();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('create-channel-name')),
+        'captured-server',
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('create-channel-submit')));
+      await tester.pumpAndSettle();
+
+      expect(fakeRepo.lastCreateServerId, const ServerScopeId('server-1'));
+      expect(fakeRepo.lastCreateName, 'captured-server');
+    });
+
     testWidgets('shows error snackbar on failure', (tester) async {
       fakeRepo.shouldFail = true;
 
@@ -150,6 +182,7 @@ void main() {
 }
 
 class _FakeChannelManagementRepository implements ChannelManagementRepository {
+  ServerScopeId? lastCreateServerId;
   String? lastCreateName;
   String? lastCreateDescription;
   bool? lastCreateIsPrivate;
@@ -168,6 +201,7 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
         causeType: 'test',
       );
     }
+    lastCreateServerId = serverId;
     lastCreateName = name;
     lastCreateDescription = description;
     lastCreateIsPrivate = isPrivate;

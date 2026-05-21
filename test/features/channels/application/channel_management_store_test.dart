@@ -36,10 +36,15 @@ void main() {
 
     final channelId = await container
         .read(channelManagementStoreProvider.notifier)
-        .createChannel('support');
+        .createChannel(
+          'support',
+          serverId: const ServerScopeId('server-1'),
+        );
 
     expect(channelId, 'channel-2');
     expect(channelRepository.createdNames, ['support']);
+    expect(
+        channelRepository.createdServerIds, [const ServerScopeId('server-1')]);
     expect(homeRepository.loadCalls, 2);
   });
 
@@ -144,6 +149,7 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
 
   final String createdChannelId;
   final List<String> createdNames = [];
+  final List<ServerScopeId> createdServerIds = [];
   final List<(String, String)> updatedChannels = [];
   final List<String> deletedChannelIds = [];
   final List<String> leftChannelIds = [];
@@ -155,6 +161,7 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     String? description,
     bool? isPrivate,
   }) async {
+    createdServerIds.add(serverId);
     createdNames.add(name);
     return createdChannelId;
   }

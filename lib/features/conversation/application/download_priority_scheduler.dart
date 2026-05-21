@@ -167,17 +167,19 @@ class DownloadPriorityScheduler
 
     // Fire the download and handle completion.
     entry.download().then((_) {
-      _onDownloadComplete(id);
+      _onDownloadComplete(id, succeeded: true);
     }).catchError((_) {
-      _onDownloadComplete(id);
+      _onDownloadComplete(id, succeeded: false);
     });
   }
 
-  /// Called when a download finishes (success or error).
-  void _onDownloadComplete(String id) {
+  /// Called when a download finishes.
+  void _onDownloadComplete(String id, {required bool succeeded}) {
     if (!_inFlight.remove(id)) return; // Already cancelled/removed.
     _entries.remove(id);
-    _completed.add(id);
+    if (succeeded) {
+      _completed.add(id);
+    }
     _emitState();
     _pump();
   }
