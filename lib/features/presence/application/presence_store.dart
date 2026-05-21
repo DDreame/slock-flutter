@@ -9,14 +9,23 @@ enum UserPresenceStatus {
 }
 
 /// Immutable state holding user presence information.
+///
+/// Content-based equality via [mapEquals] for correctness. The O(1) notification
+/// optimization lives in [PresenceStore.updateShouldNotify] which uses the
+/// [generation] counter to skip redundant notifications.
 @immutable
 class PresenceState {
   const PresenceState({
     this.statuses = const {},
+    this.generation = 0,
   });
 
   /// Map from user ID to their current presence status.
   final Map<String, UserPresenceStatus> statuses;
+
+  /// Monotonic counter incremented on each store mutation. Used by
+  /// [PresenceStore.updateShouldNotify] for O(1) notification filtering.
+  final int generation;
 
   /// Convenience: set of user IDs that are online.
   Set<String> get onlineUserIds => {
@@ -31,9 +40,13 @@ class PresenceState {
   UserPresenceStatus statusOf(String userId) =>
       statuses[userId] ?? UserPresenceStatus.offline;
 
-  PresenceState copyWith({Map<String, UserPresenceStatus>? statuses}) {
+  PresenceState copyWith({
+    Map<String, UserPresenceStatus>? statuses,
+    int? generation,
+  }) {
     return PresenceState(
       statuses: statuses ?? this.statuses,
+      generation: generation ?? this.generation,
     );
   }
 
@@ -61,25 +74,35 @@ final presenceStoreProvider =
 );
 
 class PresenceStore extends AutoDisposeNotifier<PresenceState> {
+  int _generation = 0;
+
+  /// O(1) notification filtering via generation counter. When the store's
+  /// own mutation methods are used, each produces a unique generation so this
+  /// short-circuits to a cheap int comparison. Falls back to content equality
+  /// for external state assignments (e.g. test helpers) that bypass generation.
   @override
   bool updateShouldNotify(PresenceState previous, PresenceState next) =>
-      previous != next;
+      previous.generation != next.generation || previous != next;
   @override
   PresenceState build() => const PresenceState();
 
   /// Mark a single user as online.
   void setOnline(String userId) {
     if (state.statuses[userId] == UserPresenceStatus.online) return;
+    _generation++;
     state = state.copyWith(
       statuses: {...state.statuses, userId: UserPresenceStatus.online},
+      generation: _generation,
     );
   }
 
   /// Mark a single user as idle.
   void setIdle(String userId) {
     if (state.statuses[userId] == UserPresenceStatus.idle) return;
+    _generation++;
     state = state.copyWith(
       statuses: {...state.statuses, userId: UserPresenceStatus.idle},
+      generation: _generation,
     );
   }
 
@@ -87,9 +110,10 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
   void setOffline(String userId) {
     final current = state.statuses[userId];
     if (current == null || current == UserPresenceStatus.offline) return;
+    _generation++;
     final updated = Map<String, UserPresenceStatus>.of(state.statuses)
       ..remove(userId);
-    state = state.copyWith(statuses: updated);
+    state = state.copyWith(statuses: updated, generation: _generation);
   }
 
   /// Set presence status for a user from a string label.
@@ -104,8 +128,10 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
     } else {
       // Short-circuit: skip allocation when value is unchanged.
       if (state.statuses[userId] == status) return;
+      _generation++;
       state = state.copyWith(
         statuses: {...state.statuses, userId: status},
+        generation: _generation,
       );
     }
   }
@@ -114,16 +140,19 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
   ///
   /// Used when receiving a bulk presence snapshot.
   void setOnlineList(List<String> userIds) {
+    _generation++;
     state = state.copyWith(
       statuses: {
         for (final id in userIds) id: UserPresenceStatus.online,
       },
+      generation: _generation,
     );
   }
 
   /// Remove all presence data.
   void clearAll() {
-    state = const PresenceState();
+    _generation++;
+    state = PresenceState(generation: _generation);
   }
 
   static UserPresenceStatus _parsePresenceLabel(String? label) {

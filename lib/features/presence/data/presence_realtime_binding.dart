@@ -44,11 +44,14 @@ class PresenceRealtimeBinding {
     });
   }
 
-  /// Stop listening and clear presence state.
+  /// Stop listening for presence events.
+  ///
+  /// Does NOT call `store.clearAll()` — the autoDispose teardown of
+  /// [presenceStoreProvider] already resets state without producing a
+  /// transient "everyone offline" notification frame.
   void dispose() {
     unawaited(_subscription?.cancel());
     _subscription = null;
-    store.clearAll();
   }
 }
 
