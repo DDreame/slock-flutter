@@ -200,23 +200,7 @@ class ReactionRow extends ConsumerWidget {
             count: reaction.count,
             isOwn: isOwn,
             colors: colors,
-            onTap: () async {
-              try {
-                await ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .toggleReaction(messageId, reaction.emoji);
-              } on AppFailure catch (failure) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    SnackBar(
-                      content:
-                          Text(failure.message ?? 'Failed to update reaction.'),
-                    ),
-                  );
-              }
-            },
+            messageId: messageId,
           );
         }).toList(growable: false),
       ),
@@ -224,26 +208,50 @@ class ReactionRow extends ConsumerWidget {
   }
 }
 
-class _ReactionChip extends StatelessWidget {
+/// Individual reaction chip that owns its own tap handler.
+///
+/// By making this a [ConsumerWidget] with [emoji] and [messageId] as
+/// constructor params, the tap callback is stable across rebuilds — no
+/// per-build closure is allocated in [ReactionRow.build()]. This enables
+/// Flutter's element diffing to short-circuit when only unrelated state
+/// changes (e.g. a different reaction count changes).
+class _ReactionChip extends ConsumerWidget {
   const _ReactionChip({
     super.key,
     required this.emoji,
     required this.count,
     required this.isOwn,
     required this.colors,
-    required this.onTap,
+    required this.messageId,
   });
 
   final String emoji;
   final int count;
   final bool isOwn;
   final AppColors colors;
-  final VoidCallback onTap;
+  final String messageId;
+
+  Future<void> _onTap(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .toggleReaction(messageId, emoji);
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to update reaction.'),
+          ),
+        );
+    }
+  }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
-      onTap: onTap,
+      onTap: () => _onTap(context, ref),
       borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
       child: Container(
         padding: const EdgeInsets.symmetric(
