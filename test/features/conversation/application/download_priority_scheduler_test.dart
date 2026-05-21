@@ -23,6 +23,7 @@ import 'package:slock_app/features/conversation/presentation/page/conversation_d
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../../../support/support.dart';
 
@@ -278,6 +279,10 @@ void main() {
         );
         addTearDown(container.dispose);
 
+        // Keep the autoDispose provider alive for the test duration.
+        final sub = container.listen(downloadSchedulerProvider, (_, __) {});
+        addTearDown(sub.close);
+
         final scheduler = container.read(downloadSchedulerProvider.notifier);
 
         // Enqueue and make visible — using cancellable download.
@@ -312,6 +317,13 @@ void main() {
     testWidgets(
       'ConversationDetailPage wires attachment downloads to scheduler',
       (tester) async {
+        // Zero the VisibilityDetector update interval so timers don't linger.
+        VisibilityDetectorController.instance.updateInterval = Duration.zero;
+        addTearDown(() {
+          VisibilityDetectorController.instance.updateInterval =
+              const Duration(milliseconds: 500);
+        });
+
         final target = ConversationDetailTarget.channel(
           const ChannelScopeId(
             serverId: ServerScopeId('server-1'),
