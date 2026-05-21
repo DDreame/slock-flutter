@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
@@ -67,7 +68,9 @@ mixin _ConversationDetailCoreMixin
     List<ConversationMessageSummary> existing,
     ConversationMessageSummary next,
   ) {
-    if (existing.any((message) => message.id == next.id)) {
+    // INV-DEDUP-663-1: O(1) lookup via lazily-cached message ID Set.
+    final store = this as ConversationDetailStore;
+    if (store._messageIdSet.contains(next.id)) {
       return existing;
     }
     return [...existing, next];
@@ -136,6 +139,43 @@ class ConversationDetailStore
         _ConversationDetailSelectionMixin {
   int _requestEpoch = 0;
   final RequestCoordinator _coordinator = RequestCoordinator();
+
+  /// INV-DEDUP-663-1: Cached Set of message IDs for O(1) dedup lookup.
+  /// Invalidated (rebuilt lazily) whenever state.messages list changes.
+  List<ConversationMessageSummary>? _cachedMessageList;
+  Set<String> _cachedMessageIdSet = const {};
+
+  /// Returns the current message ID set, rebuilding lazily when the
+  /// messages list identity changes. O(1) amortized per dedup check.
+  Set<String> get _messageIdSet {
+    final currentMessages = state.messages;
+    if (!identical(currentMessages, _cachedMessageList)) {
+      _cachedMessageIdSet = {for (final m in currentMessages) m.id};
+      _cachedMessageList = currentMessages;
+    }
+    return _cachedMessageIdSet;
+  }
+
+  /// INV-DEDUP-663-1: Exposes [_messageIdSet] for test verification of
+  /// Set-based dedup invalidation.
+  @visibleForTesting
+  Set<String> get messageIdSetForTesting => _messageIdSet;
+
+  /// INV-DEDUP-663-1: Returns true when the cached Set was built from the
+  /// current [state.messages] list. Used to verify that [_appendDedupedMessage]
+  /// actually consults [_messageIdSet] on the hot path.
+  @visibleForTesting
+  bool get isMessageIdSetCacheWarm =>
+      identical(_cachedMessageList, state.messages);
+
+  /// INV-DEDUP-663-1: Exposes [_appendDedupedMessage] for direct hot-path
+  /// verification in tests.
+  @visibleForTesting
+  List<ConversationMessageSummary> appendDedupedMessageForTesting(
+    List<ConversationMessageSummary> existing,
+    ConversationMessageSummary next,
+  ) =>
+      _appendDedupedMessage(existing, next);
 
   /// Maximum duration a message can stay in [MessageSendStatus.sending]
   /// before being auto-transitioned to queued via the outbox.

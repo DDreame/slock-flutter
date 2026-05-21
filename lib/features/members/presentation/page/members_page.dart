@@ -39,39 +39,42 @@ class _MembersScreen extends ConsumerStatefulWidget {
 }
 
 class _MembersScreenState extends ConsumerState<_MembersScreen> {
-  late final TextEditingController _searchController;
-
   @override
   void initState() {
     super.initState();
-    _searchController = TextEditingController();
     Future.microtask(
       () => ref.read(memberListStoreProvider.notifier).ensureLoaded(),
     );
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     ref.watch(membersRealtimeBindingProvider);
-    final state = ref.watch(memberListStoreProvider);
+    // INV-MEMBERS-663-SELECT-1: Scaffold-level watch narrowed to status,
+    // canManageMembers, isInvitingByEmail, and isEmpty. Member list content
+    // changes (query, per-member mutation states) no longer rebuild the scaffold.
+    final (:status, :canManageMembers, :isInvitingByEmail, :isEmpty) =
+        ref.watch(
+      memberListStoreProvider.select(
+        (s) => (
+          status: s.status,
+          canManageMembers: s.canManageMembers,
+          isInvitingByEmail: s.isInvitingByEmail,
+          isEmpty: s.members.isEmpty,
+        ),
+      ),
+    );
     final serverId = ref.read(currentMembersServerIdProvider);
     final colors = Theme.of(context).extension<AppColors>()!;
-    final canManageMembers = state.canManageMembers;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Members'),
-        actions: state.status == MemberListStatus.success && canManageMembers
+        actions: status == MemberListStatus.success && canManageMembers
             ? [
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: state.isInvitingByEmail
+                  child: isInvitingByEmail
                       ? const Center(
                           child: SizedBox.square(
                             dimension: 18,
@@ -94,7 +97,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
               ]
             : null,
       ),
-      body: switch (state.status) {
+      body: switch (status) {
         MemberListStatus.initial || MemberListStatus.loading => const Center(
             key: ValueKey('members-loading'),
             child: CircularProgressIndicator(),
@@ -106,214 +109,21 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             onRetry: ref.read(memberListStoreProvider.notifier).load,
             onShareDiagnostics: () => DiagnosticShareSheet.show(context),
           ),
-        MemberListStatus.success when state.members.isEmpty => _EmptyState(
+        MemberListStatus.success when isEmpty => _EmptyState(
             key: const ValueKey('members-empty'),
             icon: Icons.group_outlined,
             message: 'No members yet.',
             colors: colors,
           ),
-        MemberListStatus.success => _buildMemberList(
-            state,
-            serverId,
-            colors,
-            canManageMembers,
+        // INV-MEMBERS-663-SELECT-2: Success body is a separate consumer leaf
+        // that watches full memberListStoreProvider state independently.
+        // This isolates member list/query/mutation rebuilds from the scaffold.
+        MemberListStatus.success => _MembersBody(
+            serverId: serverId,
+            canManageMembers: canManageMembers,
           ),
       },
     );
-  }
-
-  Widget _buildMemberList(
-    MemberListState state,
-    ServerScopeId serverId,
-    AppColors colors,
-    bool canManageMembers,
-  ) {
-    final humans = state.humans;
-    final agents = state.agents;
-    final hasQuery = state.query.isNotEmpty;
-    final allEmpty = humans.isEmpty && agents.isEmpty;
-
-    return Column(
-      children: [
-        // --- Search bar ---
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.pageHorizontal,
-            vertical: AppSpacing.sm,
-          ),
-          child: TextField(
-            key: const ValueKey('members-search'),
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search members…',
-              prefixIcon: Icon(
-                Icons.search,
-                color: colors.textTertiary,
-              ),
-              suffixIcon: hasQuery
-                  ? IconButton(
-                      key: const ValueKey('members-search-clear'),
-                      icon: Icon(
-                        Icons.close,
-                        color: colors.textTertiary,
-                      ),
-                      onPressed: () {
-                        _searchController.clear();
-                        ref.read(memberListStoreProvider.notifier).setQuery('');
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: colors.surfaceAlt,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: AppSpacing.md,
-              ),
-            ),
-            onChanged: (value) =>
-                ref.read(memberListStoreProvider.notifier).setQuery(value),
-          ),
-        ),
-
-        // --- List content ---
-        Expanded(
-          child: allEmpty && hasQuery
-              ? _EmptyState(
-                  key: const ValueKey('members-search-empty'),
-                  icon: Icons.search_off,
-                  message: 'No members match your search.',
-                  colors: colors,
-                )
-              : _buildMemberListView(
-                  humans: humans,
-                  agents: agents,
-                  serverId: serverId,
-                  state: state,
-                  canManageMembers: canManageMembers,
-                ),
-        ),
-      ],
-    );
-  }
-
-  /// INV-MEMBERS-CACHE-1: ListView.builder for on-demand member tile
-  /// construction. Section headers are interleaved as flat items.
-  Widget _buildMemberListView({
-    required List<MemberProfile> humans,
-    required List<MemberProfile> agents,
-    required ServerScopeId serverId,
-    required MemberListState state,
-    required bool canManageMembers,
-  }) {
-    final colors = Theme.of(context).extension<AppColors>()!;
-    // Build flat item list: [humanHeader, ...humans, agentHeader, ...agents]
-    final hasHumans = humans.isNotEmpty;
-    final hasAgents = agents.isNotEmpty;
-    final itemCount = (hasHumans ? 1 + humans.length : 0) +
-        (hasAgents ? 1 + agents.length : 0);
-
-    return ListView.builder(
-      key: const ValueKey('members-list'),
-      itemCount: itemCount,
-      itemBuilder: (context, index) {
-        var offset = 0;
-        if (hasHumans) {
-          if (index == offset) {
-            return _SectionHeader(
-              key: const ValueKey('members-section-humans'),
-              label: 'Humans',
-              count: humans.length,
-              colors: colors,
-            );
-          }
-          offset++;
-          if (index < offset + humans.length) {
-            return _buildMemberTile(
-              humans[index - offset],
-              serverId,
-              state,
-              canManageMembers,
-            );
-          }
-          offset += humans.length;
-        }
-        if (hasAgents) {
-          if (index == offset) {
-            return _SectionHeader(
-              key: const ValueKey('members-section-agents'),
-              label: 'Agents',
-              count: agents.length,
-              colors: colors,
-            );
-          }
-          offset++;
-          if (index < offset + agents.length) {
-            return _buildMemberTile(
-              agents[index - offset],
-              serverId,
-              state,
-              canManageMembers,
-            );
-          }
-        }
-        return const SizedBox.shrink();
-      },
-    );
-  }
-
-  Widget _buildMemberTile(
-    MemberProfile member,
-    ServerScopeId serverId,
-    MemberListState state,
-    bool canManageMembers,
-  ) {
-    return MemberListItem(
-      member: member,
-      isOpeningDirectMessage: state.isOpeningDirectMessage(member.id),
-      isUpdatingRole: state.isUpdatingRole(member.id),
-      isRemoving: state.isRemovingMember(member.id),
-      canManageMember: canManageMembers,
-      onTap: () => showMemberProfileSheet(
-        context: context,
-        member: member,
-      ),
-      onMessage: () => _openDirectMessage(context, member.id, serverId),
-      onChangeRole: (role) => _changeMemberRole(member, role),
-      onRemove: () => _removeMember(member),
-    );
-  }
-
-  Future<void> _openDirectMessage(
-    BuildContext context,
-    String userId,
-    ServerScopeId serverId,
-  ) async {
-    final router = GoRouter.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-
-    try {
-      final channelId = await ref
-          .read(memberListStoreProvider.notifier)
-          .openDirectMessage(userId);
-      if (!mounted) {
-        return;
-      }
-      router.push('/servers/${serverId.value}/dms/$channelId');
-    } on AppFailure catch (failure) {
-      if (!mounted) {
-        return;
-      }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            failure.message ?? 'Failed to open direct message.',
-          ),
-        ),
-      );
-    }
   }
 
   Future<void> _inviteHuman() async {
@@ -363,6 +173,229 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
         },
       ),
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// INV-MEMBERS-663-SELECT-2: Body consumer leaf — watches full member list
+// state (query, members, mutation flags) independently from the scaffold.
+// ---------------------------------------------------------------------------
+
+class _MembersBody extends ConsumerStatefulWidget {
+  const _MembersBody({
+    required this.serverId,
+    required this.canManageMembers,
+  });
+
+  final ServerScopeId serverId;
+  final bool canManageMembers;
+
+  @override
+  ConsumerState<_MembersBody> createState() => _MembersBodyState();
+}
+
+class _MembersBodyState extends ConsumerState<_MembersBody> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Full state watch — rebuilds only this body subtree on member/query/
+    // mutation changes, NOT the scaffold.
+    final state = ref.watch(memberListStoreProvider);
+    final colors = Theme.of(context).extension<AppColors>()!;
+
+    return _buildMemberList(state, colors);
+  }
+
+  Widget _buildMemberList(MemberListState state, AppColors colors) {
+    final humans = state.humans;
+    final agents = state.agents;
+    final hasQuery = state.query.isNotEmpty;
+    final allEmpty = humans.isEmpty && agents.isEmpty;
+
+    return Column(
+      children: [
+        // --- Search bar ---
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.pageHorizontal,
+            vertical: AppSpacing.sm,
+          ),
+          child: TextField(
+            key: const ValueKey('members-search'),
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Search members\u2026',
+              prefixIcon: Icon(
+                Icons.search,
+                color: colors.textTertiary,
+              ),
+              suffixIcon: hasQuery
+                  ? IconButton(
+                      key: const ValueKey('members-search-clear'),
+                      icon: Icon(
+                        Icons.close,
+                        color: colors.textTertiary,
+                      ),
+                      onPressed: () {
+                        _searchController.clear();
+                        ref.read(memberListStoreProvider.notifier).setQuery('');
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: colors.surfaceAlt,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.md,
+              ),
+            ),
+            onChanged: (value) =>
+                ref.read(memberListStoreProvider.notifier).setQuery(value),
+          ),
+        ),
+
+        // --- List content ---
+        Expanded(
+          child: allEmpty && hasQuery
+              ? _EmptyState(
+                  key: const ValueKey('members-search-empty'),
+                  icon: Icons.search_off,
+                  message: 'No members match your search.',
+                  colors: colors,
+                )
+              : _buildMemberListView(
+                  humans: humans,
+                  agents: agents,
+                  state: state,
+                ),
+        ),
+      ],
+    );
+  }
+
+  /// INV-MEMBERS-CACHE-1: ListView.builder for on-demand member tile
+  /// construction. Section headers are interleaved as flat items.
+  Widget _buildMemberListView({
+    required List<MemberProfile> humans,
+    required List<MemberProfile> agents,
+    required MemberListState state,
+  }) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    // Build flat item list: [humanHeader, ...humans, agentHeader, ...agents]
+    final hasHumans = humans.isNotEmpty;
+    final hasAgents = agents.isNotEmpty;
+    final itemCount = (hasHumans ? 1 + humans.length : 0) +
+        (hasAgents ? 1 + agents.length : 0);
+
+    return ListView.builder(
+      key: const ValueKey('members-list'),
+      itemCount: itemCount,
+      itemBuilder: (context, index) {
+        var offset = 0;
+        if (hasHumans) {
+          if (index == offset) {
+            return _SectionHeader(
+              key: const ValueKey('members-section-humans'),
+              label: 'Humans',
+              count: humans.length,
+              colors: colors,
+            );
+          }
+          offset++;
+          if (index < offset + humans.length) {
+            return _buildMemberTile(
+              humans[index - offset],
+              state,
+            );
+          }
+          offset += humans.length;
+        }
+        if (hasAgents) {
+          if (index == offset) {
+            return _SectionHeader(
+              key: const ValueKey('members-section-agents'),
+              label: 'Agents',
+              count: agents.length,
+              colors: colors,
+            );
+          }
+          offset++;
+          if (index < offset + agents.length) {
+            return _buildMemberTile(
+              agents[index - offset],
+              state,
+            );
+          }
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
+  Widget _buildMemberTile(
+    MemberProfile member,
+    MemberListState state,
+  ) {
+    return MemberListItem(
+      member: member,
+      isOpeningDirectMessage: state.isOpeningDirectMessage(member.id),
+      isUpdatingRole: state.isUpdatingRole(member.id),
+      isRemoving: state.isRemovingMember(member.id),
+      canManageMember: widget.canManageMembers,
+      onTap: () => showMemberProfileSheet(
+        context: context,
+        member: member,
+      ),
+      onMessage: () => _openDirectMessage(context, member.id, widget.serverId),
+      onChangeRole: (role) => _changeMemberRole(member, role),
+      onRemove: () => _removeMember(member),
+    );
+  }
+
+  Future<void> _openDirectMessage(
+    BuildContext context,
+    String userId,
+    ServerScopeId serverId,
+  ) async {
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final channelId = await ref
+          .read(memberListStoreProvider.notifier)
+          .openDirectMessage(userId);
+      if (!mounted) {
+        return;
+      }
+      router.push('/servers/${serverId.value}/dms/$channelId');
+    } on AppFailure catch (failure) {
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            failure.message ?? 'Failed to open direct message.',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _changeMemberRole(
