@@ -112,7 +112,7 @@ void main() {
       expect(result, BiometricAuthResult.permanentLockout);
     });
 
-    test('returns error on NotAvailable PlatformException', () async {
+    test('returns notAvailable on NotAvailable PlatformException', () async {
       final auth = _FakeLocalAuth(
         canCheck: true,
         deviceSupported: true,
@@ -126,7 +126,7 @@ void main() {
       final result = await service.authenticate(
         localizedReason: 'Unlock app',
       );
-      expect(result, BiometricAuthResult.error);
+      expect(result, BiometricAuthResult.notAvailable);
     });
 
     test('returns error on unknown PlatformException', () async {
