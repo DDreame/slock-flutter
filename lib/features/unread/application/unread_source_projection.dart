@@ -165,9 +165,26 @@ class UnreadSourceProjectionState {
         other is UnreadSourceProjectionState &&
             runtimeType == other.runtimeType &&
             isLoaded == other.isLoaded &&
-            listEquals(sources, other.sources);
+            listEquals(sources, other.sources) &&
+            mapEquals(channelUnreadCounts, other.channelUnreadCounts) &&
+            mapEquals(dmUnreadCounts, other.dmUnreadCounts);
   }
 
   @override
-  int get hashCode => Object.hash(isLoaded, Object.hashAll(sources));
+  int get hashCode => Object.hash(
+        isLoaded,
+        Object.hashAll(sources),
+        _contentMapHash(channelUnreadCounts),
+        _contentMapHash(dmUnreadCounts),
+      );
+
+  /// Order-independent content-based hash for maps.
+  /// Uses XOR so iteration order does not affect the result.
+  static int _contentMapHash(Map<Object, int> m) {
+    var h = 0;
+    for (final e in m.entries) {
+      h ^= Object.hash(e.key, e.value);
+    }
+    return h;
+  }
 }

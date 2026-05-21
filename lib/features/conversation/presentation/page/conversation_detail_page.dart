@@ -182,6 +182,7 @@ class _ConversationDetailScreenState
   ProviderSubscription<TranslationSettingsState>? _translationSettingsSub;
   ProviderSubscription<UnreadSourceProjectionState>? _deferredMarkReadSub;
   bool _didApplyInitialLanding = false;
+  bool _pendingDraftCallback = false;
   double? _olderLoadAnchorOffset;
   double? _olderLoadAnchorMaxExtent;
   final GlobalKey _screenshotBoundaryKey = GlobalKey();
@@ -332,8 +333,10 @@ class _ConversationDetailScreenState
         'server:${target.serverId.value}/${target.surface == ConversationSurface.channel ? 'channel' : 'dm'}:${target.conversationId}';
     ref.watch(typingRealtimeBindingProvider(typingScopeKey));
 
-    if (_composerController.text != state.draft) {
+    if (_composerController.text != state.draft && !_pendingDraftCallback) {
+      _pendingDraftCallback = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _pendingDraftCallback = false;
         if (mounted && _composerController.text != state.draft) {
           _composerController.value = TextEditingValue(
             text: state.draft,
