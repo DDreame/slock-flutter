@@ -11,7 +11,7 @@
 // =============================================================================
 
 import 'package:dio/dio.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
@@ -127,6 +127,141 @@ void main() {
       );
       expect(failure.toString(), contains('ValidationFailure'));
       expect(failure.toString(), contains('422'));
+    });
+  });
+
+  group('#695 — ValidationFailure message extraction from response body', () {
+    const mapper = AppFailureMapper();
+
+    DioException buildBadResponseWithBody(int statusCode, Object? body) {
+      final requestOptions = RequestOptions(path: '/test');
+      return DioException(
+        requestOptions: requestOptions,
+        type: DioExceptionType.badResponse,
+        response: Response<dynamic>(
+          requestOptions: requestOptions,
+          statusCode: statusCode,
+          data: body,
+          headers: Headers.fromMap({
+            'x-request-id': ['req-$statusCode'],
+          }),
+        ),
+      );
+    }
+
+    test('422 with String body uses body as message', () {
+      final failure =
+          mapper.map(buildBadResponseWithBody(422, 'Email is invalid'));
+      expect(failure, isA<ValidationFailure>());
+      expect(failure.message, 'Email is invalid');
+    });
+
+    test('422 with Map body extracts "message" key', () {
+      final failure = mapper.map(
+        buildBadResponseWithBody(422, {'message': 'Name is required'}),
+      );
+      expect(failure, isA<ValidationFailure>());
+      expect(failure.message, 'Name is required');
+    });
+
+    test('422 with Map body extracts "error" key when no "message"', () {
+      final failure = mapper.map(
+        buildBadResponseWithBody(422, {'error': 'Invalid field format'}),
+      );
+      expect(failure, isA<ValidationFailure>());
+      expect(failure.message, 'Invalid field format');
+    });
+
+    test('422 with Map body extracts "detail" key as fallback', () {
+      final failure = mapper.map(
+        buildBadResponseWithBody(422, {'detail': 'Too many items'}),
+      );
+      expect(failure, isA<ValidationFailure>());
+      expect(failure.message, 'Too many items');
+    });
+
+    test('422 with null body falls back to generic message', () {
+      final failure = mapper.map(buildBadResponseWithBody(422, null));
+      expect(failure, isA<ValidationFailure>());
+      // Falls back to Dio statusMessage (null in this case)
+      expect(failure.message, isNull);
+    });
+
+    test('422 with empty Map body falls back to generic message', () {
+      final failure =
+          mapper.map(buildBadResponseWithBody(422, <String, dynamic>{}));
+      expect(failure, isA<ValidationFailure>());
+      expect(failure.message, isNull);
+    });
+
+    test('409 with Map body extracts "message" key', () {
+      final failure = mapper.map(
+        buildBadResponseWithBody(409, {'message': 'Resource already exists'}),
+      );
+      expect(failure, isA<ConflictFailure>());
+      expect(failure.message, 'Resource already exists');
+    });
+  });
+
+  group('#695 — upsertConversationSummaries runtime invariant', () {
+    test('throws StateError on mixed-server batch', () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      final mixedBatch = [
+        LocalConversationSummaryUpsert(
+          serverId: 'server-a',
+          conversationId: 'conv-1',
+          surface: 'channel',
+          title: 'Chat A',
+          sortIndex: 0,
+        ),
+        LocalConversationSummaryUpsert(
+          serverId: 'server-b',
+          conversationId: 'conv-2',
+          surface: 'channel',
+          title: 'Chat B',
+          sortIndex: 1,
+        ),
+      ];
+
+      expect(
+        () => db.conversationLocalDao.upsertConversationSummaries(mixedBatch),
+        throwsA(isA<StateError>().having(
+          (e) => e.message,
+          'message',
+          contains('mixed-server batch detected'),
+        )),
+      );
+    });
+
+    test('single-server batch succeeds without error', () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+
+      final singleServerBatch = [
+        LocalConversationSummaryUpsert(
+          serverId: 'server-a',
+          conversationId: 'conv-1',
+          surface: 'channel',
+          title: 'Chat A',
+          sortIndex: 0,
+        ),
+        LocalConversationSummaryUpsert(
+          serverId: 'server-a',
+          conversationId: 'conv-2',
+          surface: 'channel',
+          title: 'Chat B',
+          sortIndex: 1,
+        ),
+      ];
+
+      // Should not throw.
+      await db.conversationLocalDao
+          .upsertConversationSummaries(singleServerBatch);
+      final summaries = await db.conversationLocalDao
+          .listConversationSummaries('server-a', surface: 'channel');
+      expect(summaries.length, 2);
     });
   });
 }
