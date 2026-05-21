@@ -107,27 +107,54 @@ void main() {
       expect(retrying.failure, isNull);
     });
 
-    test('equality based on localId, content, status, createdAt', () {
+    test('equality includes attachmentIds, replyToId, and failure', () {
       final now = DateTime(2026, 5, 6, 10, 0);
       final a = PendingMessage(
         localId: 'id-1',
         content: 'Hi',
         createdAt: now,
+        attachmentIds: const ['att-1'],
+        replyToId: 'reply-1',
       );
       final b = PendingMessage(
         localId: 'id-1',
         content: 'Hi',
         createdAt: now,
+        attachmentIds: const ['att-1'],
+        replyToId: 'reply-1',
       );
-      final c = PendingMessage(
+      final differentAttachments = PendingMessage(
         localId: 'id-1',
         content: 'Hi',
         createdAt: now,
+        attachmentIds: const ['att-2'],
+        replyToId: 'reply-1',
+      );
+      final differentReply = PendingMessage(
+        localId: 'id-1',
+        content: 'Hi',
+        createdAt: now,
+        attachmentIds: const ['att-1'],
+        replyToId: 'reply-2',
+      );
+      final differentFailure = PendingMessage(
+        localId: 'id-1',
+        content: 'Hi',
+        createdAt: now,
+        attachmentIds: const ['att-1'],
+        replyToId: 'reply-1',
         status: MessageSendStatus.failed,
+        failure: const UnknownFailure(message: 'first'),
+      );
+      final differentFailureMessage = differentFailure.copyWith(
+        failure: const UnknownFailure(message: 'second'),
       );
 
       expect(a, equals(b));
-      expect(a, isNot(equals(c)));
+      expect(a.hashCode, b.hashCode);
+      expect(a, isNot(equals(differentAttachments)));
+      expect(a, isNot(equals(differentReply)));
+      expect(differentFailure, isNot(equals(differentFailureMessage)));
     });
   });
 

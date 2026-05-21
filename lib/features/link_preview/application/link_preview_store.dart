@@ -39,6 +39,7 @@ class LinkPreviewCacheNotifier
 
   final LinkPreviewService _service;
   final DiagnosticsCollector _diagnostics;
+  final Set<String> _inFlight = <String>{};
 
   /// Maximum number of cached link previews.
   static const maxSize = 100;
@@ -58,6 +59,11 @@ class LinkPreviewCacheNotifier
       return;
     }
 
+    if (!_inFlight.add(url)) {
+      _touch(url);
+      return;
+    }
+
     // Mark as loading (overwrite any prior error).
     state = _trimToMax({...state, url: const AsyncValue.loading()});
 
@@ -68,11 +74,14 @@ class LinkPreviewCacheNotifier
       _diagnostics.error('LinkPreview', 'Metadata fetch failed for $url: $e');
       // Transient failure — store as error so widget can show fallback.
       state = _trimToMax({...state, url: AsyncValue.error(e, st)});
+    } finally {
+      _inFlight.remove(url);
     }
   }
 
   /// Clear the entire cache.
   void clear() {
+    _inFlight.clear();
     state = {};
   }
 
