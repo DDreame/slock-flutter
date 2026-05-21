@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,6 +35,11 @@ class SearchPage extends StatelessWidget {
   }
 }
 
+@visibleForTesting
+class SearchPageDebug {
+  static int searchBodyBuildCount = 0;
+}
+
 class _SearchScreen extends ConsumerStatefulWidget {
   const _SearchScreen();
 
@@ -43,11 +49,13 @@ class _SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<_SearchScreen> {
   late final TextEditingController _controller;
+  late final Widget _body;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController();
+    _body = _SearchBody(controller: _controller);
   }
 
   @override
@@ -113,9 +121,63 @@ class _SearchScreenState extends ConsumerState<_SearchScreen> {
             ),
         ],
       ),
-      body: _SearchBody(controller: _controller),
+      body: _body,
     );
   }
+}
+
+class _SearchBodyState extends SearchState {
+  _SearchBodyState(SearchState state)
+      : super(
+          query: state.query,
+          status: state.status,
+          scope: state.scope,
+          localResults: state.localResults,
+          remoteResults: state.remoteResults,
+          channelResults: state.channelResults,
+          contactResults: state.contactResults,
+          hasMore: state.hasMore,
+          isRemoteSearching: state.isRemoteSearching,
+          failure: state.failure,
+          senderFilter: state.senderFilter,
+          sortBy: state.sortBy,
+          channelFilter: state.channelFilter,
+        );
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _SearchBodyState &&
+            runtimeType == other.runtimeType &&
+            status == other.status &&
+            scope == other.scope &&
+            listEquals(localResults, other.localResults) &&
+            listEquals(remoteResults, other.remoteResults) &&
+            listEquals(channelResults, other.channelResults) &&
+            listEquals(contactResults, other.contactResults) &&
+            hasMore == other.hasMore &&
+            isRemoteSearching == other.isRemoteSearching &&
+            failure == other.failure &&
+            senderFilter == other.senderFilter &&
+            sortBy == other.sortBy &&
+            channelFilter == other.channelFilter;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        status,
+        scope,
+        Object.hashAll(localResults),
+        Object.hashAll(remoteResults),
+        Object.hashAll(channelResults),
+        Object.hashAll(contactResults),
+        hasMore,
+        isRemoteSearching,
+        failure,
+        senderFilter,
+        sortBy,
+        channelFilter,
+      );
 }
 
 /// INV-SELECT-669: Separate consumer for search body — watches only
@@ -127,7 +189,13 @@ class _SearchBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(searchStoreProvider);
+    assert(() {
+      SearchPageDebug.searchBodyBuildCount++;
+      return true;
+    }());
+    final state = ref.watch(
+      searchStoreProvider.select(_SearchBodyState.new),
+    );
 
     return Column(
       children: [

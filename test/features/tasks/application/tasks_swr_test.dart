@@ -352,11 +352,11 @@ void main() {
   });
 
   // -----------------------------------------------------------------------
-  // INV-LIFECYCLE-1: keepAlive behavior
+  // INV-LIFECYCLE-688: autoDispose behavior
   // -----------------------------------------------------------------------
-  group('INV-LIFECYCLE-1: TasksStore lifecycle', () {
+  group('INV-LIFECYCLE-688: TasksStore lifecycle', () {
     test(
-      'provider retains state after listener removal (keepAlive)',
+      'provider releases state after listener removal (autoDispose)',
       () async {
         final repo = _ControllableTasksRepository();
         final container = createContainer(repo);
@@ -375,18 +375,18 @@ void main() {
         sub.close();
         await Future.delayed(Duration.zero);
 
-        // keepAlive: state should be retained.
+        // autoDispose: state should be released when the scope no longer watches.
         final state = container.read(tasksStoreProvider);
-        expect(state.status, TasksStatus.success,
-            reason: 'INV-LIFECYCLE-1: TasksStore must retain state '
-                'after listener removal (keepAlive)');
-        expect(state.items, hasLength(3),
-            reason: 'Task data must persist across tab switches');
+        expect(state.status, TasksStatus.initial,
+            reason: 'INV-LIFECYCLE-688: TasksStore must release state '
+                'after listener removal (autoDispose)');
+        expect(state.items, isEmpty,
+            reason: 'Task data must be GC-able after scope teardown');
       },
     );
 
     test(
-      'no re-fetch on tab return (keepAlive retains data)',
+      'tab return starts from initial state and can re-fetch',
       () async {
         final repo = _ControllableTasksRepository();
         final container = createContainer(repo);
@@ -403,15 +403,21 @@ void main() {
 
         await Future.delayed(Duration.zero);
 
-        // Second tab visit: state should already have data.
+        // Second tab visit: autoDispose creates a fresh store.
         final sub2 = container.listen(tasksStoreProvider, (_, __) {});
+        expect(container.read(tasksStoreProvider).status, TasksStatus.initial,
+            reason: 'autoDispose: state is recreated between tab visits');
+
+        final c2 = repo.nextListCall();
+        final f2 = container.read(tasksStoreProvider.notifier).load();
+        c2.complete(seedTasks);
+        await f2;
+
         final state = container.read(tasksStoreProvider);
-        expect(state.status, TasksStatus.success,
-            reason: 'keepAlive: state survives between tab visits');
-        expect(state.items, hasLength(3),
-            reason: 'Task data persists without re-fetch');
-        expect(repo.loadCount, 1,
-            reason: 'No re-fetch on tab return — keepAlive retains data');
+        expect(state.status, TasksStatus.success);
+        expect(state.items, hasLength(3));
+        expect(repo.loadCount, 2,
+            reason: 'Tab return should fetch with the new autoDispose store');
         sub2.close();
       },
     );
