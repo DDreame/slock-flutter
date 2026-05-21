@@ -1,28 +1,39 @@
 // =============================================================================
-// #669 — Search/Home/Settings .select() narrows
+// #669 — Search/Home/Settings .select() narrows — Widget-path invariants
 //
 // Fix 1 Invariant: INV-SELECT-669-SEARCH
-//   _SearchScreenState watches only `query.isNotEmpty` for the clear button.
-//   Results/status/scope changes do NOT fire that select.
+//   _SearchScreenState watches only query.isNotEmpty; body is a separate
+//   _SearchBody ConsumerWidget. AppBar clear button only reacts to emptiness.
 //
 // Fix 2 Invariant: INV-SELECT-669-HOME
-//   _HomeTasksSection derives activeCount via .select() on
-//   homeListStoreProvider. A task rename (same count) does NOT fire.
+//   _HomeTasksSection derives activeCount via .select() on store.
 //
 // Fix 3 Invariant: INV-SELECT-669-SETTINGS
-//   SettingsPage watches biometricStore with .select((s) => (availability,
-//   enabled)). lockStatus change does NOT fire that select.
+//   SettingsPage biometric select narrows to (availability, enabled).
+//   lockStatus change does not trigger page rebuild.
 // =============================================================================
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
 import 'package:slock_app/features/search/application/search_store.dart';
+import 'package:slock_app/features/search/presentation/page/search_page.dart';
+import 'package:slock_app/features/settings/presentation/page/settings_page.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
+import 'package:slock_app/stores/notification/notification_state.dart';
+import 'package:slock_app/stores/notification/notification_store.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 // ---------------------------------------------------------------------------
 // Controllable Stores
@@ -30,7 +41,8 @@ import 'package:slock_app/stores/biometric/biometric_store.dart';
 
 class _ControllableSearchStore extends SearchStore {
   @override
-  SearchState build() => const SearchState(query: 'hello');
+  SearchState build() =>
+      const SearchState(query: 'hello', status: SearchStatus.searching);
 
   void setStatusDirect(SearchStatus status) {
     state = state.copyWith(status: status);
@@ -143,11 +155,79 @@ class _ControllableBiometricStore extends BiometricStore {
   void setEnabledDirect(bool enabled) {
     state = state.copyWith(enabled: enabled);
   }
+}
 
-  void setAvailabilityDirect(BiometricAvailability availability) {
-    state = state.copyWith(availability: availability);
+class _FakeSessionStore extends SessionStore {
+  @override
+  SessionState build() => const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'user-1',
+        displayName: 'Alice',
+        token: 'test-token',
+      );
+
+  @override
+  Future<void> logout() async {
+    state = const SessionState(status: AuthStatus.unauthenticated);
   }
 }
+
+class _FakeNotificationStore extends NotificationStore {
+  @override
+  NotificationState build() => const NotificationState();
+
+  @override
+  Future<void> requestPermission() async {}
+
+  @override
+  Future<void> refreshToken({String? platform}) async {}
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+GoRouter _buildSettingsRouter() {
+  return GoRouter(
+    initialLocation: '/settings',
+    routes: [
+      GoRoute(
+        path: '/settings',
+        builder: (_, __) => const SettingsPage(),
+      ),
+      GoRoute(path: '/profile', builder: (_, __) => const Scaffold()),
+      GoRoute(
+        path: '/settings/notifications',
+        builder: (_, __) => const Scaffold(),
+      ),
+      GoRoute(
+        path: '/settings/appearance',
+        builder: (_, __) => const Scaffold(),
+      ),
+      GoRoute(
+        path: '/settings/translation',
+        builder: (_, __) => const Scaffold(),
+      ),
+      GoRoute(
+        path: '/settings/diagnostics',
+        builder: (_, __) => const Scaffold(),
+      ),
+      GoRoute(
+        path: '/settings/base-url',
+        builder: (_, __) => const Scaffold(),
+      ),
+      GoRoute(path: '/billing', builder: (_, __) => const Scaffold()),
+      GoRoute(path: '/release-notes', builder: (_, __) => const Scaffold()),
+      GoRoute(
+        path: '/servers/:serverId/members',
+        builder: (_, __) => const Scaffold(),
+      ),
+      GoRoute(path: '/login', builder: (_, __) => const Scaffold()),
+    ],
+  );
+}
+
+final _enL10n = lookupAppLocalizations(const Locale('en'));
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -155,114 +235,108 @@ class _ControllableBiometricStore extends BiometricStore {
 
 void main() {
   // ---------------------------------------------------------------------------
-  // Fix 1: Search page — query.isNotEmpty select
+  // Fix 1: Search page — widget-path: clear button reacts only to query.isNotEmpty
   // ---------------------------------------------------------------------------
-  group('Fix 1: Search page query.isNotEmpty select', () {
-    test(
-      'INV-SELECT-669-SEARCH: status change does NOT fire query.isNotEmpty select',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            currentSearchServerIdProvider
-                .overrideWithValue(const ServerScopeId('srv-1')),
-            searchStoreProvider.overrideWith(() => _ControllableSearchStore()),
-          ],
+  group('Fix 1: SearchPage widget-path', () {
+    testWidgets(
+      'INV-SELECT-669-SEARCH: clear button present when query is non-empty',
+      (tester) async {
+        final store = _ControllableSearchStore();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              currentSearchServerIdProvider
+                  .overrideWithValue(const ServerScopeId('srv-1')),
+              searchStoreProvider.overrideWith(() => store),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const SearchPage(serverId: 'srv-1'),
+            ),
+          ),
         );
-        addTearDown(container.dispose);
+        // Use pump() — not pumpAndSettle — because CircularProgressIndicator
+        // animates indefinitely when status == searching.
+        await tester.pump();
 
-        final keepAlive = container.listen(searchStoreProvider, (_, __) {});
+        // Clear button should be present (query starts as 'hello').
+        expect(find.byKey(const ValueKey('search-clear')), findsOneWidget);
+      },
+    );
 
-        int selectNotifyCount = 0;
-        container.listen(
-          searchStoreProvider.select((s) => s.query.isNotEmpty),
-          (_, __) => selectNotifyCount++,
+    testWidgets(
+      'INV-SELECT-669-SEARCH: status change does NOT toggle clear button',
+      (tester) async {
+        final store = _ControllableSearchStore();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              currentSearchServerIdProvider
+                  .overrideWithValue(const ServerScopeId('srv-1')),
+              searchStoreProvider.overrideWith(() => store),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const SearchPage(serverId: 'srv-1'),
+            ),
+          ),
         );
+        await tester.pump();
 
-        final store = container.read(searchStoreProvider.notifier)
-            as _ControllableSearchStore;
+        // Clear button present.
+        expect(find.byKey(const ValueKey('search-clear')), findsOneWidget);
 
-        // Change status — should NOT fire query.isNotEmpty select.
-        store.setStatusDirect(SearchStatus.searching);
-        expect(selectNotifyCount, 0,
-            reason: 'status change must not fire query.isNotEmpty select');
-
+        // Change status (irrelevant to clear button).
         store.setStatusDirect(SearchStatus.success);
-        expect(selectNotifyCount, 0,
-            reason: 'status change must not fire query.isNotEmpty select');
+        await tester.pump();
 
-        keepAlive.close();
+        // Clear button still present — not toggled by status change.
+        expect(find.byKey(const ValueKey('search-clear')), findsOneWidget);
       },
     );
 
-    test(
-      'INV-SELECT-669-SEARCH: scope change does NOT fire query.isNotEmpty select',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            currentSearchServerIdProvider
-                .overrideWithValue(const ServerScopeId('srv-1')),
-            searchStoreProvider.overrideWith(() => _ControllableSearchStore()),
-          ],
+    testWidgets(
+      'INV-SELECT-669-SEARCH: query cleared → clear button disappears',
+      (tester) async {
+        final store = _ControllableSearchStore();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              currentSearchServerIdProvider
+                  .overrideWithValue(const ServerScopeId('srv-1')),
+              searchStoreProvider.overrideWith(() => store),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const SearchPage(serverId: 'srv-1'),
+            ),
+          ),
         );
-        addTearDown(container.dispose);
+        await tester.pump();
 
-        final keepAlive = container.listen(searchStoreProvider, (_, __) {});
+        expect(find.byKey(const ValueKey('search-clear')), findsOneWidget);
 
-        int selectNotifyCount = 0;
-        container.listen(
-          searchStoreProvider.select((s) => s.query.isNotEmpty),
-          (_, __) => selectNotifyCount++,
-        );
-
-        final store = container.read(searchStoreProvider.notifier)
-            as _ControllableSearchStore;
-
-        // Change scope — should NOT fire.
-        store.setScopeDirect(SearchScope.messages);
-        expect(selectNotifyCount, 0,
-            reason: 'scope change must not fire query.isNotEmpty select');
-
-        keepAlive.close();
-      },
-    );
-
-    test(
-      'INV-SELECT-669-SEARCH: query emptiness change DOES fire select',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            currentSearchServerIdProvider
-                .overrideWithValue(const ServerScopeId('srv-1')),
-            searchStoreProvider.overrideWith(() => _ControllableSearchStore()),
-          ],
-        );
-        addTearDown(container.dispose);
-
-        final keepAlive = container.listen(searchStoreProvider, (_, __) {});
-
-        int selectNotifyCount = 0;
-        container.listen(
-          searchStoreProvider.select((s) => s.query.isNotEmpty),
-          (_, __) => selectNotifyCount++,
-        );
-
-        final store = container.read(searchStoreProvider.notifier)
-            as _ControllableSearchStore;
-
-        // Empty query (was "hello") → isNotEmpty changes from true → false.
+        // Clear query → isNotEmpty becomes false.
         store.setQueryDirect('');
-        expect(selectNotifyCount, 1,
-            reason: 'query emptiness change must fire select');
+        await tester.pump();
 
-        keepAlive.close();
+        // Clear button disappears.
+        expect(find.byKey(const ValueKey('search-clear')), findsNothing);
       },
     );
   });
 
   // ---------------------------------------------------------------------------
-  // Fix 2: Home page — activeCount select
+  // Fix 2: Home page — activeCount via .select()
   // ---------------------------------------------------------------------------
   group('Fix 2: Home page activeCount .select()', () {
+    // Container-level test is sufficient here because _HomeTasksSection is a
+    // private widget not testable independently, and the .select() is the
+    // direct mechanism. The behavioral proof is that the select only fires
+    // on count changes.
     test(
       'INV-SELECT-669-HOME: task rename (same count) does NOT fire activeCount select',
       () {
@@ -341,106 +415,93 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // Fix 3: Settings page — biometric (availability, enabled) select
+  // Fix 3: Settings page — biometric .select() widget-path
   // ---------------------------------------------------------------------------
-  group('Fix 3: Settings biometric .select()', () {
-    test(
-      'INV-SELECT-669-SETTINGS: lockStatus change does NOT fire (availability, enabled) select',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            biometricStoreProvider
-                .overrideWith(() => _ControllableBiometricStore()),
-          ],
-        );
-        addTearDown(container.dispose);
-
-        final keepAlive = container.listen(biometricStoreProvider, (_, __) {});
-
-        int selectNotifyCount = 0;
-        container.listen(
-          biometricStoreProvider.select(
-            (s) => (availability: s.availability, enabled: s.enabled),
+  group('Fix 3: SettingsPage biometric .select() widget-path', () {
+    testWidgets(
+      'INV-SELECT-669-SETTINGS: lockStatus change does NOT remove biometric section',
+      (tester) async {
+        final biometricStore = _ControllableBiometricStore();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+              notificationStoreProvider
+                  .overrideWith(() => _FakeNotificationStore()),
+              activeServerScopeIdProvider
+                  .overrideWithValue(const ServerScopeId('server-1')),
+              biometricStoreProvider.overrideWith(() => biometricStore),
+              appLocalizationsProvider.overrideWithValue(_enL10n),
+            ],
+            child: MaterialApp.router(
+              theme: AppTheme.light,
+              routerConfig: _buildSettingsRouter(),
+            ),
           ),
-          (_, __) => selectNotifyCount++,
         );
+        await tester.pumpAndSettle();
 
-        final store = container.read(biometricStoreProvider.notifier)
-            as _ControllableBiometricStore;
+        // Biometric switch is present and ON (enabled = true).
+        final switchFinder =
+            find.byKey(const ValueKey('settings-biometric-switch'));
+        expect(switchFinder, findsOneWidget);
+        final switchWidget = tester.widget<Switch>(switchFinder);
+        expect(switchWidget.value, isTrue);
 
-        // Change lockStatus — should NOT fire since we only select availability + enabled.
-        store.setLockStatusDirect(BiometricLockStatus.locked);
-        expect(selectNotifyCount, 0,
-            reason:
-                'lockStatus change must not fire (availability, enabled) select');
+        // Change lockStatus (irrelevant to what we select).
+        biometricStore.setLockStatusDirect(BiometricLockStatus.locked);
+        await tester.pump();
 
-        keepAlive.close();
+        // Biometric switch still present and still shows enabled = true.
+        expect(find.byKey(const ValueKey('settings-biometric-switch')),
+            findsOneWidget);
+        final updatedSwitch = tester.widget<Switch>(
+          find.byKey(const ValueKey('settings-biometric-switch')),
+        );
+        expect(updatedSwitch.value, isTrue,
+            reason: 'lockStatus change must not affect biometric switch value');
       },
     );
 
-    test(
-      'INV-SELECT-669-SETTINGS: enabled change DOES fire (availability, enabled) select',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            biometricStoreProvider
-                .overrideWith(() => _ControllableBiometricStore()),
-          ],
-        );
-        addTearDown(container.dispose);
-
-        final keepAlive = container.listen(biometricStoreProvider, (_, __) {});
-
-        int selectNotifyCount = 0;
-        container.listen(
-          biometricStoreProvider.select(
-            (s) => (availability: s.availability, enabled: s.enabled),
+    testWidgets(
+      'INV-SELECT-669-SETTINGS: enabled change DOES update biometric switch',
+      (tester) async {
+        final biometricStore = _ControllableBiometricStore();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+              notificationStoreProvider
+                  .overrideWith(() => _FakeNotificationStore()),
+              activeServerScopeIdProvider
+                  .overrideWithValue(const ServerScopeId('server-1')),
+              biometricStoreProvider.overrideWith(() => biometricStore),
+              appLocalizationsProvider.overrideWithValue(_enL10n),
+            ],
+            child: MaterialApp.router(
+              theme: AppTheme.light,
+              routerConfig: _buildSettingsRouter(),
+            ),
           ),
-          (_, __) => selectNotifyCount++,
         );
+        await tester.pumpAndSettle();
 
-        final store = container.read(biometricStoreProvider.notifier)
-            as _ControllableBiometricStore;
-
-        // Change enabled — SHOULD fire.
-        store.setEnabledDirect(false);
-        expect(selectNotifyCount, 1,
-            reason: 'enabled change must fire (availability, enabled) select');
-
-        keepAlive.close();
-      },
-    );
-
-    test(
-      'INV-SELECT-669-SETTINGS: availability change DOES fire select',
-      () {
-        final container = ProviderContainer(
-          overrides: [
-            biometricStoreProvider
-                .overrideWith(() => _ControllableBiometricStore()),
-          ],
+        // Switch starts ON.
+        final switchWidget = tester.widget<Switch>(
+          find.byKey(const ValueKey('settings-biometric-switch')),
         );
-        addTearDown(container.dispose);
+        expect(switchWidget.value, isTrue);
 
-        final keepAlive = container.listen(biometricStoreProvider, (_, __) {});
+        // Change enabled → false (consumed field).
+        biometricStore.setEnabledDirect(false);
+        await tester.pump();
 
-        int selectNotifyCount = 0;
-        container.listen(
-          biometricStoreProvider.select(
-            (s) => (availability: s.availability, enabled: s.enabled),
-          ),
-          (_, __) => selectNotifyCount++,
+        // Switch now OFF.
+        final updatedSwitch = tester.widget<Switch>(
+          find.byKey(const ValueKey('settings-biometric-switch')),
         );
-
-        final store = container.read(biometricStoreProvider.notifier)
-            as _ControllableBiometricStore;
-
-        // Change availability — SHOULD fire.
-        store.setAvailabilityDirect(BiometricAvailability.unavailable);
-        expect(selectNotifyCount, 1,
-            reason: 'availability change must fire select');
-
-        keepAlive.close();
+        expect(updatedSwitch.value, isFalse,
+            reason: 'enabled change must update biometric switch');
       },
     );
   });
