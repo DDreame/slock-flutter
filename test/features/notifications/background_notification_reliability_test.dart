@@ -41,7 +41,7 @@ void main() {
     });
 
     test(
-        'connected status clears stale foregroundActive before delivery '
+        'connected status preserves foregroundActive — no duplicate notification '
         '(INV-NOTIF-RELIABLE-1)', () async {
       await worker.start();
       worker.foregroundActive = true;
@@ -51,22 +51,23 @@ void main() {
 
       expect(
         worker.foregroundActive,
-        isFalse,
-        reason: 'Reconnect must clear stale foreground-active suppression '
-            'unless the foreground bridge re-asserts true.',
+        isTrue,
+        reason: 'Reconnect must NOT reset foregroundActive — lifecycle binding '
+            'owns foreground state (#711).',
       );
 
       socket.emitEvent({
         'id': 'msg-after-reconnect',
         'channelId': 'channel-1',
-        'content': 'Background delivery recovered',
+        'content': 'Should be suppressed while foreground active',
         'senderId': 'other-user',
         'senderName': 'Alice',
         'messageType': 'message',
       });
       await Future<void>.delayed(Duration.zero);
 
-      expect(sink.notifications, hasLength(1));
+      expect(sink.notifications, isEmpty,
+          reason: 'Notifications must be suppressed while foreground is active');
     });
 
     test(
