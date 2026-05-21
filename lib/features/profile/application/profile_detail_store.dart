@@ -178,12 +178,14 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
       final profile = await ref
           .read(profileRepositoryProvider)
           .loadProfile(serverId, userId: userId);
+      if (ref.read(currentProfileTargetProvider) != target) return;
       state = state.copyWith(
         status: ProfileDetailStatus.success,
         profile: profile,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (ref.read(currentProfileTargetProvider) != target) return;
       state = state.copyWith(
         status: ProfileDetailStatus.failure,
         failure: failure,
