@@ -38,11 +38,17 @@ import 'package:slock_app/features/link_preview/presentation/widgets/link_previe
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 void main() {
+  setUp(() {
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+  });
   // Clean up static test hook after each test to avoid cross-test leaks.
   tearDown(() {
     ConversationDetailPage.debugMessageGlobalKeyCount = null;
+    VisibilityDetectorController.instance.updateInterval =
+        const Duration(milliseconds: 500);
   });
 
   // -----------------------------------------------------------------------
