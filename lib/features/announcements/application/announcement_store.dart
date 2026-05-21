@@ -32,6 +32,19 @@ class AnnouncementState {
       failure: clearFailure ? null : (failure ?? this.failure),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AnnouncementState &&
+          runtimeType == other.runtimeType &&
+          status == other.status &&
+          listEquals(announcements, other.announcements) &&
+          failure == other.failure;
+
+  @override
+  int get hashCode =>
+      Object.hash(status, Object.hashAll(announcements), failure);
 }
 
 /// App-level (keepAlive) announcement store. Watches
@@ -46,6 +59,13 @@ final announcementStoreProvider =
 );
 
 class AnnouncementStore extends Notifier<AnnouncementState> {
+  @override
+  bool updateShouldNotify(
+    AnnouncementState previous,
+    AnnouncementState next,
+  ) =>
+      previous != next;
+
   @override
   AnnouncementState build() {
     // Watch server scope so a server switch triggers rebuild → fresh state.
