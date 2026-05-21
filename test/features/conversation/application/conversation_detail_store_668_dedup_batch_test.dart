@@ -195,9 +195,8 @@ void main() {
         await container.read(conversationDetailStoreProvider.notifier).load();
         final store = container.read(conversationDetailStoreProvider.notifier);
 
-        // Warm the lazily-cached _messageIdSet by accessing the getter.
-        store.messageIdSetForTesting;
-        expect(store.isMessageIdSetCacheWarm, isTrue);
+        // Cache is cold after load() — _messageIdSet getter not yet called.
+        expect(store.isMessageIdSetCacheWarm, isFalse);
 
         // Prepend with a mix of new and duplicate messages.
         final existing =
@@ -206,6 +205,9 @@ void main() {
           existing,
           [_msg('m-0', seq: 0), _msg('m-1', seq: 1)], // m-1 is duplicate
         );
+
+        // The batch path itself consulted _messageIdSet → cache is now warm.
+        expect(store.isMessageIdSetCacheWarm, isTrue);
 
         // Only the new message should be prepended.
         expect(result.length, 3); // m-0 + m-1 + m-2
@@ -236,9 +238,8 @@ void main() {
         await container.read(conversationDetailStoreProvider.notifier).load();
         final store = container.read(conversationDetailStoreProvider.notifier);
 
-        // Warm the lazily-cached _messageIdSet by accessing the getter.
-        store.messageIdSetForTesting;
-        expect(store.isMessageIdSetCacheWarm, isTrue);
+        // Cache is cold after load() — _messageIdSet getter not yet called.
+        expect(store.isMessageIdSetCacheWarm, isFalse);
 
         // Append with a mix of new and duplicate messages.
         final existing =
@@ -247,6 +248,9 @@ void main() {
           existing,
           [_msg('m-2', seq: 2), _msg('m-3', seq: 3)], // m-2 is duplicate
         );
+
+        // The batch path itself consulted _messageIdSet → cache is now warm.
+        expect(store.isMessageIdSetCacheWarm, isTrue);
 
         // Only the new message should be appended.
         expect(result.length, 3); // m-1 + m-2 + m-3
