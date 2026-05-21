@@ -22,6 +22,11 @@ class TranslatedContentOverlay extends ConsumerWidget {
     required this.entry,
   });
 
+  /// Build counter for rebuild-isolation tests.
+  /// Incremented only inside assert() — zero-cost in release builds.
+  @visibleForTesting
+  static int debugBuildCount = 0;
+
   /// The message this overlay belongs to.
   final String messageId;
 
@@ -36,9 +41,18 @@ class TranslatedContentOverlay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    assert(() {
+      TranslatedContentOverlay.debugBuildCount++;
+      return true;
+    }());
     final colors = Theme.of(context).extension<AppColors>()!;
-    final cacheState = ref.watch(translationCacheStoreProvider);
-    final isShowingTranslation = cacheState.showTranslation[messageId] ?? false;
+    // INV-TAB-SORT-CACHE-1 pattern: .select() ensures this widget only
+    // rebuilds when THIS message's showTranslation flag changes, not when
+    // any other message in the cache is updated.
+    final isShowingTranslation = ref.watch(
+      translationCacheStoreProvider
+          .select((s) => s.showTranslation[messageId] ?? false),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
