@@ -66,12 +66,16 @@ class VoiceMessageState {
 ///
 /// This store manages the recording lifecycle and exposes state changes
 /// to the UI. The actual recording is handled by [VoiceRecorderService].
+///
+/// AutoDispose: scoped to the conversation page lifecycle. When the page
+/// is disposed and all watchers are removed, the store auto-resets to idle.
+/// This prevents stale recording state from leaking across conversations.
 final voiceMessageStoreProvider =
-    NotifierProvider<VoiceMessageStore, VoiceMessageState>(
+    AutoDisposeNotifierProvider<VoiceMessageStore, VoiceMessageState>(
   VoiceMessageStore.new,
 );
 
-class VoiceMessageStore extends Notifier<VoiceMessageState> {
+class VoiceMessageStore extends AutoDisposeNotifier<VoiceMessageState> {
   @override
   bool updateShouldNotify(VoiceMessageState previous, VoiceMessageState next) =>
       previous != next;
