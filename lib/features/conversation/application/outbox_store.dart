@@ -361,7 +361,11 @@ class OutboxStore extends Notifier<OutboxState> {
       _isDraining = false;
       // If still online with pending items, schedule a fresh drain to
       // handle targets added/missed during this drain cycle (#717).
-      if (state.items.isNotEmpty) {
+      // Only re-check when pending items exist — failed-only queues must
+      // not trigger infinite self-spin.
+      final hasPending = state.items.values
+          .any((list) => list.any((m) => m.status == OutboxMessageStatus.pending));
+      if (hasPending) {
         final connectivity = ref.read(connectivityServiceProvider);
         if (connectivity.isOnline) {
           Future.microtask(() => drainAll());

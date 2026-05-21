@@ -7,158 +7,335 @@
 // =============================================================================
 
 import 'dart:async';
+import 'dart:convert';
 
-import 'package:fake_async/fake_async.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:slock_app/core/network/connectivity_service.dart';
-import 'package:slock_app/core/realtime/realtime_event_envelope.dart';
-import 'package:slock_app/core/realtime/realtime_reduction_ingress.dart';
-import 'package:slock_app/core/storage/secure_storage.dart';
-import 'package:slock_app/core/storage/session_storage_keys.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/conversation/application/outbox_store.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart'
+    show conversationRepositoryProvider;
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/stores/theme/theme_mode_store.dart'
+    show sharedPreferencesProvider;
 
 void main() {
-  group('#717A — P1: Token refresh race — concurrent 401 skips logout', () {
+  group('#717A — P1: Token refresh race — real refreshAuthTokenProvider', () {
+    late ProviderContainer container;
+    late _InMemorySecureStorage storage;
+
+    /// Creates a Dio that always responds with 401.
+    Dio dioReturning401() {
+      final dio = Dio(BaseOptions(baseUrl: 'http://test.invalid'));
+      dio.httpClientAdapter = _FakeHttpClientAdapter(statusCode: 401);
+      return dio;
+    }
+
     test('refresh 401 does NOT logout when refresh token was already rotated',
         () async {
-      // Scenario: refresh token A is used to refresh. Meanwhile, a parallel
-      // refresh already succeeded and stored token B. The first refresh
-      // returns 401, but since stored token != used token, skip logout.
-      final storage = _InMemorySecureStorage({
+      // Setup: storage starts with token-A. A parallel refresh will rotate
+      // it to token-B before the 401 handler checks.
+      storage = _InMemorySecureStorage({
         SessionStorageKeys.refreshToken: 'token-A',
       });
-      final sessionStore = _FakeSessionStore();
 
-      // Simulate: the refresh call will fail with 401, but by the time
-      // it fails, storage already has 'token-B' (rotated by parallel refresh).
-      var refreshCallCount = 0;
-      final refreshAuthToken = () async {
-        refreshCallCount++;
-        // Read the refresh token (as the production code does).
-        final refreshToken =
-            await storage.read(key: SessionStorageKeys.refreshToken);
-        if (refreshToken == null || refreshToken.isEmpty) return null;
+      // The Dio adapter simulates 401. But before the response arrives,
+      // we need storage to contain token-B. We accomplish this by using a
+      // storage wrapper that rotates on the second read of refreshToken.
+      final rotatingStorage = _RotatingSecureStorage(
+        delegate: storage,
+        rotateKey: SessionStorageKeys.refreshToken,
+        rotateToValue: 'token-B',
+      );
 
-        // Simulate parallel rotation: before our network call returns,
-        // another refresh rotated the token.
-        await storage.write(
-            key: SessionStorageKeys.refreshToken, value: 'token-B');
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(rotatingStorage),
+          refreshDioProvider.overrideWithValue(dioReturning401()),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        // Now simulate the POST /auth/refresh returning 401 for token-A.
-        // The production code checks if current token == used token.
-        final currentRefreshToken =
-            await storage.read(key: SessionStorageKeys.refreshToken);
-        if (currentRefreshToken == refreshToken) {
-          // Same token that failed — genuinely invalid.
-          await sessionStore.logout();
-        }
-        // If tokens differ (our case: token-B != token-A), skip logout.
-        return null;
-      };
+      // Execute the real production refreshAuthToken function.
+      final refreshFn = container.read(refreshAuthTokenProvider);
+      final result = await refreshFn();
 
-      await refreshAuthToken();
+      // Should return null (refresh failed).
+      expect(result, isNull);
 
-      expect(sessionStore.logoutCallCount, 0,
-          reason: 'Must NOT logout when refresh token was already rotated by '
-              'parallel refresh');
-      expect(refreshCallCount, 1);
+      // Should NOT have called logout — token was already rotated.
+      final sessionState = container.read(sessionStoreProvider);
+      expect(sessionState.status, isNot(AuthStatus.unauthenticated),
+          reason: 'Must NOT logout when refresh token was rotated by '
+              'parallel refresh (token-B != token-A)');
     });
 
     test('refresh 401 DOES logout when refresh token was NOT rotated',
         () async {
-      final storage = _InMemorySecureStorage({
+      // Setup: storage has token-A, and it stays as token-A throughout.
+      storage = _InMemorySecureStorage({
         SessionStorageKeys.refreshToken: 'token-A',
       });
-      final sessionStore = _FakeSessionStore();
 
-      final refreshAuthToken = () async {
-        final refreshToken =
-            await storage.read(key: SessionStorageKeys.refreshToken);
-        if (refreshToken == null || refreshToken.isEmpty) return null;
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(storage),
+          refreshDioProvider.overrideWithValue(dioReturning401()),
+        ],
+      );
+      addTearDown(container.dispose);
 
-        // No parallel rotation — token stays as 'token-A'.
-        // POST /auth/refresh returns 401.
-        final currentRefreshToken =
-            await storage.read(key: SessionStorageKeys.refreshToken);
-        if (currentRefreshToken == refreshToken) {
-          await sessionStore.logout();
-        }
-        return null;
-      };
+      final refreshFn = container.read(refreshAuthTokenProvider);
+      final result = await refreshFn();
 
-      await refreshAuthToken();
+      expect(result, isNull);
 
-      expect(sessionStore.logoutCallCount, 1,
-          reason: 'Must logout when refresh token was NOT rotated');
+      // Token was NOT rotated, so logout SHOULD be called.
+      final sessionState = container.read(sessionStoreProvider);
+      expect(sessionState.status, AuthStatus.unauthenticated,
+          reason: 'Must logout when refresh token was NOT rotated '
+              '(same token-A on re-read)');
+    });
+
+    test('refresh 401 with empty stored token does NOT logout', () async {
+      // Edge case: refresh token is empty/null — should return null early
+      // without even hitting the network.
+      storage = _InMemorySecureStorage({
+        SessionStorageKeys.refreshToken: '',
+      });
+
+      container = ProviderContainer(
+        overrides: [
+          secureStorageProvider.overrideWithValue(storage),
+          refreshDioProvider.overrideWithValue(dioReturning401()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final refreshFn = container.read(refreshAuthTokenProvider);
+      final result = await refreshFn();
+
+      expect(result, isNull);
+      // Should not reach the Dio call at all.
+      final sessionState = container.read(sessionStoreProvider);
+      expect(sessionState.status, isNot(AuthStatus.unauthenticated));
     });
   });
 
-  group('#717B — P2: OutboxStore drainAll re-checks after completion', () {
-    test(
-        'second online event during drain triggers fresh drain after first completes',
-        () {
-      fakeAsync((async) {
-        final connectivityController = StreamController<ConnectivityStatus>();
-        final connectivity = ConnectivityService.withInitialStatus(
-          ConnectivityStatus.online,
-          controller: connectivityController,
-        );
+  group('#717B — P2: OutboxStore drainAll re-check (real store)', () {
+    late ProviderContainer container;
+    late _FakeConversationRepository repository;
+    late StreamController<ConnectivityStatus> connectivityController;
+    late ConnectivityService connectivityService;
 
-        final drainedTargets = <String>[];
+    final target = ConversationDetailTarget.channel(
+      const ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'general',
+      ),
+    );
 
-        // Simulate drainAll behavior with the fix.
-        var isDraining = false;
-        final items = <String>{'target-1', 'target-2', 'target-3'};
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      repository = _FakeConversationRepository();
+      connectivityController = StreamController<ConnectivityStatus>.broadcast();
+      connectivityService = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.online,
+        controller: connectivityController,
+      );
 
-        Future<void> drainAll() async {
-          if (isDraining) return;
-          isDraining = true;
-          try {
-            final keys = items.toList();
-            for (final key in keys) {
-              if (!connectivity.isOnline) break;
-              // Simulate slow drain (100ms per target).
-              await Future<void>.delayed(const Duration(milliseconds: 100));
-              drainedTargets.add(key);
-              items.remove(key);
-            }
-          } finally {
-            isDraining = false;
-            // Fix: re-check after completion.
-            if (items.isNotEmpty && connectivity.isOnline) {
-              Future.microtask(() => drainAll());
-            }
-          }
-        }
+      container = ProviderContainer(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(connectivityService),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+    });
 
-        // Start drain.
-        drainAll();
-        // Advance 150ms — first target drained.
-        async.elapse(const Duration(milliseconds: 150));
-        expect(drainedTargets, ['target-1']);
+    tearDown(() async {
+      await Future<void>.delayed(Duration.zero);
+      container.dispose();
+      await connectivityController.close();
+    });
 
-        // Connectivity flickers: offline → online during drain.
-        connectivityController.add(ConnectivityStatus.offline);
-        async.flushMicrotasks();
-        // Drain will break on next iteration due to !isOnline.
-
-        // Come back online.
-        connectivityController.add(ConnectivityStatus.online);
-        async.flushMicrotasks();
-
-        // At this point, drainAll was called again but _isDraining is true,
-        // so it returned immediately. Continue original drain.
-        async.elapse(const Duration(milliseconds: 200));
-        // Original drain should have broken due to offline check.
-
-        // Now advance enough for the fresh drain to pick up remaining.
-        async.elapse(const Duration(milliseconds: 500));
-
-        expect(drainedTargets.length, greaterThanOrEqualTo(2),
-            reason: 'Remaining targets must be drained after re-check');
-
-        connectivityController.close();
-        connectivity.dispose();
+    test('failed-only queue does NOT trigger infinite re-drain spin', () async {
+      // Pre-populate outbox with a FAILED item via SharedPreferences.
+      final prefs = container.read(sharedPreferencesProvider);
+      final targetKey = outboxTargetKey(target);
+      final queueJson = jsonEncode({
+        targetKey: [
+          {
+            'localId': 'failed-msg-1',
+            'content': 'I already failed',
+            'status': 'failed',
+            'createdAt': '2026-05-07T12:00:00.000Z',
+            'failureMessage': 'Forbidden',
+          },
+        ],
       });
+      await prefs.setString('outbox_queue', queueJson);
+
+      // Rebuild with fresh container to load persisted state.
+      // Use offline to prevent auto-drain, then go online manually.
+      final offlineController =
+          StreamController<ConnectivityStatus>.broadcast();
+      final offlineService = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.offline,
+        controller: offlineController,
+      );
+      final freshContainer = ProviderContainer(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(offlineService),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(() {
+        freshContainer.dispose();
+        offlineController.close();
+      });
+
+      // Read the store — it should load the failed item.
+      final notifier = freshContainer.read(outboxStoreProvider.notifier);
+      final stateBeforeDrain = freshContainer.read(outboxStoreProvider);
+      expect(stateBeforeDrain.items[targetKey], hasLength(1));
+      expect(stateBeforeDrain.items[targetKey]![0].status,
+          OutboxMessageStatus.failed);
+
+      // Call drainAll. Since items are all failed (no pending), the re-check
+      // should NOT schedule another drainAll (no infinite spin).
+      await notifier.drainAll();
+
+      // Give microtasks a chance to execute (if spin bug existed, it would
+      // schedule another drainAll here).
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      // The repository should NOT have been called — failed items aren't retried.
+      expect(repository.sentContents, isEmpty,
+          reason: 'Failed items must not be retried by drainAll');
+
+      // State unchanged.
+      final stateAfter = freshContainer.read(outboxStoreProvider);
+      expect(stateAfter.items[targetKey], hasLength(1));
+      expect(
+          stateAfter.items[targetKey]![0].status, OutboxMessageStatus.failed);
+    });
+
+    test('pending items after drain DO trigger fresh drain via re-check',
+        () async {
+      // Scenario: drain starts, first item succeeds but during that drain,
+      // a new item is enqueued. The re-check after drain finds remaining
+      // pending items and schedules a fresh drain.
+      final notifier = container.read(outboxStoreProvider.notifier);
+
+      // Use a gate to control when the first send completes.
+      repository.sendGate = Completer<void>();
+      repository.sendStarted = Completer<void>();
+
+      // Enqueue first item.
+      notifier.enqueue(target, 'First message', localId: 'msg-1');
+
+      // Start draining.
+      final drainFuture = notifier.drainAll();
+
+      // Wait for send to start.
+      await repository.sendStarted!.future;
+
+      // While drain is in progress, enqueue another item.
+      notifier.enqueue(target, 'Second message', localId: 'msg-2');
+
+      // Complete the first send.
+      repository.sendGate!.complete();
+      await drainFuture;
+
+      // Give the re-check microtask a chance to fire and drain remaining.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      // Both messages should have been sent.
+      expect(repository.sentContents, ['First message', 'Second message'],
+          reason:
+              'Re-check after drain must pick up items added during the drain');
+
+      // Queue should be empty.
+      final stateAfter = container.read(outboxStoreProvider);
+      final targetKey = outboxTargetKey(target);
+      expect(stateAfter.items[targetKey], isNull,
+          reason: 'All items should be drained');
+    });
+
+    test(
+        'mixed failed + pending: only pending items drained, failed items remain',
+        () async {
+      // Pre-populate with one failed + one pending item.
+      final prefs = container.read(sharedPreferencesProvider);
+      final targetKey = outboxTargetKey(target);
+      final queueJson = jsonEncode({
+        targetKey: [
+          {
+            'localId': 'failed-msg',
+            'content': 'Already failed',
+            'status': 'failed',
+            'createdAt': '2026-05-07T12:00:00.000Z',
+            'failureMessage': 'Forbidden',
+          },
+          {
+            'localId': 'pending-msg',
+            'content': 'Still pending',
+            'status': 'pending',
+            'createdAt': '2026-05-07T12:01:00.000Z',
+          },
+        ],
+      });
+      await prefs.setString('outbox_queue', queueJson);
+
+      // Fresh container with ONLINE connectivity — the startup auto-drain
+      // microtask will fire and drain pending items.
+      final onlineController = StreamController<ConnectivityStatus>.broadcast();
+      final onlineService = ConnectivityService.withInitialStatus(
+        ConnectivityStatus.online,
+        controller: onlineController,
+      );
+      final freshContainer = ProviderContainer(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(repository),
+          connectivityServiceProvider.overrideWithValue(onlineService),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
+      );
+      addTearDown(() {
+        freshContainer.dispose();
+        onlineController.close();
+      });
+
+      // Reading the provider triggers build() which schedules auto-drain.
+      freshContainer.read(outboxStoreProvider);
+
+      // Let the microtask-scheduled drainAll execute.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      // Pending item was sent.
+      expect(repository.sentContents, ['Still pending']);
+
+      // Failed item remains in queue.
+      final stateAfter = freshContainer.read(outboxStoreProvider);
+      expect(stateAfter.items[targetKey], hasLength(1));
+      expect(stateAfter.items[targetKey]![0].localId, 'failed-msg');
+      expect(
+          stateAfter.items[targetKey]![0].status, OutboxMessageStatus.failed);
     });
   });
 
@@ -211,6 +388,7 @@ void main() {
 // Fakes
 // ---------------------------------------------------------------------------
 
+/// In-memory SecureStorage for tests.
 class _InMemorySecureStorage implements SecureStorage {
   _InMemorySecureStorage([Map<String, String>? initial])
       : _store = Map<String, String>.from(initial ?? {});
@@ -231,15 +409,106 @@ class _InMemorySecureStorage implements SecureStorage {
   }
 }
 
-class _FakeSessionStore {
-  int logoutCallCount = 0;
+/// SecureStorage that rotates a specific key's value on the second read.
+///
+/// This simulates a parallel refresh succeeding and writing a new token
+/// between the initial read and the re-read in the 401 handler.
+class _RotatingSecureStorage implements SecureStorage {
+  _RotatingSecureStorage({
+    required this.delegate,
+    required this.rotateKey,
+    required this.rotateToValue,
+  });
 
-  Future<void> logout() async {
-    logoutCallCount++;
+  final _InMemorySecureStorage delegate;
+  final String rotateKey;
+  final String rotateToValue;
+  int _readCount = 0;
+
+  @override
+  Future<String?> read({required String key}) async {
+    if (key == rotateKey) {
+      _readCount++;
+      if (_readCount == 1) {
+        // First read: return original value.
+        return delegate.read(key: key);
+      }
+      // Second+ read: simulate parallel rotation having occurred.
+      await delegate.write(key: key, value: rotateToValue);
+      return rotateToValue;
+    }
+    return delegate.read(key: key);
   }
 
-  Future<void> updateTokens({
-    required String accessToken,
-    required String refreshToken,
-  }) async {}
+  @override
+  Future<void> write({required String key, required String value}) =>
+      delegate.write(key: key, value: value);
+
+  @override
+  Future<void> delete({required String key}) => delegate.delete(key: key);
+}
+
+/// Fake Dio HttpClientAdapter that always returns a response with the given
+/// status code, simulating server errors without network access.
+class _FakeHttpClientAdapter implements HttpClientAdapter {
+  _FakeHttpClientAdapter({required this.statusCode});
+
+  final int statusCode;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<List<int>>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    return ResponseBody.fromString(
+      '{"error": "simulated"}',
+      statusCode,
+      headers: {
+        'content-type': ['application/json'],
+      },
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
+}
+
+/// Fake ConversationRepository for outbox tests.
+class _FakeConversationRepository implements ConversationRepository {
+  ConversationMessageSummary? sentMessage;
+  AppFailure? sendFailure;
+  Completer<void>? sendGate;
+  Completer<void>? sendStarted;
+  final List<String> sentContents = [];
+
+  @override
+  Future<ConversationMessageSummary> sendMessage(
+    ConversationDetailTarget target,
+    String content, {
+    List<String>? attachmentIds,
+    String? replyToId,
+    CancelToken? cancelToken,
+  }) async {
+    sentContents.add(content);
+    if (!(sendStarted?.isCompleted ?? true)) {
+      sendStarted!.complete();
+    }
+    if (sendGate != null) {
+      await sendGate!.future;
+    }
+    if (sendFailure != null) throw sendFailure!;
+    return sentMessage ??
+        ConversationMessageSummary(
+          id: 'msg-${sentContents.length}',
+          content: content,
+          createdAt: DateTime.now(),
+          senderType: 'human',
+          messageType: 'message',
+          seq: sentContents.length,
+        );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
