@@ -12,8 +12,9 @@ class TypingIndicatorWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(typingIndicatorStoreProvider);
-    final displayText = state.displayText;
+    final displayText = ref.watch(
+      typingIndicatorStoreProvider.select((s) => s.displayText),
+    );
 
     if (displayText == null) {
       return const SizedBox.shrink();

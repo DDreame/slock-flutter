@@ -156,8 +156,9 @@ class _MessageContentWidgetState extends ConsumerState<MessageContentWidget> {
     // Append link preview card if a URL was detected.
     if (_detectedUrl == null) return textWidget;
 
-    final cache = ref.watch(linkPreviewCacheProvider);
-    final asyncMeta = cache[_detectedUrl];
+    final asyncMeta = ref.watch(
+      linkPreviewCacheProvider.select((cache) => cache[_detectedUrl]),
+    );
 
     // No data yet or loading — just show the text.
     if (asyncMeta == null || asyncMeta is AsyncLoading) {
