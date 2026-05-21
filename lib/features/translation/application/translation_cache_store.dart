@@ -106,12 +106,15 @@ class TranslationCacheState {
 
   @override
   int get hashCode {
-    var h = 0;
+    // Use order-independent but collision-resistant mixing:
+    // sum individual hashes (non-commutative when combined with length).
+    var h = translations.length * 31;
     for (final entry in translations.entries) {
-      h ^= Object.hash(entry.key, entry.value);
+      h += Object.hash(entry.key, entry.value).hashCode;
     }
+    h = h * 37 + showTranslation.length;
     for (final entry in showTranslation.entries) {
-      h ^= Object.hash(entry.key, entry.value);
+      h += Object.hash(entry.key, entry.value).hashCode;
     }
     return h;
   }
@@ -129,6 +132,10 @@ final translationCacheStoreProvider =
 class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
   static const _maxCacheSize = 200;
   static const _cacheTrimCount = 50;
+
+  /// Tracks message IDs with in-flight translation requests to prevent
+  /// duplicate API calls from concurrent translateMessages() invocations.
+  final Set<String> _inFlight = {};
 
   @override
   bool updateShouldNotify(
@@ -172,10 +179,16 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
     final settingsState = ref.read(translationSettingsStoreProvider);
     final targetLanguage = settingsState.settings.preferredLanguage;
 
-    // Filter out already-cached (translated or pending) messages.
-    final uncached =
-        messageIds.where((id) => !state.translations.containsKey(id)).toList();
+    // Filter out already-cached (translated or pending) messages
+    // AND messages currently in-flight (concurrent dedup guard).
+    final uncached = messageIds
+        .where((id) =>
+            !state.translations.containsKey(id) && !_inFlight.contains(id))
+        .toList();
     if (uncached.isEmpty) return;
+
+    // Register as in-flight before any async work.
+    _inFlight.addAll(uncached);
 
     // Mark uncached as pending.
     final pending = Map<String, TranslationEntry>.from(state.translations);
@@ -213,8 +226,10 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
       }
 
       // Mark any uncached IDs not in results as failed.
+      // Use Set for O(1) lookup instead of O(n) .any() per iteration.
+      final returnedIds = results.map((r) => r.messageId).toSet();
       for (final id in uncached) {
-        if (!results.any((r) => r.messageId == id)) {
+        if (!returnedIds.contains(id)) {
           updated.remove(id);
           updated[id] = TranslationEntry(
             messageId: id,
@@ -238,6 +253,8 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
         }
       }
       state = state.copyWith(translations: _trimTranslations(failed));
+    } finally {
+      _inFlight.removeAll(uncached);
     }
   }
 
