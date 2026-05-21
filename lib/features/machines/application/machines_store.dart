@@ -231,6 +231,7 @@ MachineItem _mergeMachineStatus(
 
 List<MachineItem> _sortMachines(List<MachineItem> items) {
   final sorted = [...items];
+  final lowerNames = {for (final m in sorted) m: m.name.toLowerCase()};
   sorted.sort((left, right) {
     final onlineComparison = (right.isOnline ? 1 : 0).compareTo(
       left.isOnline ? 1 : 0,
@@ -238,7 +239,7 @@ List<MachineItem> _sortMachines(List<MachineItem> items) {
     if (onlineComparison != 0) {
       return onlineComparison;
     }
-    return left.name.toLowerCase().compareTo(right.name.toLowerCase());
+    return lowerNames[left]!.compareTo(lowerNames[right]!);
   });
   return sorted;
 }
