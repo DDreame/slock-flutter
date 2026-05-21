@@ -178,6 +178,29 @@ class ReactionRow extends ConsumerWidget {
   final String messageId;
   final String? currentUserId;
 
+  /// Named handler for reaction toggle tap — avoids creating a new closure
+  /// on every rebuild, enabling future memoization of [_ReactionChip].
+  Future<void> _handleReactionTap(
+    BuildContext context,
+    WidgetRef ref,
+    String emoji,
+  ) async {
+    try {
+      await ref
+          .read(conversationDetailStoreProvider.notifier)
+          .toggleReaction(messageId, emoji);
+    } on AppFailure catch (failure) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(failure.message ?? 'Failed to update reaction.'),
+          ),
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (reactions.isEmpty) {
@@ -200,23 +223,7 @@ class ReactionRow extends ConsumerWidget {
             count: reaction.count,
             isOwn: isOwn,
             colors: colors,
-            onTap: () async {
-              try {
-                await ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .toggleReaction(messageId, reaction.emoji);
-              } on AppFailure catch (failure) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    SnackBar(
-                      content:
-                          Text(failure.message ?? 'Failed to update reaction.'),
-                    ),
-                  );
-              }
-            },
+            onTap: () => _handleReactionTap(context, ref, reaction.emoji),
           );
         }).toList(growable: false),
       ),
