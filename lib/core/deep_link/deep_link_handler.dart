@@ -97,8 +97,14 @@ class DeepLinkHandler {
   void _dispatch(String path) {
     if (isInviteDeepLink(path)) {
       _router.go(path);
-    } else {
+    } else if (!_isCurrentRoute(path)) {
       _router.push(path);
     }
+  }
+
+  bool _isCurrentRoute(String path) {
+    final targetUri = Uri.parse(path);
+    final currentUri = _router.routeInformationProvider.value.uri;
+    return currentUri.path == targetUri.path;
   }
 }

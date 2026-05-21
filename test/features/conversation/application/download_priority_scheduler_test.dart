@@ -348,6 +348,41 @@ void main() {
       },
     );
 
+    test(
+      'failed download is not completed and can be retried (#719)',
+      () async {
+        var attempts = 0;
+        final container = ProviderContainer(
+          overrides: [
+            downloadSchedulerProvider
+                .overrideWith(() => DownloadPriorityScheduler()),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final sub = container.listen(downloadSchedulerProvider, (_, __) {});
+        addTearDown(sub.close);
+
+        final scheduler = container.read(downloadSchedulerProvider.notifier);
+        scheduler.enqueue('retry-fail', () async {
+          attempts += 1;
+          throw StateError('network failed');
+        });
+        scheduler.onVisibilityChanged('retry-fail', true);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        scheduler.enqueue('retry-fail', () async {
+          attempts += 1;
+        });
+        scheduler.onVisibilityChanged('retry-fail', true);
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(attempts, 2);
+      },
+    );
+
     // T6: Integration — ConversationDetailPage wiring
     testWidgets(
       'ConversationDetailPage wires attachment downloads to scheduler',
