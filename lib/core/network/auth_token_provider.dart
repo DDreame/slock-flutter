@@ -59,7 +59,6 @@ final refreshAuthTokenProvider = Provider<RefreshAuthToken>((ref) {
 final requestHeadersBuilderProvider = Provider<RequestHeadersBuilder>((ref) {
   final config = ref.watch(networkConfigProvider);
   final readToken = ref.watch(authTokenProvider);
-  final selectedServerId = ref.watch(selectedServerIdProvider);
 
   return () async {
     final headers = Map<String, String>.from(config.defaultHeaders);
@@ -67,6 +66,10 @@ final requestHeadersBuilderProvider = Provider<RequestHeadersBuilder>((ref) {
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
+    // Lazy read: fetch the current server ID at invocation time rather than
+    // capturing at provider build-time, so in-flight requests after a server
+    // switch always use the active server's ID.
+    final selectedServerId = ref.read(selectedServerIdProvider);
     if (selectedServerId != null && selectedServerId.isNotEmpty) {
       headers['X-Server-Id'] = selectedServerId;
     }
