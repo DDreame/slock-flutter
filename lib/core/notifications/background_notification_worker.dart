@@ -239,11 +239,7 @@ class BackgroundNotificationWorker {
       final token = _authProvider.token;
       if (token == null || token.isEmpty) return;
 
-      _socket.connect(
-        uri: _authProvider.realtimeUrl,
-        token: token,
-        serverId: _authProvider.serverId,
-      );
+      unawaited(_connectForReconnect(token: token));
     }
   }
 
@@ -265,11 +261,23 @@ class BackgroundNotificationWorker {
     final token = _authProvider.token;
     if (token == null || token.isEmpty) return;
 
-    await _socket.connect(
-      uri: _authProvider.realtimeUrl,
-      token: token,
-      serverId: _authProvider.serverId,
-    );
+    await _connectForReconnect(token: token);
+  }
+
+  Future<void> _connectForReconnect({required String token}) async {
+    try {
+      await _socket.connect(
+        uri: _authProvider.realtimeUrl,
+        token: token,
+        serverId: _authProvider.serverId,
+      );
+    } catch (e, st) {
+      _diagnostics?.error(
+        'BackgroundWorker',
+        'socket reconnect failed: $e',
+        metadata: {'stackTrace': st.toString()},
+      );
+    }
   }
 
   void _onEvent(Map<String, dynamic> payload) {
