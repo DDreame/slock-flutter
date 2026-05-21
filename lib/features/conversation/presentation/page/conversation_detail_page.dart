@@ -289,6 +289,11 @@ class _ConversationDetailScreenState
         ),
       );
     }
+    // #687: Keep download scheduler alive for the page lifetime so that
+    // enqueued items survive between registration and later visibility
+    // callbacks. AutoDispose will clean up when the page tears down.
+    ref.watch(downloadSchedulerProvider);
+
     // INV-SCAFFOLD-SELECT-1: Watch only scaffold-relevant fields so that
     // messages/pendingMessages mutations (the hottest path) do NOT trigger
     // a full scaffold rebuild. The message list has its own subscription via

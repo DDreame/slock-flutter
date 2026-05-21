@@ -17,6 +17,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/file_previe
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 // ---------------------------------------------------------------------------
 // #527: Full-screen Media Viewer — Phase A
@@ -49,6 +50,14 @@ Future<void> _pumpUntilLoaded(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() {
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+  });
+  tearDown(() {
+    VisibilityDetectorController.instance.updateInterval =
+        const Duration(milliseconds: 500);
+  });
+
   // -----------------------------------------------------------------------
   // INV-MEDIA-1: Tapping an image attachment in a message opens
   // FilePreviewPage via GoRouter push to /file-preview.

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:visibility_detector/visibility_detector.dart';
 
 // ---------------------------------------------------------------------------
 // #566: Attachment Download Priority Queue
@@ -52,7 +51,13 @@ class _DownloadEntry {
 ///
 /// Only items in the visible queue are actively downloaded. Deferred
 /// items remain idle until promoted via [onVisibilityChanged].
-class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
+///
+/// AutoDispose: scoped to conversation detail page lifecycle. When the
+/// user navigates away and all watchers are removed, internal state
+/// (including the _completed set) is naturally GC'd — preventing
+/// unbounded growth across conversations.
+class DownloadPriorityScheduler
+    extends AutoDisposeNotifier<DownloadSchedulerState> {
   /// Maximum number of concurrent downloads.
   int get maxConcurrent => 3;
 
@@ -73,10 +78,6 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
 
   @override
   DownloadSchedulerState build() {
-    // Make VisibilityDetector report synchronously (no timer delay).
-    // This prevents pumpAndSettle timeouts in tests and gives more
-    // responsive priority updates in production.
-    VisibilityDetectorController.instance.updateInterval = Duration.zero;
     return const DownloadSchedulerState();
   }
 
@@ -184,7 +185,7 @@ class DownloadPriorityScheduler extends Notifier<DownloadSchedulerState> {
   }
 }
 
-final downloadSchedulerProvider =
-    NotifierProvider<DownloadPriorityScheduler, DownloadSchedulerState>(
+final downloadSchedulerProvider = AutoDisposeNotifierProvider<
+    DownloadPriorityScheduler, DownloadSchedulerState>(
   DownloadPriorityScheduler.new,
 );

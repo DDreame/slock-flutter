@@ -11,8 +11,17 @@ import 'package:slock_app/features/conversation/presentation/page/conversation_d
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 void main() {
+  setUp(() {
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+  });
+  tearDown(() {
+    VisibilityDetectorController.instance.updateInterval =
+        const Duration(milliseconds: 500);
+  });
+
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
       serverId: ServerScopeId('server-1'),

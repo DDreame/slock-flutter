@@ -16,6 +16,7 @@ import 'package:slock_app/features/conversation/presentation/widgets/file_previe
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 /// Tests covering the attachment preview behavior paths:
 /// - Image thumbnailUrl inline + signed URL on full-screen
@@ -35,6 +36,14 @@ Future<void> _pumpUntilLoaded(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(() {
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+  });
+  tearDown(() {
+    VisibilityDetectorController.instance.updateInterval =
+        const Duration(milliseconds: 500);
+  });
+
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
       serverId: ServerScopeId('server-1'),
