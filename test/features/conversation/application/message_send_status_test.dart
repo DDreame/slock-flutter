@@ -1404,5 +1404,11 @@ class _NoOpImageCompressor implements ImageCompressor {
   Future<String> compress(String path, {int quality = 80}) async => path;
 
   @override
+  Future<void> deleteCompressedFile({
+    required String originalPath,
+    required String compressedPath,
+  }) async {}
+
+  @override
   bool isCompressibleImage(String mimeType) => false;
 }

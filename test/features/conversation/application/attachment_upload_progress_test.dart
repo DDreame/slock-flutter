@@ -178,6 +178,37 @@ void main() {
       // Verify cancel token was passed
       expect(repo.lastCancelTokens, isNotEmpty);
     });
+
+    test('disposing store cancels in-flight upload token', () async {
+      final repo = _FakeConversationRepository(target: target);
+      final container = _createContainer(target: target, repo: repo);
+
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+      );
+      addTearDown(subscription.close);
+
+      final store = container.read(conversationDetailStoreProvider.notifier);
+      await store.load();
+
+      store.addPendingAttachment(const PendingAttachment(
+        path: '/tmp/in-flight.bin',
+        name: 'in-flight.bin',
+        mimeType: 'application/octet-stream',
+      ));
+
+      repo.uploadCompleter = Completer<String>();
+      store.updateDraft('Dispose while uploading');
+      unawaited(store.send());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repo.lastCancelTokens.single?.isCancelled, isFalse);
+
+      container.dispose();
+
+      expect(repo.lastCancelTokens.single?.isCancelled, isTrue);
+    });
   });
 
   group('image compression', () {
@@ -214,6 +245,69 @@ void main() {
       expect(
           repo.lastUploadedPaths, contains('/tmp/large-photo-compressed.jpg'));
       expect(repo.lastUploadedPaths, isNot(contains('/tmp/large-photo.jpg')));
+    });
+
+    test('deletes compressed temp image after successful upload', () async {
+      final repo = _FakeConversationRepository(target: target);
+      final compressor = _FakeImageCompressor();
+      final container = _createContainer(
+        target: target,
+        repo: repo,
+        compressor: compressor,
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(conversationDetailStoreProvider.notifier);
+      await store.load();
+
+      store.addPendingAttachment(const PendingAttachment(
+        path: '/tmp/photo.jpg',
+        name: 'photo.jpg',
+        mimeType: 'image/jpeg',
+      ));
+
+      compressor
+        ..fileSizeBytes = 6 * 1024 * 1024
+        ..compressedPath = '/tmp/photo_compressed.jpg';
+      repo.uploadResults = ['att-compressed'];
+
+      store.updateDraft('Cleanup compressed');
+      await store.send();
+
+      expect(compressor.deletedCompressedPaths, ['/tmp/photo_compressed.jpg']);
+    });
+
+    test('deletes compressed temp image after upload failure', () async {
+      final repo = _FakeConversationRepository(target: target);
+      final compressor = _FakeImageCompressor();
+      final container = _createContainer(
+        target: target,
+        repo: repo,
+        compressor: compressor,
+      );
+      addTearDown(container.dispose);
+
+      final store = container.read(conversationDetailStoreProvider.notifier);
+      await store.load();
+
+      store.addPendingAttachment(const PendingAttachment(
+        path: '/tmp/failing-photo.jpg',
+        name: 'failing-photo.jpg',
+        mimeType: 'image/jpeg',
+      ));
+
+      compressor
+        ..fileSizeBytes = 6 * 1024 * 1024
+        ..compressedPath = '/tmp/failing-photo_compressed.jpg';
+      repo.uploadBehaviors = [const _UploadBehavior.fail()];
+
+      store.updateDraft('Cleanup failed upload');
+      await store.send();
+
+      expect(
+        compressor.deletedCompressedPaths,
+        ['/tmp/failing-photo_compressed.jpg'],
+      );
     });
 
     test('skips compression for small images', () async {
@@ -345,11 +439,16 @@ void main() {
 sealed class _UploadBehavior {
   const _UploadBehavior();
   const factory _UploadBehavior.cancel() = _CancelBehavior;
+  const factory _UploadBehavior.fail() = _FailBehavior;
   const factory _UploadBehavior.succeed(String id) = _SucceedBehavior;
 }
 
 class _CancelBehavior extends _UploadBehavior {
   const _CancelBehavior();
+}
+
+class _FailBehavior extends _UploadBehavior {
+  const _FailBehavior();
 }
 
 class _SucceedBehavior extends _UploadBehavior {
@@ -388,6 +487,11 @@ class _FakeConversationRepository implements ConversationRepository {
           throw DioException(
             type: DioExceptionType.cancel,
             requestOptions: RequestOptions(),
+          );
+        case _FailBehavior():
+          throw const UnknownFailure(
+            message: 'Upload failed',
+            causeType: 'uploadFailure',
           );
         case _SucceedBehavior(:final id):
           if (onSendProgress != null) {
@@ -543,6 +647,7 @@ class _FakeImageCompressor implements ImageCompressor {
   String? compressedPath;
   int fileSizeBytes = 0;
   bool shouldFail = false;
+  final List<String> deletedCompressedPaths = [];
 
   @override
   Future<int> getFileSize(String path) async => fileSizeBytes;
@@ -554,6 +659,16 @@ class _FakeImageCompressor implements ImageCompressor {
       throw Exception('Compression failed');
     }
     return compressedPath ?? path;
+  }
+
+  @override
+  Future<void> deleteCompressedFile({
+    required String originalPath,
+    required String compressedPath,
+  }) async {
+    if (compressedPath != originalPath) {
+      deletedCompressedPaths.add(compressedPath);
+    }
   }
 
   @override

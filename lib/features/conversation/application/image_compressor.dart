@@ -16,6 +16,14 @@ abstract class ImageCompressor {
   /// file. Throws on failure (caller should fall back to original).
   Future<String> compress(String path, {int quality = 80});
 
+  /// Deletes a compressed temporary image after upload completion.
+  ///
+  /// No-ops when [compressedPath] is the original file path.
+  Future<void> deleteCompressedFile({
+    required String originalPath,
+    required String compressedPath,
+  });
+
   /// Whether the given MIME type is a compressible image format.
   bool isCompressibleImage(String mimeType);
 }
@@ -57,6 +65,19 @@ class DefaultImageCompressor implements ImageCompressor {
       throw Exception('Compression returned null');
     }
     return result.path;
+  }
+
+  @override
+  Future<void> deleteCompressedFile({
+    required String originalPath,
+    required String compressedPath,
+  }) async {
+    if (compressedPath == originalPath) return;
+
+    final file = File(compressedPath);
+    if (await file.exists()) {
+      await file.delete();
+    }
   }
 
   @override
