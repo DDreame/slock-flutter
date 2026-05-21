@@ -663,9 +663,13 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
     _stateSub?.cancel();
     _positionSub?.cancel();
     _durationSub?.cancel();
-    final activePlayer = _activePlayer.state;
-    if (identical(activePlayer, _player)) {
-      _activePlayer.state = null;
+    try {
+      final activePlayer = _activePlayer.state;
+      if (identical(activePlayer, _player)) {
+        _activePlayer.state = null;
+      }
+    } catch (_) {
+      // ProviderScope may already be tearing down during widget disposal.
     }
     _player.dispose();
     super.dispose();
