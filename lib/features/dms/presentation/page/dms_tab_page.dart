@@ -56,6 +56,10 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  /// Dedup guard: prevent stacked addPostFrameCallback calls when the
+  /// hidden-DM sheet detects an empty list during rapid rebuilds (#675).
+  bool _pendingHiddenSheetPop = false;
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -455,11 +459,15 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
               homeListStoreProvider.select((s) => s.hiddenDirectMessages),
             );
             if (hiddenDms.isEmpty) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (sheetContext.mounted) {
-                  Navigator.of(sheetContext).pop();
-                }
-              });
+              if (!_pendingHiddenSheetPop) {
+                _pendingHiddenSheetPop = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _pendingHiddenSheetPop = false;
+                  if (sheetContext.mounted) {
+                    Navigator.of(sheetContext).pop();
+                  }
+                });
+              }
               return const SizedBox.shrink();
             }
             return SafeArea(
