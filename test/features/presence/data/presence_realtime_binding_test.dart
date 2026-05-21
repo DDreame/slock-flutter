@@ -194,7 +194,8 @@ void main() {
   });
 
   group('PresenceRealtimeBinding — dispose', () {
-    test('dispose clears state and stops listening', () async {
+    test('dispose stops listening but does NOT clear state (no flash)',
+        () async {
       binding.bind();
 
       ingress.accept(RealtimeEventEnvelope(
@@ -211,7 +212,29 @@ void main() {
 
       binding.dispose();
 
-      expect(container.read(presenceStoreProvider).statuses, isEmpty);
+      // State is preserved — autoDispose teardown handles reset.
+      expect(
+        container.read(presenceStoreProvider).isOnline('user-2'),
+        isTrue,
+        reason: 'Dispose should not clear state (prevents flash)',
+      );
+
+      // Verify listening stopped — new events should not update store.
+      ingress.accept(RealtimeEventEnvelope(
+        eventType: kUserPresenceEvent,
+        scopeKey: RealtimeEventEnvelope.globalScopeKey,
+        receivedAt: DateTime.now(),
+        payload: const {
+          'userId': 'user-3',
+          'status': 'online',
+        },
+      ));
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        container.read(presenceStoreProvider).isOnline('user-3'),
+        isFalse,
+        reason: 'After dispose, new events should not be processed',
+      );
     });
   });
 }
