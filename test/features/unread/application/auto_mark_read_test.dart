@@ -4,7 +4,7 @@
 // Invariants verified:
 // INV-READ-1: Entering conversation with unread → unreadCount drops to 0
 // INV-READ-2: markRead does not block conversation UI loading (async)
-// INV-READ-3: markRead API failure → UI does not flicker (optimistic kept)
+// INV-READ-3: markRead API failure → rollback restores unread count (#714)
 // INV-READ-4: unreadCount == 0 → no redundant API request
 // INV-READ-5: Quick enter/exit (<1s) still triggers markRead
 // ---------------------------------------------------------------------------
@@ -413,7 +413,7 @@ void main() {
     );
 
     // -------------------------------------------------------------------
-    // INV-READ-3: markRead API failure → UI does not flicker.
+    // INV-READ-3: markRead API failure → rollback restores unread count.
     // -------------------------------------------------------------------
     testWidgets(
       'markRead API failure does not affect conversation UI '
@@ -473,14 +473,14 @@ void main() {
           reason: 'INV-READ-3: API failure must not disturb conversation UI',
         );
 
-        // Optimistic unread update should be retained despite API failure.
+        // Rollback: unread count should be restored on API failure (#714).
         expect(
           container
               .read(unreadSourceProjectionProvider)
               .channelUnreadCount(channelGeneral),
-          0,
+          5,
           reason:
-              'INV-READ-3: Optimistic unread=0 must survive markRead API failure',
+              'INV-READ-3: markRead rollback must restore unread on API failure',
         );
       },
     );

@@ -88,9 +88,9 @@ class _FakeSavedMessagesStore extends SavedMessagesStore {
   }
 
   @override
-  void ensureLoaded() {
+  Future<void> ensureLoaded() async {
     if (state.status == SavedMessagesStatus.initial) {
-      load();
+      await load();
     }
   }
 }
