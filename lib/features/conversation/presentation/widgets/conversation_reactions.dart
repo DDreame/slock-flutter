@@ -57,7 +57,6 @@ class _EditMessageDialogState extends State<EditMessageDialog> {
             content: Text(_conversationL10n(context).conversationEditSuccess)));
     } on AppFailure catch (e) {
       if (!mounted) return;
-      setState(() => _saving = false);
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -66,6 +65,20 @@ class _EditMessageDialogState extends State<EditMessageDialog> {
                 _conversationL10n(context).conversationEditFailedFallback),
           ),
         );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content:
+                Text(_conversationL10n(context).conversationEditFailedFallback),
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 

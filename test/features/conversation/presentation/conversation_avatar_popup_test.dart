@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -88,6 +90,40 @@ void main() {
         reason: 'Profile sheet must appear after tapping sender name '
             '(INV-AVATAR-1)',
       );
+    },
+  );
+
+  testWidgets(
+    'Profile loading sheet ignores future completion after dispose (#705)',
+    (tester) async {
+      final profileRepo = _CompleterProfileRepository();
+      await tester.pumpWidget(
+        _buildApp(
+          repository: _fakeConversationRepo(channelTarget),
+          target: channelTarget,
+          profileRepository: profileRepo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alex'));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        find.byKey(const ValueKey('profile-loading-indicator')),
+        findsOneWidget,
+      );
+
+      Navigator.of(
+        tester.element(find.byKey(const ValueKey('profile-loading-indicator'))),
+      ).pop();
+      await tester.pumpAndSettle();
+
+      profileRepo.completer.completeError(StateError('late failure'));
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -553,4 +589,16 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
   }) async {}
+}
+
+class _CompleterProfileRepository implements ProfileRepository {
+  final Completer<MemberProfile> completer = Completer<MemberProfile>();
+
+  @override
+  Future<MemberProfile> loadProfile(
+    ServerScopeId serverId, {
+    required String userId,
+  }) {
+    return completer.future;
+  }
 }
