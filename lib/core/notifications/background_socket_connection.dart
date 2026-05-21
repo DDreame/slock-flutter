@@ -29,15 +29,18 @@ class SocketIoBackgroundConnection implements BackgroundSocketConnection {
     required String token,
     String? serverId,
   }) async {
-    // Dispose previous socket if reconnecting.
-    _socket?.dispose();
+    // Null out _socket before disposing old socket so its disconnect
+    // listener (if it fires) sees _socket != oldSocket and is ignored (#711).
+    final oldSocket = _socket;
+    _socket = null;
+    oldSocket?.dispose();
 
     final authMap = <String, dynamic>{
       'token': token,
       if (serverId != null && serverId.isNotEmpty) 'serverId': serverId,
     };
 
-    _socket = io.io(
+    final newSocket = io.io(
       uri,
       io.OptionBuilder()
           .disableAutoConnect()
@@ -47,30 +50,35 @@ class SocketIoBackgroundConnection implements BackgroundSocketConnection {
           .build(),
     );
 
-    _socket!.onConnect((_) {
+    _socket = newSocket;
+
+    newSocket.onConnect((_) {
       _statusController.add(BackgroundSocketStatus.connected);
     });
 
-    _socket!.onDisconnect((_) {
-      _statusController.add(BackgroundSocketStatus.disconnected);
+    newSocket.onDisconnect((_) {
+      // Only emit if this socket is still the active one.
+      if (_socket == newSocket) {
+        _statusController.add(BackgroundSocketStatus.disconnected);
+      }
     });
 
-    _socket!.onConnectError((_) {
+    newSocket.onConnectError((_) {
       _statusController.add(BackgroundSocketStatus.error);
     });
 
-    _socket!.onError((_) {
+    newSocket.onError((_) {
       _statusController.add(BackgroundSocketStatus.error);
     });
 
     // Listen for message:new events specifically.
-    _socket!.on('message:new', (data) {
+    newSocket.on('message:new', (data) {
       if (data is Map) {
         _eventController.add(Map<String, dynamic>.from(data));
       }
     });
 
-    _socket!.connect();
+    newSocket.connect();
   }
 
   @override

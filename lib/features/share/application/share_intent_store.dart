@@ -44,7 +44,15 @@ class ShareIntentStore extends Notifier<SharedContent?> {
   StreamSubscription<List<SharedMediaFile>>? _subscription;
 
   @override
-  SharedContent? build() => null;
+  SharedContent? build() {
+    // Register disposal in build() so it's guaranteed to run even if the
+    // provider is disposed before initialize() completes (#711).
+    ref.onDispose(() {
+      _subscription?.cancel();
+      _subscription = null;
+    });
+    return null;
+  }
 
   /// Start listening for share intents. Call once during app startup.
   Future<void> initialize() async {
@@ -61,11 +69,6 @@ class ShareIntentStore extends Notifier<SharedContent?> {
       if (files.isNotEmpty) {
         state = parseSharedMedia(files);
       }
-    });
-
-    ref.onDispose(() {
-      _subscription?.cancel();
-      _subscription = null;
     });
   }
 
