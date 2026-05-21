@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/notifications/background_notification_worker.dart';
+import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 
 void main() {
   group('BackgroundNotificationWorker', () {
@@ -24,11 +25,14 @@ void main() {
       await worker.dispose();
     });
 
-    BackgroundNotificationWorker createWorker() {
+    BackgroundNotificationWorker createWorker({
+      DiagnosticsCollector? diagnostics,
+    }) {
       worker = BackgroundNotificationWorker(
         socket: fakeSocket,
         notificationSink: fakeSink,
         authProvider: fakeAuth,
+        diagnostics: diagnostics,
       );
       return worker;
     }
@@ -201,6 +205,39 @@ void main() {
 
         expect(fakeSink.notifications, hasLength(1));
         expect(fakeSink.notifications.first['body'], 'After reconnect');
+      });
+
+      test('logs reconnect failure to diagnostics', () async {
+        final diagnostics = DiagnosticsCollector();
+        createWorker(diagnostics: diagnostics);
+        await worker.start();
+
+        fakeSocket.throwOnNextConnect = Exception('reconnect refused');
+        fakeSocket.simulateDisconnect();
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(
+          diagnostics.entries,
+          contains(
+            isA<DiagnosticsEntry>()
+                .having((entry) => entry.tag, 'tag', 'BackgroundWorker')
+                .having(
+                  (entry) => entry.level,
+                  'level',
+                  DiagnosticsLevel.error,
+                )
+                .having(
+                  (entry) => entry.message,
+                  'message',
+                  contains('socket reconnect failed'),
+                )
+                .having(
+                  (entry) => entry.metadata?['stackTrace'],
+                  'stackTrace',
+                  isA<String>(),
+                ),
+          ),
+        );
       });
     });
 
@@ -469,6 +506,7 @@ class FakeBackgroundSocketConnection implements BackgroundSocketConnection {
   int _connectCallCount = 0;
   String? _lastConnectToken;
   String? _lastConnectServerId;
+  Object? throwOnNextConnect;
 
   int get connectCallCount => _connectCallCount;
   String? get lastConnectToken => _lastConnectToken;
@@ -492,6 +530,11 @@ class FakeBackgroundSocketConnection implements BackgroundSocketConnection {
     _connectCallCount++;
     _lastConnectToken = token;
     _lastConnectServerId = serverId;
+    final connectError = throwOnNextConnect;
+    if (connectError != null) {
+      throwOnNextConnect = null;
+      throw connectError;
+    }
     _connected = true;
     _statusController.add(BackgroundSocketStatus.connected);
   }

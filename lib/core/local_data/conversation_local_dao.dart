@@ -299,29 +299,14 @@ class ConversationLocalDao extends DatabaseAccessor<AppDatabase>
     required String surface,
     required Set<String> retainedConversationIds,
   }) async {
-    final rows = await (select(conversationSummaries)
-          ..where((table) =>
-              table.serverId.equals(serverId) & table.surface.equals(surface)))
-        .get();
-
-    final toDelete = rows
-        .where(
-          (row) => !retainedConversationIds.contains(row.conversationId),
-        )
-        .toList(growable: false);
-
-    if (toDelete.isEmpty) return;
-
-    await batch((batch) {
-      for (final row in toDelete) {
-        batch.deleteWhere(
-          conversationSummaries,
-          (table) =>
-              table.serverId.equals(row.serverId) &
-              table.conversationId.equals(row.conversationId),
-        );
-      }
-    });
+    final deleteStatement = delete(conversationSummaries)
+      ..where((table) {
+        final scope =
+            table.serverId.equals(serverId) & table.surface.equals(surface);
+        if (retainedConversationIds.isEmpty) return scope;
+        return scope & table.conversationId.isNotIn(retainedConversationIds);
+      });
+    await deleteStatement.go();
   }
 }
 
