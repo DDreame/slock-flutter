@@ -75,6 +75,24 @@ final class NotFoundFailure extends AppFailure {
   });
 }
 
+final class ConflictFailure extends AppFailure {
+  const ConflictFailure({
+    super.message,
+    super.statusCode,
+    super.requestId,
+    super.causeType,
+  });
+}
+
+final class ValidationFailure extends AppFailure {
+  const ValidationFailure({
+    super.message,
+    super.statusCode,
+    super.requestId,
+    super.causeType,
+  });
+}
+
 final class RateLimitFailure extends AppFailure {
   const RateLimitFailure({
     super.message,

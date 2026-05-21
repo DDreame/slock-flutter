@@ -16,6 +16,18 @@ class ConversationLocalDao extends DatabaseAccessor<AppDatabase>
       return;
     }
 
+    // Invariant: all entries must belong to the same server. The query below
+    // uses entries.first.serverId to load existing rows — mixed-server batches
+    // would silently drop sort indexes for non-first servers.
+    final serverIds = entries.map((e) => e.serverId).toSet();
+    if (serverIds.length > 1) {
+      throw StateError(
+        'upsertConversationSummaries: mixed-server batch detected '
+        '(found ${serverIds.length} distinct serverIds: $serverIds). '
+        'All entries must share the same serverId.',
+      );
+    }
+
     final existing = await (select(conversationSummaries)
           ..where((table) => table.serverId.equals(entries.first.serverId)))
         .get();

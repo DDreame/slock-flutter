@@ -57,6 +57,7 @@ class AppFailureMapper {
           message: message,
           requestId: requestId,
           causeType: causeType,
+          responseData: error.response?.data,
         );
       case DioExceptionType.badCertificate:
       case DioExceptionType.connectionError:
@@ -73,6 +74,7 @@ class AppFailureMapper {
             message: message,
             requestId: requestId,
             causeType: causeType,
+            responseData: error.response?.data,
           );
         }
         if (error.error is FormatException) {
@@ -97,6 +99,7 @@ class AppFailureMapper {
     required String? message,
     required String? requestId,
     required String causeType,
+    Object? responseData,
   }) {
     switch (statusCode) {
       case 401:
@@ -116,6 +119,27 @@ class AppFailureMapper {
       case 404:
         return NotFoundFailure(
           message: message,
+          statusCode: statusCode,
+          requestId: requestId,
+          causeType: causeType,
+        );
+      case 408:
+        return TimeoutFailure(
+          message: message,
+          statusCode: statusCode,
+          requestId: requestId,
+          causeType: causeType,
+        );
+      case 409:
+        return ConflictFailure(
+          message: _extractBodyMessage(responseData) ?? message,
+          statusCode: statusCode,
+          requestId: requestId,
+          causeType: causeType,
+        );
+      case 422:
+        return ValidationFailure(
+          message: _extractBodyMessage(responseData) ?? message,
           statusCode: statusCode,
           requestId: requestId,
           causeType: causeType,
@@ -143,6 +167,25 @@ class AppFailureMapper {
           causeType: causeType,
         );
     }
+  }
+
+  /// Attempts to extract a human-readable error message from the response body.
+  ///
+  /// Supports:
+  /// - Plain [String] body
+  /// - [Map] with `message`, `error`, or `detail` keys
+  String? _extractBodyMessage(Object? data) {
+    if (data == null) return null;
+    if (data is String && data.isNotEmpty) return data;
+    if (data is Map<String, dynamic>) {
+      final message = data['message'];
+      if (message is String && message.isNotEmpty) return message;
+      final error = data['error'];
+      if (error is String && error.isNotEmpty) return error;
+      final detail = data['detail'];
+      if (detail is String && detail.isNotEmpty) return detail;
+    }
+    return null;
   }
 
   String? _extractRequestId(Response<dynamic>? response) {

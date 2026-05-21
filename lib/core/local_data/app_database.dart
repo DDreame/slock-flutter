@@ -15,6 +15,17 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => 1;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) => m.createAll(),
+        onUpgrade: (Migrator m, int from, int to) async {
+          // Step-by-step migration scaffold. Add version-specific steps here
+          // when schemaVersion is bumped:
+          //   if (from < 2) { await m.addColumn(...); }
+          //   if (from < 3) { ... }
+        },
+      );
 }
 
 class LocalConversationSummaryUpsert {
