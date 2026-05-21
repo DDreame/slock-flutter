@@ -288,6 +288,30 @@ void main() {
       expect(callbackLocalId, 'pending-2');
       expect(callbackFailure, isA<NotFoundFailure>());
     });
+
+    test('concurrent drainAll calls send each queued message only once',
+        () async {
+      repository.sendGate = Completer<void>();
+      repository.sendStarted = Completer<void>();
+
+      final notifier = container.read(outboxStoreProvider.notifier);
+      notifier.enqueue(target, 'Queued once');
+
+      final firstDrain = notifier.drainAll();
+      await repository.sendStarted!.future;
+
+      final secondDrain = notifier.drainAll();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repository.sentContents, ['Queued once']);
+
+      repository.sendGate!.complete();
+      await Future.wait([firstDrain, secondDrain]);
+
+      expect(repository.sentContents, ['Queued once']);
+      final state = container.read(outboxStoreProvider);
+      expect(state.items[outboxTargetKey(target)] ?? [], isEmpty);
+    });
   });
 
   group('OutboxStore connectivity', () {
@@ -418,6 +442,8 @@ void main() {
 class _FakeConversationRepository implements ConversationRepository {
   ConversationMessageSummary? sentMessage;
   AppFailure? sendFailure;
+  Completer<void>? sendGate;
+  Completer<void>? sendStarted;
   final List<String> sentContents = [];
 
   @override
@@ -429,6 +455,12 @@ class _FakeConversationRepository implements ConversationRepository {
     CancelToken? cancelToken,
   }) async {
     sentContents.add(content);
+    if (!(sendStarted?.isCompleted ?? true)) {
+      sendStarted!.complete();
+    }
+    if (sendGate != null) {
+      await sendGate!.future;
+    }
     if (sendFailure != null) throw sendFailure!;
     return sentMessage ??
         ConversationMessageSummary(
