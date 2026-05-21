@@ -57,10 +57,14 @@ class MentionSyntax extends md.InlineSyntax {
 /// the mention is rendered with extra emphasis (background highlight)
 /// so the user can easily spot their own mentions.
 class MentionBuilder extends MarkdownElementBuilder {
-  MentionBuilder({this.currentUserName});
+  MentionBuilder({this.currentUserName})
+      : currentUserNameLower = currentUserName?.toLowerCase();
 
   /// The display name of the current user, for self-mention highlighting.
   final String? currentUserName;
+
+  /// Lowercased [currentUserName], cached for hot mention rendering paths.
+  final String? currentUserNameLower;
 
   /// Colors reference — set during visitElementAfterWithContext from context.
   AppColors? _colors;
@@ -75,8 +79,8 @@ class MentionBuilder extends MarkdownElementBuilder {
     _colors ??= Theme.of(context).extension<AppColors>();
     final colors = _colors!;
     final name = element.attributes['name'] ?? '';
-    final isSelfMention = currentUserName != null &&
-        name.toLowerCase() == currentUserName!.toLowerCase();
+    final isSelfMention = currentUserNameLower != null &&
+        name.toLowerCase() == currentUserNameLower;
 
     final style =
         (preferredStyle ?? parentStyle ?? AppTypography.body).copyWith(
@@ -129,6 +133,7 @@ TextSpan buildMentionAwareSpan({
   }
 
   final spans = <InlineSpan>[];
+  final currentUserNameLower = currentUserName?.toLowerCase();
   var lastEnd = 0;
 
   for (final match in matches) {
@@ -149,8 +154,8 @@ TextSpan buildMentionAwareSpan({
 
     // The mention itself.
     final name = match.group(1)!;
-    final isSelf = currentUserName != null &&
-        name.toLowerCase() == currentUserName.toLowerCase();
+    final isSelf = currentUserNameLower != null &&
+        name.toLowerCase() == currentUserNameLower;
 
     final mentionStyle = (baseStyle ?? const TextStyle()).copyWith(
       color: isSelf ? selfMentionColor : mentionColor,

@@ -72,72 +72,6 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // T1: Default sort is recent activity (most-recently-active first)
-  // -------------------------------------------------------------------------
-  test(
-    'ChannelListStore sorts by recent activity (default)',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(serverId),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      // Set up the sort preference provider — default should be recentActivity.
-      final sortPref = container.read(channelSortPreferenceProvider);
-      expect(sortPref, ChannelSortPreference.recentActivity);
-
-      // Given channels with different lastActivityAt timestamps:
-      final channels = [channelAlpha, channelBeta, channelGamma];
-
-      // Apply sort via the sorted channels provider.
-      final sorted = container.read(
-        sortedChannelsProvider(channels),
-      );
-
-      // Most-recently-active first: Gamma (May 18) > beta (May 15) > Alpha (May 10).
-      expect(sorted.map((c) => c.name).toList(), ['Gamma', 'beta', 'Alpha']);
-    },
-  );
-
-  // -------------------------------------------------------------------------
-  // T2: Alphabetical sort preference returns channels sorted A-Z
-  // -------------------------------------------------------------------------
-  test(
-    'ChannelListStore sorts alphabetically when preference is A-Z',
-    () async {
-      final container = ProviderContainer(
-        overrides: [
-          activeServerScopeIdProvider.overrideWithValue(serverId),
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          // Override sort preference to alphabetical.
-          channelSortPreferenceProvider.overrideWith(
-            () => _FixedSortPreferenceNotifier(
-              ChannelSortPreference.alphabetical,
-            ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-
-      // Given channels in non-alphabetical order:
-      final channels = [channelGamma, channelAlpha, channelBeta];
-
-      // Apply sort via the sorted channels provider.
-      final sorted = container.read(
-        sortedChannelsProvider(channels),
-      );
-
-      // Case-insensitive alphabetical: Alpha < beta < Gamma.
-      // A case-sensitive comparator (String.compareTo) would produce
-      // ['Alpha', 'Gamma', 'beta'] — uppercase sorts before lowercase.
-      expect(sorted.map((c) => c.name).toList(), ['Alpha', 'beta', 'Gamma']);
-    },
-  );
-
-  // -------------------------------------------------------------------------
   // T3: Sort preference persists across restarts
   // -------------------------------------------------------------------------
   test(
@@ -267,6 +201,20 @@ void main() {
       );
 
       // Default sort: recent activity (channels ordered by lastActivityAt desc).
+      final gammaDefaultPos = tester.getTopLeft(
+        find.byKey(const ValueKey('channels-tab-ch-gamma')),
+      );
+      final betaDefaultPos = tester.getTopLeft(
+        find.byKey(const ValueKey('channels-tab-ch-beta')),
+      );
+      final alphaDefaultPos = tester.getTopLeft(
+        find.byKey(const ValueKey('channels-tab-ch-alpha')),
+      );
+      expect(gammaDefaultPos.dy < betaDefaultPos.dy, isTrue,
+          reason: 'Gamma should be above beta in recent-activity sort');
+      expect(betaDefaultPos.dy < alphaDefaultPos.dy, isTrue,
+          reason: 'beta should be above Alpha in recent-activity sort');
+
       // Tap sort toggle to switch to alphabetical.
       await tester.tap(find.byKey(const ValueKey('channels-sort-toggle')));
       await tester.pumpAndSettle();
@@ -295,17 +243,6 @@ void main() {
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
-
-class _FixedSortPreferenceNotifier extends ChannelSortPreferenceNotifier {
-  _FixedSortPreferenceNotifier(this._value);
-  final ChannelSortPreference _value;
-
-  @override
-  ChannelSortPreference build() => _value;
-
-  @override
-  void setSortPreference(ChannelSortPreference preference) {}
-}
 
 class _FakeHomeRepository implements HomeRepository {
   const _FakeHomeRepository(this.snapshot);

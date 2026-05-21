@@ -8,8 +8,7 @@ import 'package:slock_app/stores/theme/theme_mode_store.dart'
 // #574: Channel Sort Preference
 //
 // Persists the user's channel list sort order (recent activity / A-Z)
-// to SharedPreferences and provides a sorted channel list via a
-// family provider.
+// to SharedPreferences.
 // ---------------------------------------------------------------------------
 
 /// User preference for channel list sort order.
@@ -53,37 +52,6 @@ class ChannelSortPreferenceNotifier extends Notifier<ChannelSortPreference> {
         .setString(ChannelSortPreference.prefsKey, preference.name);
   }
 }
-
-/// Given a list of channels, returns them sorted according to the
-/// current [channelSortPreferenceProvider].
-///
-/// DEPRECATED: This family provider never caches because List arguments
-/// use reference equality. Use [sortedChannelListProvider] instead.
-final sortedChannelsProvider =
-    Provider.family<List<HomeChannelSummary>, List<HomeChannelSummary>>(
-  (ref, channels) {
-    final preference = ref.watch(channelSortPreferenceProvider);
-    final sorted = List<HomeChannelSummary>.of(channels);
-
-    switch (preference) {
-      case ChannelSortPreference.recentActivity:
-        sorted.sort((a, b) {
-          final aTime = a.lastActivityAt;
-          final bTime = b.lastActivityAt;
-          if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-          return bTime.compareTo(aTime); // descending (newest first)
-        });
-      case ChannelSortPreference.alphabetical:
-        sorted.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        );
-    }
-
-    return sorted;
-  },
-);
 
 // ---------------------------------------------------------------------------
 // #652: Memoized sorted channel list provider

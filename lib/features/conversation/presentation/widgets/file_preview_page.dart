@@ -50,6 +50,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
   int _totalPages = 0;
   bool _sharing = false;
   final List<String> _tempFiles = [];
+  late final String _attachmentTypeLower;
 
   // Swipe-to-dismiss state for image viewer.
   double _dragOffset = 0;
@@ -57,10 +58,9 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
       TransformationController();
   static const _dismissThreshold = 150.0;
 
-  bool get _isPdf => widget.attachment.type.toLowerCase() == 'application/pdf';
+  bool get _isPdf => _attachmentTypeLower == 'application/pdf';
 
-  bool get _isImage =>
-      _imageMimeTypes.contains(widget.attachment.type.toLowerCase());
+  bool get _isImage => _imageMimeTypes.contains(_attachmentTypeLower);
 
   bool get _isAtDefaultScale {
     final scale = _transformationController.value.getMaxScaleOnAxis();
@@ -70,6 +70,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
   @override
   void initState() {
     super.initState();
+    _attachmentTypeLower = widget.attachment.type.toLowerCase();
     _loadAttachment();
   }
 

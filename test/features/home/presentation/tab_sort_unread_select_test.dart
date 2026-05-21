@@ -3,7 +3,7 @@
 //
 // Invariant: INV-TAB-SORT-CACHE-1
 //   channels_tab_page.dart L175:
-//   sortedChannelsProvider(allChannels) uses Provider.family with a List arg.
+//   sortedChannelListProvider watches narrowed channel list fields.
 //   Dart list identity → new slot every build → sort re-runs unconditionally
 //   and stale slots accumulate (memory leak).
 //   Phase B inlines sort using homeListStore .select() for channels + pref.
@@ -11,7 +11,7 @@
 //   trigger re-sort.
 //
 // Invariant: INV-TAB-SORT-CACHE-2
-//   dms_tab_page.dart L212: same issue with sortedDmsProvider(filtered).
+//   DM sort watches narrowed direct-message list fields instead of Provider.family list args.
 //   Phase B inlines sort. Unrelated state changes must NOT trigger re-sort.
 //
 // Invariant: INV-TAB-UNREAD-SELECT-1
