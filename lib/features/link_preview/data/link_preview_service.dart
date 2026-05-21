@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:html/parser.dart' as html_parser;
 
@@ -58,6 +60,8 @@ class LinkPreviewService {
               responseType: ResponseType.plain,
             ));
 
+  static const maxPreviewHtmlBytes = 256 * 1024;
+
   final Dio _dio;
 
   /// Fetch metadata for the given [url].
@@ -68,22 +72,23 @@ class LinkPreviewService {
   /// Throws on network errors or non-200 responses so callers can
   /// distinguish transient failures from genuine "no metadata" results.
   Future<LinkMetadata?> fetchMetadata(String url) async {
-    final response = await _dio.get<String>(
+    final response = await _dio.get<ResponseBody>(
       url,
       options: Options(
         // Follow redirects, accept HTML.
         followRedirects: true,
         maxRedirects: 5,
-        // Limit received data to ~512KB to avoid huge pages.
         receiveTimeout: const Duration(seconds: 10),
+        responseType: ResponseType.stream,
       ),
     );
 
-    if (response.statusCode != 200 || response.data == null) {
+    final body = response.data;
+    if (response.statusCode != 200 || body == null) {
       return null;
     }
 
-    return _parseHtml(response.data!, url);
+    return _parseHtml(await _readBodyCapped(body), url);
   }
 
   /// Closes the underlying HTTP client.
@@ -92,6 +97,22 @@ class LinkPreviewService {
   /// teardown via `ref.onDispose`).
   void close() {
     _dio.close();
+  }
+
+  Future<String> _readBodyCapped(ResponseBody body) async {
+    final bytes = <int>[];
+    await for (final chunk in body.stream) {
+      final remaining = maxPreviewHtmlBytes - bytes.length;
+      if (remaining <= 0) break;
+      if (chunk.length <= remaining) {
+        bytes.addAll(chunk);
+        if (bytes.length >= maxPreviewHtmlBytes) break;
+      } else {
+        bytes.addAll(chunk.take(remaining));
+        break;
+      }
+    }
+    return utf8.decode(bytes, allowMalformed: true);
   }
 
   /// Parse HTML content to extract OG and meta tags.
