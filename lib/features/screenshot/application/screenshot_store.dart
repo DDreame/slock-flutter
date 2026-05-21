@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -81,7 +82,23 @@ class ScreenshotStore extends Notifier<ScreenshotState> {
   }
 
   /// Resets the store to initial state (e.g., after discard or share).
-  void reset() {
+  ///
+  /// Deletes referenced temp files (capture + export) to prevent orphaned
+  /// PNG accumulation (#713).
+  Future<void> reset() async {
+    final paths = [state.imagePath, state.exportedPath];
     state = const ScreenshotState();
+
+    for (final path in paths) {
+      if (path == null) continue;
+      try {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {
+        // Best-effort deletion; don't crash on I/O failure.
+      }
+    }
   }
 }

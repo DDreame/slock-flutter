@@ -128,7 +128,9 @@ class DownloadPriorityScheduler
       // Cancel if in-flight, move to deferred.
       if (_inFlight.contains(id)) {
         _inFlight.remove(id);
-        _entries.remove(id)?.onCancel?.call();
+        // Keep entry in _entries so it can be restarted when re-visible (#713).
+        // Only invoke onCancel to abort the network request.
+        _entries[id]?.onCancel?.call();
         if (!_deferredQueue.contains(id)) {
           _deferredQueue.add(id);
         }

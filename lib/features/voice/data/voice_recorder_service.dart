@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:record/record.dart';
 
@@ -138,6 +139,20 @@ class VoiceRecorderService {
     await _recorder.stop();
     _state = VoiceRecorderState.idle;
     _stateController.add(_state);
+
+    // Delete the temp audio file to prevent orphaned M4A accumulation (#713).
+    final path = _currentPath;
+    if (path != null) {
+      try {
+        final file = File(path);
+        if (await file.exists()) {
+          await file.delete();
+        }
+      } catch (_) {
+        // Best-effort deletion; don't crash on I/O failure.
+      }
+    }
+
     _currentPath = null;
     _recordingStartedAt = null;
   }
