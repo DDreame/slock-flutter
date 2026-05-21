@@ -97,17 +97,21 @@ void main() {
       expect(state().items[1].userId, 'u2');
     });
 
-    test('addHumanMember rethrows on failure', () async {
+    test('addHumanMember sets failure state and rethrows on failure (#715)',
+        () async {
       fakeRepo.members = [];
       await store().load();
 
       fakeRepo.failure =
           const UnknownFailure(message: 'Add failed', causeType: 'test');
 
-      expect(
-        () => store().addHumanMember('u1'),
+      await expectLater(
+        store().addHumanMember('u1'),
         throwsA(isA<AppFailure>()),
       );
+
+      expect(state().status, ChannelMemberStatus.success);
+      expect(state().failure?.message, 'Add failed');
     });
 
     test('addAgentMember appends to items', () async {

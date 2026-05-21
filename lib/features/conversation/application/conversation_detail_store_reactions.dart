@@ -4,6 +4,8 @@ part of 'conversation_detail_store.dart';
 ///
 /// Extracted from the monolithic store to improve readability (#640).
 mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
+  final Set<String> _reactionTogglesInFlight = <String>{};
+
   Future<void> addReaction(String messageId, String emoji) async {
     final target = ref.read(currentConversationDetailTargetProvider);
     if (state.status != ConversationDetailStatus.success) return;
@@ -69,24 +71,30 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
   /// Toggles a reaction for the current user — adds if not yet reacted,
   /// removes if already reacted.
   Future<void> toggleReaction(String messageId, String emoji) async {
-    if (state.status != ConversationDetailStatus.success) return;
+    final inFlightKey = '$messageId\u{1f}_$emoji';
+    if (!_reactionTogglesInFlight.add(inFlightKey)) return;
+    try {
+      if (state.status != ConversationDetailStatus.success) return;
 
-    final index = state.messages.indexWhere((m) => m.id == messageId);
-    if (index == -1) return;
+      final index = state.messages.indexWhere((m) => m.id == messageId);
+      if (index == -1) return;
 
-    final currentUserId = ref.read(sessionStoreProvider).userId;
-    if (currentUserId == null) return;
+      final currentUserId = ref.read(sessionStoreProvider).userId;
+      if (currentUserId == null) return;
 
-    final message = state.messages[index];
-    final existingReaction =
-        message.reactions.where((r) => r.emoji == emoji).firstOrNull;
-    final alreadyReacted = existingReaction != null &&
-        existingReaction.reactedByUser(currentUserId);
+      final message = state.messages[index];
+      final existingReaction =
+          message.reactions.where((r) => r.emoji == emoji).firstOrNull;
+      final alreadyReacted = existingReaction != null &&
+          existingReaction.reactedByUser(currentUserId);
 
-    if (alreadyReacted) {
-      await removeReaction(messageId, emoji);
-    } else {
-      await addReaction(messageId, emoji);
+      if (alreadyReacted) {
+        await removeReaction(messageId, emoji);
+      } else {
+        await addReaction(messageId, emoji);
+      }
+    } finally {
+      _reactionTogglesInFlight.remove(inFlightKey);
     }
   }
 

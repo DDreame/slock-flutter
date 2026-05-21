@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -320,6 +322,40 @@ void main() {
       expect(repository.removedReactions, [('message-2', '👍')]);
       expect(repository.addedReactions, isEmpty);
     });
+
+    test('deduplicates concurrent toggles for same message and emoji (#715)',
+        () async {
+      final removeCompleter = Completer<void>();
+      final repository = _FakeConversationRepository(
+        snapshot: twoMessageSnapshot(),
+        removeReactionCompleter: removeCompleter,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          sessionStoreProvider
+              .overrideWith(() => _FakeSessionStore(userId: 'user-2')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final store = container.read(conversationDetailStoreProvider.notifier);
+      final first = store.toggleReaction('message-2', '👍');
+      await Future<void>.delayed(Duration.zero);
+      final second = store.toggleReaction('message-2', '👍');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repository.removedReactions, [('message-2', '👍')]);
+      expect(repository.addedReactions, isEmpty);
+
+      removeCompleter.complete();
+      await Future.wait([first, second]);
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[1].reactions, isEmpty);
+    });
   });
 
   group('message:reaction_added realtime event', () {
@@ -548,12 +584,14 @@ class _FakeConversationRepository implements ConversationRepository {
     required this.snapshot,
     this.addReactionFailure,
     this.removeReactionFailure,
+    this.removeReactionCompleter,
     this.newerPages = const {},
   });
 
   final ConversationDetailSnapshot snapshot;
   final AppFailure? addReactionFailure;
   final AppFailure? removeReactionFailure;
+  final Completer<void>? removeReactionCompleter;
   final Map<int, ConversationMessagePage> newerPages;
   final List<(String, String)> addedReactions = [];
   final List<(String, String)> removedReactions = [];
@@ -673,6 +711,9 @@ class _FakeConversationRepository implements ConversationRepository {
     required String emoji,
   }) async {
     removedReactions.add((messageId, emoji));
+    if (removeReactionCompleter != null) {
+      await removeReactionCompleter!.future;
+    }
     if (removeReactionFailure != null) {
       throw removeReactionFailure!;
     }
