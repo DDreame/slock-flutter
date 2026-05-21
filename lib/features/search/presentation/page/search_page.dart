@@ -209,8 +209,7 @@ class _SearchBody extends ConsumerWidget {
               state.status == SearchStatus.idle ? null : state.contactCount,
           onScopeChanged: ref.read(searchStoreProvider.notifier).setScope,
         ),
-        if (state.status != SearchStatus.idle)
-          _FilterChipBar(state: state, ref: ref),
+        if (state.status != SearchStatus.idle) _FilterChipBar(state: state),
         Expanded(
           child: _buildBody(context, state),
         ),
@@ -721,14 +720,13 @@ class _ViewAllButton extends StatelessWidget {
 }
 
 /// Filter chip bar displayed below scope tabs when results are visible.
-class _FilterChipBar extends StatelessWidget {
-  const _FilterChipBar({required this.state, required this.ref});
+class _FilterChipBar extends ConsumerWidget {
+  const _FilterChipBar({required this.state});
 
   final SearchState state;
-  final WidgetRef ref;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final store = ref.read(searchStoreProvider.notifier);
     final colors = Theme.of(context).extension<AppColors>();
     final l10n = context.l10n;
