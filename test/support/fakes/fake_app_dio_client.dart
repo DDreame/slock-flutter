@@ -32,6 +32,7 @@ class FakeAppDioClient extends AppDioClient {
         data: data,
         headers: headers,
         queryParameters: queryParameters,
+        cancelToken: cancelToken,
       ),
     );
 
@@ -59,6 +60,7 @@ class CapturedRequest {
     required this.data,
     required this.headers,
     this.queryParameters,
+    this.cancelToken,
   });
 
   final String method;
@@ -66,6 +68,7 @@ class CapturedRequest {
   final Object? data;
   final Map<String, Object?> headers;
   final Map<String, dynamic>? queryParameters;
+  final CancelToken? cancelToken;
 
   /// Convenience accessor for the `X-Server-Id` header.
   String? get serverIdHeader => headers['X-Server-Id'] as String?;

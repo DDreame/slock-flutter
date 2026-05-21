@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -511,6 +512,7 @@ class _FakeSearchRepository implements SearchRepository {
     SearchSortBy? sortBy,
     String? channelId,
     int offset = 0,
+    CancelToken? cancelToken,
   }) async {
     return result;
   }
@@ -527,6 +529,7 @@ class _ToggleSearchRepository implements SearchRepository {
     SearchSortBy? sortBy,
     String? channelId,
     int offset = 0,
+    CancelToken? cancelToken,
   }) async {
     if (shouldFail) {
       throw const UnknownFailure(
@@ -567,6 +570,7 @@ class _CaptureSearchRepository implements SearchRepository {
     SearchSortBy? sortBy,
     String? channelId,
     int offset = 0,
+    CancelToken? cancelToken,
   }) async {
     callCount++;
     lastSenderId = senderId;

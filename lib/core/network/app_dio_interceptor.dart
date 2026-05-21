@@ -8,7 +8,12 @@ import 'package:slock_app/core/network/network_log_event.dart';
 import 'package:slock_app/core/network/token_refresh_coordinator.dart';
 
 const tokenRetriedKey = '_tokenRetried';
+const transientRetryCountKey = '_transientRetryCount';
 const _headerBuildTimeout = Duration(seconds: 5);
+const _defaultTransientRetryDelays = <Duration>[
+  Duration(milliseconds: 200),
+  Duration(milliseconds: 500),
+];
 
 /// Public auth endpoints that must not carry a stale Bearer token and must not
 /// trigger token-refresh on 401 (bad credentials ≠ expired token).
@@ -30,15 +35,18 @@ class AppDioInterceptor extends Interceptor {
     required TokenRefreshCoordinator tokenRefreshCoordinator,
     required NetworkLogSink logSink,
     required Dio Function() dioForRetry,
+    List<Duration> transientRetryDelays = _defaultTransientRetryDelays,
   })  : _buildHeaders = buildHeaders,
         _tokenRefreshCoordinator = tokenRefreshCoordinator,
         _logSink = logSink,
-        _dioForRetry = dioForRetry;
+        _dioForRetry = dioForRetry,
+        _transientRetryDelays = transientRetryDelays;
 
   final RequestHeadersBuilder _buildHeaders;
   final TokenRefreshCoordinator _tokenRefreshCoordinator;
   final NetworkLogSink _logSink;
   final Dio Function() _dioForRetry;
+  final List<Duration> _transientRetryDelays;
   final AppFailureMapper _failureMapper = const AppFailureMapper();
 
   @override
@@ -146,7 +154,13 @@ class AppDioInterceptor extends Interceptor {
       }
     }
 
-    final failure = _failureMapper.map(err);
+    var failure = _failureMapper.map(err);
+    final response = await _retryTransient(err);
+    if (response != null) {
+      return handler.resolve(response);
+    }
+    failure = _failureMapper.map(err);
+
     _logSink(
       NetworkLogEvent(
         stage: NetworkLogStage.failure,
@@ -158,5 +172,33 @@ class AppDioInterceptor extends Interceptor {
       ),
     );
     handler.reject(err.copyWith(error: failure));
+  }
+
+  bool _shouldRetryTransient(RequestOptions options, AppFailure failure) {
+    if (!failure.isRetryable) return false;
+    final retryCount = options.extra[transientRetryCountKey] as int? ?? 0;
+    return retryCount < _transientRetryDelays.length;
+  }
+
+  Future<Response<dynamic>?> _retryTransient(DioException initialError) async {
+    var currentError = initialError;
+    while (true) {
+      final options = currentError.requestOptions;
+      final failure = _failureMapper.map(currentError);
+      if (!_shouldRetryTransient(options, failure)) return null;
+
+      final retryCount = options.extra[transientRetryCountKey] as int? ?? 0;
+      options.extra[transientRetryCountKey] = retryCount + 1;
+      final delay = _transientRetryDelays[retryCount];
+      if (delay > Duration.zero) {
+        await Future<void>.delayed(delay);
+      }
+
+      try {
+        return await _dioForRetry().fetch<dynamic>(options);
+      } on DioException catch (retryError) {
+        currentError = retryError;
+      }
+    }
   }
 }

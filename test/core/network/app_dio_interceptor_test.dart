@@ -101,10 +101,10 @@ void main() {
       expect(refreshCalls, 0);
     });
 
-    test('non-401 errors are not retried', () async {
+    test('non-retryable non-401 errors are not retried', () async {
       var refreshCalls = 0;
       final adapter = _SequenceAdapter([
-        const _StubResponse(statusCode: 500, body: '{"error":"server"}'),
+        const _StubResponse(statusCode: 403, body: '{"error":"forbidden"}'),
       ]);
 
       final coordinator = TokenRefreshCoordinator(
@@ -129,10 +129,45 @@ void main() {
         await dio.get<Object?>('/test');
         fail('should have thrown');
       } on DioException catch (e) {
-        expect(e.response?.statusCode, 500);
+        expect(e.response?.statusCode, 403);
       }
 
       expect(refreshCalls, 0);
+    });
+
+    test('retryable 5xx retries and resolves', () async {
+      final adapter = _SequenceAdapter([
+        const _StubResponse(statusCode: 500, body: '{"error":"server"}'),
+        const _StubResponse(statusCode: 502, body: '{"error":"bad gateway"}'),
+        const _StubResponse(statusCode: 200, body: '{"data":"ok"}'),
+      ]);
+
+      final coordinator =
+          TokenRefreshCoordinator(refreshToken: () async => null);
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {},
+          tokenRefreshCoordinator: coordinator,
+          logSink: noopNetworkLogSink,
+          dioForRetry: () => dio,
+          transientRetryDelays: const [Duration.zero, Duration.zero],
+        ),
+      );
+
+      final response = await dio.get<Object?>('/test');
+
+      expect(response.statusCode, 200);
+      expect(response.data, {'data': 'ok'});
+      expect(adapter.callCount, 3);
+      expect(
+        adapter.capturedOptions.map((options) {
+          return options.extra[transientRetryCountKey] as int? ?? 0;
+        }),
+        [2, 2, 2],
+      );
     });
 
     test('refresh succeeds but retry fails surfaces retry error', () async {
@@ -153,6 +188,7 @@ void main() {
           tokenRefreshCoordinator: coordinator,
           logSink: noopNetworkLogSink,
           dioForRetry: () => dio,
+          transientRetryDelays: const [Duration.zero, Duration.zero],
         ),
       );
 
@@ -163,7 +199,7 @@ void main() {
         expect(e.response?.statusCode, 500);
       }
 
-      expect(adapter.callCount, 2);
+      expect(adapter.callCount, 4);
     });
 
     test('preserves explicit request X-Server-Id over global fallback',
