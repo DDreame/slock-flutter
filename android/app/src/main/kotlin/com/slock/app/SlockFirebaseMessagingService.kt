@@ -27,6 +27,12 @@ class SlockFirebaseMessagingService : FirebaseMessagingService() {
 
     private var localNotificationId = 0
 
+    override fun onNewToken(token: String) {
+        super.onNewToken(token)
+        Log.d(tag, "FCM token rotated")
+        TokenEventBroker.push(token)
+    }
+
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         val payload = mutableMapOf<String, Any?>()
 

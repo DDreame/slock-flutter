@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -149,7 +150,8 @@ void main() {
       expect(
         diagnostics.entries.any(
           (e) =>
-              e.tag == 'notification' && e.message.contains('source=iosToken'),
+              e.tag == 'notification' &&
+              e.message.contains('source=${Platform.operatingSystem}Token'),
         ),
         isTrue,
       );

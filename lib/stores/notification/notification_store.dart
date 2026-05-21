@@ -222,7 +222,7 @@ class NotificationStore extends Notifier<NotificationState> {
         timestamp: now,
         level: DiagnosticsLevel.info,
         tag: 'notification',
-        message: 'Push token updated, source=iosToken',
+        message: 'Push token updated, source=${platform}Token',
         metadata: {'platform': platform},
       ));
     }

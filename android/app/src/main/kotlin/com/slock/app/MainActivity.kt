@@ -27,6 +27,7 @@ class MainActivity : FlutterActivity() {
         private const val methodChannelName = "slock/notifications/methods"
         private const val tapEventChannelName = "slock/notifications/taps"
         private const val foregroundEventChannelName = "slock/notifications/foreground"
+        private const val tokenEventChannelName = "slock/notifications/token"
         private const val foregroundServiceChannelName = "slock/notifications/foreground_service"
         private const val notificationPermissionRequestCode = 1001
         private const val notificationChannelId = "slock_messages"
@@ -112,6 +113,21 @@ class MainActivity : FlutterActivity() {
 
                 override fun onCancel(arguments: Any?) {
                     ForegroundMessageBroker.detachSink()
+                }
+            },
+        )
+
+        EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            tokenEventChannelName,
+        ).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+                    TokenEventBroker.attachSink(events)
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    TokenEventBroker.detachSink()
                 }
             },
         )
