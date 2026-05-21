@@ -10,12 +10,12 @@ final currentTasksServerIdProvider = Provider<ServerScopeId>((ref) {
   );
 });
 
-final tasksStoreProvider = NotifierProvider<TasksStore, TasksState>(
+final tasksStoreProvider = NotifierProvider.autoDispose<TasksStore, TasksState>(
   TasksStore.new,
   dependencies: [currentTasksServerIdProvider],
 );
 
-class TasksStore extends Notifier<TasksState> {
+class TasksStore extends AutoDisposeNotifier<TasksState> {
   @override
   TasksState build() {
     return const TasksState();
