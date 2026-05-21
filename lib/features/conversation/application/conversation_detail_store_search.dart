@@ -5,6 +5,23 @@ part of 'conversation_detail_store.dart';
 /// Extracted from the monolithic store to improve readability (#640).
 mixin _ConversationDetailSearchMixin
     on AutoDisposeNotifier<ConversationDetailState> {
+  /// Cached lowercase content map — avoids O(n) String allocations per
+  /// keystroke. Invalidated when the message list reference changes.
+  List<Object>? _cachedSearchMessages;
+  Map<String, String> _lowerContentMap = const {};
+
+  /// Returns the cached lowercase content map, rebuilding only when messages
+  /// change (identity check).
+  Map<String, String> _getLowerContent() {
+    if (!identical(_cachedSearchMessages, state.messages)) {
+      _cachedSearchMessages = state.messages;
+      _lowerContentMap = {
+        for (final m in state.messages) m.id: m.content.toLowerCase(),
+      };
+    }
+    return _lowerContentMap;
+  }
+
   void toggleSearch() {
     if (state.isSearchActive) {
       state = state.copyWith(
@@ -29,8 +46,9 @@ mixin _ConversationDetailSearchMixin
     }
 
     final lowerQuery = query.toLowerCase();
+    final lowerContent = _getLowerContent();
     final matchIds = state.messages
-        .where((m) => m.content.toLowerCase().contains(lowerQuery))
+        .where((m) => (lowerContent[m.id] ?? '').contains(lowerQuery))
         .map((m) => m.id)
         .toList(growable: false);
     state = state.copyWith(

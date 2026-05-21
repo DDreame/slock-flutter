@@ -92,8 +92,9 @@ final sortedChannelListProvider = Provider<List<HomeChannelSummary>>((ref) {
         return bTime.compareTo(aTime);
       });
     case ChannelSortPreference.alphabetical:
+      final lowerNames = {for (final c in combined) c: c.name.toLowerCase()};
       combined.sort(
-        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        (a, b) => lowerNames[a]!.compareTo(lowerNames[b]!),
       );
   }
 

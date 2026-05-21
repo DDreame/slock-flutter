@@ -31,6 +31,19 @@ class TranslationSettingsState {
       failure: clearFailure ? null : (failure ?? this.failure),
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is TranslationSettingsState &&
+            runtimeType == other.runtimeType &&
+            status == other.status &&
+            settings == other.settings &&
+            failure == other.failure;
+  }
+
+  @override
+  int get hashCode => Object.hash(status, settings, failure);
 }
 
 final translationSettingsStoreProvider = AutoDisposeNotifierProvider<

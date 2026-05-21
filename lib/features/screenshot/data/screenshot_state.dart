@@ -64,4 +64,29 @@ class ScreenshotState {
           clearExportedPath ? null : (exportedPath ?? this.exportedPath),
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ScreenshotState &&
+            runtimeType == other.runtimeType &&
+            imagePath == other.imagePath &&
+            listEquals(annotations, other.annotations) &&
+            listEquals(undoneAnnotations, other.undoneAnnotations) &&
+            selectedTool == other.selectedTool &&
+            selectedColor == other.selectedColor &&
+            isExporting == other.isExporting &&
+            exportedPath == other.exportedPath;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        imagePath,
+        Object.hashAll(annotations),
+        Object.hashAll(undoneAnnotations),
+        selectedTool,
+        selectedColor,
+        isExporting,
+        exportedPath,
+      );
 }
