@@ -141,12 +141,12 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       _startSendTimeout(localId, target, content, replyToId: replyToId);
     }
 
+    var failedUploadCount = 0;
+    var totalAttachmentCount = 0;
     try {
       final repo = ref.read(conversationRepositoryProvider);
 
       List<String>? attachmentIds;
-      var failedUploadCount = 0;
-      var totalAttachmentCount = 0;
       if (pendingFiles != null) {
         attachmentIds = <String>[];
         totalAttachmentCount = pendingFiles.length;
@@ -381,6 +381,17 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
             }
             return m;
           }).toList(),
+          // Surface partial upload loss alongside send failure so the user
+          // knows which attachments were dropped before the send attempt.
+          sendFailure: failedUploadCount > 0
+              ? UnknownFailure(
+                  message: failedUploadCount == 1
+                      ? '1 attachment failed to upload.'
+                      : '$failedUploadCount of $totalAttachmentCount '
+                          'attachments failed to upload.',
+                  causeType: 'partialUploadFailure',
+                )
+              : null,
         );
         _persistSession();
 

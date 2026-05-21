@@ -243,6 +243,52 @@ void main() {
       expect(state().sendFailure!.message, contains('2'));
       expect(state().sendFailure!.message, contains('3'));
     });
+
+    test(
+        'partial upload failure + sendMessage failure still surfaces upload loss',
+        () async {
+      // Regression: partial uploads fail, then sendMessage also throws.
+      // The user must still be told about the dropped attachments.
+      await loadConversation();
+      const a = PendingAttachment(
+        path: '/tmp/a.pdf',
+        name: 'a.pdf',
+        mimeType: 'application/pdf',
+      );
+      const b = PendingAttachment(
+        path: '/tmp/b.png',
+        name: 'b.png',
+        mimeType: 'image/png',
+      );
+      store().addPendingAttachment(a);
+      store().addPendingAttachment(b);
+      store().updateDraft('will fail send');
+      fakeRepo.failUploadIndices = {0}; // First upload fails
+      fakeRepo.shouldFail = true; // sendMessage also fails
+
+      await store().send();
+
+      // The pending message should be marked failed (send failure).
+      expect(state().pendingMessages, hasLength(1));
+      expect(state().pendingMessages.first.status, MessageSendStatus.failed);
+
+      // sendFailure must surface the partial upload loss even though the
+      // final send also failed — so the user knows an attachment was dropped.
+      expect(state().sendFailure, isNotNull,
+          reason:
+              'Partial upload loss must be surfaced even when send also fails');
+      expect(state().sendFailure!.causeType, 'partialUploadFailure');
+      expect(state().sendFailure!.message, contains('1'));
+
+      // Diagnostic for the upload failure must still be logged.
+      final errorEntries = diagnostics.entries
+          .where((e) =>
+              e.level == DiagnosticsLevel.error &&
+              e.tag == 'conversation-send' &&
+              e.message.contains('Attachment upload failed'))
+          .toList();
+      expect(errorEntries, hasLength(1));
+    });
   });
 }
 
