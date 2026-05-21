@@ -67,7 +67,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(sink.notifications, isEmpty,
-          reason: 'Notifications must be suppressed while foreground is active');
+          reason:
+              'Notifications must be suppressed while foreground is active');
     });
 
     test(
