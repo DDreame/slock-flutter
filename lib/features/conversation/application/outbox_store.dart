@@ -363,8 +363,8 @@ class OutboxStore extends Notifier<OutboxState> {
       // handle targets added/missed during this drain cycle (#717).
       // Only re-check when pending items exist — failed-only queues must
       // not trigger infinite self-spin.
-      final hasPending = state.items.values
-          .any((list) => list.any((m) => m.status == OutboxMessageStatus.pending));
+      final hasPending = state.items.values.any(
+          (list) => list.any((m) => m.status == OutboxMessageStatus.pending));
       if (hasPending) {
         final connectivity = ref.read(connectivityServiceProvider);
         if (connectivity.isOnline) {
