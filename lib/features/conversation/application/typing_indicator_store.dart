@@ -26,10 +26,11 @@ class ActiveTyper {
       identical(this, other) ||
       other is ActiveTyper &&
           runtimeType == other.runtimeType &&
-          userId == other.userId;
+          userId == other.userId &&
+          displayName == other.displayName;
 
   @override
-  int get hashCode => userId.hashCode;
+  int get hashCode => Object.hash(userId, displayName);
 }
 
 /// Immutable state holding the set of users currently typing.

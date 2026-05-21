@@ -179,6 +179,38 @@ void main() {
       expect(a == b, isTrue);
       expect(a.hashCode, b.hashCode);
     });
+
+    test(
+        'INV-EQ-672-TYPING: displayName rename DOES trigger notification '
+        '(visible text changes)', () {
+      final container = ProviderContainer(
+        overrides: [
+          typingIndicatorStoreProvider
+              .overrideWith(() => _ControllableTypingStore()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      int notifyCount = 0;
+      container.listen(
+        typingIndicatorStoreProvider,
+        (_, __) => notifyCount++,
+        fireImmediately: false,
+      );
+
+      final store = container.read(typingIndicatorStoreProvider.notifier)
+          as _ControllableTypingStore;
+
+      // Set state with "Alice".
+      store.addTyper(userId: 'u1', displayName: 'Alice');
+      expect(notifyCount, 1);
+
+      // Same userId, different displayName — visible text changes from
+      // "Alice is typing..." to "Alicia is typing...".
+      store.addTyper(userId: 'u1', displayName: 'Alicia');
+      expect(notifyCount, 2,
+          reason: 'displayName rename must notify — rendered text changes');
+    });
   });
 
   // ---------------------------------------------------------------------------
