@@ -55,31 +55,32 @@ void main() {
   }
 
   group('BiometricLockPage — escape path', () {
-    // T1: Hardware error → auto-disable
+    // T1: Hardware unavailable → retry, no auto-disable
     testWidgets(
-      'auto-disables biometric when hardware is unavailable after error',
+      'does not auto-disable biometric when hardware is unavailable',
       (tester) async {
-        // authenticate() returns error + isAvailable() returns false
-        fakeService.result = BiometricAuthResult.error;
+        fakeService.result = BiometricAuthResult.notAvailable;
         fakeService.available = false;
 
         final container = await pumpLockPage(tester);
-        // Use pump() — after auto-disable the page keeps animating
-        // (in real app router redirects away).
-        await tester.pump();
-        await tester.pump();
-        await tester.pump();
+        await tester.pumpAndSettle();
 
-        // Should auto-disable biometric and unlock
+        expect(find.text('Biometrics unavailable. Please try again.'),
+            findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('biometric-lock-disable')),
+          findsNothing,
+        );
+
         final state = container.read(biometricStoreProvider);
-        expect(state.enabled, isFalse);
-        expect(state.isLocked, isFalse);
+        expect(state.enabled, isTrue);
+        expect(state.isLocked, isTrue);
       },
     );
 
-    // T2: "Disable & Continue" button visible after error
+    // T2: Transient errors show retry only
     testWidgets(
-      'shows Disable & Continue button after authentication error',
+      'transient authentication error keeps biometric enabled',
       (tester) async {
         fakeService.result = BiometricAuthResult.error;
         fakeService.available = true;
@@ -87,21 +88,16 @@ void main() {
         final container = await pumpLockPage(tester);
         await tester.pumpAndSettle();
 
-        // "Disable & Continue" button should be visible
+        expect(find.text('Authentication failed. Try again (1/3).'),
+            findsOneWidget);
         expect(
           find.byKey(const ValueKey('biometric-lock-disable')),
-          findsOneWidget,
+          findsNothing,
         );
-
-        // Tap it → should disable biometric and unlock
-        await tester.tap(
-          find.byKey(const ValueKey('biometric-lock-disable')),
-        );
-        await tester.pumpAndSettle();
 
         final state = container.read(biometricStoreProvider);
-        expect(state.enabled, isFalse);
-        expect(state.isLocked, isFalse);
+        expect(state.enabled, isTrue);
+        expect(state.isLocked, isTrue);
       },
     );
 

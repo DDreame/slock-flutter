@@ -16,7 +16,13 @@ enum BiometricAuthResult {
   /// Biometrics permanently locked out — device credential required.
   permanentLockout,
 
-  /// Generic error (hardware unavailable, not enrolled, etc.).
+  /// Biometric hardware is temporarily unavailable.
+  notAvailable,
+
+  /// No biometric credential is enrolled.
+  notEnrolled,
+
+  /// Generic transient authentication error.
   error,
 }
 
@@ -76,9 +82,10 @@ class LocalAuthBiometricService implements BiometricService {
         case 'PermanentlyLockedOut':
           return BiometricAuthResult.permanentLockout;
         case 'NotAvailable':
+          return BiometricAuthResult.notAvailable;
         case 'NotEnrolled':
         case 'PasscodeNotSet':
-          return BiometricAuthResult.error;
+          return BiometricAuthResult.notEnrolled;
         default:
           return BiometricAuthResult.error;
       }

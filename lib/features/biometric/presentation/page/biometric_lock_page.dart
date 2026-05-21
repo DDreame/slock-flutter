@@ -9,8 +9,8 @@ import 'package:slock_app/stores/biometric/biometric_store.dart';
 /// Shown via router redirect when the biometric store indicates a locked state.
 ///
 /// Escape paths:
-/// - "Disable & Continue" button after error or permanentLockout
-/// - Auto-disable when hardware is unavailable
+/// - "Disable & Continue" button after permanentLockout
+/// - Retry prompt when hardware is temporarily unavailable or not enrolled
 /// - "Skip for now" after 3 consecutive cancellations (session bypass)
 class BiometricLockPage extends ConsumerStatefulWidget {
   const BiometricLockPage({super.key});
@@ -73,20 +73,26 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
           _errorMessage = 'Biometrics locked. Please use your device passcode.';
           _showDisableButton = true;
         });
-      case BiometricAuthResult.error:
+      case BiometricAuthResult.notAvailable:
         _cancelCount = 0;
-        // Check if hardware is still available.
-        final available = await service.isAvailable();
-        if (!mounted) return;
-        if (!available) {
-          // Auto-disable biometric when hardware is unavailable.
-          ref.read(biometricStoreProvider.notifier).setEnabled(false);
-          return;
-        }
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Authentication unavailable.';
-          _showDisableButton = true;
+          _errorMessage = 'Biometrics unavailable. Please try again.';
+          _showDisableButton = false;
+        });
+      case BiometricAuthResult.notEnrolled:
+        _cancelCount = 0;
+        setState(() {
+          _isAuthenticating = false;
+          _errorMessage = 'No biometrics enrolled. Please try again.';
+          _showDisableButton = false;
+        });
+      case BiometricAuthResult.error:
+        _cancelCount++;
+        setState(() {
+          _isAuthenticating = false;
+          _errorMessage = 'Authentication failed. Try again ($_cancelCount/3).';
+          _showDisableButton = false;
         });
     }
   }
