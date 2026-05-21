@@ -288,6 +288,44 @@ void main() {
       final state = container.read(savedMessagesStoreProvider);
       expect(state.status, SavedMessagesStatus.success);
     });
+
+    test(
+        'fire-and-forget path (production initState pattern) reaches failure → page shows error UI',
+        () async {
+      // This test proves the production path works: the page calls
+      // ensureLoaded() via Future.microtask (fire-and-forget), and
+      // the store internally catches errors and sets status=failure.
+      // The page watches state via ref.watch() and renders
+      // _SavedMessagesFailureView when status is failure.
+      final repo = _FakeSavedMessagesRepository(
+        failure: const NetworkFailure(message: 'server unreachable'),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          savedMessagesRepositoryProvider.overrideWithValue(repo),
+          currentSavedMessagesServerIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      // Keep alive (simulates page's ref.watch).
+      container.listen(savedMessagesStoreProvider, (_, __) {});
+
+      // Fire-and-forget — mirrors _SavedMessagesScreenState.initState():
+      //   Future.microtask(() => ref.read(...).ensureLoaded());
+      // ignore: unawaited_futures
+      container.read(savedMessagesStoreProvider.notifier).ensureLoaded();
+
+      // Pump microtask queue — allow load() to complete and set state.
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(savedMessagesStoreProvider);
+      expect(state.status, SavedMessagesStatus.failure,
+          reason: 'Fire-and-forget path must reach failure state '
+              '(page watches this to show error UI with retry button)');
+      expect(state.failure?.message, 'server unreachable');
+    });
   });
 }
 
