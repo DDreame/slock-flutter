@@ -208,7 +208,12 @@ class _NotificationSettingsPageState
           content: Text(_permissionResultMessage(permissionStatus, l10n)),
         ),
       );
-    } catch (_) {
+    } catch (e, st) {
+      ref.read(diagnosticsCollectorProvider).error(
+        'notification',
+        'Permission update failed: $e',
+        metadata: {'stackTrace': '$st'},
+      );
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(

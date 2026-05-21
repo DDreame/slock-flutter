@@ -71,10 +71,22 @@ class OutboxMessage {
       identical(this, other) ||
       other is OutboxMessage &&
           runtimeType == other.runtimeType &&
-          localId == other.localId;
+          localId == other.localId &&
+          content == other.content &&
+          createdAt == other.createdAt &&
+          replyToId == other.replyToId &&
+          status == other.status &&
+          failureMessage == other.failureMessage;
 
   @override
-  int get hashCode => localId.hashCode;
+  int get hashCode => Object.hash(
+        localId,
+        content,
+        createdAt,
+        replyToId,
+        status,
+        failureMessage,
+      );
 }
 
 /// State for the outbox store.
@@ -87,6 +99,29 @@ class OutboxState {
 
   OutboxState copyWith({Map<String, List<OutboxMessage>>? items}) {
     return OutboxState(items: items ?? this.items);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! OutboxState || runtimeType != other.runtimeType) return false;
+    if (items.length != other.items.length) return false;
+    for (final entry in items.entries) {
+      final otherList = other.items[entry.key];
+      if (otherList == null || !listEquals(entry.value, otherList)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @override
+  int get hashCode {
+    var h = 0;
+    for (final entry in items.entries) {
+      h ^= Object.hash(entry.key, Object.hashAll(entry.value));
+    }
+    return h;
   }
 
   /// All pending items across all conversations.
@@ -155,6 +190,10 @@ class OutboxStore extends Notifier<OutboxState> {
   int _localIdCounter = 0;
   StreamSubscription<ConnectivityStatus>? _connectivitySub;
   final Map<String, OutboxDrainCallback> _drainCallbacks = {};
+
+  @override
+  bool updateShouldNotify(OutboxState previous, OutboxState next) =>
+      previous != next;
 
   @override
   OutboxState build() {

@@ -23,6 +23,16 @@ class ListTypingIndicatorState {
   final String? displayText;
 
   bool get isActive => displayText != null;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ListTypingIndicatorState &&
+          runtimeType == other.runtimeType &&
+          displayText == other.displayText;
+
+  @override
+  int get hashCode => displayText.hashCode;
 }
 
 /// Family provider keyed by scope key (e.g. "server:s1/channel:ch1").
@@ -39,6 +49,13 @@ class ListTypingIndicatorNotifier
 
   /// Per-user expiry timers (5-second auto-clear).
   final Map<String, Timer> _timers = {};
+
+  @override
+  bool updateShouldNotify(
+    ListTypingIndicatorState previous,
+    ListTypingIndicatorState next,
+  ) =>
+      previous != next;
 
   @override
   ListTypingIndicatorState build(String arg) {

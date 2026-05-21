@@ -163,8 +163,17 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
           remainingAfterCache.add(channel);
         }
       }
-    } catch (_) {
+    } catch (e, st) {
       // If cache lookup fails, all channels go to Phase 2.
+      try {
+        ref.read(diagnosticsCollectorProvider).error(
+          'PreviewBackfill',
+          'Channel cache lookup failed: $e',
+          metadata: {'stackTrace': '$st'},
+        );
+      } catch (_) {
+        // Container disposed — skip telemetry.
+      }
       remainingAfterCache
         ..clear()
         ..addAll(needsBackfill);
@@ -199,8 +208,16 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
                 );
             filled.add(id);
           }
-        } catch (_) {
-          // Silently skip failed fetches — best-effort backfill.
+        } catch (e, st) {
+          try {
+            ref.read(diagnosticsCollectorProvider).error(
+              'PreviewBackfill',
+              'Channel fetch failed for $id: $e',
+              metadata: {'stackTrace': '$st'},
+            );
+          } catch (_) {
+            // Container disposed during async backfill — skip telemetry.
+          }
         }
       }
 
@@ -281,7 +298,16 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
           remainingAfterCache.add(dm);
         }
       }
-    } catch (_) {
+    } catch (e, st) {
+      try {
+        ref.read(diagnosticsCollectorProvider).error(
+          'PreviewBackfill',
+          'DM cache lookup failed: $e',
+          metadata: {'stackTrace': '$st'},
+        );
+      } catch (_) {
+        // Container disposed — skip telemetry.
+      }
       remainingAfterCache
         ..clear()
         ..addAll(needsBackfill);
@@ -305,8 +331,16 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
             activityAt: result.activityAt,
           );
         }
-      } catch (_) {
-        // Silently skip — best-effort backfill.
+      } catch (e, st) {
+        try {
+          ref.read(diagnosticsCollectorProvider).error(
+            'PreviewBackfill',
+            'DM fetch failed for $id: $e',
+            metadata: {'stackTrace': '$st'},
+          );
+        } catch (_) {
+          // Container disposed during async backfill — skip telemetry.
+        }
       }
     }
 

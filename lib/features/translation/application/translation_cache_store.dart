@@ -49,6 +49,26 @@ class TranslationEntry {
       status: status ?? this.status,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TranslationEntry &&
+          runtimeType == other.runtimeType &&
+          messageId == other.messageId &&
+          translatedContent == other.translatedContent &&
+          sourceLanguage == other.sourceLanguage &&
+          targetLanguage == other.targetLanguage &&
+          status == other.status;
+
+  @override
+  int get hashCode => Object.hash(
+        messageId,
+        translatedContent,
+        sourceLanguage,
+        targetLanguage,
+        status,
+      );
 }
 
 /// State for the translation cache.
@@ -75,6 +95,26 @@ class TranslationCacheState {
       showTranslation: showTranslation ?? this.showTranslation,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TranslationCacheState &&
+          runtimeType == other.runtimeType &&
+          mapEquals(translations, other.translations) &&
+          mapEquals(showTranslation, other.showTranslation);
+
+  @override
+  int get hashCode {
+    var h = 0;
+    for (final entry in translations.entries) {
+      h ^= Object.hash(entry.key, entry.value);
+    }
+    for (final entry in showTranslation.entries) {
+      h ^= Object.hash(entry.key, entry.value);
+    }
+    return h;
+  }
 }
 
 final translationCacheStoreProvider =
@@ -87,6 +127,12 @@ final translationCacheStoreProvider =
 /// Caches batch-translated results keyed by messageId. The cache is
 /// AutoDispose so it's cleared when the conversation page is disposed.
 class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
+  @override
+  bool updateShouldNotify(
+    TranslationCacheState previous,
+    TranslationCacheState next,
+  ) =>
+      previous != next;
   @override
   TranslationCacheState build() {
     return const TranslationCacheState();
