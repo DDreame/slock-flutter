@@ -188,6 +188,7 @@ typedef OutboxDrainCallback = void Function(
 /// SharedPreferences so it survives app restart.
 class OutboxStore extends Notifier<OutboxState> {
   int _localIdCounter = 0;
+  bool _isDraining = false;
   StreamSubscription<ConnectivityStatus>? _connectivitySub;
   final Map<String, OutboxDrainCallback> _drainCallbacks = {};
 
@@ -318,12 +319,18 @@ class OutboxStore extends Notifier<OutboxState> {
 
   /// Drain all conversations.
   Future<void> drainAll() async {
-    // Snapshot keys before iterating (state may mutate).
-    final keys = state.items.keys.toList();
-    for (final key in keys) {
-      final target = _targetFromKey(key);
-      if (target == null) continue;
-      await drain(target);
+    if (_isDraining) return;
+    _isDraining = true;
+    try {
+      // Snapshot keys before iterating (state may mutate).
+      final keys = state.items.keys.toList();
+      for (final key in keys) {
+        final target = _targetFromKey(key);
+        if (target == null) continue;
+        await drain(target);
+      }
+    } finally {
+      _isDraining = false;
     }
   }
 
