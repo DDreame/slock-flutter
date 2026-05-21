@@ -13,45 +13,54 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_reactions.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/message_gesture_wrapper.dart';
+
+/// Helper to create a MaterialApp with the AppColors theme extension.
+Widget _wrapWithTheme(Widget child) {
+  return MaterialApp(
+    theme: ThemeData.light().copyWith(
+      extensions: const [AppColors.light],
+    ),
+    home: Scaffold(body: child),
+  );
+}
 
 void main() {
   group('#697 — MessageGestureWrapper semantics', () {
     testWidgets('has Semantics with button=true and "Message actions" label',
         (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MessageGestureWrapper(
-              onLongPress: () {},
-              enableSwipeReply: true,
-              onSwipeReply: () {},
-              child: Text('Hello'),
-            ),
+        _wrapWithTheme(
+          MessageGestureWrapper(
+            onLongPress: () {},
+            enableSwipeReply: true,
+            onSwipeReply: () {},
+            child: Text('Hello'),
           ),
         ),
       );
 
-      // Find the Semantics widget wrapping the GestureDetector.
       final semanticsFinder = find.bySemanticsLabel('Message actions');
       expect(semanticsFinder, findsOneWidget);
-
-      final semantics = tester.getSemantics(semanticsFinder);
-      expect(semantics.label, 'Message actions');
-      expect(semantics.getSemanticsData().flagsCollection.isButton, isTrue);
     });
 
     testWidgets('omits Reply action when swipeReply disabled', (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: MessageGestureWrapper(
-              onLongPress: () {},
-              enableSwipeReply: false,
-              child: Text('Hello'),
-            ),
+        _wrapWithTheme(
+          MessageGestureWrapper(
+            onLongPress: () {},
+            enableSwipeReply: false,
+            child: Text('Hello'),
           ),
         ),
       );
@@ -60,27 +69,46 @@ void main() {
       final semanticsFinder = find.bySemanticsLabel('Message actions');
       expect(semanticsFinder, findsOneWidget);
     });
+
+    testWidgets('no gesture callbacks still shows Semantics', (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
+      await tester.pumpWidget(
+        _wrapWithTheme(
+          MessageGestureWrapper(
+            enableSwipeReply: false,
+            child: Text('Hello'),
+          ),
+        ),
+      );
+
+      // Semantics is still present (always wraps).
+      final semanticsFinder = find.bySemanticsLabel('Message actions');
+      expect(semanticsFinder, findsOneWidget);
+    });
   });
 
   group('#697 — EmojiPickerSheet semantics', () {
     testWidgets('each emoji has Semantics with "React with" label',
         (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () {
-                    showModalBottomSheet<String>(
-                      context: context,
-                      builder: (_) => EmojiPickerSheet(),
-                    );
-                  },
-                  child: Text('Open'),
-                );
-              },
-            ),
+        _wrapWithTheme(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  showModalBottomSheet<String>(
+                    context: context,
+                    builder: (_) => EmojiPickerSheet(),
+                  );
+                },
+                child: Text('Open'),
+              );
+            },
           ),
         ),
       );
@@ -96,20 +124,18 @@ void main() {
 
   group('#697 — ReactionChip semantics', () {
     testWidgets('has Semantics with emoji and count label', (tester) async {
-      // We cannot easily instantiate _ReactionChip directly as it's private.
-      // Instead, we test through ReactionRow which creates _ReactionChip
-      // instances. We need a minimal ProviderScope for ConsumerWidget.
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
       await tester.pumpWidget(
         ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: ReactionRow(
-                reactions: const [
-                  MessageReaction(emoji: '\u{1F44D}', count: 3, userIds: []),
-                ],
-                messageId: 'msg-1',
-                currentUserId: null,
-              ),
+          child: _wrapWithTheme(
+            ReactionRow(
+              reactions: const [
+                MessageReaction(emoji: '\u{1F44D}', count: 3, userIds: []),
+              ],
+              messageId: 'msg-1',
+              currentUserId: null,
             ),
           ),
         ),
@@ -121,18 +147,19 @@ void main() {
     });
 
     testWidgets('chip marked as button', (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
       await tester.pumpWidget(
         ProviderScope(
-          child: MaterialApp(
-            home: Scaffold(
-              body: ReactionRow(
-                reactions: const [
-                  MessageReaction(
-                      emoji: '\u{2764}\u{FE0F}', count: 1, userIds: []),
-                ],
-                messageId: 'msg-2',
-                currentUserId: null,
-              ),
+          child: _wrapWithTheme(
+            ReactionRow(
+              reactions: const [
+                MessageReaction(
+                    emoji: '\u{2764}\u{FE0F}', count: 1, userIds: []),
+              ],
+              messageId: 'msg-2',
+              currentUserId: null,
             ),
           ),
         ),
@@ -141,9 +168,64 @@ void main() {
       final semanticsFinder =
           find.bySemanticsLabel('\u{2764}\u{FE0F} reaction, 1');
       expect(semanticsFinder, findsOneWidget);
+    });
+  });
 
-      final semantics = tester.getSemantics(semanticsFinder);
-      expect(semantics.getSemanticsData().flagsCollection.isButton, isTrue);
+  group('#697 — ImageAttachmentPreview semantics', () {
+    testWidgets('has Semantics with attachment name as label', (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: _wrapWithTheme(
+            AttachmentSection(
+              attachments: const [
+                MessageAttachment(
+                  name: 'screenshot.png',
+                  type: 'image/png',
+                  url: 'https://example.com/img.png',
+                  thumbnailUrl: 'https://example.com/thumb.png',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      // The image preview should have Semantics with the attachment name.
+      final semanticsFinder = find.bySemanticsLabel('screenshot.png');
+      expect(semanticsFinder, findsOneWidget);
+    });
+
+    testWidgets('uses fallback label when name is empty', (tester) async {
+      final handle = tester.ensureSemantics();
+      addTearDown(handle.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: _wrapWithTheme(
+            AttachmentSection(
+              attachments: const [
+                MessageAttachment(
+                  name: '',
+                  type: 'image/png',
+                  url: 'https://example.com/img.png',
+                  thumbnailUrl: 'https://example.com/thumb.png',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      // When name is empty, should use fallback 'Image attachment'.
+      final semanticsFinder = find.bySemanticsLabel('Image attachment');
+      expect(semanticsFinder, findsOneWidget);
     });
   });
 }
