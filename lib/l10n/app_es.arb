@@ -349,5 +349,8 @@
   "searchFilterInPrefix": "En: {name}",
 
   "searchRecentTitle": "Recientes",
-  "searchRecentClear": "Borrar"
+  "searchRecentClear": "Borrar",
+
+  "dateSeparatorToday": "Hoy",
+  "dateSeparatorYesterday": "Ayer"
 }

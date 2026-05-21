@@ -146,7 +146,7 @@ void main() {
   // 3. Regression: timestamps that cross UTC midnight but fall on the same
   //    local calendar day must NOT produce a separator (INV-DATE-2b).
   //
-  //    Uses the @visibleForTesting `dateSeparatorToLocal` seam to simulate
+  //    Uses the `dateSeparatorToLocalProvider` override to simulate
   //    a UTC-7 timezone. Without the .toLocal() fix, these two UTC
   //    timestamps (May 15 vs May 16) would be split; with the fix they
   //    both resolve to May 15 local → no separator.
@@ -154,11 +154,6 @@ void main() {
   testWidgets(
     'Conversation: same local day, no separator — UTC regression (INV-DATE-2b)',
     (tester) async {
-      // Simulate UTC-7: subtract 7 hours from UTC to get local time.
-      final originalToLocal = dateSeparatorToLocal;
-      dateSeparatorToLocal = (dt) => dt.subtract(const Duration(hours: 7));
-      addTearDown(() => dateSeparatorToLocal = originalToLocal);
-
       final repo = _FakeConversationRepository(
         snapshot: ConversationDetailSnapshot(
           target: ConversationDetailTarget.channel(
@@ -193,7 +188,10 @@ void main() {
         ),
       );
 
-      await tester.pumpWidget(_buildConversationApp(repo));
+      await tester.pumpWidget(_buildConversationApp(
+        repo,
+        toLocal: (dt) => dt.subtract(const Duration(hours: 7)),
+      ));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('message-msg-utc-a')), findsOneWidget);
@@ -214,7 +212,10 @@ void main() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-Widget _buildConversationApp(_FakeConversationRepository repo) {
+Widget _buildConversationApp(
+  _FakeConversationRepository repo, {
+  DateTime Function(DateTime)? toLocal,
+}) {
   final target = ConversationDetailTarget.channel(
     const ChannelScopeId(
       serverId: ServerScopeId('server-1'),
@@ -226,6 +227,8 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
     overrides: [
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      if (toLocal != null)
+        dateSeparatorToLocalProvider.overrideWithValue(toLocal),
     ],
     child: MaterialApp(
       theme: AppTheme.light,

@@ -1410,4 +1410,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get screenshotAnnotateShareSubject => 'Screenshot';
+
+  @override
+  String get dateSeparatorToday => 'Hoy';
+
+  @override
+  String get dateSeparatorYesterday => 'Ayer';
 }

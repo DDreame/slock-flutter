@@ -463,5 +463,8 @@
   "screenshotAnnotateExportFailed": "导出截图失败",
   "screenshotAnnotateExportError": "导出失败：{error}",
   "screenshotAnnotateSaveFailed": "保存失败：{error}",
-  "screenshotAnnotateShareSubject": "截图"
+  "screenshotAnnotateShareSubject": "截图",
+
+  "dateSeparatorToday": "今天",
+  "dateSeparatorYesterday": "昨天"
 }
