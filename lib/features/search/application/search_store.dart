@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -21,17 +22,22 @@ final searchStoreProvider =
 
 class SearchStore extends AutoDisposeNotifier<SearchState> {
   Timer? _debounce;
+  CancelToken? _remoteCancelToken;
   int _requestToken = 0;
 
   @override
   SearchState build() {
-    ref.onDispose(() => _debounce?.cancel());
+    ref.onDispose(() {
+      _debounce?.cancel();
+      _cancelInFlightSearch();
+    });
     return const SearchState();
   }
 
   void updateQuery(String query) {
     _debounce?.cancel();
     _requestToken++; // invalidate any in-flight search for the old query
+    _cancelInFlightSearch();
     state = state.copyWith(query: query);
 
     if (query.trim().isEmpty) {
@@ -46,6 +52,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
   void clear() {
     _debounce?.cancel();
     _requestToken++; // invalidate any in-flight search
+    _cancelInFlightSearch();
     state = const SearchState();
   }
 
@@ -89,12 +96,23 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
 
   Future<void> retry() => search();
 
+  void _cancelInFlightSearch() {
+    final cancelToken = _remoteCancelToken;
+    if (cancelToken != null && !cancelToken.isCancelled) {
+      cancelToken.cancel('superseded search request');
+    }
+    _remoteCancelToken = null;
+  }
+
   /// Load more results at the current offset (INV-SEARCH-4).
   Future<void> loadMore() async {
     final query = state.query.trim();
     if (query.isEmpty || !state.hasMore) return;
 
     final token = ++_requestToken;
+    _cancelInFlightSearch();
+    final cancelToken = CancelToken();
+    _remoteCancelToken = cancelToken;
     final serverId = ref.read(currentSearchServerIdProvider);
     final offset = state.remoteResults.length;
 
@@ -109,8 +127,10 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         sortBy: state.sortBy,
         channelId: state.channelFilter,
         offset: offset,
+        cancelToken: cancelToken,
       );
       if (_requestToken != token) return;
+      if (_remoteCancelToken == cancelToken) _remoteCancelToken = null;
       state = state.copyWith(
         remoteResults: [...state.remoteResults, ...page.messages],
         hasMore: page.hasMore,
@@ -118,6 +138,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
       );
     } on AppFailure catch (failure) {
       if (_requestToken != token) return;
+      if (_remoteCancelToken == cancelToken) _remoteCancelToken = null;
       state = state.copyWith(
         isRemoteSearching: false,
         failure: failure,
@@ -130,6 +151,9 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     if (query.isEmpty) return;
 
     final token = ++_requestToken;
+    _cancelInFlightSearch();
+    final cancelToken = CancelToken();
+    _remoteCancelToken = cancelToken;
     final serverId = ref.read(currentSearchServerIdProvider);
     state = state.copyWith(
       status: SearchStatus.searching,
@@ -212,8 +236,10 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         senderId: state.senderFilter,
         sortBy: state.sortBy,
         channelId: state.channelFilter,
+        cancelToken: cancelToken,
       );
       if (_requestToken != token) return;
+      if (_remoteCancelToken == cancelToken) _remoteCancelToken = null;
       state = state.copyWith(
         remoteResults: page.messages,
         hasMore: page.hasMore,
@@ -223,6 +249,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
       );
     } on AppFailure catch (failure) {
       if (_requestToken != token) return;
+      if (_remoteCancelToken == cancelToken) _remoteCancelToken = null;
       state = state.copyWith(
         isRemoteSearching: false,
         status: localResults.isNotEmpty ||

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -322,6 +323,37 @@ void main() {
       expect(fakeSearchRepo.lastCallParams?.offset, 1,
           reason: 'INV-SEARCH-4: offset should equal existing result count');
     });
+
+    test('superseded search cancels previous remote request', () async {
+      final firstCompleter = Completer<SearchResultsPage>();
+      fakeSearchRepo.completerOverride = firstCompleter;
+      fakeSearchRepo.onSearchCall = Completer<void>();
+
+      store().updateQuery('first');
+      final firstSearch = store().search();
+      await fakeSearchRepo.onSearchCall!.future;
+
+      final firstCancelToken = fakeSearchRepo.cancelTokens.single;
+      expect(firstCancelToken, isNotNull);
+      expect(firstCancelToken!.isCancelled, isFalse);
+
+      fakeSearchRepo.completerOverride = null;
+      fakeSearchRepo.result = const SearchResultsPage(
+        messages: [],
+        hasMore: false,
+      );
+
+      store().updateQuery('second');
+      await store().search();
+
+      expect(firstCancelToken.isCancelled, isTrue);
+      expect(fakeSearchRepo.queries, ['first', 'second']);
+
+      firstCompleter.complete(
+        const SearchResultsPage(messages: [], hasMore: false),
+      );
+      await firstSearch;
+    });
   });
 }
 
@@ -344,6 +376,9 @@ class _FakeSearchRepository implements SearchRepository {
   SearchResultsPage? result;
   bool shouldFail = false;
   _SearchCallParams? lastCallParams;
+  final queries = <String>[];
+  final cancelTokens = <CancelToken?>[];
+  Completer<void>? onSearchCall;
 
   /// When set, `searchMessages` awaits this completer instead of returning
   /// immediately. Used to simulate in-flight requests that haven't completed.
@@ -357,7 +392,12 @@ class _FakeSearchRepository implements SearchRepository {
     SearchSortBy? sortBy,
     String? channelId,
     int offset = 0,
+    CancelToken? cancelToken,
   }) async {
+    queries.add(query);
+    cancelTokens.add(cancelToken);
+    onSearchCall?.complete();
+    onSearchCall = null;
     lastCallParams = _SearchCallParams(
       senderId: senderId,
       sortBy: sortBy,

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
@@ -13,6 +14,7 @@ abstract class SearchRepository {
     SearchSortBy? sortBy,
     String? channelId,
     int offset,
+    CancelToken? cancelToken,
   });
 }
 

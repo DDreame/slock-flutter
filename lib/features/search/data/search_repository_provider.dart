@@ -26,6 +26,7 @@ class _ApiSearchRepository implements SearchRepository {
     SearchSortBy? sortBy,
     String? channelId,
     int offset = 0,
+    CancelToken? cancelToken,
   }) async {
     try {
       final response = await _appDioClient.get<Object?>(
@@ -39,6 +40,7 @@ class _ApiSearchRepository implements SearchRepository {
           if (offset > 0) 'offset': offset.toString(),
         },
         options: Options(headers: {_serverHeaderName: serverId.routeParam}),
+        cancelToken: cancelToken,
       );
       return _parseSearchResponse(response.data);
     } on AppFailure {
