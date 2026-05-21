@@ -5,6 +5,7 @@ import 'package:slock_app/core/storage/session_storage_keys.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/features/auth/data/auth_repository.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
+import 'package:slock_app/features/conversation/application/outbox_store.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 
@@ -79,10 +80,15 @@ class SessionStore extends Notifier<SessionState> {
       status: AuthStatus.authenticated,
       token: result.accessToken,
     );
-    await _storage.write(
-      key: SessionStorageKeys.refreshToken,
-      value: result.refreshToken,
-    );
+    // Persist both tokens atomically before hydration so a force-kill
+    // between here and _persistSession() cannot leave an incomplete pair.
+    await Future.wait([
+      _storage.write(key: SessionStorageKeys.token, value: result.accessToken),
+      _storage.write(
+        key: SessionStorageKeys.refreshToken,
+        value: result.refreshToken,
+      ),
+    ]);
     await _hydrateAuthenticatedSession();
   }
 
@@ -102,10 +108,15 @@ class SessionStore extends Notifier<SessionState> {
       status: AuthStatus.authenticated,
       token: result.accessToken,
     );
-    await _storage.write(
-      key: SessionStorageKeys.refreshToken,
-      value: result.refreshToken,
-    );
+    // Persist both tokens atomically before hydration so a force-kill
+    // between here and _persistSession() cannot leave an incomplete pair.
+    await Future.wait([
+      _storage.write(key: SessionStorageKeys.token, value: result.accessToken),
+      _storage.write(
+        key: SessionStorageKeys.refreshToken,
+        value: result.refreshToken,
+      ),
+    ]);
     await _hydrateAuthenticatedSession(
       fallbackDisplayName: displayName,
     );
@@ -146,6 +157,15 @@ class SessionStore extends Notifier<SessionState> {
   }
 
   Future<void> logout() async {
+    // Clear outbox before wiping auth — prevents previous user's queued
+    // messages from draining under the next user's session. Awaited so the
+    // SharedPreferences key is durably removed before logout completes.
+    try {
+      await ref.read(outboxStoreProvider.notifier).clearAll();
+    } on Object {
+      // OutboxStore may not be initialized (e.g. minimal test env without
+      // SharedPreferences). In production, outbox is always available.
+    }
     await ref.read(serverSelectionStoreProvider.notifier).clearSelection();
     await SessionStorageKeys.clear(_storage);
     state = const SessionState(status: AuthStatus.unauthenticated);
