@@ -163,8 +163,13 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
           remainingAfterCache.add(channel);
         }
       }
-    } catch (_) {
+    } on Exception catch (e, st) {
       // If cache lookup fails, all channels go to Phase 2.
+      ref.read(diagnosticsCollectorProvider).error(
+        'PreviewBackfill',
+        'Channel cache lookup failed: $e',
+        metadata: {'stackTrace': '$st'},
+      );
       remainingAfterCache
         ..clear()
         ..addAll(needsBackfill);
@@ -199,8 +204,12 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
                 );
             filled.add(id);
           }
-        } catch (_) {
-          // Silently skip failed fetches — best-effort backfill.
+        } on Exception catch (e, st) {
+          ref.read(diagnosticsCollectorProvider).error(
+            'PreviewBackfill',
+            'Channel fetch failed for $id: $e',
+            metadata: {'stackTrace': '$st'},
+          );
         }
       }
 
@@ -281,7 +290,12 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
           remainingAfterCache.add(dm);
         }
       }
-    } catch (_) {
+    } on Exception catch (e, st) {
+      ref.read(diagnosticsCollectorProvider).error(
+        'PreviewBackfill',
+        'DM cache lookup failed: $e',
+        metadata: {'stackTrace': '$st'},
+      );
       remainingAfterCache
         ..clear()
         ..addAll(needsBackfill);
@@ -305,8 +319,12 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
             activityAt: result.activityAt,
           );
         }
-      } catch (_) {
-        // Silently skip — best-effort backfill.
+      } on Exception catch (e, st) {
+        ref.read(diagnosticsCollectorProvider).error(
+          'PreviewBackfill',
+          'DM fetch failed for $id: $e',
+          metadata: {'stackTrace': '$st'},
+        );
       }
     }
 
