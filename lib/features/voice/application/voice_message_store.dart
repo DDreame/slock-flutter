@@ -1,9 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 
 /// State for the voice message recording/playback UI.
+@immutable
 class VoiceMessageState {
   const VoiceMessageState({
     this.recordingState = VoiceRecorderState.idle,
@@ -40,6 +42,24 @@ class VoiceMessageState {
           : (recordedFilePath ?? this.recordedFilePath),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is VoiceMessageState &&
+          runtimeType == other.runtimeType &&
+          recordingState == other.recordingState &&
+          elapsed == other.elapsed &&
+          listEquals(amplitudes, other.amplitudes) &&
+          recordedFilePath == other.recordedFilePath;
+
+  @override
+  int get hashCode => Object.hash(
+        recordingState,
+        elapsed,
+        Object.hashAll(amplitudes),
+        recordedFilePath,
+      );
 }
 
 /// Riverpod notifier for voice message recording state.
@@ -52,6 +72,9 @@ final voiceMessageStoreProvider =
 );
 
 class VoiceMessageStore extends Notifier<VoiceMessageState> {
+  @override
+  bool updateShouldNotify(VoiceMessageState previous, VoiceMessageState next) =>
+      previous != next;
   @override
   VoiceMessageState build() => const VoiceMessageState();
 

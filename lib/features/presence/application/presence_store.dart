@@ -36,6 +36,23 @@ class PresenceState {
       statuses: statuses ?? this.statuses,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PresenceState &&
+          runtimeType == other.runtimeType &&
+          mapEquals(statuses, other.statuses);
+
+  @override
+  int get hashCode {
+    // XOR of entry hashes — order-independent.
+    var h = 0;
+    for (final entry in statuses.entries) {
+      h ^= Object.hash(entry.key, entry.value);
+    }
+    return h;
+  }
 }
 
 final presenceStoreProvider =
@@ -44,6 +61,9 @@ final presenceStoreProvider =
 );
 
 class PresenceStore extends AutoDisposeNotifier<PresenceState> {
+  @override
+  bool updateShouldNotify(PresenceState previous, PresenceState next) =>
+      previous != next;
   @override
   PresenceState build() => const PresenceState();
 

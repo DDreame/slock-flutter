@@ -60,6 +60,16 @@ class TypingIndicatorState {
       activeTypers: activeTypers ?? this.activeTypers,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TypingIndicatorState &&
+          runtimeType == other.runtimeType &&
+          listEquals(activeTypers, other.activeTypers);
+
+  @override
+  int get hashCode => Object.hashAll(activeTypers);
 }
 
 final typingIndicatorStoreProvider =
@@ -70,6 +80,13 @@ final typingIndicatorStoreProvider =
 class TypingIndicatorStore extends AutoDisposeNotifier<TypingIndicatorState> {
   final Map<String, Timer> _expiryTimers = {};
   DateTime? _lastEmitTime;
+
+  @override
+  bool updateShouldNotify(
+    TypingIndicatorState previous,
+    TypingIndicatorState next,
+  ) =>
+      previous != next;
 
   @override
   TypingIndicatorState build() {
