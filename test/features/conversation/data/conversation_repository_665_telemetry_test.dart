@@ -45,20 +45,24 @@ class _RecordingCrashReporter implements CrashReporter {
   void setUser(String? userId, {String? displayName}) {}
 }
 
-/// A local store that throws on every write operation.
+/// A local store with configurable per-operation failure behavior.
 class _ThrowingLocalStore implements ConversationLocalStore {
-  _ThrowingLocalStore({this.throwOnRead = false});
+  _ThrowingLocalStore({
+    this.throwOnRead = false,
+    this.throwOnWrite = true,
+  });
 
   final bool throwOnRead;
+  final bool throwOnWrite;
 
   @override
   Future<void> upsertMessages(Iterable<LocalMessageUpsert> entries) async {
-    throw Exception('local store write failed');
+    if (throwOnWrite) throw Exception('upsertMessages failed');
   }
 
   @override
   Future<void> upsertIdentities(Iterable<LocalIdentityUpsert> entries) async {
-    throw Exception('local store write failed');
+    if (throwOnWrite) throw Exception('upsertIdentities failed');
   }
 
   @override
@@ -66,7 +70,7 @@ class _ThrowingLocalStore implements ConversationLocalStore {
     Iterable<LocalConversationSummaryUpsert> summaries, {
     bool preserveExistingSortIndex = false,
   }) async {
-    throw Exception('local store write failed');
+    if (throwOnWrite) throw Exception('upsertConversationSummaries failed');
   }
 
   @override
@@ -74,7 +78,7 @@ class _ThrowingLocalStore implements ConversationLocalStore {
     String serverId, {
     required String surface,
   }) async {
-    if (throwOnRead) throw Exception('local store read failed');
+    if (throwOnRead) throw Exception('listConversationSummaries read failed');
     return [];
   }
 
@@ -86,7 +90,7 @@ class _ThrowingLocalStore implements ConversationLocalStore {
     required String preview,
     required DateTime activityAt,
   }) async {
-    throw Exception('local store write failed');
+    if (throwOnWrite) throw Exception('touchConversationSummary failed');
   }
 
   @override
@@ -95,7 +99,7 @@ class _ThrowingLocalStore implements ConversationLocalStore {
     required String conversationId,
     required String messageId,
   }) async {
-    throw Exception('local store write failed');
+    if (throwOnWrite) throw Exception('removeMessage failed');
   }
 
   @override
@@ -105,7 +109,8 @@ class _ThrowingLocalStore implements ConversationLocalStore {
     required String messageId,
     required String content,
   }) async {
-    throw Exception('local store write failed');
+    if (throwOnWrite) throw Exception('updateMessageContent failed');
+    return null;
   }
 
   @override
@@ -115,7 +120,7 @@ class _ThrowingLocalStore implements ConversationLocalStore {
     required String messageId,
     required String preview,
   }) async {
-    throw Exception('local store write failed');
+    if (throwOnWrite) throw Exception('updateConversationPreview failed');
   }
 
   @override
@@ -249,6 +254,7 @@ ProviderContainer _createContainer({
 void main() {
   // -------------------------------------------------------------------------
   // T1: loadConversation — local title read failure → telemetry captured.
+  //     Isolates the read-catch by disabling write throws.
   // -------------------------------------------------------------------------
   test(
     'INV-TELEMETRY-665-1: loadConversation reports local store read failure',
@@ -256,7 +262,7 @@ void main() {
       final crashReporter = _RecordingCrashReporter();
       final container = _createContainer(
         appDioClient: _FakeAppDioClient(responses: _channelLoadResponses()),
-        localStore: _ThrowingLocalStore(throwOnRead: true),
+        localStore: _ThrowingLocalStore(throwOnRead: true, throwOnWrite: false),
         crashReporter: crashReporter,
       );
       addTearDown(container.dispose);
@@ -266,14 +272,20 @@ void main() {
 
       // Non-fatal: operation still succeeds.
       expect(snapshot.title, '#ch-1');
-      // But telemetry was reported.
-      expect(crashReporter.capturedErrors, isNotEmpty,
-          reason: 'Local store read failure must be reported to telemetry');
+      // Exactly 1 error captured — from the read-failure catch site.
+      expect(crashReporter.capturedErrors, hasLength(1),
+          reason: 'Exactly the read-failure catch must fire');
+      expect(
+        crashReporter.capturedErrors.first.toString(),
+        contains('listConversationSummaries read failed'),
+        reason: 'Must capture the read-specific exception',
+      );
     },
   );
 
   // -------------------------------------------------------------------------
   // T2: loadConversation — local store write failure → telemetry captured.
+  //     Isolates the write-catch by disabling read throws.
   // -------------------------------------------------------------------------
   test(
     'INV-TELEMETRY-665-1: loadConversation reports local store write failure',
@@ -281,7 +293,7 @@ void main() {
       final crashReporter = _RecordingCrashReporter();
       final container = _createContainer(
         appDioClient: _FakeAppDioClient(responses: _channelLoadResponses()),
-        localStore: _ThrowingLocalStore(),
+        localStore: _ThrowingLocalStore(throwOnRead: false, throwOnWrite: true),
         crashReporter: crashReporter,
       );
       addTearDown(container.dispose);
@@ -291,9 +303,14 @@ void main() {
 
       // Non-fatal: operation still succeeds.
       expect(snapshot.messages.length, 1);
-      // Telemetry reported for both read (no throw) and write failure.
-      expect(crashReporter.capturedErrors, isNotEmpty,
-          reason: 'Local store write failure must be reported to telemetry');
+      // Write catch fires (upsertMessages is first to throw in the write block).
+      expect(crashReporter.capturedErrors, hasLength(1),
+          reason: 'Exactly the write-failure catch must fire');
+      expect(
+        crashReporter.capturedErrors.first.toString(),
+        contains('upsertMessages failed'),
+        reason: 'Must capture the write-specific exception',
+      );
     },
   );
 
@@ -306,7 +323,7 @@ void main() {
       final crashReporter = _RecordingCrashReporter();
       final container = _createContainer(
         appDioClient: _FakeAppDioClient(responses: _channelLoadResponses()),
-        localStore: _ThrowingLocalStore(),
+        localStore: _ThrowingLocalStore(throwOnRead: false, throwOnWrite: true),
         crashReporter: crashReporter,
       );
       addTearDown(container.dispose);
@@ -316,8 +333,12 @@ void main() {
 
       // Non-fatal: operation still returns results.
       expect(page.messages.length, 1);
-      expect(crashReporter.capturedErrors, isNotEmpty,
-          reason: 'Local store write failure must be reported to telemetry');
+      expect(crashReporter.capturedErrors, hasLength(1),
+          reason: 'Exactly the write-failure catch must fire');
+      expect(
+        crashReporter.capturedErrors.first.toString(),
+        contains('upsertMessages failed'),
+      );
     },
   );
 
@@ -330,7 +351,7 @@ void main() {
       final crashReporter = _RecordingCrashReporter();
       final container = _createContainer(
         appDioClient: _FakeAppDioClient(responses: _channelLoadResponses()),
-        localStore: _ThrowingLocalStore(),
+        localStore: _ThrowingLocalStore(throwOnRead: false, throwOnWrite: true),
         crashReporter: crashReporter,
       );
       addTearDown(container.dispose);
@@ -340,8 +361,12 @@ void main() {
 
       // Non-fatal: operation still returns results.
       expect(page.messages.length, 1);
-      expect(crashReporter.capturedErrors, isNotEmpty,
-          reason: 'Local store write failure must be reported to telemetry');
+      expect(crashReporter.capturedErrors, hasLength(1),
+          reason: 'Exactly the write-failure catch must fire');
+      expect(
+        crashReporter.capturedErrors.first.toString(),
+        contains('upsertMessages failed'),
+      );
     },
   );
 
@@ -354,7 +379,7 @@ void main() {
       final crashReporter = _RecordingCrashReporter();
       final container = _createContainer(
         appDioClient: _FakeAppDioClient(responses: _sendMessageResponses()),
-        localStore: _ThrowingLocalStore(),
+        localStore: _ThrowingLocalStore(throwOnRead: false, throwOnWrite: true),
         crashReporter: crashReporter,
       );
       addTearDown(container.dispose);
@@ -364,8 +389,12 @@ void main() {
 
       // Non-fatal: operation still returns the sent message.
       expect(message.id, 'msg-sent-1');
-      expect(crashReporter.capturedErrors, isNotEmpty,
-          reason: 'Local store write failure must be reported to telemetry');
+      expect(crashReporter.capturedErrors, hasLength(1),
+          reason: 'Exactly the write-failure catch must fire');
+      expect(
+        crashReporter.capturedErrors.first.toString(),
+        contains('upsertMessages failed'),
+      );
     },
   );
 }

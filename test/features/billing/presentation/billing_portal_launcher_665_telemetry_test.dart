@@ -6,8 +6,10 @@
 //   CrashReporter.captureException on URL launch failure.
 //
 // Strategy:
-// T1: URL launch throws → telemetry captured, returns false.
-// T2: Successful launch → no telemetry, returns true.
+// T1: URL launch throws → telemetry captured, returns false (production class).
+// T2: URL launch succeeds → no telemetry, returns true (production class).
+// T3: Invalid URL → no telemetry, returns false (early return).
+// T4: Provider wiring resolves without error.
 // =============================================================================
 
 import 'package:flutter/foundation.dart';
@@ -15,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:slock_app/features/billing/presentation/billing_portal_launcher.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // ---------------------------------------------------------------------------
 // Fakes
@@ -39,43 +42,25 @@ class _RecordingCrashReporter implements CrashReporter {
   void setUser(String? userId, {String? displayName}) {}
 }
 
-/// A billing portal launcher that always throws on URL launch.
-class _ThrowingBillingPortalLauncher implements BillingPortalLauncher {
-  _ThrowingBillingPortalLauncher({required CrashReporter crashReporter})
-      : _crashReporter = crashReporter;
-
-  final CrashReporter _crashReporter;
-
-  @override
-  Future<bool> openManageUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null || !uri.hasScheme) {
-      return false;
-    }
-
-    try {
-      throw Exception('Platform URL launch failed');
-    } on Exception catch (e, st) {
-      _crashReporter.captureException(e, stackTrace: st);
-      return false;
-    }
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 void main() {
   // -------------------------------------------------------------------------
-  // T1: URL launch failure → telemetry captured + returns false.
+  // T1: Production class — launchUrl throws → telemetry captured.
   // -------------------------------------------------------------------------
   test(
-    'INV-TELEMETRY-665-2: URL launch failure reports to telemetry',
+    'INV-TELEMETRY-665-2: production class reports exception to telemetry '
+    'on launch failure',
     () async {
       final crashReporter = _RecordingCrashReporter();
-      final launcher = _ThrowingBillingPortalLauncher(
+      final launcher = UrlLauncherBillingPortalLauncher(
         crashReporter: crashReporter,
+        launcherOverride: (Uri url,
+            {LaunchMode mode = LaunchMode.platformDefault}) async {
+          throw Exception('Platform URL launch failed');
+        },
       );
 
       final result =
@@ -91,14 +76,42 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // T2: Invalid URL → no telemetry (early return, not a catch path).
+  // T2: Production class — successful launch → no telemetry.
+  // -------------------------------------------------------------------------
+  test(
+    'INV-TELEMETRY-665-2: production class returns true on successful launch',
+    () async {
+      final crashReporter = _RecordingCrashReporter();
+      final launcher = UrlLauncherBillingPortalLauncher(
+        crashReporter: crashReporter,
+        launcherOverride: (Uri url,
+            {LaunchMode mode = LaunchMode.platformDefault}) async {
+          return true;
+        },
+      );
+
+      final result =
+          await launcher.openManageUrl('https://example.com/billing');
+
+      expect(result, isTrue);
+      expect(crashReporter.capturedErrors, isEmpty,
+          reason: 'No telemetry on successful launch');
+    },
+  );
+
+  // -------------------------------------------------------------------------
+  // T3: Invalid URL → no telemetry (early return, not a catch path).
   // -------------------------------------------------------------------------
   test(
     'INV-TELEMETRY-665-2: invalid URL returns false without telemetry',
     () async {
       final crashReporter = _RecordingCrashReporter();
-      final launcher = _ThrowingBillingPortalLauncher(
+      final launcher = UrlLauncherBillingPortalLauncher(
         crashReporter: crashReporter,
+        launcherOverride: (Uri url,
+            {LaunchMode mode = LaunchMode.platformDefault}) async {
+          throw Exception('should not be called');
+        },
       );
 
       final result = await launcher.openManageUrl('not-a-valid-url');
@@ -110,7 +123,7 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // T3: Provider wiring — billingPortalLauncherProvider resolves with
+  // T4: Provider wiring — billingPortalLauncherProvider resolves with
   //     crashReporter injected (no crash on read).
   // -------------------------------------------------------------------------
   test(
@@ -125,7 +138,7 @@ void main() {
       addTearDown(container.dispose);
 
       final launcher = container.read(billingPortalLauncherProvider);
-      expect(launcher, isA<BillingPortalLauncher>());
+      expect(launcher, isA<UrlLauncherBillingPortalLauncher>());
     },
   );
 }
