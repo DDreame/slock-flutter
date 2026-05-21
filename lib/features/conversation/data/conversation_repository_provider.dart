@@ -21,9 +21,11 @@ const _directMessageSurface = 'direct_message';
 final conversationRepositoryProvider = Provider<ConversationRepository>((ref) {
   final appDioClient = ref.watch(appDioClientProvider);
   final localStore = ref.watch(conversationLocalStoreProvider);
+  final crashReporter = ref.read(crashReporterProvider);
   return _ApiConversationRepository(
     appDioClient: appDioClient,
     localStore: localStore,
+    crashReporter: crashReporter,
   );
 });
 
@@ -31,11 +33,14 @@ class _ApiConversationRepository implements ConversationRepository {
   const _ApiConversationRepository({
     required AppDioClient appDioClient,
     required ConversationLocalStore localStore,
+    required CrashReporter crashReporter,
   })  : _appDioClient = appDioClient,
-        _localStore = localStore;
+        _localStore = localStore,
+        _crashReporter = crashReporter;
 
   final AppDioClient _appDioClient;
   final ConversationLocalStore _localStore;
+  final CrashReporter _crashReporter;
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -45,8 +50,9 @@ class _ApiConversationRepository implements ConversationRepository {
       String? storedChannelTitle;
       try {
         storedChannelTitle = await _readStoredChannelTitle(target);
-      } catch (_) {
+      } catch (e, st) {
         // Local store read failure is non-fatal.
+        _crashReporter.captureException(e, stackTrace: st);
       }
 
       final responses = await Future.wait([
@@ -96,8 +102,9 @@ class _ApiConversationRepository implements ConversationRepository {
           ],
           preserveExistingSortIndex: true,
         );
-      } catch (_) {
+      } catch (e, st) {
         // Local store write failure is non-fatal.
+        _crashReporter.captureException(e, stackTrace: st);
       }
 
       return ConversationDetailSnapshot(
@@ -160,8 +167,9 @@ class _ApiConversationRepository implements ConversationRepository {
       try {
         await _localStore.upsertMessages(payload.storedMessages);
         await _localStore.upsertIdentities(payload.identities);
-      } catch (_) {
+      } catch (e, st) {
         // Local store write failure is non-fatal.
+        _crashReporter.captureException(e, stackTrace: st);
       }
       return ConversationMessagePage(
         messages: payload.messages,
@@ -210,8 +218,9 @@ class _ApiConversationRepository implements ConversationRepository {
             activityAt: latest.createdAt,
           );
         }
-      } catch (_) {
+      } catch (e, st) {
         // Local store write failure is non-fatal.
+        _crashReporter.captureException(e, stackTrace: st);
       }
       return ConversationMessagePage(
         messages: payload.messages,
@@ -330,8 +339,9 @@ class _ApiConversationRepository implements ConversationRepository {
           preview: message.content,
           activityAt: message.createdAt,
         );
-      } catch (_) {
+      } catch (e, st) {
         // Local store write failure is non-fatal.
+        _crashReporter.captureException(e, stackTrace: st);
       }
       return message;
     } on AppFailure {

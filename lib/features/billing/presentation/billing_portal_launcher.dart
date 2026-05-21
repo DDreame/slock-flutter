@@ -1,8 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/telemetry/crash_reporter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final billingPortalLauncherProvider = Provider<BillingPortalLauncher>((ref) {
-  return const UrlLauncherBillingPortalLauncher();
+  return UrlLauncherBillingPortalLauncher(
+    crashReporter: ref.read(crashReporterProvider),
+  );
 });
 
 abstract class BillingPortalLauncher {
@@ -10,7 +13,10 @@ abstract class BillingPortalLauncher {
 }
 
 class UrlLauncherBillingPortalLauncher implements BillingPortalLauncher {
-  const UrlLauncherBillingPortalLauncher();
+  const UrlLauncherBillingPortalLauncher({required CrashReporter crashReporter})
+      : _crashReporter = crashReporter;
+
+  final CrashReporter _crashReporter;
 
   @override
   Future<bool> openManageUrl(String url) async {
@@ -21,7 +27,8 @@ class UrlLauncherBillingPortalLauncher implements BillingPortalLauncher {
 
     try {
       return await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
+    } on Exception catch (e, st) {
+      _crashReporter.captureException(e, stackTrace: st);
       return false;
     }
   }
