@@ -287,15 +287,18 @@ typedef AgentsMachinesLoader = Future<List<MachineItem>> Function();
 final agentsMachinesLoaderProvider = Provider<AgentsMachinesLoader>((ref) {
   final appDioClient = ref.watch(appDioClientProvider);
   final serverId = ref.watch(activeServerScopeIdProvider);
+  final diagnostics = ref.watch(diagnosticsCollectorProvider);
   return () => _loadMachinesForAgents(
         appDioClient: appDioClient,
         serverId: serverId,
+        diagnostics: diagnostics,
       );
 });
 
 Future<List<MachineItem>> _loadMachinesForAgents({
   required AppDioClient appDioClient,
   required ServerScopeId? serverId,
+  required DiagnosticsCollector diagnostics,
 }) async {
   if (serverId == null || serverId.value.isEmpty) {
     return const [];
@@ -308,7 +311,12 @@ Future<List<MachineItem>> _loadMachinesForAgents({
       ),
     );
     return parseMachinesSnapshot(response.data).items;
-  } catch (_) {
+  } on Exception catch (e, st) {
+    diagnostics.error(
+      'AgentsMachinesLoader',
+      'Failed to load machines for server ${serverId.value}: $e',
+      metadata: {'stackTrace': st.toString()},
+    );
     return const [];
   }
 }
