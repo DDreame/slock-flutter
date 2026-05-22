@@ -58,8 +58,22 @@ class SplashController extends AutoDisposeAsyncNotifier<void> {
       if (crashed) {
         ref.read(crashDetectedProvider.notifier).state = true;
       }
-    } finally {
+
+      // Only mark app ready on the success path — a partially initialized
+      // app must not proceed to home (#720).
       ref.read(appReadyProvider.notifier).state = true;
+    } catch (e, st) {
+      // Initialization failed — app stays in splash, surfaces error state.
+      // Do NOT set appReady=true so the app does not navigate to home.
+      final diagnostics = ref.read(diagnosticsCollectorProvider);
+      diagnostics.add(DiagnosticsEntry(
+        timestamp: DateTime.now(),
+        level: DiagnosticsLevel.error,
+        tag: 'splash',
+        message: 'Splash initialization failed: $e',
+      ));
+      // Re-throw as Future error so the AsyncNotifier state becomes AsyncError.
+      Error.throwWithStackTrace(e, st);
     }
   }
 }

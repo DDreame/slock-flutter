@@ -165,20 +165,25 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
       _errorText = null;
     });
 
-    try {
-      await ref.read(resetPasswordControllerProvider.notifier).submit(
-            token: token,
-            password: password,
-          );
-      if (!mounted) return;
+    await ref.read(resetPasswordControllerProvider.notifier).submit(
+          token: token,
+          password: password,
+        );
+    if (!mounted) return;
+
+    // Check controller state after submit — only mark complete on success.
+    // submit() no longer rethrows, so we inspect the resulting state (#720).
+    final result = ref.read(resetPasswordControllerProvider);
+    if (result is AsyncError) {
+      final error = result.error;
+      setState(() {
+        _errorText = error is AppFailure
+            ? (error.message ?? context.l10n.resetPasswordFailedFallback)
+            : context.l10n.resetPasswordFailedFallback;
+      });
+    } else {
       setState(() {
         _completed = true;
-      });
-    } on AppFailure catch (failure) {
-      if (!mounted) return;
-      setState(() {
-        _errorText =
-            failure.message ?? context.l10n.resetPasswordFailedFallback;
       });
     }
   }

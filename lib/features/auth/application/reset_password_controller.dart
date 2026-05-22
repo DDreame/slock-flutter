@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
 final resetPasswordControllerProvider =
@@ -21,9 +22,13 @@ class ResetPasswordController extends AutoDisposeAsyncNotifier<void> {
             password: password,
           );
       state = const AsyncData(null);
-    } catch (error, stackTrace) {
+    } on AppFailure catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
-      rethrow;
+    } catch (error, stackTrace) {
+      // Non-AppFailure exceptions (e.g. TimeoutException, network errors)
+      // enter failure state without rethrowing — prevents unhandled exception
+      // crash (#720).
+      state = AsyncError(error, stackTrace);
     }
   }
 }
