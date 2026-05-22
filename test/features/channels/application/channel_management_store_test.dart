@@ -7,6 +7,7 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
+import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
@@ -253,8 +254,7 @@ void main() {
         reason: '#737: resumeAllAgents must call repo with channelId');
   });
 
-  test('stopAllAgents concurrent call is dropped (re-entrancy guard)',
-      () async {
+  test('stopAllAgents concurrent call is dropped and returns false', () async {
     final completer = Completer<void>();
     final homeRepository = _FakeHomeRepository();
     final channelRepository = _FakeChannelManagementRepository(
@@ -285,14 +285,91 @@ void main() {
     final first = store.stopAllAgents(scopeId);
     final second = store.stopAllAgents(scopeId);
 
-    // Second call should return immediately (re-entrancy guard drops it).
-    await second;
+    // Second call should return false immediately (re-entrancy guard).
+    final secondResult = await second;
+    expect(secondResult, isFalse,
+        reason: '#738: re-entrancy guard must return false to caller');
     expect(channelRepository.stoppedAllAgentsChannelIds, hasLength(1),
-        reason:
-            '#737: concurrent stopAllAgents must be dropped by re-entrancy guard');
+        reason: '#738: concurrent stopAllAgents must be dropped');
 
     completer.complete();
-    await first;
+    final firstResult = await first;
+    expect(firstResult, isTrue, reason: '#738: completed op must return true');
+  });
+
+  test(
+      'concurrent op on different channel returns false when store is busy '
+      '(state clobber prevention)', () async {
+    final completer = Completer<void>();
+    final homeRepository = _FakeHomeRepository();
+    final channelRepository = _FakeChannelManagementRepository(
+      stopAllCompleter: completer,
+    );
+    final agentsRepository = _FakeAgentsRepository();
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+        agentsRepositoryProvider.overrideWithValue(agentsRepository),
+        agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(homeListStoreProvider.notifier).load();
+
+    // Keep provider alive across awaits (autoDispose GC prevention).
+    final sub = container.listen(channelManagementStoreProvider, (_, __) {});
+
+    const scopeA = ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'channel-a',
+    );
+    const scopeB = ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'channel-b',
+    );
+
+    final store = container.read(channelManagementStoreProvider.notifier);
+
+    // Start op on channel A (held by completer).
+    final opA = store.stopAllAgents(scopeA);
+    await Future<void>.delayed(Duration.zero);
+
+    // State should show channel A's operation.
+    final midState = container.read(channelManagementStoreProvider);
+    expect(midState.isBusy, isTrue);
+    expect(midState.channelId, 'channel-a');
+    expect(midState.activeAction, ChannelManagementAction.stopAgents);
+
+    // Attempt op on channel B — should be rejected because store is busy.
+    final opB = store.resumeAllAgents(scopeB);
+    final bResult = await opB;
+    expect(bResult, isFalse,
+        reason: '#738: concurrent op on different channel must be rejected');
+
+    // Channel A's state must still be intact.
+    final afterState = container.read(channelManagementStoreProvider);
+    expect(afterState.channelId, 'channel-a',
+        reason: '#738: first op state must not be clobbered');
+    expect(afterState.activeAction, ChannelManagementAction.stopAgents);
+
+    // Complete the first op.
+    completer.complete();
+    final aResult = await opA;
+    expect(aResult, isTrue);
+
+    // State should be cleared after completion.
+    final finalState = container.read(channelManagementStoreProvider);
+    expect(finalState.isBusy, isFalse);
+
+    sub.close();
   });
 
   test('stopAllAgents refreshes agents store after success', () async {

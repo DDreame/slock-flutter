@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -173,6 +175,56 @@ void main() {
           reason: '#737: Success snackbar must appear after resume all agents');
     },
   );
+
+  testWidgets(
+    'overflow menu suppresses snackbar when store is busy (#738)',
+    (tester) async {
+      final stopCompleter = Completer<void>();
+      final conversationRepo = _FakeConversationRepository();
+      final channelMgmtRepo = _FakeChannelManagementRepository(
+        stopAllCompleter: stopCompleter,
+      );
+
+      await tester.pumpWidget(
+        buildApp(
+          conversationRepository: conversationRepo,
+          channelManagementRepository: channelMgmtRepo,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // First stop: open menu, tap stop, confirm — held by completer.
+      await tester.tap(find.byKey(const ValueKey('channel-overflow-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('channel-stop-all-agents')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Stop All'));
+      await tester.pump(); // start the async call (held by completer)
+
+      // Store is now busy. Verify overflow menu is disabled.
+      expect(
+        tester
+            .widget<PopupMenuButton>(
+                find.byKey(const ValueKey('channel-overflow-menu')))
+            .enabled,
+        isFalse,
+        reason: '#738: Overflow menu must be disabled while store is busy',
+      );
+
+      // No snackbar should be visible while operation is in-flight.
+      expect(find.text('All agents stopped.'), findsNothing,
+          reason: '#738: Success snackbar must not appear before op completes');
+
+      // Complete the operation.
+      stopCompleter.complete();
+      await tester.pumpAndSettle();
+
+      // Now snackbar should appear.
+      expect(find.text('All agents stopped.'), findsOneWidget,
+          reason:
+              '#738: Snackbar must appear only after successful completion');
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -326,6 +378,9 @@ class _FakeConversationRepository implements ConversationRepository {
 }
 
 class _FakeChannelManagementRepository implements ChannelManagementRepository {
+  _FakeChannelManagementRepository({this.stopAllCompleter});
+
+  final Completer<void>? stopAllCompleter;
   final List<String> stoppedAllAgentsChannelIds = [];
   final List<String> resumedAllAgentsChannelIds = [];
 
@@ -364,6 +419,9 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     required String channelId,
   }) async {
     stoppedAllAgentsChannelIds.add(channelId);
+    if (stopAllCompleter != null) {
+      await stopAllCompleter!.future;
+    }
   }
 
   @override
