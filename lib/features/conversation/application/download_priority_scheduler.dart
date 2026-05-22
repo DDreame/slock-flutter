@@ -92,9 +92,13 @@ class DownloadPriorityScheduler
   /// Active retry timers (so they can be cancelled on dispose).
   final Map<String, Timer> _retryTimers = {};
 
+  /// Whether this notifier has been disposed.
+  bool _disposed = false;
+
   @override
   DownloadSchedulerState build() {
     ref.onDispose(() {
+      _disposed = true;
       for (final timer in _retryTimers.values) {
         timer.cancel();
       }
@@ -242,7 +246,11 @@ class DownloadPriorityScheduler
   }
 
   /// Emit current state to watchers.
+  ///
+  /// Guarded: no-op if provider has been disposed (prevents StateError
+  /// from `.then()` callbacks firing after navigation-away).
   void _emitState() {
+    if (_disposed) return;
     state = DownloadSchedulerState(
       inFlight: Set<String>.from(_inFlight),
       pending: List<String>.from(_visibleQueue),

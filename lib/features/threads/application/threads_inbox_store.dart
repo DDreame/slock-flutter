@@ -97,16 +97,24 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
           );
     } on AppFailure catch (failure) {
       // Restore the item on failure so the user can retry.
-      state = state.copyWith(
-        items: previousItems,
-        failure: failure,
-      );
+      try {
+        state = state.copyWith(
+          items: previousItems,
+          failure: failure,
+        );
+      } on StateError catch (_) {
+        // Provider disposed mid-flight — state write guard.
+      }
     } finally {
-      state = state.copyWith(
-        completingThreadIds: state.completingThreadIds
-            .where((id) => id != threadChannelId)
-            .toList(growable: false),
-      );
+      try {
+        state = state.copyWith(
+          completingThreadIds: state.completingThreadIds
+              .where((id) => id != threadChannelId)
+              .toList(growable: false),
+        );
+      } on StateError catch (_) {
+        // Provider disposed mid-flight — finally guard.
+      }
     }
   }
 }
