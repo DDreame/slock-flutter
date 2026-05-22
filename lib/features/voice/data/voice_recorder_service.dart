@@ -19,9 +19,14 @@ enum VoiceRecorderState {
 /// Exposes streams for amplitude (waveform), elapsed time, and state changes.
 /// Call [start] to begin, [stop] to finalize, or [cancel] to discard.
 class VoiceRecorderService {
-  VoiceRecorderService() : _recorder = AudioRecorder();
+  VoiceRecorderService({
+    @visibleForTesting AudioRecorder? recorder,
+    @visibleForTesting String? tempDirPathOverride,
+  })  : _recorder = recorder ?? AudioRecorder(),
+        _tempDirPathOverride = tempDirPathOverride;
 
   final AudioRecorder _recorder;
+  final String? _tempDirPathOverride;
 
   final _stateController = StreamController<VoiceRecorderState>.broadcast();
   final _amplitudeController = StreamController<double>.broadcast();
@@ -88,7 +93,8 @@ class VoiceRecorderService {
   Future<void> start({String? outputPath}) async {
     if (_state == VoiceRecorderState.recording) return;
 
-    final path = outputPath ?? await generateRecordingPath();
+    final path = outputPath ??
+        await generateRecordingPath(tempDirPath: _tempDirPathOverride);
 
     await _recorder.start(
       const RecordConfig(
