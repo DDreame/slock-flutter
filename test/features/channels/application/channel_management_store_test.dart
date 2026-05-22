@@ -144,6 +144,39 @@ void main() {
     expect(homeRepository.loadCalls, 3);
   });
 
+  test('createChannel completion after disposal does not read disposed refs',
+      () async {
+    final createCompleter = Completer<String>();
+    final homeRepository = _FakeHomeRepository();
+    final channelRepository = _FakeChannelManagementRepository(
+      createCompleter: createCompleter,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+      ],
+    );
+
+    final sub = container.listen(channelManagementStoreProvider, (_, __) {});
+    final future = container
+        .read(channelManagementStoreProvider.notifier)
+        .createChannel('support', serverId: const ServerScopeId('server-1'));
+    await Future<void>.delayed(Duration.zero);
+
+    sub.close();
+    container.dispose();
+    createCompleter.complete('support-channel-id');
+
+    await expectLater(future, completion('support-channel-id'));
+  });
+
   test('rename/delete/leave refresh the workspace snapshot after success',
       () async {
     final homeRepository = _FakeHomeRepository();

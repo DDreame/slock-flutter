@@ -348,6 +348,35 @@ void main() {
     });
   });
 
+  test('clears in-flight flag on non-AppFailure', () async {
+    const resolvedTarget = ThreadRouteTarget(
+      serverId: 'server-1',
+      parentChannelId: 'channel-1',
+      parentMessageId: 'msg-parent-1',
+      threadChannelId: 'thread-ch-1',
+    );
+
+    final localContainer = ProviderContainer(
+      overrides: [
+        currentThreadRouteTargetProvider.overrideWithValue(resolvedTarget),
+        threadRepositoryProvider.overrideWithValue(mockRepo),
+      ],
+    );
+    addTearDown(localContainer.dispose);
+
+    final sub = localContainer.listen(threadRepliesStoreProvider, (_, __) {});
+    addTearDown(sub.close);
+
+    await localContainer.read(threadRepliesStoreProvider.notifier).load();
+    mockRepo.followThrowable = StateError('raw follow failure');
+
+    await localContainer.read(threadRepliesStoreProvider.notifier).follow();
+
+    final state = localContainer.read(threadRepliesStoreProvider);
+    expect(state.isFollowingInFlight, isFalse);
+    expect(state.failure, isA<UnknownFailure>());
+  });
+
   // ---------------------------------------------------------------------------
   // INV-THREAD-FOLLOW-3: follow() is no-op when guards fail
   // ---------------------------------------------------------------------------
@@ -491,6 +520,36 @@ void main() {
     });
   });
 
+  test('clears in-flight flag on non-AppFailure', () async {
+    const resolvedTarget = ThreadRouteTarget(
+      serverId: 'server-1',
+      parentChannelId: 'channel-1',
+      parentMessageId: 'msg-parent-1',
+      threadChannelId: 'thread-ch-1',
+    );
+
+    final localContainer = ProviderContainer(
+      overrides: [
+        currentThreadRouteTargetProvider.overrideWithValue(resolvedTarget),
+        threadRepositoryProvider.overrideWithValue(mockRepo),
+      ],
+    );
+    addTearDown(localContainer.dispose);
+
+    final sub = localContainer.listen(threadRepliesStoreProvider, (_, __) {});
+    addTearDown(sub.close);
+
+    await localContainer.read(threadRepliesStoreProvider.notifier).load();
+    mockRepo.markDoneThrowable = StateError('raw mark-done failure');
+
+    await localContainer.read(threadRepliesStoreProvider.notifier).markDone();
+
+    final state = localContainer.read(threadRepliesStoreProvider);
+    expect(state.isDone, isFalse);
+    expect(state.isDoneInFlight, isFalse);
+    expect(state.failure, isA<UnknownFailure>());
+  });
+
   // ---------------------------------------------------------------------------
   // INV-THREAD-DONE-3: markDone() is no-op when guards fail
   // ---------------------------------------------------------------------------
@@ -570,7 +629,9 @@ class _MockThreadRepository implements ThreadRepository {
   ResolvedThreadChannel? resolveResult;
   AppFailure? resolveError;
   AppFailure? followError;
+  Object? followThrowable;
   AppFailure? markDoneError;
+  Object? markDoneThrowable;
   int resolveCallCount = 0;
   int followCallCount = 0;
   int markDoneCallCount = 0;
@@ -590,6 +651,7 @@ class _MockThreadRepository implements ThreadRepository {
   @override
   Future<void> followThread(ThreadRouteTarget target) async {
     followCallCount++;
+    if (followThrowable != null) throw followThrowable!;
     if (followError != null) throw followError!;
   }
 
@@ -599,6 +661,7 @@ class _MockThreadRepository implements ThreadRepository {
     required String threadChannelId,
   }) async {
     markDoneCallCount++;
+    if (markDoneThrowable != null) throw markDoneThrowable!;
     if (markDoneError != null) throw markDoneError!;
   }
 

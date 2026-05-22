@@ -228,6 +228,28 @@ void main() {
     );
 
     test(
+      'markDone restores item on non-AppFailure',
+      () async {
+        final repo = _ControllableThreadRepository(
+          initialItems: [sampleItem],
+        )..markDoneThrowable = StateError('raw markDone failure');
+        final container = createContainer(threadRepository: repo);
+        addTearDown(container.dispose);
+
+        await container.read(threadsInboxStoreProvider.notifier).load();
+        await container
+            .read(threadsInboxStoreProvider.notifier)
+            .markDone(sampleItem);
+
+        final state = container.read(threadsInboxStoreProvider);
+        expect(state.items, hasLength(1));
+        expect(state.items.first.routeTarget.threadChannelId, 'thread-ch-1');
+        expect(state.completingThreadIds, isEmpty);
+        expect(state.failure, isA<UnknownFailure>());
+      },
+    );
+
+    test(
       'markDone removes item permanently on success',
       () async {
         final repo = _ControllableThreadRepository(
@@ -302,6 +324,7 @@ class _ControllableThreadRepository implements ThreadRepository {
   final List<ThreadInboxItem> initialItems;
   AppFailure? failure;
   AppFailure? markDoneFailure;
+  Object? markDoneThrowable;
 
   /// When set, `markThreadDone` awaits this completer before returning.
   /// Allows tests to observe mid-flight optimistic state.
@@ -333,6 +356,7 @@ class _ControllableThreadRepository implements ThreadRepository {
       await markDoneCompleter!.future;
       return;
     }
+    if (markDoneThrowable != null) throw markDoneThrowable!;
     if (markDoneFailure != null) throw markDoneFailure!;
   }
 

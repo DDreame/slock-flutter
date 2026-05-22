@@ -69,6 +69,15 @@ void main() {
       expect(state().failure, isNotNull);
     });
 
+    test('load non-AppFailure sets failure state and exits loading', () async {
+      fakeRepo.throwRawOnList = true;
+
+      await store().load();
+
+      expect(state().status, SavedMessagesStatus.failure);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
     test('loadMore appends pages', () async {
       fakeRepo.listResult = SavedMessagesPage(
         items: [
@@ -198,6 +207,7 @@ void main() {
 class _FakeSavedMessagesRepository implements SavedMessagesRepository {
   SavedMessagesPage? listResult;
   bool shouldFail = false;
+  bool throwRawOnList = false;
   final List<String> unsavedIds = [];
 
   @override
@@ -206,6 +216,9 @@ class _FakeSavedMessagesRepository implements SavedMessagesRepository {
     int limit = 50,
     int offset = 0,
   }) async {
+    if (throwRawOnList) {
+      throw StateError('raw load failure');
+    }
     if (shouldFail) {
       throw const UnknownFailure(
         message: 'Load failed',

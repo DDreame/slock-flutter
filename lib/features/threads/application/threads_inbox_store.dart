@@ -105,6 +105,18 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
       } on StateError catch (_) {
         // Provider disposed mid-flight — state write guard.
       }
+    } catch (error) {
+      try {
+        state = state.copyWith(
+          items: previousItems,
+          failure: UnknownFailure(
+            message: 'Failed to mark thread done.',
+            causeType: error.runtimeType.toString(),
+          ),
+        );
+      } on StateError catch (_) {
+        // Provider disposed mid-flight — state write guard.
+      }
     } finally {
       try {
         state = state.copyWith(
