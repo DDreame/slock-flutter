@@ -18,6 +18,7 @@ void main() {
   late FakeConversationLocalStore fakeLocalStore;
   late _FakeSearchRepository fakeSearchRepo;
   late ProviderContainer container;
+  late ProviderSubscription<SearchState> subscription;
 
   setUp(() {
     fakeLocalStore = FakeConversationLocalStore();
@@ -27,12 +28,26 @@ void main() {
       conversationLocalStoreProvider.overrideWithValue(fakeLocalStore),
       searchRepositoryProvider.overrideWithValue(fakeSearchRepo),
     ]);
+    subscription = container.listen<SearchState>(
+      searchStoreProvider,
+      (_, __) {},
+      fireImmediately: true,
+    );
   });
 
-  tearDown(() => container.dispose());
+  tearDown(() {
+    subscription.close();
+    container.dispose();
+  });
 
   SearchStore store() => container.read(searchStoreProvider.notifier);
   SearchState state() => container.read(searchStoreProvider);
+  Future<void> settleDebouncedSearch() async {
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    for (var i = 0; i < 10 && fakeSearchRepo.lastCallParams == null; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
 
   group('search store', () {
     test('initial state is idle', () {
@@ -200,7 +215,7 @@ void main() {
 
   group('search filters', () {
     test(
-        'setSenderFilter triggers new search with senderId param '
+        'setSenderFilter triggers debounced search with senderId param '
         '(INV-SEARCH-1)', () async {
       fakeSearchRepo.result = const SearchResultsPage(
         messages: [],
@@ -211,16 +226,19 @@ void main() {
       await store().search();
       fakeSearchRepo.lastCallParams = null; // reset
 
-      await store().setSenderFilter('user-42');
+      store().setSenderFilter('user-42');
 
       expect(state().senderFilter, 'user-42');
+      expect(fakeSearchRepo.lastCallParams, isNull,
+          reason: 'Filter changes should use the same debounce as query input');
+      await settleDebouncedSearch();
       expect(fakeSearchRepo.lastCallParams?.senderId, 'user-42',
           reason: 'INV-SEARCH-1: setSenderFilter must trigger search '
               'with senderId');
     });
 
     test(
-        'setSortBy triggers new search with sortBy param '
+        'setSortBy triggers debounced search with sortBy param '
         '(INV-SEARCH-1)', () async {
       fakeSearchRepo.result = const SearchResultsPage(
         messages: [],
@@ -231,9 +249,12 @@ void main() {
       await store().search();
       fakeSearchRepo.lastCallParams = null;
 
-      await store().setSortBy(SearchSortBy.oldest);
+      store().setSortBy(SearchSortBy.oldest);
 
       expect(state().sortBy, SearchSortBy.oldest);
+      expect(fakeSearchRepo.lastCallParams, isNull,
+          reason: 'Filter changes should not bypass debounce');
+      await settleDebouncedSearch();
       expect(fakeSearchRepo.lastCallParams?.sortBy, SearchSortBy.oldest,
           reason: 'INV-SEARCH-1: setSortBy must trigger search '
               'with sortBy');
@@ -249,16 +270,16 @@ void main() {
       store().updateQuery('hello');
       await store().search();
 
-      await store().setSenderFilter('user-42');
-      await store().setChannelFilter('general');
-      await store().setSortBy(SearchSortBy.oldest);
+      store().setSenderFilter('user-42');
+      store().setChannelFilter('general');
+      store().setSortBy(SearchSortBy.oldest);
 
       expect(state().senderFilter, 'user-42');
       expect(state().channelFilter, 'general');
       expect(state().sortBy, SearchSortBy.oldest);
 
       fakeSearchRepo.lastCallParams = null;
-      await store().clearFilters();
+      store().clearFilters();
 
       expect(state().senderFilter, isNull,
           reason: 'INV-SEARCH-3: senderFilter reset');
@@ -266,9 +287,50 @@ void main() {
           reason: 'INV-SEARCH-3: channelFilter reset');
       expect(state().sortBy, SearchSortBy.newest,
           reason: 'INV-SEARCH-3: sortBy reset to newest');
+      expect(fakeSearchRepo.lastCallParams, isNull,
+          reason: 'clearFilters should debounce the follow-up search');
+      await settleDebouncedSearch();
       expect(fakeSearchRepo.lastCallParams?.senderId, isNull);
       expect(fakeSearchRepo.lastCallParams?.sortBy, SearchSortBy.newest);
       expect(fakeSearchRepo.lastCallParams?.channelId, isNull);
+    });
+
+    test('filter change during in-flight search discards old remote results',
+        () async {
+      final completer = Completer<SearchResultsPage>();
+      fakeSearchRepo.completerOverride = completer;
+      fakeSearchRepo.onSearchCall = Completer<void>();
+
+      store().updateQuery('hello');
+      final searchFuture = store().search();
+      await fakeSearchRepo.onSearchCall!.future;
+
+      final firstCancelToken = fakeSearchRepo.cancelTokens.single;
+      store().setSenderFilter('user-42');
+
+      completer.complete(SearchResultsPage(
+        messages: [
+          SearchResultMessage(
+            message: ConversationMessageSummary(
+              id: 'stale-filter-result',
+              content: 'Stale unfiltered result',
+              createdAt: DateTime.parse('2026-04-21T10:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: false,
+      ));
+
+      await searchFuture;
+
+      expect(firstCancelToken?.isCancelled, isTrue);
+      expect(state().senderFilter, 'user-42');
+      expect(state().remoteResults, isEmpty,
+          reason:
+              'Stale results from the pre-filter request must be discarded');
     });
 
     test('loadMore appends results at current offset (INV-SEARCH-4)', () async {

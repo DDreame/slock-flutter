@@ -89,6 +89,20 @@ void main() {
       expect(state().items.last.title, 'New task');
     });
 
+    test('createTasks dedups created tasks by id on retry', () async {
+      fakeRepo.listResult = [makeTask()];
+      await store().load();
+
+      fakeRepo.createResult = [
+        makeTask(id: 'task-new', taskNumber: 2, title: 'New task'),
+      ];
+
+      await store().createTasks(channelId: 'ch1', titles: ['New task']);
+      await store().createTasks(channelId: 'ch1', titles: ['New task']);
+
+      expect(state().items.map((task) => task.id), ['task-1', 'task-new']);
+    });
+
     test('updateTaskStatus optimistically updates then confirms', () async {
       fakeRepo.listResult = [makeTask(id: 'task-1', status: 'todo')];
       await store().load();

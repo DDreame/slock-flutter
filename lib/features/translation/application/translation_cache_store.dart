@@ -136,6 +136,7 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
   /// Tracks message IDs with in-flight translation requests to prevent
   /// duplicate API calls from concurrent translateMessages() invocations.
   final Set<String> _inFlight = {};
+  bool _disposed = false;
 
   @override
   bool updateShouldNotify(
@@ -145,6 +146,11 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
       previous != next;
   @override
   TranslationCacheState build() {
+    _disposed = false;
+    ref.onDispose(() {
+      _disposed = true;
+      _inFlight.clear();
+    });
     return const TranslationCacheState();
   }
 
@@ -207,6 +213,7 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
         messageIds: uncached,
         targetLanguage: targetLanguage,
       );
+      if (_disposed) return;
 
       // Merge results into cache.
       final updated = Map<String, TranslationEntry>.from(state.translations);
@@ -240,6 +247,7 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
 
       state = state.copyWith(translations: _trimTranslations(updated));
     } on AppFailure {
+      if (_disposed) return;
       // Mark all pending as failed.
       final failed = Map<String, TranslationEntry>.from(state.translations);
       for (final id in uncached) {
@@ -254,7 +262,9 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
       }
       state = state.copyWith(translations: _trimTranslations(failed));
     } finally {
-      _inFlight.removeAll(uncached);
+      if (!_disposed) {
+        _inFlight.removeAll(uncached);
+      }
     }
   }
 
