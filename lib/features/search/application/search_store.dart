@@ -57,7 +57,14 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     _loadMoreRequestToken++; // invalidate pagination for the old query
     _cancelInFlightSearch();
     _cancelInFlightLoadMore();
-    state = state.copyWith(query: query);
+    state = state.copyWith(
+      query: query,
+      localResults: const [],
+      channelResults: const [],
+      contactResults: const [],
+      remoteResults: const [],
+      hasMore: false,
+    );
 
     if (query.trim().isEmpty) {
       final currentScope = state.scope;

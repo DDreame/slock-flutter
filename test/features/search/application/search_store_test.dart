@@ -260,6 +260,44 @@ void main() {
     );
   });
 
+  test('query change immediately clears previously emitted local results',
+      () async {
+    fakeLocalStore.upsertMessages([
+      LocalMessageUpsert(
+        serverId: 'server-1',
+        conversationId: 'ch-old',
+        messageId: 'local-old-visible',
+        content: 'old visible local result',
+        createdAt: DateTime(2026, 5, 1),
+        senderType: 'human',
+        messageType: 'message',
+      ),
+    ]);
+    fakeSearchRepo.completerOverride = Completer<SearchResultsPage>();
+
+    store().updateQuery('old');
+    final searchFuture = store().search();
+    for (var i = 0; i < 5 && state().localResults.isEmpty; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(state().localResults.map((result) => result.message.id),
+        contains('local-old-visible'));
+
+    store().updateQuery('new');
+
+    expect(state().query, 'new');
+    expect(state().localResults, isEmpty,
+        reason:
+            'Changing query must clear old-query local results immediately');
+    expect(state().channelResults, isEmpty);
+    expect(state().contactResults, isEmpty);
+
+    fakeSearchRepo.completerOverride!.complete(
+      const SearchResultsPage(messages: [], hasMore: false),
+    );
+    await searchFuture;
+  });
+
   test('normal search still emits valid local results before remote completes',
       () async {
     fakeLocalStore.upsertMessages([
