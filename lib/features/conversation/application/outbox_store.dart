@@ -179,6 +179,8 @@ ConversationDetailTarget? _targetFromKey(String key) {
 }
 
 const _prefsKey = 'outbox_queue';
+const _maxConsecutiveDrainFailures = 3;
+const _drainBackoffDuration = Duration(seconds: 30);
 
 /// Callback type for notifying conversation stores about drain results.
 ///
@@ -199,6 +201,9 @@ typedef OutboxDrainCallback = void Function(
 class OutboxStore extends Notifier<OutboxState> {
   int _localIdCounter = 0;
   bool _isDraining = false;
+  int _consecutiveDrainFailures = 0;
+  bool _drainBackoffActive = false;
+  Timer? _drainBackoffTimer;
   StreamSubscription<ConnectivityStatus>? _connectivitySub;
   final Map<String, OutboxDrainCallback> _drainCallbacks = {};
 
@@ -210,7 +215,10 @@ class OutboxStore extends Notifier<OutboxState> {
   OutboxState build() {
     final state = _loadFromPrefs();
     _listenConnectivity();
-    ref.onDispose(() => _connectivitySub?.cancel());
+    ref.onDispose(() {
+      _connectivitySub?.cancel();
+      _drainBackoffTimer?.cancel();
+    });
     // Drain any persisted outbox items on startup when already online.
     if (state.items.isNotEmpty) {
       final connectivity = ref.read(connectivityServiceProvider);
@@ -317,12 +325,14 @@ class OutboxStore extends Notifier<OutboxState> {
           replyToId: item.replyToId,
         );
         // Success — remove from queue and notify callback.
+        _clearDrainBackoff();
         _removeItem(targetKey, item.localId);
         _drainCallbacks[targetKey]
             ?.call(target, item.localId, serverMessage, null);
       } on AppFailure catch (e) {
         if (e.isRetryable) {
           // Network/timeout — stop draining, will retry later.
+          _recordDrainFailure();
           return;
         }
         // Non-retryable — mark as failed and notify callback.
@@ -342,7 +352,7 @@ class OutboxStore extends Notifier<OutboxState> {
   /// Re-checks connectivity before each target to avoid wasting attempts
   /// after a mid-drain network drop (#708).
   Future<void> drainAll() async {
-    if (_isDraining) return;
+    if (_isDraining || _drainBackoffActive) return;
     _isDraining = true;
     try {
       // Snapshot keys before iterating (state may mutate).
@@ -388,6 +398,33 @@ class OutboxStore extends Notifier<OutboxState> {
     }
   }
 
+  void _recordDrainFailure() {
+    _consecutiveDrainFailures += 1;
+    if (_consecutiveDrainFailures >= _maxConsecutiveDrainFailures) {
+      _startDrainBackoff();
+    }
+  }
+
+  void _startDrainBackoff() {
+    if (_drainBackoffActive) return;
+    _drainBackoffActive = true;
+    _drainBackoffTimer?.cancel();
+    _drainBackoffTimer = Timer(_drainBackoffDuration, () {
+      _drainBackoffActive = false;
+      _consecutiveDrainFailures = 0;
+      if (ref.read(connectivityServiceProvider).isOnline) {
+        Future.microtask(() => drainAll());
+      }
+    });
+  }
+
+  void _clearDrainBackoff() {
+    _consecutiveDrainFailures = 0;
+    _drainBackoffActive = false;
+    _drainBackoffTimer?.cancel();
+    _drainBackoffTimer = null;
+  }
+
   void _removeItem(String targetKey, String localId) {
     final current = Map<String, List<OutboxMessage>>.from(state.items);
     final list = current[targetKey];
@@ -421,6 +458,7 @@ class OutboxStore extends Notifier<OutboxState> {
     final service = ref.read(connectivityServiceProvider);
     _connectivitySub = service.statusStream.listen((status) {
       if (status == ConnectivityStatus.online) {
+        _clearDrainBackoff();
         drainAll();
       }
     });

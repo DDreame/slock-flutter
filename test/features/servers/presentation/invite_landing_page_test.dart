@@ -43,6 +43,25 @@ void main() {
     expect(find.text('Cancel'), findsOneWidget);
   });
 
+  testWidgets('double tap accept only calls acceptInvite once (#721)',
+      (tester) async {
+    final completer = Completer<AcceptInviteResult>();
+    final store = _FakeServerListStore(acceptCompleter: completer);
+
+    await tester.pumpWidget(buildPage(store: store));
+    final button = find.byKey(const ValueKey('invite-accept'));
+    await tester.tap(button);
+    await tester.tap(button);
+    await tester.pump();
+
+    expect(store.acceptCallCount, 1);
+
+    completer.complete(
+      const AcceptInviteResult(serverId: 's1', workspaceName: 'Test'),
+    );
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('shows loading state while joining', (tester) async {
     final completer = Completer<AcceptInviteResult>();
     final store = _FakeServerListStore(acceptCompleter: completer);

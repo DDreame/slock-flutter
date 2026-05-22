@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:slock_app/core/core.dart';
@@ -288,6 +289,40 @@ void main() {
       expect(callbackLocalId, 'pending-2');
       expect(callbackFailure, isA<NotFoundFailure>());
     });
+
+    test(
+      'drainAll retries automatically after repeated retryable failures (#721)',
+      () {
+        fakeAsync((async) {
+          repository.sendFailure = const NetworkFailure(
+            message: 'Server unreachable',
+          );
+
+          final notifier = container.read(outboxStoreProvider.notifier);
+          notifier.enqueue(target, 'Will retry with backoff');
+
+          notifier.drainAll();
+          for (var i = 0; i < 8; i++) {
+            async.flushMicrotasks();
+          }
+
+          expect(repository.sentContents.length, 3);
+          final targetKey = outboxTargetKey(target);
+          expect(container.read(outboxStoreProvider).items[targetKey],
+              hasLength(1));
+
+          repository.sendFailure = null;
+          async.elapse(const Duration(seconds: 30));
+          for (var i = 0; i < 4; i++) {
+            async.flushMicrotasks();
+          }
+
+          expect(repository.sentContents.length, 4);
+          expect(container.read(outboxStoreProvider).items[targetKey] ?? [],
+              isEmpty);
+        });
+      },
+    );
 
     test('concurrent drainAll calls send each queued message only once',
         () async {
