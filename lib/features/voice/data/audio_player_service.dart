@@ -58,8 +58,11 @@ class AudioAttachmentPlayerPool extends StateNotifier<String?> {
 
   bool isActive(String key) => state == key;
 
-  Future<Duration?> load(String key, String path) {
-    if (state != null && state != key) return Future.value();
+  Future<Duration?> load(String key, String path) async {
+    if (state != null && state != key) {
+      await _player.stop();
+      state = key;
+    }
     return _player.load(path);
   }
 

@@ -229,6 +229,70 @@ void main() {
       await secondBackfill;
     });
 
+    test('separate containers do not share channel backfill guard', () async {
+      final firstLocalStore = FakeConversationLocalStore();
+      final secondLocalStore = FakeConversationLocalStore();
+      final firstFetchedChannelIds = <String>[];
+      final secondFetchedChannelIds = <String>[];
+      final firstFetchCompleter = Completer<void>();
+      final secondFetchCompleter = Completer<void>();
+
+      final firstContainer = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(firstLocalStore),
+          previewMessageFetcherProvider.overrideWithValue(
+            (serverId, channelId) async {
+              firstFetchedChannelIds.add(channelId);
+              await firstFetchCompleter.future;
+              return null;
+            },
+          ),
+        ],
+      );
+      addTearDown(firstContainer.dispose);
+
+      final secondContainer = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(secondLocalStore),
+          previewMessageFetcherProvider.overrideWithValue(
+            (serverId, channelId) async {
+              secondFetchedChannelIds.add(channelId);
+              await secondFetchCompleter.future;
+              return null;
+            },
+          ),
+        ],
+      );
+      addTearDown(secondContainer.dispose);
+
+      final firstBackfill = firstContainer
+          .read(previewBackfillServiceProvider.notifier)
+          .backfill([makeChannel('ch-1')]);
+      for (var i = 0; i < 3; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(firstFetchedChannelIds, ['ch-1']);
+
+      final secondBackfill = secondContainer
+          .read(previewBackfillServiceProvider.notifier)
+          .backfill([makeChannel('ch-1')]);
+      for (var i = 0; i < 3; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(secondFetchedChannelIds, ['ch-1'],
+          reason:
+              'Separate ProviderContainers must not share in-flight guards');
+
+      firstFetchCompleter.complete();
+      secondFetchCompleter.complete();
+      await firstBackfill;
+      await secondBackfill;
+    });
+
     test(
         'server switch allows new server channel backfill while old is running',
         () async {

@@ -110,6 +110,24 @@ void main() {
     });
   });
 
+  group('AudioAttachmentPlayerPool', () {
+    test('load while another attachment is active returns duration', () async {
+      final player = _FakeAudioPlayerController();
+      final pool = AudioAttachmentPlayerPool(player);
+
+      await pool.play('first', '/tmp/first.m4a');
+      final duration = await pool.load('second', '/tmp/second.m4a');
+
+      expect(duration, const Duration(seconds: 12));
+      expect(player.stopCount, 1);
+      expect(player.loadCount, 1);
+      expect(player.loadedPaths, ['/tmp/second.m4a']);
+      expect(pool.isActive('second'), isTrue);
+
+      pool.dispose();
+    });
+  });
+
   group('AudioPlaybackState enum', () {
     test('has stopped, playing, and paused values', () {
       expect(
@@ -121,6 +139,83 @@ void main() {
           ]));
     });
   });
+}
+
+class _FakeAudioPlayerController implements AudioPlayerController {
+  final _stateController = StreamController<AudioPlaybackState>.broadcast();
+  final _positionController = StreamController<Duration>.broadcast();
+  final _durationController = StreamController<Duration>.broadcast();
+
+  int loadCount = 0;
+  int playCount = 0;
+  int stopCount = 0;
+  int disposeCount = 0;
+  final loadedPaths = <String>[];
+
+  @override
+  AudioPlaybackState state = AudioPlaybackState.stopped;
+
+  @override
+  String? currentPath;
+
+  @override
+  Stream<AudioPlaybackState> get stateStream => _stateController.stream;
+
+  @override
+  Stream<Duration> get positionStream => _positionController.stream;
+
+  @override
+  Stream<Duration> get durationStream => _durationController.stream;
+
+  @override
+  Future<Duration?> load(String path) async {
+    loadCount++;
+    loadedPaths.add(path);
+    currentPath = path;
+    const duration = Duration(seconds: 12);
+    _durationController.add(duration);
+    return duration;
+  }
+
+  @override
+  Future<void> play(String path) async {
+    playCount++;
+    currentPath = path;
+    state = AudioPlaybackState.playing;
+    _stateController.add(state);
+  }
+
+  @override
+  Future<void> pause() async {
+    state = AudioPlaybackState.paused;
+    _stateController.add(state);
+  }
+
+  @override
+  Future<void> resume() async {
+    state = AudioPlaybackState.playing;
+    _stateController.add(state);
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCount++;
+    state = AudioPlaybackState.stopped;
+    _stateController.add(state);
+  }
+
+  @override
+  Future<void> seek(Duration position) async {
+    _positionController.add(position);
+  }
+
+  @override
+  Future<void> dispose() async {
+    disposeCount++;
+    await _stateController.close();
+    await _positionController.close();
+    await _durationController.close();
+  }
 }
 
 class _FakeVoiceAudioPlayer implements VoiceAudioPlayer {
