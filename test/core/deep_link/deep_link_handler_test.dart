@@ -177,7 +177,8 @@ class _TestableDeepLinkHandler {
   bool _isCurrentRoute(String path) {
     final targetUri = Uri.parse(path);
     final currentUri = _router.currentUri;
-    return currentUri.path == targetUri.path;
+    return currentUri.path == targetUri.path &&
+        currentUri.query == targetUri.query;
   }
 }
 
@@ -457,7 +458,7 @@ void main() {
         );
 
         handler.handleDeepLink(
-          Uri.parse('slock://servers/s1/channels/c1?messageId=m1'),
+          Uri.parse('slock://servers/s1/channels/c1'),
         );
 
         expect(pushedPaths, isEmpty);
@@ -493,6 +494,37 @@ void main() {
         expect(router.routeInformationProvider.value.uri.path,
             '/servers/s1/channels/c1');
         expect(router.canPop(), isFalse);
+      },
+    );
+
+    test(
+      'production handler pushes when same route has different query (#722)',
+      () {
+        final router = GoRouter(
+          initialLocation: '/servers/s1/channels/c1',
+          routes: [
+            GoRoute(
+              path: '/servers/:serverId/channels/:channelId',
+              builder: (context, state) => const SizedBox.shrink(),
+            ),
+          ],
+        );
+        addTearDown(router.dispose);
+        final container = ProviderContainer(
+          overrides: [
+            sessionStoreProvider
+                .overrideWith(() => _AuthenticatedSessionStore()),
+          ],
+        );
+        addTearDown(container.dispose);
+        final handler = DeepLinkHandler(router: router, ref: container);
+
+        handler.handleDeepLink(
+          Uri.parse('slock://servers/s1/channels/c1?messageId=m1'),
+        );
+
+        expect(router.routeInformationProvider.value.uri.toString(),
+            '/servers/s1/channels/c1?messageId=m1');
       },
     );
 

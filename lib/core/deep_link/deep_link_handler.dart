@@ -105,6 +105,7 @@ class DeepLinkHandler {
   bool _isCurrentRoute(String path) {
     final targetUri = Uri.parse(path);
     final currentUri = _router.routeInformationProvider.value.uri;
-    return currentUri.path == targetUri.path;
+    return currentUri.path == targetUri.path &&
+        currentUri.query == targetUri.query;
   }
 }
