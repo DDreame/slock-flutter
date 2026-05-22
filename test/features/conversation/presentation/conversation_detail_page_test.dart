@@ -681,6 +681,9 @@ void main() {
     );
     await tester.pump();
     await tester.pumpAndSettle();
+    await tester.pump(
+      ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+    );
 
     final cachedSession =
         container.read(conversationDetailSessionStoreProvider)[target];
@@ -793,6 +796,9 @@ void main() {
       const Offset(0, -250),
     );
     await tester.pumpAndSettle();
+    await tester.pump(
+      ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+    );
 
     final beforeDisposeOffset = tester
         .state<ScrollableState>(find.byType(Scrollable).first)
@@ -827,6 +833,9 @@ void main() {
     );
     expect(restoredSession?.messages, hasLength(15));
     expect(restoredOffset, closeTo(beforeDisposeOffset, 1));
+    await tester.pump(
+      ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+    );
   });
 
   testWidgets('renders attachment section for messages with attachments', (

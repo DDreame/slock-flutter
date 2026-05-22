@@ -1390,6 +1390,88 @@ void main() {
       expect(state.messages.first.isDeleted, isFalse);
     });
 
+    test(
+        'batchDeleteMessages starts all deletes concurrently and rolls back failures',
+        () async {
+      final deleteCompleters = {
+        'message-1': Completer<void>(),
+        'message-2': Completer<void>(),
+        'message-3': Completer<void>(),
+      };
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+            ConversationMessageSummary(
+              id: 'message-2',
+              content: 'Second',
+              createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 2,
+            ),
+            ConversationMessageSummary(
+              id: 'message-3',
+              content: 'Third',
+              createdAt: DateTime.parse('2026-04-19T15:02:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 3,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        deleteCompleters: deleteCompleters,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final deleteFuture = container
+          .read(conversationDetailStoreProvider.notifier)
+          .batchDeleteMessages({'message-1', 'message-2', 'message-3'});
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        repository.deletedMessageIds,
+        containsAll(['message-1', 'message-2', 'message-3']),
+        reason: 'All delete requests should be initiated before any completes',
+      );
+
+      deleteCompleters['message-1']!.complete();
+      deleteCompleters['message-2']!.completeError(
+        const ServerFailure(message: 'delete failed'),
+      );
+      deleteCompleters['message-3']!.complete();
+
+      final result = await deleteFuture;
+
+      expect(result.succeeded, 2);
+      expect(result.failed, 1);
+      final messages = container.read(conversationDetailStoreProvider).messages;
+      expect(
+          messages.singleWhere((m) => m.id == 'message-1').isDeleted, isTrue);
+      expect(
+          messages.singleWhere((m) => m.id == 'message-2').isDeleted, isFalse);
+      expect(
+          messages.singleWhere((m) => m.id == 'message-3').isDeleted, isTrue);
+    });
+
     test('message:deleted realtime event removes message from state', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
@@ -2656,6 +2738,7 @@ class _FakeConversationRepository implements ConversationRepository {
     this.sentMessage,
     this.sendFailure,
     this.deleteFailure,
+    this.deleteCompleters = const {},
     this.pinFailure,
     this.sendCompleter,
   });
@@ -2668,6 +2751,7 @@ class _FakeConversationRepository implements ConversationRepository {
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
   final AppFailure? deleteFailure;
+  final Map<String, Completer<void>> deleteCompleters;
   final AppFailure? pinFailure;
   final Completer<ConversationMessageSummary>? sendCompleter;
   final List<ConversationDetailTarget> requestedTargets = [];
@@ -2804,6 +2888,10 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
   }) async {
     deletedMessageIds.add(messageId);
+    final completer = deleteCompleters[messageId];
+    if (completer != null) {
+      await completer.future;
+    }
     if (deleteFailure != null) {
       throw deleteFailure!;
     }

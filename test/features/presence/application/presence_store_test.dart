@@ -112,6 +112,44 @@ void main() {
     });
   });
 
+  group('PresenceState.hashCode', () {
+    test('distinguishes swapped field values', () {
+      const stateA = PresenceState(
+        statuses: {
+          'user-a': UserPresenceStatus.online,
+          'user-b': UserPresenceStatus.idle,
+        },
+      );
+      const stateB = PresenceState(
+        statuses: {
+          'user-a': UserPresenceStatus.idle,
+          'user-b': UserPresenceStatus.online,
+        },
+      );
+
+      expect(stateA, isNot(equals(stateB)));
+      expect(stateA.hashCode, isNot(equals(stateB.hashCode)));
+    });
+
+    test('is stable for equal maps with different insertion order', () {
+      const stateA = PresenceState(
+        statuses: {
+          'user-a': UserPresenceStatus.online,
+          'user-b': UserPresenceStatus.idle,
+        },
+      );
+      const stateB = PresenceState(
+        statuses: {
+          'user-b': UserPresenceStatus.idle,
+          'user-a': UserPresenceStatus.online,
+        },
+      );
+
+      expect(stateA, stateB);
+      expect(stateA.hashCode, stateB.hashCode);
+    });
+  });
+
   group('PresenceState.statusOf', () {
     test('returns online for online user', () {
       container.read(presenceStoreProvider.notifier).setOnline('user-1');
