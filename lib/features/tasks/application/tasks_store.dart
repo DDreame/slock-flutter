@@ -65,6 +65,25 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
           failure: failure,
         );
       }
+    } catch (e, st) {
+      _reportUnexpectedError('load', e, st);
+      if (hasStaleData) {
+        state = state.copyWith(
+          isRefreshing: false,
+          failure: UnknownFailure(
+            message: 'Failed to load tasks.',
+            causeType: e.runtimeType.toString(),
+          ),
+        );
+      } else {
+        state = state.copyWith(
+          status: TasksStatus.failure,
+          failure: UnknownFailure(
+            message: 'Failed to load tasks.',
+            causeType: e.runtimeType.toString(),
+          ),
+        );
+      }
     }
   }
 
@@ -246,4 +265,14 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
   }
 
   void retry() => load();
+
+  void _reportUnexpectedError(String method, Object error, StackTrace st) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'TasksStore',
+        '$method failed: $error',
+        metadata: {'stackTrace': st.toString()},
+      );
+    } catch (_) {}
+  }
 }
