@@ -76,6 +76,7 @@ class VoiceRecorderWidget extends ConsumerWidget {
                 painter: AudioWaveformPainter(
                   amplitudes:
                       ref.read(voiceMessageStoreProvider.notifier).amplitudes,
+                  amplitudeCount: state.amplitudeCount,
                   color: theme.colorScheme.primary,
                 ),
                 size: Size.infinite,

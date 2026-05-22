@@ -5,11 +5,15 @@
 // A. 600 consecutive addAmplitude() calls complete in O(n) not O(n²)
 // B. amplitudes list grows correctly and values are normalized
 // C. reset() clears the mutable list
+// D. AudioWaveformPainter.shouldRepaint() fires on amplitudeCount change
+//    even when amplitudes list identity is unchanged (growable list fix)
 // =============================================================================
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
+import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';
 
 void main() {
   group('#774 — O(n²) amplitude accumulation fix', () {
@@ -81,6 +85,77 @@ void main() {
       // Must be same list instance (growable, not copied).
       expect(identical(store.amplitudes, listRef), isTrue,
           reason: '#774: amplitudes must grow in-place, not copy');
+    });
+  });
+
+  group('#774 — AudioWaveformPainter shouldRepaint with growable list', () {
+    test(
+        'shouldRepaint returns true when amplitudeCount changes '
+        '(same list identity)', () {
+      final sharedList = <double>[0.5, 0.7];
+
+      final oldPainter = AudioWaveformPainter(
+        amplitudes: sharedList,
+        amplitudeCount: 2,
+        color: Colors.blue,
+      );
+
+      // Append to the SAME list (simulates in-place growth).
+      sharedList.add(0.9);
+
+      final newPainter = AudioWaveformPainter(
+        amplitudes: sharedList, // Same identity!
+        amplitudeCount: 3, // Different count.
+        color: Colors.blue,
+      );
+
+      expect(newPainter.shouldRepaint(oldPainter), isTrue,
+          reason: '#774: shouldRepaint must fire on amplitudeCount change '
+              'even when list identity is the same');
+    });
+
+    test(
+        'shouldRepaint returns false when amplitudeCount is unchanged '
+        '(same list, same count)', () {
+      final sharedList = <double>[0.5, 0.7];
+
+      final oldPainter = AudioWaveformPainter(
+        amplitudes: sharedList,
+        amplitudeCount: 2,
+        color: Colors.blue,
+      );
+
+      final newPainter = AudioWaveformPainter(
+        amplitudes: sharedList,
+        amplitudeCount: 2,
+        color: Colors.blue,
+      );
+
+      expect(newPainter.shouldRepaint(oldPainter), isFalse,
+          reason: 'No change → no repaint');
+    });
+
+    test(
+        'shouldRepaint returns true on progress change '
+        '(existing behavior preserved)', () {
+      final list = <double>[0.5];
+
+      final oldPainter = AudioWaveformPainter(
+        amplitudes: list,
+        amplitudeCount: 1,
+        color: Colors.blue,
+        progress: 0.5,
+      );
+
+      final newPainter = AudioWaveformPainter(
+        amplitudes: list,
+        amplitudeCount: 1,
+        color: Colors.blue,
+        progress: 0.8,
+      );
+
+      expect(newPainter.shouldRepaint(oldPainter), isTrue,
+          reason: 'Progress change must still trigger repaint');
     });
   });
 }
