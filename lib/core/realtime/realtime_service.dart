@@ -34,6 +34,21 @@ class RealtimeService extends Notifier<RealtimeConnectionState> {
   @override
   RealtimeConnectionState build() {
     ref.onDispose(_disposeResources);
+
+    // #775: Detect socket client provider rebuild (token refresh or server
+    // switch). Clear stale _boundSocketClient so connect/forceReconnect
+    // operates on the fresh client instead of the disposed one.
+    ref.listen<RealtimeSocketClient>(realtimeSocketClientProvider, (_, next) {
+      if (_boundSocketClient != null && !identical(_boundSocketClient, next)) {
+        final previousSub = _signalsSubscription;
+        _signalsSubscription = null;
+        if (previousSub != null) {
+          unawaited(previousSub.cancel());
+        }
+        _boundSocketClient = null;
+      }
+    });
+
     return const RealtimeConnectionState();
   }
 
