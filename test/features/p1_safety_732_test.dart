@@ -9,14 +9,17 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
+import 'package:slock_app/core/auth/biometric_service.dart';
 import 'package:slock_app/core/network/connectivity_service.dart';
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
 import 'package:slock_app/core/realtime/realtime_lifecycle_binding.dart';
 import 'package:slock_app/core/realtime/providers.dart';
 import 'package:slock_app/core/realtime/realtime_service.dart';
+import 'package:slock_app/features/biometric/presentation/page/biometric_lock_page.dart';
 import 'package:slock_app/features/settings/data/biometric_preference.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
@@ -65,6 +68,70 @@ void main() {
 
       sub.close();
     });
+
+    testWidgets(
+      'BiometricLockPage Disable & Continue button awaits persistence',
+      (tester) async {
+        final repo = _SlowBiometricPreferenceRepository();
+        final fakeService = _FakeBiometricService();
+
+        final container = ProviderContainer(
+          overrides: [
+            biometricPreferenceRepositoryProvider.overrideWithValue(repo),
+            biometricServiceProvider.overrideWithValue(fakeService),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Enable biometric lock (puts store in locked state).
+        await container.read(biometricStoreProvider.notifier).setEnabled(true);
+        expect(container.read(biometricStoreProvider).isLocked, isTrue);
+
+        // First auth attempt returns permanentLockout to reveal the button.
+        fakeService.nextResult = BiometricAuthResult.permanentLockout;
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(home: BiometricLockPage()),
+          ),
+        );
+        // Post-frame callback triggers _authenticate.
+        await tester.pump();
+        // Async authenticate resolves.
+        await tester.pump();
+
+        // "Disable & Continue" button should now be visible.
+        final disableBtn = find.byKey(const ValueKey('biometric-lock-disable'));
+        expect(disableBtn, findsOneWidget);
+
+        // Set up a slow repo for the disable call.
+        repo.completer = Completer<void>();
+
+        // Tap "Disable & Continue" — calls _disableAndContinue which awaits
+        // setEnabled(false). While the repo is pending, state must NOT change.
+        await tester.tap(disableBtn);
+        await tester.pump();
+
+        // State must still be enabled+locked while persistence is pending.
+        expect(container.read(biometricStoreProvider).enabled, isTrue,
+            reason:
+                'Page must await persistence — state should not change yet');
+        expect(container.read(biometricStoreProvider).isLocked, isTrue,
+            reason: 'Lock page should remain while awaiting persistence');
+
+        // Complete persistence.
+        repo.completer!.complete();
+        await tester.pump();
+        await tester.pump();
+
+        // NOW state should reflect disabled + unlocked.
+        expect(container.read(biometricStoreProvider).enabled, isFalse,
+            reason:
+                'After persistence completes, biometric should be disabled');
+        expect(container.read(biometricStoreProvider).isLocked, isFalse);
+      },
+    );
   });
 
   // ===========================================================================
@@ -119,7 +186,7 @@ void main() {
   // ===========================================================================
   group('#732C — RealtimeLifecycleBinding TOCTOU', () {
     test(
-        'status change during connect() aborts stale action via generation guard',
+        'generation guard disconnects stale connect that completes after superseded',
         () async {
       final realtimeService = _ControllableRealtimeService();
 
@@ -132,15 +199,11 @@ void main() {
       );
       addTearDown(container.dispose);
 
-      // Initialize the binding FIRST while session is unauthenticated.
-      // This avoids Riverpod's "modify during initialization" assertion because
-      // the initial syncConnection() sees shouldConnect=false and is a no-op.
+      // Initialize the binding while unauthenticated (no-op initial sync).
       container.read(realtimeLifecycleBindingProvider);
       await Future.delayed(Duration.zero);
 
-      // Now set auth to authenticated — triggers the listener, which calls
-      // syncConnection() → connect(). Provider is fully built, so state
-      // modification inside connect() is allowed.
+      // Authenticate → triggers connect() (Gen 1), hangs on completer.
       (container.read(sessionStoreProvider.notifier) as _FakeSessionStore)
           .setStateForTest(
               const SessionState(status: AuthStatus.authenticated));
@@ -148,24 +211,38 @@ void main() {
 
       expect(realtimeService.connectCallCount, 1,
           reason: 'Auth change should trigger connect');
+      expect(realtimeService.disconnectCallCount, 0);
 
-      // While connect is in-flight, change session to unauthenticated.
+      // While connect is in-flight, deauthenticate → Gen 2 fires.
+      // Gen 2 sees status=connecting → calls disconnect().
       (container.read(sessionStoreProvider.notifier) as _FakeSessionStore)
           .setStateForTest(
               const SessionState(status: AuthStatus.unauthenticated));
-
-      // Allow the listener to fire (triggers new syncConnection with shouldConnect=false).
       await Future.delayed(Duration.zero);
 
-      // Complete the first connect.
+      // Gen 2's disconnect fires immediately (service fake is synchronous).
+      expect(realtimeService.disconnectCallCount, 1,
+          reason: 'Gen 2 should disconnect because shouldConnect=false');
+
+      // Now complete Gen 1's connect — it resolves, setting state=connected.
+      // The generation guard detects staleness and calls disconnect() to undo
+      // the stale connection. Without the guard, the system would be left in
+      // "connected" state despite being unauthenticated.
       realtimeService.connectCompleter.complete();
       await Future.delayed(Duration.zero);
       await Future.delayed(Duration.zero);
 
-      // The second syncConnection should have called disconnect.
-      expect(realtimeService.disconnectCallCount, greaterThanOrEqualTo(1),
-          reason:
-              'Must disconnect after auth changed during in-flight connect');
+      // The generation guard's undo-disconnect must fire.
+      expect(realtimeService.disconnectCallCount, 2,
+          reason: 'Generation guard must disconnect stale connect — '
+              'without it, system stays connected while unauthenticated');
+
+      // Final state must be disconnected.
+      expect(
+        container.read(realtimeServiceProvider).status,
+        RealtimeConnectionStatus.disconnected,
+        reason: 'Final state must be disconnected after stale connect undone',
+      );
     });
   });
 }
@@ -225,5 +302,20 @@ class _FakeSessionStore extends SessionStore {
 
   void setStateForTest(SessionState newState) {
     state = newState;
+  }
+}
+
+/// Fake BiometricService for widget tests.
+class _FakeBiometricService implements BiometricService {
+  BiometricAuthResult nextResult = BiometricAuthResult.success;
+
+  @override
+  Future<bool> isAvailable() async => true;
+
+  @override
+  Future<BiometricAuthResult> authenticate({
+    required String localizedReason,
+  }) async {
+    return nextResult;
   }
 }

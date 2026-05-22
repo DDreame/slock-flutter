@@ -24,8 +24,12 @@ final realtimeLifecycleBindingProvider = Provider<void>((ref) {
     if (shouldConnect) {
       if (connectionState.status == RealtimeConnectionStatus.disconnected) {
         await service.connect();
-        // Bail out if a newer sync was triggered during connect().
-        if (generation != syncGeneration) return;
+        // Stale — a newer sync has superseded this one; undo the connect
+        // so the stale connection doesn't linger in "connected" state (#732).
+        if (generation != syncGeneration) {
+          await service.disconnect();
+          return;
+        }
       }
       return;
     }
