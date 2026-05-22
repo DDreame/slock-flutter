@@ -93,6 +93,53 @@ void main() {
     expect(homeRepository.loadCalls, 2);
   });
 
+  test('createChannel does not share in-flight mutation for different requests',
+      () async {
+    final supportCompleter = Completer<String>();
+    final opsCompleter = Completer<String>();
+    final homeRepository = _FakeHomeRepository();
+    final channelRepository = _FakeChannelManagementRepository(
+      createCompletersByName: {
+        'support': supportCompleter,
+        'ops': opsCompleter,
+      },
+    );
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(homeListStoreProvider.notifier).load();
+
+    final store = container.read(channelManagementStoreProvider.notifier);
+    final support = store.createChannel(
+      'support',
+      serverId: const ServerScopeId('server-1'),
+    );
+    final ops = store.createChannel(
+      'ops',
+      serverId: const ServerScopeId('server-1'),
+    );
+    await Future<void>.delayed(Duration.zero);
+
+    expect(channelRepository.createdNames, ['support', 'ops']);
+    supportCompleter.complete('support-channel-id');
+    opsCompleter.complete('ops-channel-id');
+    final results = await Future.wait([support, ops]);
+
+    expect(results, ['support-channel-id', 'ops-channel-id']);
+    expect(homeRepository.loadCalls, 3);
+  });
+
   test('rename/delete/leave refresh the workspace snapshot after success',
       () async {
     final homeRepository = _FakeHomeRepository();
@@ -193,10 +240,12 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   _FakeChannelManagementRepository({
     this.createdChannelId = 'new-channel-id',
     this.createCompleter,
+    this.createCompletersByName = const <String, Completer<String>>{},
   });
 
   final String createdChannelId;
   final Completer<String>? createCompleter;
+  final Map<String, Completer<String>> createCompletersByName;
   final List<String> createdNames = [];
   final List<ServerScopeId> createdServerIds = [];
   final List<(String, String)> updatedChannels = [];
@@ -212,6 +261,10 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
   }) async {
     createdServerIds.add(serverId);
     createdNames.add(name);
+    final namedCompleter = createCompletersByName[name];
+    if (namedCompleter != null) {
+      return namedCompleter.future;
+    }
     final completer = createCompleter;
     if (completer != null) {
       return completer.future;

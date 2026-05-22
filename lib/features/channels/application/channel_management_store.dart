@@ -11,7 +11,8 @@ final channelManagementStoreProvider = NotifierProvider.autoDispose<
 
 class ChannelManagementStore
     extends AutoDisposeNotifier<ChannelManagementState> {
-  Future<String>? _createInFlight;
+  final Map<_CreateChannelRequest, Future<String>> _createInFlight =
+      <_CreateChannelRequest, Future<String>>{};
   final Set<String> _operationKeys = <String>{};
 
   @override
@@ -23,7 +24,13 @@ class ChannelManagementStore
     String? description,
     bool? isPrivate,
   }) {
-    final inFlight = _createInFlight;
+    final request = (
+      serverId: serverId,
+      name: name,
+      description: description,
+      isPrivate: isPrivate,
+    );
+    final inFlight = _createInFlight[request];
     if (inFlight != null) {
       return inFlight;
     }
@@ -33,8 +40,10 @@ class ChannelManagementStore
       serverId: serverId,
       description: description,
       isPrivate: isPrivate,
-    ).whenComplete(() => _createInFlight = null);
-    _createInFlight = future;
+    ).whenComplete(() {
+      _createInFlight.remove(request);
+    });
+    _createInFlight[request] = future;
     return future;
   }
 
@@ -180,3 +189,10 @@ class ChannelManagementStore
     return ref.read(homeListStoreProvider.notifier).load();
   }
 }
+
+typedef _CreateChannelRequest = ({
+  ServerScopeId serverId,
+  String name,
+  String? description,
+  bool? isPrivate,
+});
