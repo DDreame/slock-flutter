@@ -5,6 +5,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 
 final currentTasksServerIdProvider = Provider<ServerScopeId>((ref) {
   throw UnimplementedError(
@@ -138,6 +139,23 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
 
   Future<void> claimTask(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
+    final previousItems = state.items;
+
+    // Optimistic: immediately show current user as assignee.
+    final session = ref.read(sessionStoreProvider);
+    state = state.copyWith(
+      items: state.items
+          .map((t) => t.id == taskId
+              ? t.copyWith(
+                  claimedById: session.userId ?? '',
+                  claimedByName: session.displayName ?? '',
+                  claimedByType: 'human',
+                  claimedAt: DateTime.now(),
+                )
+              : t)
+          .toList(),
+    );
+
     try {
       final repo = ref.read(tasksRepositoryProvider);
       final updated = await repo.claimTask(serverId, taskId: taskId);
@@ -145,12 +163,22 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         items: state.items.map((t) => t.id == taskId ? updated : t).toList(),
       );
     } on AppFailure {
+      state = state.copyWith(items: previousItems);
       rethrow;
     }
   }
 
   Future<void> unclaimTask(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
+    final previousItems = state.items;
+
+    // Optimistic: immediately clear assignee.
+    state = state.copyWith(
+      items: state.items
+          .map((t) => t.id == taskId ? t.copyWith(clearClaim: true) : t)
+          .toList(),
+    );
+
     try {
       final repo = ref.read(tasksRepositoryProvider);
       final updated = await repo.unclaimTask(serverId, taskId: taskId);
@@ -158,6 +186,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         items: state.items.map((t) => t.id == taskId ? updated : t).toList(),
       );
     } on AppFailure {
+      state = state.copyWith(items: previousItems);
       rethrow;
     }
   }
