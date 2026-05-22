@@ -65,15 +65,24 @@ class LinkPreviewCacheNotifier
     }
 
     // Mark as loading (overwrite any prior error).
-    state = _trimToMax({...state, url: const AsyncValue.loading()});
+    state = _trimToMax(
+      {...state, url: const AsyncValue.loading()},
+      inFlight: _inFlight,
+    );
 
     try {
       final metadata = await _service.fetchMetadata(url);
-      state = _trimToMax({...state, url: AsyncValue.data(metadata)});
+      state = _trimToMax(
+        {...state, url: AsyncValue.data(metadata)},
+        inFlight: _inFlight,
+      );
     } on Exception catch (e, st) {
       _diagnostics.error('LinkPreview', 'Metadata fetch failed for $url: $e');
       // Transient failure — store as error so widget can show fallback.
-      state = _trimToMax({...state, url: AsyncValue.error(e, st)});
+      state = _trimToMax(
+        {...state, url: AsyncValue.error(e, st)},
+        inFlight: _inFlight,
+      );
     } finally {
       _inFlight.remove(url);
     }
@@ -103,13 +112,19 @@ class LinkPreviewCacheNotifier
   /// Dart's default Map (LinkedHashMap) preserves insertion order,
   /// so the first keys are the least recently used.
   static Map<String, AsyncValue<LinkMetadata?>> _trimToMax(
-    Map<String, AsyncValue<LinkMetadata?>> cache,
-  ) {
-    if (cache.length <= maxSize) return cache;
-    final excess = cache.length - maxSize;
-    final keysToRemove = cache.keys.take(excess).toList();
-    for (final key in keysToRemove) {
-      cache.remove(key);
+    Map<String, AsyncValue<LinkMetadata?>> cache, {
+    Set<String> inFlight = const {},
+  }) {
+    while (cache.length > maxSize) {
+      String? keyToRemove;
+      for (final key in cache.keys) {
+        if (!inFlight.contains(key)) {
+          keyToRemove = key;
+          break;
+        }
+      }
+      if (keyToRemove == null) break;
+      cache.remove(keyToRemove);
     }
     return cache;
   }

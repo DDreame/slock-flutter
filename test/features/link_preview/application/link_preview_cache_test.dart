@@ -18,6 +18,8 @@
 // INV-CACHE-VOICE-CAP-1: Voice waveform cache evicts oldest when exceeding max
 // INV-CACHE-DIO-CLOSE-1: LinkPreviewService Dio closed on provider dispose
 // ---------------------------------------------------------------------------
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -145,6 +147,63 @@ void main() {
     );
   });
 
+  group('LRU in-flight protection', () {
+    test('in-flight URL is not evicted when cache is trimmed', () async {
+      final service = _InFlightLinkPreviewService(
+        heldUrl: 'https://example.com/in-flight',
+      );
+      final container = ProviderContainer(
+        overrides: [
+          linkPreviewServiceProvider.overrideWithValue(service),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(linkPreviewCacheProvider.notifier);
+      final inFlightFetch = notifier.fetch('https://example.com/in-flight');
+      await Future<void>.delayed(Duration.zero);
+
+      for (var i = 0; i < LinkPreviewCacheNotifier.maxSize - 1; i++) {
+        await notifier.fetch('https://example.com/$i');
+      }
+      expect(container.read(linkPreviewCacheProvider).length, 100);
+      expect(
+        container
+            .read(linkPreviewCacheProvider)['https://example.com/in-flight'],
+        isA<AsyncLoading<LinkMetadata?>>(),
+      );
+
+      await notifier.fetch('https://example.com/overflow');
+
+      final loadingState = container.read(linkPreviewCacheProvider);
+      expect(loadingState.length, 100);
+      expect(
+        loadingState['https://example.com/in-flight'],
+        isA<AsyncLoading<LinkMetadata?>>(),
+        reason: 'LRU trimming must not evict entries with fetches in flight.',
+      );
+
+      service.completeHeld(
+        const LinkMetadata(
+          url: 'https://example.com/in-flight',
+          title: 'Loaded',
+          domain: 'example.com',
+        ),
+      );
+      await inFlightFetch;
+
+      final completedState = container.read(linkPreviewCacheProvider);
+      expect(
+        completedState['https://example.com/in-flight'],
+        isA<AsyncData<LinkMetadata?>>(),
+      );
+      expect(
+        completedState['https://example.com/in-flight']!.value!.title,
+        'Loaded',
+      );
+    });
+  });
+
   // -----------------------------------------------------------------------
   // INV-CACHE-VOICE-CAP-1: Voice waveform cache evicts at max size
   //
@@ -256,5 +315,28 @@ class _CloseTrackingLinkPreviewService extends LinkPreviewService {
   @override
   void close() {
     onClose();
+  }
+}
+
+class _InFlightLinkPreviewService extends LinkPreviewService {
+  _InFlightLinkPreviewService({required this.heldUrl}) : super(dio: Dio());
+
+  final String heldUrl;
+  final Completer<LinkMetadata?> _heldCompleter = Completer<LinkMetadata?>();
+
+  @override
+  Future<LinkMetadata?> fetchMetadata(String url) {
+    if (url == heldUrl) {
+      return _heldCompleter.future;
+    }
+    return Future.value(LinkMetadata(
+      url: url,
+      title: 'Title for $url',
+      domain: 'example.com',
+    ));
+  }
+
+  void completeHeld(LinkMetadata? metadata) {
+    _heldCompleter.complete(metadata);
   }
 }

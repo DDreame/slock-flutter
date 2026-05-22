@@ -35,6 +35,7 @@ class FakeSecureStorage implements SecureStorage {
 
 class FakeNotificationInitializer implements NotificationInitializer {
   int initCount = 0;
+  Completer<void>? initCompleter;
   bool shouldThrowOnInit = false;
   NotificationPermissionStatus permissionResult =
       NotificationPermissionStatus.granted;
@@ -43,12 +44,24 @@ class FakeNotificationInitializer implements NotificationInitializer {
   int requestPermissionCount = 0;
   String? tokenResult;
   Map<String, dynamic>? initialNotificationResult;
-  final StreamController<Map<String, dynamic>> tapController =
-      StreamController<Map<String, dynamic>>.broadcast();
+  int tapListenCount = 0;
+  int tokenListenCount = 0;
+  late final StreamController<Map<String, dynamic>> tapController =
+      StreamController<Map<String, dynamic>>.broadcast(
+    onListen: () => tapListenCount++,
+  );
+  late final StreamController<String> tokenController =
+      StreamController<String>.broadcast(
+    onListen: () => tokenListenCount++,
+  );
 
   @override
   Future<void> init() async {
     initCount++;
+    final completer = initCompleter;
+    if (completer != null) {
+      await completer.future;
+    }
     if (shouldThrowOnInit) throw Exception('init failed');
   }
 
@@ -76,7 +89,7 @@ class FakeNotificationInitializer implements NotificationInitializer {
   Stream<Map<String, dynamic>> get onForegroundMessage => const Stream.empty();
 
   @override
-  Stream<String> get onTokenChanged => const Stream.empty();
+  Stream<String> get onTokenChanged => tokenController.stream;
 
   @override
   Future<void> showLocalNotification(Map<String, dynamic> payload) async {}
@@ -120,6 +133,26 @@ void main() {
       expect(s.pushTokenUpdatedAt, isNull);
       expect(s.permissionStatus, NotificationPermissionStatus.unknown);
       expect(s.notificationPreference, NotificationPreference.all);
+    });
+
+    test('concurrent init creates only one subscription pair', () async {
+      fakeInitializer.initCompleter = Completer<void>();
+      final store = readStore();
+
+      final firstInit = store.init();
+      final secondInit = store.init();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeInitializer.initCount, 1);
+      expect(fakeInitializer.tapListenCount, 0);
+      expect(fakeInitializer.tokenListenCount, 0);
+
+      fakeInitializer.initCompleter!.complete();
+      await Future.wait([firstInit, secondInit]);
+
+      expect(fakeInitializer.initCount, 1);
+      expect(fakeInitializer.tapListenCount, 1);
+      expect(fakeInitializer.tokenListenCount, 1);
     });
 
     test('init calls initializer and restores token', () async {
