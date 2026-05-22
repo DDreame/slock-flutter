@@ -143,6 +143,7 @@ class ConversationDetailStore
         _ConversationDetailSelectionMixin {
   int _requestEpoch = 0;
   final RequestCoordinator _coordinator = RequestCoordinator();
+  bool _disposed = false;
 
   /// INV-DEDUP-663-1: Cached Set of message IDs for O(1) dedup lookup.
   /// Invalidated (rebuilt lazily) whenever state.messages list changes.
@@ -206,6 +207,7 @@ class ConversationDetailStore
 
   @override
   ConversationDetailState build() {
+    _disposed = false;
     final target = ref.watch(currentConversationDetailTargetProvider);
     final ingress = ref.watch(realtimeReductionIngressProvider);
     final cachedSession =
@@ -246,6 +248,7 @@ class ConversationDetailStore
     outbox.registerDrainCallback(targetKey, _onOutboxDrain);
 
     ref.onDispose(() {
+      _disposed = true;
       _sendMixinDisposed = true;
       unawaited(subscription.cancel());
       _coordinator.dispose();
@@ -962,10 +965,13 @@ class ConversationDetailStore
       state = state.copyWith(messages: messages);
       _persistSession();
       unawaited(
-        ref.read(conversationRepositoryProvider).removeStoredMessage(
+        ref
+            .read(conversationRepositoryProvider)
+            .removeStoredMessage(
               target,
               messageId: deleted.id,
-            ),
+            )
+            .catchError((Object _) {}),
       );
     }
   }

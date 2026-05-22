@@ -415,6 +415,7 @@ class HomeListStore extends Notifier<HomeListState> {
       final serverScopeId = ref.read(activeServerScopeIdProvider);
       if (serverScopeId == null) return;
 
+      final preRefreshRealtimePreviewIds = Set<String>.of(_realtimePreviewIds);
       _realtimePreviewIds.clear();
       state = state.copyWith(isRefreshing: true, clearFailure: true);
 
@@ -479,6 +480,7 @@ class HomeListStore extends Notifier<HomeListState> {
         }
 
         _hydrateUnreadCounts(snapshot);
+        _restoreRefreshRealtimePreviewIds(preRefreshRealtimePreviewIds);
 
         // Emit success with Tier 1 data, clear refreshing indicator.
         _emitPersonalizedState(
@@ -492,11 +494,20 @@ class HomeListStore extends Notifier<HomeListState> {
         unawaited(_loadAndMergeSupplemental(serverScopeId));
       } on AppFailure catch (failure) {
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
+        _restoreRefreshRealtimePreviewIds(preRefreshRealtimePreviewIds);
         // Keep existing data visible on refresh failure, but surface
         // the failure so the UI can show a snackbar (INV-NET-DEGRADE-2).
         state = state.copyWith(isRefreshing: false, failure: failure);
       }
     });
+  }
+
+  void _restoreRefreshRealtimePreviewIds(Set<String> preRefreshIds) {
+    final duringRefreshIds = Set<String>.of(_realtimePreviewIds);
+    _realtimePreviewIds
+      ..clear()
+      ..addAll(preRefreshIds)
+      ..addAll(duringRefreshIds);
   }
 
   /// No-op: ChannelUnreadStore hydration retired in favour of
