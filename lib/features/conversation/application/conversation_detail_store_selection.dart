@@ -59,6 +59,7 @@ mixin _ConversationDetailSelectionMixin on _ConversationDetailCoreMixin {
     );
 
     // Fire delete requests concurrently, tracking successes and failures.
+    final store = this as ConversationDetailStore;
     final repo = ref.read(conversationRepositoryProvider);
     final results = await Future.wait(
       ids.map((id) async {
@@ -70,6 +71,17 @@ mixin _ConversationDetailSelectionMixin on _ConversationDetailCoreMixin {
         }
       }),
     );
+
+    // Bail out if disposed or navigated away during the batch.
+    if (store._disposed) {
+      final succeeded = results.where((r) => r.succeeded).length;
+      return (succeeded: succeeded, failed: results.length - succeeded);
+    }
+    if (ref.read(currentConversationDetailTargetProvider) != target) {
+      final succeeded = results.where((r) => r.succeeded).length;
+      return (succeeded: succeeded, failed: results.length - succeeded);
+    }
+
     final succeeded = results.where((result) => result.succeeded).length;
     final failedIds = [
       for (final result in results)

@@ -18,9 +18,15 @@ final memberListStoreProvider =
 );
 
 class MemberListStore extends AutoDisposeNotifier<MemberListState> {
+  bool _disposed = false;
+
   @override
   MemberListState build() {
+    _disposed = false;
     ref.watch(currentMembersServerIdProvider);
+    ref.onDispose(() {
+      _disposed = true;
+    });
     return MemberListState();
   }
 
@@ -175,9 +181,11 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       final channelId = member.isAgent
           ? await repo.openAgentDirectMessage(serverId, agentId: userId)
           : await repo.openDirectMessage(serverId, userId: userId);
+      if (_disposed) return channelId;
       state = state.copyWith(clearOpeningDirectMessage: true);
       return channelId;
     } on AppFailure catch (failure) {
+      if (_disposed) rethrow;
       state = state.copyWith(failure: failure, clearOpeningDirectMessage: true);
       rethrow;
     }
