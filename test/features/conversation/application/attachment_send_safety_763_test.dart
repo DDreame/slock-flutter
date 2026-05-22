@@ -33,7 +33,8 @@ void main() {
   );
 
   group('Attachment send timeout (#763)', () {
-    test('attachment send timeout transitions to FAILED (not queued)', () async {
+    test('attachment send timeout transitions to FAILED (not queued)',
+        () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       fakeAsync((fake) {
@@ -60,8 +61,7 @@ void main() {
 
         container.read(conversationDetailStoreProvider.notifier).load();
         fake.flushMicrotasks();
-        final store =
-            container.read(conversationDetailStoreProvider.notifier);
+        final store = container.read(conversationDetailStoreProvider.notifier);
 
         // Add attachment and draft, start send with never-completing future.
         store.addPendingAttachment(const PendingAttachment(
@@ -147,8 +147,7 @@ void main() {
 
         container.read(conversationDetailStoreProvider.notifier).load();
         fake.flushMicrotasks();
-        final store =
-            container.read(conversationDetailStoreProvider.notifier);
+        final store = container.read(conversationDetailStoreProvider.notifier);
 
         // Start send with attachment — upload will never complete.
         store.addPendingAttachment(const PendingAttachment(
@@ -232,8 +231,7 @@ void main() {
 
         container.read(conversationDetailStoreProvider.notifier).load();
         fake.flushMicrotasks();
-        final store =
-            container.read(conversationDetailStoreProvider.notifier);
+        final store = container.read(conversationDetailStoreProvider.notifier);
 
         // Text-only send with never-completing future.
         store.updateDraft('text only');
@@ -262,7 +260,8 @@ void main() {
               .first
               .status,
           MessageSendStatus.queued,
-          reason: 'Text-only sends should still transition to queued on timeout',
+          reason:
+              'Text-only sends should still transition to queued on timeout',
         );
 
         // Outbox MUST have the message.
@@ -287,8 +286,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
-      final connectivityCtrl =
-          StreamController<ConnectivityStatus>.broadcast();
+      final connectivityCtrl = StreamController<ConnectivityStatus>.broadcast();
       final connectivity = ConnectivityService.withInitialStatus(
         ConnectivityStatus.online,
         controller: connectivityCtrl,
@@ -332,10 +330,8 @@ void main() {
       await sendFuture;
 
       // Must be in FAILED state (not silently dropped).
-      final pending = container
-          .read(conversationDetailStoreProvider)
-          .pendingMessages
-          .first;
+      final pending =
+          container.read(conversationDetailStoreProvider).pendingMessages.first;
       expect(
         pending.status,
         MessageSendStatus.failed,
@@ -349,8 +345,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
-      final connectivityCtrl =
-          StreamController<ConnectivityStatus>.broadcast();
+      final connectivityCtrl = StreamController<ConnectivityStatus>.broadcast();
       final connectivity = ConnectivityService.withInitialStatus(
         ConnectivityStatus.online,
         controller: connectivityCtrl,
@@ -391,10 +386,8 @@ void main() {
       // Text-only: timeout handler already transitioned to queued.
       // CancelledFailure should NOT override that — message stays as-is
       // (the timeout already fired and handled it).
-      final pending = container
-          .read(conversationDetailStoreProvider)
-          .pendingMessages
-          .first;
+      final pending =
+          container.read(conversationDetailStoreProvider).pendingMessages.first;
       // It should still be in sending state (CancelledFailure returns early
       // without transitioning for text-only).
       expect(
@@ -411,8 +404,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
-      final connectivityCtrl =
-          StreamController<ConnectivityStatus>.broadcast();
+      final connectivityCtrl = StreamController<ConnectivityStatus>.broadcast();
       final connectivity = ConnectivityService.withInitialStatus(
         ConnectivityStatus.online,
         controller: connectivityCtrl,
@@ -488,8 +480,7 @@ void main() {
 
       // retrySend — succeeds.
       repo.sendCompleter = null; // Default auto-success.
-      repo.autoSendResult =
-          _fakeMessage('msg-retry-success', 'will fail');
+      repo.autoSendResult = _fakeMessage('msg-retry-success', 'will fail');
       await store.retrySend(localId);
 
       // replyToMessage must be cleared after successful retry.
@@ -505,8 +496,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
-      final connectivityCtrl =
-          StreamController<ConnectivityStatus>.broadcast();
+      final connectivityCtrl = StreamController<ConnectivityStatus>.broadcast();
       final connectivity = ConnectivityService.withInitialStatus(
         ConnectivityStatus.online,
         controller: connectivityCtrl,

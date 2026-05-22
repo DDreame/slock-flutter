@@ -526,7 +526,8 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       // transitioned to .queued — skip. For attachment messages, transition
       // to .failed so the user can retry manually (#763).
       if (failure is CancelledFailure) {
-        if (pending.attachmentIds != null && pending.attachmentIds!.isNotEmpty) {
+        if (pending.attachmentIds != null &&
+            pending.attachmentIds!.isNotEmpty) {
           state = state.copyWith(
             pendingMessages: state.pendingMessages.map((m) {
               if (m.localId == localId) {
