@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
+import 'package:slock_app/features/machines/data/workspace_item.dart';
 
 const _serversPath = '/servers';
 const _serverHeaderName = 'X-Server-Id';
@@ -126,6 +127,44 @@ class _ApiMachinesRepository implements MachinesRepository {
     } catch (error) {
       throw UnknownFailure(
         message: 'Failed to delete machine.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<List<WorkspaceItem>> loadWorkspaces(String machineId) async {
+    try {
+      final response = await _appDioClient.get<Object?>(
+        '$_machinesPath/$machineId/workspaces',
+        options: _serverOptions,
+      );
+      return parseWorkspaceList(response.data, machineId: machineId);
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to load workspaces.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> deleteWorkspace(
+    String machineId, {
+    required String workspaceId,
+  }) async {
+    try {
+      await _appDioClient.delete<Object?>(
+        '$_machinesPath/$machineId/workspaces/$workspaceId',
+        options: _serverOptions,
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to delete workspace.',
         causeType: error.runtimeType.toString(),
       );
     }

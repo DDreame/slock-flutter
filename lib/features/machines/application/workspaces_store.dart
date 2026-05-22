@@ -1,0 +1,80 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/machines/application/workspaces_state.dart';
+import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
+
+final currentWorkspacesMachineIdProvider = Provider<String>((ref) {
+  throw UnimplementedError(
+    'currentWorkspacesMachineIdProvider must be overridden.',
+  );
+});
+
+final workspacesStoreProvider =
+    NotifierProvider.autoDispose<WorkspacesStore, WorkspacesState>(
+  WorkspacesStore.new,
+  dependencies: [
+    currentWorkspacesMachineIdProvider,
+    machinesRepositoryProvider
+  ],
+);
+
+class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
+  @override
+  WorkspacesState build() {
+    return const WorkspacesState();
+  }
+
+  Future<void> load() async {
+    final machineId = ref.read(currentWorkspacesMachineIdProvider);
+
+    state = state.copyWith(
+      status: WorkspacesStatus.loading,
+      clearFailure: true,
+    );
+
+    try {
+      final repo = ref.read(machinesRepositoryProvider);
+      final workspaces = await repo.loadWorkspaces(machineId);
+      state = state.copyWith(
+        status: WorkspacesStatus.success,
+        items: workspaces,
+        clearFailure: true,
+      );
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        status: WorkspacesStatus.failure,
+        failure: failure,
+      );
+    }
+  }
+
+  Future<void> deleteWorkspace(String workspaceId) async {
+    final machineId = ref.read(currentWorkspacesMachineIdProvider);
+    final previousItems = state.items;
+
+    // Optimistic: remove from list and add to deleting set.
+    state = state.copyWith(
+      items: state.items.where((w) => w.id != workspaceId).toList(),
+      deletingWorkspaceIds: {...state.deletingWorkspaceIds, workspaceId},
+    );
+
+    try {
+      final repo = ref.read(machinesRepositoryProvider);
+      await repo.deleteWorkspace(machineId, workspaceId: workspaceId);
+
+      // Success — clear deleting flag.
+      state = state.copyWith(
+        deletingWorkspaceIds:
+            state.deletingWorkspaceIds.difference({workspaceId}),
+      );
+    } on AppFailure {
+      // Rollback: restore previous items and clear deleting flag.
+      state = state.copyWith(
+        items: previousItems,
+        deletingWorkspaceIds:
+            state.deletingWorkspaceIds.difference({workspaceId}),
+      );
+      rethrow;
+    }
+  }
+}

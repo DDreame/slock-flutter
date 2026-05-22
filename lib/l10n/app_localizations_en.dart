@@ -1205,6 +1205,53 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get machinesMenuWorkspaces => 'Workspaces';
+
+  @override
+  String get workspacesPageTitle => 'Workspaces';
+
+  @override
+  String get workspacesEmpty => 'No workspaces on this machine.';
+
+  @override
+  String get workspacesLoadFailed => 'Failed to load workspaces.';
+
+  @override
+  String get workspacesRetryButton => 'Retry';
+
+  @override
+  String get workspacesDeleteTitle => 'Delete Workspace?';
+
+  @override
+  String workspacesDeleteMessage(String name) {
+    return 'Delete workspace \"$name\"? This cannot be undone.';
+  }
+
+  @override
+  String get workspacesDeleteCancel => 'Cancel';
+
+  @override
+  String get workspacesDeleteConfirm => 'Delete';
+
+  @override
+  String get workspacesDeletedSnackbar => 'Workspace deleted.';
+
+  @override
+  String get workspacesDeleteFailed => 'Failed to delete workspace.';
+
+  @override
+  String get workspacesMetaPath => 'Path';
+
+  @override
+  String get workspacesMetaAgent => 'Agent';
+
+  @override
+  String get workspacesStatusActive => 'Active';
+
+  @override
+  String get workspacesStatusInactive => 'Inactive';
+
+  @override
   String get tasksLoadFailed => 'Failed to load tasks.';
 
   @override

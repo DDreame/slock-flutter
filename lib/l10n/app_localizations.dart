@@ -2284,6 +2284,96 @@ abstract class AppLocalizations {
   /// **'Key {prefix}...'**
   String machinesApiKeyPrefix(String prefix);
 
+  /// No description provided for @machinesMenuWorkspaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspaces'**
+  String get machinesMenuWorkspaces;
+
+  /// No description provided for @workspacesPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspaces'**
+  String get workspacesPageTitle;
+
+  /// No description provided for @workspacesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No workspaces on this machine.'**
+  String get workspacesEmpty;
+
+  /// No description provided for @workspacesLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load workspaces.'**
+  String get workspacesLoadFailed;
+
+  /// No description provided for @workspacesRetryButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get workspacesRetryButton;
+
+  /// No description provided for @workspacesDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Workspace?'**
+  String get workspacesDeleteTitle;
+
+  /// No description provided for @workspacesDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete workspace \"{name}\"? This cannot be undone.'**
+  String workspacesDeleteMessage(String name);
+
+  /// No description provided for @workspacesDeleteCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get workspacesDeleteCancel;
+
+  /// No description provided for @workspacesDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get workspacesDeleteConfirm;
+
+  /// No description provided for @workspacesDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace deleted.'**
+  String get workspacesDeletedSnackbar;
+
+  /// No description provided for @workspacesDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete workspace.'**
+  String get workspacesDeleteFailed;
+
+  /// No description provided for @workspacesMetaPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Path'**
+  String get workspacesMetaPath;
+
+  /// No description provided for @workspacesMetaAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get workspacesMetaAgent;
+
+  /// No description provided for @workspacesStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get workspacesStatusActive;
+
+  /// No description provided for @workspacesStatusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get workspacesStatusInactive;
+
   /// No description provided for @tasksLoadFailed.
   ///
   /// In en, this message translates to:

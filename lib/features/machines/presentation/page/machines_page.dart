@@ -8,6 +8,7 @@ import 'package:slock_app/features/machines/application/machines_state.dart';
 import 'package:slock_app/features/machines/application/machines_store.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
+import 'package:slock_app/features/machines/presentation/page/workspaces_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 class MachinesPage extends StatelessWidget {
@@ -73,6 +74,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
           ),
         MachinesStatus.success => _MachinesSuccessView(
             state: state,
+            serverId: ref.read(currentMachinesServerIdProvider),
             onRefresh: ref.read(machinesStoreProvider.notifier).load,
             onCreate: _createMachine,
             onRename: _renameMachine,
@@ -332,6 +334,7 @@ class _MachinesFailureView extends StatelessWidget {
 class _MachinesSuccessView extends StatelessWidget {
   const _MachinesSuccessView({
     required this.state,
+    required this.serverId,
     required this.onRefresh,
     required this.onCreate,
     required this.onRename,
@@ -340,6 +343,7 @@ class _MachinesSuccessView extends StatelessWidget {
   });
 
   final MachinesState state;
+  final ServerScopeId serverId;
   final Future<void> Function() onRefresh;
   final Future<void> Function() onCreate;
   final Future<void> Function(MachineItem machine) onRename;
@@ -382,6 +386,7 @@ class _MachinesSuccessView extends StatelessWidget {
               _MachineCard(
                 machine: machine,
                 isBusy: state.isBusy(machine.id),
+                serverId: serverId,
                 onRename: () => onRename(machine),
                 onRotateApiKey: () => onRotateApiKey(machine),
                 onDelete: () => onDelete(machine),
@@ -438,6 +443,7 @@ class _MachineCard extends StatelessWidget {
   const _MachineCard({
     required this.machine,
     required this.isBusy,
+    required this.serverId,
     required this.onRename,
     required this.onRotateApiKey,
     required this.onDelete,
@@ -445,6 +451,7 @@ class _MachineCard extends StatelessWidget {
 
   final MachineItem machine;
   final bool isBusy;
+  final ServerScopeId serverId;
   final Future<void> Function() onRename;
   final Future<void> Function() onRotateApiKey;
   final Future<void> Function() onDelete;
@@ -500,6 +507,16 @@ class _MachineCard extends StatelessWidget {
                     key: ValueKey('machine-actions-${machine.id}'),
                     onSelected: (action) {
                       switch (action) {
+                        case _MachineAction.workspaces:
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => WorkspacesPage(
+                                serverId: serverId.value,
+                                machineId: machine.id,
+                                machineName: machine.name,
+                              ),
+                            ),
+                          );
                         case _MachineAction.rename:
                           onRename();
                         case _MachineAction.rotateApiKey:
@@ -509,6 +526,10 @@ class _MachineCard extends StatelessWidget {
                       }
                     },
                     itemBuilder: (ctx) => [
+                      PopupMenuItem(
+                        value: _MachineAction.workspaces,
+                        child: Text(ctx.l10n.machinesMenuWorkspaces),
+                      ),
                       PopupMenuItem(
                         value: _MachineAction.rename,
                         child: Text(ctx.l10n.machinesMenuRename),
@@ -687,4 +708,4 @@ class _MachineNameDialogState extends State<_MachineNameDialog> {
   }
 }
 
-enum _MachineAction { rename, rotateApiKey, delete }
+enum _MachineAction { workspaces, rename, rotateApiKey, delete }

@@ -6,6 +6,7 @@ import 'package:slock_app/features/machines/application/machines_store.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
+import 'package:slock_app/features/machines/data/workspace_item.dart';
 
 void main() {
   late _FakeMachinesRepository fakeRepository;
@@ -167,4 +168,11 @@ class _FakeMachinesRepository implements MachinesRepository {
     }
     deletedMachineIds.add(machineId);
   }
+
+  @override
+  Future<List<WorkspaceItem>> loadWorkspaces(String machineId) async => [];
+
+  @override
+  Future<void> deleteWorkspace(String machineId,
+      {required String workspaceId}) async {}
 }
