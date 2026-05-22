@@ -528,6 +528,20 @@ class ConversationDetailStore
         isLoadingOlder: false,
         failure: failure,
       );
+    } catch (error, stackTrace) {
+      _captureUnexpectedLoadingException(
+        error,
+        stackTrace,
+        operation: 'ConversationDetailStore.loadOlder',
+      );
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      state = state.copyWith(
+        isLoadingOlder: false,
+        failure: _unexpectedConversationFailure(error),
+      );
     }
   }
 
@@ -572,6 +586,20 @@ class ConversationDetailStore
       state = state.copyWith(
         isLoadingNewer: false,
         failure: failure,
+      );
+    } catch (error, stackTrace) {
+      _captureUnexpectedLoadingException(
+        error,
+        stackTrace,
+        operation: 'ConversationDetailStore.loadNewer',
+      );
+      if (ref.read(currentConversationDetailTargetProvider) != target ||
+          state.status != ConversationDetailStatus.success) {
+        return;
+      }
+      state = state.copyWith(
+        isLoadingNewer: false,
+        failure: _unexpectedConversationFailure(error),
       );
     }
   }
@@ -898,6 +926,22 @@ class ConversationDetailStore
     }());
   }
 
+  void _captureUnexpectedLoadingException(
+    Object error,
+    StackTrace stackTrace, {
+    required String operation,
+  }) {
+    try {
+      ref.read(crashReporterProvider).captureException(
+        error,
+        stackTrace: stackTrace,
+        extra: {'operation': operation},
+      );
+    } catch (_) {
+      // Crash reporting is best-effort; loading recovery must still complete.
+    }
+  }
+
   void _handleMessageDeleted(
     Object payload,
     ConversationDetailTarget target,
@@ -983,4 +1027,11 @@ class ConversationDetailStore
       // Provider container was disposed while refresh was pending.
     }
   }
+}
+
+AppFailure _unexpectedConversationFailure(Object error) {
+  return UnknownFailure(
+    message: 'Unexpected conversation loading error: $error',
+    causeType: 'unexpected_exception',
+  );
 }

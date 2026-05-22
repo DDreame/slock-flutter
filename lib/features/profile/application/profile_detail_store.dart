@@ -190,6 +190,35 @@ class ProfileDetailStore extends Notifier<ProfileDetailState> {
         status: ProfileDetailStatus.failure,
         failure: failure,
       );
+    } catch (error, stackTrace) {
+      _captureUnexpectedLoadException(error, stackTrace);
+      if (ref.read(currentProfileTargetProvider) != target) return;
+      state = state.copyWith(
+        status: ProfileDetailStatus.failure,
+        failure: _unexpectedProfileFailure(error),
+      );
     }
   }
+
+  void _captureUnexpectedLoadException(
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    try {
+      ref.read(crashReporterProvider).captureException(
+        error,
+        stackTrace: stackTrace,
+        extra: const {'operation': 'ProfileDetailStore._loadProfile'},
+      );
+    } catch (_) {
+      // Crash reporting is best-effort; loading recovery must still complete.
+    }
+  }
+}
+
+AppFailure _unexpectedProfileFailure(Object error) {
+  return UnknownFailure(
+    message: 'Unexpected profile loading error: $error',
+    causeType: 'unexpected_exception',
+  );
 }
