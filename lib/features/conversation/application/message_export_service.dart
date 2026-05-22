@@ -43,12 +43,19 @@ class MessageExportService {
   ///
   /// Returns the temp file path on success, or null on failure.
   /// Messages are rendered in send-time order regardless of input order.
+  ///
+  /// Previous export temp files are cleaned up at the start of each export
+  /// (#741), ensuring the current file survives long enough for the share
+  /// sheet to finish reading it (the share sheet may still be reading after
+  /// `shareXFiles` returns on mobile platforms).
   Future<String?> exportSelectedMessages(
     List<ConversationMessageSummary> messages, {
     required GlobalKey boundaryKey,
   }) async {
-    String? filePath;
     try {
+      // 0. Clean up previous export temp files (#741).
+      cleanupPreviousExportFiles();
+
       // 1. Find the RepaintBoundary render object.
       final context = boundaryKey.currentContext;
       if (context == null) return null;
@@ -63,7 +70,7 @@ class MessageExportService {
       // 3. Save to temporary file (synchronous write for test compatibility).
       final dir = Directory.systemTemp;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      filePath = '${dir.path}/slock_export_$timestamp.png';
+      final filePath = '${dir.path}/slock_export_$timestamp.png';
       final file = File(filePath);
       file.writeAsBytesSync(byteData.buffer.asUint8List());
 
@@ -75,19 +82,31 @@ class MessageExportService {
       return filePath;
     } catch (_) {
       return null;
-    } finally {
-      // Clean up temp file after share completes (or on failure) to
-      // prevent unbounded disk usage from export operations (#723).
-      if (filePath != null) {
-        try {
-          final file = File(filePath);
-          if (file.existsSync()) {
-            file.deleteSync();
+    }
+  }
+
+  /// Deletes any leftover `slock_export_*.png` files from previous exports.
+  ///
+  /// Called at the start of each new export to prevent unbounded disk usage
+  /// while keeping the current file alive for the share sheet (#741).
+  @visibleForTesting
+  static void cleanupPreviousExportFiles() {
+    try {
+      final dir = Directory.systemTemp;
+      final entries = dir.listSync();
+      for (final entry in entries) {
+        if (entry is File &&
+            entry.path.contains('slock_export_') &&
+            entry.path.endsWith('.png')) {
+          try {
+            entry.deleteSync();
+          } catch (_) {
+            // Best-effort — file may be locked by share sheet.
           }
-        } catch (_) {
-          // Best-effort cleanup — don't fail the export if delete fails.
         }
       }
+    } catch (_) {
+      // Best-effort — don't fail the export if cleanup fails.
     }
   }
 }

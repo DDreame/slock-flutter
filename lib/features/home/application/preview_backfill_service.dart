@@ -99,6 +99,9 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
   /// Maximum concurrent lazy-load API requests.
   int get maxConcurrent => 5;
 
+  /// Re-entrancy guard for DM backfill (#741).
+  Completer<void>? _dmBackfillInFlight;
+
   @override
   PreviewBackfillState build() => const PreviewBackfillState();
 
@@ -254,14 +257,34 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
   ///
   /// Mirrors [backfill] but operates on [HomeDirectMessageSummary] and calls
   /// [HomeListStore.backfillDmPreview] instead of backfillChannelPreview.
-  /// Does NOT guard on isRunning (can run concurrently with channel backfill).
+  /// Guarded against re-entrancy (#741): concurrent calls await the in-flight
+  /// pass instead of starting a duplicate.
   Future<void> backfillDirectMessages(
     List<HomeDirectMessageSummary> directMessages,
   ) async {
+    // Re-entrancy guard: if already running, await existing pass.
+    if (_dmBackfillInFlight != null) {
+      await _dmBackfillInFlight!.future;
+      return;
+    }
+
     final needsBackfill =
         directMessages.where((d) => d.lastMessagePreview == null).toList();
     if (needsBackfill.isEmpty) return;
 
+    _dmBackfillInFlight = Completer<void>();
+    try {
+      await _backfillDirectMessagesImpl(needsBackfill);
+    } finally {
+      final completer = _dmBackfillInFlight!;
+      _dmBackfillInFlight = null;
+      completer.complete();
+    }
+  }
+
+  Future<void> _backfillDirectMessagesImpl(
+    List<HomeDirectMessageSummary> needsBackfill,
+  ) async {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 

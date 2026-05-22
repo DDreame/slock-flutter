@@ -238,15 +238,21 @@ void main() {
             boundaryKey: boundaryKey,
           ));
 
-      // The method returns the file path (even though it's deleted after).
+      // The method returns the file path.
       expect(result, isNotNull);
       expect(sharedPath, isNotNull);
 
-      // After exportSelectedMessages returns, the finally block has run.
-      // The temp file must be deleted.
-      expect(File(sharedPath!).existsSync(), isFalse,
+      // #741 revision: temp file now persists after share to avoid deletion
+      // while the share sheet still reads it. Cleanup happens at the START of
+      // the next export. The file should still exist here.
+      expect(File(sharedPath!).existsSync(), isTrue,
           reason:
-              'Production cleanup must delete temp PNG after share completes');
+              '#741: Temp file must persist after share (cleaned on next export)');
+
+      // Simulate next export triggering cleanup.
+      MessageExportService.cleanupPreviousExportFiles();
+      expect(File(sharedPath!).existsSync(), isFalse,
+          reason: '#741: Temp file must be cleaned up when next export starts');
     });
 
     testWidgets(
@@ -298,11 +304,17 @@ void main() {
       expect(result, isNull);
       expect(capturedPath, isNotNull);
 
-      // After exportSelectedMessages returns, the finally block has run.
-      // The temp file must still be deleted even though share threw.
-      expect(File(capturedPath!).existsSync(), isFalse,
+      // #741 revision: temp file persists (no finally deletion). When share
+      // throws, the overall catch returns null but the file remains on disk
+      // until cleaned up by the next export.
+      expect(File(capturedPath!).existsSync(), isTrue,
           reason:
-              'Production cleanup must delete temp PNG even on share failure');
+              '#741: Temp file persists on failure (cleaned on next export)');
+
+      // Simulate next export triggering cleanup.
+      MessageExportService.cleanupPreviousExportFiles();
+      expect(File(capturedPath!).existsSync(), isFalse,
+          reason: '#741: Next export cleans up leftover files');
     });
 
     testWidgets(

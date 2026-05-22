@@ -17,6 +17,7 @@ class DownloadSchedulerState {
     this.inFlight = const {},
     this.pending = const [],
     this.deferred = const {},
+    this.failed = const {},
   });
 
   /// IDs of downloads currently in progress.
@@ -27,6 +28,9 @@ class DownloadSchedulerState {
 
   /// IDs of offscreen downloads waiting for visibility.
   final Set<String> deferred;
+
+  /// IDs of downloads that exhausted all retry attempts.
+  final Set<String> failed;
 }
 
 /// Internal tracking for a single enqueued download.
@@ -61,6 +65,9 @@ class DownloadPriorityScheduler
   /// Maximum number of concurrent downloads.
   int get maxConcurrent => 3;
 
+  /// Maximum retry attempts before marking a download as failed.
+  int get maxRetries => 3;
+
   /// All registered download entries by ID.
   final Map<String, _DownloadEntry> _entries = {};
 
@@ -76,8 +83,23 @@ class DownloadPriorityScheduler
   /// IDs that have completed — prevents re-enqueue on widget rebuild.
   final Set<String> _completed = {};
 
+  /// IDs that have exhausted all retry attempts.
+  final Set<String> _failed = {};
+
+  /// Retry attempt count per download ID.
+  final Map<String, int> _retryCounts = {};
+
+  /// Active retry timers (so they can be cancelled on dispose).
+  final Map<String, Timer> _retryTimers = {};
+
   @override
   DownloadSchedulerState build() {
+    ref.onDispose(() {
+      for (final timer in _retryTimers.values) {
+        timer.cancel();
+      }
+      _retryTimers.clear();
+    });
     return const DownloadSchedulerState();
   }
 
@@ -94,8 +116,12 @@ class DownloadPriorityScheduler
     Future<void> Function() download, {
     void Function()? onCancel,
   }) {
-    // Skip if already tracked or previously completed.
-    if (_entries.containsKey(id) || _completed.contains(id)) return;
+    // Skip if already tracked, previously completed, or permanently failed.
+    if (_entries.containsKey(id) ||
+        _completed.contains(id) ||
+        _failed.contains(id)) {
+      return;
+    }
 
     _deferredQueue.remove(id);
     _visibleQueue.remove(id);
@@ -176,12 +202,40 @@ class DownloadPriorityScheduler
   /// Called when a download finishes.
   void _onDownloadComplete(String id, {required bool succeeded}) {
     if (!_inFlight.remove(id)) return; // Already cancelled/removed.
-    _entries.remove(id);
     if (succeeded) {
+      _entries.remove(id);
+      _retryCounts.remove(id);
       _completed.add(id);
+      _emitState();
+      _pump();
+    } else {
+      // Retry with exponential backoff if attempts remain.
+      final attempts = (_retryCounts[id] ?? 0) + 1;
+      _retryCounts[id] = attempts;
+
+      if (attempts >= maxRetries) {
+        // Exhausted retries — mark as permanently failed.
+        _entries.remove(id);
+        _retryCounts.remove(id);
+        _failed.add(id);
+        _emitState();
+        _pump();
+      } else {
+        // Schedule retry with exponential backoff: 1s, 2s, 4s...
+        final delay = Duration(seconds: 1 << (attempts - 1));
+        _retryTimers[id] = Timer(delay, () {
+          _retryTimers.remove(id);
+          // Re-enqueue to visible queue for retry (if entry still exists).
+          if (_entries.containsKey(id)) {
+            _visibleQueue.add(id);
+            _emitState();
+            _pump();
+          }
+        });
+        _emitState();
+        _pump();
+      }
     }
-    _emitState();
-    _pump();
   }
 
   /// Emit current state to watchers.
@@ -190,6 +244,7 @@ class DownloadPriorityScheduler
       inFlight: Set<String>.from(_inFlight),
       pending: List<String>.from(_visibleQueue),
       deferred: Set<String>.from(_deferredQueue),
+      failed: Set<String>.from(_failed),
     );
   }
 }
