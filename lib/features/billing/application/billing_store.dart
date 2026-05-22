@@ -12,8 +12,12 @@ final billingStoreProvider =
 );
 
 class BillingStore extends AutoDisposeNotifier<BillingState> {
+  bool _disposed = false;
+
   @override
   BillingState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     final activeServerScope = ref.watch(activeServerScopeIdProvider);
     return BillingState(hasActiveServerScope: activeServerScope != null);
   }
@@ -74,6 +78,9 @@ class BillingStore extends AutoDisposeNotifier<BillingState> {
           }
         }),
     ]);
+
+    // Guard: store may have been disposed during the parallel fetches.
+    if (_disposed) return;
 
     if (ref.read(activeServerScopeIdProvider) != activeServerScope) {
       return;
