@@ -19,9 +19,10 @@ void main() {
         (tester) async {
       // Build a minimal widget tree with English locale and Provider override
       // that returns the date as-is (already "today" in local time).
-      final now = DateTime.now();
+      final now = DateTime(2026, 5, 22, 12);
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [dateSeparatorNowProvider.overrideWithValue(now)],
           child: MaterialApp(
             locale: const Locale('en'),
             supportedLocales: AppLocalizations.supportedLocales,
@@ -37,9 +38,11 @@ void main() {
 
     testWidgets('date separator shows localized "Yesterday" in English',
         (tester) async {
-      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      final now = DateTime(2026, 5, 22, 12);
+      final yesterday = now.subtract(const Duration(days: 1));
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [dateSeparatorNowProvider.overrideWithValue(now)],
           child: MaterialApp(
             locale: const Locale('en'),
             supportedLocales: AppLocalizations.supportedLocales,
@@ -55,9 +58,10 @@ void main() {
 
     testWidgets('date separator shows localized "今天" in Chinese',
         (tester) async {
-      final now = DateTime.now();
+      final now = DateTime(2026, 5, 22, 12);
       await tester.pumpWidget(
         ProviderScope(
+          overrides: [dateSeparatorNowProvider.overrideWithValue(now)],
           child: MaterialApp(
             locale: const Locale('zh'),
             supportedLocales: AppLocalizations.supportedLocales,
@@ -159,11 +163,13 @@ void main() {
       //   message local = now - 14h (still "today" in local terms)
       //   now local = now - 12h (same calendar day as message)
       // → label should be "Today".
-      final messageDate = DateTime.now().subtract(const Duration(hours: 2));
+      final now = DateTime(2026, 5, 22, 14);
+      final messageDate = now.subtract(const Duration(hours: 2));
 
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
+            dateSeparatorNowProvider.overrideWithValue(now),
             dateSeparatorToLocalProvider.overrideWithValue(
                 (dt) => dt.subtract(const Duration(hours: 12))),
           ],
@@ -208,7 +214,7 @@ class _DateLabelTestWidget extends ConsumerWidget {
     final locale = Localizations.localeOf(context).languageCode;
 
     // Pass raw dates — _isSameDay applies toLocal once to each.
-    final now = DateTime.now();
+    final now = ref.watch(dateSeparatorNowProvider);
 
     String label;
     if (_isSameDay(date, now, toLocal)) {

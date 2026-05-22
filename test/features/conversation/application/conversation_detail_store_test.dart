@@ -1716,6 +1716,79 @@ void main() {
           messages.singleWhere((m) => m.id == 'message-3').isDeleted, isTrue);
     });
 
+    test('batchSaveMessages rolls back saved ids on non-AppFailure', () async {
+      final secondSaveCompleter = Completer<void>();
+      final savedRepository = _ControllableSavedMessagesRepository(
+        saveCompleters: {'message-2': secondSaveCompleter},
+        failureIds: {'message-2'},
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+            ConversationMessageSummary(
+              id: 'message-2',
+              content: 'Second',
+              createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 2,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          savedMessagesRepositoryProvider.overrideWithValue(savedRepository),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        subscription.close();
+        container.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      await Future<void>.delayed(Duration.zero);
+
+      final saveFuture = container
+          .read(conversationDetailStoreProvider.notifier)
+          .batchSaveMessages({'message-1', 'message-2'});
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        container.read(conversationDetailStoreProvider).savedMessageIds,
+        {'message-1', 'message-2'},
+        reason: 'Test must prove the optimistic saved-id state existed first.',
+      );
+
+      secondSaveCompleter.complete();
+      await expectLater(saveFuture, throwsA(isA<StateError>()));
+
+      expect(
+        container.read(conversationDetailStoreProvider).savedMessageIds,
+        isEmpty,
+        reason: '#762: non-AppFailure must restore savedMessageIds snapshot',
+      );
+    });
+
     test('batchSaveMessages stops sequential saves after disposal', () async {
       final firstSaveCompleter = Completer<void>();
       final savedRepository = _ControllableSavedMessagesRepository(
@@ -3363,9 +3436,11 @@ class _FakeConversationRepository implements ConversationRepository {
 class _ControllableSavedMessagesRepository implements SavedMessagesRepository {
   _ControllableSavedMessagesRepository({
     this.saveCompleters = const {},
+    this.failureIds = const {},
   });
 
   final Map<String, Completer<void>> saveCompleters;
+  final Set<String> failureIds;
   final List<String> savedMessageIds = [];
 
   @override
@@ -3382,6 +3457,9 @@ class _ControllableSavedMessagesRepository implements SavedMessagesRepository {
     final completer = saveCompleters[messageId];
     if (completer != null) {
       await completer.future;
+    }
+    if (failureIds.contains(messageId)) {
+      throw StateError('save failed for $messageId');
     }
   }
 

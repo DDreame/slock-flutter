@@ -160,6 +160,21 @@ void main() {
       expect(state().failure?.message, 'Remove failed');
     });
 
+    test('removeHumanMember rolls back on non-AppFailure', () async {
+      fakeRepo.members = [
+        makeMember(id: 'm1', userId: 'u1', userName: 'Alice'),
+      ];
+      await store().load();
+
+      fakeRepo.error = StateError('unexpected remove failure');
+
+      await expectLater(store().removeHumanMember('u1'), throwsStateError);
+
+      expect(state().items.length, 1);
+      expect(state().items[0].userId, 'u1');
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
     test('removeAgentMember optimistically removes', () async {
       fakeRepo.members = [
         makeMember(id: 'm1', agentId: 'a1', agentName: 'Bot'),
@@ -207,12 +222,14 @@ void main() {
 class _FakeChannelMemberRepository implements ChannelMemberRepository {
   List<ChannelMember> members = const [];
   AppFailure? failure;
+  Object? error;
 
   @override
   Future<List<ChannelMember>> listMembers(
     ServerScopeId serverId, {
     required String channelId,
   }) async {
+    if (error != null) throw error!;
     if (failure != null) throw failure!;
     return members;
   }
@@ -223,6 +240,7 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
     required String channelId,
     required String userId,
   }) async {
+    if (error != null) throw error!;
     if (failure != null) throw failure!;
   }
 
@@ -232,6 +250,7 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
     required String channelId,
     required String agentId,
   }) async {
+    if (error != null) throw error!;
     if (failure != null) throw failure!;
   }
 
@@ -241,6 +260,7 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
     required String channelId,
     required String userId,
   }) async {
+    if (error != null) throw error!;
     if (failure != null) throw failure!;
   }
 
@@ -250,6 +270,7 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
     required String channelId,
     required String agentId,
   }) async {
+    if (error != null) throw error!;
     if (failure != null) throw failure!;
   }
 }

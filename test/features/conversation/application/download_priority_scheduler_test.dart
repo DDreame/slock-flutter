@@ -389,6 +389,36 @@ void main() {
       },
     );
 
+    test('dispose cancels orphaned retry timers', () {
+      fakeAsync((async) {
+        var attempts = 0;
+        final container = ProviderContainer(
+          overrides: [
+            downloadSchedulerProvider
+                .overrideWith(() => DownloadPriorityScheduler()),
+          ],
+        );
+        final sub = container.listen(downloadSchedulerProvider, (_, __) {});
+
+        final scheduler = container.read(downloadSchedulerProvider.notifier);
+        scheduler.enqueue('dispose-retry', () async {
+          attempts += 1;
+          throw StateError('network failed');
+        });
+        scheduler.onVisibilityChanged('dispose-retry', true);
+        async.flushMicrotasks();
+        expect(attempts, 1);
+
+        sub.close();
+        container.dispose();
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+
+        expect(attempts, 1,
+            reason: '#762: dispose must cancel retry timers before they fire');
+      });
+    });
+
     // T6: Integration — ConversationDetailPage wiring
     testWidgets(
       'ConversationDetailPage wires attachment downloads to scheduler',

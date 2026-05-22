@@ -72,7 +72,10 @@ final presenceStoreProvider =
 );
 
 class PresenceStore extends AutoDisposeNotifier<PresenceState> {
+  static const maxPresenceStatuses = 500;
+
   int _generation = 0;
+  final Map<String, int> _lastUpdatedGenerations = {};
 
   /// O(1) notification filtering via generation counter. When the store's
   /// own mutation methods are used, each produces a unique generation so this
@@ -89,7 +92,10 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
     if (state.statuses[userId] == UserPresenceStatus.online) return;
     _generation++;
     state = state.copyWith(
-      statuses: {...state.statuses, userId: UserPresenceStatus.online},
+      statuses: _boundedStatuses({
+        ...state.statuses,
+        userId: UserPresenceStatus.online,
+      }, touchedUserId: userId),
       generation: _generation,
     );
   }
@@ -99,7 +105,10 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
     if (state.statuses[userId] == UserPresenceStatus.idle) return;
     _generation++;
     state = state.copyWith(
-      statuses: {...state.statuses, userId: UserPresenceStatus.idle},
+      statuses: _boundedStatuses({
+        ...state.statuses,
+        userId: UserPresenceStatus.idle,
+      }, touchedUserId: userId),
       generation: _generation,
     );
   }
@@ -111,6 +120,7 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
     _generation++;
     final updated = Map<String, UserPresenceStatus>.of(state.statuses)
       ..remove(userId);
+    _lastUpdatedGenerations.remove(userId);
     state = state.copyWith(statuses: updated, generation: _generation);
   }
 
@@ -128,7 +138,10 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
       if (state.statuses[userId] == status) return;
       _generation++;
       state = state.copyWith(
-        statuses: {...state.statuses, userId: status},
+        statuses: _boundedStatuses({
+          ...state.statuses,
+          userId: status,
+        }, touchedUserId: userId),
         generation: _generation,
       );
     }
@@ -139,10 +152,14 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
   /// Used when receiving a bulk presence snapshot.
   void setOnlineList(List<String> userIds) {
     _generation++;
+    final next = {
+      for (final id in userIds) id: UserPresenceStatus.online,
+    };
+    _lastUpdatedGenerations
+      ..clear()
+      ..addEntries(next.keys.map((id) => MapEntry(id, _generation)));
     state = state.copyWith(
-      statuses: {
-        for (final id in userIds) id: UserPresenceStatus.online,
-      },
+      statuses: _boundedStatuses(next),
       generation: _generation,
     );
   }
@@ -150,7 +167,53 @@ class PresenceStore extends AutoDisposeNotifier<PresenceState> {
   /// Remove all presence data.
   void clearAll() {
     _generation++;
+    _lastUpdatedGenerations.clear();
     state = PresenceState(generation: _generation);
+  }
+
+  Map<String, UserPresenceStatus> _boundedStatuses(
+    Map<String, UserPresenceStatus> statuses, {
+    String? touchedUserId,
+  }) {
+    if (touchedUserId != null) {
+      _lastUpdatedGenerations[touchedUserId] = _generation;
+    }
+    _lastUpdatedGenerations.removeWhere((id, _) => !statuses.containsKey(id));
+    for (final id in statuses.keys) {
+      _lastUpdatedGenerations.putIfAbsent(id, () => _generation);
+    }
+    if (statuses.length <= maxPresenceStatuses) return statuses;
+
+    final updated = Map<String, UserPresenceStatus>.of(statuses);
+    final offlineIds = updated.entries
+        .where((entry) => entry.value == UserPresenceStatus.offline)
+        .map((entry) => entry.key)
+        .toList()
+      ..sort(
+        (left, right) => (_lastUpdatedGenerations[left] ?? 0)
+            .compareTo(_lastUpdatedGenerations[right] ?? 0),
+      );
+
+    for (final id in offlineIds) {
+      if (updated.length <= maxPresenceStatuses) break;
+      updated.remove(id);
+      _lastUpdatedGenerations.remove(id);
+    }
+
+    if (updated.length > maxPresenceStatuses) {
+      final ids = updated.keys.toList()
+        ..sort(
+          (left, right) => (_lastUpdatedGenerations[left] ?? 0)
+              .compareTo(_lastUpdatedGenerations[right] ?? 0),
+        );
+      for (final id in ids) {
+        if (updated.length <= maxPresenceStatuses) break;
+        updated.remove(id);
+        _lastUpdatedGenerations.remove(id);
+      }
+    }
+
+    return updated;
   }
 
   static UserPresenceStatus _parsePresenceLabel(String? label) {

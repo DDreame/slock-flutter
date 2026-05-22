@@ -131,16 +131,23 @@ mixin _ConversationDetailSelectionMixin on _ConversationDetailCoreMixin {
     final store = this as ConversationDetailStore;
     int succeeded = 0;
     final failedIds = <String>[];
-    for (final id in ids) {
-      if (store._disposed) break;
-      try {
-        await repo.saveMessage(serverId, id);
+    try {
+      for (final id in ids) {
         if (store._disposed) break;
-        succeeded++;
-      } on AppFailure {
-        if (store._disposed) break;
-        failedIds.add(id);
+        try {
+          await repo.saveMessage(serverId, id);
+          if (store._disposed) break;
+          succeeded++;
+        } on AppFailure {
+          if (store._disposed) break;
+          failedIds.add(id);
+        }
       }
+    } catch (_) {
+      if (!store._disposed) {
+        state = state.copyWith(savedMessageIds: previousSaved);
+      }
+      rethrow;
     }
 
     if (store._disposed) {

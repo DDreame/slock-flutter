@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -537,16 +538,57 @@ void main() {
       addTearDown(container.dispose);
 
       await container.read(inboxStoreProvider.notifier).load();
-      await expectLater(
-        container
-            .read(inboxStoreProvider.notifier)
-            .markAsUnread(channelId: 'ch-1'),
-        throwsA(isA<NetworkFailure>()),
-      );
+      await container
+          .read(inboxStoreProvider.notifier)
+          .markAsUnread(channelId: 'ch-1');
 
       final state = container.read(inboxStoreProvider);
       expect(state.items.single.unreadCount, 0);
       expect(state.totalUnreadCount, 0);
+    });
+
+    test('captures failure and does not rethrow after rollback', () async {
+      final crashReporter = _RecordingCrashReporter();
+      final inboxRepository = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-1',
+              channelName: 'general',
+              unreadCount: 0,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 0,
+          hasMore: false,
+        ),
+      );
+      final unreadRepository = _FakeConversationUnreadRepository(
+        failure: const NetworkFailure(message: 'offline'),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          inboxRepositoryProvider.overrideWithValue(inboxRepository),
+          conversationUnreadRepositoryProvider
+              .overrideWithValue(unreadRepository),
+          crashReporterProvider.overrideWithValue(crashReporter),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+      await container
+          .read(inboxStoreProvider.notifier)
+          .markAsUnread(channelId: 'ch-1');
+
+      final state = container.read(inboxStoreProvider);
+      expect(state.items.single.unreadCount, 0);
+      expect(state.totalUnreadCount, 0);
+      expect(crashReporter.errors.single, isA<NetworkFailure>());
     });
 
     test('preserves cached item metadata when re-inserting unread item',
@@ -1310,4 +1352,29 @@ class _ControllableInboxRepository implements InboxRepository {
 
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {}
+}
+
+class _RecordingCrashReporter implements CrashReporter {
+  final errors = <Object>[];
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  void captureException(
+    Object error, {
+    StackTrace? stackTrace,
+    Map<String, dynamic>? extra,
+  }) {
+    errors.add(error);
+  }
+
+  @override
+  void captureFlutterError(FlutterErrorDetails details) {}
+
+  @override
+  void addBreadcrumb(Breadcrumb breadcrumb) {}
+
+  @override
+  void setUser(String? userId, {String? displayName}) {}
 }
