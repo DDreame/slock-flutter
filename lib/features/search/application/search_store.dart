@@ -236,18 +236,21 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
       serverId.value,
       query,
     );
+    if (_searchRequestToken != token) return;
 
     // --- Local search: conversation summaries (channels + DMs) ---
     final localSummaries = await localStore.searchConversationSummaries(
       serverId.value,
       query,
     );
+    if (_searchRequestToken != token) return;
 
     // --- Local search: identities (contacts) ---
     final localIdentities = await localStore.searchIdentities(
       serverId.value,
       query,
     );
+    if (_searchRequestToken != token) return;
 
     // Build message results from local messages.
     final localResults = <SearchResultMessage>[
