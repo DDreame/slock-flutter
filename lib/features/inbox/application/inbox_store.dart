@@ -19,6 +19,11 @@ class InboxStore extends Notifier<InboxState> {
   bool _isLoadingMore = false;
   final Map<String, InboxItem> _knownItemsByChannelId = {};
 
+  /// Maximum number of entries retained in [_knownItemsByChannelId].
+  /// Prevents unbounded memory growth when the user scrolls through
+  /// many pages of inbox over a long session (#755).
+  static const maxKnownItems = 500;
+
   @override
   InboxState build() {
     // Watch the active server so the store rebuilds (state resets) on switch.
@@ -284,6 +289,15 @@ class InboxStore extends Notifier<InboxState> {
   void _rememberInboxItems(Iterable<InboxItem> items) {
     for (final item in items) {
       _knownItemsByChannelId[item.channelId] = item;
+    }
+    // Evict oldest entries when capacity exceeded (#755).
+    if (_knownItemsByChannelId.length > maxKnownItems) {
+      final excess = _knownItemsByChannelId.length - maxKnownItems;
+      final keysToRemove =
+          _knownItemsByChannelId.keys.take(excess).toList(growable: false);
+      for (final key in keysToRemove) {
+        _knownItemsByChannelId.remove(key);
+      }
     }
   }
 

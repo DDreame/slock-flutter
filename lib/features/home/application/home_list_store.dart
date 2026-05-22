@@ -57,6 +57,12 @@ class HomeListStore extends Notifier<HomeListState> {
   SidebarOrder _sidebarOrder = const SidebarOrder();
   final RequestCoordinator _coordinator = RequestCoordinator();
 
+  /// Generation counter for supplemental loads. Incremented on each call
+  /// to [_loadAndMergeSupplemental]; callbacks check their captured generation
+  /// matches before writing, preventing stale data from a superseded load
+  /// from corrupting state (#755).
+  int _supplementalGeneration = 0;
+
   /// Guard flag: set to `true` when the notifier's provider container
   /// is disposed. Prevents unawaited supplemental callbacks from
   /// reading `ref` or mutating `state` after disposal.
@@ -354,10 +360,15 @@ class HomeListStore extends Notifier<HomeListState> {
 
   /// Loads supplemental data (agents, tasks, machines, threads)
   /// independently and merges each into state as it arrives.
+  ///
+  /// Uses a generation counter so that if a newer load is started before
+  /// this one completes, the stale callbacks are silently discarded (#755).
   Future<void> _loadAndMergeSupplemental(ServerScopeId serverScopeId) async {
+    final gen = ++_supplementalGeneration;
     await Future.wait([
       _loadAgentsSafe().then((agents) {
         if (_disposed) return;
+        if (gen != _supplementalGeneration) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _allAgents = List.of(agents);
         if (agents.isNotEmpty) {
@@ -376,6 +387,7 @@ class HomeListStore extends Notifier<HomeListState> {
       }),
       _loadTaskCountSafe(serverScopeId).then((taskItems) {
         if (_disposed) return;
+        if (gen != _supplementalGeneration) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _taskCount = taskItems.length;
         _taskItems = List.of(taskItems);
@@ -383,12 +395,14 @@ class HomeListStore extends Notifier<HomeListState> {
       }),
       _loadMachineCountSafe(serverScopeId).then((count) {
         if (_disposed) return;
+        if (gen != _supplementalGeneration) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _machineCount = count;
         _emitPersonalizedState();
       }),
       _loadThreadItemsSafe(serverScopeId).then((threadItems) {
         if (_disposed) return;
+        if (gen != _supplementalGeneration) return;
         if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
         _threadCount = threadItems.length;
         _threadItems = List.of(threadItems);
