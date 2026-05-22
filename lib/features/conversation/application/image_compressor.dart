@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -32,7 +32,13 @@ abstract class ImageCompressor {
 
 /// Default implementation using flutter_image_compress for real compression.
 class DefaultImageCompressor implements ImageCompressor {
-  const DefaultImageCompressor();
+  const DefaultImageCompressor({
+    @visibleForTesting this.onCodecDisposed,
+    @visibleForTesting this.onImageDisposed,
+  });
+
+  final VoidCallback? onCodecDisposed;
+  final VoidCallback? onImageDisposed;
 
   /// Threshold above which images will be compressed (5MB).
   static const int compressionThresholdBytes = 5 * 1024 * 1024;
@@ -83,11 +89,19 @@ class DefaultImageCompressor implements ImageCompressor {
         return pngDimensions;
       }
       final codec = await ui.instantiateImageCodec(Uint8List.fromList(bytes));
-      final frame = await codec.getNextFrame();
-      final image = frame.image;
-      final dimensions = (width: image.width, height: image.height);
-      image.dispose();
-      return dimensions;
+      try {
+        final frame = await codec.getNextFrame();
+        final image = frame.image;
+        try {
+          return (width: image.width, height: image.height);
+        } finally {
+          image.dispose();
+          onImageDisposed?.call();
+        }
+      } finally {
+        codec.dispose();
+        onCodecDisposed?.call();
+      }
     } catch (_) {
       return null;
     }

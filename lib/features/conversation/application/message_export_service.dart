@@ -33,10 +33,15 @@ final shareXFilesProvider = Provider<ShareXFiles>((ref) {
 /// Captures the RepaintBoundary identified by [boundaryKey], saves the result
 /// as a temporary PNG file, then shares via [shareXFilesProvider].
 class MessageExportService {
-  const MessageExportService({this.shareXFiles});
+  const MessageExportService({
+    this.shareXFiles,
+    @visibleForTesting this.onImageDisposed,
+  });
 
   /// The share function injected by the provider. Null in tests using fakes.
   final ShareXFiles? shareXFiles;
+
+  final VoidCallback? onImageDisposed;
 
   /// Exports the given [messages] as a branded PNG image and opens the
   /// system share sheet.
@@ -64,22 +69,27 @@ class MessageExportService {
 
       // 2. Capture as image at 3x pixel ratio for sharp output.
       final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) return null;
+      try {
+        final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+        if (byteData == null) return null;
 
-      // 3. Save to temporary file (synchronous write for test compatibility).
-      final dir = Directory.systemTemp;
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${dir.path}/slock_export_$timestamp.png';
-      final file = File(filePath);
-      file.writeAsBytesSync(byteData.buffer.asUint8List());
+        // 3. Save to temporary file (synchronous write for test compatibility).
+        final dir = Directory.systemTemp;
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final filePath = '${dir.path}/slock_export_$timestamp.png';
+        final file = File(filePath);
+        file.writeAsBytesSync(byteData.buffer.asUint8List());
 
-      // 4. Share via injectable seam.
-      if (shareXFiles != null) {
-        await shareXFiles!([filePath]);
+        // 4. Share via injectable seam.
+        if (shareXFiles != null) {
+          await shareXFiles!([filePath]);
+        }
+
+        return filePath;
+      } finally {
+        image.dispose();
+        onImageDisposed?.call();
       }
-
-      return filePath;
     } catch (_) {
       return null;
     }

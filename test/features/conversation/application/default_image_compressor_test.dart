@@ -78,6 +78,32 @@ void main() {
       expect(call.minHeight, 1920);
     });
 
+    test('disposes codec and decoded image after reading non-PNG dimensions',
+        () async {
+      var codecDisposed = false;
+      var imageDisposed = false;
+      final compressor = DefaultImageCompressor(
+        onCodecDisposed: () => codecDisposed = true,
+        onImageDisposed: () => imageDisposed = true,
+      );
+
+      final tempDir = Directory.systemTemp.createTempSync('img_compress_');
+      final inputFile = File('${tempDir.path}/tiny.jpg');
+      inputFile.writeAsBytesSync(_gif1x1());
+      addTearDown(() => tempDir.deleteSync(recursive: true));
+
+      final expectedOutput = '${tempDir.path}/tiny_compressed.jpg';
+      fakePlatform.compressAndGetFileResult = XFile(expectedOutput);
+
+      await compressor.compress(inputFile.path);
+
+      expect(codecDisposed, isTrue);
+      expect(imageDisposed, isTrue);
+      final call = fakePlatform.compressAndGetFileCalls.single;
+      expect(call.minWidth, 1);
+      expect(call.minHeight, 1);
+    });
+
     test('compress does not upscale tiny images (#722)', () async {
       const compressor = DefaultImageCompressor();
 
@@ -303,3 +329,49 @@ class _FakeCompressPlatform extends FlutterImageCompressPlatform {
   @override
   FlutterImageCompressValidator get validator => throw UnimplementedError();
 }
+
+List<int> _gif1x1() => const [
+      0x47,
+      0x49,
+      0x46,
+      0x38,
+      0x39,
+      0x61,
+      0x01,
+      0x00,
+      0x01,
+      0x00,
+      0x80,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0xFF,
+      0xFF,
+      0xFF,
+      0x21,
+      0xF9,
+      0x04,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x2C,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x02,
+      0x02,
+      0x44,
+      0x01,
+      0x00,
+      0x3B,
+    ];
