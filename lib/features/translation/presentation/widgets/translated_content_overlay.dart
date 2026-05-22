@@ -60,7 +60,7 @@ class TranslatedContentOverlay extends ConsumerWidget {
       children: [
         // Show original or translated content based on toggle state.
         if (isShowingTranslation &&
-            entry.status == TranslationEntryStatus.translated &&
+            entry.status != TranslationEntryStatus.failed &&
             translatedContent != null)
           Text(
             translatedContent!,
