@@ -11,6 +11,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
   final repo = ref.watch(pushTokenRepositoryProvider);
   final crashReporter = ref.read(crashReporterProvider);
+  final diagnostics = ref.read(diagnosticsCollectorProvider);
 
   // INV-PUSH-TOKEN-BINDING-SELECT-1: Only consume pushToken +
   // pushTokenPlatform. Mutations to lifecycleStatus, visibleTarget,
@@ -33,13 +34,19 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
 
       if (oldToken != null && newToken != null && oldToken != newToken) {
         unawaited(_deregisterThenRegister(repo, oldToken, newToken,
-            platform: next.pushTokenPlatform, crashReporter: crashReporter));
+            platform: next.pushTokenPlatform,
+            crashReporter: crashReporter,
+            diagnostics: diagnostics));
       } else if (oldToken == null && newToken != null) {
         unawaited(_register(repo, newToken,
-            platform: next.pushTokenPlatform, crashReporter: crashReporter));
+            platform: next.pushTokenPlatform,
+            crashReporter: crashReporter,
+            diagnostics: diagnostics));
       } else if (oldToken == newToken && newToken != null && platformChanged) {
         unawaited(_register(repo, newToken,
-            platform: next.pushTokenPlatform, crashReporter: crashReporter));
+            platform: next.pushTokenPlatform,
+            crashReporter: crashReporter,
+            diagnostics: diagnostics));
       }
     },
   );
@@ -57,7 +64,8 @@ final pushTokenLifecycleBindingProvider = Provider<void>((ref) {
         if (token != null) {
           unawaited(_register(repo, token,
               platform: notifState.pushTokenPlatform,
-              crashReporter: crashReporter));
+              crashReporter: crashReporter,
+              diagnostics: diagnostics));
         }
         return;
       }
@@ -79,6 +87,7 @@ Future<void> _register(
   String token, {
   String? platform,
   required CrashReporter crashReporter,
+  DiagnosticsCollector? diagnostics,
 }) async {
   try {
     await repo.registerToken(
@@ -88,6 +97,14 @@ Future<void> _register(
   } on StateError catch (_) {
   } catch (e, s) {
     crashReporter.captureException(e, stackTrace: s);
+    // Surface registration failure to settings diagnostics so the user
+    // knows push notifications may not be delivered (#720).
+    diagnostics?.add(DiagnosticsEntry(
+      timestamp: DateTime.now(),
+      level: DiagnosticsLevel.error,
+      tag: 'push_token',
+      message: 'Push token registration failed: $e',
+    ));
   }
 }
 
@@ -105,9 +122,12 @@ Future<void> deregisterThenRegisterForTest(
   String newToken, {
   String? platform,
   required CrashReporter crashReporter,
+  DiagnosticsCollector? diagnostics,
 }) =>
     _deregisterThenRegister(repo, oldToken, newToken,
-        platform: platform, crashReporter: crashReporter);
+        platform: platform,
+        crashReporter: crashReporter,
+        diagnostics: diagnostics);
 
 Future<void> _deregisterThenRegister(
   PushTokenRepository repo,
@@ -115,6 +135,7 @@ Future<void> _deregisterThenRegister(
   String newToken, {
   String? platform,
   required CrashReporter crashReporter,
+  DiagnosticsCollector? diagnostics,
 }) async {
   try {
     await repo.deregisterToken(token: oldToken).timeout(deregisterTimeout);
@@ -125,7 +146,9 @@ Future<void> _deregisterThenRegister(
     crashReporter.captureException(e, stackTrace: s);
   }
   await _register(repo, newToken,
-      platform: platform, crashReporter: crashReporter);
+      platform: platform,
+      crashReporter: crashReporter,
+      diagnostics: diagnostics);
 }
 
 Future<void> _deregisterWithAuth(
