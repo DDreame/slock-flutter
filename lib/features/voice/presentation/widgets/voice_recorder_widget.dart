@@ -74,7 +74,8 @@ class VoiceRecorderWidget extends ConsumerWidget {
               height: 32,
               child: CustomPaint(
                 painter: AudioWaveformPainter(
-                  amplitudes: state.amplitudes,
+                  amplitudes:
+                      ref.read(voiceMessageStoreProvider.notifier).amplitudes,
                   color: theme.colorScheme.primary,
                 ),
                 size: Size.infinite,

@@ -197,7 +197,7 @@ void main() {
       // A new instance is created with the default idle state.
       final stateAfter = container.read(voiceMessageStoreProvider);
       expect(stateAfter.recordingState, VoiceRecorderState.idle);
-      expect(stateAfter.amplitudes, isEmpty);
+      expect(stateAfter.amplitudeCount, 0);
       expect(stateAfter.elapsed, Duration.zero);
     });
   });

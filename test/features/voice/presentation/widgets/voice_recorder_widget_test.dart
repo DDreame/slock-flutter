@@ -10,6 +10,7 @@ void main() {
   group('VoiceRecorderWidget', () {
     Widget buildWidget({
       VoiceMessageState? initialState,
+      List<double>? initialAmplitudes,
       VoidCallback? onSend,
       VoidCallback? onCancel,
     }) {
@@ -17,7 +18,8 @@ void main() {
         overrides: [
           if (initialState != null)
             voiceMessageStoreProvider.overrideWith(
-              () => _TestVoiceMessageStore(initialState),
+              () => _TestVoiceMessageStore(initialState,
+                  initialAmplitudes: initialAmplitudes),
             ),
         ],
         child: MaterialApp(
@@ -79,9 +81,10 @@ void main() {
       await tester.pumpWidget(buildWidget(
         initialState: const VoiceMessageState(
           recordingState: VoiceRecorderState.recording,
-          amplitudes: [0.3, 0.7, 0.5],
+          amplitudeCount: 3,
           elapsed: Duration(seconds: 1),
         ),
+        initialAmplitudes: [0.3, 0.7, 0.5],
       ));
 
       expect(
@@ -135,10 +138,16 @@ void main() {
 }
 
 class _TestVoiceMessageStore extends VoiceMessageStore {
-  _TestVoiceMessageStore(this._initial);
+  _TestVoiceMessageStore(this._initial, {this.initialAmplitudes});
 
   final VoiceMessageState _initial;
+  final List<double>? initialAmplitudes;
 
   @override
-  VoiceMessageState build() => _initial;
+  VoiceMessageState build() {
+    if (initialAmplitudes != null) {
+      seedAmplitudes(initialAmplitudes!);
+    }
+    return _initial;
+  }
 }

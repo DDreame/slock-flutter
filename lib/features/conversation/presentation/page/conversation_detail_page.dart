@@ -849,7 +849,7 @@ class _ConversationDetailScreenState
 
     // Capture recorded amplitudes before resetting the store.
     final amplitudes = List<double>.unmodifiable(
-        ref.read(voiceMessageStoreProvider).amplitudes);
+        ref.read(voiceMessageStoreProvider.notifier).amplitudes);
 
     final path = await recorder.stop();
     final store = ref.read(voiceMessageStoreProvider.notifier);
