@@ -22,22 +22,27 @@ final searchStoreProvider =
 
 class SearchStore extends AutoDisposeNotifier<SearchState> {
   Timer? _debounce;
-  CancelToken? _remoteCancelToken;
-  int _requestToken = 0;
+  CancelToken? _searchCancelToken;
+  CancelToken? _loadMoreCancelToken;
+  int _searchRequestToken = 0;
+  int _loadMoreRequestToken = 0;
 
   @override
   SearchState build() {
     ref.onDispose(() {
       _debounce?.cancel();
       _cancelInFlightSearch();
+      _cancelInFlightLoadMore();
     });
     return const SearchState();
   }
 
   void updateQuery(String query) {
     _debounce?.cancel();
-    _requestToken++; // invalidate any in-flight search for the old query
+    _searchRequestToken++; // invalidate any in-flight search for the old query
+    _loadMoreRequestToken++; // invalidate pagination for the old query
     _cancelInFlightSearch();
+    _cancelInFlightLoadMore();
     state = state.copyWith(query: query);
 
     if (query.trim().isEmpty) {
@@ -51,8 +56,10 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
 
   void clear() {
     _debounce?.cancel();
-    _requestToken++; // invalidate any in-flight search
+    _searchRequestToken++; // invalidate any in-flight search
+    _loadMoreRequestToken++; // invalidate any in-flight pagination
     _cancelInFlightSearch();
+    _cancelInFlightLoadMore();
     state = const SearchState();
   }
 
@@ -104,17 +111,38 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
   Future<void> retry() => search();
 
   void _cancelInFlightSearch() {
-    final cancelToken = _remoteCancelToken;
+    final cancelToken = _searchCancelToken;
     if (cancelToken != null && !cancelToken.isCancelled) {
       cancelToken.cancel('superseded search request');
     }
-    _remoteCancelToken = null;
+    _searchCancelToken = null;
+  }
+
+  void _cancelInFlightLoadMore() {
+    final cancelToken = _loadMoreCancelToken;
+    if (cancelToken != null && !cancelToken.isCancelled) {
+      cancelToken.cancel('superseded load more request');
+    }
+    _loadMoreCancelToken = null;
+  }
+
+  bool get _hasRemoteRequestInFlight =>
+      _searchCancelToken != null || _loadMoreCancelToken != null;
+
+  void _finishSearchRequest(CancelToken cancelToken) {
+    if (_searchCancelToken == cancelToken) _searchCancelToken = null;
+  }
+
+  void _finishLoadMoreRequest(CancelToken cancelToken) {
+    if (_loadMoreCancelToken == cancelToken) _loadMoreCancelToken = null;
   }
 
   void _scheduleSearch() {
     _debounce?.cancel();
-    _requestToken++;
+    _searchRequestToken++;
+    _loadMoreRequestToken++;
     _cancelInFlightSearch();
+    _cancelInFlightLoadMore();
     if (state.query.trim().isEmpty) return;
     _debounce = Timer(const Duration(milliseconds: 300), search);
   }
@@ -124,10 +152,10 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     final query = state.query.trim();
     if (query.isEmpty || !state.hasMore) return;
 
-    final token = ++_requestToken;
-    _cancelInFlightSearch();
+    final token = ++_loadMoreRequestToken;
+    _cancelInFlightLoadMore();
     final cancelToken = CancelToken();
-    _remoteCancelToken = cancelToken;
+    _loadMoreCancelToken = cancelToken;
     final serverId = ref.read(currentSearchServerIdProvider);
     final offset = state.remoteResults.length;
 
@@ -145,20 +173,27 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         offset: offset,
         cancelToken: cancelToken,
       );
-      if (_requestToken != token) return;
-      if (_remoteCancelToken == cancelToken) _remoteCancelToken = null;
+      if (_loadMoreRequestToken != token) return;
+      _finishLoadMoreRequest(cancelToken);
       state = state.copyWith(
         remoteResults: [...state.remoteResults, ...page.messages],
         hasMore: page.hasMore,
-        isRemoteSearching: false,
+        isRemoteSearching: _hasRemoteRequestInFlight,
       );
     } on AppFailure catch (failure) {
-      if (_requestToken != token) return;
-      if (_remoteCancelToken == cancelToken) _remoteCancelToken = null;
+      if (_loadMoreRequestToken != token) return;
+      _finishLoadMoreRequest(cancelToken);
       state = state.copyWith(
-        isRemoteSearching: false,
+        isRemoteSearching: _hasRemoteRequestInFlight,
         failure: failure,
       );
+    } on DioException catch (error) {
+      if (_loadMoreRequestToken != token) return;
+      _finishLoadMoreRequest(cancelToken);
+      state = state.copyWith(
+        isRemoteSearching: _hasRemoteRequestInFlight,
+      );
+      if (error.type != DioExceptionType.cancel) rethrow;
     }
   }
 
@@ -168,10 +203,12 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     final query = state.query.trim();
     if (query.isEmpty) return;
 
-    final token = ++_requestToken;
+    final token = ++_searchRequestToken;
     _cancelInFlightSearch();
+    _loadMoreRequestToken++;
+    _cancelInFlightLoadMore();
     final cancelToken = CancelToken();
-    _remoteCancelToken = cancelToken;
+    _searchCancelToken = cancelToken;
     final serverId = ref.read(currentSearchServerIdProvider);
     state = state.copyWith(
       status: SearchStatus.searching,
@@ -237,7 +274,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         ),
     ];
 
-    if (_requestToken != token) return;
+    if (_searchRequestToken != token) return;
     state = state.copyWith(
       localResults: localResults,
       channelResults: channelResults,
@@ -257,20 +294,20 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         after: _computeAfterDate(state.dateRange),
         cancelToken: cancelToken,
       );
-      if (_requestToken != token) return;
-      if (_remoteCancelToken == cancelToken) _remoteCancelToken = null;
+      if (_searchRequestToken != token) return;
+      _finishSearchRequest(cancelToken);
       state = state.copyWith(
         remoteResults: page.messages,
         hasMore: page.hasMore,
-        isRemoteSearching: false,
+        isRemoteSearching: _hasRemoteRequestInFlight,
         status: SearchStatus.success,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
-      if (_requestToken != token) return;
-      if (_remoteCancelToken == cancelToken) _remoteCancelToken = null;
+      if (_searchRequestToken != token) return;
+      _finishSearchRequest(cancelToken);
       state = state.copyWith(
-        isRemoteSearching: false,
+        isRemoteSearching: _hasRemoteRequestInFlight,
         status: localResults.isNotEmpty ||
                 channelResults.isNotEmpty ||
                 contactResults.isNotEmpty
@@ -278,6 +315,13 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
             : SearchStatus.failure,
         failure: failure,
       );
+    } on DioException catch (error) {
+      if (_searchRequestToken != token) return;
+      _finishSearchRequest(cancelToken);
+      state = state.copyWith(
+        isRemoteSearching: _hasRemoteRequestInFlight,
+      );
+      if (error.type != DioExceptionType.cancel) rethrow;
     }
   }
 
