@@ -45,6 +45,7 @@ class NotificationStore extends Notifier<NotificationState> {
 
   Future<void> init() async {
     if (_initialized) return;
+    _initialized = true;
     try {
       await _initializer.init();
       final nativeStatus = await _initializer.getPermissionStatus();
@@ -58,8 +59,8 @@ class NotificationStore extends Notifier<NotificationState> {
       _tapSubscription =
           _initializer.onNotificationTapped.listen(handleNotificationTap);
       _tokenSubscription = _initializer.onTokenChanged.listen(_handleTokenPush);
-      _initialized = true;
     } catch (_) {
+      _initialized = false;
       _tapSubscription?.cancel();
       _tapSubscription = null;
       _tokenSubscription?.cancel();
