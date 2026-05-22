@@ -116,15 +116,23 @@ mixin _ConversationDetailSelectionMixin on _ConversationDetailCoreMixin {
     // Fire save requests, tracking successes and failures.
     final serverId = target.serverId;
     final repo = ref.read(savedMessagesRepositoryProvider);
+    final store = this as ConversationDetailStore;
     int succeeded = 0;
     final failedIds = <String>[];
     for (final id in ids) {
+      if (store._disposed) break;
       try {
         await repo.saveMessage(serverId, id);
+        if (store._disposed) break;
         succeeded++;
       } on AppFailure {
+        if (store._disposed) break;
         failedIds.add(id);
       }
+    }
+
+    if (store._disposed) {
+      return (succeeded: succeeded, failed: failedIds.length);
     }
 
     // Roll back optimistic save for failed IDs (only those not previously

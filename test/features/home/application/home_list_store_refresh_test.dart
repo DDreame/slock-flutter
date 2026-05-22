@@ -184,6 +184,70 @@ void main() {
           reason: 'isRefreshing must be false after refresh completes');
     });
 
+    test('refresh keeps realtime preview guards across the fetch gap',
+        () async {
+      final repo = _ControllableHomeRepository();
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          homeRepositoryProvider.overrideWithValue(repo),
+          sidebarOrderRepositoryProvider
+              .overrideWithValue(const _FakeSidebarOrderRepository()),
+          agentsRepositoryProvider
+              .overrideWithValue(const _FakeAgentsRepository()),
+          tasksRepositoryProvider
+              .overrideWithValue(const _FakeTasksRepository()),
+          threadRepositoryProvider
+              .overrideWithValue(const _FakeThreadRepository()),
+          homeMachineCountLoaderProvider.overrideWithValue((_) async => 0),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      repo.nextWorkspace = snapshot;
+      final notifier = container.read(homeListStoreProvider.notifier);
+      await notifier.load();
+
+      notifier.updateChannelLastMessage(
+        conversationId: 'general',
+        messageId: 'rt-channel',
+        preview: 'Realtime channel',
+        activityAt: DateTime.parse('2026-05-22T08:00:00Z'),
+      );
+
+      final completer = Completer<HomeWorkspaceSnapshot>();
+      repo.workspaceCompleter = completer;
+      final refreshFuture = notifier.refresh();
+      await Future<void>.delayed(Duration.zero);
+
+      notifier.updateDmLastMessage(
+        conversationId: 'dm-1',
+        messageId: 'rt-dm',
+        preview: 'Realtime DM',
+        activityAt: DateTime.parse('2026-05-22T08:01:00Z'),
+      );
+
+      completer.complete(snapshot);
+      await refreshFuture;
+
+      notifier.backfillChannelPreview(
+        conversationId: 'general',
+        messageId: 'backfill-channel',
+        preview: 'Backfilled channel',
+        activityAt: DateTime.parse('2026-05-22T07:00:00Z'),
+      );
+      notifier.backfillDmPreview(
+        conversationId: 'dm-1',
+        messageId: 'backfill-dm',
+        preview: 'Backfilled DM',
+        activityAt: DateTime.parse('2026-05-22T07:01:00Z'),
+      );
+
+      final state = container.read(homeListStoreProvider);
+      expect(state.channels.single.lastMessagePreview, 'Realtime channel');
+      expect(state.directMessages.single.lastMessagePreview, 'Realtime DM');
+    });
+
     test('keeps data visible on refresh failure (SWR resilience)', () async {
       final repo = _ControllableHomeRepository();
       final container = ProviderContainer(

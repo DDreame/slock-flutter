@@ -14,6 +14,10 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
+import 'package:slock_app/features/saved_messages/data/saved_message_item.dart'
+    as saved_data;
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
+import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
 
@@ -1472,6 +1476,64 @@ void main() {
           messages.singleWhere((m) => m.id == 'message-3').isDeleted, isTrue);
     });
 
+    test('batchSaveMessages stops sequential saves after disposal', () async {
+      final firstSaveCompleter = Completer<void>();
+      final savedRepository = _ControllableSavedMessagesRepository(
+        saveCompleters: {'message-1': firstSaveCompleter},
+      );
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+            ConversationMessageSummary(
+              id: 'message-2',
+              content: 'Second',
+              createdAt: DateTime.parse('2026-04-19T15:01:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 2,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          savedMessagesRepositoryProvider.overrideWithValue(savedRepository),
+        ],
+      );
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final saveFuture = container
+          .read(conversationDetailStoreProvider.notifier)
+          .batchSaveMessages({'message-1', 'message-2'});
+      await Future<void>.delayed(Duration.zero);
+
+      expect(savedRepository.savedMessageIds, ['message-1']);
+
+      container.dispose();
+      firstSaveCompleter.complete();
+      await saveFuture;
+
+      expect(
+        savedRepository.savedMessageIds,
+        ['message-1'],
+        reason: 'Disposed stores must stop before the next sequential save.',
+      );
+    });
+
     test('message:deleted realtime event removes message from state', () async {
       final ingress = RealtimeReductionIngress();
       final repository = _FakeConversationRepository(
@@ -1538,6 +1600,67 @@ void main() {
       expect(state.messages.length, 2);
       expect(state.messages.first.isDeleted, isTrue);
       expect(state.messages.last.isDeleted, isFalse);
+      expect(repository.removedStoredMessageIds, ['message-1']);
+    });
+
+    test('message:deleted ignores failed stored-message removal', () async {
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Will be deleted',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        removeStoredFailure: StateError('local delete failed'),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:deleted',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 4,
+          payload: {
+            'id': 'message-1',
+            'channelId': target.conversationId,
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages.single.isDeleted, isTrue);
       expect(repository.removedStoredMessageIds, ['message-1']);
     });
   });
@@ -2739,6 +2862,7 @@ class _FakeConversationRepository implements ConversationRepository {
     this.sendFailure,
     this.deleteFailure,
     this.deleteCompleters = const {},
+    this.removeStoredFailure,
     this.pinFailure,
     this.sendCompleter,
   });
@@ -2752,6 +2876,7 @@ class _FakeConversationRepository implements ConversationRepository {
   final AppFailure? sendFailure;
   final AppFailure? deleteFailure;
   final Map<String, Completer<void>> deleteCompleters;
+  final Object? removeStoredFailure;
   final AppFailure? pinFailure;
   final Completer<ConversationMessageSummary>? sendCompleter;
   final List<ConversationDetailTarget> requestedTargets = [];
@@ -2946,5 +3071,47 @@ class _FakeConversationRepository implements ConversationRepository {
     required String messageId,
   }) async {
     removedStoredMessageIds.add(messageId);
+    final failure = removeStoredFailure;
+    if (failure != null) {
+      throw failure;
+    }
   }
+}
+
+class _ControllableSavedMessagesRepository implements SavedMessagesRepository {
+  _ControllableSavedMessagesRepository({
+    this.saveCompleters = const {},
+  });
+
+  final Map<String, Completer<void>> saveCompleters;
+  final List<String> savedMessageIds = [];
+
+  @override
+  Future<saved_data.SavedMessagesPage> listSavedMessages(
+    ServerScopeId serverId, {
+    int limit = 50,
+    int offset = 0,
+  }) async =>
+      const saved_data.SavedMessagesPage(items: [], hasMore: false);
+
+  @override
+  Future<void> saveMessage(ServerScopeId serverId, String messageId) async {
+    savedMessageIds.add(messageId);
+    final completer = saveCompleters[messageId];
+    if (completer != null) {
+      await completer.future;
+    }
+  }
+
+  @override
+  Future<void> unsaveMessage(ServerScopeId serverId, String messageId) async {
+    savedMessageIds.remove(messageId);
+  }
+
+  @override
+  Future<Set<String>> checkSavedMessages(
+    ServerScopeId serverId,
+    List<String> messageIds,
+  ) async =>
+      savedMessageIds.toSet().intersection(messageIds.toSet());
 }
