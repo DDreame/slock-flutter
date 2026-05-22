@@ -140,7 +140,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     } catch (e, st) {
       _reportUnexpectedError('updateTaskStatus', e, st);
       state = state.copyWith(items: previousItems);
-      rethrow;
+      throw UnknownFailure(
+        message: 'Failed to update task status.',
+        causeType: e.runtimeType.toString(),
+      );
     }
   }
 
@@ -160,7 +163,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     } catch (e, st) {
       _reportUnexpectedError('deleteTask', e, st);
       state = state.copyWith(items: previousItems);
-      rethrow;
+      throw UnknownFailure(
+        message: 'Failed to delete task.',
+        causeType: e.runtimeType.toString(),
+      );
     }
   }
 
@@ -195,7 +201,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     } catch (e, st) {
       _reportUnexpectedError('claimTask', e, st);
       state = state.copyWith(items: previousItems);
-      rethrow;
+      throw UnknownFailure(
+        message: 'Failed to claim task.',
+        causeType: e.runtimeType.toString(),
+      );
     }
   }
 
@@ -222,7 +231,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     } catch (e, st) {
       _reportUnexpectedError('unclaimTask', e, st);
       state = state.copyWith(items: previousItems);
-      rethrow;
+      throw UnknownFailure(
+        message: 'Failed to unclaim task.',
+        causeType: e.runtimeType.toString(),
+      );
     }
   }
 

@@ -75,7 +75,7 @@ void main() {
         () => container
             .read(tasksStoreProvider.notifier)
             .updateTaskStatus(taskId: 'task-1', status: 'done'),
-        throwsA(isA<StateError>()),
+        throwsA(isA<UnknownFailure>()),
       );
       await Future<void>.delayed(Duration.zero);
       // State must be rolled back to original.
@@ -87,7 +87,7 @@ void main() {
       repo.shouldThrow = true;
       expect(
         () => container.read(tasksStoreProvider.notifier).deleteTask('task-1'),
-        throwsA(isA<StateError>()),
+        throwsA(isA<UnknownFailure>()),
       );
       await Future<void>.delayed(Duration.zero);
       expect(container.read(tasksStoreProvider).items, hasLength(1),
@@ -98,7 +98,7 @@ void main() {
       repo.shouldThrow = true;
       expect(
         () => container.read(tasksStoreProvider.notifier).claimTask('task-1'),
-        throwsA(isA<StateError>()),
+        throwsA(isA<UnknownFailure>()),
       );
       await Future<void>.delayed(Duration.zero);
       expect(container.read(tasksStoreProvider).items.first.claimedById, isNull,
@@ -114,7 +114,7 @@ void main() {
       repo.shouldThrow = true;
       expect(
         () => container.read(tasksStoreProvider.notifier).unclaimTask('task-1'),
-        throwsA(isA<StateError>()),
+        throwsA(isA<UnknownFailure>()),
       );
       await Future<void>.delayed(Duration.zero);
       expect(
