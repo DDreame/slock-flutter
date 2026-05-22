@@ -135,6 +135,34 @@ void main() {
       expect(collector.entries, isEmpty);
     });
 
+    test('prunes expired head entries without scanning the full buffer', () {
+      final collector = DiagnosticsCollector(
+        maxEntries: 2000,
+        maxRetentionAge: const Duration(minutes: 5),
+      );
+      final oldTimestamp = DateTime.now().subtract(const Duration(minutes: 10));
+      final recentTimestamp = DateTime.now();
+
+      for (var i = 0; i < 1000; i++) {
+        collector.add(DiagnosticsEntry(
+          timestamp: oldTimestamp,
+          level: DiagnosticsLevel.info,
+          tag: 'old',
+          message: 'old $i',
+        ));
+      }
+      collector.add(DiagnosticsEntry(
+        timestamp: recentTimestamp,
+        level: DiagnosticsLevel.info,
+        tag: 'new',
+        message: 'fresh',
+      ));
+
+      final entries = collector.entries;
+      expect(entries, hasLength(1));
+      expect(entries.single.message, 'fresh');
+    });
+
     test('combined max entries and max retention age', () {
       final collector = DiagnosticsCollector(
         maxEntries: 3,

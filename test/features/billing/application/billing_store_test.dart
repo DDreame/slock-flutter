@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -8,6 +10,9 @@ import 'package:slock_app/features/billing/data/billing_repository_provider.dart
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 
 void main() {
+  const server1 = ServerScopeId('server-1');
+  const server2 = ServerScopeId('server-2');
+
   test('ensureLoaded populates billing summary', () async {
     final repository = _FakeBillingRepository(
       summary: const BillingSummary(planName: 'Pro', status: 'active'),
@@ -55,7 +60,7 @@ void main() {
         overrides: [
           billingRepositoryProvider.overrideWithValue(repository),
           activeServerScopeIdProvider.overrideWithValue(
-            const ServerScopeId('server-1'),
+            server1,
           ),
         ],
       );
@@ -102,7 +107,7 @@ void main() {
       overrides: [
         billingRepositoryProvider.overrideWithValue(repository),
         activeServerScopeIdProvider.overrideWithValue(
-          const ServerScopeId('server-1'),
+          server1,
         ),
       ],
     );
@@ -127,6 +132,50 @@ void main() {
     );
   });
 
+  test('load discards results when active server changes during request',
+      () async {
+    final activeServer = StateProvider<ServerScopeId?>((ref) => server1);
+    final summaryCompleter = Completer<BillingSummary>();
+    final usageCompleter = Completer<BillingUsageSummary>();
+    final repository = _FakeBillingRepository(
+      summaryCompleter: summaryCompleter,
+      usageCompleter: usageCompleter,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        billingRepositoryProvider.overrideWithValue(repository),
+        activeServerScopeIdProvider.overrideWith(
+          (ref) => ref.watch(activeServer),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      billingStoreProvider,
+      (_, __) {},
+    );
+    addTearDown(subscription.close);
+
+    final loadFuture = container.read(billingStoreProvider.notifier).load();
+    await Future<void>.delayed(Duration.zero);
+
+    container.read(activeServer.notifier).state = server2;
+    summaryCompleter.complete(
+      const BillingSummary(planName: 'Old server plan', status: 'active'),
+    );
+    usageCompleter.complete(
+      const BillingUsageSummary(planName: 'Old server usage'),
+    );
+
+    await loadFuture;
+
+    final state = container.read(billingStoreProvider);
+    expect(state.status, isNot(BillingStatus.success));
+    expect(state.summary, isNull);
+    expect(state.usage, isNull);
+    expect(state.hasActiveServerScope, isTrue);
+  });
+
   test('load exposes failure state when summary and usage both fail', () async {
     final container = ProviderContainer(
       overrides: [
@@ -143,7 +192,7 @@ void main() {
           ),
         ),
         activeServerScopeIdProvider.overrideWithValue(
-          const ServerScopeId('server-1'),
+          server1,
         ),
       ],
     );
@@ -168,12 +217,16 @@ class _FakeBillingRepository implements BillingRepository {
     this.usage,
     this.summaryFailure,
     this.usageFailure,
+    this.summaryCompleter,
+    this.usageCompleter,
   });
 
   final BillingSummary? summary;
   final BillingUsageSummary? usage;
   final AppFailure? summaryFailure;
   final AppFailure? usageFailure;
+  final Completer<BillingSummary>? summaryCompleter;
+  final Completer<BillingUsageSummary>? usageCompleter;
   var loadSubscriptionCount = 0;
   var loadServerUsageCount = 0;
 
@@ -183,6 +236,9 @@ class _FakeBillingRepository implements BillingRepository {
     if (summaryFailure != null) {
       throw summaryFailure!;
     }
+    if (summaryCompleter != null) {
+      return summaryCompleter!.future;
+    }
     return summary ?? const BillingSummary();
   }
 
@@ -191,6 +247,9 @@ class _FakeBillingRepository implements BillingRepository {
     loadServerUsageCount += 1;
     if (usageFailure != null) {
       throw usageFailure!;
+    }
+    if (usageCompleter != null) {
+      return usageCompleter!.future;
     }
     return usage ?? const BillingUsageSummary();
   }

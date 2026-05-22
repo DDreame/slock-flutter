@@ -22,7 +22,7 @@ class DiagnosticsEntry {
 class DiagnosticsCollector {
   final int maxEntries;
   final Duration maxRetentionAge;
-  final List<DiagnosticsEntry> _buffer = [];
+  final Queue<DiagnosticsEntry> _buffer = Queue<DiagnosticsEntry>();
 
   /// Substrings whose presence in a lowercased key triggers `[REDACTED]`.
   ///
@@ -119,12 +119,12 @@ class DiagnosticsCollector {
   }
 
   void _prune() {
-    final now = DateTime.now();
-    _buffer.removeWhere(
-      (e) => now.difference(e.timestamp) > maxRetentionAge,
-    );
+    final cutoff = DateTime.now().subtract(maxRetentionAge);
+    while (_buffer.isNotEmpty && _buffer.first.timestamp.isBefore(cutoff)) {
+      _buffer.removeFirst();
+    }
     while (_buffer.length > maxEntries) {
-      _buffer.removeAt(0);
+      _buffer.removeFirst();
     }
   }
 
