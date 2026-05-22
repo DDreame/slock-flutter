@@ -14,6 +14,12 @@ final currentSearchServerIdProvider = Provider<ServerScopeId>((ref) {
   );
 });
 
+final searchNowProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
+final searchLocalTimeZoneOffsetProvider = Provider<Duration>(
+  (ref) => ref.read(searchNowProvider)().timeZoneOffset,
+);
+
 final searchStoreProvider =
     NotifierProvider.autoDispose<SearchStore, SearchState>(
   SearchStore.new,
@@ -284,19 +290,26 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
   /// Compute the `after` ISO8601 date from the date range filter (#736).
   ///
   /// Returns `null` for [SearchDateRange.all] (no time restriction).
-  static String? _computeAfterDate(SearchDateRange range) {
-    final now = DateTime.now().toUtc();
+  String? _computeAfterDate(SearchDateRange range) {
+    final nowUtc = ref.read(searchNowProvider)().toUtc();
+    final localOffset = ref.read(searchLocalTimeZoneOffsetProvider);
+    final localNow = nowUtc.add(localOffset);
+    final localMidnightUtc = DateTime.utc(
+      localNow.year,
+      localNow.month,
+      localNow.day,
+    ).subtract(localOffset);
     switch (range) {
       case SearchDateRange.all:
         return null;
       case SearchDateRange.today:
-        return DateTime.utc(now.year, now.month, now.day).toIso8601String();
+        return localMidnightUtc.toIso8601String();
       case SearchDateRange.last7days:
-        return DateTime.utc(now.year, now.month, now.day)
+        return localMidnightUtc
             .subtract(const Duration(days: 7))
             .toIso8601String();
       case SearchDateRange.last30days:
-        return DateTime.utc(now.year, now.month, now.day)
+        return localMidnightUtc
             .subtract(const Duration(days: 30))
             .toIso8601String();
     }

@@ -548,6 +548,83 @@ void main() {
       expect(state.items.single.unreadCount, 0);
       expect(state.totalUnreadCount, 0);
     });
+
+    test('preserves cached item metadata when re-inserting unread item',
+        () async {
+      final originalItem = InboxItem(
+        kind: InboxItemKind.thread,
+        channelId: 'thread-1',
+        threadChannelId: 'thread-1',
+        parentChannelId: 'parent-1',
+        parentMessageId: 'parent-msg-1',
+        channelName: 'general',
+        threadTitle: 'Release checklist',
+        senderName: 'Alice',
+        senderId: 'user-alice',
+        preview: 'Looks good',
+        latestActivityPreview: 'Alice: Looks good',
+        unreadCount: 0,
+        firstUnreadMessageId: 'msg-1',
+        lastActivityAt: DateTime.parse('2026-05-22T04:00:00Z'),
+        messageType: 'message',
+        isMentioned: true,
+      );
+      final inboxRepository = FakeInboxRepository(
+        fetchResponse: InboxResponse(
+          items: [originalItem],
+          totalCount: 1,
+          totalUnreadCount: 0,
+          hasMore: false,
+        ),
+      );
+      final unreadRepository = _FakeConversationUnreadRepository();
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          inboxRepositoryProvider.overrideWithValue(inboxRepository),
+          conversationUnreadRepositoryProvider
+              .overrideWithValue(unreadRepository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+      inboxRepository.fetchResponse = const InboxResponse(
+        items: [],
+        totalCount: 0,
+        totalUnreadCount: 0,
+        hasMore: false,
+      );
+      await container
+          .read(inboxStoreProvider.notifier)
+          .setFilter(InboxFilter.unread);
+
+      expect(container.read(inboxStoreProvider).items, isEmpty);
+
+      await container
+          .read(inboxStoreProvider.notifier)
+          .markAsUnread(channelId: 'thread-1');
+
+      final restored = container.read(inboxStoreProvider).items.single;
+      expect(restored.kind, originalItem.kind);
+      expect(restored.threadChannelId, originalItem.threadChannelId);
+      expect(restored.parentChannelId, originalItem.parentChannelId);
+      expect(restored.parentMessageId, originalItem.parentMessageId);
+      expect(restored.channelName, originalItem.channelName);
+      expect(restored.threadTitle, originalItem.threadTitle);
+      expect(restored.senderName, originalItem.senderName);
+      expect(restored.senderId, originalItem.senderId);
+      expect(restored.preview, originalItem.preview);
+      expect(
+          restored.latestActivityPreview, originalItem.latestActivityPreview);
+      expect(restored.firstUnreadMessageId, originalItem.firstUnreadMessageId);
+      expect(restored.lastActivityAt, originalItem.lastActivityAt);
+      expect(restored.messageType, originalItem.messageType);
+      expect(restored.isMentioned, originalItem.isMentioned);
+      expect(restored.unreadCount, 1);
+    });
   });
 
   // Before: "optimistically removes item" and "calls repository markItemDone"

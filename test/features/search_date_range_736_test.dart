@@ -58,10 +58,11 @@ void main() {
   }
 
   // ===========================================================================
-  // A. setDateRange(today) → after = today's midnight UTC
+  // A. setDateRange(today) → after = today's local midnight converted to UTC
   // ===========================================================================
   group('#736 — Search date range filter', () {
-    test('setDateRange(today) includes after param with today midnight UTC',
+    test(
+        'setDateRange(today) includes after param with today local midnight converted to UTC',
         () async {
       fakeSearchRepo.result =
           const SearchResultsPage(messages: [], hasMore: false);
@@ -75,11 +76,12 @@ void main() {
 
       await settleDebouncedSearch();
 
-      final now = DateTime.now().toUtc();
+      final now = DateTime.now();
       final expectedAfter =
-          DateTime.utc(now.year, now.month, now.day).toIso8601String();
+          DateTime(now.year, now.month, now.day).toUtc().toIso8601String();
       expect(fakeSearchRepo.lastCallParams?.after, expectedAfter,
-          reason: 'today filter must pass midnight UTC as after param');
+          reason:
+              'today filter must pass local midnight converted to UTC as after param');
     });
 
     // =========================================================================
@@ -97,9 +99,10 @@ void main() {
 
       await settleDebouncedSearch();
 
-      final now = DateTime.now().toUtc();
-      final expectedAfter = DateTime.utc(now.year, now.month, now.day)
+      final now = DateTime.now();
+      final expectedAfter = DateTime(now.year, now.month, now.day)
           .subtract(const Duration(days: 7))
+          .toUtc()
           .toIso8601String();
       expect(fakeSearchRepo.lastCallParams?.after, expectedAfter,
           reason: 'last7days filter must pass 7 days ago as after param');
@@ -120,12 +123,49 @@ void main() {
 
       await settleDebouncedSearch();
 
-      final now = DateTime.now().toUtc();
-      final expectedAfter = DateTime.utc(now.year, now.month, now.day)
+      final now = DateTime.now();
+      final expectedAfter = DateTime(now.year, now.month, now.day)
           .subtract(const Duration(days: 30))
+          .toUtc()
           .toIso8601String();
       expect(fakeSearchRepo.lastCallParams?.after, expectedAfter,
           reason: 'last30days filter must pass 30 days ago as after param');
+    });
+
+    test('setDateRange(today) uses local midnight before converting to UTC',
+        () async {
+      final utcPlus8NowAt3am = DateTime.utc(2026, 5, 21, 19);
+      final localFakeSearchRepo = _FakeSearchRepository()
+        ..result = const SearchResultsPage(messages: [], hasMore: false);
+      final localFakeLocalStore = FakeConversationLocalStore();
+      final localContainer = ProviderContainer(overrides: [
+        currentSearchServerIdProvider.overrideWithValue(serverId),
+        conversationLocalStoreProvider.overrideWithValue(localFakeLocalStore),
+        searchRepositoryProvider.overrideWithValue(localFakeSearchRepo),
+        searchNowProvider.overrideWithValue(() => utcPlus8NowAt3am),
+        searchLocalTimeZoneOffsetProvider.overrideWithValue(
+          const Duration(hours: 8),
+        ),
+      ]);
+      addTearDown(localContainer.dispose);
+
+      localContainer.listen<SearchState>(
+        searchStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+
+      final localStore = localContainer.read(searchStoreProvider.notifier);
+      localStore.updateQuery('hello');
+      localStore.setDateRange(SearchDateRange.today);
+      await localStore.search();
+
+      expect(
+        localFakeSearchRepo.lastCallParams?.after,
+        DateTime.utc(2026, 5, 21, 16).toIso8601String(),
+        reason: 'UTC+8 03:00 on May 22 should start at May 22 local '
+            'midnight, not May 21 UTC midnight',
+      );
     });
 
     // =========================================================================

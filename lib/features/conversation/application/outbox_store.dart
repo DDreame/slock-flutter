@@ -127,11 +127,11 @@ class OutboxState {
 
   @override
   int get hashCode {
-    var h = 0;
-    for (final entry in items.entries) {
-      h ^= Object.hash(entry.key, Object.hashAll(entry.value));
-    }
-    return h;
+    final entryHashes = items.entries
+        .map((entry) => Object.hash(entry.key, Object.hashAll(entry.value)))
+        .toList()
+      ..sort();
+    return Object.hashAll(entryHashes);
   }
 
   /// All pending items across all conversations.
