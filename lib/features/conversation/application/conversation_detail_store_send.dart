@@ -201,6 +201,9 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
               target,
               uploadFile,
               onSendProgress: (sent, total) {
+                // Guard: Dio may fire progress after cancel token is
+                // triggered but before DioException is raised (#766).
+                if (_sendMixinDisposed) return;
                 if (total > 0) {
                   state = state.copyWith(
                     uploadProgress: {

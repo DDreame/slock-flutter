@@ -229,6 +229,9 @@ class ConversationDetailStore
         ref.read(conversationDetailSessionStoreProvider)[target];
 
     final subscription = ingress.acceptedEvents.listen((event) {
+      // Guard: after disposal, buffered events may still fire before
+      // subscription.cancel() completes — skip to avoid StateError (#766).
+      if (_disposed) return;
       if (event.payload == null) {
         return;
       }
