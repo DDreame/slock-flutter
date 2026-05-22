@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -187,6 +188,76 @@ class ChannelManagementStore
 
   Future<void> _refreshHomeList() {
     return ref.read(homeListStoreProvider.notifier).load();
+  }
+
+  Future<void> _refreshAgents() {
+    return ref.read(agentsStoreProvider.notifier).load();
+  }
+
+  Future<void> stopAllAgents(ChannelScopeId scopeId) async {
+    final operationKey = 'stopAgents:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return;
+    try {
+      await _stopAllAgents(scopeId);
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _stopAllAgents(ChannelScopeId scopeId) async {
+    state = state.copyWith(
+      activeAction: ChannelManagementAction.stopAgents,
+      channelId: scopeId.value,
+      clearFailure: true,
+    );
+
+    try {
+      await ref.read(channelManagementRepositoryProvider).stopAllAgents(
+            scopeId.serverId,
+            channelId: scopeId.value,
+          );
+      await _refreshAgents();
+      state = state.copyWith(clearAction: true, clearFailure: true);
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        failure: failure,
+        clearAction: true,
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> resumeAllAgents(ChannelScopeId scopeId) async {
+    final operationKey = 'resumeAgents:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return;
+    try {
+      await _resumeAllAgents(scopeId);
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _resumeAllAgents(ChannelScopeId scopeId) async {
+    state = state.copyWith(
+      activeAction: ChannelManagementAction.resumeAgents,
+      channelId: scopeId.value,
+      clearFailure: true,
+    );
+
+    try {
+      await ref.read(channelManagementRepositoryProvider).resumeAllAgents(
+            scopeId.serverId,
+            channelId: scopeId.value,
+          );
+      await _refreshAgents();
+      state = state.copyWith(clearAction: true, clearFailure: true);
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        failure: failure,
+        clearAction: true,
+      );
+      rethrow;
+    }
   }
 }
 

@@ -161,6 +161,49 @@ void main() {
         isTrue,
       );
     });
+
+    test('stopAllAgents/resumeAllAgents post to correct endpoints (#737)',
+        () async {
+      final appDioClient = _FakeAppDioClient(
+        responses: {
+          ('POST', '/channels/channel-1/stop-all-agents'): null,
+          ('POST', '/channels/channel-1/resume-all-agents'): null,
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [appDioClientProvider.overrideWithValue(appDioClient)],
+      );
+      addTearDown(container.dispose);
+
+      final repository = container.read(channelManagementRepositoryProvider);
+
+      await repository.stopAllAgents(
+        const ServerScopeId('server-1'),
+        channelId: 'channel-1',
+      );
+      await repository.resumeAllAgents(
+        const ServerScopeId('server-1'),
+        channelId: 'channel-1',
+      );
+
+      expect(
+        appDioClient.requests
+            .map((request) => (request.method, request.path))
+            .toList(growable: false),
+        [
+          ('POST', '/channels/channel-1/stop-all-agents'),
+          ('POST', '/channels/channel-1/resume-all-agents'),
+        ],
+        reason: '#737: stop/resume all agents must POST to correct paths',
+      );
+      expect(
+        appDioClient.requests.every(
+          (request) => request.serverIdHeader == 'server-1',
+        ),
+        isTrue,
+        reason: '#737: requests must include X-Server-Id header',
+      );
+    });
   });
 }
 

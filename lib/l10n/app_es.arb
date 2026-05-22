@@ -422,5 +422,15 @@
   "conversationOpenLinkConfirm": "Abrir",
   "conversationMessageActionsSemantics": "Acciones del mensaje",
   "conversationShowMessageMenuSemantics": "Mostrar menú del mensaje",
-  "conversationReplySemantics": "Responder"
+  "conversationReplySemantics": "Responder",
+  "channelStopAllAgents": "Detener todos los agentes",
+  "channelResumeAllAgents": "Reanudar todos los agentes",
+  "channelStopAllAgentsTitle": "Detener todos los agentes",
+  "channelStopAllAgentsMessage": "¿Detener todos los agentes en este canal? No responderán hasta que se reanuden.",
+  "channelStopAllAgentsConfirm": "Detener todos",
+  "channelStopAllAgentsSuccess": "Todos los agentes detenidos.",
+  "channelStopAllAgentsFailed": "Error al detener los agentes.",
+  "channelResumeAllAgentsSuccess": "Todos los agentes reanudados.",
+  "channelResumeAllAgentsFailed": "Error al reanudar los agentes.",
+  "cancel": "Cancelar"
 }

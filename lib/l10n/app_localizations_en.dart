@@ -1601,4 +1601,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get conversationReplySemantics => 'Reply';
+
+  @override
+  String get channelStopAllAgents => 'Stop All Agents';
+
+  @override
+  String get channelResumeAllAgents => 'Resume All Agents';
+
+  @override
+  String get channelStopAllAgentsTitle => 'Stop all agents';
+
+  @override
+  String get channelStopAllAgentsMessage =>
+      'Stop all agents in this channel? They will not respond until resumed.';
+
+  @override
+  String get channelStopAllAgentsConfirm => 'Stop All';
+
+  @override
+  String get channelStopAllAgentsSuccess => 'All agents stopped.';
+
+  @override
+  String get channelStopAllAgentsFailed => 'Failed to stop agents.';
+
+  @override
+  String get channelResumeAllAgentsSuccess => 'All agents resumed.';
+
+  @override
+  String get channelResumeAllAgentsFailed => 'Failed to resume agents.';
+
+  @override
+  String get cancel => 'Cancel';
 }

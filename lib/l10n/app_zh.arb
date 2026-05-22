@@ -536,5 +536,15 @@
   "conversationOpenLinkConfirm": "打开",
   "conversationMessageActionsSemantics": "消息操作",
   "conversationShowMessageMenuSemantics": "显示消息菜单",
-  "conversationReplySemantics": "回复"
+  "conversationReplySemantics": "回复",
+  "channelStopAllAgents": "停止所有 Agent",
+  "channelResumeAllAgents": "恢复所有 Agent",
+  "channelStopAllAgentsTitle": "停止所有 Agent",
+  "channelStopAllAgentsMessage": "停止此频道中的所有 Agent？停止后它们将不会响应，直到恢复。",
+  "channelStopAllAgentsConfirm": "全部停止",
+  "channelStopAllAgentsSuccess": "所有 Agent 已停止。",
+  "channelStopAllAgentsFailed": "停止 Agent 失败。",
+  "channelResumeAllAgentsSuccess": "所有 Agent 已恢复。",
+  "channelResumeAllAgentsFailed": "恢复 Agent 失败。",
+  "cancel": "取消"
 }

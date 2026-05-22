@@ -1621,4 +1621,35 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get conversationReplySemantics => 'Responder';
+
+  @override
+  String get channelStopAllAgents => 'Detener todos los agentes';
+
+  @override
+  String get channelResumeAllAgents => 'Reanudar todos los agentes';
+
+  @override
+  String get channelStopAllAgentsTitle => 'Detener todos los agentes';
+
+  @override
+  String get channelStopAllAgentsMessage =>
+      '¿Detener todos los agentes en este canal? No responderán hasta que se reanuden.';
+
+  @override
+  String get channelStopAllAgentsConfirm => 'Detener todos';
+
+  @override
+  String get channelStopAllAgentsSuccess => 'Todos los agentes detenidos.';
+
+  @override
+  String get channelStopAllAgentsFailed => 'Error al detener los agentes.';
+
+  @override
+  String get channelResumeAllAgentsSuccess => 'Todos los agentes reanudados.';
+
+  @override
+  String get channelResumeAllAgentsFailed => 'Error al reanudar los agentes.';
+
+  @override
+  String get cancel => 'Cancelar';
 }
