@@ -5,10 +5,14 @@ import 'package:flutter/material.dart';
 /// Used for both live recording visualization and playback scrubbing.
 /// [amplitudes] are normalized values (0.0–1.0) representing bar heights.
 /// [progress] (0.0–1.0) controls the active/inactive split for playback.
+/// [amplitudeCount] is the change signal — when the backing list is mutable
+/// and reused across appends, identity checks cannot detect new samples.
+/// The widget must pass the current count so shouldRepaint() fires (#774).
 class AudioWaveformPainter extends CustomPainter {
   const AudioWaveformPainter({
     required this.amplitudes,
     required this.color,
+    this.amplitudeCount,
     this.inactiveColor,
     this.progress,
     this.barWidth = 3.0,
@@ -18,6 +22,11 @@ class AudioWaveformPainter extends CustomPainter {
 
   /// Normalized amplitude values (0.0–1.0).
   final List<double> amplitudes;
+
+  /// Number of amplitude samples. Used as a repaint signal when the
+  /// amplitudes list is a mutable growable list (same identity across
+  /// appends). When null, falls back to identity check (#774).
+  final int? amplitudeCount;
 
   /// Color for active (played) bars.
   final Color color;
@@ -83,7 +92,12 @@ class AudioWaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant AudioWaveformPainter oldDelegate) {
-    return !identical(amplitudes, oldDelegate.amplitudes) ||
+    // When amplitudeCount is provided, use it as the change signal
+    // (growable mutable list — same identity across appends, #774).
+    final amplitudesChanged = amplitudeCount != null
+        ? amplitudeCount != oldDelegate.amplitudeCount
+        : !identical(amplitudes, oldDelegate.amplitudes);
+    return amplitudesChanged ||
         progress != oldDelegate.progress ||
         color != oldDelegate.color ||
         inactiveColor != oldDelegate.inactiveColor;

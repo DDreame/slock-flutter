@@ -18,7 +18,7 @@ void main() {
     test('initial state is idle with no recording', () {
       final state = container.read(voiceMessageStoreProvider);
       expect(state.recordingState, VoiceRecorderState.idle);
-      expect(state.amplitudes, isEmpty);
+      expect(state.amplitudeCount, 0);
       expect(state.elapsed, Duration.zero);
       expect(state.recordedFilePath, isNull);
     });
@@ -27,7 +27,7 @@ void main() {
       const state = VoiceMessageState(
         recordingState: VoiceRecorderState.recording,
         elapsed: Duration(seconds: 5),
-        amplitudes: [0.5, 0.8],
+        amplitudeCount: 2,
         recordedFilePath: '/tmp/test.m4a',
       );
 
@@ -37,7 +37,7 @@ void main() {
 
       expect(copy.recordingState, VoiceRecorderState.recording);
       expect(copy.elapsed, const Duration(seconds: 10));
-      expect(copy.amplitudes, [0.5, 0.8]);
+      expect(copy.amplitudeCount, 2);
       expect(copy.recordedFilePath, '/tmp/test.m4a');
     });
 
@@ -60,7 +60,8 @@ void main() {
 
       final state = container.read(voiceMessageStoreProvider);
       expect(state.recordingState, VoiceRecorderState.idle);
-      expect(state.amplitudes, isEmpty);
+      expect(state.amplitudeCount, 0);
+      expect(notifier.amplitudes, isEmpty);
       expect(state.elapsed, Duration.zero);
       expect(state.recordedFilePath, isNull);
     });
@@ -81,7 +82,7 @@ void main() {
       notifier.addAmplitude(-40);
       notifier.addAmplitude(-10);
 
-      final amps = container.read(voiceMessageStoreProvider).amplitudes;
+      final amps = notifier.amplitudes;
       expect(amps, hasLength(3));
       // All should be between 0.0 and 1.0.
       for (final a in amps) {
@@ -102,7 +103,7 @@ void main() {
       // -40 dBFS (moderate) → ~0.75
       notifier.addAmplitude(-40);
 
-      final amps = container.read(voiceMessageStoreProvider).amplitudes;
+      final amps = notifier.amplitudes;
       expect(amps[0], closeTo(0.0, 0.01));
       expect(amps[1], closeTo(1.0, 0.01));
       expect(amps[2], greaterThan(0.5));

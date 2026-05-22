@@ -450,7 +450,7 @@ void main() {
       store.setStateDirect(VoiceMessageState(
         recordingState: VoiceRecorderState.recording,
         elapsed: const Duration(seconds: 5),
-        amplitudes: List.of(const [0.1, 0.5, 0.8]),
+        amplitudeCount: 3,
         recordedFilePath: '/path/to/file.m4a',
       ));
       expect(notifyCount, 1);
@@ -459,7 +459,7 @@ void main() {
       store.setStateDirect(VoiceMessageState(
         recordingState: VoiceRecorderState.recording,
         elapsed: const Duration(seconds: 5),
-        amplitudes: List.of(const [0.1, 0.5, 0.8]),
+        amplitudeCount: 3,
         recordedFilePath: '/path/to/file.m4a',
       ));
 
@@ -490,7 +490,7 @@ void main() {
       store.setStateDirect(VoiceMessageState(
         recordingState: VoiceRecorderState.recording,
         elapsed: const Duration(seconds: 5),
-        amplitudes: List.of(const [0.1, 0.5, 0.8]),
+        amplitudeCount: 3,
       ));
       expect(notifyCount, 1);
 
@@ -498,7 +498,7 @@ void main() {
       store.setStateDirect(VoiceMessageState(
         recordingState: VoiceRecorderState.recording,
         elapsed: const Duration(seconds: 6),
-        amplitudes: List.of(const [0.1, 0.5, 0.8]),
+        amplitudeCount: 3,
       ));
       expect(notifyCount, 2, reason: 'changed VoiceMessageState must notify');
     });
@@ -523,28 +523,28 @@ void main() {
           as _ControllableVoiceStore;
 
       store.setStateDirect(VoiceMessageState(
-        amplitudes: List.of(const [0.1, 0.5]),
+        amplitudeCount: 2,
       ));
       expect(notifyCount, 1);
 
       // Append amplitude — content differs.
       store.setStateDirect(VoiceMessageState(
-        amplitudes: List.of(const [0.1, 0.5, 0.9]),
+        amplitudeCount: 3,
       ));
-      expect(notifyCount, 2, reason: 'changed amplitudes must notify');
+      expect(notifyCount, 2, reason: 'changed amplitudeCount must notify');
     });
 
     test('INV-EQ-672-VOICE: hashCode is consistent with ==', () {
       const a = VoiceMessageState(
         recordingState: VoiceRecorderState.recording,
         elapsed: Duration(seconds: 5),
-        amplitudes: [0.1, 0.5, 0.8],
+        amplitudeCount: 3,
         recordedFilePath: '/path/to/file.m4a',
       );
       const b = VoiceMessageState(
         recordingState: VoiceRecorderState.recording,
         elapsed: Duration(seconds: 5),
-        amplitudes: [0.1, 0.5, 0.8],
+        amplitudeCount: 3,
         recordedFilePath: '/path/to/file.m4a',
       );
 

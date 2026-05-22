@@ -197,7 +197,7 @@ void main() {
 
       final state = container.read(voiceMessageStoreProvider);
       expect(state.recordingState, VoiceRecorderState.idle);
-      expect(state.amplitudes, isEmpty);
+      expect(state.amplitudeCount, 0);
       expect(state.elapsed, Duration.zero);
       expect(state.recordedFilePath, isNull);
     });

@@ -10,7 +10,7 @@ class VoiceMessageState {
   const VoiceMessageState({
     this.recordingState = VoiceRecorderState.idle,
     this.elapsed = Duration.zero,
-    this.amplitudes = const [],
+    this.amplitudeCount = 0,
     this.recordedFilePath,
   });
 
@@ -20,8 +20,10 @@ class VoiceMessageState {
   /// Elapsed recording time.
   final Duration elapsed;
 
-  /// Normalized amplitude samples (0.0–1.0) for waveform visualization.
-  final List<double> amplitudes;
+  /// Number of amplitude samples collected. Used as a change signal for
+  /// the waveform widget — actual samples live in VoiceMessageStore._amplitudes
+  /// (growable list, O(1) append). (#774)
+  final int amplitudeCount;
 
   /// Path to the recorded file after stopping.
   final String? recordedFilePath;
@@ -29,14 +31,14 @@ class VoiceMessageState {
   VoiceMessageState copyWith({
     VoiceRecorderState? recordingState,
     Duration? elapsed,
-    List<double>? amplitudes,
+    int? amplitudeCount,
     String? recordedFilePath,
     bool clearRecordedFilePath = false,
   }) {
     return VoiceMessageState(
       recordingState: recordingState ?? this.recordingState,
       elapsed: elapsed ?? this.elapsed,
-      amplitudes: amplitudes ?? this.amplitudes,
+      amplitudeCount: amplitudeCount ?? this.amplitudeCount,
       recordedFilePath: clearRecordedFilePath
           ? null
           : (recordedFilePath ?? this.recordedFilePath),
@@ -50,14 +52,14 @@ class VoiceMessageState {
           runtimeType == other.runtimeType &&
           recordingState == other.recordingState &&
           elapsed == other.elapsed &&
-          listEquals(amplitudes, other.amplitudes) &&
+          amplitudeCount == other.amplitudeCount &&
           recordedFilePath == other.recordedFilePath;
 
   @override
   int get hashCode => Object.hash(
         recordingState,
         elapsed,
-        Object.hashAll(amplitudes),
+        amplitudeCount,
         recordedFilePath,
       );
 }
@@ -76,11 +78,28 @@ final voiceMessageStoreProvider =
 );
 
 class VoiceMessageStore extends AutoDisposeNotifier<VoiceMessageState> {
+  /// Growable mutable list for O(1) amplitude appends (#774).
+  /// Avoids O(n) spread-copy on every 100ms tick during recording.
+  final List<double> _amplitudes = [];
+
+  /// Seeds the amplitude list with pre-existing values. Used by tests
+  /// and session restore.
+  @visibleForTesting
+  void seedAmplitudes(List<double> values) {
+    _amplitudes
+      ..clear()
+      ..addAll(values);
+  }
+
   @override
   bool updateShouldNotify(VoiceMessageState previous, VoiceMessageState next) =>
       previous != next;
   @override
   VoiceMessageState build() => const VoiceMessageState();
+
+  /// The live amplitude samples list. Exposed as unmodifiable view for the
+  /// waveform painter. This is the same list instance that grows in-place.
+  List<double> get amplitudes => _amplitudes;
 
   /// Update the recording state.
   void setRecordingState(VoiceRecorderState recordingState) {
@@ -96,7 +115,8 @@ class VoiceMessageStore extends AutoDisposeNotifier<VoiceMessageState> {
     // Non-linear mapping for better visual representation:
     // Use a power curve so quiet sounds are more visible.
     final normalized = math.pow(1 + clamped / 160.0, 2.0).toDouble();
-    state = state.copyWith(amplitudes: [...state.amplitudes, normalized]);
+    _amplitudes.add(normalized);
+    state = state.copyWith(amplitudeCount: _amplitudes.length);
   }
 
   /// Update the elapsed recording time.
@@ -111,6 +131,7 @@ class VoiceMessageStore extends AutoDisposeNotifier<VoiceMessageState> {
 
   /// Reset to the initial idle state.
   void reset() {
+    _amplitudes.clear();
     state = const VoiceMessageState();
   }
 }

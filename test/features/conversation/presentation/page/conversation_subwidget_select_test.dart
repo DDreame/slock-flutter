@@ -86,7 +86,7 @@ class _ControllableVoiceStore extends VoiceMessageStore {
     state = VoiceMessageState(
       recordingState: state.recordingState,
       elapsed: elapsed,
-      amplitudes: state.amplitudes,
+      amplitudeCount: state.amplitudeCount,
       recordedFilePath: state.recordedFilePath,
     );
   }
@@ -95,7 +95,7 @@ class _ControllableVoiceStore extends VoiceMessageStore {
     state = VoiceMessageState(
       recordingState: recordingState,
       elapsed: state.elapsed,
-      amplitudes: state.amplitudes,
+      amplitudeCount: state.amplitudeCount,
       recordedFilePath: state.recordedFilePath,
     );
   }
