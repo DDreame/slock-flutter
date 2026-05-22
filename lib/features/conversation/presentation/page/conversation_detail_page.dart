@@ -354,6 +354,11 @@ class _ConversationDetailScreenState
     );
     final isRecording = voiceRecordingState == VoiceRecorderState.recording;
 
+    // Keep the VoiceRecordingController alive for this page's lifetime (#772).
+    // Without this watch, the AutoDispose provider would be collected after
+    // ref.read() returns, tearing down recorder/subscriptions mid-recording.
+    ref.watch(voiceRecordingControllerProvider);
+
     // Initialize typing realtime binding — auto-binds/disposes via provider.
     final target = ref.read(currentConversationDetailTargetProvider);
     final typingScopeKey =
