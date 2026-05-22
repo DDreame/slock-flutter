@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/core/errors/app_failure.dart';
 import 'package:slock_app/core/network/app_dio_interceptor.dart';
 import 'package:slock_app/core/network/network_log_event.dart';
 import 'package:slock_app/core/network/token_refresh_coordinator.dart';
@@ -200,6 +201,45 @@ void main() {
       }
 
       expect(adapter.callCount, 4);
+    });
+
+    test('retry exhaustion surfaces final transient error', () async {
+      final logs = <NetworkLogEvent>[];
+      final adapter = _SequenceAdapter([
+        const _StubResponse(statusCode: 500, body: '{"error":"original"}'),
+        const _StubResponse(statusCode: 502, body: '{"error":"retry1"}'),
+        const _StubResponse(statusCode: 503, body: '{"error":"retry2"}'),
+      ]);
+
+      final coordinator =
+          TokenRefreshCoordinator(refreshToken: () async => null);
+
+      final dio = Dio(BaseOptions(baseUrl: 'https://api.test'));
+      dio.httpClientAdapter = adapter;
+      dio.interceptors.add(
+        AppDioInterceptor(
+          buildHeaders: () async => {},
+          tokenRefreshCoordinator: coordinator,
+          logSink: logs.add,
+          dioForRetry: () => dio,
+          transientRetryDelays: const [Duration.zero, Duration.zero],
+        ),
+      );
+
+      await expectLater(
+        dio.get<Object?>('/test'),
+        throwsA(
+          isA<DioException>()
+              .having((e) => e.response?.statusCode, 'statusCode', 503)
+              .having((e) => e.error, 'failure', isA<ServerFailure>()),
+        ),
+      );
+
+      expect(adapter.callCount, 3);
+      final failureLog = logs.lastWhere(
+        (event) => event.stage == NetworkLogStage.failure,
+      );
+      expect(failureLog.statusCode, 503);
     });
 
     test('preserves explicit request X-Server-Id over global fallback',

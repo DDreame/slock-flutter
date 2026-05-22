@@ -115,6 +115,36 @@ void main() {
           reason: 'Production testRealtime must close WebSocket after success');
     });
 
+    test('real testRealtime closes late WebSocket after timeout', () async {
+      fakeAsync((async) {
+        final mockSocket = _MockWebSocket();
+        final connectCompleter = Completer<WebSocket>();
+        final tester = BaseUrlConnectionTester(
+          webSocketConnector: (_) => connectCompleter.future,
+        );
+
+        ConnectionTestResult? result;
+        tester.testRealtime('wss://example.com').then((value) {
+          result = value;
+        });
+
+        async.elapse(const Duration(seconds: 3));
+        async.flushMicrotasks();
+
+        expect(result, ConnectionTestResult.timeout);
+        expect(mockSocket.closeCalled, isFalse);
+
+        connectCompleter.complete(mockSocket);
+        async.flushMicrotasks();
+
+        expect(
+          mockSocket.closeCalled,
+          isTrue,
+          reason: 'Late WebSocket connect must be closed after timeout result.',
+        );
+      });
+    });
+
     test(
         'real testRealtime closes socket even when timeout occurs after connect',
         () async {

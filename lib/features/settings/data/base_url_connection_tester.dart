@@ -80,6 +80,7 @@ class BaseUrlConnectionTester {
     if (realtimeUrl.isEmpty) return ConnectionTestResult.invalidUrl;
 
     WebSocket? socket;
+    Future<WebSocket>? connectFuture;
     try {
       // Normalize ws/wss to http/https for the Socket.IO polling check,
       // or attempt a raw WebSocket connect.
@@ -90,11 +91,11 @@ class BaseUrlConnectionTester {
         wsUrl = 'wss://${wsUrl.substring('https://'.length)}';
       }
 
-      socket = await _connectWebSocket(
-        wsUrl,
-      ).timeout(_testTimeout);
+      connectFuture = _connectWebSocket(wsUrl);
+      socket = await connectFuture.timeout(_testTimeout);
       return ConnectionTestResult.reachable;
     } on TimeoutException {
+      unawaited(_closeLateSocket(connectFuture));
       return ConnectionTestResult.timeout;
     } on WebSocketException {
       // WebSocket upgrade rejected — server is reachable but
@@ -110,6 +111,17 @@ class BaseUrlConnectionTester {
     } finally {
       // Always close the WebSocket to prevent resource leaks (#723).
       await socket?.close();
+    }
+  }
+
+  Future<void> _closeLateSocket(Future<WebSocket>? connectFuture) async {
+    if (connectFuture == null) return;
+    try {
+      final socket = await connectFuture;
+      await socket.close();
+    } on Exception {
+      // The original timeout result has already been returned. If the late
+      // connection also fails, there is no socket to close.
     }
   }
 }
