@@ -17,6 +17,7 @@ void main() {
   Widget buildApp({
     required MemberRepository memberRepository,
     AgentsRepository? agentsRepository,
+    CrashReporter? crashReporter,
   }) {
     return ProviderScope(
       overrides: [
@@ -24,6 +25,8 @@ void main() {
         agentsRepositoryProvider.overrideWithValue(
           agentsRepository ?? const _FakeAgentsRepository(),
         ),
+        if (crashReporter != null)
+          crashReporterProvider.overrideWithValue(crashReporter),
       ],
       child: MaterialApp(
         theme: AppTheme.light,
@@ -274,6 +277,38 @@ void main() {
       expect(find.text('Failed to open conversation.'), findsOneWidget);
     });
 
+    testWidgets(
+        'unexpected DM open error resets guard even when crash reporting throws',
+        (tester) async {
+      final repo = _FakeMemberRepository(
+        members: const [
+          MemberProfile(id: 'u1', displayName: 'Alice'),
+        ],
+        openDmError: const FormatException('bad dm response'),
+      );
+
+      await tester.pumpWidget(
+        buildApp(
+          memberRepository: repo,
+          crashReporter: _ThrowingCrashReporter(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dm-member-u1')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsOneWidget);
+      expect(find.text('Failed to open conversation.'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      repo.openDmError = null;
+      await tester.tap(find.byKey(const ValueKey('dm-member-u1')));
+      await tester.pump();
+
+      expect(repo.openedDmUserIds, ['u1']);
+    });
+
     testWidgets('has an AppBar with title "New message"', (tester) async {
       final repo = _FakeMemberRepository(
         members: const [
@@ -296,6 +331,7 @@ class _FakeMemberRepository implements MemberRepository {
     this.agentDmChannelId = 'dm-agent-channel-1',
     this.failure,
     this.openDmFailure,
+    this.openDmError,
   });
 
   List<MemberProfile> members;
@@ -303,6 +339,7 @@ class _FakeMemberRepository implements MemberRepository {
   final String agentDmChannelId;
   AppFailure? failure;
   AppFailure? openDmFailure;
+  Object? openDmError;
   final List<String> openedDmUserIds = [];
   final List<String> openedAgentDmIds = [];
 
@@ -341,6 +378,8 @@ class _FakeMemberRepository implements MemberRepository {
     required String userId,
   }) async {
     if (openDmFailure != null) throw openDmFailure!;
+    final error = openDmError;
+    if (error != null) throw error;
     openedDmUserIds.add(userId);
     return dmChannelId;
   }
@@ -351,9 +390,34 @@ class _FakeMemberRepository implements MemberRepository {
     required String agentId,
   }) async {
     if (openDmFailure != null) throw openDmFailure!;
+    final error = openDmError;
+    if (error != null) throw error;
     openedAgentDmIds.add(agentId);
     return agentDmChannelId;
   }
+}
+
+class _ThrowingCrashReporter implements CrashReporter {
+  @override
+  Future<void> init() async {}
+
+  @override
+  void captureException(
+    Object error, {
+    StackTrace? stackTrace,
+    Map<String, dynamic>? extra,
+  }) {
+    throw StateError('crash reporter failed');
+  }
+
+  @override
+  void captureFlutterError(FlutterErrorDetails details) {}
+
+  @override
+  void addBreadcrumb(Breadcrumb breadcrumb) {}
+
+  @override
+  void setUser(String? userId, {String? displayName}) {}
 }
 
 class _FakeAgentsRepository implements AgentsRepository {
