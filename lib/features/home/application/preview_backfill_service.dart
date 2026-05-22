@@ -128,126 +128,126 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     final filled = Set<String>.of(state.filled);
 
-    // --- Phase 1: SQLite cache lookup ---
-    final remainingAfterCache = <HomeChannelSummary>[];
     try {
-      final localStore = ref.read(conversationLocalStoreProvider);
-      final cached = await localStore.listConversationSummaries(
-        serverId?.value ?? '',
-        surface: 'channel',
-      );
-
-      // Index cached summaries by conversationId for O(1) lookup.
-      final cacheMap = <String, LocalConversationSummaryRecord>{};
-      for (final record in cached) {
-        cacheMap[record.conversationId] = record;
-      }
-
-      final homeStore = ref.read(homeListStoreProvider.notifier);
-
-      for (final channel in needsBackfill) {
-        final id = channel.scopeId.value;
-        final record = cacheMap[id];
-        if (record != null &&
-            record.lastMessagePreview != null &&
-            record.lastMessagePreview!.isNotEmpty &&
-            record.lastMessageId != null) {
-          homeStore.backfillChannelPreview(
-            conversationId: id,
-            messageId: record.lastMessageId!,
-            preview: record.lastMessagePreview!,
-            activityAt: record.lastActivityAt ?? DateTime.now(),
-          );
-          filled.add(id);
-        } else {
-          remainingAfterCache.add(channel);
-        }
-      }
-    } catch (e, st) {
-      // If cache lookup fails, all channels go to Phase 2.
+      // --- Phase 1: SQLite cache lookup ---
+      final remainingAfterCache = <HomeChannelSummary>[];
       try {
-        ref.read(diagnosticsCollectorProvider).error(
-          'PreviewBackfill',
-          'Channel cache lookup failed: $e',
-          metadata: {'stackTrace': '$st'},
+        final localStore = ref.read(conversationLocalStoreProvider);
+        final cached = await localStore.listConversationSummaries(
+          serverId?.value ?? '',
+          surface: 'channel',
         );
-      } catch (_) {
-        // Container disposed — skip telemetry.
-      }
-      remainingAfterCache
-        ..clear()
-        ..addAll(needsBackfill);
-    }
 
-    // --- Phase 2: Lazy-load from API with concurrency limiter ---
-    if (remainingAfterCache.isNotEmpty && serverId != null) {
-      final fetcher = ref.read(previewMessageFetcherProvider);
+        // Index cached summaries by conversationId for O(1) lookup.
+        final cacheMap = <String, LocalConversationSummaryRecord>{};
+        for (final record in cached) {
+          cacheMap[record.conversationId] = record;
+        }
 
-      // Sort: visible channels first, then remaining in original order.
-      final sorted = <HomeChannelSummary>[
-        ...remainingAfterCache
-            .where((c) => visibleChannelIds.contains(c.scopeId.value)),
-        ...remainingAfterCache
-            .where((c) => !visibleChannelIds.contains(c.scopeId.value)),
-      ];
-
-      // Concurrency-limited fetch loop.
-      var inFlight = 0;
-      final pending = List<HomeChannelSummary>.of(sorted);
-
-      Future<void> fetchOne(HomeChannelSummary channel) async {
-        final id = channel.scopeId.value;
-        try {
-          final result = await fetcher(serverId.value, id);
-          if (result != null) {
+        for (final channel in needsBackfill) {
+          final id = channel.scopeId.value;
+          final record = cacheMap[id];
+          if (record != null &&
+              record.lastMessagePreview != null &&
+              record.lastMessagePreview!.isNotEmpty &&
+              record.lastMessageId != null) {
             ref.read(homeListStoreProvider.notifier).backfillChannelPreview(
                   conversationId: id,
-                  messageId: result.messageId,
-                  preview: result.preview,
-                  activityAt: result.activityAt,
+                  messageId: record.lastMessageId!,
+                  preview: record.lastMessagePreview!,
+                  activityAt: record.lastActivityAt ?? DateTime.now(),
                 );
             filled.add(id);
+          } else {
+            remainingAfterCache.add(channel);
           }
-        } catch (e, st) {
+        }
+      } catch (e, st) {
+        // If cache lookup fails, all channels go to Phase 2.
+        try {
+          ref.read(diagnosticsCollectorProvider).error(
+            'PreviewBackfill',
+            'Channel cache lookup failed: $e',
+            metadata: {'stackTrace': '$st'},
+          );
+        } catch (_) {
+          // Container disposed — skip telemetry.
+        }
+        remainingAfterCache
+          ..clear()
+          ..addAll(needsBackfill);
+      }
+
+      // --- Phase 2: Lazy-load from API with concurrency limiter ---
+      if (remainingAfterCache.isNotEmpty && serverId != null) {
+        final fetcher = ref.read(previewMessageFetcherProvider);
+
+        // Sort: visible channels first, then remaining in original order.
+        final sorted = <HomeChannelSummary>[
+          ...remainingAfterCache
+              .where((c) => visibleChannelIds.contains(c.scopeId.value)),
+          ...remainingAfterCache
+              .where((c) => !visibleChannelIds.contains(c.scopeId.value)),
+        ];
+
+        // Concurrency-limited fetch loop.
+        var inFlight = 0;
+        final pending = List<HomeChannelSummary>.of(sorted);
+
+        Future<void> fetchOne(HomeChannelSummary channel) async {
+          final id = channel.scopeId.value;
           try {
-            ref.read(diagnosticsCollectorProvider).error(
-              'PreviewBackfill',
-              'Channel fetch failed for $id: $e',
-              metadata: {'stackTrace': '$st'},
-            );
-          } catch (_) {
-            // Container disposed during async backfill — skip telemetry.
+            final result = await fetcher(serverId.value, id);
+            if (result != null) {
+              ref.read(homeListStoreProvider.notifier).backfillChannelPreview(
+                    conversationId: id,
+                    messageId: result.messageId,
+                    preview: result.preview,
+                    activityAt: result.activityAt,
+                  );
+              filled.add(id);
+            }
+          } catch (e, st) {
+            try {
+              ref.read(diagnosticsCollectorProvider).error(
+                'PreviewBackfill',
+                'Channel fetch failed for $id: $e',
+                metadata: {'stackTrace': '$st'},
+              );
+            } catch (_) {
+              // Container disposed during async backfill — skip telemetry.
+            }
           }
         }
-      }
 
-      // Process with concurrency cap.
-      final allDone = Completer<void>();
-      var nextIndex = 0;
+        // Process with concurrency cap.
+        final allDone = Completer<void>();
+        var nextIndex = 0;
 
-      void pump() {
-        while (inFlight < maxConcurrent && nextIndex < pending.length) {
-          final channel = pending[nextIndex++];
-          inFlight++;
-          fetchOne(channel).whenComplete(() {
-            inFlight--;
-            if (nextIndex >= pending.length && inFlight == 0) {
-              if (!allDone.isCompleted) allDone.complete();
-            } else {
-              pump();
-            }
-          });
+        void pump() {
+          while (inFlight < maxConcurrent && nextIndex < pending.length) {
+            final channel = pending[nextIndex++];
+            inFlight++;
+            fetchOne(channel).whenComplete(() {
+              inFlight--;
+              if (nextIndex >= pending.length && inFlight == 0) {
+                if (!allDone.isCompleted) allDone.complete();
+              } else {
+                pump();
+              }
+            });
+          }
+          if (pending.isEmpty && inFlight == 0 && !allDone.isCompleted) {
+            allDone.complete();
+          }
         }
-        if (pending.isEmpty && inFlight == 0 && !allDone.isCompleted) {
-          allDone.complete();
-        }
-      }
 
-      pump();
-      await allDone.future;
+        pump();
+        await allDone.future;
+      }
+    } finally {
+      state = PreviewBackfillState(isRunning: false, filled: filled);
     }
-
-    state = PreviewBackfillState(isRunning: false, filled: filled);
   }
 
   /// BUG-1 fix (#637): Backfill missing previews for DMs.

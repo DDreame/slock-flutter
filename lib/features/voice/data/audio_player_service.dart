@@ -46,16 +46,70 @@ final activeAudioPlayerProvider = StateProvider<AudioPlayerController?>((ref) {
 /// Exposes streams for position, duration, and playback state.
 /// The underlying [AudioPlayer] is created lazily on first access
 /// to avoid binding initialization issues in non-widget contexts.
-class AudioPlayerService implements AudioPlayerController {
-  AudioPlayerService();
+abstract class VoiceAudioPlayer {
+  Stream<PlayerState> get playerStateStream;
+  Stream<Duration> get positionStream;
+  Stream<Duration?> get durationStream;
+  Duration? get duration;
 
-  AudioPlayer? _player;
+  Future<Duration?> setUrl(String url);
+  Future<Duration?> setFilePath(String path);
+  Future<void> play();
+  Future<void> pause();
+  Future<void> stop();
+  Future<void> seek(Duration position);
+  Future<void> dispose();
+}
+
+class _JustAudioPlayerAdapter implements VoiceAudioPlayer {
+  _JustAudioPlayerAdapter() : _player = AudioPlayer();
+
+  final AudioPlayer _player;
+
+  @override
+  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
+
+  @override
+  Stream<Duration> get positionStream => _player.positionStream;
+
+  @override
+  Stream<Duration?> get durationStream => _player.durationStream;
+
+  @override
+  Duration? get duration => _player.duration;
+
+  @override
+  Future<Duration?> setUrl(String url) => _player.setUrl(url);
+
+  @override
+  Future<Duration?> setFilePath(String path) => _player.setFilePath(path);
+
+  @override
+  Future<void> play() => _player.play();
+
+  @override
+  Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> stop() => _player.stop();
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> dispose() => _player.dispose();
+}
+
+class AudioPlayerService implements AudioPlayerController {
+  AudioPlayerService({VoiceAudioPlayer? player}) : _player = player;
+
+  VoiceAudioPlayer? _player;
   String? _currentPath;
   AudioPlaybackState _state = AudioPlaybackState.stopped;
   StreamSubscription<PlayerState>? _playerStateSub;
   final _stateController = StreamController<AudioPlaybackState>.broadcast();
 
-  AudioPlayer get _lazyPlayer => _player ??= AudioPlayer();
+  VoiceAudioPlayer get _lazyPlayer => _player ??= _JustAudioPlayerAdapter();
 
   // ---------------------------------------------------------------------------
   // Public getters
@@ -130,7 +184,7 @@ class AudioPlayerService implements AudioPlayerController {
       }
 
       // Listen for completion to reset state.
-      _playerStateSub?.cancel();
+      await _playerStateSub?.cancel();
       _playerStateSub = player.playerStateStream.listen((playerState) {
         final nextState = _mapPlayerState(playerState);
         _setState(nextState);
@@ -220,7 +274,7 @@ class AudioPlayerService implements AudioPlayerController {
     }
   }
 
-  Future<void> _resetCompletedPlayback(AudioPlayer player) async {
+  Future<void> _resetCompletedPlayback(VoiceAudioPlayer player) async {
     try {
       await player.seek(Duration.zero);
       await player.pause();

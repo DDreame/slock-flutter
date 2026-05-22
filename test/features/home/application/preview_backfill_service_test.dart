@@ -134,6 +134,45 @@ void main() {
   }
 
   group('PreviewBackfillService', () {
+    test('resets isRunning after null server and allows later backfill',
+        () async {
+      final activeServer = StateProvider<ServerScopeId?>((ref) => null);
+      final localStore = FakeConversationLocalStore();
+      final channels = [makeChannel('ch-1')];
+      final fetchedChannelIds = <String>[];
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWith(
+            (ref) => ref.watch(activeServer),
+          ),
+          conversationLocalStoreProvider.overrideWithValue(localStore),
+          previewMessageFetcherProvider.overrideWithValue(
+            (serverId, channelId) async {
+              fetchedChannelIds.add(channelId);
+              return null;
+            },
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(previewBackfillServiceProvider.notifier).backfill(
+            channels,
+          );
+
+      expect(container.read(previewBackfillServiceProvider).isRunning, isFalse);
+      expect(fetchedChannelIds, isEmpty);
+
+      container.read(activeServer.notifier).state = serverId;
+      await container.read(previewBackfillServiceProvider.notifier).backfill(
+            channels,
+          );
+
+      expect(container.read(previewBackfillServiceProvider).isRunning, isFalse);
+      expect(fetchedChannelIds, ['ch-1']);
+    });
+
     // T1: SQLite cache hit fills preview
     test(
       'SQLite cache hit fills preview for channels missing lastMessagePreview',
