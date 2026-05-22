@@ -225,7 +225,7 @@ void main() {
       expect(state.showTranslation['msg-1'], true);
     });
 
-    test('allows re-translation by clearing cache first', () async {
+    test('allows re-translation without clearing cached content', () async {
       final fakeRepo = _FakeTranslationRepository(
         batchResults: [
           const TranslationResult(
@@ -263,6 +263,97 @@ void main() {
 
       final state = container.read(translationCacheStoreProvider);
       expect(state.translations['msg-1']?.translatedContent, 'v2');
+    });
+
+    test('keeps previous translation visible while re-translation is pending',
+        () async {
+      final secondCompleter = Completer<List<TranslationResult>>();
+      final repo = _ScriptedTranslationRepository([
+        [
+          const TranslationResult(
+            messageId: 'msg-1',
+            translatedContent: 'v1',
+            sourceLanguage: 'en',
+            targetLanguage: 'ja',
+            status: TranslationStatus.translated,
+          ),
+        ],
+        secondCompleter,
+      ]);
+      final container = createContainer(repo: repo);
+      final subscription = container.listen(
+        translationCacheStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        subscription.close();
+        container.dispose();
+      });
+
+      final notifier = container.read(translationCacheStoreProvider.notifier);
+      await notifier.translateMessage('msg-1');
+
+      final retranslateFuture = notifier.translateMessage('msg-1');
+      await Future<void>.delayed(Duration.zero);
+
+      var state = container.read(translationCacheStoreProvider);
+      expect(
+          state.translations['msg-1']?.status, TranslationEntryStatus.pending);
+      expect(state.translations['msg-1']?.translatedContent, 'v1');
+      expect(state.showTranslation['msg-1'], isTrue);
+
+      secondCompleter.complete([
+        const TranslationResult(
+          messageId: 'msg-1',
+          translatedContent: 'v2',
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          status: TranslationStatus.translated,
+        ),
+      ]);
+      await retranslateFuture;
+
+      state = container.read(translationCacheStoreProvider);
+      expect(state.translations['msg-1']?.status,
+          TranslationEntryStatus.translated);
+      expect(state.translations['msg-1']?.translatedContent, 'v2');
+    });
+
+    test('restores previous translation when re-translation fails', () async {
+      final repo = _ScriptedTranslationRepository([
+        [
+          const TranslationResult(
+            messageId: 'msg-1',
+            translatedContent: 'v1',
+            sourceLanguage: 'en',
+            targetLanguage: 'ja',
+            status: TranslationStatus.translated,
+          ),
+        ],
+        const ServerFailure(message: 'API error'),
+      ]);
+      final container = createContainer(repo: repo);
+      final subscription = container.listen(
+        translationCacheStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        subscription.close();
+        container.dispose();
+      });
+
+      final notifier = container.read(translationCacheStoreProvider.notifier);
+      await notifier.translateMessage('msg-1');
+      await notifier.translateMessage('msg-1');
+
+      final state = container.read(translationCacheStoreProvider);
+      expect(repo.batchCallCount, 2);
+      expect(state.translations['msg-1']?.status,
+          TranslationEntryStatus.translated);
+      expect(state.translations['msg-1']?.translatedContent, 'v1');
+      expect(state.showTranslation['msg-1'], isTrue);
     });
   });
 
@@ -373,6 +464,29 @@ class _FakeTranslationRepository implements TranslationRepository {
       throw const ServerFailure(message: 'API error');
     }
     return batchResults;
+  }
+}
+
+class _ScriptedTranslationRepository extends _FakeTranslationRepository {
+  _ScriptedTranslationRepository(this.responses);
+
+  final List<Object> responses;
+
+  @override
+  Future<List<TranslationResult>> translateBatch(
+    ServerScopeId serverId, {
+    required List<String> messageIds,
+    required String targetLanguage,
+  }) async {
+    batchCallCount++;
+    final response = responses.removeAt(0);
+    if (response is AppFailure) {
+      throw response;
+    }
+    if (response is Completer<List<TranslationResult>>) {
+      return response.future;
+    }
+    return response as List<TranslationResult>;
   }
 }
 

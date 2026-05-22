@@ -108,6 +108,31 @@ void main() {
     expect(find.byKey(const ValueKey('translation-toggle')), findsNothing);
   });
 
+  testWidgets('keeps translated content visible while refresh is pending',
+      (tester) async {
+    const entry = TranslationEntry(
+      messageId: 'msg-1',
+      translatedContent: 'こんにちは',
+      sourceLanguage: 'en',
+      targetLanguage: 'ja',
+      status: TranslationEntryStatus.pending,
+    );
+
+    const cacheState = TranslationCacheState(
+      translations: {'msg-1': entry},
+      showTranslation: {'msg-1': true},
+    );
+
+    await tester
+        .pumpWidget(buildTestWidget(entry: entry, cacheState: cacheState));
+    await tester.pump();
+
+    expect(find.text('こんにちは'), findsOneWidget);
+    expect(find.text('Hello world'), findsNothing);
+    expect(find.byKey(const ValueKey('translation-pending-spinner')),
+        findsOneWidget);
+  });
+
   testWidgets('shows error icon and retry when translation failed',
       (tester) async {
     const entry = TranslationEntry(

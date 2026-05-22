@@ -175,7 +175,15 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
 
   /// Batch-translate messages. Marks them as pending immediately, then
   /// updates with API results. Skips messages already cached.
-  Future<void> translateMessages(List<String> messageIds) async {
+  Future<void> translateMessages(List<String> messageIds) {
+    return _translateMessages(messageIds);
+  }
+
+  Future<void> _translateMessages(
+    List<String> messageIds, {
+    bool forceRefresh = false,
+    Map<String, TranslationEntry> restoreOnFailure = const {},
+  }) async {
     if (messageIds.isEmpty) return;
 
     final serverId = ref.read(activeServerScopeIdProvider);
@@ -187,22 +195,29 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
 
     // Filter out already-cached (translated or pending) messages
     // AND messages currently in-flight (concurrent dedup guard).
+    // Manual re-translation can force a refresh while preserving the
+    // existing entry to avoid a visible original-content flash.
     final uncached = messageIds
         .where((id) =>
-            !state.translations.containsKey(id) && !_inFlight.contains(id))
+            (forceRefresh || !state.translations.containsKey(id)) &&
+            !_inFlight.contains(id))
         .toList();
     if (uncached.isEmpty) return;
 
     // Register as in-flight before any async work.
     _inFlight.addAll(uncached);
 
-    // Mark uncached as pending.
+    // Mark uncached as pending. Preserve any existing content in-place so
+    // manual re-translation never flashes back to the untranslated message.
     final pending = Map<String, TranslationEntry>.from(state.translations);
     for (final id in uncached) {
-      pending[id] = TranslationEntry(
-        messageId: id,
-        status: TranslationEntryStatus.pending,
-      );
+      pending[id] = pending[id]?.copyWith(
+            status: TranslationEntryStatus.pending,
+          ) ??
+          TranslationEntry(
+            messageId: id,
+            status: TranslationEntryStatus.pending,
+          );
     }
     state = state.copyWith(translations: _trimTranslations(pending));
 
@@ -254,10 +269,10 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
         final existing = failed[id];
         if (existing != null &&
             existing.status == TranslationEntryStatus.pending) {
-          failed.remove(id);
-          failed[id] = existing.copyWith(
-            status: TranslationEntryStatus.failed,
-          );
+          failed[id] = restoreOnFailure[id] ??
+              existing.copyWith(
+                status: TranslationEntryStatus.failed,
+              );
         }
       }
       state = state.copyWith(translations: _trimTranslations(failed));
@@ -270,12 +285,15 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
 
   /// Translate a single message (manual mode).
   Future<void> translateMessage(String messageId) async {
-    // Remove from cache to allow re-translation.
-    final cleaned = Map<String, TranslationEntry>.from(state.translations)
-      ..remove(messageId);
-    state = state.copyWith(translations: _trimTranslations(cleaned));
+    final previous = state.translations[messageId];
 
-    await translateMessages([messageId]);
+    await _translateMessages(
+      [messageId],
+      forceRefresh: true,
+      restoreOnFailure: {
+        if (previous != null) messageId: previous,
+      },
+    );
 
     // Auto-show translation after manual trigger.
     if (state.translations[messageId]?.status ==
