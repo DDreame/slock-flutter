@@ -59,12 +59,10 @@ class PresenceState {
 
   @override
   int get hashCode {
-    // XOR of entry hashes — order-independent.
-    var h = 0;
-    for (final entry in statuses.entries) {
-      h ^= Object.hash(entry.key, entry.value);
-    }
-    return h;
+    final sortedKeys = statuses.keys.toList()..sort();
+    return Object.hashAll(
+      sortedKeys.map((key) => Object.hash(key, statuses[key])),
+    );
   }
 }
 

@@ -1,3 +1,4 @@
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -174,19 +175,71 @@ void main() {
       );
     });
 
-    test('saveScrollOffset updates existing entry', () {
-      final detailState = makeSuccessState();
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveSuccessState(detailState, scrollOffset: 100.0);
+    test('saveScrollOffset updates existing entry after debounce', () {
+      fakeAsync((async) {
+        final detailState = makeSuccessState();
+        container
+            .read(conversationDetailSessionStoreProvider.notifier)
+            .saveSuccessState(detailState, scrollOffset: 100.0);
 
-      container
-          .read(conversationDetailSessionStoreProvider.notifier)
-          .saveScrollOffset(targetChannel, 250.0);
+        container
+            .read(conversationDetailSessionStoreProvider.notifier)
+            .saveScrollOffset(targetChannel, 250.0);
 
-      final entry = container
-          .read(conversationDetailSessionStoreProvider)[targetChannel]!;
-      expect(entry.scrollOffset, 250.0);
+        var entry = container
+            .read(conversationDetailSessionStoreProvider)[targetChannel]!;
+        expect(entry.scrollOffset, 100.0);
+
+        async.elapse(
+          ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+        );
+
+        entry = container
+            .read(conversationDetailSessionStoreProvider)[targetChannel]!;
+        expect(entry.scrollOffset, 250.0);
+      });
+    });
+
+    test('saveScrollOffset coalesces rapid scroll notifications', () {
+      fakeAsync((async) {
+        final detailState = makeSuccessState();
+        container
+            .read(conversationDetailSessionStoreProvider.notifier)
+            .saveSuccessState(detailState, scrollOffset: 0.0);
+
+        var notifications = 0;
+        final subscription = container.listen(
+          conversationDetailSessionStoreProvider,
+          (_, __) => notifications++,
+        );
+        addTearDown(subscription.close);
+
+        for (var i = 1; i <= 100; i++) {
+          container
+              .read(conversationDetailSessionStoreProvider.notifier)
+              .saveScrollOffset(targetChannel, i.toDouble());
+        }
+
+        expect(notifications, 0);
+        expect(
+          container
+              .read(conversationDetailSessionStoreProvider)[targetChannel]!
+              .scrollOffset,
+          0.0,
+        );
+
+        async.elapse(
+          ConversationDetailSessionStore.scrollOffsetDebounceDuration,
+        );
+
+        expect(notifications, 1);
+        expect(
+          container
+              .read(conversationDetailSessionStoreProvider)[targetChannel]!
+              .scrollOffset,
+          100.0,
+        );
+      });
     });
 
     test('saveScrollOffset is no-op for unknown target', () {

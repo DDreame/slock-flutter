@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
@@ -107,9 +109,17 @@ class ConversationDetailSessionStore extends Notifier<
   /// Maximum number of cached session entries. Beyond this, oldest-accessed
   /// entries are evicted (LRU) to bound memory usage.
   static const maxEntries = 8;
+  static const scrollOffsetDebounceDuration = Duration(milliseconds: 500);
+
+  Timer? _scrollOffsetDebounce;
+  final Map<ConversationDetailTarget, double> _pendingScrollOffsets = {};
 
   @override
   Map<ConversationDetailTarget, ConversationDetailSessionEntry> build() {
+    ref.onDispose(() {
+      _scrollOffsetDebounce?.cancel();
+      _pendingScrollOffsets.clear();
+    });
     return const {};
   }
 
@@ -137,13 +147,29 @@ class ConversationDetailSessionStore extends Notifier<
   }
 
   void saveScrollOffset(ConversationDetailTarget target, double scrollOffset) {
-    final existing = state[target];
-    if (existing == null) {
+    if (!state.containsKey(target)) {
       return;
     }
-    state = {
-      ...state,
-      target: existing.copyWith(scrollOffset: scrollOffset),
-    };
+    _pendingScrollOffsets[target] = scrollOffset;
+    _scrollOffsetDebounce?.cancel();
+    _scrollOffsetDebounce = Timer(
+      scrollOffsetDebounceDuration,
+      _flushPendingScrollOffsets,
+    );
+  }
+
+  void _flushPendingScrollOffsets() {
+    if (_pendingScrollOffsets.isEmpty) return;
+    final updated =
+        Map<ConversationDetailTarget, ConversationDetailSessionEntry>.from(
+            state);
+    for (final entry in _pendingScrollOffsets.entries) {
+      final existing = updated[entry.key];
+      if (existing != null) {
+        updated[entry.key] = existing.copyWith(scrollOffset: entry.value);
+      }
+    }
+    _pendingScrollOffsets.clear();
+    state = updated;
   }
 }

@@ -58,18 +58,23 @@ mixin _ConversationDetailSelectionMixin on _ConversationDetailCoreMixin {
       selectedMessageIds: const {},
     );
 
-    // Fire delete requests, tracking successes and failures.
+    // Fire delete requests concurrently, tracking successes and failures.
     final repo = ref.read(conversationRepositoryProvider);
-    int succeeded = 0;
-    final failedIds = <String>[];
-    for (final id in ids) {
-      try {
-        await repo.deleteMessage(target, messageId: id);
-        succeeded++;
-      } on AppFailure {
-        failedIds.add(id);
-      }
-    }
+    final results = await Future.wait(
+      ids.map((id) async {
+        try {
+          await repo.deleteMessage(target, messageId: id);
+          return (id: id, succeeded: true);
+        } on AppFailure {
+          return (id: id, succeeded: false);
+        }
+      }),
+    );
+    final succeeded = results.where((result) => result.succeeded).length;
+    final failedIds = [
+      for (final result in results)
+        if (!result.succeeded) result.id,
+    ];
 
     // Roll back optimistic delete for failed IDs.
     if (failedIds.isNotEmpty) {
