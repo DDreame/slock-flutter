@@ -66,6 +66,16 @@ class ServerListStore extends Notifier<ServerListState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(isCreating: false, failure: failure);
       rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('createServer', e, st);
+      state = state.copyWith(
+        isCreating: false,
+        failure: UnknownFailure(
+          message: 'Failed to create workspace.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
+      rethrow;
     }
   }
 
@@ -103,6 +113,16 @@ class ServerListStore extends Notifier<ServerListState> {
         failure: failure,
       );
       rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('renameServer', e, st);
+      state = state.copyWith(
+        savingServerIds: {...state.savingServerIds}..remove(serverId),
+        failure: UnknownFailure(
+          message: 'Failed to rename workspace.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
+      rethrow;
     }
   }
 
@@ -131,6 +151,16 @@ class ServerListStore extends Notifier<ServerListState> {
         failure: failure,
       );
       rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('deleteServer', e, st);
+      state = state.copyWith(
+        deletingServerIds: {...state.deletingServerIds}..remove(serverId),
+        failure: UnknownFailure(
+          message: 'Failed to delete workspace.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
+      rethrow;
     }
   }
 
@@ -157,6 +187,16 @@ class ServerListStore extends Notifier<ServerListState> {
       state = state.copyWith(
         leavingServerIds: {...state.leavingServerIds}..remove(serverId),
         failure: failure,
+      );
+      rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('leaveServer', e, st);
+      state = state.copyWith(
+        leavingServerIds: {...state.leavingServerIds}..remove(serverId),
+        failure: UnknownFailure(
+          message: 'Failed to leave workspace.',
+          causeType: e.runtimeType.toString(),
+        ),
       );
       rethrow;
     }
@@ -196,7 +236,27 @@ class ServerListStore extends Notifier<ServerListState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(isJoiningInvite: false, failure: failure);
       rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('acceptInvite', e, st);
+      state = state.copyWith(
+        isJoiningInvite: false,
+        failure: UnknownFailure(
+          message: 'Failed to accept invite.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
+      rethrow;
     }
+  }
+
+  void _reportUnexpectedError(String method, Object error, StackTrace st) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'ServerListStore',
+        '$method failed: $error',
+        metadata: {'stackTrace': st.toString()},
+      );
+    } catch (_) {}
   }
 
   Future<void> _cohereSelection({

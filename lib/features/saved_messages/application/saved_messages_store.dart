@@ -80,6 +80,21 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
       );
     } on AppFailure catch (failure) {
       state = state.copyWith(failure: failure, isLoadingMore: false);
+    } catch (e, st) {
+      try {
+        ref.read(diagnosticsCollectorProvider).error(
+          'SavedMessagesStore',
+          'loadMore failed: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      } catch (_) {}
+      state = state.copyWith(
+        failure: UnknownFailure(
+          message: 'Failed to load more saved messages.',
+          causeType: e.runtimeType.toString(),
+        ),
+        isLoadingMore: false,
+      );
     }
   }
 
