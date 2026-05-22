@@ -534,6 +534,69 @@ void main() {
       expect(state.items.map((item) => item.unreadCount), [0, 0]);
     });
 
+    test(
+        'failed markRead does not reinsert item after markAllRead in unread filter',
+        () async {
+      final repo = _ControllableInboxRepository();
+      repo.nextResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            channelName: 'general',
+            unreadCount: 5,
+          ),
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-1',
+            channelName: 'Bob',
+            unreadCount: 2,
+          ),
+        ],
+        totalCount: 2,
+        totalUnreadCount: 7,
+        hasMore: false,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          inboxRepositoryProvider.overrideWithValue(repo),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container
+          .read(inboxStoreProvider.notifier)
+          .load(filter: InboxFilter.unread);
+
+      repo.markReadCompleter = Completer<void>();
+      repo.markAllReadCompleter = Completer<void>();
+      final markReadFuture = container
+          .read(inboxStoreProvider.notifier)
+          .markRead(channelId: 'ch-1');
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        container.read(inboxStoreProvider).items.map((item) => item.channelId),
+        ['dm-1'],
+      );
+
+      final markAllReadFuture =
+          container.read(inboxStoreProvider.notifier).markAllRead();
+      await Future<void>.delayed(Duration.zero);
+
+      repo.markAllReadCompleter!.complete();
+      await markAllReadFuture;
+
+      repo.markReadFailure = const NetworkFailure(message: 'offline');
+      repo.markReadCompleter!.complete();
+      await markReadFuture;
+
+      final state = container.read(inboxStoreProvider);
+      expect(state.totalUnreadCount, 0);
+      expect(state.items, isEmpty);
+    });
+
     test('retains DM item in dms filter after markRead (#712)', () async {
       final fixture = RuntimeAppFixture();
       fixture.inboxRepository.fetchResponse = const InboxResponse(

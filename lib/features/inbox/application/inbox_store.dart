@@ -449,9 +449,10 @@ class InboxStore extends Notifier<InboxState> {
             index: index
           ),
     };
-    final mutationVersion = _bumpReadMutationVersions(
-      state.items.map((item) => item.channelId),
-    );
+    final mutationVersion = _bumpReadMutationVersions({
+      for (final item in state.items) item.channelId,
+      ..._readMutationVersionsByChannelId.keys,
+    });
 
     // Optimistic: zero all unread counts and clear isMentioned.
     final updatedItems = state.items.map((item) {
