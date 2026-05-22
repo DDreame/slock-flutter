@@ -1154,6 +1154,53 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get machinesMenuWorkspaces => '工作区';
+
+  @override
+  String get workspacesPageTitle => '工作区';
+
+  @override
+  String get workspacesEmpty => '此机器上没有工作区。';
+
+  @override
+  String get workspacesLoadFailed => '加载工作区失败。';
+
+  @override
+  String get workspacesRetryButton => '重试';
+
+  @override
+  String get workspacesDeleteTitle => '删除工作区？';
+
+  @override
+  String workspacesDeleteMessage(String name) {
+    return '删除工作区 \"$name\"？此操作无法撤销。';
+  }
+
+  @override
+  String get workspacesDeleteCancel => '取消';
+
+  @override
+  String get workspacesDeleteConfirm => '删除';
+
+  @override
+  String get workspacesDeletedSnackbar => '工作区已删除。';
+
+  @override
+  String get workspacesDeleteFailed => '删除工作区失败。';
+
+  @override
+  String get workspacesMetaPath => '路径';
+
+  @override
+  String get workspacesMetaAgent => '代理';
+
+  @override
+  String get workspacesStatusActive => '活跃';
+
+  @override
+  String get workspacesStatusInactive => '非活跃';
+
+  @override
   String get tasksLoadFailed => '加载任务失败。';
 
   @override

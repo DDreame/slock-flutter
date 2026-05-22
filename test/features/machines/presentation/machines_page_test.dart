@@ -6,6 +6,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
 import 'package:slock_app/features/machines/data/machines_repository_provider.dart';
+import 'package:slock_app/features/machines/data/workspace_item.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -205,6 +206,82 @@ void main() {
     expect(errorChip.backgroundColor, theme.colorScheme.errorContainer);
     expect(errorChip.labelStyle?.color, theme.colorScheme.onErrorContainer);
   });
+
+  testWidgets(
+    '#750 carry: popup → Workspaces → list renders → delete → confirm → API',
+    (tester) async {
+      final repository = _FakeMachinesRepository(
+        snapshot: const MachinesSnapshot(
+          items: [
+            MachineItem(id: 'machine-1', name: 'Builder', status: 'online'),
+          ],
+        ),
+        workspaces: [
+          WorkspaceItem(
+            id: 'ws-1',
+            name: 'Agent Alpha',
+            machineId: 'machine-1',
+            createdAt: DateTime(2026, 1, 15),
+            path: '/home/user/.slock/agents/alpha',
+            agentId: 'agent-1',
+            agentName: 'Alpha',
+            status: 'active',
+          ),
+          WorkspaceItem(
+            id: 'ws-2',
+            name: 'Agent Beta',
+            machineId: 'machine-1',
+            createdAt: DateTime(2026, 1, 16),
+            status: 'active',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(_buildApp(repository));
+      await _pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('machine-actions-machine-1')),
+      );
+
+      // Tap popup menu.
+      await tester.tap(find.byKey(const ValueKey('machine-actions-machine-1')));
+      await tester.pumpAndSettle();
+
+      // Tap "Workspaces" action.
+      await tester.tap(find.text('Workspaces').last);
+      await tester.pumpAndSettle();
+
+      // Wait for workspace list to load.
+      await _pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey('workspaces-list')),
+      );
+
+      // Verify workspace items rendered.
+      expect(find.text('Agent Alpha'), findsOneWidget);
+      expect(find.text('Agent Beta'), findsOneWidget);
+      expect(find.text('Alpha'), findsWidgets); // agent chip
+
+      // Tap delete button for ws-1.
+      await tester.tap(find.byKey(const ValueKey('workspace-delete-ws-1')));
+      await tester.pumpAndSettle();
+
+      // Confirm dialog appeared.
+      expect(find.byKey(const ValueKey('workspaces-confirm-delete')),
+          findsOneWidget);
+
+      // Tap confirm.
+      await tester.tap(find.byKey(const ValueKey('workspaces-confirm-delete')));
+      await tester.pumpAndSettle();
+
+      // Verify API was called.
+      expect(repository.deletedWorkspaces, [('machine-1', 'ws-1')]);
+
+      // Workspace should be removed from the list.
+      expect(find.text('Agent Alpha'), findsNothing);
+      expect(find.text('Agent Beta'), findsOneWidget);
+    },
+  );
 }
 
 Widget _buildApp(_FakeMachinesRepository repository, {ThemeData? theme}) {
@@ -246,17 +323,20 @@ class _FakeMachinesRepository implements MachinesRepository {
       apiKey: 'sk-machine-2-secret',
     ),
     this.rotatedKey = 'sk-rotated-value',
+    this.workspaces = const [],
     List<AppFailure?> failureQueue = const [],
   }) : _failureQueue = List.of(failureQueue);
 
   MachinesSnapshot snapshot;
   RegisterMachineResult registerResult;
   String rotatedKey;
+  List<WorkspaceItem> workspaces;
   final List<AppFailure?> _failureQueue;
   final List<String> registeredNames = [];
   final List<(String, String)> renameRequests = [];
   final List<String> rotatedMachineIds = [];
   final List<String> deletedMachineIds = [];
+  final List<(String, String)> deletedWorkspaces = [];
 
   @override
   Future<MachinesSnapshot> loadMachines() async {
@@ -313,5 +393,17 @@ class _FakeMachinesRepository implements MachinesRepository {
           .toList(growable: false),
       latestDaemonVersion: snapshot.latestDaemonVersion,
     );
+  }
+
+  @override
+  Future<List<WorkspaceItem>> loadWorkspaces(String machineId) async =>
+      workspaces;
+
+  @override
+  Future<void> deleteWorkspace(String machineId,
+      {required String workspaceId}) async {
+    deletedWorkspaces.add((machineId, workspaceId));
+    workspaces =
+        workspaces.where((w) => w.id != workspaceId).toList(growable: false);
   }
 }

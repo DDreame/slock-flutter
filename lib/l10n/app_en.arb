@@ -496,6 +496,28 @@
       }
     }
   },
+  "machinesMenuWorkspaces": "Workspaces",
+  "workspacesPageTitle": "Workspaces",
+  "workspacesEmpty": "No workspaces on this machine.",
+  "workspacesLoadFailed": "Failed to load workspaces.",
+  "workspacesRetryButton": "Retry",
+  "workspacesDeleteTitle": "Delete Workspace?",
+  "workspacesDeleteMessage": "Delete workspace \"{name}\"? This cannot be undone.",
+  "@workspacesDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "workspacesDeleteCancel": "Cancel",
+  "workspacesDeleteConfirm": "Delete",
+  "workspacesDeletedSnackbar": "Workspace deleted.",
+  "workspacesDeleteFailed": "Failed to delete workspace.",
+  "workspacesMetaPath": "Path",
+  "workspacesMetaAgent": "Agent",
+  "workspacesStatusActive": "Active",
+  "workspacesStatusInactive": "Inactive",
 
   "tasksLoadFailed": "Failed to load tasks.",
   "tasksEmptyAll": "No tasks yet.",

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
+import 'package:slock_app/features/machines/data/workspace_item.dart';
 
 @immutable
 class MachinesSnapshot {
@@ -40,6 +41,10 @@ abstract class MachinesRepository {
   Future<String> rotateMachineApiKey(String machineId);
 
   Future<void> deleteMachine(String machineId);
+
+  Future<List<WorkspaceItem>> loadWorkspaces(String machineId);
+
+  Future<void> deleteWorkspace(String machineId, {required String workspaceId});
 }
 
 MachinesSnapshot parseMachinesSnapshot(Object? payload) {
@@ -129,6 +134,50 @@ String deriveApiKeyPrefix(String apiKey) {
     return '';
   }
   return apiKey.substring(0, math.min(apiKey.length, 20));
+}
+
+List<WorkspaceItem> parseWorkspaceList(Object? payload,
+    {required String machineId}) {
+  final root = _readMap(payload);
+  if (root == null && payload is! List) {
+    return const [];
+  }
+
+  final rawList = root?['workspaces'] ?? payload;
+  if (rawList is! List) {
+    return const [];
+  }
+
+  return rawList
+      .map(_readMap)
+      .whereType<Map<String, dynamic>>()
+      .map((map) => parseWorkspaceItem(map, machineId: machineId))
+      .toList(growable: false);
+}
+
+WorkspaceItem parseWorkspaceItem(
+  Map<String, dynamic> map, {
+  required String machineId,
+}) {
+  return WorkspaceItem(
+    id: _requiredString(map, 'id'),
+    name: _firstPresentString(map, fields: const ['name', 'title']) ??
+        'Unnamed workspace',
+    machineId: machineId,
+    createdAt: _readDateTime(map['createdAt']) ?? DateTime(2020),
+    path: _firstPresentString(map, fields: const ['path', 'workspacePath']),
+    agentId: _readOptionalString(map['agentId']),
+    agentName: _firstPresentString(map,
+        fields: const ['agentName', 'agentDisplayName']),
+    status: _firstPresentString(map, fields: const ['status']) ?? 'active',
+  );
+}
+
+DateTime? _readDateTime(Object? value) {
+  if (value is String && value.isNotEmpty) {
+    return DateTime.tryParse(value);
+  }
+  return null;
 }
 
 Map<String, dynamic>? _readMap(Object? payload) {

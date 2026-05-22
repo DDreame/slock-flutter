@@ -157,6 +157,90 @@ void main() {
         expect(appDioClient.requests[1].method, 'DELETE');
       },
     );
+
+    test(
+      'loadWorkspaces sends GET /servers/:id/machines/:mid/workspaces '
+      'with X-Server-Id header',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('GET', '/servers/server-1/machines/machine-1/workspaces'): {
+              'workspaces': [
+                {
+                  'id': 'ws-1',
+                  'name': 'Agent Alpha',
+                  'createdAt': '2026-01-15T10:00:00Z',
+                  'path': '/home/user/.slock/agents/alpha',
+                  'agentId': 'agent-1',
+                  'agentName': 'Alpha',
+                  'status': 'active',
+                },
+              ],
+            },
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [
+            currentMachinesServerIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            appDioClientProvider.overrideWithValue(appDioClient),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final workspaces = await container
+            .read(machinesRepositoryProvider)
+            .loadWorkspaces('machine-1');
+
+        expect(workspaces, hasLength(1));
+        expect(workspaces.single.id, 'ws-1');
+        expect(workspaces.single.name, 'Agent Alpha');
+        expect(workspaces.single.machineId, 'machine-1');
+        expect(workspaces.single.path, '/home/user/.slock/agents/alpha');
+        expect(workspaces.single.agentId, 'agent-1');
+        expect(workspaces.single.status, 'active');
+        expect(appDioClient.requests.single.method, 'GET');
+        expect(
+          appDioClient.requests.single.path,
+          '/servers/server-1/machines/machine-1/workspaces',
+        );
+        expect(appDioClient.requests.single.serverIdHeader, 'server-1');
+      },
+    );
+
+    test(
+      'deleteWorkspace sends DELETE to '
+      '/servers/:id/machines/:mid/workspaces/:wid with X-Server-Id header',
+      () async {
+        final appDioClient = _FakeAppDioClient(
+          responses: {
+            ('DELETE', '/servers/server-1/machines/machine-1/workspaces/ws-1'):
+                null,
+          },
+        );
+        final container = ProviderContainer(
+          overrides: [
+            currentMachinesServerIdProvider.overrideWithValue(
+              const ServerScopeId('server-1'),
+            ),
+            appDioClientProvider.overrideWithValue(appDioClient),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        await container
+            .read(machinesRepositoryProvider)
+            .deleteWorkspace('machine-1', workspaceId: 'ws-1');
+
+        expect(appDioClient.requests.single.method, 'DELETE');
+        expect(
+          appDioClient.requests.single.path,
+          '/servers/server-1/machines/machine-1/workspaces/ws-1',
+        );
+        expect(appDioClient.requests.single.serverIdHeader, 'server-1');
+      },
+    );
   });
 }
 
