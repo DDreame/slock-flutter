@@ -8,6 +8,7 @@ class SessionState {
   final String? userId;
   final String? displayName;
   final String? avatarUrl;
+  final String? bio;
   final String? token;
   final bool? emailVerified;
 
@@ -16,6 +17,7 @@ class SessionState {
     this.userId,
     this.displayName,
     this.avatarUrl,
+    this.bio,
     this.token,
     this.emailVerified,
   });
@@ -28,11 +30,13 @@ class SessionState {
     String? userId,
     String? displayName,
     String? avatarUrl,
+    String? bio,
     String? token,
     bool? emailVerified,
     bool clearUserId = false,
     bool clearDisplayName = false,
     bool clearAvatarUrl = false,
+    bool clearBio = false,
     bool clearToken = false,
     bool clearEmailVerified = false,
   }) {
@@ -41,6 +45,7 @@ class SessionState {
       userId: clearUserId ? null : (userId ?? this.userId),
       displayName: clearDisplayName ? null : (displayName ?? this.displayName),
       avatarUrl: clearAvatarUrl ? null : (avatarUrl ?? this.avatarUrl),
+      bio: clearBio ? null : (bio ?? this.bio),
       token: clearToken ? null : (token ?? this.token),
       emailVerified:
           clearEmailVerified ? null : (emailVerified ?? this.emailVerified),
@@ -56,10 +61,18 @@ class SessionState {
           userId == other.userId &&
           displayName == other.displayName &&
           avatarUrl == other.avatarUrl &&
+          bio == other.bio &&
           token == other.token &&
           emailVerified == other.emailVerified;
 
   @override
-  int get hashCode =>
-      Object.hash(status, userId, displayName, avatarUrl, token, emailVerified);
+  int get hashCode => Object.hash(
+        status,
+        userId,
+        displayName,
+        avatarUrl,
+        bio,
+        token,
+        emailVerified,
+      );
 }

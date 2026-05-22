@@ -15,8 +15,8 @@ import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
   testWidgets(
-      'settings page navigates to profile, billing, release notes, '
-      'and notification settings', (tester) async {
+      'settings page navigates to profile, edit profile, billing, '
+      'release notes, and notification settings', (tester) async {
     final sessionStore = _FakeSessionStore();
     final notificationStore = _FakeNotificationStore();
     final router = _buildRouter();
@@ -48,6 +48,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('settings-my-profile')));
     await tester.pumpAndSettle();
     expect(find.text('profile-route'), findsOneWidget);
+
+    router.pop();
+    await tester.pumpAndSettle();
+    expect(find.byType(SettingsPage), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('settings-edit-profile')));
+    await tester.pumpAndSettle();
+    expect(find.text('profile-edit-route'), findsOneWidget);
 
     router.pop();
     await tester.pumpAndSettle();
@@ -353,6 +361,11 @@ GoRouter _buildRouter() {
         path: '/profile',
         builder: (context, state) =>
             const Scaffold(body: Text('profile-route')),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        builder: (context, state) =>
+            const Scaffold(body: Text('profile-edit-route')),
       ),
       GoRoute(
         path: '/billing',

@@ -12,11 +12,15 @@ class AuthUser {
   const AuthUser({
     required this.id,
     this.name,
+    this.bio,
+    this.avatarUrl,
     this.emailVerified,
   });
 
   final String id;
   final String? name;
+  final String? bio;
+  final String? avatarUrl;
   final bool? emailVerified;
 }
 

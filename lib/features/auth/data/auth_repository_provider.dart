@@ -191,11 +191,15 @@ class _ApiAuthRepository implements AuthRepository {
         causeType: 'ParseError',
       );
     }
-    final name = map['name'];
+    final name = map['name'] ?? map['displayName'];
+    final bio = map['bio'] ?? map['description'];
+    final avatarUrl = map['avatarUrl'] ?? map['avatar'];
     final emailVerified = map['emailVerified'];
     return AuthUser(
       id: id,
       name: name is String && name.isNotEmpty ? name : null,
+      bio: bio is String ? bio : null,
+      avatarUrl: avatarUrl is String && avatarUrl.isNotEmpty ? avatarUrl : null,
       emailVerified: emailVerified is bool ? emailVerified : null,
     );
   }

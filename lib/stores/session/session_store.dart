@@ -28,12 +28,14 @@ class SessionStore extends Notifier<SessionState> {
         _storage.read(key: SessionStorageKeys.userId),
         _storage.read(key: SessionStorageKeys.displayName),
         _storage.read(key: SessionStorageKeys.avatarUrl),
+        _storage.read(key: SessionStorageKeys.bio),
       ]);
       final token = results[0];
       final refreshToken = results[1];
       final userId = results[2];
       final displayName = results[3];
       final avatarUrl = results[4];
+      final bio = results[5];
 
       // Require both tokens for a valid session. If only one is present the
       // pair is incomplete and cannot recover from a 401, so clear it out.
@@ -50,6 +52,7 @@ class SessionStore extends Notifier<SessionState> {
           userId: userId,
           displayName: displayName,
           avatarUrl: avatarUrl,
+          bio: bio,
         );
         await _hydrateAuthenticatedSession(
           fallbackUserId: userId,
@@ -189,11 +192,45 @@ class SessionStore extends Notifier<SessionState> {
 
   /// Update the session avatar URL (after successful upload).
   Future<void> updateAvatarUrl(String avatarUrl) async {
-    state = state.copyWith(avatarUrl: avatarUrl);
-    await _storage.write(
-      key: SessionStorageKeys.avatarUrl,
-      value: avatarUrl,
+    await updateProfile(avatarUrl: avatarUrl);
+  }
+
+  Future<void> updateProfile({
+    String? displayName,
+    String? bio,
+    String? avatarUrl,
+    bool clearDisplayName = false,
+    bool clearBio = false,
+    bool clearAvatarUrl = false,
+  }) async {
+    state = state.copyWith(
+      displayName: displayName,
+      bio: bio,
+      avatarUrl: avatarUrl,
+      clearDisplayName: clearDisplayName,
+      clearBio: clearBio,
+      clearAvatarUrl: clearAvatarUrl,
     );
+    await Future.wait([
+      if (clearDisplayName)
+        _storage.delete(key: SessionStorageKeys.displayName)
+      else if (displayName != null)
+        _storage.write(
+          key: SessionStorageKeys.displayName,
+          value: displayName,
+        ),
+      if (clearBio)
+        _storage.delete(key: SessionStorageKeys.bio)
+      else if (bio != null)
+        _storage.write(key: SessionStorageKeys.bio, value: bio),
+      if (clearAvatarUrl)
+        _storage.delete(key: SessionStorageKeys.avatarUrl)
+      else if (avatarUrl != null)
+        _storage.write(
+          key: SessionStorageKeys.avatarUrl,
+          value: avatarUrl,
+        ),
+    ]);
   }
 
   Future<void> _persistSession() async {
@@ -214,6 +251,8 @@ class SessionStore extends Notifier<SessionState> {
           key: SessionStorageKeys.avatarUrl,
           value: s.avatarUrl!,
         ),
+      if (s.bio != null)
+        _storage.write(key: SessionStorageKeys.bio, value: s.bio!),
     ]);
   }
 
@@ -232,8 +271,8 @@ class SessionStore extends Notifier<SessionState> {
         token: state.token,
         userId: user?.id ?? fallbackUserId,
         displayName: user?.name ?? fallbackDisplayName,
-        avatarUrl: state
-            .avatarUrl, // preserve uploaded avatar (AuthUser has no avatar field)
+        avatarUrl: user?.avatarUrl ?? state.avatarUrl,
+        bio: user?.bio ?? state.bio,
         emailVerified: user?.emailVerified,
       );
       await _persistSession();
