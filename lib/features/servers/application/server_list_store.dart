@@ -118,13 +118,13 @@ class ServerListStore extends Notifier<ServerListState> {
       final servers = state.servers
           .where((server) => server.id != serverId)
           .toList(growable: false);
+      await _cohereSelection(servers: servers);
       state = state.copyWith(
         status: ServerListStatus.success,
         servers: servers,
         deletingServerIds: {...state.deletingServerIds}..remove(serverId),
         clearFailure: true,
       );
-      await _cohereSelection(servers: servers);
     } on AppFailure catch (failure) {
       state = state.copyWith(
         deletingServerIds: {...state.deletingServerIds}..remove(serverId),
@@ -146,13 +146,13 @@ class ServerListStore extends Notifier<ServerListState> {
       final servers = state.servers
           .where((server) => server.id != serverId)
           .toList(growable: false);
+      await _cohereSelection(servers: servers);
       state = state.copyWith(
         status: ServerListStatus.success,
         servers: servers,
         leavingServerIds: {...state.leavingServerIds}..remove(serverId),
         clearFailure: true,
       );
-      await _cohereSelection(servers: servers);
     } on AppFailure catch (failure) {
       state = state.copyWith(
         leavingServerIds: {...state.leavingServerIds}..remove(serverId),
@@ -206,10 +206,20 @@ class ServerListStore extends Notifier<ServerListState> {
     final selectionState = ref.read(serverSelectionStoreProvider);
     final selectionStore = ref.read(serverSelectionStoreProvider.notifier);
     final selectedServerId = selectionState.selectedServerId;
+    final pendingRemovalIds = {
+      ...state.deletingServerIds,
+      ...state.leavingServerIds,
+    };
+    final selectableServers = servers
+        .where((server) => !pendingRemovalIds.contains(server.id))
+        .toList(growable: false);
 
-    final nextServerId = _findAvailableServerId(servers, preferredServerId) ??
-        _findAvailableServerId(servers, selectedServerId) ??
-        (servers.isNotEmpty ? servers.first.id : null);
+    final candidateServerId =
+        _findAvailableServerId(selectableServers, preferredServerId) ??
+            _findAvailableServerId(selectableServers, selectedServerId) ??
+            (selectableServers.isNotEmpty ? selectableServers.first.id : null);
+    final nextServerId =
+        _findAvailableServerId(selectableServers, candidateServerId);
 
     if (nextServerId == null) {
       if (selectedServerId != null) {
