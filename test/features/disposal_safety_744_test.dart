@@ -251,6 +251,59 @@ void main() {
 
       // No exception means both guards worked correctly.
     });
+
+    test(
+        'repository-thrown StateError still propagates '
+        '(guard is only on state writes, not blanket)', () async {
+      const serverId = ServerScopeId('server-1');
+      const sampleItem = ThreadInboxItem(
+        routeTarget: ThreadRouteTarget(
+          serverId: 'server-1',
+          parentChannelId: 'channel-1',
+          parentMessageId: 'msg-1',
+          threadChannelId: 'thread-ch-1',
+        ),
+        replyCount: 3,
+        unreadCount: 1,
+        participantIds: ['user-1'],
+        title: 'Test thread',
+      );
+
+      final markDoneCompleter = Completer<void>();
+      final repo = _HangingMarkDoneRepository(
+        items: [sampleItem],
+        markDoneCompleter: markDoneCompleter,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentThreadsServerIdProvider.overrideWithValue(serverId),
+          threadRepositoryProvider.overrideWithValue(repo),
+        ],
+      );
+      final sub = container.listen(
+        threadsInboxStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        sub.close();
+        container.dispose();
+      });
+
+      await container.read(threadsInboxStoreProvider.notifier).load();
+
+      final future = container
+          .read(threadsInboxStoreProvider.notifier)
+          .markDone(sampleItem);
+
+      // Complete with a StateError (simulating a real programming bug
+      // in the repository, NOT a disposal race).
+      markDoneCompleter.completeError(StateError('unexpected repo bug'));
+
+      // The StateError from the repository must propagate — it is NOT
+      // swallowed by the disposal guard (which only wraps `state =` writes).
+      await expectLater(future, throwsStateError);
+    });
   });
 
   // ---------------------------------------------------------------------------
