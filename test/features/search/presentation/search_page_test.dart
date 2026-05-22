@@ -501,8 +501,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify the date range chip is visible with default "Any time" label.
-    expect(find.byKey(const ValueKey('search-filter-date-range')),
-        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('search-filter-date-range')), findsOneWidget);
     expect(find.text('Any time'), findsOneWidget);
 
     // Tap the date range chip to open the bottom sheet.
@@ -510,7 +510,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify bottom sheet options are visible.
-    expect(find.byKey(const ValueKey('search-date-range-week')), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('search-date-range-week')), findsOneWidget);
 
     // Select "Past week".
     await tester.tap(find.byKey(const ValueKey('search-date-range-week')));
