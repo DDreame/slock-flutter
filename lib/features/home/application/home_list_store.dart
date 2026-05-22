@@ -1261,6 +1261,8 @@ class HomeListStore extends Notifier<HomeListState> {
           );
       return true;
     } on AppFailure {
+      if (_disposed) return false;
+      if (ref.read(activeServerScopeIdProvider) != serverScopeId) return false;
       _sidebarOrder = _rollbackSidebarOrder(
         previous: previous,
         attempted: attempted,
