@@ -59,6 +59,9 @@ void main() {
         await tester.pumpWidget(buildApp());
         await tester.pumpAndSettle();
 
+        await tester.tap(find.byKey(const ValueKey('inbox-filter-all')));
+        await tester.pumpAndSettle();
+
         // Swipe left (endToStart) on the item.
         await tester.drag(
           find.byKey(const ValueKey('swipe-action-ch-1')),
@@ -69,6 +72,9 @@ void main() {
         // Item should still be in the list (mark-read keeps item).
         expect(find.byKey(const ValueKey('inbox-item-ch-1')), findsOneWidget,
             reason: 'Left swipe (mark-read) should keep the item in the list.');
+        expect(repo.markedReadChannelIds, ['ch-1'],
+            reason:
+                'Left swipe must invoke the same mark-read action as tap/menu.');
       },
     );
 
@@ -147,6 +153,7 @@ InboxItem _makeItem({
 
 class _FakeInboxRepository implements InboxRepository {
   List<InboxItem> items = [];
+  final markedReadChannelIds = <String>[];
 
   @override
   Future<InboxResponse> fetchInbox(
@@ -167,7 +174,9 @@ class _FakeInboxRepository implements InboxRepository {
   Future<void> markItemRead(
     ServerScopeId serverId, {
     required String channelId,
-  }) async {}
+  }) async {
+    markedReadChannelIds.add(channelId);
+  }
 
   @override
   Future<void> markItemDone(

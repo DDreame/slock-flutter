@@ -387,8 +387,7 @@ class _SwipeableInboxItemState extends State<_SwipeableInboxItem> {
           label: 'Read',
         ),
         confirmDismiss: (_) async {
-          // Left swipe shows visual "Read" indicator; actual mark-read is
-          // handled by tap (#586) and the long-press action menu.
+          widget.onMarkRead();
           return false;
         },
         child: GestureDetector(
