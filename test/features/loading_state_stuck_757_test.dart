@@ -310,11 +310,101 @@ void main() {
       expect(state.failure, isA<UnknownFailure>());
     });
   });
-}
 
-// =============================================================================
-// Test Doubles
-// =============================================================================
+  // ---------------------------------------------------------------------------
+  // #757D — Throwing diagnostics collector does not re-break state reset
+  // ---------------------------------------------------------------------------
+  group('#757D — Throwing diagnostics collector resilience', () {
+    test('SavedMessagesStore.loadMore resets even when reporter throws',
+        () async {
+      final repo = _FakeSavedMessagesRepository();
+      final container = ProviderContainer(overrides: [
+        currentSavedMessagesServerIdProvider
+            .overrideWithValue(const ServerScopeId('server-1')),
+        savedMessagesRepositoryProvider.overrideWithValue(repo),
+        diagnosticsCollectorProvider
+            .overrideWithValue(_ThrowingDiagnosticsCollector()),
+      ]);
+      addTearDown(container.dispose);
+
+      repo.listResult = SavedMessagesPage(
+        items: [
+          SavedMessageItem(
+            message: ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'Hello',
+              createdAt: DateTime(2026, 5, 22),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: true,
+      );
+      await container.read(savedMessagesStoreProvider.notifier).load();
+
+      repo.throwNonAppFailure = true;
+      await container.read(savedMessagesStoreProvider.notifier).loadMore();
+
+      final state = container.read(savedMessagesStoreProvider);
+      expect(state.isLoadingMore, isFalse,
+          reason: '#757: isLoadingMore must reset even when reporter throws');
+      expect(state.failure, isA<UnknownFailure>());
+    });
+
+    test('ThreadRepliesStore.load resets even when reporter throws', () async {
+      final repo = _FakeThreadRepository(throwNonAppFailure: true);
+      final container = ProviderContainer(overrides: [
+        currentThreadRouteTargetProvider.overrideWithValue(
+          const ThreadRouteTarget(
+            serverId: 'server-1',
+            parentChannelId: 'ch-1',
+            parentMessageId: 'msg-1',
+          ),
+        ),
+        threadRepositoryProvider.overrideWithValue(repo),
+        diagnosticsCollectorProvider
+            .overrideWithValue(_ThrowingDiagnosticsCollector()),
+      ]);
+      addTearDown(container.dispose);
+
+      await container.read(threadRepliesStoreProvider.notifier).load();
+
+      final state = container.read(threadRepliesStoreProvider);
+      expect(state.status, ThreadRepliesStatus.failure,
+          reason: '#757: status must reset even when reporter throws');
+      expect(state.failure, isA<UnknownFailure>());
+    });
+
+    test('ServerListStore.createServer resets even when reporter throws',
+        () async {
+      final repo = _FakeServerListRepository(throwNonAppFailure: true);
+      final container = ProviderContainer(overrides: [
+        serverListRepositoryProvider.overrideWithValue(repo),
+        diagnosticsCollectorProvider
+            .overrideWithValue(_ThrowingDiagnosticsCollector()),
+      ]);
+      addTearDown(container.dispose);
+
+      // Load servers first.
+      repo.throwNonAppFailure = false;
+      await container.read(serverListStoreProvider.notifier).load();
+      repo.throwNonAppFailure = true;
+
+      try {
+        await container.read(serverListStoreProvider.notifier).createServer(
+              'Test',
+            );
+      } catch (_) {}
+
+      final state = container.read(serverListStoreProvider);
+      expect(state.isCreating, isFalse,
+          reason: '#757: isCreating must reset even when reporter throws');
+      expect(state.failure, isA<UnknownFailure>());
+    });
+  });
+}
 
 class _FakeSavedMessagesRepository implements SavedMessagesRepository {
   SavedMessagesPage? listResult;
@@ -446,4 +536,11 @@ class _FakeServerListRepository
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _ThrowingDiagnosticsCollector extends DiagnosticsCollector {
+  @override
+  void error(String tag, String message, {Map<String, dynamic>? metadata}) {
+    throw StateError('Diagnostics collector crash: $message');
+  }
 }
