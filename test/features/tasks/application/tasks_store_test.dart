@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -64,6 +66,26 @@ void main() {
       expect(state().status, TasksStatus.success);
       expect(state().items.length, 2);
       expect(state().items.first.title, 'First');
+    });
+
+    test('ensureLoaded shares concurrent initial load', () async {
+      final loadCompleter = Completer<List<TaskItem>>();
+      fakeRepo.listCompleter = loadCompleter;
+      final sub = container.listen(tasksStoreProvider, (_, __) {});
+      addTearDown(sub.close);
+
+      final first = store().ensureLoaded();
+      final second = store().ensureLoaded();
+      final third = store().ensureLoaded();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(fakeRepo.listCalls, 1);
+      loadCompleter.complete([makeTask(id: 'task-1', title: 'First')]);
+      await Future.wait([first, second, third]);
+
+      expect(state().status, TasksStatus.success);
+      expect(state().items.map((task) => task.id), ['task-1']);
+      expect(fakeRepo.listCalls, 1);
     });
 
     test('load failure sets failure state', () async {
@@ -257,6 +279,8 @@ void main() {
 
 class _FakeTasksRepository implements TasksRepository {
   List<TaskItem>? listResult;
+  Completer<List<TaskItem>>? listCompleter;
+  int listCalls = 0;
   List<TaskItem>? createResult;
   TaskItem? statusResult;
   TaskItem? claimResult;
@@ -266,11 +290,16 @@ class _FakeTasksRepository implements TasksRepository {
 
   @override
   Future<List<TaskItem>> listServerTasks(ServerScopeId serverId) async {
+    listCalls++;
     if (shouldFail) {
       throw const UnknownFailure(
         message: 'Load failed',
         causeType: 'test',
       );
+    }
+    final completer = listCompleter;
+    if (completer != null) {
+      return completer.future;
     }
     return listResult ?? [];
   }

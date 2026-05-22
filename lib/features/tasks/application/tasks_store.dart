@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/tasks/application/tasks_state.dart';
@@ -16,6 +18,8 @@ final tasksStoreProvider = NotifierProvider.autoDispose<TasksStore, TasksState>(
 );
 
 class TasksStore extends AutoDisposeNotifier<TasksState> {
+  Completer<void>? _ensureLoadedCompleter;
+
   @override
   TasksState build() {
     return const TasksState();
@@ -191,9 +195,24 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
   /// Idempotent load trigger — only fires [load] when the store has not yet
   /// loaded (status == initial). Safe to call from multiple entry points
   /// (initState, ref.listen callbacks) without risking duplicate requests.
-  void ensureLoaded() {
-    if (state.status == TasksStatus.initial) {
-      load();
+  Future<void> ensureLoaded() async {
+    if (state.status != TasksStatus.initial) return;
+    final inFlight = _ensureLoadedCompleter;
+    if (inFlight != null) {
+      return inFlight.future;
+    }
+
+    final completer = Completer<void>();
+    _ensureLoadedCompleter = completer;
+    try {
+      await load();
+      completer.complete();
+    } catch (error, stackTrace) {
+      completer.completeError(error, stackTrace);
+    } finally {
+      if (_ensureLoadedCompleter == completer) {
+        _ensureLoadedCompleter = null;
+      }
     }
   }
 
