@@ -11,6 +11,7 @@
 
 import 'dart:async';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -350,36 +351,41 @@ void main() {
 
     test(
       'failed download is not completed and can be retried (#719)',
-      () async {
-        var attempts = 0;
-        final container = ProviderContainer(
-          overrides: [
-            downloadSchedulerProvider
-                .overrideWith(() => DownloadPriorityScheduler()),
-          ],
-        );
-        addTearDown(container.dispose);
+      () {
+        fakeAsync((async) {
+          var attempts = 0;
+          final container = ProviderContainer(
+            overrides: [
+              downloadSchedulerProvider
+                  .overrideWith(() => DownloadPriorityScheduler()),
+            ],
+          );
+          addTearDown(container.dispose);
 
-        final sub = container.listen(downloadSchedulerProvider, (_, __) {});
-        addTearDown(sub.close);
+          final sub = container.listen(downloadSchedulerProvider, (_, __) {});
+          addTearDown(sub.close);
 
-        final scheduler = container.read(downloadSchedulerProvider.notifier);
-        scheduler.enqueue('retry-fail', () async {
-          attempts += 1;
-          throw StateError('network failed');
+          final scheduler = container.read(downloadSchedulerProvider.notifier);
+          scheduler.enqueue('retry-fail', () async {
+            attempts += 1;
+            throw StateError('network failed');
+          });
+          scheduler.onVisibilityChanged('retry-fail', true);
+          async.flushMicrotasks();
+
+          scheduler.enqueue('retry-fail', () async {
+            attempts += 1;
+          });
+          scheduler.onVisibilityChanged('retry-fail', true);
+          async.flushMicrotasks();
+          expect(attempts, 1,
+              reason: '#756: Re-visibility must respect active retry backoff');
+
+          async.elapse(const Duration(seconds: 1));
+          async.flushMicrotasks();
+
+          expect(attempts, 2);
         });
-        scheduler.onVisibilityChanged('retry-fail', true);
-        await Future<void>.delayed(Duration.zero);
-        await Future<void>.delayed(Duration.zero);
-
-        scheduler.enqueue('retry-fail', () async {
-          attempts += 1;
-        });
-        scheduler.onVisibilityChanged('retry-fail', true);
-        await Future<void>.delayed(Duration.zero);
-        await Future<void>.delayed(Duration.zero);
-
-        expect(attempts, 2);
       },
     );
 
