@@ -1681,6 +1681,10 @@ void main() {
       );
       addTearDown(container.dispose);
 
+      // Keep the AutoDisposeNotifier alive across async gaps so the disposal
+      // guard doesn't fire before rollback can occur.
+      container.listen(conversationDetailStoreProvider, (_, __) {});
+
       await container.read(conversationDetailStoreProvider.notifier).load();
       final deleteFuture = container
           .read(conversationDetailStoreProvider.notifier)
