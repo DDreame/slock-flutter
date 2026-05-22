@@ -20,6 +20,7 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
   AcceptInviteResult? _result;
 
   Future<void> _acceptInvite() async {
+    if (_isJoining) return;
     setState(() {
       _isJoining = true;
       _errorMessage = null;
@@ -82,7 +83,7 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
                             ),
                             const SizedBox(height: 16),
                             FilledButton(
-                              onPressed: _acceptInvite,
+                              onPressed: _isJoining ? null : _acceptInvite,
                               child: const Text('Retry'),
                             ),
                             const SizedBox(height: 8),
@@ -104,7 +105,7 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
                             const SizedBox(height: 24),
                             FilledButton(
                               key: const ValueKey('invite-accept'),
-                              onPressed: _acceptInvite,
+                              onPressed: _isJoining ? null : _acceptInvite,
                               child: const Text('Join workspace'),
                             ),
                             const SizedBox(height: 8),

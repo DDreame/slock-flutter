@@ -9,6 +9,8 @@ final serverListStoreProvider =
     NotifierProvider<ServerListStore, ServerListState>(ServerListStore.new);
 
 class ServerListStore extends Notifier<ServerListState> {
+  Future<AcceptInviteResult>? _acceptInviteInFlight;
+
   @override
   ServerListState build() {
     Future.microtask(() {
@@ -160,7 +162,20 @@ class ServerListStore extends Notifier<ServerListState> {
     }
   }
 
-  Future<AcceptInviteResult> acceptInvite(String rawInput) async {
+  Future<AcceptInviteResult> acceptInvite(String rawInput) {
+    final inFlight = _acceptInviteInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _acceptInvite(
+      rawInput,
+    ).whenComplete(() => _acceptInviteInFlight = null);
+    _acceptInviteInFlight = future;
+    return future;
+  }
+
+  Future<AcceptInviteResult> _acceptInvite(String rawInput) async {
     final token = _normalizeInviteToken(rawInput);
 
     state = state.copyWith(isJoiningInvite: true, clearFailure: true);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -181,6 +183,46 @@ void main() {
     },
   );
 
+  test(
+    'acceptInvite shares in-flight request for concurrent calls (#721)',
+    () async {
+      final acceptCompleter = Completer<AcceptInviteResult>();
+      final repository = _FakeServerListRepository(
+        servers: const [ServerSummary(id: 'server-1', name: 'Workspace A')],
+        inviteServerId: 'server-3',
+        reloadedServers: const [
+          ServerSummary(id: 'server-1', name: 'Workspace A'),
+          ServerSummary(id: 'server-3', name: 'Workspace C', role: 'member'),
+        ],
+        acceptCompleter: acceptCompleter,
+      );
+      final container = _buildContainer(repository: repository);
+      addTearDown(container.dispose);
+
+      await container.read(serverListStoreProvider.notifier).load();
+      final first = container
+          .read(serverListStoreProvider.notifier)
+          .acceptInvite('token-300');
+      final second = container
+          .read(serverListStoreProvider.notifier)
+          .acceptInvite('token-300');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(repository.inviteRequests, ['token-300']);
+
+      acceptCompleter.complete(
+        const AcceptInviteResult(
+          serverId: 'server-3',
+          workspaceName: 'Workspace C',
+        ),
+      );
+      final results = await Future.wait([first, second]);
+
+      expect(results.map((r) => r.serverId), ['server-3', 'server-3']);
+      expect(repository.inviteRequests, ['token-300']);
+    },
+  );
+
   test('retry delegates to load', () async {
     const servers = [ServerSummary(id: 'server-1', name: 'Workspace A')];
     final container = _buildContainer(
@@ -213,6 +255,7 @@ class _FakeServerListRepository
     this.createdServer,
     this.renamedName,
     this.inviteServerId,
+    this.acceptCompleter,
     List<ServerSummary>? reloadedServers,
   })  : _servers = List<ServerSummary>.of(servers ?? const []),
         _reloadedServers = reloadedServers == null
@@ -223,6 +266,7 @@ class _FakeServerListRepository
   final ServerSummary? createdServer;
   final String? renamedName;
   final String? inviteServerId;
+  final Completer<AcceptInviteResult>? acceptCompleter;
   final List<({String name, String slug})> createRequests = [];
   final List<({String serverId, String name})> renameRequests = [];
   final List<String> deleteRequests = [];
@@ -288,6 +332,11 @@ class _FakeServerListRepository
   @override
   Future<AcceptInviteResult> acceptInvite(String token) async {
     inviteRequests.add(token);
+    if (acceptCompleter != null) {
+      final result = await acceptCompleter!.future;
+      _hasReloadedAfterInvite = true;
+      return result;
+    }
     _hasReloadedAfterInvite = true;
     return AcceptInviteResult(
       serverId: inviteServerId ?? 'joined-server',
