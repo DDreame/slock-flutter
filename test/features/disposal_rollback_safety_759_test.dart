@@ -1,12 +1,14 @@
 // =============================================================================
 // #759 — Disposal + Rollback Safety
 //
-// A. P2: MemberListStore.openDirectMessage — writes state after await on
-//    disposed AutoDispose notifier → uncaught StateError.
 // B. P2: HomeListStore._persistSidebarOrder — rollback writes after server
 //    switch → rollback applies to wrong context or throws StateError.
 // C. P2: ConversationDetailStore.batchDeleteMessages — navigation away during
 //    batch → rollback on wrong conversation or disposed store.
+//
+// Note: Scan #17 #6 (MemberListStore.openDirectMessage) was a false positive.
+// Riverpod's AutoDisposeNotifier silently accepts state writes after disposal
+// without throwing StateError. Dropped from this PR.
 // =============================================================================
 
 import 'dart:async';
@@ -25,85 +27,8 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
-import 'package:slock_app/features/members/application/member_list_state.dart';
-import 'package:slock_app/features/members/application/member_list_store.dart';
-import 'package:slock_app/features/members/data/member_repository.dart';
-import 'package:slock_app/features/members/data/member_repository_provider.dart';
-import 'package:slock_app/features/profile/data/profile_repository.dart';
-import 'package:slock_app/stores/session/session_state.dart';
-import 'package:slock_app/stores/session/session_store.dart';
 
 void main() {
-  // ---------------------------------------------------------------------------
-  // #759A — MemberListStore.openDirectMessage disposal guard
-  // ---------------------------------------------------------------------------
-  group('#759A — MemberListStore.openDirectMessage disposal safety', () {
-    const serverId = ServerScopeId('server-1');
-
-    test('dispose during openDirectMessage does not throw StateError',
-        () async {
-      final openCompleter = Completer<String>();
-      final repo = _DelayedMemberRepository(openCompleter: openCompleter);
-      final container = ProviderContainer(overrides: [
-        currentMembersServerIdProvider.overrideWithValue(serverId),
-        memberRepositoryProvider.overrideWithValue(repo),
-        sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
-      ]);
-
-      final sub = container.listen(memberListStoreProvider, (_, __) {});
-
-      // Load members first.
-      repo.members = const [
-        MemberProfile(id: 'user-456', displayName: 'Bob'),
-      ];
-      await container.read(memberListStoreProvider.notifier).load();
-      expect(
-        container.read(memberListStoreProvider).status,
-        MemberListStatus.success,
-      );
-
-      // Start openDirectMessage — it will block on the completer.
-      final future =
-          container.read(memberListStoreProvider.notifier).openDirectMessage(
-                'user-456',
-              );
-
-      // Dispose while the await is in flight.
-      sub.close();
-      container.dispose();
-
-      // Complete the completer after disposal.
-      openCompleter.complete('dm-456');
-
-      // Should NOT throw StateError — just complete normally.
-      final channelId = await future;
-      expect(channelId, 'dm-456');
-    });
-
-    test('normal path still works (no regression)', () async {
-      final repo = _DelayedMemberRepository(openCompleter: null);
-      final container = ProviderContainer(overrides: [
-        currentMembersServerIdProvider.overrideWithValue(serverId),
-        memberRepositoryProvider.overrideWithValue(repo),
-        sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
-      ]);
-      addTearDown(container.dispose);
-
-      repo.members = const [
-        MemberProfile(id: 'user-456', displayName: 'Bob'),
-      ];
-      await container.read(memberListStoreProvider.notifier).load();
-
-      final channelId = await container
-          .read(memberListStoreProvider.notifier)
-          .openDirectMessage('user-456');
-
-      expect(channelId, 'dm-456');
-      final state = container.read(memberListStoreProvider);
-      expect(state.isOpeningDirectMessage('user-456'), isFalse);
-    });
-  });
-
   // ---------------------------------------------------------------------------
   // #759B — HomeListStore._persistSidebarOrder server-switch guard
   // ---------------------------------------------------------------------------
@@ -310,49 +235,6 @@ void main() {
 // =============================================================================
 // Test Doubles
 // =============================================================================
-
-class _DelayedMemberRepository implements MemberRepository {
-  _DelayedMemberRepository({this.openCompleter});
-
-  List<MemberProfile> members = const [];
-  final Completer<String>? openCompleter;
-
-  @override
-  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
-    return members;
-  }
-
-  @override
-  Future<String> openDirectMessage(
-    ServerScopeId serverId, {
-    required String userId,
-  }) async {
-    if (openCompleter != null) {
-      return openCompleter!.future;
-    }
-    return 'dm-456';
-  }
-
-  @override
-  Future<String> openAgentDirectMessage(
-    ServerScopeId serverId, {
-    required String agentId,
-  }) async =>
-      'dm-agent-$agentId';
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-class _FakeSessionStore extends SessionStore {
-  @override
-  SessionState build() => const SessionState(
-        status: AuthStatus.authenticated,
-        userId: 'user-123',
-        displayName: 'Alice',
-        token: 'test-token',
-      );
-}
 
 class _FakeHomeRepository implements HomeRepository {
   const _FakeHomeRepository();
