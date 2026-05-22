@@ -386,6 +386,167 @@ void main() {
           reason: 'INV-SEARCH-4: offset should equal existing result count');
     });
 
+    test('loadMore does not cancel an in-flight search (#739)', () async {
+      fakeSearchRepo.result = SearchResultsPage(
+        messages: [
+          SearchResultMessage(
+            message: ConversationMessageSummary(
+              id: 'existing-msg',
+              content: 'Existing',
+              createdAt: DateTime.parse('2026-04-21T10:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: true,
+      );
+
+      store().updateQuery('test');
+      await store().search();
+
+      final searchCompleter = Completer<SearchResultsPage>();
+      final loadMoreCompleter = Completer<SearchResultsPage>();
+      fakeSearchRepo.completerOverrides.addAll([
+        searchCompleter,
+        loadMoreCompleter,
+      ]);
+      var onSearchCall = Completer<void>();
+      fakeSearchRepo.onSearchCall = onSearchCall;
+
+      final searchFuture = store().search();
+      await onSearchCall.future;
+
+      final searchCancelToken = fakeSearchRepo.cancelTokens.last;
+      onSearchCall = Completer<void>();
+      fakeSearchRepo.onSearchCall = onSearchCall;
+
+      final loadMoreFuture = store().loadMore();
+      await onSearchCall.future;
+
+      final loadMoreCancelToken = fakeSearchRepo.cancelTokens.last;
+      expect(searchCancelToken, isNot(loadMoreCancelToken));
+      expect(searchCancelToken?.isCancelled, isFalse,
+          reason: 'loadMore must not cancel the active search request');
+
+      loadMoreCompleter.complete(const SearchResultsPage(
+        messages: [],
+        hasMore: false,
+      ));
+      await loadMoreFuture;
+
+      expect(state().isRemoteSearching, isTrue,
+          reason:
+              'The search spinner remains active while search is in-flight');
+      expect(searchCancelToken?.isCancelled, isFalse);
+
+      searchCompleter.complete(SearchResultsPage(
+        messages: [
+          SearchResultMessage(
+            message: ConversationMessageSummary(
+              id: 'fresh-msg',
+              content: 'Fresh',
+              createdAt: DateTime.parse('2026-04-21T11:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: false,
+      ));
+      await searchFuture;
+
+      expect(state().remoteResults.single.message.id, 'fresh-msg');
+      expect(state().isRemoteSearching, isFalse);
+    });
+
+    test('cancelled search error clears remote spinner (#739)', () async {
+      fakeSearchRepo.throwCancelled = true;
+
+      store().updateQuery('test');
+      await store().search();
+
+      expect(state().isRemoteSearching, isFalse);
+      expect(state().status, SearchStatus.searching,
+          reason: 'Cancelled requests are ignored without leaving a spinner');
+    });
+
+    test('superseded loadMore does not cancel an in-flight search (#739)',
+        () async {
+      fakeSearchRepo.result = SearchResultsPage(
+        messages: [
+          SearchResultMessage(
+            message: ConversationMessageSummary(
+              id: 'existing-msg',
+              content: 'Existing',
+              createdAt: DateTime.parse('2026-04-21T10:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+            ),
+            channelId: 'ch1',
+          ),
+        ],
+        hasMore: true,
+      );
+
+      store().updateQuery('test');
+      await store().search();
+
+      final searchCompleter = Completer<SearchResultsPage>();
+      final firstLoadMoreCompleter = Completer<SearchResultsPage>();
+      final secondLoadMoreCompleter = Completer<SearchResultsPage>();
+      fakeSearchRepo.completerOverrides.addAll([
+        searchCompleter,
+        firstLoadMoreCompleter,
+        secondLoadMoreCompleter,
+      ]);
+
+      var onSearchCall = Completer<void>();
+      fakeSearchRepo.onSearchCall = onSearchCall;
+      final searchFuture = store().search();
+      await onSearchCall.future;
+      final searchCancelToken = fakeSearchRepo.cancelTokens.last;
+
+      onSearchCall = Completer<void>();
+      fakeSearchRepo.onSearchCall = onSearchCall;
+      final firstLoadMoreFuture = store().loadMore();
+      await onSearchCall.future;
+      final firstLoadMoreCancelToken = fakeSearchRepo.cancelTokens.last;
+
+      onSearchCall = Completer<void>();
+      fakeSearchRepo.onSearchCall = onSearchCall;
+      final secondLoadMoreFuture = store().loadMore();
+      await onSearchCall.future;
+      final secondLoadMoreCancelToken = fakeSearchRepo.cancelTokens.last;
+
+      expect(firstLoadMoreCancelToken?.isCancelled, isTrue,
+          reason: 'A newer loadMore may cancel only the older loadMore');
+      expect(secondLoadMoreCancelToken?.isCancelled, isFalse);
+      expect(searchCancelToken?.isCancelled, isFalse,
+          reason: 'loadMore cancellation must not touch search cancellation');
+
+      firstLoadMoreCompleter.complete(const SearchResultsPage(
+        messages: [],
+        hasMore: true,
+      ));
+      secondLoadMoreCompleter.complete(const SearchResultsPage(
+        messages: [],
+        hasMore: false,
+      ));
+      searchCompleter.complete(const SearchResultsPage(
+        messages: [],
+        hasMore: false,
+      ));
+
+      await firstLoadMoreFuture;
+      await secondLoadMoreFuture;
+      await searchFuture;
+
+      expect(state().isRemoteSearching, isFalse);
+    });
+
     test('superseded search cancels previous remote request', () async {
       final firstCompleter = Completer<SearchResultsPage>();
       fakeSearchRepo.completerOverride = firstCompleter;
@@ -437,10 +598,12 @@ class _SearchCallParams {
 class _FakeSearchRepository implements SearchRepository {
   SearchResultsPage? result;
   bool shouldFail = false;
+  bool throwCancelled = false;
   _SearchCallParams? lastCallParams;
   final queries = <String>[];
   final cancelTokens = <CancelToken?>[];
   Completer<void>? onSearchCall;
+  final completerOverrides = <Completer<SearchResultsPage>>[];
 
   /// When set, `searchMessages` awaits this completer instead of returning
   /// immediately. Used to simulate in-flight requests that haven't completed.
@@ -472,6 +635,15 @@ class _FakeSearchRepository implements SearchRepository {
         message: 'Search failed',
         causeType: 'test',
       );
+    }
+    if (throwCancelled) {
+      throw DioException(
+        requestOptions: RequestOptions(path: '/search'),
+        type: DioExceptionType.cancel,
+      );
+    }
+    if (completerOverrides.isNotEmpty) {
+      return completerOverrides.removeAt(0).future;
     }
     if (completerOverride != null) {
       return completerOverride!.future;
