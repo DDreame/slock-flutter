@@ -13,6 +13,7 @@ abstract class SearchRepository {
     String? senderId,
     SearchSortBy? sortBy,
     String? channelId,
+    String? after,
     int offset,
     CancelToken? cancelToken,
   });

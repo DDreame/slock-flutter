@@ -83,12 +83,19 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     _scheduleSearch();
   }
 
+  /// Set date range filter and re-search (#736).
+  void setDateRange(SearchDateRange dateRange) {
+    state = state.copyWith(dateRange: dateRange, remoteResults: const []);
+    _scheduleSearch();
+  }
+
   /// Reset all filters to defaults and re-search (INV-SEARCH-3).
   void clearFilters() {
     state = state.copyWith(
       clearSenderFilter: true,
       sortBy: SearchSortBy.newest,
       clearChannelFilter: true,
+      dateRange: SearchDateRange.all,
       remoteResults: const [],
     );
     _scheduleSearch();
@@ -134,6 +141,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         senderId: state.senderFilter,
         sortBy: state.sortBy,
         channelId: state.channelFilter,
+        after: _computeAfterDate(state.dateRange),
         offset: offset,
         cancelToken: cancelToken,
       );
@@ -246,6 +254,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         senderId: state.senderFilter,
         sortBy: state.sortBy,
         channelId: state.channelFilter,
+        after: _computeAfterDate(state.dateRange),
         cancelToken: cancelToken,
       );
       if (_requestToken != token) return;
@@ -269,6 +278,27 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
             : SearchStatus.failure,
         failure: failure,
       );
+    }
+  }
+
+  /// Compute the `after` ISO8601 date from the date range filter (#736).
+  ///
+  /// Returns `null` for [SearchDateRange.all] (no time restriction).
+  static String? _computeAfterDate(SearchDateRange range) {
+    final now = DateTime.now().toUtc();
+    switch (range) {
+      case SearchDateRange.all:
+        return null;
+      case SearchDateRange.today:
+        return DateTime.utc(now.year, now.month, now.day).toIso8601String();
+      case SearchDateRange.last7days:
+        return DateTime.utc(now.year, now.month, now.day)
+            .subtract(const Duration(days: 7))
+            .toIso8601String();
+      case SearchDateRange.last30days:
+        return DateTime.utc(now.year, now.month, now.day)
+            .subtract(const Duration(days: 30))
+            .toIso8601String();
     }
   }
 }

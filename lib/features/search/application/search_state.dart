@@ -10,6 +10,21 @@ enum SearchStatus { idle, searching, success, failure }
 /// Scope tabs for the search page.
 enum SearchScope { all, messages, channels, contacts }
 
+/// Date range options for time-based search filtering (#736).
+enum SearchDateRange {
+  /// No date filter — all time.
+  all,
+
+  /// Messages from today (midnight UTC onwards).
+  today,
+
+  /// Messages from the last 7 days.
+  last7days,
+
+  /// Messages from the last 30 days.
+  last30days,
+}
+
 /// A contact search result from local identity store.
 @immutable
 class SearchContactResult {
@@ -87,6 +102,7 @@ class SearchState {
     this.senderFilter,
     this.sortBy = SearchSortBy.newest,
     this.channelFilter,
+    this.dateRange = SearchDateRange.all,
   });
 
   final String query;
@@ -102,6 +118,7 @@ class SearchState {
   final String? senderFilter;
   final SearchSortBy sortBy;
   final String? channelFilter;
+  final SearchDateRange dateRange;
 
   List<SearchResultMessage> get mergedResults {
     if (remoteResults.isEmpty) return localResults;
@@ -142,7 +159,8 @@ class SearchState {
   bool get hasActiveFilters =>
       senderFilter != null ||
       sortBy != SearchSortBy.newest ||
-      channelFilter != null;
+      channelFilter != null ||
+      dateRange != SearchDateRange.all;
 
   SearchState copyWith({
     String? query,
@@ -161,6 +179,7 @@ class SearchState {
     SearchSortBy? sortBy,
     String? channelFilter,
     bool clearChannelFilter = false,
+    SearchDateRange? dateRange,
   }) {
     return SearchState(
       query: query ?? this.query,
@@ -178,6 +197,7 @@ class SearchState {
       sortBy: sortBy ?? this.sortBy,
       channelFilter:
           clearChannelFilter ? null : (channelFilter ?? this.channelFilter),
+      dateRange: dateRange ?? this.dateRange,
     );
   }
 
@@ -198,7 +218,8 @@ class SearchState {
             failure == other.failure &&
             senderFilter == other.senderFilter &&
             sortBy == other.sortBy &&
-            channelFilter == other.channelFilter;
+            channelFilter == other.channelFilter &&
+            dateRange == other.dateRange;
   }
 
   @override
@@ -216,5 +237,6 @@ class SearchState {
         senderFilter,
         sortBy,
         channelFilter,
+        dateRange,
       );
 }

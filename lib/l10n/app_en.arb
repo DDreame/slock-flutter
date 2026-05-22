@@ -391,6 +391,10 @@
   "searchFilterByChannelHint": "Enter channel name\u2026",
   "searchFilterCancel": "Cancel",
   "searchFilterApply": "Apply",
+  "searchFilterDateAny": "Any time",
+  "searchFilterDateToday": "Today",
+  "searchFilterDateWeek": "Past week",
+  "searchFilterDateMonth": "Past month",
   "searchCouldNotOpenConversation": "Could not open conversation.",
   "searchFilterFromPrefix": "From: {name}",
   "@searchFilterFromPrefix": {
