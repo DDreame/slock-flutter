@@ -18,6 +18,8 @@ class InboxStore extends Notifier<InboxState> {
   final RequestCoordinator _coordinator = RequestCoordinator();
   bool _isLoadingMore = false;
   final Map<String, InboxItem> _knownItemsByChannelId = {};
+  final Map<String, int> _readMutationVersionsByChannelId = {};
+  int _readMutationVersion = 0;
 
   /// Maximum number of entries retained in [_knownItemsByChannelId].
   /// Prevents unbounded memory growth when the user scrolls through
@@ -33,6 +35,8 @@ class InboxStore extends Notifier<InboxState> {
     // happens while loadMore is in-flight (#714).
     _isLoadingMore = false;
     _knownItemsByChannelId.clear();
+    _readMutationVersionsByChannelId.clear();
+    _readMutationVersion = 0;
 
     // Listen for realtime reconnection to trigger inbox refresh.
     // When the connection transitions from reconnecting → connected,
@@ -146,9 +150,13 @@ class InboxStore extends Notifier<InboxState> {
             limit: inboxPageSize,
             offset: state.offset,
           );
+      final mergedItems = _mergeInboxItemsDeduped(
+        state.items,
+        response.items,
+      );
       _rememberInboxItems(response.items);
       state = state.copyWith(
-        items: [...state.items, ...response.items],
+        items: mergedItems,
         totalCount: response.totalCount,
         totalUnreadCount: response.totalUnreadCount,
         hasMore: response.hasMore,
@@ -180,8 +188,12 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
-    // Capture pre-mutation state for rollback on API failure (#714).
-    final previousState = state;
+    final previousItems = state.items;
+    final previousIndex =
+        previousItems.indexWhere((item) => item.channelId == channelId);
+    final previousItem =
+        previousIndex >= 0 ? previousItems[previousIndex] : null;
+    final mutationVersion = _bumpReadMutationVersions([channelId]);
 
     // Optimistic: zero out unreadCount and clear isMentioned for the item.
     final updatedItems = state.items.map((item) {
@@ -224,8 +236,11 @@ class InboxStore extends Notifier<InboxState> {
           .read(inboxRepositoryProvider)
           .markItemRead(serverId, channelId: channelId);
     } on AppFailure {
-      // Rollback optimistic update — badge must reflect server truth (#714).
-      state = previousState;
+      _rollbackReadItem(
+        previousItem: previousItem,
+        previousIndex: previousIndex,
+        mutationVersion: mutationVersion,
+      );
     }
   }
 
@@ -307,6 +322,87 @@ class InboxStore extends Notifier<InboxState> {
     }
   }
 
+  List<InboxItem> _mergeInboxItemsDeduped(
+    List<InboxItem> existingItems,
+    List<InboxItem> newItems,
+  ) {
+    if (newItems.isEmpty) return existingItems;
+
+    final seenChannelIds = existingItems.map((item) => item.channelId).toSet();
+    final mergedItems = List<InboxItem>.of(existingItems);
+    for (final item in newItems) {
+      if (seenChannelIds.add(item.channelId)) {
+        mergedItems.add(item);
+      }
+    }
+    return mergedItems;
+  }
+
+  int _bumpReadMutationVersions(Iterable<String> channelIds) {
+    _readMutationVersion += 1;
+    for (final channelId in channelIds) {
+      _readMutationVersionsByChannelId[channelId] = _readMutationVersion;
+    }
+    return _readMutationVersion;
+  }
+
+  void _rollbackReadItem({
+    required InboxItem? previousItem,
+    required int previousIndex,
+    required int mutationVersion,
+  }) {
+    if (previousItem == null) return;
+    _rollbackReadItems(
+      previousItemsByChannelId: {
+        previousItem.channelId: (item: previousItem, index: previousIndex),
+      },
+      mutationVersion: mutationVersion,
+    );
+  }
+
+  void _rollbackReadItems({
+    required Map<String, ({InboxItem item, int index})>
+        previousItemsByChannelId,
+    required int mutationVersion,
+  }) {
+    final items = List<InboxItem>.of(state.items);
+    var totalUnreadCount = state.totalUnreadCount;
+    var totalCount = state.totalCount;
+    var offset = state.offset;
+
+    for (final entry in previousItemsByChannelId.entries) {
+      final channelId = entry.key;
+      if (_readMutationVersionsByChannelId[channelId] != mutationVersion) {
+        continue;
+      }
+
+      final previousItem = entry.value.item;
+      final previousIndex = entry.value.index;
+      final currentIndex =
+          items.indexWhere((item) => item.channelId == channelId);
+      final currentUnreadCount =
+          currentIndex >= 0 ? items[currentIndex].unreadCount : 0;
+
+      if (currentIndex >= 0) {
+        items[currentIndex] = previousItem;
+      } else {
+        final insertIndex = previousIndex.clamp(0, items.length);
+        items.insert(insertIndex, previousItem);
+        totalCount += 1;
+        offset += 1;
+      }
+      totalUnreadCount += previousItem.unreadCount - currentUnreadCount;
+    }
+
+    _rememberInboxItems(items);
+    state = state.copyWith(
+      items: items,
+      totalCount: totalCount,
+      totalUnreadCount: totalUnreadCount < 0 ? 0 : totalUnreadCount,
+      offset: offset,
+    );
+  }
+
   /// Mark a single item as done (dismiss, optimistic removal).
   Future<void> markDone({required String channelId}) async {
     final serverId = ref.read(activeServerScopeIdProvider);
@@ -344,7 +440,19 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
-    final previousState = state;
+    final previousItemsByChannelId = <String, ({InboxItem item, int index})>{
+      for (var index = 0; index < state.items.length; index++)
+        if (state.items[index].unreadCount > 0 ||
+            state.items[index].isMentioned)
+          state.items[index].channelId: (
+            item: state.items[index],
+            index: index
+          ),
+    };
+    final mutationVersion = _bumpReadMutationVersions({
+      for (final item in state.items) item.channelId,
+      ..._readMutationVersionsByChannelId.keys,
+    });
 
     // Optimistic: zero all unread counts and clear isMentioned.
     final updatedItems = state.items.map((item) {
@@ -377,7 +485,10 @@ class InboxStore extends Notifier<InboxState> {
     try {
       await ref.read(inboxRepositoryProvider).markAllRead(serverId);
     } on AppFailure {
-      state = previousState;
+      _rollbackReadItems(
+        previousItemsByChannelId: previousItemsByChannelId,
+        mutationVersion: mutationVersion,
+      );
     }
   }
 }
