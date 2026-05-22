@@ -48,6 +48,66 @@ void main() {
 
       await service.dispose();
     });
+
+    test('rapid play keeps stale listener from resetting current playback',
+        () async {
+      final player = _FakeVoiceAudioPlayer();
+      final service = AudioPlayerService(player: player);
+
+      await service.play('/tmp/first.m4a');
+      player.delayNextPlayerStateCancel();
+
+      await service.play('/tmp/second.m4a');
+
+      expect(player.playerStateListenCount, 2);
+      expect(player.playerStateCancelCount, 1);
+      expect(service.currentPath, '/tmp/second.m4a');
+      expect(service.state, AudioPlaybackState.playing);
+
+      player.emitPlayerStateToSubscription(
+        0,
+        PlayerState(false, ProcessingState.completed),
+      );
+
+      expect(service.currentPath, '/tmp/second.m4a');
+      expect(service.state, AudioPlaybackState.playing);
+
+      player.completeDelayedPlayerStateCancel();
+      await service.dispose();
+    });
+
+    test('older pending play cannot overwrite a newer play', () async {
+      final player = _FakeVoiceAudioPlayer();
+      final service = AudioPlayerService(player: player);
+      player.delaySetFilePath('/tmp/first.m4a');
+
+      final firstPlay = service.play('/tmp/first.m4a');
+      await Future<void>.delayed(Duration.zero);
+
+      await service.play('/tmp/second.m4a');
+      expect(service.currentPath, '/tmp/second.m4a');
+      expect(service.state, AudioPlaybackState.playing);
+
+      player.completeSetFilePath('/tmp/first.m4a');
+      await firstPlay;
+
+      expect(service.currentPath, '/tmp/second.m4a');
+      expect(service.state, AudioPlaybackState.playing);
+
+      await service.dispose();
+    });
+
+    test('dispose ignores player state subscription cancel failures', () async {
+      final player = _FakeVoiceAudioPlayer();
+      final service = AudioPlayerService(player: player);
+
+      await service.play('/tmp/audio.m4a');
+      player.throwOnPlayerStateCancel = true;
+
+      await service.dispose();
+
+      expect(player.disposed, isTrue);
+    });
   });
 
   group('AudioPlaybackState enum', () {
@@ -64,32 +124,22 @@ void main() {
 }
 
 class _FakeVoiceAudioPlayer implements VoiceAudioPlayer {
-  final StreamController<PlayerState> _playerStateController =
-      StreamController<PlayerState>.broadcast();
   final StreamController<Duration> _positionController =
       StreamController<Duration>.broadcast();
   final StreamController<Duration?> _durationController =
       StreamController<Duration?>.broadcast();
+  final Map<String, Completer<Duration?>> _setFilePathCompleters = {};
+  final List<_FakePlayerStateSubscription> _playerStateSubscriptions = [];
 
   int playerStateListenCount = 0;
   int playerStateCancelCount = 0;
+  bool throwOnPlayerStateCancel = false;
+  bool disposed = false;
+  Completer<void>? _playerStateCancelCompleter;
   final Duration _duration = const Duration(seconds: 3);
 
   @override
-  Stream<PlayerState> get playerStateStream => Stream<PlayerState>.multi(
-        (controller) {
-          playerStateListenCount++;
-          final subscription = _playerStateController.stream.listen(
-            controller.add,
-            onError: controller.addError,
-            onDone: controller.close,
-          );
-          controller.onCancel = () async {
-            playerStateCancelCount++;
-            await subscription.cancel();
-          };
-        },
-      );
+  Stream<PlayerState> get playerStateStream => _FakePlayerStateStream(this);
 
   @override
   Stream<Duration> get positionStream => _positionController.stream;
@@ -100,9 +150,30 @@ class _FakeVoiceAudioPlayer implements VoiceAudioPlayer {
   @override
   Duration? get duration => _duration;
 
+  void delaySetFilePath(String path) {
+    _setFilePathCompleters[path] = Completer<Duration?>();
+  }
+
+  void completeSetFilePath(String path) {
+    _setFilePathCompleters[path]?.complete(_duration);
+  }
+
+  void delayNextPlayerStateCancel() {
+    _playerStateCancelCompleter = Completer<void>();
+  }
+
+  void completeDelayedPlayerStateCancel() {
+    _playerStateCancelCompleter?.complete();
+    _playerStateCancelCompleter = null;
+  }
+
+  void emitPlayerStateToSubscription(int index, PlayerState state) {
+    _playerStateSubscriptions[index].emit(state);
+  }
+
   @override
   Future<void> dispose() async {
-    await _playerStateController.close();
+    disposed = true;
     await _positionController.close();
     await _durationController.close();
   }
@@ -117,11 +188,95 @@ class _FakeVoiceAudioPlayer implements VoiceAudioPlayer {
   Future<void> seek(Duration position) async {}
 
   @override
-  Future<Duration?> setFilePath(String path) async => _duration;
+  Future<Duration?> setFilePath(String path) async {
+    final completer = _setFilePathCompleters[path];
+    if (completer != null) return completer.future;
+    return _duration;
+  }
 
   @override
   Future<Duration?> setUrl(String url) async => _duration;
 
   @override
   Future<void> stop() async {}
+}
+
+class _FakePlayerStateStream extends Stream<PlayerState> {
+  const _FakePlayerStateStream(this.player);
+
+  final _FakeVoiceAudioPlayer player;
+
+  @override
+  StreamSubscription<PlayerState> listen(
+    void Function(PlayerState event)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    player.playerStateListenCount++;
+    final subscription = _FakePlayerStateSubscription(
+      player: player,
+      onData: onData,
+    );
+    player._playerStateSubscriptions.add(subscription);
+    return subscription;
+  }
+}
+
+class _FakePlayerStateSubscription implements StreamSubscription<PlayerState> {
+  _FakePlayerStateSubscription({
+    required this.player,
+    required void Function(PlayerState event)? onData,
+  }) : _onData = onData;
+
+  final _FakeVoiceAudioPlayer player;
+  void Function(PlayerState event)? _onData;
+  bool _isCanceled = false;
+  bool _isPaused = false;
+
+  void emit(PlayerState state) {
+    if (_isCanceled || _isPaused) return;
+    _onData?.call(state);
+  }
+
+  @override
+  Future<E> asFuture<E>([E? futureValue]) async => futureValue as E;
+
+  @override
+  Future<void> cancel() async {
+    player.playerStateCancelCount++;
+    if (player.throwOnPlayerStateCancel) {
+      throw StateError('cancel failed');
+    }
+    final completer = player._playerStateCancelCompleter;
+    if (completer != null) {
+      await completer.future;
+    }
+    _isCanceled = true;
+  }
+
+  @override
+  bool get isPaused => _isPaused;
+
+  @override
+  void onData(void Function(PlayerState data)? handleData) {
+    _onData = handleData;
+  }
+
+  @override
+  void onDone(void Function()? handleDone) {}
+
+  @override
+  void onError(Function? handleError) {}
+
+  @override
+  void pause([Future<void>? resumeSignal]) {
+    _isPaused = true;
+    resumeSignal?.whenComplete(resume);
+  }
+
+  @override
+  void resume() {
+    _isPaused = false;
+  }
 }

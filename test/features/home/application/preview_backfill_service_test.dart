@@ -173,6 +173,62 @@ void main() {
       expect(fetchedChannelIds, ['ch-1']);
     });
 
+    test('provider rebuild does not start duplicate channel backfill',
+        () async {
+      final localStore = FakeConversationLocalStore();
+      final fetchedChannelIds = <String>[];
+      final fetchCompleters = <String, Completer<void>>{
+        'ch-1': Completer<void>(),
+        'ch-2': Completer<void>(),
+      };
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(serverId),
+          conversationLocalStoreProvider.overrideWithValue(localStore),
+          previewMessageFetcherProvider.overrideWithValue(
+            (serverId, channelId) async {
+              fetchedChannelIds.add(channelId);
+              await fetchCompleters[channelId]?.future;
+              return null;
+            },
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final firstBackfill = container
+          .read(previewBackfillServiceProvider.notifier)
+          .backfill([makeChannel('ch-1')]);
+      for (var i = 0; i < 3; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(fetchedChannelIds, ['ch-1']);
+
+      container.invalidate(previewBackfillServiceProvider);
+      await container
+          .read(previewBackfillServiceProvider.notifier)
+          .backfill([makeChannel('ch-2')]);
+
+      expect(fetchedChannelIds, ['ch-1']);
+
+      fetchCompleters['ch-1']!.complete();
+      await firstBackfill;
+
+      final secondBackfill = container
+          .read(previewBackfillServiceProvider.notifier)
+          .backfill([makeChannel('ch-2')]);
+      for (var i = 0; i < 3; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(fetchedChannelIds, ['ch-1', 'ch-2']);
+
+      fetchCompleters['ch-2']!.complete();
+      await secondBackfill;
+    });
+
     // T1: SQLite cache hit fills preview
     test(
       'SQLite cache hit fills preview for channels missing lastMessagePreview',
