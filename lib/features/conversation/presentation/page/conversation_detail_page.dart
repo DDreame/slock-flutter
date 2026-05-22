@@ -42,6 +42,7 @@ import 'package:slock_app/features/unread/application/unread_source_projection_s
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/application/voice_recording_controller.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
+import 'package:slock_app/features/voice/presentation/widgets/voice_recording_lifecycle_binding.dart';
 import 'package:slock_app/stores/composer/composer_settings_store.dart';
 
 typedef ConversationAppBarActionsBuilder = List<Widget> Function(
@@ -354,11 +355,6 @@ class _ConversationDetailScreenState
     );
     final isRecording = voiceRecordingState == VoiceRecorderState.recording;
 
-    // Keep the VoiceRecordingController alive for this page's lifetime (#772).
-    // Without this watch, the AutoDispose provider would be collected after
-    // ref.read() returns, tearing down recorder/subscriptions mid-recording.
-    ref.watch(voiceRecordingControllerProvider);
-
     // Initialize typing realtime binding — auto-binds/disposes via provider.
     final target = ref.read(currentConversationDetailTargetProvider);
     final typingScopeKey =
@@ -378,250 +374,256 @@ class _ConversationDetailScreenState
       });
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+    // #772: VoiceRecordingLifecycleBinding keeps the AutoDispose
+    // VoiceRecordingController alive for this page's lifetime.
+    return VoiceRecordingLifecycleBinding(
+      child: Scaffold(
+        appBar: AppBar(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(widget.titleOverride ?? state.resolvedTitle),
+              if (target.surface == ConversationSurface.directMessage)
+                _DmPresenceSubtitle(
+                  conversationId: target.conversationId,
+                )
+              else if (state.description != null &&
+                  state.description!.isNotEmpty)
+                Text(
+                  state.description!,
+                  key: const ValueKey('channel-description-text'),
+                  style: AppTypography.caption.copyWith(
+                    color:
+                        Theme.of(context).extension<AppColors>()!.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+              else if (state.memberCount != null)
+                Text(
+                  '${state.memberCount} '
+                  '${state.memberCount == 1 ? 'member' : 'members'}',
+                  key: const ValueKey('conversation-member-count'),
+                  style: AppTypography.caption.copyWith(
+                    color:
+                        Theme.of(context).extension<AppColors>()!.textSecondary,
+                  ),
+                ),
+            ],
+          ),
+          actions: [
+            if (state.status == ConversationDetailStatus.success)
+              IconButton(
+                key: const ValueKey('conversation-search-toggle'),
+                icon: Icon(
+                  state.isSearchActive ? Icons.search_off : Icons.search,
+                ),
+                tooltip: state.isSearchActive ? 'Close search' : 'Search',
+                onPressed: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .toggleSearch,
+              ),
+            if (state.status == ConversationDetailStatus.success)
+              IconButton(
+                key: const ValueKey('conversation-members-shortcut'),
+                icon: const Icon(Icons.info_outline),
+                tooltip: 'Conversation info',
+                onPressed: () {
+                  final target =
+                      ref.read(currentConversationDetailTargetProvider);
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ConversationInfoPage(
+                        target: target,
+                        title: state.resolvedTitle,
+                        description: state.description,
+                        initialSection: ConversationInfoSection.members,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            if (state.status == ConversationDetailStatus.success)
+              IconButton(
+                key: const ValueKey('conversation-screenshot'),
+                icon: const Icon(Icons.screenshot_outlined),
+                onPressed: () => _captureAndAnnotate(),
+                tooltip: 'Screenshot',
+              ),
+            ...?widget.appBarActionsBuilder?.call(context, ref, state),
+          ],
+        ),
+        body: Column(
           children: [
-            Text(widget.titleOverride ?? state.resolvedTitle),
-            if (target.surface == ConversationSurface.directMessage)
-              _DmPresenceSubtitle(
-                conversationId: target.conversationId,
-              )
-            else if (state.description != null && state.description!.isNotEmpty)
-              Text(
-                state.description!,
-                key: const ValueKey('channel-description-text'),
-                style: AppTypography.caption.copyWith(
-                  color:
-                      Theme.of(context).extension<AppColors>()!.textSecondary,
+            if (state.isSearchActive)
+              ConversationSearchBar(
+                state: state,
+                onChanged: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .updateSearchQuery,
+                onNext: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .nextSearchResult,
+                onPrevious: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .previousSearchResult,
+                onClose: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .toggleSearch,
+              ),
+            const ConnectionStatusBanner(),
+            const _OfflineBanner(),
+            Expanded(
+              child: switch (state.status) {
+                ConversationDetailStatus.initial ||
+                ConversationDetailStatus.loading =>
+                  ListView(
+                    key: const ValueKey('conversation-skeleton'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.pageHorizontal,
+                      vertical: AppSpacing.sm,
+                    ),
+                    children: const [
+                      SkeletonListItem(
+                        key: ValueKey('conversation-skeleton-item-0'),
+                      ),
+                      SkeletonListItem(
+                        key: ValueKey('conversation-skeleton-item-1'),
+                      ),
+                      SkeletonListItem(
+                        key: ValueKey('conversation-skeleton-item-2'),
+                      ),
+                      SkeletonListItem(
+                        key: ValueKey('conversation-skeleton-item-3'),
+                      ),
+                      SkeletonListItem(
+                        key: ValueKey('conversation-skeleton-item-4'),
+                      ),
+                    ],
+                  ),
+                ConversationDetailStatus.failure => _ConversationFailureView(
+                    state: state,
+                    onRetry: () => ref
+                        .read(conversationDetailStoreProvider.notifier)
+                        .retry(),
+                  ),
+                ConversationDetailStatus.success when state.isEmpty =>
+                  _ConversationEmptyView(title: state.resolvedTitle),
+                ConversationDetailStatus.success => Column(
+                    children: [
+                      if (state.isRefreshing)
+                        const LinearProgressIndicator(
+                          key: ValueKey('conversation-refreshing'),
+                          minHeight: 2,
+                        ),
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            RepaintBoundary(
+                              key: _screenshotBoundaryKey,
+                              child: ConversationMessageList(
+                                controller: _scrollController,
+                                onScrollToMessage: _scrollToMessageId,
+                                highlightedMessageId: _highlightedMessageId,
+                                messageKeyBuilder: _getMessageKey,
+                              ),
+                            ),
+                            if (_quoteJumpState != QuoteJumpState.idle)
+                              Positioned.fill(
+                                child: QuoteJumpOverlay(
+                                  key: const ValueKey('quote-jump-overlay'),
+                                  state: _quoteJumpState,
+                                ),
+                              ),
+                            if (_showScrollToBottom)
+                              Positioned(
+                                right: 16,
+                                bottom: 16,
+                                child: FloatingActionButton.small(
+                                  key: const ValueKey('scroll-to-bottom-fab'),
+                                  onPressed: () {
+                                    _scrollController.animateTo(
+                                      0,
+                                      duration:
+                                          const Duration(milliseconds: 300),
+                                      curve: Curves.easeOut,
+                                    );
+                                  },
+                                  child: const Icon(
+                                    Icons.keyboard_double_arrow_down,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+              },
+            ),
+            if (state.status == ConversationDetailStatus.success)
+              const TypingIndicatorWidget(),
+            if (state.status == ConversationDetailStatus.success &&
+                _showMentionOverlay &&
+                _filteredMentionMembers.isNotEmpty)
+              _MentionSuggestionOverlay(
+                key: const ValueKey('mention-suggestion-overlay'),
+                members: _filteredMentionMembers,
+                onSelect: _insertMention,
+              ),
+            if (state.status == ConversationDetailStatus.success &&
+                state.isSelectionMode)
+              const SelectionActionBar()
+            else if (state.status == ConversationDetailStatus.success)
+              ConversationComposer(
+                controller: _composerController,
+                focusNode: _composerFocusNode,
+                state: state,
+                isRecording: isRecording,
+                enterToSend: ref.watch(
+                  composerSettingsStoreProvider.select((s) => s.enterToSend),
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              )
-            else if (state.memberCount != null)
-              Text(
-                '${state.memberCount} '
-                '${state.memberCount == 1 ? 'member' : 'members'}',
-                key: const ValueKey('conversation-member-count'),
-                style: AppTypography.caption.copyWith(
-                  color:
-                      Theme.of(context).extension<AppColors>()!.textSecondary,
-                ),
+                isFormattingToolbarVisible: _isFormattingToolbarVisible,
+                isEmojiPickerVisible: _isEmojiPickerVisible,
+                onToggleFormattingToolbar: () {
+                  setState(() {
+                    _isFormattingToolbarVisible = !_isFormattingToolbarVisible;
+                  });
+                },
+                onToggleEmojiPicker: () {
+                  setState(() {
+                    _isEmojiPickerVisible = !_isEmojiPickerVisible;
+                  });
+                },
+                onChanged: (value) {
+                  ref
+                      .read(conversationDetailStoreProvider.notifier)
+                      .updateDraft(value);
+                  if (value.trim().isNotEmpty) {
+                    _emitTyping();
+                  }
+                  _detectMentionTrigger(value);
+                },
+                onSend: _handleSend,
+                onPickAttachment: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .addPendingAttachment,
+                onRemoveAttachment: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .removePendingAttachment,
+                onCancelUpload: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .cancelUpload,
+                onClearReply: ref
+                    .read(conversationDetailStoreProvider.notifier)
+                    .clearReplyTo,
+                onMicTap: _startRecording,
+                onSendRecording: _stopRecordingAndSend,
+                onCancelRecording: _cancelRecording,
               ),
           ],
         ),
-        actions: [
-          if (state.status == ConversationDetailStatus.success)
-            IconButton(
-              key: const ValueKey('conversation-search-toggle'),
-              icon: Icon(
-                state.isSearchActive ? Icons.search_off : Icons.search,
-              ),
-              tooltip: state.isSearchActive ? 'Close search' : 'Search',
-              onPressed: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .toggleSearch,
-            ),
-          if (state.status == ConversationDetailStatus.success)
-            IconButton(
-              key: const ValueKey('conversation-members-shortcut'),
-              icon: const Icon(Icons.info_outline),
-              tooltip: 'Conversation info',
-              onPressed: () {
-                final target =
-                    ref.read(currentConversationDetailTargetProvider);
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => ConversationInfoPage(
-                      target: target,
-                      title: state.resolvedTitle,
-                      description: state.description,
-                      initialSection: ConversationInfoSection.members,
-                    ),
-                  ),
-                );
-              },
-            ),
-          if (state.status == ConversationDetailStatus.success)
-            IconButton(
-              key: const ValueKey('conversation-screenshot'),
-              icon: const Icon(Icons.screenshot_outlined),
-              onPressed: () => _captureAndAnnotate(),
-              tooltip: 'Screenshot',
-            ),
-          ...?widget.appBarActionsBuilder?.call(context, ref, state),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (state.isSearchActive)
-            ConversationSearchBar(
-              state: state,
-              onChanged: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .updateSearchQuery,
-              onNext: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .nextSearchResult,
-              onPrevious: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .previousSearchResult,
-              onClose: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .toggleSearch,
-            ),
-          const ConnectionStatusBanner(),
-          const _OfflineBanner(),
-          Expanded(
-            child: switch (state.status) {
-              ConversationDetailStatus.initial ||
-              ConversationDetailStatus.loading =>
-                ListView(
-                  key: const ValueKey('conversation-skeleton'),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.pageHorizontal,
-                    vertical: AppSpacing.sm,
-                  ),
-                  children: const [
-                    SkeletonListItem(
-                      key: ValueKey('conversation-skeleton-item-0'),
-                    ),
-                    SkeletonListItem(
-                      key: ValueKey('conversation-skeleton-item-1'),
-                    ),
-                    SkeletonListItem(
-                      key: ValueKey('conversation-skeleton-item-2'),
-                    ),
-                    SkeletonListItem(
-                      key: ValueKey('conversation-skeleton-item-3'),
-                    ),
-                    SkeletonListItem(
-                      key: ValueKey('conversation-skeleton-item-4'),
-                    ),
-                  ],
-                ),
-              ConversationDetailStatus.failure => _ConversationFailureView(
-                  state: state,
-                  onRetry: () => ref
-                      .read(conversationDetailStoreProvider.notifier)
-                      .retry(),
-                ),
-              ConversationDetailStatus.success when state.isEmpty =>
-                _ConversationEmptyView(title: state.resolvedTitle),
-              ConversationDetailStatus.success => Column(
-                  children: [
-                    if (state.isRefreshing)
-                      const LinearProgressIndicator(
-                        key: ValueKey('conversation-refreshing'),
-                        minHeight: 2,
-                      ),
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          RepaintBoundary(
-                            key: _screenshotBoundaryKey,
-                            child: ConversationMessageList(
-                              controller: _scrollController,
-                              onScrollToMessage: _scrollToMessageId,
-                              highlightedMessageId: _highlightedMessageId,
-                              messageKeyBuilder: _getMessageKey,
-                            ),
-                          ),
-                          if (_quoteJumpState != QuoteJumpState.idle)
-                            Positioned.fill(
-                              child: QuoteJumpOverlay(
-                                key: const ValueKey('quote-jump-overlay'),
-                                state: _quoteJumpState,
-                              ),
-                            ),
-                          if (_showScrollToBottom)
-                            Positioned(
-                              right: 16,
-                              bottom: 16,
-                              child: FloatingActionButton.small(
-                                key: const ValueKey('scroll-to-bottom-fab'),
-                                onPressed: () {
-                                  _scrollController.animateTo(
-                                    0,
-                                    duration: const Duration(milliseconds: 300),
-                                    curve: Curves.easeOut,
-                                  );
-                                },
-                                child: const Icon(
-                                  Icons.keyboard_double_arrow_down,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-            },
-          ),
-          if (state.status == ConversationDetailStatus.success)
-            const TypingIndicatorWidget(),
-          if (state.status == ConversationDetailStatus.success &&
-              _showMentionOverlay &&
-              _filteredMentionMembers.isNotEmpty)
-            _MentionSuggestionOverlay(
-              key: const ValueKey('mention-suggestion-overlay'),
-              members: _filteredMentionMembers,
-              onSelect: _insertMention,
-            ),
-          if (state.status == ConversationDetailStatus.success &&
-              state.isSelectionMode)
-            const SelectionActionBar()
-          else if (state.status == ConversationDetailStatus.success)
-            ConversationComposer(
-              controller: _composerController,
-              focusNode: _composerFocusNode,
-              state: state,
-              isRecording: isRecording,
-              enterToSend: ref.watch(
-                composerSettingsStoreProvider.select((s) => s.enterToSend),
-              ),
-              isFormattingToolbarVisible: _isFormattingToolbarVisible,
-              isEmojiPickerVisible: _isEmojiPickerVisible,
-              onToggleFormattingToolbar: () {
-                setState(() {
-                  _isFormattingToolbarVisible = !_isFormattingToolbarVisible;
-                });
-              },
-              onToggleEmojiPicker: () {
-                setState(() {
-                  _isEmojiPickerVisible = !_isEmojiPickerVisible;
-                });
-              },
-              onChanged: (value) {
-                ref
-                    .read(conversationDetailStoreProvider.notifier)
-                    .updateDraft(value);
-                if (value.trim().isNotEmpty) {
-                  _emitTyping();
-                }
-                _detectMentionTrigger(value);
-              },
-              onSend: _handleSend,
-              onPickAttachment: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .addPendingAttachment,
-              onRemoveAttachment: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .removePendingAttachment,
-              onCancelUpload: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .cancelUpload,
-              onClearReply: ref
-                  .read(conversationDetailStoreProvider.notifier)
-                  .clearReplyTo,
-              onMicTap: _startRecording,
-              onSendRecording: _stopRecordingAndSend,
-              onCancelRecording: _cancelRecording,
-            ),
-        ],
       ),
     );
   }

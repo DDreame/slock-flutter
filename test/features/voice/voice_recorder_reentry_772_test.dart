@@ -26,6 +26,7 @@ import 'package:record/record.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/application/voice_recording_controller.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
+import 'package:slock_app/features/voice/presentation/widgets/voice_recording_lifecycle_binding.dart';
 
 void main() {
   group('#772 — VoiceRecordingController re-entrancy guard', () {
@@ -165,12 +166,15 @@ void main() {
   // =========================================================================
   // E: Widget lifecycle — controller stays alive when widget watches it.
   // This test fails if ref.watch(voiceRecordingControllerProvider) is removed
-  // from the production widget because the AutoDispose provider disposes
-  // after the event loop when nothing watches it.
+  // from the PRODUCTION VoiceRecordingLifecycleBinding widget because the
+  // AutoDispose provider disposes after the event loop when nothing watches it.
+  //
+  // Load-bearing proof: removing ref.watch() from
+  // lib/.../voice_recording_lifecycle_binding.dart causes this test to fail.
   // =========================================================================
   group('#772 — VoiceRecordingController widget lifecycle', () {
     testWidgets(
-      'controller survives event loop when widget watches it (production path)',
+      'controller survives event loop when production VoiceRecordingLifecycleBinding watches it',
       (tester) async {
         final fakeRecorder = _SlowPermissionRecorder();
         final fakeService = VoiceRecorderService(
@@ -178,27 +182,32 @@ void main() {
           tempDirPathOverride: '/tmp/test772_lifecycle',
         );
 
-        // Build a minimal widget that mirrors the production page pattern:
-        // ref.watch(voiceRecordingControllerProvider) keeps it alive.
+        // Pump the PRODUCTION VoiceRecordingLifecycleBinding widget —
+        // the same widget ConversationDetailPage uses in lib/.
         await tester.pumpWidget(
-          ProviderScope(
+          const ProviderScope(
             child: MaterialApp(
-              home: _RecordingLifecycleWidget(fakeService: fakeService),
+              home: VoiceRecordingLifecycleBinding(
+                child: SizedBox.shrink(),
+              ),
             ),
           ),
         );
 
         // Get the controller through the widget's container.
         final container = ProviderScope.containerOf(
-          tester.element(find.byType(_RecordingLifecycleWidget)),
+          tester.element(find.byType(VoiceRecordingLifecycleBinding)),
         );
+
+        // Inject the fake recorder.
+        final controller =
+            container.read(voiceRecordingControllerProvider.notifier);
+        controller.setRecorder(fakeService);
 
         // Grant permission immediately so startRecording completes.
         fakeRecorder.permissionCompleter.complete(true);
 
         // Start recording through the controller.
-        final controller =
-            container.read(voiceRecordingControllerProvider.notifier);
         final result = await controller.startRecording();
         expect(result, StartRecordingResult.success);
         expect(fakeRecorder.startCallCount, 1);
@@ -214,7 +223,8 @@ void main() {
             container.read(voiceRecordingControllerProvider.notifier);
         expect(identical(controller, controllerAfterPump), isTrue,
             reason: '#772: controller must survive event loop — '
-                'ref.watch keeps AutoDispose alive');
+                'production VoiceRecordingLifecycleBinding ref.watch keeps '
+                'AutoDispose alive');
 
         // Recorder must not have been disposed.
         expect(fakeRecorder.disposeCallCount, 0,
@@ -223,31 +233,6 @@ void main() {
       },
     );
   });
-}
-
-// ---------------------------------------------------------------------------
-// Widget that mirrors the production page's ref.watch pattern (#772).
-// ---------------------------------------------------------------------------
-
-/// Minimal ConsumerWidget that watches `voiceRecordingControllerProvider`
-/// to keep it alive — the same pattern used in ConversationDetailPage.
-class _RecordingLifecycleWidget extends ConsumerWidget {
-  const _RecordingLifecycleWidget({required this.fakeService});
-
-  final VoiceRecorderService fakeService;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // This watch is the production-critical line (#772).
-    // Without it, the AutoDispose controller dies after the event loop.
-    ref.watch(voiceRecordingControllerProvider);
-
-    // Inject the fake recorder on first build.
-    final controller = ref.read(voiceRecordingControllerProvider.notifier);
-    controller.setRecorder(fakeService);
-
-    return const SizedBox.shrink();
-  }
 }
 
 /// AudioRecorder fake where hasPermission() blocks on a Completer,
