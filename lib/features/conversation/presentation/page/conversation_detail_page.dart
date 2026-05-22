@@ -218,6 +218,7 @@ class _ConversationDetailScreenState
   StreamSubscription<double>? _voiceAmplitudeSub;
   StreamSubscription<Duration>? _voiceElapsedSub;
   late final VoiceMessageStore _voiceMessageStore;
+  bool _isStartingRecording = false;
 
   @override
   void initState() {
@@ -765,6 +766,16 @@ class _ConversationDetailScreenState
   }
 
   Future<void> _startRecording() async {
+    if (_isStartingRecording) return;
+    _isStartingRecording = true;
+    try {
+      await _startRecordingImpl();
+    } finally {
+      _isStartingRecording = false;
+    }
+  }
+
+  Future<void> _startRecordingImpl() async {
     final recorder = _voiceRecorder ??= VoiceRecorderService();
     final store = ref.read(voiceMessageStoreProvider.notifier);
 
