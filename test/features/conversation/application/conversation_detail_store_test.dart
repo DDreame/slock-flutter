@@ -19,6 +19,8 @@ import 'package:slock_app/features/saved_messages/data/saved_message_item.dart'
     as saved_data;
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
+import 'package:slock_app/stores/session/session_state.dart';
+import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
 
@@ -1630,6 +1632,93 @@ void main() {
       expect(state.messages.first.isDeleted, isFalse);
     });
 
+    test('deleteMessage rollback preserves concurrent realtime insert',
+        () async {
+      const failure = ServerFailure(
+        message: 'Forbidden.',
+        statusCode: 403,
+      );
+      final deleteCompleter = Completer<void>();
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'Will be deleted',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        deleteFailure: failure,
+        deleteCompleters: {'message-1': deleteCompleter},
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final deleteFuture = container
+          .read(conversationDetailStoreProvider.notifier)
+          .deleteMessage('message-1');
+      await Future<void>.delayed(Duration.zero);
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:new',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 2,
+          payload: {
+            'id': 'message-2',
+            'channelId': target.conversationId,
+            'content': 'Concurrent realtime insert',
+            'createdAt': '2026-04-19T15:01:00Z',
+            'senderType': 'human',
+            'messageType': 'message',
+            'seq': 2,
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        container
+            .read(conversationDetailStoreProvider)
+            .messages
+            .map((m) => m.id),
+        ['message-1', 'message-2'],
+      );
+
+      deleteCompleter.complete();
+      await expectLater(deleteFuture, throwsA(isA<ServerFailure>()));
+
+      final messages = container.read(conversationDetailStoreProvider).messages;
+      expect(messages.map((m) => m.id), ['message-1', 'message-2']);
+      expect(
+          messages.singleWhere((m) => m.id == 'message-1').isDeleted, isFalse);
+    });
+
     test(
         'batchDeleteMessages starts all deletes concurrently and rolls back failures',
         () async {
@@ -2229,6 +2318,98 @@ void main() {
 
       final state = container.read(conversationDetailStoreProvider);
       expect(state.messages[0].isPinned, isFalse);
+    });
+  });
+
+  group('reaction rollback', () {
+    test('addReaction rollback preserves concurrent realtime insert', () async {
+      const failure = ServerFailure(
+        message: 'Reaction failed.',
+        statusCode: 403,
+      );
+      final reactionCompleter = Completer<void>();
+      final ingress = RealtimeReductionIngress();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'React here',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        addReactionFailure: failure,
+        addReactionCompleters: {'message-1:👍': reactionCompleter},
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+          sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+        ],
+      );
+      final subscription = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() async {
+        subscription.close();
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      final reactionFuture = container
+          .read(conversationDetailStoreProvider.notifier)
+          .addReaction('message-1', '👍');
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        container
+            .read(conversationDetailStoreProvider)
+            .messages
+            .singleWhere((m) => m.id == 'message-1')
+            .reactions,
+        isNotEmpty,
+      );
+
+      ingress.accept(
+        RealtimeEventEnvelope(
+          eventType: 'message:new',
+          scopeKey: RealtimeEventEnvelope.globalScopeKey,
+          receivedAt: DateTime(2026, 4, 20),
+          seq: 2,
+          payload: {
+            'id': 'message-2',
+            'channelId': target.conversationId,
+            'content': 'Concurrent realtime insert',
+            'createdAt': '2026-04-19T15:01:00Z',
+            'senderType': 'human',
+            'messageType': 'message',
+            'seq': 2,
+          },
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      reactionCompleter.complete();
+      await expectLater(reactionFuture, throwsA(isA<ServerFailure>()));
+
+      final messages = container.read(conversationDetailStoreProvider).messages;
+      expect(messages.map((m) => m.id), ['message-1', 'message-2']);
+      expect(
+        messages.singleWhere((m) => m.id == 'message-1').reactions,
+        isEmpty,
+      );
     });
   });
 
@@ -3164,6 +3345,16 @@ class _MutableFakeConversationRepository implements ConversationRepository {
   }) async {}
 }
 
+class _FakeSessionStore extends SessionStore {
+  @override
+  SessionState build() => const SessionState(
+        status: AuthStatus.authenticated,
+        userId: 'user-1',
+        displayName: 'Robin',
+        token: 'test-token',
+      );
+}
+
 class _RecordingCrashReporter implements CrashReporter {
   _RecordingCrashReporter({this.throwOnCapture = false});
 
@@ -3207,6 +3398,8 @@ class _FakeConversationRepository implements ConversationRepository {
     this.sendFailure,
     this.deleteFailure,
     this.deleteCompleters = const {},
+    this.addReactionFailure,
+    this.addReactionCompleters = const {},
     this.removeStoredFailure,
     this.pinFailure,
     this.sendCompleter,
@@ -3223,6 +3416,8 @@ class _FakeConversationRepository implements ConversationRepository {
   final AppFailure? sendFailure;
   final AppFailure? deleteFailure;
   final Map<String, Completer<void>> deleteCompleters;
+  final AppFailure? addReactionFailure;
+  final Map<String, Completer<void>> addReactionCompleters;
   final Object? removeStoredFailure;
   final AppFailure? pinFailure;
   final Completer<ConversationMessageSummary>? sendCompleter;
@@ -3404,7 +3599,15 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
     required String emoji,
-  }) async {}
+  }) async {
+    final completer = addReactionCompleters['$messageId:$emoji'];
+    if (completer != null) {
+      await completer.future;
+    }
+    if (addReactionFailure != null) {
+      throw addReactionFailure!;
+    }
+  }
 
   @override
   Future<void> removeReaction(

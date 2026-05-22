@@ -192,6 +192,29 @@ void main() {
       expect(container.read(shareIntentStoreProvider), isNull);
     });
 
+    test('dispose during initialize does not write cold-start state', () async {
+      final delayedIntent = _DelayedReceiveSharingIntent(
+        mediaStream: mediaStreamController.stream,
+      );
+      ReceiveSharingIntent.instance = delayedIntent;
+
+      final notifier = container.read(shareIntentStoreProvider.notifier);
+      final initializeFuture = notifier.initialize();
+
+      container.dispose();
+      delayedIntent.initialMediaCompleter.complete([
+        SharedMediaFile(path: 'late', type: SharedMediaType.text),
+      ]);
+
+      await initializeFuture;
+
+      expect(
+        mediaStreamController.hasListener,
+        isFalse,
+        reason: 'Disposed initialize must not subscribe after getInitialMedia.',
+      );
+    });
+
     test('multiple stream events update state to latest', () async {
       await container.read(shareIntentStoreProvider.notifier).initialize();
 
@@ -210,4 +233,22 @@ void main() {
       expect(container.read(shareIntentStoreProvider)!.items[0].path, 'second');
     });
   });
+}
+
+class _DelayedReceiveSharingIntent extends ReceiveSharingIntent {
+  _DelayedReceiveSharingIntent({required this.mediaStream});
+
+  final Stream<List<SharedMediaFile>> mediaStream;
+  final Completer<List<SharedMediaFile>> initialMediaCompleter =
+      Completer<List<SharedMediaFile>>();
+
+  @override
+  Future<List<SharedMediaFile>> getInitialMedia() =>
+      initialMediaCompleter.future;
+
+  @override
+  Stream<List<SharedMediaFile>> getMediaStream() => mediaStream;
+
+  @override
+  Future<dynamic> reset() async {}
 }

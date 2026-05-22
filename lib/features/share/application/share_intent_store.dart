@@ -42,12 +42,15 @@ SharedContent parseSharedMedia(List<SharedMediaFile> files) {
 /// dismisses the share flow.
 class ShareIntentStore extends Notifier<SharedContent?> {
   StreamSubscription<List<SharedMediaFile>>? _subscription;
+  bool _disposed = false;
 
   @override
   SharedContent? build() {
+    _disposed = false;
     // Register disposal in build() so it's guaranteed to run even if the
     // provider is disposed before initialize() completes (#711).
     ref.onDispose(() {
+      _disposed = true;
       _subscription?.cancel();
       _subscription = null;
     });
@@ -58,6 +61,7 @@ class ShareIntentStore extends Notifier<SharedContent?> {
   Future<void> initialize() async {
     // Handle cold-start intent.
     final initial = await ReceiveSharingIntent.instance.getInitialMedia();
+    if (_disposed) return;
     if (initial.isNotEmpty) {
       state = parseSharedMedia(initial);
     }

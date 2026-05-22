@@ -16,7 +16,7 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
     final currentUserId = ref.read(sessionStoreProvider).userId;
     if (currentUserId == null) return;
 
-    final previousMessages = state.messages;
+    final previousReactions = state.messages[index].reactions;
     final messages = List<ConversationMessageSummary>.of(state.messages);
     messages[index] = _addReactionToMessage(
       messages[index],
@@ -31,7 +31,13 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
       await repo.addReaction(target, messageId: messageId, emoji: emoji);
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
-      state = state.copyWith(messages: previousMessages);
+      state = state.copyWith(
+        messages: _updateMessageById(
+          state.messages,
+          messageId,
+          (message) => message.copyWith(reactions: previousReactions),
+        ),
+      );
       _persistSession();
       rethrow;
     }
@@ -47,7 +53,7 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
     final currentUserId = ref.read(sessionStoreProvider).userId;
     if (currentUserId == null) return;
 
-    final previousMessages = state.messages;
+    final previousReactions = state.messages[index].reactions;
     final messages = List<ConversationMessageSummary>.of(state.messages);
     messages[index] = _removeReactionFromMessage(
       messages[index],
@@ -62,7 +68,13 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
       await repo.removeReaction(target, messageId: messageId, emoji: emoji);
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
-      state = state.copyWith(messages: previousMessages);
+      state = state.copyWith(
+        messages: _updateMessageById(
+          state.messages,
+          messageId,
+          (message) => message.copyWith(reactions: previousReactions),
+        ),
+      );
       _persistSession();
       rethrow;
     }
