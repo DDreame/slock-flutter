@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Simplified connectivity status.
@@ -31,8 +32,8 @@ class ConnectivityService {
   static Future<ConnectivityService> fromPlugin() async {
     final connectivity = Connectivity();
     final current = await connectivity.checkConnectivity();
-    final initialStatus = _mapResults(current);
-    final source = connectivity.onConnectivityChanged.map(_mapResults);
+    final initialStatus = mapResults(current);
+    final source = connectivity.onConnectivityChanged.map(mapResults);
     return ConnectivityService._(
       initialStatus: initialStatus,
       source: source,
@@ -70,11 +71,18 @@ class ConnectivityService {
   }
 
   /// Map connectivity_plus results to our simplified enum.
-  static ConnectivityStatus _mapResults(List<ConnectivityResult> results) {
-    if (results.contains(ConnectivityResult.none) || results.isEmpty) {
+  ///
+  /// Classified as online if ANY interface reports connectivity (not none).
+  /// This handles mixed results (e.g. [wifi, none]) correctly (#732).
+  @visibleForTesting
+  static ConnectivityStatus mapResults(List<ConnectivityResult> results) {
+    if (results.isEmpty) {
       return ConnectivityStatus.offline;
     }
-    return ConnectivityStatus.online;
+    if (results.any((r) => r != ConnectivityResult.none)) {
+      return ConnectivityStatus.online;
+    }
+    return ConnectivityStatus.offline;
   }
 }
 

@@ -97,8 +97,8 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
     }
   }
 
-  void _disableAndContinue() {
-    ref.read(biometricStoreProvider.notifier).setEnabled(false);
+  Future<void> _disableAndContinue() async {
+    await ref.read(biometricStoreProvider.notifier).setEnabled(false);
   }
 
   void _skipForNow() {
