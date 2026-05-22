@@ -280,9 +280,15 @@ class InboxStore extends Notifier<InboxState> {
       await ref
           .read(conversationUnreadRepositoryProvider)
           .markAsUnread(serverId, channelId: channelId);
-    } on AppFailure {
+    } on AppFailure catch (failure, stackTrace) {
       state = previousState;
-      rethrow;
+      try {
+        ref.read(crashReporterProvider).captureException(
+          failure,
+          stackTrace: stackTrace,
+          extra: const {'operation': 'InboxStore.markAsUnread'},
+        );
+      } catch (_) {}
     }
   }
 

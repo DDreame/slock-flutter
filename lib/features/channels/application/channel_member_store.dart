@@ -117,6 +117,15 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(items: previousItems, failure: failure);
       rethrow;
+    } catch (error) {
+      state = state.copyWith(
+        items: previousItems,
+        failure: UnknownFailure(
+          message: 'Failed to remove channel member.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
+      rethrow;
     }
   }
 
@@ -137,6 +146,15 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
       );
     } on AppFailure catch (failure) {
       state = state.copyWith(items: previousItems, failure: failure);
+      rethrow;
+    } catch (error) {
+      state = state.copyWith(
+        items: previousItems,
+        failure: UnknownFailure(
+          message: 'Failed to remove channel member.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
       rethrow;
     }
   }

@@ -264,6 +264,12 @@ class _UnreadDivider extends StatelessWidget {
 final dateSeparatorToLocalProvider =
     Provider<DateTime Function(DateTime)>((ref) => (dt) => dt.toLocal());
 
+/// Supplies the current timestamp for date separator labels.
+///
+/// Kept as a provider so tests can use a fixed clock instead of relying on
+/// wall-clock time around UTC/local day boundaries.
+final dateSeparatorNowProvider = Provider<DateTime>((ref) => DateTime.now());
+
 /// Resolve the [ConversationMessageSummary] at [index], or null for pending/header.
 ConversationMessageSummary? _messageForItemAt(
   int index,
@@ -327,6 +333,7 @@ class _DateSeparatorWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final toLocal = ref.watch(dateSeparatorToLocalProvider);
+    final now = ref.watch(dateSeparatorNowProvider);
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context).languageCode;
 
@@ -340,7 +347,7 @@ class _DateSeparatorWidget extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            _formatDateLabel(date, toLocal, l10n, locale),
+            _formatDateLabel(date, now, toLocal, l10n, locale),
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -353,6 +360,7 @@ class _DateSeparatorWidget extends ConsumerWidget {
 
 String _formatDateLabel(
   DateTime date,
+  DateTime now,
   DateTime Function(DateTime) toLocal,
   AppLocalizations l10n,
   String locale,
@@ -360,7 +368,6 @@ String _formatDateLabel(
   // Pass raw dates to _isSameDay — it applies toLocal once to each input.
   // Do NOT pre-convert `date` before passing to _isSameDay, or the transform
   // would be applied twice (once here, once inside _isSameDay).
-  final now = DateTime.now();
   if (_isSameDay(date, now, toLocal)) return l10n.dateSeparatorToday;
   final yesterday = now.subtract(const Duration(days: 1));
   if (_isSameDay(date, yesterday, toLocal)) return l10n.dateSeparatorYesterday;

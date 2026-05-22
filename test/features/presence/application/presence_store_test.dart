@@ -101,6 +101,27 @@ void main() {
       expect(state.isOnline('user-old'), isFalse);
     });
 
+    test('caps statuses at 500 and evicts offline entries first', () {
+      final notifier = container.read(presenceStoreProvider.notifier);
+      for (var i = 0; i < 500; i++) {
+        notifier.setOnline('online-$i');
+      }
+      for (var i = 0; i < 50; i++) {
+        notifier.setIdle('offline-candidate-$i');
+        notifier.setPresence('offline-candidate-$i', 'offline');
+      }
+      notifier.setOnline('new-online');
+
+      final state = container.read(presenceStoreProvider);
+      expect(state.statuses.length, PresenceStore.maxPresenceStatuses);
+      expect(state.statusOf('new-online'), UserPresenceStatus.online);
+      expect(
+        state.statuses.keys.where((id) => id.startsWith('offline-candidate')),
+        isEmpty,
+        reason: '#762: offline entries should be evicted before active ones',
+      );
+    });
+
     test('clearAll removes all users', () {
       final notifier = container.read(presenceStoreProvider.notifier);
       notifier.setOnline('user-1');
