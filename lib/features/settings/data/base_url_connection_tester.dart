@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 /// Result of a connection test against a base URL endpoint.
 enum ConnectionTestResult {
@@ -18,9 +19,17 @@ enum ConnectionTestResult {
   invalidUrl,
 }
 
+/// Signature for a WebSocket connection factory.
+///
+/// Injectable for testing — allows tests to exercise the real
+/// [BaseUrlConnectionTester.testRealtime] method while controlling
+/// the underlying socket behavior.
+typedef WebSocketConnector = Future<WebSocket> Function(String url);
+
 /// Tests connectivity to API and Realtime endpoints.
 class BaseUrlConnectionTester {
-  BaseUrlConnectionTester({Dio? dio})
+  BaseUrlConnectionTester(
+      {Dio? dio, @visibleForTesting WebSocketConnector? webSocketConnector})
       : _dio = dio ??
             Dio(
               BaseOptions(
@@ -28,10 +37,12 @@ class BaseUrlConnectionTester {
                 receiveTimeout: _testTimeout,
                 sendTimeout: _testTimeout,
               ),
-            );
+            ),
+        _connectWebSocket = webSocketConnector ?? WebSocket.connect;
 
   static const _testTimeout = Duration(seconds: 3);
   final Dio _dio;
+  final WebSocketConnector _connectWebSocket;
 
   /// Tests an API endpoint by sending `GET <url>/health`.
   Future<ConnectionTestResult> testApi(String baseUrl) async {
@@ -79,7 +90,7 @@ class BaseUrlConnectionTester {
         wsUrl = 'wss://${wsUrl.substring('https://'.length)}';
       }
 
-      socket = await WebSocket.connect(
+      socket = await _connectWebSocket(
         wsUrl,
       ).timeout(_testTimeout);
       return ConnectionTestResult.reachable;

@@ -10,11 +10,12 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:fake_async/fake_async.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/application/message_export_service.dart';
 import 'package:slock_app/features/conversation/application/typing_indicator_store.dart';
+import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/settings/data/base_url_connection_tester.dart';
 
 void main() {
@@ -90,115 +91,223 @@ void main() {
   });
 
   // ===========================================================================
-  // B. BaseUrlConnectionTester — WebSocket closed in all exit paths
+  // B. BaseUrlConnectionTester — real testRealtime() closes socket via finally
+  //
+  // Uses the injectable WebSocketConnector seam to inject a mock socket factory
+  // into the REAL BaseUrlConnectionTester.testRealtime() production path.
   // ===========================================================================
-  group('#723B — BaseUrlConnectionTester WebSocket leak', () {
-    test('testRealtime closes WebSocket on successful connection', () async {
+  group('#723B — BaseUrlConnectionTester WebSocket leak (production path)', () {
+    test('real testRealtime closes WebSocket on successful connection',
+        () async {
       final mockSocket = _MockWebSocket();
-      final tester = _TestableConnectionTester(
-        connectResult: Future.value(mockSocket),
+
+      // Inject a WebSocketConnector that returns our mock socket.
+      // The REAL testRealtime() production code runs — including the
+      // finally { await socket?.close(); } block.
+      final tester = BaseUrlConnectionTester(
+        webSocketConnector: (_) => Future.value(mockSocket),
       );
 
       final result = await tester.testRealtime('wss://example.com');
 
       expect(result, ConnectionTestResult.reachable);
       expect(mockSocket.closeCalled, isTrue,
-          reason: 'WebSocket must be closed after successful test');
+          reason: 'Production testRealtime must close WebSocket after success');
     });
 
-    test('testRealtime closes WebSocket on timeout', () async {
-      // Simulate: connect succeeds, but we pretend the timeout fires
-      // after the connect completes (i.e. the connect itself times out).
-      final tester = _TestableConnectionTester(
-        connectResult: Future.error(TimeoutException('timeout')),
+    test(
+        'real testRealtime closes socket even when timeout occurs after connect',
+        () async {
+      // Simulate: connect throws TimeoutException. The connector is called
+      // exactly once, and the finally block handles null socket safely.
+      var callCount = 0;
+
+      final tester = BaseUrlConnectionTester(
+        webSocketConnector: (_) {
+          callCount++;
+          return Future<WebSocket>.error(TimeoutException('timed out'));
+        },
       );
 
       final result = await tester.testRealtime('wss://example.com');
 
       expect(result, ConnectionTestResult.timeout);
-      // Socket is null because connect threw before returning a socket.
-      // The finally block handles null safely.
+      expect(callCount, 1, reason: 'Connector must be called exactly once');
+      // Socket is null (error thrown before assignment) so close is not
+      // called — but critically, the finally block runs without crashing.
     });
 
-    test('testRealtime returns invalidUrl for empty URL', () async {
-      final tester = _TestableConnectionTester(
-        connectResult: Completer<WebSocket>().future,
-      );
-
-      final result = await tester.testRealtime('');
-      expect(result, ConnectionTestResult.invalidUrl);
-    });
-
-    test('testRealtime closes socket on SocketException after connect',
-        () async {
-      // In practice SocketException is thrown during connect (before
-      // socket is assigned), but we verify the finally block is safe.
-      final tester = _TestableConnectionTester(
-        connectResult:
+    test(
+        'real testRealtime handles SocketException without crash '
+        '(finally safe on null socket)', () async {
+      final tester = BaseUrlConnectionTester(
+        webSocketConnector: (_) =>
             Future.error(const SocketException('Connection refused')),
       );
 
       final result = await tester.testRealtime('wss://example.com');
+
       expect(result, ConnectionTestResult.invalidUrl);
+      // No crash means finally { await socket?.close(); } handled null safely.
+    });
+
+    test(
+        'real testRealtime handles WebSocketException '
+        '(finally safe on null socket)', () async {
+      // Connector throws WebSocketException before a socket is assigned.
+      // The finally block must handle null socket safely.
+      final tester = BaseUrlConnectionTester(
+        webSocketConnector: (_) => Future.error(
+          const WebSocketException('Upgrade failed'),
+        ),
+      );
+
+      final result = await tester.testRealtime('wss://example.com');
+
+      expect(result, ConnectionTestResult.reachableUnauthorized);
+      // No crash means finally { await socket?.close(); } handled null safely.
+    });
+
+    test('real testRealtime returns invalidUrl for empty URL (no connect call)',
+        () async {
+      var connectCalled = false;
+      final tester = BaseUrlConnectionTester(
+        webSocketConnector: (_) {
+          connectCalled = true;
+          return Completer<WebSocket>().future;
+        },
+      );
+
+      final result = await tester.testRealtime('');
+
+      expect(result, ConnectionTestResult.invalidUrl);
+      expect(connectCalled, isFalse,
+          reason: 'Empty URL must short-circuit before connect');
     });
   });
 
   // ===========================================================================
-  // C. MessageExportService — temp PNG deleted after share
+  // C. MessageExportService — real exportSelectedMessages() cleans up temp PNG
+  //
+  // Uses testWidgets to render a real RepaintBoundary, then exercises the
+  // production exportSelectedMessages() and verifies cleanup.
   // ===========================================================================
-  group('#723C — MessageExportService temp file cleanup', () {
-    test('exported PNG is deleted after share completes', () async {
-      // Write a real temp file and verify it gets cleaned up.
-      final dir = Directory.systemTemp;
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${dir.path}/slock_export_test_$timestamp.png';
-      final file = File(filePath);
-      file.writeAsBytesSync([0x89, 0x50, 0x4E, 0x47]); // PNG magic bytes
+  group('#723C — MessageExportService temp file cleanup (production path)', () {
+    testWidgets(
+        'exportSelectedMessages deletes temp PNG after successful share',
+        (tester) async {
+      final boundaryKey = GlobalKey();
+      String? sharedPath;
 
-      expect(file.existsSync(), isTrue);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RepaintBoundary(
+            key: boundaryKey,
+            child: const SizedBox(
+              width: 200,
+              height: 100,
+              child: ColoredBox(color: Colors.blue),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-      // Simulate the cleanup logic from MessageExportService.
-      // We cannot call exportSelectedMessages directly (needs Flutter
-      // rendering), but we can verify the cleanup pattern works correctly.
-      final capturedPath = filePath;
-      try {
-        // Simulate share succeeding.
-      } finally {
-        try {
-          final f = File(capturedPath);
-          if (f.existsSync()) {
-            f.deleteSync();
-          }
-        } catch (_) {}
-      }
+      // Create service with injectable share seam that captures the path.
+      final service = MessageExportService(
+        shareXFiles: (paths) async {
+          sharedPath = paths.first;
+          // At this point the file must exist (share is in progress).
+          expect(File(sharedPath!).existsSync(), isTrue,
+              reason: 'File must exist during share');
+        },
+      );
 
-      expect(file.existsSync(), isFalse,
-          reason: 'Temp file must be deleted after export');
+      // Call the REAL production exportSelectedMessages() inside runAsync
+      // because toImage() requires real async I/O with the rendering engine.
+      final result = await tester.runAsync(() => service.exportSelectedMessages(
+            [
+              ConversationMessageSummary(
+                id: 'msg-1',
+                content: 'Hello',
+                createdAt: DateTime.now(),
+                senderType: 'human',
+                messageType: 'text',
+              ),
+            ],
+            boundaryKey: boundaryKey,
+          ));
+
+      // The method returns the file path (even though it's deleted after).
+      expect(result, isNotNull);
+      expect(sharedPath, isNotNull);
+
+      // After exportSelectedMessages returns, the finally block has run.
+      // The temp file must be deleted.
+      expect(File(sharedPath!).existsSync(), isFalse,
+          reason:
+              'Production cleanup must delete temp PNG after share completes');
     });
 
-    test('cleanup handles already-deleted file gracefully', () async {
-      final dir = Directory.systemTemp;
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${dir.path}/slock_export_gone_$timestamp.png';
+    testWidgets(
+        'exportSelectedMessages deletes temp PNG even when share throws',
+        (tester) async {
+      final boundaryKey = GlobalKey();
+      String? capturedPath;
 
-      // File never existed — cleanup should not throw.
-      final capturedPath = filePath;
-      try {
-        // Simulate export failure (file was never created).
-      } finally {
-        try {
-          final f = File(capturedPath);
-          if (f.existsSync()) {
-            f.deleteSync();
-          }
-        } catch (_) {}
-      }
+      await tester.pumpWidget(
+        MaterialApp(
+          home: RepaintBoundary(
+            key: boundaryKey,
+            child: const SizedBox(
+              width: 200,
+              height: 100,
+              child: ColoredBox(color: Colors.red),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-      // No exception means graceful handling.
+      // Create service with share seam that throws after capturing the path.
+      final service = MessageExportService(
+        shareXFiles: (paths) async {
+          capturedPath = paths.first;
+          // Verify file exists before share throws.
+          expect(File(capturedPath!).existsSync(), isTrue);
+          throw Exception('Share failed');
+        },
+      );
+
+      // Call the REAL production exportSelectedMessages() inside runAsync.
+      // The catch block in the method catches the exception and returns null.
+      final result = await tester.runAsync(() => service.exportSelectedMessages(
+            [
+              ConversationMessageSummary(
+                id: 'msg-2',
+                content: 'World',
+                createdAt: DateTime.now(),
+                senderType: 'human',
+                messageType: 'text',
+              ),
+            ],
+            boundaryKey: boundaryKey,
+          ));
+
+      // Method returns null on failure.
+      expect(result, isNull);
+      expect(capturedPath, isNotNull);
+
+      // After exportSelectedMessages returns, the finally block has run.
+      // The temp file must still be deleted even though share threw.
+      expect(File(capturedPath!).existsSync(), isFalse,
+          reason:
+              'Production cleanup must delete temp PNG even on share failure');
     });
 
-    test('MessageExportService returns null when boundaryKey has no context',
-        () async {
+    testWidgets(
+        'exportSelectedMessages returns null when boundaryKey has no context',
+        (tester) async {
       // Exercise the early-return path (no rendering context available).
       final service = MessageExportService(shareXFiles: (_) async {});
       final key = GlobalKey();
@@ -236,41 +345,4 @@ class _MockWebSocket implements WebSocket {
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
-}
-
-/// Testable subclass of BaseUrlConnectionTester that overrides WebSocket.connect.
-class _TestableConnectionTester extends BaseUrlConnectionTester {
-  _TestableConnectionTester({required this.connectResult});
-
-  final Future<WebSocket> connectResult;
-
-  @override
-  Future<ConnectionTestResult> testRealtime(String realtimeUrl) async {
-    if (realtimeUrl.isEmpty) return ConnectionTestResult.invalidUrl;
-
-    WebSocket? socket;
-    try {
-      var wsUrl = realtimeUrl;
-      if (wsUrl.startsWith('http://')) {
-        wsUrl = 'ws://${wsUrl.substring('http://'.length)}';
-      } else if (wsUrl.startsWith('https://')) {
-        wsUrl = 'wss://${wsUrl.substring('https://'.length)}';
-      }
-
-      socket = await connectResult.timeout(const Duration(seconds: 3));
-      return ConnectionTestResult.reachable;
-    } on TimeoutException {
-      return ConnectionTestResult.timeout;
-    } on WebSocketException {
-      return ConnectionTestResult.reachableUnauthorized;
-    } on SocketException {
-      return ConnectionTestResult.invalidUrl;
-    } on HandshakeException {
-      return ConnectionTestResult.reachableUnauthorized;
-    } on Exception {
-      return ConnectionTestResult.invalidUrl;
-    } finally {
-      await socket?.close();
-    }
-  }
 }
