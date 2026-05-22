@@ -17,6 +17,7 @@ final inboxStoreProvider = NotifierProvider<InboxStore, InboxState>(
 class InboxStore extends Notifier<InboxState> {
   final RequestCoordinator _coordinator = RequestCoordinator();
   bool _isLoadingMore = false;
+  final Map<String, InboxItem> _knownItemsByChannelId = {};
 
   @override
   InboxState build() {
@@ -26,6 +27,7 @@ class InboxStore extends Notifier<InboxState> {
     // Reset _isLoadingMore so pagination isn't stuck if a server switch
     // happens while loadMore is in-flight (#714).
     _isLoadingMore = false;
+    _knownItemsByChannelId.clear();
 
     // Listen for realtime reconnection to trigger inbox refresh.
     // When the connection transitions from reconnecting → connected,
@@ -92,6 +94,7 @@ class InboxStore extends Notifier<InboxState> {
             limit: inboxPageSize,
             offset: 0,
           );
+      _rememberInboxItems(response.items);
       state = state.copyWith(
         status: InboxStatus.success,
         items: response.items,
@@ -138,6 +141,7 @@ class InboxStore extends Notifier<InboxState> {
             limit: inboxPageSize,
             offset: state.offset,
           );
+      _rememberInboxItems(response.items);
       state = state.copyWith(
         items: [...state.items, ...response.items],
         totalCount: response.totalCount,
@@ -185,6 +189,7 @@ class InboxStore extends Notifier<InboxState> {
       }
       return item;
     }).toList(growable: false);
+    _rememberInboxItems(updatedItems);
 
     final decreasedUnread = state.totalUnreadCount -
         (state.items
@@ -243,16 +248,20 @@ class InboxStore extends Notifier<InboxState> {
       );
     } else {
       unreadDelta = 1;
+      final knownItem = _knownItemsByChannelId[channelId];
       items.insert(
         0,
-        InboxItem(
-          kind: kind,
-          channelId: channelId,
-          channelName: channelName,
-          unreadCount: 1,
-        ),
+        knownItem?.copyWith(unreadCount: 1) ??
+            InboxItem(
+              kind: kind,
+              channelId: channelId,
+              channelName: channelName,
+              unreadCount: 1,
+            ),
       );
     }
+
+    _rememberInboxItems(items);
 
     state = state.copyWith(
       items: items,
@@ -269,6 +278,12 @@ class InboxStore extends Notifier<InboxState> {
     } on AppFailure {
       state = previousState;
       rethrow;
+    }
+  }
+
+  void _rememberInboxItems(Iterable<InboxItem> items) {
+    for (final item in items) {
+      _knownItemsByChannelId[item.channelId] = item;
     }
   }
 

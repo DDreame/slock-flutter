@@ -342,6 +342,30 @@ void main() {
       expect(a.hashCode, b.hashCode);
     });
 
+    test('INV-EQ-740-OUTBOX: hashCode preserves message order', () {
+      final first = OutboxMessage(
+        localId: 'local-1',
+        content: 'Hello',
+        createdAt: DateTime(2026, 5, 21),
+      );
+      final second = OutboxMessage(
+        localId: 'local-2',
+        content: 'World',
+        createdAt: DateTime(2026, 5, 21, 0, 1),
+      );
+
+      final a = OutboxState(items: {
+        'ch-1': [first, second]
+      });
+      final b = OutboxState(items: {
+        'ch-1': [second, first]
+      });
+
+      expect(a == b, isFalse);
+      expect(a.hashCode, isNot(b.hashCode),
+          reason: 'ordered lists must not collapse through XOR hashing');
+    });
+
     test(
         'INV-EQ-673-OUTBOX: status change (pending → failed) DOES trigger notification',
         () {
