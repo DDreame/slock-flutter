@@ -36,6 +36,7 @@ class HomeDirectMessageRow extends ConsumerWidget {
     this.onHide,
     this.onMoveUp,
     this.onMoveDown,
+    this.reorderHandle,
   });
 
   final HomeDirectMessageSummary directMessage;
@@ -55,6 +56,7 @@ class HomeDirectMessageRow extends ConsumerWidget {
   final VoidCallback? onHide;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
+  final Widget? reorderHandle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -237,6 +239,10 @@ class HomeDirectMessageRow extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
+              if (reorderHandle != null) ...[
+                reorderHandle!,
+                const SizedBox(width: AppSpacing.sm),
+              ],
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,

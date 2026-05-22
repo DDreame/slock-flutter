@@ -218,48 +218,114 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     // so it is registered once (not N times per row).
     final mutedIds = ref.watch(channelMutedIdsProvider);
 
-    return ListView.builder(
-      itemCount: displayList.length +
-          1 +
-          (displayList.isEmpty && _searchQuery.isNotEmpty ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _buildSearchField(l10n, colors);
-        }
-        if (displayList.isEmpty && _searchQuery.isNotEmpty && index == 1) {
-          return Padding(
-            key: const ValueKey('channels-tab-search-empty'),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.pageHorizontal,
-              vertical: AppSpacing.lg,
-            ),
-            child: Center(
-              child: Text(
-                l10n.channelsTabEmpty,
-                style: AppTypography.body.copyWith(
-                  color: colors.textSecondary,
+    if (_searchQuery.isNotEmpty) {
+      return ListView.builder(
+        itemCount: displayList.length + 1 + (displayList.isEmpty ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return _buildSearchField(l10n, colors);
+          }
+          if (displayList.isEmpty && index == 1) {
+            return Padding(
+              key: const ValueKey('channels-tab-search-empty'),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pageHorizontal,
+                vertical: AppSpacing.lg,
+              ),
+              child: Center(
+                child: Text(
+                  l10n.channelsTabEmpty,
+                  style: AppTypography.body.copyWith(
+                    color: colors.textSecondary,
+                  ),
                 ),
               ),
-            ),
+            );
+          }
+          final dataIndex = index - 1;
+          if (dataIndex < 0 || dataIndex >= displayList.length) {
+            return const SizedBox.shrink();
+          }
+          final channel = displayList[dataIndex];
+          return _buildChannelRow(
+            channel: channel,
+            isPinned: pinnedIds.contains(channel.scopeId.value),
+            homeStore: homeStore,
+            channelUnreadCounts: channelUnreadCounts,
+            mutedIds: mutedIds,
+            managementIsBusy: managementIsBusy,
           );
-        }
-        final dataIndex = index -
-            1 -
-            (displayList.isEmpty && _searchQuery.isNotEmpty ? 1 : 0);
-        if (dataIndex < 0 || dataIndex >= displayList.length) {
-          return const SizedBox.shrink();
-        }
-        final channel = displayList[dataIndex];
-        return _buildChannelRow(
-          channel: channel,
-          isPinned: pinnedIds.contains(channel.scopeId.value),
+        },
+      );
+    }
+
+    return ReorderableListView.builder(
+      key: const ValueKey('channels-tab-reorder-list'),
+      buildDefaultDragHandles: false,
+      header: _buildSearchField(l10n, colors),
+      itemCount: displayList.length,
+      onReorder: (oldIndex, newIndex) {
+        _handleChannelReorder(
+          oldIndex: oldIndex,
+          newIndex: newIndex,
+          displayList: displayList,
+          pinnedIds: pinnedIds,
           homeStore: homeStore,
-          channelUnreadCounts: channelUnreadCounts,
-          mutedIds: mutedIds,
-          managementIsBusy: managementIsBusy,
+        );
+      },
+      itemBuilder: (context, index) {
+        final channel = displayList[index];
+        final isPinned = pinnedIds.contains(channel.scopeId.value);
+        return KeyedSubtree(
+          key: ValueKey('channels-reorder-${channel.scopeId.routeParam}'),
+          child: _buildChannelRow(
+            channel: channel,
+            isPinned: isPinned,
+            reorderIndex: isPinned ? null : index,
+            homeStore: homeStore,
+            channelUnreadCounts: channelUnreadCounts,
+            mutedIds: mutedIds,
+            managementIsBusy: managementIsBusy,
+          ),
         );
       },
     );
+  }
+
+  Future<void> _handleChannelReorder({
+    required int oldIndex,
+    required int newIndex,
+    required List<HomeChannelSummary> displayList,
+    required Set<String> pinnedIds,
+    required HomeListStore homeStore,
+  }) async {
+    if (oldIndex < 0 || oldIndex >= displayList.length) return;
+    final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    if (adjustedNewIndex < 0 || adjustedNewIndex >= displayList.length) {
+      return;
+    }
+
+    final reordered = List<HomeChannelSummary>.of(displayList);
+    final moved = reordered.removeAt(oldIndex);
+    reordered.insert(adjustedNewIndex, moved);
+    final reorderedVisibleIds = reordered
+        .where((channel) => !pinnedIds.contains(channel.scopeId.value))
+        .map((channel) => channel.scopeId.value)
+        .toList(growable: false);
+
+    final previousPreference = ref.read(channelSortPreferenceProvider);
+    ref
+        .read(channelSortPreferenceProvider.notifier)
+        .setSortPreference(ChannelSortPreference.custom);
+    final persisted = await homeStore.reorderChannels(
+      moved.scopeId.serverId,
+      reorderedVisibleIds,
+    );
+    if (!persisted && mounted) {
+      ref
+          .read(channelSortPreferenceProvider.notifier)
+          .setSortPreference(previousPreference);
+    }
   }
 
   Widget _buildSearchField(AppLocalizations l10n, AppColors colors) {
@@ -308,6 +374,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
   Widget _buildChannelRow({
     required HomeChannelSummary channel,
     required bool isPinned,
+    int? reorderIndex,
     required HomeListStore homeStore,
     required Map<ChannelScopeId, int> channelUnreadCounts,
     required Set<String> mutedIds,
@@ -358,6 +425,18 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             : homeStore.pinChannel(channel.scopeId),
         onMarkAsUnread:
             unreadCount == 0 ? () => _markChannelUnread(channel) : null,
+        reorderHandle: reorderIndex == null
+            ? null
+            : ReorderableDragStartListener(
+                key: ValueKey(
+                  'channels-tab-drag-${channel.scopeId.routeParam}',
+                ),
+                index: reorderIndex,
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.drag_handle),
+                ),
+              ),
       ),
     );
   }

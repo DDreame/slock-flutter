@@ -18,7 +18,10 @@ enum ChannelSortPreference {
   recentActivity,
 
   /// Sort alphabetically by channel name (case-insensitive A-Z).
-  alphabetical;
+  alphabetical,
+
+  /// Preserve the user-defined sidebar order.
+  custom;
 
   /// SharedPreferences key used to persist the sort preference.
   /// Test-visible constant for Phase A assertion.
@@ -40,6 +43,9 @@ class ChannelSortPreferenceNotifier extends Notifier<ChannelSortPreference> {
     final stored = prefs.getString(ChannelSortPreference.prefsKey);
     if (stored == 'alphabetical') {
       return ChannelSortPreference.alphabetical;
+    }
+    if (stored == 'custom') {
+      return ChannelSortPreference.custom;
     }
     return ChannelSortPreference.recentActivity;
   }
@@ -82,6 +88,8 @@ final sortedChannelListProvider = Provider<List<HomeChannelSummary>>((ref) {
 
   final combined = [...pinnedChannels, ...channels];
   switch (preference) {
+    case ChannelSortPreference.custom:
+      return combined;
     case ChannelSortPreference.recentActivity:
       combined.sort((a, b) {
         final aTime = a.lastActivityAt;
