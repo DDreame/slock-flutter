@@ -453,6 +453,78 @@ void main() {
             'when hasMore=true');
   });
 
+  testWidgets(
+      'date range chip reflects selection after bottom sheet pick (#736)', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          conversationLocalStoreProvider.overrideWithValue(
+            FakeConversationLocalStore(),
+          ),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          searchRepositoryProvider.overrideWithValue(
+            _FakeSearchRepository(
+              SearchResultsPage(
+                messages: [
+                  SearchResultMessage(
+                    message: ConversationMessageSummary(
+                      id: 'date-range-msg-1',
+                      content: 'Date range test',
+                      createdAt: DateTime(2026, 4, 21),
+                      senderType: 'human',
+                      messageType: 'message',
+                    ),
+                    channelId: 'general',
+                  ),
+                ],
+                hasMore: false,
+              ),
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const SearchPage(serverId: 'server-1'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Type query to trigger search and show filter bar.
+    await tester.enterText(
+        find.byKey(const ValueKey('search-input')), 'Date range');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    // Verify the date range chip is visible with default "Any time" label.
+    expect(find.byKey(const ValueKey('search-filter-date-range')),
+        findsOneWidget);
+    expect(find.text('Any time'), findsOneWidget);
+
+    // Tap the date range chip to open the bottom sheet.
+    await tester.tap(find.byKey(const ValueKey('search-filter-date-range')));
+    await tester.pumpAndSettle();
+
+    // Verify bottom sheet options are visible.
+    expect(find.byKey(const ValueKey('search-date-range-week')), findsOneWidget);
+
+    // Select "Past week".
+    await tester.tap(find.byKey(const ValueKey('search-date-range-week')));
+    await tester.pumpAndSettle();
+
+    // Chip label should now show "Past week" reflecting the selection.
+    expect(find.text('Past week'), findsOneWidget,
+        reason:
+            '#736: date range chip must reflect the selected range after pick');
+    expect(find.text('Any time'), findsNothing,
+        reason:
+            '#736: "Any time" should no longer be the chip label after selection');
+  });
+
   testWidgets('filter combination passes all params (INV-SEARCH-2)', (
     tester,
   ) async {

@@ -142,6 +142,7 @@ class _SearchBodyState extends SearchState {
           senderFilter: state.senderFilter,
           sortBy: state.sortBy,
           channelFilter: state.channelFilter,
+          dateRange: state.dateRange,
         );
 
   @override
@@ -160,7 +161,8 @@ class _SearchBodyState extends SearchState {
             failure == other.failure &&
             senderFilter == other.senderFilter &&
             sortBy == other.sortBy &&
-            channelFilter == other.channelFilter;
+            channelFilter == other.channelFilter &&
+            dateRange == other.dateRange;
   }
 
   @override
@@ -177,6 +179,7 @@ class _SearchBodyState extends SearchState {
         senderFilter,
         sortBy,
         channelFilter,
+        dateRange,
       );
 }
 
