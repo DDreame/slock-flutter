@@ -139,6 +139,53 @@ void main() {
     },
   );
 
+  testWidgets('Quote-jump searches multiple older pages before not found',
+      (tester) async {
+    final repo = _PagedOlderFakeRepository(
+      snapshot: _makeSnapshotMissingTarget(),
+      pages: [
+        ConversationMessagePage(
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-2',
+              content: 'Second message',
+              createdAt: DateTime.utc(2026, 5, 16, 14, 10),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 2,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: true,
+        ),
+        ConversationMessagePage(
+          messages: [
+            ConversationMessageSummary(
+              id: 'msg-1',
+              content: 'Original message here',
+              createdAt: DateTime.utc(2026, 5, 16, 14),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(_buildConversationApp(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('quoted-msg-5')));
+    await tester.pumpAndSettle();
+
+    expect(repo.loadOlderCallCount, 2);
+    expect(find.byKey(const ValueKey('quote-jump-not-found')), findsNothing);
+    expect(find.byKey(const ValueKey('quote-jump-highlight')), findsOneWidget);
+  });
+
   // -----------------------------------------------------------------------
   // INV-QUOTE-JUMP-3: After a quote-jump, normal scrolling continues
   // to work (the scroll controller is not in a broken state).
@@ -542,6 +589,32 @@ class _FakeConversationRepository implements ConversationRepository {
     ConversationDetailTarget target, {
     required String messageId,
   }) async {}
+}
+
+class _PagedOlderFakeRepository extends _FakeConversationRepository {
+  _PagedOlderFakeRepository({
+    required super.snapshot,
+    required List<ConversationMessagePage> pages,
+  }) : _pages = List<ConversationMessagePage>.of(pages);
+
+  final List<ConversationMessagePage> _pages;
+  int loadOlderCallCount = 0;
+
+  @override
+  Future<ConversationMessagePage> loadOlderMessages(
+    ConversationDetailTarget target, {
+    required int beforeSeq,
+  }) async {
+    loadOlderCallCount += 1;
+    if (_pages.isEmpty) {
+      return const ConversationMessagePage(
+        messages: [],
+        historyLimited: false,
+        hasOlder: false,
+      );
+    }
+    return _pages.removeAt(0);
+  }
 }
 
 /// A variant of [_FakeConversationRepository] where [loadOlderMessages]

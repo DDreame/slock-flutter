@@ -1166,19 +1166,22 @@ class _ConversationDetailScreenState
     setState(() => _quoteJumpState = QuoteJumpState.loading);
 
     final notifier = ref.read(conversationDetailStoreProvider.notifier);
-    final state = ref.read(conversationDetailStoreProvider);
 
-    if (state.hasOlder) {
+    for (var attempts = 0; attempts < 5; attempts++) {
+      final state = ref.read(conversationDetailStoreProvider);
+      if (!state.hasOlder) break;
+
       await notifier.loadOlder();
       if (!mounted) return;
 
-      // Re-check after loading.
+      // Re-check after each loaded page.
       final updatedState = ref.read(conversationDetailStoreProvider);
       final idx = updatedState.messages.indexWhere((m) => m.id == messageId);
       if (idx >= 0) {
         _scrollToAndHighlight(messageId);
         return;
       }
+      if (!updatedState.hasOlder) break;
     }
 
     // Still not found — show "not found" feedback.
