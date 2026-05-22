@@ -61,6 +61,10 @@ class BillingStore extends AutoDisposeNotifier<BillingState> {
         }),
     ]);
 
+    if (ref.read(activeServerScopeIdProvider) != activeServerScope) {
+      return;
+    }
+
     if (summary == null && usage == null) {
       state = state.copyWith(
         status: BillingStatus.failure,

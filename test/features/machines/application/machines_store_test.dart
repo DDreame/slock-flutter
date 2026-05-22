@@ -75,6 +75,32 @@ void main() {
     expect(fakeRepository.deletedMachineIds, ['machine-2']);
   });
 
+  test(
+      'updateMachineCapabilities preserves latest daemon on null or stale versions',
+      () async {
+    fakeRepository.snapshot = const MachinesSnapshot(
+      items: [
+        MachineItem(
+          id: 'machine-1',
+          name: 'Builder',
+          daemonVersion: '1.2.3',
+        ),
+      ],
+      latestDaemonVersion: '1.2.3',
+    );
+
+    await store().load();
+
+    store().updateMachineCapabilities('machine-1', daemonVersion: null);
+    expect(state().latestDaemonVersion, '1.2.3');
+
+    store().updateMachineCapabilities('machine-1', daemonVersion: '1.2.0');
+    expect(state().latestDaemonVersion, '1.2.3');
+
+    store().updateMachineCapabilities('machine-1', daemonVersion: '1.3.0');
+    expect(state().latestDaemonVersion, '1.3.0');
+  });
+
   test('load failure sets failure state', () async {
     fakeRepository.failure = const UnknownFailure(
       message: 'Machines failed',

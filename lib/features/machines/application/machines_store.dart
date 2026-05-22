@@ -207,7 +207,10 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
                 : machine,
           )
           .toList(growable: false),
-      latestDaemonVersion: daemonVersion ?? state.latestDaemonVersion,
+      latestDaemonVersion: _newerDaemonVersion(
+        state.latestDaemonVersion,
+        daemonVersion,
+      ),
     );
   }
 }
@@ -242,4 +245,30 @@ List<MachineItem> _sortMachines(List<MachineItem> items) {
     return lowerNames[left]!.compareTo(lowerNames[right]!);
   });
   return sorted;
+}
+
+String? _newerDaemonVersion(String? current, String? incoming) {
+  if (incoming == null || incoming.isEmpty) return current;
+  if (current == null || current.isEmpty) return incoming;
+  return _compareVersionStrings(incoming, current) > 0 ? incoming : current;
+}
+
+int _compareVersionStrings(String left, String right) {
+  final leftParts = _versionParts(left);
+  final rightParts = _versionParts(right);
+  final length = leftParts.length > rightParts.length
+      ? leftParts.length
+      : rightParts.length;
+  for (var index = 0; index < length; index++) {
+    final leftPart = index < leftParts.length ? leftParts[index] : 0;
+    final rightPart = index < rightParts.length ? rightParts[index] : 0;
+    if (leftPart != rightPart) return leftPart.compareTo(rightPart);
+  }
+  return 0;
+}
+
+List<int> _versionParts(String version) {
+  final match = RegExp(r'\d+(?:\.\d+)*').firstMatch(version);
+  if (match == null) return const [0];
+  return match.group(0)!.split('.').map(int.parse).toList(growable: false);
 }
