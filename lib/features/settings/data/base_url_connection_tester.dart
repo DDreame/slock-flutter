@@ -67,6 +67,8 @@ class BaseUrlConnectionTester {
   /// Tests a Realtime endpoint by attempting a raw WebSocket handshake.
   Future<ConnectionTestResult> testRealtime(String realtimeUrl) async {
     if (realtimeUrl.isEmpty) return ConnectionTestResult.invalidUrl;
+
+    WebSocket? socket;
     try {
       // Normalize ws/wss to http/https for the Socket.IO polling check,
       // or attempt a raw WebSocket connect.
@@ -77,10 +79,9 @@ class BaseUrlConnectionTester {
         wsUrl = 'wss://${wsUrl.substring('https://'.length)}';
       }
 
-      final socket = await WebSocket.connect(
+      socket = await WebSocket.connect(
         wsUrl,
       ).timeout(_testTimeout);
-      await socket.close();
       return ConnectionTestResult.reachable;
     } on TimeoutException {
       return ConnectionTestResult.timeout;
@@ -95,6 +96,9 @@ class BaseUrlConnectionTester {
       return ConnectionTestResult.reachableUnauthorized;
     } on Exception {
       return ConnectionTestResult.invalidUrl;
+    } finally {
+      // Always close the WebSocket to prevent resource leaks (#723).
+      await socket?.close();
     }
   }
 }

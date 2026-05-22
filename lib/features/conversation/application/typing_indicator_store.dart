@@ -82,6 +82,10 @@ class TypingIndicatorStore extends AutoDisposeNotifier<TypingIndicatorState> {
   final Map<String, Timer> _expiryTimers = {};
   DateTime? _lastEmitTime;
 
+  /// Guard: set true in onDispose to prevent timer callbacks from
+  /// mutating state on a stale/disposed notifier (#723).
+  bool _disposed = false;
+
   @override
   bool updateShouldNotify(
     TypingIndicatorState previous,
@@ -92,6 +96,7 @@ class TypingIndicatorStore extends AutoDisposeNotifier<TypingIndicatorState> {
   @override
   TypingIndicatorState build() {
     ref.onDispose(() {
+      _disposed = true;
       for (final timer in _expiryTimers.values) {
         timer.cancel();
       }
@@ -110,11 +115,14 @@ class TypingIndicatorStore extends AutoDisposeNotifier<TypingIndicatorState> {
     required String displayName,
     Duration expiry = kTypingIndicatorExpiry,
   }) {
+    if (_disposed) return;
+
     // Cancel existing timer for this user.
     _expiryTimers[userId]?.cancel();
 
     // Schedule auto-removal.
     _expiryTimers[userId] = Timer(expiry, () {
+      if (_disposed) return;
       removeTyper(userId);
     });
 
@@ -128,6 +136,8 @@ class TypingIndicatorStore extends AutoDisposeNotifier<TypingIndicatorState> {
 
   /// Remove a user's typing indicator.
   void removeTyper(String userId) {
+    if (_disposed) return;
+
     _expiryTimers[userId]?.cancel();
     _expiryTimers.remove(userId);
 
@@ -144,7 +154,9 @@ class TypingIndicatorStore extends AutoDisposeNotifier<TypingIndicatorState> {
       timer.cancel();
     }
     _expiryTimers.clear();
-    state = const TypingIndicatorState();
+    if (!_disposed) {
+      state = const TypingIndicatorState();
+    }
   }
 
   /// Returns `true` if a typing event should be emitted to the server
