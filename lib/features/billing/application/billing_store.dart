@@ -49,6 +49,13 @@ class BillingStore extends AutoDisposeNotifier<BillingState> {
           summary = await repository.loadSubscription();
         } on AppFailure catch (failure) {
           summaryFailure = failure;
+        } catch (error, stackTrace) {
+          _captureUnexpectedLoadError(
+            error,
+            stackTrace,
+            operation: 'BillingStore.loadSubscription',
+          );
+          summaryFailure = _unexpectedBillingFailure(error);
         }
       }),
       if (activeServerScope != null)
@@ -57,6 +64,13 @@ class BillingStore extends AutoDisposeNotifier<BillingState> {
             usage = await repository.loadServerUsage(activeServerScope);
           } on AppFailure catch (failure) {
             usageFailure = failure;
+          } catch (error, stackTrace) {
+            _captureUnexpectedLoadError(
+              error,
+              stackTrace,
+              operation: 'BillingStore.loadServerUsage',
+            );
+            usageFailure = _unexpectedBillingFailure(error);
           }
         }),
     ]);
@@ -85,6 +99,29 @@ class BillingStore extends AutoDisposeNotifier<BillingState> {
       usage: usage,
       clearFailure: true,
       hasActiveServerScope: activeServerScope != null,
+    );
+  }
+
+  void _captureUnexpectedLoadError(
+    Object error,
+    StackTrace stackTrace, {
+    required String operation,
+  }) {
+    try {
+      ref.read(crashReporterProvider).captureException(
+        error,
+        stackTrace: stackTrace,
+        extra: {'operation': operation},
+      );
+    } catch (_) {
+      // Crash reporting is best-effort; loading recovery must still complete.
+    }
+  }
+
+  AppFailure _unexpectedBillingFailure(Object error) {
+    return UnknownFailure(
+      message: 'Could not load billing details.',
+      causeType: error.runtimeType.toString(),
     );
   }
 }

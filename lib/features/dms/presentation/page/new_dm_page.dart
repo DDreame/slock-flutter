@@ -142,14 +142,15 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
       Navigator.of(context).pop(channelId);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      setState(() => _openingId = null);
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(failure.message ?? 'Failed to open conversation.'),
-          ),
-        );
+      _showOpenFailure(failure);
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      _captureUnexpectedOpenError(
+        error,
+        stackTrace,
+        operation: 'NewDmPage.openDirectMessage',
+      );
+      _showOpenFailure(_unexpectedOpenFailure(error));
     }
   }
 
@@ -165,15 +166,50 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
       Navigator.of(context).pop(channelId);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      setState(() => _openingId = null);
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(failure.message ?? 'Failed to open conversation.'),
-          ),
-        );
+      _showOpenFailure(failure);
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      _captureUnexpectedOpenError(
+        error,
+        stackTrace,
+        operation: 'NewDmPage.openAgentDirectMessage',
+      );
+      _showOpenFailure(_unexpectedOpenFailure(error));
     }
+  }
+
+  void _showOpenFailure(AppFailure failure) {
+    setState(() => _openingId = null);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(failure.message ?? 'Failed to open conversation.'),
+        ),
+      );
+  }
+
+  void _captureUnexpectedOpenError(
+    Object error,
+    StackTrace stackTrace, {
+    required String operation,
+  }) {
+    try {
+      ref.read(crashReporterProvider).captureException(
+        error,
+        stackTrace: stackTrace,
+        extra: {'operation': operation},
+      );
+    } catch (_) {
+      // Crash reporting is best-effort; UI guard reset must still complete.
+    }
+  }
+
+  AppFailure _unexpectedOpenFailure(Object error) {
+    return UnknownFailure(
+      message: 'Failed to open conversation.',
+      causeType: error.runtimeType.toString(),
+    );
   }
 }
 

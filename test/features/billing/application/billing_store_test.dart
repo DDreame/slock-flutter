@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -209,6 +210,61 @@ void main() {
     expect(state.status, BillingStatus.failure);
     expect(state.failure?.message, 'Billing failed');
   });
+
+  test('load wraps unexpected summary errors and exits loading', () async {
+    final container = ProviderContainer(
+      overrides: [
+        billingRepositoryProvider.overrideWithValue(
+          _FakeBillingRepository(
+            summaryError: const FormatException('bad billing payload'),
+          ),
+        ),
+        activeServerScopeIdProvider.overrideWithValue(null),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      billingStoreProvider,
+      (_, __) {},
+    );
+    addTearDown(subscription.close);
+
+    await container.read(billingStoreProvider.notifier).load();
+
+    final state = container.read(billingStoreProvider);
+    expect(state.status, BillingStatus.failure);
+    expect(state.failure, isA<UnknownFailure>());
+    expect(state.failure?.causeType, 'FormatException');
+    expect(state.hasActiveServerScope, isFalse);
+  });
+
+  test('load recovers when unexpected usage error reporting throws', () async {
+    final container = ProviderContainer(
+      overrides: [
+        billingRepositoryProvider.overrideWithValue(
+          _FakeBillingRepository(
+            usageError: const FormatException('bad usage payload'),
+          ),
+        ),
+        activeServerScopeIdProvider.overrideWithValue(server1),
+        crashReporterProvider.overrideWithValue(_ThrowingCrashReporter()),
+      ],
+    );
+    addTearDown(container.dispose);
+    final subscription = container.listen(
+      billingStoreProvider,
+      (_, __) {},
+    );
+    addTearDown(subscription.close);
+
+    await container.read(billingStoreProvider.notifier).load();
+
+    final state = container.read(billingStoreProvider);
+    expect(state.status, BillingStatus.success);
+    expect(state.summary, const BillingSummary());
+    expect(state.usage, isNull);
+    expect(state.hasActiveServerScope, isTrue);
+  });
 }
 
 class _FakeBillingRepository implements BillingRepository {
@@ -217,6 +273,8 @@ class _FakeBillingRepository implements BillingRepository {
     this.usage,
     this.summaryFailure,
     this.usageFailure,
+    this.summaryError,
+    this.usageError,
     this.summaryCompleter,
     this.usageCompleter,
   });
@@ -225,6 +283,8 @@ class _FakeBillingRepository implements BillingRepository {
   final BillingUsageSummary? usage;
   final AppFailure? summaryFailure;
   final AppFailure? usageFailure;
+  final Object? summaryError;
+  final Object? usageError;
   final Completer<BillingSummary>? summaryCompleter;
   final Completer<BillingUsageSummary>? usageCompleter;
   var loadSubscriptionCount = 0;
@@ -236,6 +296,8 @@ class _FakeBillingRepository implements BillingRepository {
     if (summaryFailure != null) {
       throw summaryFailure!;
     }
+    final error = summaryError;
+    if (error != null) throw error;
     if (summaryCompleter != null) {
       return summaryCompleter!.future;
     }
@@ -248,9 +310,34 @@ class _FakeBillingRepository implements BillingRepository {
     if (usageFailure != null) {
       throw usageFailure!;
     }
+    final error = usageError;
+    if (error != null) throw error;
     if (usageCompleter != null) {
       return usageCompleter!.future;
     }
     return usage ?? const BillingUsageSummary();
   }
+}
+
+class _ThrowingCrashReporter implements CrashReporter {
+  @override
+  Future<void> init() async {}
+
+  @override
+  void captureException(
+    Object error, {
+    StackTrace? stackTrace,
+    Map<String, dynamic>? extra,
+  }) {
+    throw StateError('crash reporter failed');
+  }
+
+  @override
+  void captureFlutterError(FlutterErrorDetails details) {}
+
+  @override
+  void addBreadcrumb(Breadcrumb breadcrumb) {}
+
+  @override
+  void setUser(String? userId, {String? displayName}) {}
 }
