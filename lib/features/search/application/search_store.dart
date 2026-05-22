@@ -45,6 +45,8 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
   SearchState build() {
     ref.onDispose(() {
       _debounce?.cancel();
+      _searchRequestToken++;
+      _loadMoreRequestToken++;
       _cancelInFlightSearch();
       _cancelInFlightLoadMore();
     });
@@ -237,66 +239,91 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
       clearFailure: true,
     );
 
-    // --- Local search: messages ---
-    final localStore = ref.read(conversationLocalStoreProvider);
-    final localMessages = await localStore.searchMessages(
-      serverId.value,
-      query,
-    );
-    if (_searchRequestToken != token) return;
+    late final List<SearchResultMessage> localResults;
+    late final List<SearchChannelResult> channelResults;
+    late final List<SearchContactResult> contactResults;
 
-    // --- Local search: conversation summaries (channels + DMs) ---
-    final localSummaries = await localStore.searchConversationSummaries(
-      serverId.value,
-      query,
-    );
-    if (_searchRequestToken != token) return;
+    try {
+      // --- Local search: messages ---
+      final localStore = ref.read(conversationLocalStoreProvider);
+      final localMessages = await localStore.searchMessages(
+        serverId.value,
+        query,
+      );
+      if (_searchRequestToken != token) return;
 
-    // --- Local search: identities (contacts) ---
-    final localIdentities = await localStore.searchIdentities(
-      serverId.value,
-      query,
-    );
-    if (_searchRequestToken != token) return;
+      // --- Local search: conversation summaries (channels + DMs) ---
+      final localSummaries = await localStore.searchConversationSummaries(
+        serverId.value,
+        query,
+      );
+      if (_searchRequestToken != token) return;
 
-    // Build message results from local messages.
-    final localResults = <SearchResultMessage>[
-      for (final message in localMessages)
-        SearchResultMessage(
-          message: ConversationMessageSummary(
-            id: message.messageId,
-            content: message.content,
-            createdAt: message.createdAt,
-            senderType: message.senderType,
-            messageType: message.messageType,
-            senderName: message.senderName,
-            seq: message.seq,
+      // --- Local search: identities (contacts) ---
+      final localIdentities = await localStore.searchIdentities(
+        serverId.value,
+        query,
+      );
+      if (_searchRequestToken != token) return;
+
+      // Build message results from local messages.
+      localResults = <SearchResultMessage>[
+        for (final message in localMessages)
+          SearchResultMessage(
+            message: ConversationMessageSummary(
+              id: message.messageId,
+              content: message.content,
+              createdAt: message.createdAt,
+              senderType: message.senderType,
+              messageType: message.messageType,
+              senderName: message.senderName,
+              seq: message.seq,
+            ),
+            channelId: message.conversationId,
           ),
-          channelId: message.conversationId,
-        ),
-    ];
+      ];
 
-    // Build channel results from conversation summaries.
-    final channelResults = <SearchChannelResult>[
-      for (final summary in localSummaries)
-        SearchChannelResult(
-          channelId: summary.conversationId,
-          channelName: summary.title,
-          surface: summary.surface,
-          lastMessagePreview: summary.lastMessagePreview,
-          lastActivityAt: summary.lastActivityAt,
-        ),
-    ];
+      // Build channel results from conversation summaries.
+      channelResults = <SearchChannelResult>[
+        for (final summary in localSummaries)
+          SearchChannelResult(
+            channelId: summary.conversationId,
+            channelName: summary.title,
+            surface: summary.surface,
+            lastMessagePreview: summary.lastMessagePreview,
+            lastActivityAt: summary.lastActivityAt,
+          ),
+      ];
 
-    // Build contact results from identities.
-    final contactResults = <SearchContactResult>[
-      for (final identity in localIdentities)
-        SearchContactResult(
-          identityId: identity.identityId,
-          displayName: identity.displayName,
-          avatarUrl: identity.avatarUrl,
-        ),
-    ];
+      // Build contact results from identities.
+      contactResults = <SearchContactResult>[
+        for (final identity in localIdentities)
+          SearchContactResult(
+            identityId: identity.identityId,
+            displayName: identity.displayName,
+            avatarUrl: identity.avatarUrl,
+          ),
+      ];
+    } on AppFailure catch (failure) {
+      if (_searchRequestToken != token) return;
+      _finishSearchRequest(cancelToken);
+      state = state.copyWith(
+        isRemoteSearching: _hasRemoteRequestInFlight,
+        status: SearchStatus.failure,
+        failure: failure,
+      );
+      return;
+    } catch (error, stackTrace) {
+      if (_searchRequestToken != token) return;
+      _finishSearchRequest(cancelToken);
+      _captureUnexpectedSearchError(error, stackTrace);
+      state = state.copyWith(
+        isRemoteSearching: _hasRemoteRequestInFlight,
+        status: SearchStatus.failure,
+        failure: _unexpectedSearchFailure(error),
+      );
+      return;
+    }
 
     if (_searchRequestToken != token) return;
     state = state.copyWith(
@@ -370,5 +397,24 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
             .subtract(const Duration(days: 30))
             .toIso8601String();
     }
+  }
+
+  void _captureUnexpectedSearchError(Object error, StackTrace stackTrace) {
+    try {
+      ref.read(crashReporterProvider).captureException(
+        error,
+        stackTrace: stackTrace,
+        extra: {'operation': 'search.local'},
+      );
+    } catch (_) {
+      // Crash reporting is best-effort; search recovery must still complete.
+    }
+  }
+
+  AppFailure _unexpectedSearchFailure(Object error) {
+    return UnknownFailure(
+      message: 'Search failed.',
+      causeType: error.runtimeType.toString(),
+    );
   }
 }
