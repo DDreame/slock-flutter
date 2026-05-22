@@ -154,12 +154,13 @@ class AppDioInterceptor extends Interceptor {
       }
     }
 
-    var failure = _failureMapper.map(err);
-    final response = await _retryTransient(err);
+    final retryResult = await _retryTransient(err);
+    final response = retryResult.response;
     if (response != null) {
       return handler.resolve(response);
     }
-    failure = _failureMapper.map(err);
+    err = retryResult.error;
+    final failure = _failureMapper.map(err);
 
     _logSink(
       NetworkLogEvent(
@@ -180,12 +181,16 @@ class AppDioInterceptor extends Interceptor {
     return retryCount < _transientRetryDelays.length;
   }
 
-  Future<Response<dynamic>?> _retryTransient(DioException initialError) async {
+  Future<_TransientRetryResult> _retryTransient(
+    DioException initialError,
+  ) async {
     var currentError = initialError;
     while (true) {
       final options = currentError.requestOptions;
       final failure = _failureMapper.map(currentError);
-      if (!_shouldRetryTransient(options, failure)) return null;
+      if (!_shouldRetryTransient(options, failure)) {
+        return _TransientRetryResult.failure(currentError);
+      }
 
       final retryCount = options.extra[transientRetryCountKey] as int? ?? 0;
       options.extra[transientRetryCountKey] = retryCount + 1;
@@ -195,10 +200,28 @@ class AppDioInterceptor extends Interceptor {
       }
 
       try {
-        return await _dioForRetry().fetch<dynamic>(options);
+        return _TransientRetryResult.success(
+          await _dioForRetry().fetch<dynamic>(options),
+        );
       } on DioException catch (retryError) {
         currentError = retryError;
       }
     }
   }
+}
+
+class _TransientRetryResult {
+  const _TransientRetryResult._({required this.error, this.response});
+
+  factory _TransientRetryResult.success(Response<dynamic> response) =>
+      _TransientRetryResult._(
+        error: DioException(requestOptions: response.requestOptions),
+        response: response,
+      );
+
+  factory _TransientRetryResult.failure(DioException error) =>
+      _TransientRetryResult._(error: error);
+
+  final DioException error;
+  final Response<dynamic>? response;
 }
