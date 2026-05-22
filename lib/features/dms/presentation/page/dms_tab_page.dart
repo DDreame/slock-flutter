@@ -236,6 +236,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     final sortPreference = ref.watch(dmSortPreferenceProvider);
     final sorted = List<HomeDirectMessageSummary>.of(filtered);
     switch (sortPreference) {
+      case DmSortPreference.custom:
+        break;
       case DmSortPreference.recentActivity:
         sorted.sort((a, b) {
           final aTime = a.lastActivityAt;
@@ -295,6 +297,49 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     final itemCount =
         1 + (hasSearchEmpty ? 1 : 0) + sorted.length + (hasHiddenTile ? 1 : 0);
 
+    if (_searchQuery.isEmpty && sorted.isNotEmpty) {
+      return ReorderableListView.builder(
+        key: const ValueKey('dms-tab-reorder-list'),
+        buildDefaultDragHandles: false,
+        header: _buildSearchField(l10n, colors),
+        footer: hasHiddenTile
+            ? _buildHiddenDmsTile(
+                state: state,
+                homeStore: homeStore,
+                l10n: l10n,
+              )
+            : null,
+        itemCount: sorted.length,
+        onReorder: (oldIndex, newIndex) {
+          _handleDmReorder(
+            oldIndex: oldIndex,
+            newIndex: newIndex,
+            displayList: sorted,
+            pinnedIds: pinnedIds,
+            homeStore: homeStore,
+          );
+        },
+        itemBuilder: (context, index) {
+          final dm = sorted[index];
+          final isPinned = pinnedIds.contains(dm.scopeId.value);
+          return KeyedSubtree(
+            key: ValueKey('dms-reorder-${dm.scopeId.routeParam}'),
+            child: _buildDmRow(
+              dm: dm,
+              isPinned: isPinned,
+              reorderIndex: isPinned ? null : index,
+              isOnline:
+                  agentStatusByName[dm.title] == AgentDisplayStatus.online,
+              isAgent: dm.isAgent || allAgentNames.contains(dm.title),
+              agentActivity: agentStatusByName[dm.title],
+              homeStore: homeStore,
+              dmUnreadCounts: dmUnreadCounts,
+            ),
+          );
+        },
+      );
+    }
+
     return ListView.builder(
       itemCount: itemCount,
       itemBuilder: (context, index) {
@@ -345,6 +390,42 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
     );
   }
 
+  Future<void> _handleDmReorder({
+    required int oldIndex,
+    required int newIndex,
+    required List<HomeDirectMessageSummary> displayList,
+    required Set<String> pinnedIds,
+    required HomeListStore homeStore,
+  }) async {
+    if (oldIndex < 0 || oldIndex >= displayList.length) return;
+    final adjustedNewIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+    if (adjustedNewIndex < 0 || adjustedNewIndex >= displayList.length) {
+      return;
+    }
+
+    final reordered = List<HomeDirectMessageSummary>.of(displayList);
+    final moved = reordered.removeAt(oldIndex);
+    reordered.insert(adjustedNewIndex, moved);
+    final reorderedVisibleIds = reordered
+        .where((dm) => !pinnedIds.contains(dm.scopeId.value))
+        .map((dm) => dm.scopeId.value)
+        .toList(growable: false);
+
+    final previousPreference = ref.read(dmSortPreferenceProvider);
+    ref
+        .read(dmSortPreferenceProvider.notifier)
+        .setSortPreference(DmSortPreference.custom);
+    final persisted = await homeStore.reorderDirectMessages(
+      moved.scopeId.serverId,
+      reorderedVisibleIds,
+    );
+    if (!persisted && mounted) {
+      ref
+          .read(dmSortPreferenceProvider.notifier)
+          .setSortPreference(previousPreference);
+    }
+  }
+
   Widget _buildSearchField(AppLocalizations l10n, AppColors colors) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -391,6 +472,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   Widget _buildDmRow({
     required HomeDirectMessageSummary dm,
     required bool isPinned,
+    int? reorderIndex,
     required bool isOnline,
     required bool isAgent,
     required HomeListStore homeStore,
@@ -429,6 +511,16 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             : homeStore.pinDirectMessage(dm.scopeId),
         onMarkAsUnread: unreadCount == 0 ? () => _markDmUnread(dm) : null,
         onHide: () => homeStore.hideDm(dm.scopeId),
+        reorderHandle: reorderIndex == null
+            ? null
+            : ReorderableDragStartListener(
+                key: ValueKey('dms-tab-drag-${dm.scopeId.routeParam}'),
+                index: reorderIndex,
+                child: const Padding(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(Icons.drag_handle),
+                ),
+              ),
       ),
     );
   }

@@ -27,6 +27,7 @@ class HomeChannelRow extends ConsumerWidget {
     this.onMarkAsUnread,
     this.onMoveUp,
     this.onMoveDown,
+    this.reorderHandle,
     this.isMutating = false,
   });
 
@@ -42,6 +43,7 @@ class HomeChannelRow extends ConsumerWidget {
   final VoidCallback? onMarkAsUnread;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
+  final Widget? reorderHandle;
   final bool isMutating;
 
   @override
@@ -130,6 +132,10 @@ class HomeChannelRow extends ConsumerWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
+              if (reorderHandle != null) ...[
+                reorderHandle!,
+                const SizedBox(width: AppSpacing.sm),
+              ],
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 mainAxisSize: MainAxisSize.min,

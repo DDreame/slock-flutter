@@ -118,6 +118,7 @@ void main() {
     ChannelManagementRepository? channelManagementRepository,
     InboxRepository? inboxRepository,
     ConversationUnreadRepository? conversationUnreadRepository,
+    SidebarOrderRepository? sidebarOrderRepository,
     GoRouter? router,
   }) {
     final effectiveRouter = router ??
@@ -151,7 +152,7 @@ void main() {
         activeServerScopeIdProvider.overrideWithValue(activeServerId),
         homeRepositoryProvider.overrideWithValue(homeRepository),
         sidebarOrderRepositoryProvider.overrideWithValue(
-          const _FakeSidebarOrderRepository(),
+          sidebarOrderRepository ?? _FakeSidebarOrderRepository(),
         ),
         agentsRepositoryProvider.overrideWithValue(
           const _FakeAgentsRepository(),
@@ -317,6 +318,82 @@ void main() {
     // Original order: general, random, design (all read).
     expect(generalOffset.dy, lessThan(randomOffset.dy));
     expect(randomOffset.dy, lessThan(designOffset.dy));
+  });
+
+  testWidgets('dragging a channel persists sidebar order', (tester) async {
+    final sidebarRepository = _FakeSidebarOrderRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(threeChannelSnapshot),
+        sidebarOrderRepository: sidebarRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('channels-tab-drag-random')),
+      findsOneWidget,
+    );
+    await tester.timedDrag(
+      find.byKey(const ValueKey('channels-tab-drag-random')),
+      const Offset(0, -160),
+      const Duration(milliseconds: 500),
+    );
+    await tester.pumpAndSettle();
+
+    final randomY =
+        tester.getTopLeft(find.byKey(const ValueKey('channels-tab-random'))).dy;
+    final generalY = tester
+        .getTopLeft(find.byKey(const ValueKey('channels-tab-general')))
+        .dy;
+    expect(randomY, lessThan(generalY));
+    expect(sidebarRepository.patches, hasLength(1));
+    expect(
+      sidebarRepository.patches.single['channelOrder'],
+      ['random', 'general', 'design'],
+    );
+  });
+
+  testWidgets('failed channel reorder restores previous sort preference',
+      (tester) async {
+    await prefs.setString('channel_sort_preference', 'alphabetical');
+    final sidebarRepository = _FakeSidebarOrderRepository(failUpdates: true);
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(threeChannelSnapshot),
+        sidebarOrderRepository: sidebarRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('channels-tab-drag-random')),
+      findsOneWidget,
+    );
+    tester
+        .widget<ReorderableListView>(
+          find.byKey(const ValueKey('channels-tab-reorder-list')),
+        )
+        .onReorder(2, 0);
+    await tester.pumpAndSettle();
+
+    final designY =
+        tester.getTopLeft(find.byKey(const ValueKey('channels-tab-design'))).dy;
+    final generalY = tester
+        .getTopLeft(find.byKey(const ValueKey('channels-tab-general')))
+        .dy;
+    final randomY =
+        tester.getTopLeft(find.byKey(const ValueKey('channels-tab-random'))).dy;
+    expect(designY, lessThan(generalY));
+    expect(generalY, lessThan(randomY));
+    expect(prefs.getString('channel_sort_preference'), 'alphabetical');
+    expect(sidebarRepository.patches, hasLength(1));
+    expect(
+      sidebarRepository.patches.single['channelOrder'],
+      ['random', 'design', 'general'],
+    );
   });
 
   testWidgets('search filters channels by name', (tester) async {
@@ -595,7 +672,7 @@ void main() {
         homeRepositoryProvider.overrideWithValue(homeRepository),
         inboxRepositoryProvider.overrideWithValue(inboxRepository),
         sidebarOrderRepositoryProvider.overrideWithValue(
-          const _FakeSidebarOrderRepository(),
+          _FakeSidebarOrderRepository(),
         ),
         agentsRepositoryProvider.overrideWithValue(
           const _FakeAgentsRepository(),
@@ -1021,7 +1098,10 @@ class _MutableFakeHomeRepository implements HomeRepository {
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  const _FakeSidebarOrderRepository();
+  _FakeSidebarOrderRepository({this.failUpdates = false});
+
+  final bool failUpdates;
+  final patches = <Map<String, Object>>[];
 
   @override
   Future<SidebarOrder> loadSidebarOrder(ServerScopeId serverId) async {
@@ -1032,7 +1112,12 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
   Future<void> updateSidebarOrder(
     ServerScopeId serverId, {
     required Map<String, Object> patch,
-  }) async {}
+  }) async {
+    patches.add(Map<String, Object>.of(patch));
+    if (failUpdates) {
+      throw const NetworkFailure(message: 'sidebar order failed');
+    }
+  }
 }
 
 class _FakeAgentsRepository implements AgentsRepository {

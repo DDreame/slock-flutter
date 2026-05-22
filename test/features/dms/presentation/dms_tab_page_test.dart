@@ -119,6 +119,7 @@ void main() {
     MemberRepository? memberRepository,
     InboxRepository? inboxRepository,
     ConversationUnreadRepository? conversationUnreadRepository,
+    SidebarOrderRepository? sidebarOrderRepository,
   }) {
     final effectiveRouter = router ??
         GoRouter(
@@ -150,7 +151,7 @@ void main() {
         homeRepositoryProvider.overrideWithValue(homeRepository),
         sharedPreferencesProvider.overrideWithValue(prefs),
         sidebarOrderRepositoryProvider.overrideWithValue(
-          const _FakeSidebarOrderRepository(),
+          sidebarOrderRepository ?? _FakeSidebarOrderRepository(),
         ),
         agentsRepositoryProvider.overrideWithValue(
           const _FakeAgentsRepository(),
@@ -377,6 +378,74 @@ void main() {
           reason: 'Mango should sort before zebra (case-insensitive)');
     },
   );
+
+  testWidgets('dragging a DM persists sidebar order', (tester) async {
+    final sidebarRepository = _FakeSidebarOrderRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(threeDmSnapshot),
+        sidebarOrderRepository: sidebarRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('dms-tab-drag-dm-bob')),
+      findsOneWidget,
+    );
+    tester
+        .widget<ReorderableListView>(
+          find.byKey(const ValueKey('dms-tab-reorder-list')),
+        )
+        .onReorder(1, 0);
+    await tester.pumpAndSettle();
+
+    final bobY =
+        tester.getTopLeft(find.byKey(const ValueKey('dms-tab-dm-bob'))).dy;
+    final aliceY =
+        tester.getTopLeft(find.byKey(const ValueKey('dms-tab-dm-alice'))).dy;
+    expect(bobY, lessThan(aliceY));
+    expect(sidebarRepository.patches, hasLength(1));
+    expect(
+      sidebarRepository.patches.single['dmOrder'],
+      ['dm-bob', 'dm-alice', 'dm-charlie'],
+    );
+  });
+
+  testWidgets('failed DM reorder rolls back visible order', (tester) async {
+    final sidebarRepository = _FakeSidebarOrderRepository(failUpdates: true);
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(threeDmSnapshot),
+        sidebarOrderRepository: sidebarRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('dms-tab-drag-dm-bob')),
+      findsOneWidget,
+    );
+    tester
+        .widget<ReorderableListView>(
+          find.byKey(const ValueKey('dms-tab-reorder-list')),
+        )
+        .onReorder(1, 0);
+    await tester.pumpAndSettle();
+
+    final aliceY =
+        tester.getTopLeft(find.byKey(const ValueKey('dms-tab-dm-alice'))).dy;
+    final bobY =
+        tester.getTopLeft(find.byKey(const ValueKey('dms-tab-dm-bob'))).dy;
+    expect(aliceY, lessThan(bobY));
+    expect(sidebarRepository.patches, hasLength(1));
+    expect(
+      sidebarRepository.patches.single['dmOrder'],
+      ['dm-bob', 'dm-alice', 'dm-charlie'],
+    );
+  });
 
   testWidgets('search filters DMs by title', (tester) async {
     await tester.pumpWidget(
@@ -672,7 +741,7 @@ void main() {
         inboxRepositoryProvider.overrideWithValue(inboxRepository),
         sharedPreferencesProvider.overrideWithValue(prefs),
         sidebarOrderRepositoryProvider.overrideWithValue(
-          const _FakeSidebarOrderRepository(),
+          _FakeSidebarOrderRepository(),
         ),
         agentsRepositoryProvider.overrideWithValue(
           const _FakeAgentsRepository(),
@@ -974,7 +1043,10 @@ class _MutableFakeHomeRepository implements HomeRepository {
 }
 
 class _FakeSidebarOrderRepository implements SidebarOrderRepository {
-  const _FakeSidebarOrderRepository();
+  _FakeSidebarOrderRepository({this.failUpdates = false});
+
+  final bool failUpdates;
+  final patches = <Map<String, Object>>[];
 
   @override
   Future<SidebarOrder> loadSidebarOrder(
@@ -986,7 +1058,12 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
   Future<void> updateSidebarOrder(
     ServerScopeId serverId, {
     required Map<String, Object> patch,
-  }) async {}
+  }) async {
+    patches.add(Map<String, Object>.of(patch));
+    if (failUpdates) {
+      throw const NetworkFailure(message: 'sidebar order failed');
+    }
+  }
 }
 
 class _FakeAgentsRepository implements AgentsRepository {

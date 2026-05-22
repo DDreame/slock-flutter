@@ -16,7 +16,10 @@ enum DmSortPreference {
   recentActivity,
 
   /// Sort alphabetically by DM title (case-insensitive A-Z).
-  alphabetical;
+  alphabetical,
+
+  /// Preserve the user-defined sidebar order.
+  custom;
 
   /// SharedPreferences key used to persist the sort preference.
   static const prefsKey = 'dm_sort_preference';
@@ -37,6 +40,9 @@ class DmSortPreferenceNotifier extends Notifier<DmSortPreference> {
     final stored = prefs.getString(DmSortPreference.prefsKey);
     if (stored == 'alphabetical') {
       return DmSortPreference.alphabetical;
+    }
+    if (stored == 'custom') {
+      return DmSortPreference.custom;
     }
     return DmSortPreference.recentActivity;
   }
