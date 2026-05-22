@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
+import 'package:slock_app/features/inbox/data/conversation_unread_repository_provider.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -215,6 +216,59 @@ class InboxStore extends Notifier<InboxState> {
     } on AppFailure {
       // Rollback optimistic update — badge must reflect server truth (#714).
       state = previousState;
+    }
+  }
+
+  /// Mark a single item as unread (optimistic update with rollback on failure).
+  Future<void> markAsUnread({
+    required String channelId,
+    InboxItemKind kind = InboxItemKind.channel,
+    String? channelName,
+  }) async {
+    final serverId = ref.read(activeServerScopeIdProvider);
+    if (serverId == null) return;
+
+    final previousState = state;
+    final index = state.items.indexWhere((item) => item.channelId == channelId);
+    final items = List<InboxItem>.of(state.items);
+    var unreadDelta = 0;
+
+    if (index >= 0) {
+      final current = items[index];
+      if (current.unreadCount <= 0) {
+        unreadDelta = 1;
+      }
+      items[index] = current.copyWith(
+        unreadCount: current.unreadCount > 0 ? current.unreadCount : 1,
+      );
+    } else {
+      unreadDelta = 1;
+      items.insert(
+        0,
+        InboxItem(
+          kind: kind,
+          channelId: channelId,
+          channelName: channelName,
+          unreadCount: 1,
+        ),
+      );
+    }
+
+    state = state.copyWith(
+      items: items,
+      totalCount: state.totalCount + (index >= 0 ? 0 : 1),
+      totalUnreadCount: state.totalUnreadCount + unreadDelta,
+      offset: state.offset + (index >= 0 ? 0 : 1),
+      clearFailure: true,
+    );
+
+    try {
+      await ref
+          .read(conversationUnreadRepositoryProvider)
+          .markAsUnread(serverId, channelId: channelId);
+    } on AppFailure {
+      state = previousState;
+      rethrow;
     }
   }
 

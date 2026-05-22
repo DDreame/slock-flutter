@@ -19,6 +19,7 @@ import 'package:slock_app/features/home/application/persisted_agent_names.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_direct_message_row.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
@@ -426,9 +427,28 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
         onTogglePin: () => isPinned
             ? homeStore.unpinDirectMessage(dm.scopeId)
             : homeStore.pinDirectMessage(dm.scopeId),
+        onMarkAsUnread: unreadCount == 0 ? () => _markDmUnread(dm) : null,
         onHide: () => homeStore.hideDm(dm.scopeId),
       ),
     );
+  }
+
+  Future<void> _markDmUnread(HomeDirectMessageSummary dm) async {
+    try {
+      await ref.read(inboxStoreProvider.notifier).markAsUnread(
+            channelId: dm.scopeId.value,
+            kind: InboxItemKind.dm,
+            channelName: dm.title,
+          );
+      if (!mounted) return;
+      showAppSnackBar(context, 'Marked as unread');
+    } on AppFailure catch (failure) {
+      if (!mounted) return;
+      showAppSnackBar(
+        context,
+        failure.message ?? 'Failed to mark as unread.',
+      );
+    }
   }
 
   Widget _buildHiddenDmsTile({

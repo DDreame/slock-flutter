@@ -19,6 +19,7 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/presentation/widgets/home_channel_row.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
@@ -355,8 +356,28 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
         onTogglePin: () => isPinned
             ? homeStore.unpinChannel(channel.scopeId)
             : homeStore.pinChannel(channel.scopeId),
+        onMarkAsUnread:
+            unreadCount == 0 ? () => _markChannelUnread(channel) : null,
       ),
     );
+  }
+
+  Future<void> _markChannelUnread(HomeChannelSummary channel) async {
+    try {
+      await ref.read(inboxStoreProvider.notifier).markAsUnread(
+            channelId: channel.scopeId.value,
+            kind: InboxItemKind.channel,
+            channelName: channel.name,
+          );
+      if (!mounted) return;
+      showAppSnackBar(context, 'Marked as unread');
+    } on AppFailure catch (failure) {
+      if (!mounted) return;
+      showAppSnackBar(
+        context,
+        failure.message ?? 'Failed to mark as unread.',
+      );
+    }
   }
 
   Future<void> _showCreateChannelDialog() async {
