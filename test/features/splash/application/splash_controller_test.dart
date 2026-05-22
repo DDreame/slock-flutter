@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -230,9 +231,10 @@ void main() {
     test('sets crashDetectedProvider to true when crash marker exists',
         () async {
       // Seed a crash marker.
-      fakeStorage._store['crash_marker'] = 'true';
-      fakeStorage._store['crash_marker_timestamp'] =
-          DateTime.now().toIso8601String();
+      fakeStorage._store['crash_marker'] = jsonEncode(<String, Object>{
+        'crashed': true,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
 
       expect(container.read(crashDetectedProvider), isFalse);
 
@@ -252,7 +254,10 @@ void main() {
     });
 
     test('crash detection does not block appReady', () async {
-      fakeStorage._store['crash_marker'] = 'true';
+      fakeStorage._store['crash_marker'] = jsonEncode(<String, Object>{
+        'crashed': true,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
 
       await container.read(splashControllerProvider.future);
 
