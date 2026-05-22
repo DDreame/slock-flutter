@@ -137,6 +137,35 @@ void main() {
       expect(state().status, SearchStatus.failure);
     });
 
+    test('local search exception clears spinner and records failure', () async {
+      final throwingLocalStore = _ThrowingLocalSearchStore();
+      final searchRepo = _FakeSearchRepository();
+      final localContainer = ProviderContainer(overrides: [
+        currentSearchServerIdProvider.overrideWithValue(serverId),
+        conversationLocalStoreProvider.overrideWithValue(throwingLocalStore),
+        searchRepositoryProvider.overrideWithValue(searchRepo),
+      ]);
+      addTearDown(localContainer.dispose);
+      final localSubscription = localContainer.listen<SearchState>(
+        searchStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(localSubscription.close);
+
+      final localStoreNotifier =
+          localContainer.read(searchStoreProvider.notifier);
+      localStoreNotifier.updateQuery('sqlite');
+      await localStoreNotifier.search();
+
+      final localState = localContainer.read(searchStoreProvider);
+      expect(localState.status, SearchStatus.failure);
+      expect(localState.isRemoteSearching, isFalse);
+      expect(localState.failure, isA<UnknownFailure>());
+      expect(searchRepo.queries, isEmpty,
+          reason: 'Local SQLite failures must not start remote search.');
+    });
+
     test('retry re-executes search and recovers from failure', () async {
       fakeSearchRepo.shouldFail = true;
 
@@ -258,6 +287,36 @@ void main() {
       isFalse,
       reason: 'Stale local results from the old query must never be emitted',
     );
+  });
+
+  test('dispose during local search invalidates continuation before ref.read',
+      () async {
+    final localStore = _BlockingLocalSearchStore();
+    final searchRepo = _FakeSearchRepository();
+    final localContainer = ProviderContainer(overrides: [
+      currentSearchServerIdProvider.overrideWithValue(serverId),
+      conversationLocalStoreProvider.overrideWithValue(localStore),
+      searchRepositoryProvider.overrideWithValue(searchRepo),
+    ]);
+    final localSubscription = localContainer.listen<SearchState>(
+      searchStoreProvider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+
+    final localStoreNotifier =
+        localContainer.read(searchStoreProvider.notifier);
+    localStoreNotifier.updateQuery('dispose');
+    final searchFuture = localStoreNotifier.search();
+    await localStore.searchMessagesStarted.future;
+
+    localSubscription.close();
+    localContainer.dispose();
+    localStore.allowSearchMessages.complete();
+
+    await expectLater(searchFuture, completes);
+    expect(searchRepo.queries, isEmpty,
+        reason: 'Disposed searches must stop before reading the remote repo.');
   });
 
   test('query change immediately clears previously emitted local results',
@@ -729,6 +788,17 @@ class _BlockingLocalSearchStore extends FakeConversationLocalStore {
     }
     await allowSearchMessages.future;
     return super.searchMessages(serverId, query, limit: limit);
+  }
+}
+
+class _ThrowingLocalSearchStore extends FakeConversationLocalStore {
+  @override
+  Future<List<LocalStoredMessageRecord>> searchMessages(
+    String serverId,
+    String query, {
+    int limit = 30,
+  }) async {
+    throw StateError('sqlite search failed');
   }
 }
 
