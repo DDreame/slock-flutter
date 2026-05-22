@@ -24,6 +24,9 @@ import 'package:slock_app/features/channels/presentation/page/channels_tab_page.
 import 'package:slock_app/features/dms/presentation/page/dms_tab_page.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/inbox/application/inbox_state.dart';
+import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/core/auth/biometric_service.dart';
@@ -42,6 +45,15 @@ Widget _buildRouterApp(GoRouter router) {
     supportedLocales: AppLocalizations.supportedLocales,
     localizationsDelegates: AppLocalizations.localizationsDelegates,
   );
+}
+
+class _FakeInboxStore extends InboxStore {
+  _FakeInboxStore(this._state);
+
+  final InboxState _state;
+
+  @override
+  InboxState build() => _state;
 }
 
 void main() {
@@ -1169,8 +1181,9 @@ void main() {
   group('4-tab bottom navigation', () {
     /// Helper: authenticated session with bottom nav visible.
     Future<({ProviderContainer container, GoRouter router})> pumpAuthed(
-      WidgetTester tester,
-    ) async {
+      WidgetTester tester, {
+      InboxState? inboxState,
+    }) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
 
@@ -1181,6 +1194,8 @@ void main() {
           authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
           splashControllerProvider
               .overrideWith(() => _StallingSplashController()),
+          if (inboxState != null)
+            inboxStoreProvider.overrideWith(() => _FakeInboxStore(inboxState)),
         ],
       );
       addTearDown(container.dispose);
@@ -1211,6 +1226,33 @@ void main() {
       expect(find.byKey(const ValueKey('nav-channels')), findsOneWidget);
       expect(find.byKey(const ValueKey('nav-dms')), findsOneWidget);
       expect(find.byKey(const ValueKey('nav-agents')), findsOneWidget);
+    });
+
+    testWidgets('bottom navigation badges cap unread labels at 99+', (
+      tester,
+    ) async {
+      await pumpAuthed(
+        tester,
+        inboxState: const InboxState(
+          status: InboxStatus.success,
+          totalUnreadCount: 150,
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-1',
+              unreadCount: 150,
+            ),
+            InboxItem(
+              kind: InboxItemKind.dm,
+              channelId: 'dm-1',
+              unreadCount: 150,
+            ),
+          ],
+        ),
+      );
+
+      expect(find.text('99+'), findsWidgets);
+      expect(find.text('150'), findsNothing);
     });
 
     testWidgets('/channels renders ChannelsTabPage with bottom nav', (

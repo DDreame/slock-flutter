@@ -13,6 +13,8 @@ const _hiddenBottomNavPaths = {
   '/verify-email',
 };
 
+String _formatBadgeCount(int count) => count > 99 ? '99+' : '$count';
+
 class AppShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
@@ -32,6 +34,9 @@ class AppShell extends ConsumerWidget {
     final channelUnreadTotal = ref.watch(inboxChannelUnreadTotalProvider);
     final dmUnreadTotal = ref.watch(inboxDmUnreadTotalProvider);
     final homeUnreadTotal = ref.watch(inboxTotalUnreadCountProvider);
+    final channelBadgeLabel = _formatBadgeCount(channelUnreadTotal);
+    final dmBadgeLabel = _formatBadgeCount(dmUnreadTotal);
+    final homeBadgeLabel = _formatBadgeCount(homeUnreadTotal);
 
     return Scaffold(
       body: Column(
@@ -62,14 +67,14 @@ class AppShell extends ConsumerWidget {
                       'home-unread-badge',
                     ),
                     isLabelVisible: homeUnreadTotal > 0,
-                    label: Text('$homeUnreadTotal'),
+                    label: Text(homeBadgeLabel),
                     child: const Icon(
                       Icons.space_dashboard_outlined,
                     ),
                   ),
                   selectedIcon: Badge(
                     isLabelVisible: homeUnreadTotal > 0,
-                    label: Text('$homeUnreadTotal'),
+                    label: Text(homeBadgeLabel),
                     child: const Icon(
                       Icons.space_dashboard,
                     ),
@@ -83,12 +88,12 @@ class AppShell extends ConsumerWidget {
                       'channels-unread-badge',
                     ),
                     isLabelVisible: channelUnreadTotal > 0,
-                    label: Text('$channelUnreadTotal'),
+                    label: Text(channelBadgeLabel),
                     child: const Icon(Icons.tag),
                   ),
                   selectedIcon: Badge(
                     isLabelVisible: channelUnreadTotal > 0,
-                    label: Text('$channelUnreadTotal'),
+                    label: Text(channelBadgeLabel),
                     child: const Icon(Icons.tag),
                   ),
                   label: l10n.navChannels,
@@ -100,14 +105,14 @@ class AppShell extends ConsumerWidget {
                       'dms-unread-badge',
                     ),
                     isLabelVisible: dmUnreadTotal > 0,
-                    label: Text('$dmUnreadTotal'),
+                    label: Text(dmBadgeLabel),
                     child: const Icon(
                       Icons.chat_bubble_outline,
                     ),
                   ),
                   selectedIcon: Badge(
                     isLabelVisible: dmUnreadTotal > 0,
-                    label: Text('$dmUnreadTotal'),
+                    label: Text(dmBadgeLabel),
                     child: const Icon(
                       Icons.chat_bubble,
                     ),
@@ -129,16 +134,12 @@ class AppShell extends ConsumerWidget {
                   icon: Badge(
                     key: const ValueKey('inbox-unread-badge'),
                     isLabelVisible: homeUnreadTotal > 0,
-                    label: Text(
-                      homeUnreadTotal > 99 ? '99+' : '$homeUnreadTotal',
-                    ),
+                    label: Text(homeBadgeLabel),
                     child: const Icon(Icons.inbox_outlined),
                   ),
                   selectedIcon: Badge(
                     isLabelVisible: homeUnreadTotal > 0,
-                    label: Text(
-                      homeUnreadTotal > 99 ? '99+' : '$homeUnreadTotal',
-                    ),
+                    label: Text(homeBadgeLabel),
                     child: const Icon(Icons.inbox),
                   ),
                   label: 'Inbox',
