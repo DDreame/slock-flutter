@@ -99,7 +99,7 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
   /// Maximum concurrent lazy-load API requests.
   int get maxConcurrent => 5;
 
-  static Completer<void>? _channelBackfillInFlight;
+  static final Map<String, Completer<void>> _channelBackfillInFlight = {};
 
   /// Re-entrancy guard for DM backfill (#741).
   Completer<void>? _dmBackfillInFlight;
@@ -125,14 +125,17 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
     List<HomeChannelSummary> channels, {
     Set<String> visibleChannelIds = const {},
   }) async {
-    if (_channelBackfillInFlight != null) return;
+    final serverId = ref.read(activeServerScopeIdProvider);
+    final guardKey = serverId?.value ?? '__no_server__';
+    if (_channelBackfillInFlight.containsKey(guardKey)) return;
 
     // Filter to only channels missing previews.
     final needsBackfill =
         channels.where((c) => c.lastMessagePreview == null).toList();
     if (needsBackfill.isEmpty) return;
 
-    _channelBackfillInFlight = Completer<void>();
+    final guardCompleter = Completer<void>();
+    _channelBackfillInFlight[guardKey] = guardCompleter;
     _setBackfillState(
       PreviewBackfillState(
         isRunning: true,
@@ -140,7 +143,6 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
       ),
     );
 
-    final serverId = ref.read(activeServerScopeIdProvider);
     final filled = Set<String>.of(state.filled);
 
     try {
@@ -262,10 +264,9 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
       }
     } finally {
       _setBackfillState(PreviewBackfillState(isRunning: false, filled: filled));
-      final completer = _channelBackfillInFlight;
-      _channelBackfillInFlight = null;
-      if (completer != null && !completer.isCompleted) {
-        completer.complete();
+      _channelBackfillInFlight.remove(guardKey);
+      if (!guardCompleter.isCompleted) {
+        guardCompleter.complete();
       }
     }
   }

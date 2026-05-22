@@ -57,7 +57,14 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
     _loadMoreRequestToken++; // invalidate pagination for the old query
     _cancelInFlightSearch();
     _cancelInFlightLoadMore();
-    state = state.copyWith(query: query);
+    state = state.copyWith(
+      query: query,
+      localResults: const [],
+      channelResults: const [],
+      contactResults: const [],
+      remoteResults: const [],
+      hasMore: false,
+    );
 
     if (query.trim().isEmpty) {
       final currentScope = state.scope;
@@ -236,18 +243,21 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
       serverId.value,
       query,
     );
+    if (_searchRequestToken != token) return;
 
     // --- Local search: conversation summaries (channels + DMs) ---
     final localSummaries = await localStore.searchConversationSummaries(
       serverId.value,
       query,
     );
+    if (_searchRequestToken != token) return;
 
     // --- Local search: identities (contacts) ---
     final localIdentities = await localStore.searchIdentities(
       serverId.value,
       query,
     );
+    if (_searchRequestToken != token) return;
 
     // Build message results from local messages.
     final localResults = <SearchResultMessage>[

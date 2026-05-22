@@ -229,6 +229,64 @@ void main() {
       await secondBackfill;
     });
 
+    test(
+        'server switch allows new server channel backfill while old is running',
+        () async {
+      final activeServer = StateProvider<ServerScopeId?>((ref) => serverId);
+      final localStore = FakeConversationLocalStore();
+      final fetchedKeys = <String>[];
+      final fetchCompleters = <String, Completer<void>>{
+        'server-1:ch-1': Completer<void>(),
+        'server-2:ch-2': Completer<void>(),
+      };
+
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWith(
+            (ref) => ref.watch(activeServer),
+          ),
+          conversationLocalStoreProvider.overrideWithValue(localStore),
+          previewMessageFetcherProvider.overrideWithValue(
+            (serverId, channelId) async {
+              final key = '$serverId:$channelId';
+              fetchedKeys.add(key);
+              await fetchCompleters[key]?.future;
+              return null;
+            },
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final firstBackfill = container
+          .read(previewBackfillServiceProvider.notifier)
+          .backfill([makeChannel('ch-1')]);
+      for (var i = 0; i < 3; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(fetchedKeys, ['server-1:ch-1']);
+
+      container.read(activeServer.notifier).state =
+          const ServerScopeId('server-2');
+      container.invalidate(previewBackfillServiceProvider);
+
+      final secondBackfill = container
+          .read(previewBackfillServiceProvider.notifier)
+          .backfill([makeChannel('ch-2')]);
+      for (var i = 0; i < 3; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(fetchedKeys, ['server-1:ch-1', 'server-2:ch-2'],
+          reason: 'A stale server-1 guard must not block server-2 backfill');
+
+      fetchCompleters['server-2:ch-2']!.complete();
+      await secondBackfill;
+      fetchCompleters['server-1:ch-1']!.complete();
+      await firstBackfill;
+    });
+
     // T1: SQLite cache hit fills preview
     test(
       'SQLite cache hit fills preview for channels missing lastMessagePreview',

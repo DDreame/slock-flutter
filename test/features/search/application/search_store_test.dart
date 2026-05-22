@@ -209,6 +209,125 @@ void main() {
         reason: 'Stale results from old query must be discarded');
   });
 
+  test('stale local results are not emitted after query token changes',
+      () async {
+    final localStore = _BlockingLocalSearchStore();
+    await localStore.upsertMessages([
+      LocalMessageUpsert(
+        serverId: 'server-1',
+        conversationId: 'ch-stale',
+        messageId: 'local-old',
+        content: 'old query result',
+        createdAt: DateTime(2026, 5, 1),
+        senderType: 'human',
+        messageType: 'message',
+      ),
+    ]);
+    final searchRepo = _FakeSearchRepository();
+    final localContainer = ProviderContainer(overrides: [
+      currentSearchServerIdProvider.overrideWithValue(serverId),
+      conversationLocalStoreProvider.overrideWithValue(localStore),
+      searchRepositoryProvider.overrideWithValue(searchRepo),
+    ]);
+    addTearDown(localContainer.dispose);
+    final emittedStates = <SearchState>[];
+    final localSubscription = localContainer.listen<SearchState>(
+      searchStoreProvider,
+      (_, next) => emittedStates.add(next),
+      fireImmediately: true,
+    );
+    addTearDown(localSubscription.close);
+
+    final localStoreNotifier =
+        localContainer.read(searchStoreProvider.notifier);
+    localStoreNotifier.updateQuery('old');
+    final searchFuture = localStoreNotifier.search();
+    await localStore.searchMessagesStarted.future;
+
+    localStoreNotifier.updateQuery('new');
+    localStore.allowSearchMessages.complete();
+    await searchFuture;
+
+    expect(localContainer.read(searchStoreProvider).localResults, isEmpty);
+    expect(
+      emittedStates.any(
+        (state) => state.localResults.any(
+          (result) => result.message.id == 'local-old',
+        ),
+      ),
+      isFalse,
+      reason: 'Stale local results from the old query must never be emitted',
+    );
+  });
+
+  test('query change immediately clears previously emitted local results',
+      () async {
+    fakeLocalStore.upsertMessages([
+      LocalMessageUpsert(
+        serverId: 'server-1',
+        conversationId: 'ch-old',
+        messageId: 'local-old-visible',
+        content: 'old visible local result',
+        createdAt: DateTime(2026, 5, 1),
+        senderType: 'human',
+        messageType: 'message',
+      ),
+    ]);
+    fakeSearchRepo.completerOverride = Completer<SearchResultsPage>();
+
+    store().updateQuery('old');
+    final searchFuture = store().search();
+    for (var i = 0; i < 5 && state().localResults.isEmpty; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(state().localResults.map((result) => result.message.id),
+        contains('local-old-visible'));
+
+    store().updateQuery('new');
+
+    expect(state().query, 'new');
+    expect(state().localResults, isEmpty,
+        reason:
+            'Changing query must clear old-query local results immediately');
+    expect(state().channelResults, isEmpty);
+    expect(state().contactResults, isEmpty);
+
+    fakeSearchRepo.completerOverride!.complete(
+      const SearchResultsPage(messages: [], hasMore: false),
+    );
+    await searchFuture;
+  });
+
+  test('normal search still emits valid local results before remote completes',
+      () async {
+    fakeLocalStore.upsertMessages([
+      LocalMessageUpsert(
+        serverId: 'server-1',
+        conversationId: 'ch-local',
+        messageId: 'local-valid',
+        content: 'valid local result',
+        createdAt: DateTime(2026, 5, 1),
+        senderType: 'human',
+        messageType: 'message',
+      ),
+    ]);
+    fakeSearchRepo.completerOverride = Completer<SearchResultsPage>();
+
+    store().updateQuery('valid');
+    final searchFuture = store().search();
+    for (var i = 0; i < 5 && state().localResults.isEmpty; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    expect(state().localResults.map((result) => result.message.id),
+        contains('local-valid'));
+
+    fakeSearchRepo.completerOverride!.complete(
+      const SearchResultsPage(messages: [], hasMore: false),
+    );
+    await searchFuture;
+  });
+
   // -----------------------------------------------------------------
   // Filter & pagination (INV-SEARCH)
   // -----------------------------------------------------------------
@@ -593,6 +712,24 @@ class _SearchCallParams {
   final SearchSortBy? sortBy;
   final String? channelId;
   final int offset;
+}
+
+class _BlockingLocalSearchStore extends FakeConversationLocalStore {
+  final Completer<void> searchMessagesStarted = Completer<void>();
+  final Completer<void> allowSearchMessages = Completer<void>();
+
+  @override
+  Future<List<LocalStoredMessageRecord>> searchMessages(
+    String serverId,
+    String query, {
+    int limit = 30,
+  }) async {
+    if (!searchMessagesStarted.isCompleted) {
+      searchMessagesStarted.complete();
+    }
+    await allowSearchMessages.future;
+    return super.searchMessages(serverId, query, limit: limit);
+  }
 }
 
 class _FakeSearchRepository implements SearchRepository {
