@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 /// Recording state machine.
@@ -66,16 +68,27 @@ class VoiceRecorderService {
   // Recording controls
   // ---------------------------------------------------------------------------
 
+  /// Generates a unique absolute path in the system temp directory for a
+  /// voice recording. Uses timestamp + microseconds to ensure uniqueness
+  /// even under rapid successive calls (#729).
+  ///
+  /// [tempDirPath] can be supplied in tests to bypass the platform channel.
+  @visibleForTesting
+  static Future<String> generateRecordingPath({String? tempDirPath}) async {
+    final dirPath = tempDirPath ?? (await getTemporaryDirectory()).path;
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    return '$dirPath/voice_$timestamp.m4a';
+  }
+
   /// Start recording to a temp file in AAC/M4A format.
   ///
   /// Requires microphone permission (should be requested before calling).
   /// [outputPath] is the full path to the output file. If null, a temp path is
-  /// generated.
+  /// generated using [generateRecordingPath].
   Future<void> start({String? outputPath}) async {
     if (_state == VoiceRecorderState.recording) return;
 
-    final path =
-        outputPath ?? '${DateTime.now().millisecondsSinceEpoch}_voice.m4a';
+    final path = outputPath ?? await generateRecordingPath();
 
     await _recorder.start(
       const RecordConfig(

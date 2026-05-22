@@ -298,10 +298,15 @@ class _ApiConversationRepository implements ConversationRepository {
     CancelToken? cancelToken,
   }) async {
     try {
+      final trimmedContent = content.trim();
       final data = <String, dynamic>{
         'channelId': target.conversationId,
-        'content': content.trim(),
       };
+      // Omit content field when empty so the API doesn't create a blank
+      // text line above attachment-only messages (#729).
+      if (trimmedContent.isNotEmpty) {
+        data['content'] = trimmedContent;
+      }
       if (attachmentIds != null && attachmentIds.isNotEmpty) {
         data['attachmentIds'] = attachmentIds;
       }

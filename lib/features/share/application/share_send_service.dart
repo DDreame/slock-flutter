@@ -46,7 +46,9 @@ class ShareSendService {
     }
 
     // Send the message.
-    final text = content.combinedText;
+    // Trim text so whitespace-only content doesn't create a blank line
+    // above attachments when sharing files without text (#729).
+    final text = content.combinedText.trim();
     await repository.sendMessage(
       detailTarget,
       text,
