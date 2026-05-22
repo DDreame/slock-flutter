@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -274,21 +276,126 @@ void main() {
               'it round-trips through MentionSyntax (INV-MENTION-4)');
     },
   );
+
+  testWidgets(
+    'switching conversations clears old mentions and loads new members',
+    (tester) async {
+      final memberRepo = _FakeChannelMemberRepository(membersByChannel: {
+        'ch-1': const [
+          ChannelMember(
+            id: 'member-1',
+            channelId: 'ch-1',
+            userId: 'user-alice',
+            userName: 'Alice',
+          ),
+        ],
+        'ch-2': const [
+          ChannelMember(
+            id: 'member-2',
+            channelId: 'ch-2',
+            userId: 'user-zelda',
+            userName: 'Zelda',
+          ),
+        ],
+      });
+      final repo = _FakeConversationRepository();
+
+      await tester.pumpWidget(_buildSwitchingConversationApp(repo, memberRepo));
+      await tester.pumpAndSettle();
+
+      final inputFinder = find.byKey(const ValueKey('composer-input'));
+      await tester.enterText(inputFinder, '@');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Zelda'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('switch-conversation')));
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      final switchedInputFinder = find.byKey(const ValueKey('composer-input'));
+      expect(switchedInputFinder, findsOneWidget);
+      await tester.enterText(switchedInputFinder, '@');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Alice'), findsNothing);
+      expect(find.text('Zelda'), findsOneWidget);
+      expect(memberRepo.requestedChannelIds, ['ch-1', 'ch-2']);
+    },
+  );
+
+  testWidgets(
+    'in-flight mention fetch from old conversation cannot leak after switch',
+    (tester) async {
+      final memberRepo = _FakeChannelMemberRepository(membersByChannel: {
+        'ch-1': const [
+          ChannelMember(
+            id: 'member-1',
+            channelId: 'ch-1',
+            userId: 'user-alice',
+            userName: 'Alice',
+          ),
+        ],
+        'ch-2': const [
+          ChannelMember(
+            id: 'member-2',
+            channelId: 'ch-2',
+            userId: 'user-zelda',
+            userName: 'Zelda',
+          ),
+        ],
+      });
+      memberRepo.delayChannel('ch-1');
+      final repo = _FakeConversationRepository();
+
+      await tester.pumpWidget(_buildSwitchingConversationApp(repo, memberRepo));
+      await tester.pumpAndSettle();
+
+      final inputFinder = find.byKey(const ValueKey('composer-input'));
+      await tester.enterText(inputFinder, '@');
+      await tester.pump();
+      expect(memberRepo.requestedChannelIds, ['ch-1']);
+
+      await tester.tap(find.byKey(const ValueKey('switch-conversation')));
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+
+      final switchedInputFinder = find.byKey(const ValueKey('composer-input'));
+      expect(switchedInputFinder, findsOneWidget);
+      await tester.enterText(switchedInputFinder, '@');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zelda'), findsOneWidget);
+      expect(find.text('Alice'), findsNothing);
+      expect(memberRepo.requestedChannelIds, ['ch-1', 'ch-2']);
+
+      memberRepo.completeChannel('ch-1');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zelda'), findsOneWidget);
+      expect(find.text('Alice'), findsNothing);
+    },
+  );
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-ConversationDetailSnapshot _makeSnapshot() {
+ConversationDetailSnapshot _makeSnapshot([ConversationDetailTarget? target]) {
+  final resolvedTarget = target ??
+      ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'ch-1',
+        ),
+      );
   return ConversationDetailSnapshot(
-    target: ConversationDetailTarget.channel(
-      const ChannelScopeId(
-        serverId: ServerScopeId('server-1'),
-        value: 'ch-1',
-      ),
-    ),
-    title: '#general',
+    target: resolvedTarget,
+    title: '#${resolvedTarget.conversationId}',
     messages: [
       ConversationMessageSummary(
         id: 'msg-1',
@@ -317,7 +424,7 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
       conversationRepositoryProvider.overrideWithValue(repo),
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
       channelMemberRepositoryProvider
-          .overrideWithValue(const _FakeChannelMemberRepository()),
+          .overrideWithValue(_FakeChannelMemberRepository()),
     ],
     child: MaterialApp(
       theme: AppTheme.light,
@@ -328,19 +435,90 @@ Widget _buildConversationApp(_FakeConversationRepository repo) {
   );
 }
 
+Widget _buildSwitchingConversationApp(
+  _FakeConversationRepository repo,
+  _FakeChannelMemberRepository memberRepo,
+) {
+  return ProviderScope(
+    overrides: [
+      conversationRepositoryProvider.overrideWithValue(repo),
+      sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+      channelMemberRepositoryProvider.overrideWithValue(memberRepo),
+    ],
+    child: MaterialApp(
+      theme: AppTheme.light,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      home: const _SwitchingConversationHost(),
+    ),
+  );
+}
+
+class _SwitchingConversationHost extends StatefulWidget {
+  const _SwitchingConversationHost();
+
+  @override
+  State<_SwitchingConversationHost> createState() =>
+      _SwitchingConversationHostState();
+}
+
+class _SwitchingConversationHostState
+    extends State<_SwitchingConversationHost> {
+  var _channelId = 'ch-1';
+
+  @override
+  Widget build(BuildContext context) {
+    final target = ConversationDetailTarget.channel(
+      ChannelScopeId(
+        serverId: const ServerScopeId('server-1'),
+        value: _channelId,
+      ),
+    );
+    return Column(
+      children: [
+        ElevatedButton(
+          key: const ValueKey('switch-conversation'),
+          onPressed: () => setState(() => _channelId = 'ch-2'),
+          child: const Text('Switch conversation'),
+        ),
+        Expanded(child: ConversationDetailPage(target: target)),
+      ],
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Fakes
 // ---------------------------------------------------------------------------
 
 class _FakeChannelMemberRepository implements ChannelMemberRepository {
-  const _FakeChannelMemberRepository();
+  _FakeChannelMemberRepository({
+    Map<String, List<ChannelMember>>? membersByChannel,
+  }) : _membersByChannel = membersByChannel ?? const {'ch-1': _testMembers};
+
+  final Map<String, List<ChannelMember>> _membersByChannel;
+  final List<String> requestedChannelIds = [];
+  final Map<String, Completer<void>> _delayedChannels = {};
+
+  void delayChannel(String channelId) {
+    _delayedChannels[channelId] = Completer<void>();
+  }
+
+  void completeChannel(String channelId) {
+    _delayedChannels[channelId]?.complete();
+  }
 
   @override
   Future<List<ChannelMember>> listMembers(
     ServerScopeId serverId, {
     required String channelId,
   }) async {
-    return _testMembers;
+    requestedChannelIds.add(channelId);
+    final completer = _delayedChannels[channelId];
+    if (completer != null) {
+      await completer.future;
+    }
+    return _membersByChannel[channelId] ?? const [];
   }
 
   @override
@@ -373,15 +551,16 @@ class _FakeChannelMemberRepository implements ChannelMemberRepository {
 }
 
 class _FakeConversationRepository implements ConversationRepository {
-  _FakeConversationRepository({required this.snapshot});
+  _FakeConversationRepository({ConversationDetailSnapshot? snapshot})
+      : _snapshot = snapshot;
 
-  final ConversationDetailSnapshot snapshot;
+  final ConversationDetailSnapshot? _snapshot;
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
     ConversationDetailTarget target,
   ) async {
-    return snapshot;
+    return _snapshot ?? _makeSnapshot(target);
   }
 
   @override

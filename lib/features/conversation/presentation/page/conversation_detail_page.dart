@@ -145,6 +145,7 @@ class ConversationDetailPage extends StatelessWidget {
         currentConversationDetailTargetProvider.overrideWithValue(_target),
       ],
       child: _ConversationDetailScreen(
+        target: _target,
         titleOverride: titleOverride,
         appBarActionsBuilder: appBarActionsBuilder,
         registerOpenTarget: registerOpenTarget,
@@ -156,12 +157,14 @@ class ConversationDetailPage extends StatelessWidget {
 
 class _ConversationDetailScreen extends ConsumerStatefulWidget {
   const _ConversationDetailScreen({
+    required this.target,
     this.titleOverride,
     this.appBarActionsBuilder,
     required this.registerOpenTarget,
     this.highlightMessageId,
   });
 
+  final ConversationDetailTarget target;
   final String? titleOverride;
   final ConversationAppBarActionsBuilder? appBarActionsBuilder;
   final bool registerOpenTarget;
@@ -249,6 +252,27 @@ class _ConversationDetailScreenState
     Future.microtask(
       () => ref.read(translationSettingsStoreProvider.notifier).ensureLoaded(),
     );
+  }
+
+  @override
+  void didUpdateWidget(covariant _ConversationDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.target != widget.target) {
+      _resetMentionMembers();
+      Future.microtask(
+        () => ref.read(conversationDetailStoreProvider.notifier).ensureLoaded(),
+      );
+    }
+  }
+
+  void _resetMentionMembers() {
+    setState(() {
+      _showMentionOverlay = false;
+      _mentionQuery = '';
+      _mentionTriggerOffset = -1;
+      _mentionMembers = [];
+      _mentionMembersLoaded = false;
+    });
   }
 
   @override
@@ -684,7 +708,8 @@ class _ConversationDetailScreenState
         target.serverId,
         channelId: target.conversationId,
       );
-      if (mounted) {
+      if (mounted &&
+          ref.read(currentConversationDetailTargetProvider) == target) {
         setState(() {
           _mentionMembers = members;
           _mentionMembersLoaded = true;
