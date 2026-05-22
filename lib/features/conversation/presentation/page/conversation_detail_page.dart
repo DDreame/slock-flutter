@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
@@ -41,6 +40,7 @@ import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
+import 'package:slock_app/features/voice/application/voice_recording_controller.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/stores/composer/composer_settings_store.dart';
 
@@ -213,12 +213,7 @@ class _ConversationDetailScreenState
   bool _mentionMembersLoaded = false;
 
   // Voice recording.
-  VoiceRecorderService? _voiceRecorder;
-  StreamSubscription<VoiceRecorderState>? _voiceStateSub;
-  StreamSubscription<double>? _voiceAmplitudeSub;
-  StreamSubscription<Duration>? _voiceElapsedSub;
   late final VoiceMessageStore _voiceMessageStore;
-  bool _isStartingRecording = false;
 
   @override
   void initState() {
@@ -281,10 +276,8 @@ class _ConversationDetailScreenState
     // Clear the key map so the test hook observes count == 0 after dispose.
     // Phase B adds this line; the hook stays alive for test observation.
     _messageGlobalKeys.clear();
-    _voiceStateSub?.cancel();
-    _voiceAmplitudeSub?.cancel();
-    _voiceElapsedSub?.cancel();
-    _voiceRecorder?.dispose();
+    // Voice recording cleanup handled by voiceRecordingControllerProvider
+    // (AutoDispose — cleaned up when page disposes and listeners are removed).
     // Deferred to avoid "modify provider during tree finalization" error.
     Future.microtask(_voiceMessageStore.reset);
     _stateSubscription?.close();
@@ -766,24 +759,15 @@ class _ConversationDetailScreenState
   }
 
   Future<void> _startRecording() async {
-    if (_isStartingRecording) return;
-    _isStartingRecording = true;
-    try {
-      await _startRecordingImpl();
-    } finally {
-      _isStartingRecording = false;
-    }
-  }
+    final controller = ref.read(voiceRecordingControllerProvider.notifier);
+    final result = await controller.startRecording();
+    if (!mounted) return;
 
-  Future<void> _startRecordingImpl() async {
-    final recorder = _voiceRecorder ??= VoiceRecorderService();
-    final store = ref.read(voiceMessageStoreProvider.notifier);
-
-    // Check / request microphone permission.
-    try {
-      final granted = await recorder.hasPermission();
-      if (!granted) {
-        if (!mounted) return;
+    switch (result) {
+      case StartRecordingResult.success:
+      case StartRecordingResult.alreadyStarting:
+        break;
+      case StartRecordingResult.permissionDenied:
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             key: ValueKey('mic-permission-denied'),
@@ -793,82 +777,30 @@ class _ConversationDetailScreenState
             ),
           ),
         );
-        return;
-      }
-    } on Exception catch (e) {
-      ref.read(diagnosticsCollectorProvider).error(
-            'ConversationDetail',
-            'Mic permission check failed: $e',
-          );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          key: ValueKey('mic-permission-error'),
-          content: Text('Could not check microphone permission.'),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final outputPath =
-          '${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}_voice.m4a';
-
-      _voiceStateSub?.cancel();
-      _voiceAmplitudeSub?.cancel();
-      _voiceElapsedSub?.cancel();
-
-      _voiceStateSub = recorder.stateStream.listen((s) {
-        store.setRecordingState(s);
-      });
-      _voiceAmplitudeSub = recorder.amplitudeStream.listen((a) {
-        store.addAmplitude(a);
-      });
-      _voiceElapsedSub = recorder.elapsedStream.listen((d) {
-        store.setElapsed(d);
-      });
-
-      await recorder.start(outputPath: outputPath);
-      store.setRecordingState(VoiceRecorderState.recording);
-    } on Exception catch (e) {
-      // Clean up any partial subscriptions.
-      _voiceStateSub?.cancel();
-      _voiceAmplitudeSub?.cancel();
-      _voiceElapsedSub?.cancel();
-      store.reset();
-
-      ref
-          .read(diagnosticsCollectorProvider)
-          .error('VoiceRecording', 'Recording start failed: $e');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          key: ValueKey('recording-start-error'),
-          content: Text(
-            'Could not start recording. '
-            'Please check microphone availability.',
+      case StartRecordingResult.error:
+        ref
+            .read(diagnosticsCollectorProvider)
+            .error('VoiceRecording', 'Recording start failed');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            key: ValueKey('recording-start-error'),
+            content: Text(
+              'Could not start recording. '
+              'Please check microphone availability.',
+            ),
           ),
-        ),
-      );
+        );
     }
   }
 
   Future<void> _stopRecordingAndSend() async {
-    final recorder = _voiceRecorder;
-    if (recorder == null) return;
+    final controller = ref.read(voiceRecordingControllerProvider.notifier);
 
     // Capture recorded amplitudes before resetting the store.
     final amplitudes = List<double>.unmodifiable(
         ref.read(voiceMessageStoreProvider).amplitudes);
 
-    final path = await recorder.stop();
-    final store = ref.read(voiceMessageStoreProvider.notifier);
-    store.reset();
-
-    _voiceStateSub?.cancel();
-    _voiceAmplitudeSub?.cancel();
-    _voiceElapsedSub?.cancel();
+    final path = await controller.stopRecording();
 
     if (path == null || !mounted) return;
 
@@ -891,15 +823,8 @@ class _ConversationDetailScreenState
   }
 
   Future<void> _cancelRecording() async {
-    final recorder = _voiceRecorder;
-    if (recorder == null) return;
-
-    await recorder.cancel();
-    ref.read(voiceMessageStoreProvider.notifier).reset();
-
-    _voiceStateSub?.cancel();
-    _voiceAmplitudeSub?.cancel();
-    _voiceElapsedSub?.cancel();
+    final controller = ref.read(voiceRecordingControllerProvider.notifier);
+    await controller.cancelRecording();
   }
 
   /// INV-TRANSLATE-3: auto-translate visible messages when mode is auto.

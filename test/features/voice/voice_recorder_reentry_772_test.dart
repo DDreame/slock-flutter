@@ -1,142 +1,161 @@
 // =============================================================================
-// #772 — P1 Voice Recorder Concurrent-Start Race
+// #772 — P1 Voice Recorder Concurrent-Start Race (Re-entrancy Guard)
 //
 // Verifies:
-// A. VoiceRecorderService.start() with slow permission prevents double-start
-//    at the service level (existing guard)
-// B. Page-level _isStartingRecording flag verified via static test hook
+// A. Two concurrent startRecording() calls on the PRODUCTION
+//    VoiceRecordingController result in only ONE native recorder start.
+// B. Guard resets after completion — subsequent start works.
+// C. Guard resets on error — not permanently stuck.
+// D. Service-level race still exists (proves controller guard is needed).
+//
+// Load-bearing proof:
+//   Reverting the `if (_isStartingRecording) return` guard in
+//   VoiceRecordingController.startRecording() causes test A to fail
+//   (two native starts instead of one).
 // =============================================================================
 
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:record/record.dart';
+import 'package:slock_app/features/voice/application/voice_message_store.dart';
+import 'package:slock_app/features/voice/application/voice_recording_controller.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 
 void main() {
-  group('#772 — Voice recorder concurrent-start guard', () {
-    test(
-        'SERVICE-LEVEL RACE: concurrent start() calls with slow permission '
-        'both reach native start (proves page guard is needed)', () async {
-      final recorder = _SlowPermissionRecorder();
-      final service = VoiceRecorderService(
-        recorder: recorder,
+  group('#772 — VoiceRecordingController re-entrancy guard', () {
+    late ProviderContainer container;
+    late VoiceRecordingController controller;
+    late _SlowPermissionRecorder fakeRecorder;
+
+    setUp(() {
+      fakeRecorder = _SlowPermissionRecorder();
+      final fakeService = VoiceRecorderService(
+        recorder: fakeRecorder,
         tempDirPathOverride: '/tmp/test772',
       );
 
-      // First call: will block on hasPermission().
-      final first = service.start();
+      container = ProviderContainer();
+      // Keep the provider alive.
+      container.listen(voiceRecordingControllerProvider, (_, __) {});
+      container.listen(voiceMessageStoreProvider, (_, __) {});
 
-      // Second call: also passes the sync check (state still idle).
-      final second = service.start();
-
-      // Resolve permission — both calls proceed.
-      recorder.permissionCompleter.complete(true);
-      await first;
-      await second;
-
-      // BUG: Both calls reach native start because the service guard
-      // checks _state synchronously before either await completes.
-      // This proves the page-level _isStartingRecording guard is essential.
-      expect(recorder.startCallCount, 2,
-          reason: '#772: service-level guard is insufficient — '
-              'both calls pass check before state transitions');
-
-      service.dispose();
+      controller = container.read(voiceRecordingControllerProvider.notifier);
+      controller.setRecorder(fakeService);
     });
 
+    tearDown(() {
+      container.dispose();
+    });
+
+    // -----------------------------------------------------------------------
+    // A: Two concurrent startRecording() calls → only ONE native start.
+    // THIS IS THE LOAD-BEARING TEST. Removing the guard makes it fail.
+    // -----------------------------------------------------------------------
     test(
-        'page-level guard: isStartingRecording flag prevents concurrent '
-        '_startRecording invocations', () async {
-      // This test verifies the page-level pattern by simulating the exact
-      // race: two async calls where the first hasn't resolved hasPermission()
-      // yet when the second arrives.
-      //
-      // We model the page-level pattern directly:
-      var isStartingRecording = false;
-      var executionCount = 0;
-      final permissionCompleter = Completer<bool>();
+      'concurrent startRecording() calls: only first reaches native start',
+      () async {
+        // First call: blocks on hasPermission() (completer not yet resolved).
+        final call1 = controller.startRecording();
 
-      Future<void> startRecording() async {
-        if (isStartingRecording) return;
-        isStartingRecording = true;
-        try {
-          // Simulate slow hasPermission() await.
-          await permissionCompleter.future;
-          executionCount++;
-        } finally {
-          isStartingRecording = false;
-        }
-      }
+        // Second call: fires while first is still awaiting permission.
+        final call2 = controller.startRecording();
 
-      // Fire two concurrent calls (simulates rapid double-tap).
-      final call1 = startRecording();
-      final call2 = startRecording();
+        // Second should return immediately with alreadyStarting.
+        // Resolve permission so first can complete.
+        fakeRecorder.permissionCompleter.complete(true);
 
-      // Second call should have returned immediately (guard hit).
-      permissionCompleter.complete(true);
-      await call1;
-      await call2;
+        final result1 = await call1;
+        final result2 = await call2;
 
-      expect(executionCount, 1,
-          reason: '#772: re-entrancy guard must drop second concurrent call');
-    });
+        expect(result1, StartRecordingResult.success);
+        expect(result2, StartRecordingResult.alreadyStarting,
+            reason: '#772: second concurrent call must be rejected by guard');
+        expect(fakeRecorder.startCallCount, 1,
+            reason: '#772: only one native recorder.start() must execute');
+      },
+    );
 
-    test('guard resets after completion — subsequent start works', () async {
-      var isStartingRecording = false;
-      var executionCount = 0;
+    // -----------------------------------------------------------------------
+    // B: Guard resets after completion — subsequent start works.
+    // -----------------------------------------------------------------------
+    test(
+      'guard resets after completion — sequential starts both succeed',
+      () async {
+        // First call: grant permission immediately.
+        fakeRecorder.permissionCompleter.complete(true);
+        final result1 = await controller.startRecording();
+        expect(result1, StartRecordingResult.success);
+        expect(fakeRecorder.startCallCount, 1);
 
-      Future<void> startRecording() async {
-        if (isStartingRecording) return;
-        isStartingRecording = true;
-        try {
-          await Future<void>.delayed(Duration.zero);
-          executionCount++;
-        } finally {
-          isStartingRecording = false;
-        }
-      }
+        // Stop recording so service allows a new start.
+        await controller.stopRecording();
 
-      // First call.
-      await startRecording();
-      expect(executionCount, 1);
+        // Reset recorder for second call (new completer).
+        fakeRecorder.resetForNextCall();
 
-      // Second call after first completes — should work.
-      await startRecording();
-      expect(executionCount, 2, reason: 'Guard should reset in finally block');
-    });
+        // Second call: should succeed since guard has reset.
+        fakeRecorder.permissionCompleter.complete(true);
+        final result2 = await controller.startRecording();
+        expect(result2, StartRecordingResult.success,
+            reason: 'Guard must reset in finally block for sequential calls');
+        expect(fakeRecorder.startCallCount, 2);
+      },
+    );
 
-    test('guard resets on exception — not permanently stuck', () async {
-      var isStartingRecording = false;
-      var executionCount = 0;
+    // -----------------------------------------------------------------------
+    // C: Guard resets on error — not permanently stuck.
+    // -----------------------------------------------------------------------
+    test(
+      'guard resets on permission error — next start succeeds',
+      () async {
+        // First call: permission throws.
+        fakeRecorder.permissionCompleter
+            .completeError(Exception('Permission check failed'));
+        final result1 = await controller.startRecording();
+        expect(result1, StartRecordingResult.error);
 
-      Future<void> startRecording() async {
-        if (isStartingRecording) return;
-        isStartingRecording = true;
-        try {
-          await Future<void>.delayed(Duration.zero);
-          executionCount++;
-          if (executionCount == 1) {
-            throw Exception('Permission denied');
-          }
-        } catch (_) {
-          // Swallow (page does this via try/catch).
-        } finally {
-          isStartingRecording = false;
-        }
-      }
+        // Guard must have reset despite the error.
+        fakeRecorder.resetForNextCall();
+        fakeRecorder.permissionCompleter.complete(true);
+        final result2 = await controller.startRecording();
+        expect(result2, StartRecordingResult.success,
+            reason:
+                'Guard must reset even on exception (finally block in controller)');
+      },
+    );
 
-      // First call — throws internally.
-      await startRecording();
-      expect(executionCount, 1);
-      expect(isStartingRecording, isFalse,
-          reason: 'Guard must reset even on exception (finally block)');
+    // -----------------------------------------------------------------------
+    // D: Service-level race (proves controller guard is needed).
+    // -----------------------------------------------------------------------
+    test(
+      'SERVICE-LEVEL RACE: concurrent service.start() calls both execute '
+      '(proves controller guard is needed)',
+      () async {
+        final directRecorder = _SlowPermissionRecorder();
+        final directService = VoiceRecorderService(
+          recorder: directRecorder,
+          tempDirPathOverride: '/tmp/test772_direct',
+        );
 
-      // Second call — should succeed.
-      await startRecording();
-      expect(executionCount, 2,
-          reason: 'Guard must not be permanently stuck after exception');
-    });
+        // Two concurrent calls directly on the service (bypassing controller).
+        final first = directService.start();
+        final second = directService.start();
+
+        directRecorder.permissionCompleter.complete(true);
+        await first;
+        await second;
+
+        // Both calls reach native start because service guard is sync-only.
+        expect(directRecorder.startCallCount, 2,
+            reason:
+                '#772: service-level guard is insufficient — proves controller '
+                'guard is essential');
+
+        directService.dispose();
+      },
+    );
   });
 }
 
@@ -144,10 +163,16 @@ void main() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// AudioRecorder fake where hasPermission() blocks on a Completer.
+/// AudioRecorder fake where hasPermission() blocks on a Completer,
+/// simulating a slow platform channel call.
 class _SlowPermissionRecorder implements AudioRecorder {
-  final Completer<bool> permissionCompleter = Completer<bool>();
+  Completer<bool> permissionCompleter = Completer<bool>();
   int startCallCount = 0;
+
+  /// Reset for a second sequential call (fresh completer).
+  void resetForNextCall() {
+    permissionCompleter = Completer<bool>();
+  }
 
   @override
   Future<bool> hasPermission() => permissionCompleter.future;
@@ -158,7 +183,7 @@ class _SlowPermissionRecorder implements AudioRecorder {
   }
 
   @override
-  Future<String?> stop() async => null;
+  Future<String?> stop() async => '/tmp/test772/recording.m4a';
 
   @override
   Future<void> cancel() async {}
