@@ -54,6 +54,19 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
           causeType: 'StoreLoadTimeout',
         ),
       );
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'MachinesStore.load',
+      );
+      state = state.copyWith(
+        status: MachinesStatus.failure,
+        failure: _unexpectedFailure(
+          error,
+          message: 'Failed to load machines.',
+        ),
+      );
     }
   }
 
@@ -74,6 +87,18 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(isCreating: false, failure: failure);
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'MachinesStore.registerMachine',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to register machine.',
+      );
+      state = state.copyWith(isCreating: false, failure: failure);
+      throw failure;
     }
   }
 
@@ -106,6 +131,21 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
         failure: failure,
       );
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'MachinesStore.renameMachine',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to rename machine.',
+      );
+      state = state.copyWith(
+        renamingMachineIds: {...state.renamingMachineIds}..remove(machineId),
+        failure: failure,
+      );
+      throw failure;
     }
   }
 
@@ -139,6 +179,22 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
         failure: failure,
       );
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'MachinesStore.rotateMachineApiKey',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to rotate machine API key.',
+      );
+      state = state.copyWith(
+        rotatingKeyMachineIds: {...state.rotatingKeyMachineIds}
+          ..remove(machineId),
+        failure: failure,
+      );
+      throw failure;
     }
   }
 
@@ -164,6 +220,21 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
         failure: failure,
       );
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'MachinesStore.deleteMachine',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to delete machine.',
+      );
+      state = state.copyWith(
+        deletingMachineIds: {...state.deletingMachineIds}..remove(machineId),
+        failure: failure,
+      );
+      throw failure;
     }
   }
 
@@ -211,6 +282,27 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
         state.latestDaemonVersion,
         daemonVersion,
       ),
+    );
+  }
+
+  void _captureUnexpectedError(
+    Object error,
+    StackTrace stackTrace, {
+    required String operation,
+  }) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'MachinesStore',
+        '$operation failed: $error',
+        metadata: {'stackTrace': stackTrace.toString()},
+      );
+    } catch (_) {}
+  }
+
+  AppFailure _unexpectedFailure(Object error, {required String message}) {
+    return UnknownFailure(
+      message: message,
+      causeType: error.runtimeType.toString(),
     );
   }
 }

@@ -20,14 +20,18 @@ void main() {
   ProviderContainer createContainer({
     ServerScopeId? serverId,
     List<Announcement> apiAnnouncements = const [],
+    AnnouncementRepository? repository,
+    DiagnosticsCollector? diagnosticsCollector,
   }) {
     return ProviderContainer(
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         activeServerScopeIdProvider.overrideWithValue(serverId),
         announcementRepositoryProvider.overrideWithValue(
-          _FakeAnnouncementRepository(apiAnnouncements),
+          repository ?? _FakeAnnouncementRepository(apiAnnouncements),
         ),
+        if (diagnosticsCollector != null)
+          diagnosticsCollectorProvider.overrideWithValue(diagnosticsCollector),
       ],
     );
   }
@@ -75,6 +79,39 @@ void main() {
       final loaded = container.read(announcementStoreProvider);
       expect(loaded.status, AnnouncementStatus.success);
       expect(loaded.announcements, isEmpty);
+    });
+
+    test('load() wraps non-AppFailure and leaves loading state', () async {
+      final container = createContainer(
+        serverId: const ServerScopeId('srv-1'),
+        repository: _ThrowingAnnouncementRepository(
+          StateError('unexpected announcement load failure'),
+        ),
+      );
+      addTearDown(container.dispose);
+
+      await container.read(announcementStoreProvider.notifier).load();
+
+      final loaded = container.read(announcementStoreProvider);
+      expect(loaded.status, AnnouncementStatus.failure);
+      expect(loaded.failure, isA<UnknownFailure>());
+    });
+
+    test('load() resets state even when diagnostics throws', () async {
+      final container = createContainer(
+        serverId: const ServerScopeId('srv-1'),
+        repository: _ThrowingAnnouncementRepository(
+          StateError('unexpected announcement load failure'),
+        ),
+        diagnosticsCollector: _ThrowingDiagnosticsCollector(),
+      );
+      addTearDown(container.dispose);
+
+      await container.read(announcementStoreProvider.notifier).load();
+
+      final loaded = container.read(announcementStoreProvider);
+      expect(loaded.status, AnnouncementStatus.failure);
+      expect(loaded.failure, isA<UnknownFailure>());
     });
 
     test('load() filters out dismissed announcements', () async {
@@ -324,4 +361,28 @@ class _FailingAnnouncementRepository implements AnnouncementRepository {
     ServerScopeId serverId, {
     required String announcementId,
   }) async {}
+}
+
+class _ThrowingAnnouncementRepository implements AnnouncementRepository {
+  const _ThrowingAnnouncementRepository(this.error);
+
+  final Object error;
+
+  @override
+  Future<List<Announcement>> getActive(ServerScopeId serverId) async {
+    throw error;
+  }
+
+  @override
+  Future<void> dismiss(
+    ServerScopeId serverId, {
+    required String announcementId,
+  }) async {}
+}
+
+class _ThrowingDiagnosticsCollector extends DiagnosticsCollector {
+  @override
+  void error(String tag, String message, {Map<String, dynamic>? metadata}) {
+    throw StateError('Diagnostics collector crash: $message');
+  }
 }

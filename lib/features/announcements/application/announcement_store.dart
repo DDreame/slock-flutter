@@ -117,6 +117,15 @@ class AnnouncementStore extends Notifier<AnnouncementState> {
         status: AnnouncementStatus.failure,
         failure: failure,
       );
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(error, stackTrace);
+      state = state.copyWith(
+        status: AnnouncementStatus.failure,
+        failure: UnknownFailure(
+          message: 'Failed to load announcements.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
     }
   }
 
@@ -160,5 +169,15 @@ class AnnouncementStore extends Notifier<AnnouncementState> {
       status: AnnouncementStatus.success,
       announcements: [...state.announcements, announcement],
     );
+  }
+
+  void _captureUnexpectedError(Object error, StackTrace stackTrace) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'AnnouncementStore',
+        'load failed: $error',
+        metadata: {'stackTrace': stackTrace.toString()},
+      );
+    } catch (_) {}
   }
 }
