@@ -13,7 +13,7 @@ final realtimeLifecycleBindingProvider = Provider<void>((ref) {
   // should bail out after its await completes (#732 TOCTOU fix).
   var syncGeneration = 0;
 
-  Future<void> syncConnection() async {
+  Future<void> syncConnection({bool clientChanged = false}) async {
     final generation = ++syncGeneration;
 
     final session = ref.read(sessionStoreProvider);
@@ -23,7 +23,21 @@ final realtimeLifecycleBindingProvider = Provider<void>((ref) {
     final service = ref.read(realtimeServiceProvider.notifier);
 
     if (shouldConnect) {
-      if (connectionState.status == RealtimeConnectionStatus.disconnected) {
+      // #775: When the socket client provider rebuilt (token refresh or
+      // server switch), the old connection is dead regardless of what
+      // service state currently says. Disconnect stale state first, then
+      // reconnect with the new client.
+      if (clientChanged &&
+          connectionState.status != RealtimeConnectionStatus.disconnected) {
+        await service.disconnect();
+        if (generation != syncGeneration) return;
+        await service.connect();
+        if (generation != syncGeneration) {
+          await service.disconnect();
+          return;
+        }
+      } else if (connectionState.status ==
+          RealtimeConnectionStatus.disconnected) {
         await service.connect();
         // Stale — a newer sync has superseded this one; undo the connect
         // so the stale connection doesn't linger in "connected" state (#732).
@@ -56,7 +70,7 @@ final realtimeLifecycleBindingProvider = Provider<void>((ref) {
   // dependency chain) without changing isAuthenticated or appReady. Listen
   // for socket client identity changes so we reconnect with the new client.
   ref.listen<RealtimeSocketClient>(realtimeSocketClientProvider, (_, __) {
-    unawaited(syncConnection());
+    unawaited(syncConnection(clientChanged: true));
   });
 
   unawaited(syncConnection());

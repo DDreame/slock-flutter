@@ -114,6 +114,70 @@ void main() {
     );
 
     // -----------------------------------------------------------------------
+    // A2: Provider rebuild while service state is still CONNECTED (race case).
+    // THIS CATCHES THE RACE: old disconnect event hasn't arrived yet, but
+    // provider already rebuilt. syncConnection(clientChanged: true) must
+    // disconnect stale state + reconnect regardless of current status.
+    // -----------------------------------------------------------------------
+    test(
+      'provider rebuild while still connected triggers disconnect+reconnect',
+      () async {
+        final ingress = RealtimeReductionIngress();
+        final socket1 = _FakeRealtimeSocketClient();
+        final socket2 = _FakeRealtimeSocketClient();
+        final storage = FakeSecureStorage();
+
+        final fakeSocketState =
+            StateProvider<RealtimeSocketClient>((ref) => socket1);
+
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageProvider.overrideWithValue(storage),
+            authRepositoryProvider
+                .overrideWithValue(const FakeAuthRepository()),
+            realtimeReductionIngressProvider.overrideWithValue(ingress),
+            realtimeSocketClientProvider.overrideWith((ref) {
+              return ref.watch(fakeSocketState);
+            }),
+          ],
+        );
+        addTearDown(() async {
+          container.dispose();
+          await ingress.dispose();
+        });
+
+        container.read(realtimeLifecycleBindingProvider);
+
+        // Login + appReady → initial connect on socket1.
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'test@example.com', password: 'password');
+        container.read(appReadyProvider.notifier).state = true;
+        await Future<void>.delayed(Duration.zero);
+
+        expect(socket1.connectCalls, 1);
+
+        // Emit connected so service state = connected.
+        socket1.push(const RealtimeSocketConnected());
+        await Future<void>.delayed(Duration.zero);
+        expect(
+          container.read(realtimeServiceProvider).status,
+          RealtimeConnectionStatus.connected,
+        );
+
+        // Provider rebuilds WHILE STATE IS STILL CONNECTED.
+        // No disconnect event from old socket — this is the race.
+        container.read(fakeSocketState.notifier).state = socket2;
+        await Future<void>.delayed(Duration.zero);
+
+        // Must disconnect stale state then reconnect on new client.
+        expect(socket2.connectCalls, 1,
+            reason: '#775: rebuild while connected must still reconnect '
+                'on new client');
+      },
+    );
+
+    // -----------------------------------------------------------------------
     // B: After provider rebuild, forceReconnect uses the NEW client.
     // THIS IS THE LOAD-BEARING TEST for Item 2.
     // Removing ref.listen<RealtimeSocketClient> from realtime_service.dart
