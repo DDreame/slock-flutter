@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/network/network_config.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
@@ -16,8 +17,17 @@ final authTokenProvider = Provider<AuthTokenReader>((ref) {
 
 const _refreshPath = '/auth/refresh';
 
-final refreshAuthTokenProvider = Provider<RefreshAuthToken>((ref) {
+/// Dio factory used exclusively by [refreshAuthTokenProvider].
+///
+/// Override in tests to supply a Dio instance with custom adapters/interceptors
+/// that simulate server responses (e.g. 401) without network access.
+@visibleForTesting
+final refreshDioProvider = Provider<Dio>((ref) {
   final config = ref.read(networkConfigProvider);
+  return Dio(config.toBaseOptions());
+});
+
+final refreshAuthTokenProvider = Provider<RefreshAuthToken>((ref) {
   final storage = ref.read(secureStorageProvider);
   final sessionStore = ref.read(sessionStoreProvider.notifier);
 
@@ -26,7 +36,7 @@ final refreshAuthTokenProvider = Provider<RefreshAuthToken>((ref) {
         await storage.read(key: SessionStorageKeys.refreshToken);
     if (refreshToken == null || refreshToken.isEmpty) return null;
 
-    final dio = Dio(config.toBaseOptions());
+    final dio = ref.read(refreshDioProvider);
     try {
       final response = await dio.post<Object?>(
         _refreshPath,
@@ -49,7 +59,13 @@ final refreshAuthTokenProvider = Provider<RefreshAuthToken>((ref) {
       return newAccessToken;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
-        await sessionStore.logout();
+        // Before logout, verify the refresh token hasn't been rotated by a
+        // parallel successful refresh. Skip logout if already rotated (#717).
+        final currentRefreshToken =
+            await storage.read(key: SessionStorageKeys.refreshToken);
+        if (currentRefreshToken == refreshToken) {
+          await sessionStore.logout();
+        }
       }
       return null;
     }
