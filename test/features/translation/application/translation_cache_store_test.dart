@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -165,6 +167,37 @@ void main() {
       await notifier.translateMessages(['msg-1']);
 
       expect(fakeRepo.batchCallCount, 0);
+    });
+
+    test('does not mutate disposed cache after delayed response', () async {
+      final completer = Completer<List<TranslationResult>>();
+      final fakeRepo = _DelayedTranslationRepository(completer);
+      final container = createContainer(repo: fakeRepo);
+
+      final notifier = container.read(translationCacheStoreProvider.notifier);
+      final translationFuture = notifier.translateMessages(['msg-1']);
+
+      expect(
+        container
+            .read(translationCacheStoreProvider)
+            .translations['msg-1']
+            ?.status,
+        TranslationEntryStatus.pending,
+      );
+
+      container.dispose();
+      completer.complete([
+        const TranslationResult(
+          messageId: 'msg-1',
+          translatedContent: '遅延',
+          sourceLanguage: 'en',
+          targetLanguage: 'ja',
+          status: TranslationStatus.translated,
+        ),
+      ]);
+
+      await translationFuture;
+      expect(fakeRepo.batchCallCount, 1);
     });
   });
 
@@ -340,5 +373,21 @@ class _FakeTranslationRepository implements TranslationRepository {
       throw const ServerFailure(message: 'API error');
     }
     return batchResults;
+  }
+}
+
+class _DelayedTranslationRepository extends _FakeTranslationRepository {
+  _DelayedTranslationRepository(this.completer);
+
+  final Completer<List<TranslationResult>> completer;
+
+  @override
+  Future<List<TranslationResult>> translateBatch(
+    ServerScopeId serverId, {
+    required List<String> messageIds,
+    required String targetLanguage,
+  }) async {
+    batchCallCount++;
+    return completer.future;
   }
 }

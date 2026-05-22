@@ -62,36 +62,36 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
   }
 
   /// Set sender filter and re-search (INV-SEARCH-1).
-  Future<void> setSenderFilter(String? senderId) async {
+  void setSenderFilter(String? senderId) {
     state = senderId == null
         ? state.copyWith(clearSenderFilter: true, remoteResults: const [])
         : state.copyWith(senderFilter: senderId, remoteResults: const []);
-    if (state.query.trim().isNotEmpty) await search();
+    _scheduleSearch();
   }
 
   /// Set sort order and re-search (INV-SEARCH-1).
-  Future<void> setSortBy(SearchSortBy sortBy) async {
+  void setSortBy(SearchSortBy sortBy) {
     state = state.copyWith(sortBy: sortBy, remoteResults: const []);
-    if (state.query.trim().isNotEmpty) await search();
+    _scheduleSearch();
   }
 
   /// Set channel filter and re-search (INV-SEARCH-1).
-  Future<void> setChannelFilter(String? channelId) async {
+  void setChannelFilter(String? channelId) {
     state = channelId == null
         ? state.copyWith(clearChannelFilter: true, remoteResults: const [])
         : state.copyWith(channelFilter: channelId, remoteResults: const []);
-    if (state.query.trim().isNotEmpty) await search();
+    _scheduleSearch();
   }
 
   /// Reset all filters to defaults and re-search (INV-SEARCH-3).
-  Future<void> clearFilters() async {
+  void clearFilters() {
     state = state.copyWith(
       clearSenderFilter: true,
       sortBy: SearchSortBy.newest,
       clearChannelFilter: true,
       remoteResults: const [],
     );
-    if (state.query.trim().isNotEmpty) await search();
+    _scheduleSearch();
   }
 
   Future<void> retry() => search();
@@ -102,6 +102,14 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
       cancelToken.cancel('superseded search request');
     }
     _remoteCancelToken = null;
+  }
+
+  void _scheduleSearch() {
+    _debounce?.cancel();
+    _requestToken++;
+    _cancelInFlightSearch();
+    if (state.query.trim().isEmpty) return;
+    _debounce = Timer(const Duration(milliseconds: 300), search);
   }
 
   /// Load more results at the current offset (INV-SEARCH-4).
@@ -147,6 +155,8 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
   }
 
   Future<void> search() async {
+    _debounce?.cancel();
+    _debounce = null;
     final query = state.query.trim();
     if (query.isEmpty) return;
 

@@ -75,8 +75,12 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         channelId: channelId,
         titles: titles,
       );
+      final itemsById = <String, TaskItem>{
+        for (final item in state.items) item.id: item,
+        for (final item in created) item.id: item,
+      };
       state = state.copyWith(
-        items: [...state.items, ...created],
+        items: itemsById.values.toList(),
       );
       return created;
     } on AppFailure {
