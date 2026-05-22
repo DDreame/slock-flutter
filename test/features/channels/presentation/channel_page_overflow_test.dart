@@ -10,6 +10,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
+import 'package:slock_app/features/channels/application/channel_management_store.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
@@ -223,6 +224,135 @@ void main() {
       expect(find.text('All agents stopped.'), findsOneWidget,
           reason:
               '#738: Snackbar must appear only after successful completion');
+    },
+  );
+
+  testWidgets(
+    'stop all agents returns false when store is busy — no snackbar (#738)',
+    (tester) async {
+      // This test exercises the `if (success && context.mounted)` branch in
+      // ChannelPage._onSelected when `store.stopAllAgents()` returns false
+      // because the store is already busy with another operation.
+      //
+      // Strategy: open menu → tap "Stop All" → confirmation dialog appears →
+      // while dialog is awaiting user input, make the store busy via a direct
+      // notifier call → tap confirm → store.stopAllAgents returns false →
+      // no snackbar.
+      final holdCompleter = Completer<void>();
+      final conversationRepo = _FakeConversationRepository();
+      final channelMgmtRepo = _FakeChannelManagementRepository(
+        stopAllCompleter: holdCompleter,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          conversationRepositoryProvider.overrideWithValue(conversationRepo),
+          channelManagementRepositoryProvider
+              .overrideWithValue(channelMgmtRepo),
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          homeRepositoryProvider.overrideWithValue(const _FakeHomeRepository()),
+          sidebarOrderRepositoryProvider.overrideWithValue(
+            const _FakeSidebarOrderRepository(),
+          ),
+          agentsRepositoryProvider.overrideWithValue(
+            const _FakeAgentsRepository(),
+          ),
+          agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+          sessionStoreProvider.overrideWith(
+            () => _FixedSessionStore(const SessionState(
+              status: AuthStatus.authenticated,
+              userId: 'user-1',
+              displayName: 'Test User',
+            )),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final router = GoRouter(
+        initialLocation: '/servers/server-1/channels/general',
+        routes: [
+          GoRoute(
+            path: '/home',
+            builder: (_, __) => const Scaffold(body: Text('home')),
+          ),
+          GoRoute(
+            path: '/servers/:serverId/channels/:channelId',
+            builder: (_, state) => ChannelPage(
+              serverId: state.pathParameters['serverId']!,
+              channelId: state.pathParameters['channelId']!,
+            ),
+          ),
+          GoRoute(
+            path: '/servers/:serverId/channels/:channelId/files',
+            builder: (_, __) => const Scaffold(body: Text('files')),
+          ),
+          GoRoute(
+            path: '/servers/:serverId/channels/:channelId/members',
+            builder: (_, __) => const Scaffold(body: Text('members')),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp.router(
+            routerConfig: router,
+            theme: AppTheme.light,
+            locale: const Locale('en'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Step 1: Open overflow menu and tap "Stop All Agents".
+      await tester.tap(find.byKey(const ValueKey('channel-overflow-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('channel-stop-all-agents')));
+      await tester.pumpAndSettle();
+
+      // Confirmation dialog is now visible (_onSelected awaits user input).
+      expect(
+        find.byKey(const ValueKey('stop-all-agents-confirm-dialog')),
+        findsOneWidget,
+        reason: '#738: Confirmation dialog should appear',
+      );
+
+      // Step 2: While the dialog awaits, make the store busy via a direct
+      // notifier call on a different channel (held by holdCompleter).
+      const otherScope = ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'other-channel',
+      );
+      unawaited(container
+          .read(channelManagementStoreProvider.notifier)
+          .stopAllAgents(otherScope));
+      await tester.pump(); // let state propagate
+
+      // Step 3: Confirm the dialog — _onSelected resumes and calls
+      // store.stopAllAgents(scopeId) which returns false (store is busy).
+      await tester.tap(find.widgetWithText(FilledButton, 'Stop All'));
+      await tester.pumpAndSettle();
+
+      // Step 4: Assert NO success snackbar — store.stopAllAgents returned false.
+      expect(find.text('All agents stopped.'), findsNothing,
+          reason: '#738: No snackbar when store.stopAllAgents returns false '
+              '(store was busy with another operation)');
+
+      // Also verify the repository was only called once (the direct call),
+      // not a second time from the UI handler.
+      expect(channelMgmtRepo.stoppedAllAgentsChannelIds, ['other-channel'],
+          reason:
+              '#738: Only the direct background call should reach the repository');
+
+      // Clean up: complete the held operation.
+      holdCompleter.complete();
+      await tester.pumpAndSettle();
     },
   );
 }
