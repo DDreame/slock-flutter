@@ -11,7 +11,19 @@ import 'package:slock_app/features/screenshot/presentation/widgets/annotation_ca
 /// Uses [RenderRepaintBoundary.toImage] for capture and [Canvas] + [Picture]
 /// for exporting annotated images — no external packages required.
 class ScreenshotCaptureService {
-  const ScreenshotCaptureService();
+  const ScreenshotCaptureService({
+    @visibleForTesting this.onCaptureImageDisposed,
+    @visibleForTesting this.onExportCodecDisposed,
+    @visibleForTesting this.onExportBaseImageDisposed,
+    @visibleForTesting this.onExportPictureDisposed,
+    @visibleForTesting this.onExportedImageDisposed,
+  });
+
+  final VoidCallback? onCaptureImageDisposed;
+  final VoidCallback? onExportCodecDisposed;
+  final VoidCallback? onExportBaseImageDisposed;
+  final VoidCallback? onExportPictureDisposed;
+  final VoidCallback? onExportedImageDisposed;
 
   /// Captures the widget tree under [boundaryKey] and saves it as a PNG
   /// in the system temp directory.
@@ -29,16 +41,21 @@ class ScreenshotCaptureService {
     if (renderObject is! RenderRepaintBoundary) return null;
 
     final image = await renderObject.toImage(pixelRatio: pixelRatio);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    if (byteData == null) return null;
+    try {
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return null;
 
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final file = File(
-      '${Directory.systemTemp.path}/screenshot_$timestamp.png',
-    );
-    await file.writeAsBytes(byteData.buffer.asUint8List());
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final file = File(
+        '${Directory.systemTemp.path}/screenshot_$timestamp.png',
+      );
+      await file.writeAsBytes(byteData.buffer.asUint8List());
 
-    return file.path;
+      return file.path;
+    } finally {
+      image.dispose();
+      onCaptureImageDisposed?.call();
+    }
   }
 
   /// Exports a screenshot with annotations flattened onto it as a new PNG.
@@ -58,37 +75,52 @@ class ScreenshotCaptureService {
     if (!file.existsSync()) return null;
 
     final bytes = await file.readAsBytes();
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    final baseImage = frame.image;
+    ui.Codec? codec;
+    ui.Image? baseImage;
+    ui.Picture? picture;
+    ui.Image? exportedImage;
+    try {
+      codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      baseImage = frame.image;
 
-    final width = baseImage.width.toDouble();
-    final height = baseImage.height.toDouble();
+      final width = baseImage.width.toDouble();
+      final height = baseImage.height.toDouble();
 
-    // Create a picture recorder to draw the composite image.
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
+      // Create a picture recorder to draw the composite image.
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
 
-    // Draw the base screenshot.
-    canvas.drawImage(baseImage, Offset.zero, Paint());
+      // Draw the base screenshot.
+      canvas.drawImage(baseImage, Offset.zero, Paint());
 
-    // Draw annotations on top.
-    final painter = AnnotationPainter(annotations: annotations);
-    painter.paint(canvas, Size(width, height));
+      // Draw annotations on top.
+      final painter = AnnotationPainter(annotations: annotations);
+      painter.paint(canvas, Size(width, height));
 
-    // Convert to image.
-    final picture = recorder.endRecording();
-    final exportedImage = await picture.toImage(width.toInt(), height.toInt());
-    final exportedBytes =
-        await exportedImage.toByteData(format: ui.ImageByteFormat.png);
-    if (exportedBytes == null) return null;
+      // Convert to image.
+      picture = recorder.endRecording();
+      exportedImage = await picture.toImage(width.toInt(), height.toInt());
+      final exportedBytes =
+          await exportedImage.toByteData(format: ui.ImageByteFormat.png);
+      if (exportedBytes == null) return null;
 
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final exportedFile = File(
-      '${Directory.systemTemp.path}/screenshot_annotated_$timestamp.png',
-    );
-    await exportedFile.writeAsBytes(exportedBytes.buffer.asUint8List());
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final exportedFile = File(
+        '${Directory.systemTemp.path}/screenshot_annotated_$timestamp.png',
+      );
+      await exportedFile.writeAsBytes(exportedBytes.buffer.asUint8List());
 
-    return exportedFile.path;
+      return exportedFile.path;
+    } finally {
+      exportedImage?.dispose();
+      if (exportedImage != null) onExportedImageDisposed?.call();
+      picture?.dispose();
+      if (picture != null) onExportPictureDisposed?.call();
+      baseImage?.dispose();
+      if (baseImage != null) onExportBaseImageDisposed?.call();
+      codec?.dispose();
+      if (codec != null) onExportCodecDisposed?.call();
+    }
   }
 }
