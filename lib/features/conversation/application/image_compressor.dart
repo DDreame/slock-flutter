@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,17 +56,51 @@ class DefaultImageCompressor implements ImageCompressor {
     final baseName = p.basenameWithoutExtension(path);
     final outputPath = p.join(dir, '${baseName}_compressed$ext');
 
+    final dimensions = await _readImageDimensions(path);
+    final minWidth =
+        dimensions == null ? 1920 : dimensions.width.clamp(1, 1920).toInt();
+    final minHeight =
+        dimensions == null ? 1920 : dimensions.height.clamp(1, 1920).toInt();
+
     final result = await FlutterImageCompress.compressAndGetFile(
       path,
       outputPath,
       quality: quality,
-      minWidth: 1920,
-      minHeight: 1920,
+      minWidth: minWidth,
+      minHeight: minHeight,
     );
     if (result == null) {
       throw Exception('Compression returned null');
     }
     return result.path;
+  }
+
+  Future<({int width, int height})?> _readImageDimensions(String path) async {
+    try {
+      final bytes = await File(path).readAsBytes();
+      final pngDimensions = _readPngDimensions(bytes);
+      if (pngDimensions != null) {
+        return pngDimensions;
+      }
+      final codec = await ui.instantiateImageCodec(Uint8List.fromList(bytes));
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final dimensions = (width: image.width, height: image.height);
+      image.dispose();
+      return dimensions;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  ({int width, int height})? _readPngDimensions(List<int> bytes) {
+    const signature = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+    if (bytes.length < 24) return null;
+    for (var i = 0; i < signature.length; i++) {
+      if (bytes[i] != signature[i]) return null;
+    }
+    final data = ByteData.sublistView(Uint8List.fromList(bytes));
+    return (width: data.getUint32(16), height: data.getUint32(20));
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
 import 'package:slock_app/core/core.dart';
 
 // ---------------------------------------------------------------------------
@@ -28,6 +29,10 @@ abstract class ImagePickerService {
 
 /// Abstract avatar upload service for testability.
 abstract class AvatarUploadService {
+  factory AvatarUploadService.forTesting({
+    required AppDioClient appDioClient,
+  }) = _ApiAvatarUploadService;
+
   /// Upload the image at [filePath] and return the new avatar URL.
   Future<String> upload(String filePath);
 }
@@ -62,6 +67,21 @@ class _RealImagePickerService implements ImagePickerService {
 
 const _uploadPath = '/users/me';
 
+String _mimeTypeForFile(String filePath) {
+  switch (p.extension(filePath).toLowerCase()) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.webp':
+      return 'image/webp';
+    case '.gif':
+      return 'image/gif';
+    case '.png':
+    default:
+      return 'image/png';
+  }
+}
+
 class _ApiAvatarUploadService implements AvatarUploadService {
   const _ApiAvatarUploadService({required AppDioClient appDioClient})
       : _appDioClient = appDioClient;
@@ -77,8 +97,8 @@ class _ApiAvatarUploadService implements AvatarUploadService {
             'avatar',
             await MultipartFile.fromFile(
               filePath,
-              filename: 'avatar.png',
-              contentType: DioMediaType.parse('image/png'),
+              filename: 'avatar${p.extension(filePath)}',
+              contentType: DioMediaType.parse(_mimeTypeForFile(filePath)),
             ),
           ),
         );

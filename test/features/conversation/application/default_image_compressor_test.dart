@@ -78,6 +78,24 @@ void main() {
       expect(call.minHeight, 1920);
     });
 
+    test('compress does not upscale tiny images (#722)', () async {
+      const compressor = DefaultImageCompressor();
+
+      final tempDir = Directory.systemTemp.createTempSync('img_compress_');
+      final inputFile = File('${tempDir.path}/tiny.png');
+      inputFile.writeAsBytesSync(_png1x1());
+      addTearDown(() => tempDir.deleteSync(recursive: true));
+
+      final expectedOutput = '${tempDir.path}/tiny_compressed.png';
+      fakePlatform.compressAndGetFileResult = XFile(expectedOutput);
+
+      await compressor.compress(inputFile.path);
+
+      final call = fakePlatform.compressAndGetFileCalls.first;
+      expect(call.minWidth, 1);
+      expect(call.minHeight, 1);
+    });
+
     test('compress throws when platform returns null', () async {
       const compressor = DefaultImageCompressor();
 
@@ -116,6 +134,76 @@ void main() {
     });
   });
 }
+
+List<int> _png1x1() => const [
+      0x89,
+      0x50,
+      0x4E,
+      0x47,
+      0x0D,
+      0x0A,
+      0x1A,
+      0x0A,
+      0x00,
+      0x00,
+      0x00,
+      0x0D,
+      0x49,
+      0x48,
+      0x44,
+      0x52,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+      0x01,
+      0x08,
+      0x06,
+      0x00,
+      0x00,
+      0x00,
+      0x1F,
+      0x15,
+      0xC4,
+      0x89,
+      0x00,
+      0x00,
+      0x00,
+      0x0D,
+      0x49,
+      0x44,
+      0x41,
+      0x54,
+      0x78,
+      0x9C,
+      0x63,
+      0x00,
+      0x01,
+      0x00,
+      0x00,
+      0x05,
+      0x00,
+      0x01,
+      0x0D,
+      0x0A,
+      0x2D,
+      0xB4,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x49,
+      0x45,
+      0x4E,
+      0x44,
+      0xAE,
+      0x42,
+      0x60,
+      0x82,
+    ];
 
 // ---------------------------------------------------------------------------
 // Fake platform implementation
