@@ -207,6 +207,7 @@ void main() {
         expect(midState.items, isEmpty,
             reason: 'Item must be optimistically removed before async '
                 'markThreadDone completes');
+        expect(midState.completingThreadIds, ['thread-ch-1']);
 
         // Complete the Completer with failure — triggers restore.
         completer.completeError(
@@ -222,6 +223,7 @@ void main() {
         expect(endState.failure, isNotNull,
             reason: 'Failure must be surfaced for UI feedback');
         expect(endState.failure, isA<ServerFailure>());
+        expect(endState.completingThreadIds, isEmpty);
       },
     );
 
@@ -250,6 +252,7 @@ void main() {
         expect(state.items, isEmpty,
             reason: 'Item must be permanently removed on success');
         expect(state.failure, isNull);
+        expect(state.completingThreadIds, isEmpty);
       },
     );
   });

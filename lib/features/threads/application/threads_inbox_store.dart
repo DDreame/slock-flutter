@@ -83,6 +83,10 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
           .where(
               (entry) => entry.routeTarget.threadChannelId != threadChannelId)
           .toList(growable: false),
+      completingThreadIds: [
+        ...state.completingThreadIds,
+        threadChannelId,
+      ],
       clearFailure: true,
     );
 
@@ -96,6 +100,12 @@ class ThreadsInboxStore extends AutoDisposeNotifier<ThreadsInboxState> {
       state = state.copyWith(
         items: previousItems,
         failure: failure,
+      );
+    } finally {
+      state = state.copyWith(
+        completingThreadIds: state.completingThreadIds
+            .where((id) => id != threadChannelId)
+            .toList(growable: false),
       );
     }
   }
