@@ -204,6 +204,7 @@ class OutboxStore extends Notifier<OutboxState> {
   int _consecutiveDrainFailures = 0;
   bool _drainBackoffActive = false;
   Timer? _drainBackoffTimer;
+  Timer? _drainRescheduleTimer;
   StreamSubscription<ConnectivityStatus>? _connectivitySub;
   final Map<String, OutboxDrainCallback> _drainCallbacks = {};
 
@@ -218,6 +219,7 @@ class OutboxStore extends Notifier<OutboxState> {
     ref.onDispose(() {
       _connectivitySub?.cancel();
       _drainBackoffTimer?.cancel();
+      _drainRescheduleTimer?.cancel();
     });
     // Drain any persisted outbox items on startup when already online.
     if (state.items.isNotEmpty) {
@@ -351,9 +353,15 @@ class OutboxStore extends Notifier<OutboxState> {
   ///
   /// Re-checks connectivity before each target to avoid wasting attempts
   /// after a mid-drain network drop (#708).
+  ///
+  /// Re-entrancy safe: concurrent calls are rejected while a drain is active.
+  /// After drain completes, re-schedules via Timer (not microtask) to yield
+  /// control to the UI event loop and prevent spin-loop (#752).
   Future<void> drainAll() async {
     if (_isDraining || _drainBackoffActive) return;
     _isDraining = true;
+    _drainRescheduleTimer?.cancel();
+    _drainRescheduleTimer = null;
     try {
       // Snapshot keys before iterating (state may mutate).
       final keys = state.items.keys.toList();
@@ -369,19 +377,30 @@ class OutboxStore extends Notifier<OutboxState> {
       }
     } finally {
       _isDraining = false;
-      // If still online with pending items, schedule a fresh drain to
-      // handle targets added/missed during this drain cycle (#717).
-      // Only re-check when pending items exist — failed-only queues must
-      // not trigger infinite self-spin.
-      final hasPending = state.items.values.any(
-          (list) => list.any((m) => m.status == OutboxMessageStatus.pending));
-      if (hasPending) {
-        final connectivity = ref.read(connectivityServiceProvider);
-        if (connectivity.isOnline) {
-          Future.microtask(() => drainAll());
-        }
-      }
+      // If still online with pending items, schedule a fresh drain via Timer
+      // to yield control to the event loop. This prevents a recursive
+      // microtask chain that would block the UI (#752).
+      _scheduleDrainIfNeeded();
     }
+  }
+
+  /// Schedule a drain pass via Timer if there are pending items and no
+  /// reschedule is already in flight. Uses 100ms delay to yield event loop.
+  void _scheduleDrainIfNeeded() {
+    if (_isDraining || _drainBackoffActive) return;
+    if (_drainRescheduleTimer != null) return; // already scheduled
+
+    final hasPending = state.items.values.any(
+        (list) => list.any((m) => m.status == OutboxMessageStatus.pending));
+    if (!hasPending) return;
+
+    final connectivity = ref.read(connectivityServiceProvider);
+    if (!connectivity.isOnline) return;
+
+    _drainRescheduleTimer = Timer(const Duration(milliseconds: 100), () {
+      _drainRescheduleTimer = null;
+      drainAll();
+    });
   }
 
   /// Clear all outbox items (memory + persistence).
@@ -412,9 +431,7 @@ class OutboxStore extends Notifier<OutboxState> {
     _drainBackoffTimer = Timer(_drainBackoffDuration, () {
       _drainBackoffActive = false;
       _consecutiveDrainFailures = 0;
-      if (ref.read(connectivityServiceProvider).isOnline) {
-        Future.microtask(() => drainAll());
-      }
+      _scheduleDrainIfNeeded();
     });
   }
 
