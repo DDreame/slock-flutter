@@ -30,6 +30,7 @@ import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
 import 'package:slock_app/features/members/presentation/page/members_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
+import 'package:slock_app/features/profile/presentation/page/profile_edit_page.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/release_notes/presentation/page/release_notes_page.dart';
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
@@ -497,6 +498,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           name: state.name ?? state.uri.path,
           child: const ProfilePage(),
+        ),
+      ),
+      GoRoute(
+        path: '/profile/edit',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          key: state.pageKey,
+          name: state.name ?? state.uri.path,
+          child: const ProfileEditPage(),
         ),
       ),
       GoRoute(

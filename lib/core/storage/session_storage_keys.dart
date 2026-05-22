@@ -6,8 +6,16 @@ abstract final class SessionStorageKeys {
   static const userId = 'session_user_id';
   static const displayName = 'session_display_name';
   static const avatarUrl = 'session_avatar_url';
+  static const bio = 'session_bio';
 
-  static const _all = [token, refreshToken, userId, displayName, avatarUrl];
+  static const _all = [
+    token,
+    refreshToken,
+    userId,
+    displayName,
+    avatarUrl,
+    bio,
+  ];
 
   static Future<void> clear(SecureStorage storage) async {
     for (final key in _all) {
