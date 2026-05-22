@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
+import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/data/audio_player_service.dart';
 
 void main() {
@@ -95,6 +96,54 @@ void main() {
       expect(first.state, AudioPlaybackState.paused);
       expect(second.playCount, 1);
       expect(second.state, AudioPlaybackState.playing);
+    });
+
+    testWidgets('cached waveform row read refreshes LRU recency',
+        (tester) async {
+      final container = ProviderContainer();
+      final subscription = container.listen(
+        voiceWaveformCacheProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        subscription.close();
+        container.dispose();
+      });
+      final notifier = container.read(voiceWaveformCacheProvider.notifier);
+      for (var i = 0; i < VoiceWaveformCacheNotifier.maxSize; i++) {
+        notifier.put('voice_$i.m4a', [i.toDouble()]);
+      }
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: Scaffold(
+              body: AttachmentSection(
+                attachments: [
+                  MessageAttachment(
+                    name: 'voice_0.m4a',
+                    type: 'audio/m4a',
+                    url: 'https://example.test/voice_0.m4a',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      notifier.put('voice_50.m4a', [50.0]);
+
+      final cache = container.read(voiceWaveformCacheProvider);
+      expect(cache, hasLength(VoiceWaveformCacheNotifier.maxSize));
+      expect(cache.containsKey('voice_0.m4a'), isTrue,
+          reason: 'Real audio row cache read must refresh recency');
+      expect(cache.containsKey('voice_1.m4a'), isFalse,
+          reason: 'The true LRU entry should be evicted instead');
+      expect(cache.containsKey('voice_50.m4a'), isTrue);
     });
   });
 }
