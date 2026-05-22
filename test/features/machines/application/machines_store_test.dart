@@ -102,6 +102,74 @@ void main() {
     expect(state().latestDaemonVersion, '1.3.0');
   });
 
+  test('non-AppFailure load resets status when diagnostics throws', () async {
+    container.dispose();
+    fakeRepository = _FakeMachinesRepository()
+      ..failure = StateError('unexpected machine load failure');
+    container = ProviderContainer(
+      overrides: [
+        currentMachinesServerIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        machinesRepositoryProvider.overrideWithValue(fakeRepository),
+        diagnosticsCollectorProvider
+            .overrideWithValue(_ThrowingDiagnosticsCollector()),
+      ],
+    );
+
+    await store().load();
+
+    expect(state().status, MachinesStatus.failure);
+    expect(state().failure, isA<UnknownFailure>());
+  });
+
+  test('non-AppFailure register rename delete reset guard flags', () async {
+    fakeRepository.snapshot = const MachinesSnapshot(
+      items: [MachineItem(id: 'machine-1', name: 'Builder')],
+    );
+    await store().load();
+
+    fakeRepository.failure = StateError('unexpected machine mutation failure');
+
+    await expectLater(
+      store().registerMachine(name: 'Runner'),
+      throwsA(isA<UnknownFailure>()),
+    );
+    expect(state().isCreating, isFalse);
+    expect(state().failure, isA<UnknownFailure>());
+
+    await expectLater(
+      store().renameMachine('machine-1', name: 'Renamed'),
+      throwsA(isA<UnknownFailure>()),
+    );
+    expect(state().isRenaming('machine-1'), isFalse);
+    expect(state().failure, isA<UnknownFailure>());
+
+    await expectLater(
+      store().deleteMachine('machine-1'),
+      throwsA(isA<UnknownFailure>()),
+    );
+    expect(state().isDeleting('machine-1'), isFalse);
+    expect(state().failure, isA<UnknownFailure>());
+  });
+
+  test('non-AppFailure rotate resets guard flag', () async {
+    fakeRepository.snapshot = const MachinesSnapshot(
+      items: [MachineItem(id: 'machine-1', name: 'Builder')],
+    );
+    await store().load();
+
+    fakeRepository.failure = StateError('unexpected rotate failure');
+
+    await expectLater(
+      store().rotateMachineApiKey('machine-1'),
+      throwsA(isA<UnknownFailure>()),
+    );
+
+    expect(state().isRotatingKey('machine-1'), isFalse);
+    expect(state().failure, isA<UnknownFailure>());
+  });
+
   test('load failure sets failure state', () async {
     fakeRepository.failure = const UnknownFailure(
       message: 'Machines failed',
@@ -121,7 +189,7 @@ class _FakeMachinesRepository implements MachinesRepository {
     machine: MachineItem(id: 'machine-2', name: 'Runner'),
     apiKey: 'sk-machine-2-secret',
   );
-  AppFailure? failure;
+  Object? failure;
   final List<String> registerNames = [];
   final List<(String, String)> renameRequests = [];
   final List<String> rotatedMachineIds = [];
@@ -175,4 +243,11 @@ class _FakeMachinesRepository implements MachinesRepository {
   @override
   Future<void> deleteWorkspace(String machineId,
       {required String workspaceId}) async {}
+}
+
+class _ThrowingDiagnosticsCollector extends DiagnosticsCollector {
+  @override
+  void error(String tag, String message, {Map<String, dynamic>? metadata}) {
+    throw StateError('Diagnostics collector crash: $message');
+  }
 }

@@ -74,6 +74,24 @@ class AgentsStore extends Notifier<AgentsState> {
           failure: failure,
         );
       }
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'AgentsStore.load',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to load agents.',
+      );
+      if (hasStaleData) {
+        state = state.copyWith(isRefreshing: false, failure: failure);
+      } else {
+        state = state.copyWith(
+          status: AgentsStatus.failure,
+          failure: failure,
+        );
+      }
     }
   }
 
@@ -93,6 +111,18 @@ class AgentsStore extends Notifier<AgentsState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(isCreating: false, failure: failure);
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'AgentsStore.createAgent',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to create agent.',
+      );
+      state = state.copyWith(isCreating: false, failure: failure);
+      throw failure;
     }
   }
 
@@ -128,6 +158,21 @@ class AgentsStore extends Notifier<AgentsState> {
         failure: failure,
       );
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'AgentsStore.updateAgent',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to update agent.',
+      );
+      state = state.copyWith(
+        savingAgentIds: {...state.savingAgentIds}..remove(agentId),
+        failure: failure,
+      );
+      throw failure;
     }
   }
 
@@ -157,6 +202,21 @@ class AgentsStore extends Notifier<AgentsState> {
         failure: failure,
       );
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'AgentsStore.deleteAgent',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to delete agent.',
+      );
+      state = state.copyWith(
+        deletingAgentIds: {...state.deletingAgentIds}..remove(agentId),
+        failure: failure,
+      );
+      throw failure;
     }
   }
 
@@ -361,6 +421,27 @@ class AgentsStore extends Notifier<AgentsState> {
       state.activityLogs.entries.where(
         (entry) => allowedAgentIds.contains(entry.key),
       ),
+    );
+  }
+
+  void _captureUnexpectedError(
+    Object error,
+    StackTrace stackTrace, {
+    required String operation,
+  }) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'AgentsStore',
+        '$operation failed: $error',
+        metadata: {'stackTrace': stackTrace.toString()},
+      );
+    } catch (_) {}
+  }
+
+  AppFailure _unexpectedFailure(Object error, {required String message}) {
+    return UnknownFailure(
+      message: message,
+      causeType: error.runtimeType.toString(),
     );
   }
 }

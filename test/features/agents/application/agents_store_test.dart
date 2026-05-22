@@ -154,6 +154,78 @@ void main() {
       expect(fakeRepo.deletedAgentIds, ['a1']);
     });
 
+    test('non-AppFailure create/update/delete reset guard flags', () async {
+      fakeRepo.listResult = [makeAgent(id: 'a1', name: 'Alpha')];
+      await store().load();
+
+      fakeRepo.thrownError = StateError('unexpected agent mutation failure');
+
+      await expectLater(
+        store().createAgent(
+          const AgentMutationInput(
+            name: 'Builder',
+            description: 'Build specialist',
+            model: 'gpt-5.4',
+            runtime: 'codex',
+            machineId: 'machine-1',
+          ),
+        ),
+        throwsA(isA<UnknownFailure>()),
+      );
+      expect(state().isCreating, isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+
+      await expectLater(
+        store().updateAgent(
+          'a1',
+          const AgentMutationInput(
+            name: 'Alpha Prime',
+            description: '',
+            model: 'sonnet',
+            runtime: 'claude',
+            machineId: 'machine-1',
+          ),
+        ),
+        throwsA(isA<UnknownFailure>()),
+      );
+      expect(state().isSaving('a1'), isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+
+      await expectLater(
+        store().deleteAgent('a1'),
+        throwsA(isA<UnknownFailure>()),
+      );
+      expect(state().isDeleting('a1'), isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
+    test('non-AppFailure load resets refresh when diagnostics throws',
+        () async {
+      sub.close();
+      container.dispose();
+
+      fakeRepo = _FakeAgentsRepository();
+      container = ProviderContainer(
+        overrides: [
+          agentsRepositoryProvider.overrideWithValue(fakeRepo),
+          agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+          diagnosticsCollectorProvider
+              .overrideWithValue(_ThrowingDiagnosticsCollector()),
+        ],
+      );
+      sub = container.listen(agentsStoreProvider, (_, __) {});
+
+      fakeRepo.listResult = [makeAgent(id: 'a1', name: 'Alpha')];
+      await store().load();
+
+      fakeRepo.thrownError = StateError('unexpected agent load failure');
+      await store().load();
+
+      expect(state().status, AgentsStatus.success);
+      expect(state().isRefreshing, isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
     test('startAgent optimistically updates then confirms', () async {
       fakeRepo.listResult = [
         makeAgent(id: 'a1', status: 'stopped', activity: 'offline'),
@@ -433,12 +505,14 @@ class _FakeAgentsRepository
   List<AgentActivityLogEntry>? activityLogResult;
   bool shouldFail = false;
   bool activityLogShouldFail = false;
+  Object? thrownError;
   final List<AgentMutationInput> createRequests = [];
   final List<(String, AgentMutationInput)> updateRequests = [];
   final List<String> deletedAgentIds = [];
 
   @override
   Future<List<AgentItem>> listAgents() async {
+    if (thrownError != null) throw thrownError!;
     if (shouldFail) {
       throw const UnknownFailure(message: 'Load failed', causeType: 'test');
     }
@@ -447,6 +521,7 @@ class _FakeAgentsRepository
 
   @override
   Future<AgentItem> createAgent(AgentMutationInput input) async {
+    if (thrownError != null) throw thrownError!;
     if (shouldFail) {
       throw const UnknownFailure(message: 'Create failed', causeType: 'test');
     }
@@ -470,6 +545,7 @@ class _FakeAgentsRepository
     String agentId,
     AgentMutationInput input,
   ) async {
+    if (thrownError != null) throw thrownError!;
     if (shouldFail) {
       throw const UnknownFailure(message: 'Update failed', causeType: 'test');
     }
@@ -490,6 +566,7 @@ class _FakeAgentsRepository
 
   @override
   Future<void> deleteAgent(String agentId) async {
+    if (thrownError != null) throw thrownError!;
     if (shouldFail) {
       throw const UnknownFailure(message: 'Delete failed', causeType: 'test');
     }
@@ -529,5 +606,12 @@ class _FakeAgentsRepository
       );
     }
     return activityLogResult ?? [];
+  }
+}
+
+class _ThrowingDiagnosticsCollector extends DiagnosticsCollector {
+  @override
+  void error(String tag, String message, {Map<String, dynamic>? metadata}) {
+    throw StateError('Diagnostics collector crash: $message');
   }
 }
