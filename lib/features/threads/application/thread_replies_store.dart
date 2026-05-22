@@ -86,6 +86,24 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
         status: ThreadRepliesStatus.failure,
         failure: failure,
       );
+    } catch (e, st) {
+      if (ref.read(currentThreadRouteTargetProvider) != routeTarget) {
+        return;
+      }
+      try {
+        ref.read(diagnosticsCollectorProvider).error(
+          'ThreadRepliesStore',
+          'load failed: $e',
+          metadata: {'stackTrace': st.toString()},
+        );
+      } catch (_) {}
+      state = state.copyWith(
+        status: ThreadRepliesStatus.failure,
+        failure: UnknownFailure(
+          message: 'Failed to load thread.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
     }
   }
 
