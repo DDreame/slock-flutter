@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/application/agents_state.dart';
@@ -11,6 +13,10 @@ final agentsStoreProvider =
 
 class AgentsStore extends Notifier<AgentsState> {
   static const _maxActivityLogEntries = 200;
+
+  /// Completer-based guard for ensureLoaded — prevents concurrent
+  /// callers from each firing a separate load() call (#726).
+  Completer<void>? _ensureLoadedCompleter;
 
   @override
   AgentsState build() {
@@ -290,9 +296,22 @@ class AgentsStore extends Notifier<AgentsState> {
   /// Idempotent load trigger — only fires [load] when the store has not yet
   /// loaded (status == initial). Safe to call from multiple entry points
   /// (initState, ref.listen callbacks) without risking duplicate requests.
-  void ensureLoaded() {
-    if (state.status == AgentsStatus.initial) {
-      load();
+  ///
+  /// Uses a Completer guard so concurrent callers await the same in-flight
+  /// load rather than each spawning their own (#726).
+  Future<void> ensureLoaded() async {
+    if (state.status != AgentsStatus.initial) return;
+    if (_ensureLoadedCompleter != null) {
+      return _ensureLoadedCompleter!.future;
+    }
+    _ensureLoadedCompleter = Completer<void>();
+    try {
+      await load();
+      _ensureLoadedCompleter!.complete();
+    } catch (e, s) {
+      _ensureLoadedCompleter!.completeError(e, s);
+    } finally {
+      _ensureLoadedCompleter = null;
     }
   }
 

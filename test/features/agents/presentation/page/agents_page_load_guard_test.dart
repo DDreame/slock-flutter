@@ -46,7 +46,7 @@ class _TrackingAgentsStore extends AgentsStore {
 
   /// Overrides the real ensureLoaded so we can track calls through loadCallCount.
   @override
-  void ensureLoaded() {
+  Future<void> ensureLoaded() async {
     if (state.status == AgentsStatus.initial) {
       load();
     }

@@ -46,7 +46,7 @@ class _FakeAgentsStore extends AgentsStore {
   }
 
   @override
-  void ensureLoaded() {
+  Future<void> ensureLoaded() async {
     if (state.status == AgentsStatus.initial) {
       load();
     }
