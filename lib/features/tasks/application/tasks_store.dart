@@ -137,6 +137,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     } on AppFailure {
       state = state.copyWith(items: previousItems);
       rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('updateTaskStatus', e, st);
+      state = state.copyWith(items: previousItems);
+      rethrow;
     }
   }
 
@@ -151,6 +155,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       final repo = ref.read(tasksRepositoryProvider);
       await repo.deleteTask(serverId, taskId: taskId);
     } on AppFailure {
+      state = state.copyWith(items: previousItems);
+      rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('deleteTask', e, st);
       state = state.copyWith(items: previousItems);
       rethrow;
     }
@@ -184,6 +192,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     } on AppFailure {
       state = state.copyWith(items: previousItems);
       rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('claimTask', e, st);
+      state = state.copyWith(items: previousItems);
+      rethrow;
     }
   }
 
@@ -205,6 +217,10 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         items: state.items.map((t) => t.id == taskId ? updated : t).toList(),
       );
     } on AppFailure {
+      state = state.copyWith(items: previousItems);
+      rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('unclaimTask', e, st);
       state = state.copyWith(items: previousItems);
       rethrow;
     }

@@ -40,6 +40,15 @@ class ServerListStore extends Notifier<ServerListState> {
         status: ServerListStatus.failure,
         failure: failure,
       );
+    } catch (e, st) {
+      _reportUnexpectedError('load', e, st);
+      state = state.copyWith(
+        status: ServerListStatus.failure,
+        failure: UnknownFailure(
+          message: 'Failed to load workspaces.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
     }
   }
 

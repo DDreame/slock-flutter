@@ -97,6 +97,15 @@ class TranslationSettingsStore
         status: TranslationSettingsStatus.failure,
         failure: failure,
       );
+    } catch (e, st) {
+      _reportUnexpectedError('load', e, st);
+      state = state.copyWith(
+        status: TranslationSettingsStatus.failure,
+        failure: UnknownFailure(
+          message: 'Failed to load translation settings.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
     }
   }
 
@@ -129,6 +138,24 @@ class TranslationSettingsStore
     } on AppFailure catch (failure) {
       // Revert on failure.
       state = previous.copyWith(failure: failure);
+    } catch (e, st) {
+      _reportUnexpectedError('update', e, st);
+      state = previous.copyWith(
+        failure: UnknownFailure(
+          message: 'Failed to update translation settings.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
     }
+  }
+
+  void _reportUnexpectedError(String method, Object error, StackTrace st) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'TranslationSettingsStore',
+        '$method failed: $error',
+        metadata: {'stackTrace': st.toString()},
+      );
+    } catch (_) {}
   }
 }
