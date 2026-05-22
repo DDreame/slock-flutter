@@ -85,21 +85,31 @@ class MessageExportService {
     }
   }
 
-  /// Deletes any leftover `slock_export_*.png` files from previous exports.
+  /// Deletes any leftover `slock_export_*.png` files from previous exports
+  /// that are older than [minAge].
   ///
   /// Called at the start of each new export to prevent unbounded disk usage
-  /// while keeping the current file alive for the share sheet (#741).
+  /// while keeping recent files alive for share sheet consumers (#741).
+  /// Files younger than [minAge] are preserved to avoid deleting a file that
+  /// a mobile share target may still be reading.
   @visibleForTesting
-  static void cleanupPreviousExportFiles() {
+  static void cleanupPreviousExportFiles({
+    Duration minAge = const Duration(seconds: 60),
+  }) {
     try {
       final dir = Directory.systemTemp;
+      final now = DateTime.now();
       final entries = dir.listSync();
       for (final entry in entries) {
         if (entry is File &&
             entry.path.contains('slock_export_') &&
             entry.path.endsWith('.png')) {
           try {
-            entry.deleteSync();
+            final stat = entry.statSync();
+            final age = now.difference(stat.modified);
+            if (age >= minAge) {
+              entry.deleteSync();
+            }
           } catch (_) {
             // Best-effort — file may be locked by share sheet.
           }

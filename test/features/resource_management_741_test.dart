@@ -137,6 +137,49 @@ void main() {
             reason: '#741: Failed downloads must not be re-enqueued');
       });
     });
+
+    test('retry timer cancelled when item scrolls offscreen during backoff',
+        () {
+      fakeAsync((async) {
+        var attempts = 0;
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        container.listen(downloadSchedulerProvider, (_, __) {});
+
+        final scheduler = container.read(downloadSchedulerProvider.notifier);
+        scheduler.enqueue('dl-vis', () async {
+          attempts++;
+          throw StateError('transient');
+        });
+        scheduler.onVisibilityChanged('dl-vis', true);
+
+        // Attempt 1 fires immediately.
+        async.flushMicrotasks();
+        expect(attempts, 1);
+
+        // Item scrolls offscreen during the backoff window.
+        scheduler.onVisibilityChanged('dl-vis', false);
+
+        // Advance past the retry timer (1s) — should NOT fire.
+        async.elapse(const Duration(seconds: 2));
+        async.flushMicrotasks();
+        expect(attempts, 1,
+            reason: '#741: Retry must not fire after item scrolls offscreen');
+
+        // Verify item is in deferred queue, not visible/in-flight.
+        final state = container.read(downloadSchedulerProvider);
+        expect(state.deferred, contains('dl-vis'));
+        expect(state.inFlight, isEmpty);
+        expect(state.pending, isEmpty);
+
+        // Re-promote: item becomes visible again → retry fires.
+        scheduler.onVisibilityChanged('dl-vis', true);
+        async.flushMicrotasks();
+        expect(attempts, 2,
+            reason:
+                '#741: Re-visible item should resume retry from visible queue');
+      });
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -210,35 +253,85 @@ void main() {
   // C. MessageExportService temp file lifetime
   // ---------------------------------------------------------------------------
   group('#741C — MessageExportService temp file survives share sheet', () {
-    test('cleanupPreviousExportFiles removes old slock_export_*.png files', () {
+    test('cleanupPreviousExportFiles only removes files older than minAge', () {
       final dir = Directory.systemTemp;
+
+      // Create an "old" file and backdate its modified time.
       final oldFile = File('${dir.path}/slock_export_99999.png');
       oldFile.writeAsStringSync('old export');
+      // Touch to set modified time 2 minutes ago.
+      oldFile.setLastModifiedSync(
+        DateTime.now().subtract(const Duration(minutes: 2)),
+      );
       addTearDown(() {
         if (oldFile.existsSync()) oldFile.deleteSync();
       });
 
-      final anotherOld = File('${dir.path}/slock_export_88888.png');
-      anotherOld.writeAsStringSync('another old export');
+      // Create a "recent" file (just created — age < 60s).
+      final recentFile = File('${dir.path}/slock_export_88888.png');
+      recentFile.writeAsStringSync('recent export');
       addTearDown(() {
-        if (anotherOld.existsSync()) anotherOld.deleteSync();
+        if (recentFile.existsSync()) recentFile.deleteSync();
       });
 
-      // Non-export files should NOT be deleted.
+      // Non-export files should NOT be deleted regardless of age.
       final unrelated = File('${dir.path}/other_file.png');
       unrelated.writeAsStringSync('unrelated');
       addTearDown(() {
         if (unrelated.existsSync()) unrelated.deleteSync();
       });
 
+      // Cleanup with default 60s threshold.
       MessageExportService.cleanupPreviousExportFiles();
 
       expect(oldFile.existsSync(), isFalse,
-          reason: '#741: Old export files must be cleaned up');
-      expect(anotherOld.existsSync(), isFalse,
-          reason: '#741: All old export files must be cleaned up');
+          reason: '#741: Export files older than minAge must be cleaned up');
+      expect(recentFile.existsSync(), isTrue,
+          reason:
+              '#741: Recent export files must survive (share sheet may still be reading)');
       expect(unrelated.existsSync(), isTrue,
           reason: '#741: Non-export files must not be deleted');
+    });
+
+    test(
+        'second export does not delete first file while share sheet may read it',
+        () {
+      // This is the exact regression A1 requested: two consecutive exports
+      // where the second starts while the first file is recent.
+      final dir = Directory.systemTemp;
+
+      // Simulate first export file (just created — fresh).
+      final firstExport = File('${dir.path}/slock_export_11111.png');
+      firstExport.writeAsStringSync('first export data');
+      addTearDown(() {
+        if (firstExport.existsSync()) firstExport.deleteSync();
+      });
+
+      // Simulate second export starting: cleanup runs but must NOT delete
+      // the first file because it's less than 60 seconds old.
+      MessageExportService.cleanupPreviousExportFiles();
+
+      expect(firstExport.existsSync(), isTrue,
+          reason: '#741: Recent export file must survive second export cleanup '
+              '(mobile share target may still be consuming it)');
+    });
+
+    test('cleanup with minAge: zero removes all export files (test utility)',
+        () {
+      final dir = Directory.systemTemp;
+      final file = File('${dir.path}/slock_export_77777.png');
+      file.writeAsStringSync('test');
+      addTearDown(() {
+        if (file.existsSync()) file.deleteSync();
+      });
+
+      // With minAge: zero, even brand-new files are deleted.
+      MessageExportService.cleanupPreviousExportFiles(
+        minAge: Duration.zero,
+      );
+
+      expect(file.existsSync(), isFalse,
+          reason: '#741: minAge: zero must delete all export files');
     });
 
     test('export file persists after share (no finally deletion)', () {
@@ -251,18 +344,18 @@ void main() {
       });
 
       // In the old code, the finally block would delete this file immediately
-      // after share returned. With #741 fix, the file persists until the NEXT
-      // export call cleans it up.
-      //
-      // Verify: the file still exists (not deleted by any automatic mechanism).
+      // after share returned. With #741 fix, the file persists.
       expect(exportFile.existsSync(), isTrue,
           reason:
               '#741: Export file must persist after share (share sheet may still be reading)');
 
-      // Now simulate the next export: cleanup should remove the old file.
+      // Backdate the file and verify cleanup now removes it.
+      exportFile.setLastModifiedSync(
+        DateTime.now().subtract(const Duration(minutes: 2)),
+      );
       MessageExportService.cleanupPreviousExportFiles();
       expect(exportFile.existsSync(), isFalse,
-          reason: '#741: Old file cleaned up on next export');
+          reason: '#741: Aged export file cleaned up on next export');
     });
   });
 }

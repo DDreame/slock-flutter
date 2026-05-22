@@ -151,6 +151,9 @@ class DownloadPriorityScheduler
         _visibleQueue.add(id);
       }
     } else {
+      // Cancel pending retry timer — item no longer visible (#741).
+      _retryTimers.remove(id)?.cancel();
+
       // Cancel if in-flight, move to deferred.
       if (_inFlight.contains(id)) {
         _inFlight.remove(id);
