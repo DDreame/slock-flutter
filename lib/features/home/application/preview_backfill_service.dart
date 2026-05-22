@@ -99,11 +99,21 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
   /// Maximum concurrent lazy-load API requests.
   int get maxConcurrent => 5;
 
+  static Completer<void>? _channelBackfillInFlight;
+
   /// Re-entrancy guard for DM backfill (#741).
   Completer<void>? _dmBackfillInFlight;
 
+  bool _disposed = false;
+
   @override
-  PreviewBackfillState build() => const PreviewBackfillState();
+  PreviewBackfillState build() {
+    _disposed = false;
+    ref.onDispose(() {
+      _disposed = true;
+    });
+    return const PreviewBackfillState();
+  }
 
   /// Run the backfill for [channels] with null lastMessagePreview.
   ///
@@ -115,17 +125,19 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
     List<HomeChannelSummary> channels, {
     Set<String> visibleChannelIds = const {},
   }) async {
-    // Guard: only one backfill pass at a time.
-    if (state.isRunning) return;
+    if (_channelBackfillInFlight != null) return;
 
     // Filter to only channels missing previews.
     final needsBackfill =
         channels.where((c) => c.lastMessagePreview == null).toList();
     if (needsBackfill.isEmpty) return;
 
-    state = PreviewBackfillState(
-      isRunning: true,
-      filled: Set<String>.of(state.filled),
+    _channelBackfillInFlight = Completer<void>();
+    _setBackfillState(
+      PreviewBackfillState(
+        isRunning: true,
+        filled: Set<String>.of(state.filled),
+      ),
     );
 
     final serverId = ref.read(activeServerScopeIdProvider);
@@ -249,8 +261,18 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
         await allDone.future;
       }
     } finally {
-      state = PreviewBackfillState(isRunning: false, filled: filled);
+      _setBackfillState(PreviewBackfillState(isRunning: false, filled: filled));
+      final completer = _channelBackfillInFlight;
+      _channelBackfillInFlight = null;
+      if (completer != null && !completer.isCompleted) {
+        completer.complete();
+      }
     }
+  }
+
+  void _setBackfillState(PreviewBackfillState nextState) {
+    if (_disposed) return;
+    state = nextState;
   }
 
   /// BUG-1 fix (#637): Backfill missing previews for DMs.

@@ -107,6 +107,7 @@ class AudioPlayerService implements AudioPlayerController {
   String? _currentPath;
   AudioPlaybackState _state = AudioPlaybackState.stopped;
   StreamSubscription<PlayerState>? _playerStateSub;
+  int _playbackGeneration = 0;
   final _stateController = StreamController<AudioPlaybackState>.broadcast();
 
   VoiceAudioPlayer get _lazyPlayer => _player ??= _JustAudioPlayerAdapter();
@@ -172,6 +173,7 @@ class AudioPlayerService implements AudioPlayerController {
   /// If a different file is already playing, it is stopped first.
   @override
   Future<void> play(String path) async {
+    final generation = ++_playbackGeneration;
     try {
       final player = _lazyPlayer;
       if (_currentPath != path) {
@@ -180,26 +182,37 @@ class AudioPlayerService implements AudioPlayerController {
         } else {
           await player.setFilePath(path);
         }
+        if (!_isCurrentPlayback(generation)) return;
         _currentPath = path;
       }
 
-      // Listen for completion to reset state.
-      await _playerStateSub?.cancel();
-      _playerStateSub = player.playerStateStream.listen((playerState) {
+      final previousSub = _playerStateSub;
+      _playerStateSub = null;
+      unawaited(_cancelPlayerStateSubscription(previousSub));
+
+      final subscription = player.playerStateStream.listen((playerState) {
+        if (!_isCurrentPlayback(generation)) return;
         final nextState = _mapPlayerState(playerState);
         _setState(nextState);
         if (playerState.processingState == ProcessingState.completed) {
           _setState(AudioPlaybackState.stopped);
-          unawaited(_resetCompletedPlayback(player));
+          unawaited(_resetCompletedPlayback(player, generation));
         }
       }, onError: (_) {
-        _setState(AudioPlaybackState.error);
+        if (_isCurrentPlayback(generation)) {
+          _setState(AudioPlaybackState.error);
+        }
       });
+      _playerStateSub = subscription;
 
       await player.play();
-      _setState(AudioPlaybackState.playing);
+      if (_isCurrentPlayback(generation)) {
+        _setState(AudioPlaybackState.playing);
+      }
     } catch (_) {
-      _setState(AudioPlaybackState.error);
+      if (_isCurrentPlayback(generation)) {
+        _setState(AudioPlaybackState.error);
+      }
     }
   }
 
@@ -253,7 +266,10 @@ class AudioPlayerService implements AudioPlayerController {
   @override
   Future<void> dispose() async {
     try {
-      await _playerStateSub?.cancel();
+      _playbackGeneration++;
+      final subscription = _playerStateSub;
+      _playerStateSub = null;
+      await _cancelPlayerStateSubscription(subscription);
       await _player?.dispose();
     } catch (_) {
       _setState(AudioPlaybackState.error);
@@ -274,12 +290,29 @@ class AudioPlayerService implements AudioPlayerController {
     }
   }
 
-  Future<void> _resetCompletedPlayback(VoiceAudioPlayer player) async {
+  bool _isCurrentPlayback(int generation) => _playbackGeneration == generation;
+
+  Future<void> _cancelPlayerStateSubscription(
+    StreamSubscription<PlayerState>? subscription,
+  ) async {
     try {
+      await subscription?.cancel();
+    } catch (_) {}
+  }
+
+  Future<void> _resetCompletedPlayback(
+    VoiceAudioPlayer player,
+    int generation,
+  ) async {
+    try {
+      if (!_isCurrentPlayback(generation)) return;
       await player.seek(Duration.zero);
+      if (!_isCurrentPlayback(generation)) return;
       await player.pause();
     } catch (_) {
-      _setState(AudioPlaybackState.error);
+      if (_isCurrentPlayback(generation)) {
+        _setState(AudioPlaybackState.error);
+      }
     }
   }
 
