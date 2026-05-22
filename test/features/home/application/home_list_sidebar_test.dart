@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -270,6 +272,54 @@ void main() {
     });
   });
 
+  group('moveChannel rollback', () {
+    test('failed concurrent persist does not clobber later reorder', () async {
+      final firstPersist = Completer<void>();
+      final secondPersist = Completer<void>();
+      final sidebarRepo = _FakeSidebarOrderRepository(
+        updateCompleters: [firstPersist, secondPersist],
+        failingUpdateCallIndexes: const {1},
+      );
+      final container = _buildContainer(
+        snapshot: _threeChannelSnapshot,
+        sidebarOrderRepository: sidebarRepo,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(homeListStoreProvider.notifier).load();
+      final store = container.read(homeListStoreProvider.notifier);
+
+      final firstMove = store.moveChannel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'beta',
+        ),
+        moveUp: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+      final secondMove = store.moveChannel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('server-1'),
+          value: 'gamma',
+        ),
+        moveUp: true,
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      firstPersist.complete();
+      await firstMove;
+      secondPersist.complete();
+      await secondMove;
+
+      final state = container.read(homeListStoreProvider);
+      expect(
+        state.channels.map((channel) => channel.name).toList(),
+        ['Beta', 'Gamma', 'Alpha'],
+      );
+      expect(sidebarRepo.patchCalls, 2);
+    });
+  });
+
   group('moveDirectMessage', () {
     test('updates direct message order and patches API', () async {
       final sidebarRepo = _FakeSidebarOrderRepository();
@@ -426,6 +476,34 @@ void main() {
   });
 }
 
+const _threeChannelSnapshot = HomeWorkspaceSnapshot(
+  serverId: ServerScopeId('server-1'),
+  channels: [
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'alpha',
+      ),
+      name: 'Alpha',
+    ),
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'beta',
+      ),
+      name: 'Beta',
+    ),
+    HomeChannelSummary(
+      scopeId: ChannelScopeId(
+        serverId: ServerScopeId('server-1'),
+        value: 'gamma',
+      ),
+      name: 'Gamma',
+    ),
+  ],
+  directMessages: [],
+);
+
 const _sampleSnapshot = HomeWorkspaceSnapshot(
   serverId: ServerScopeId('server-1'),
   channels: [
@@ -463,6 +541,7 @@ const _sampleSnapshot = HomeWorkspaceSnapshot(
 );
 
 ProviderContainer _buildContainer({
+  HomeWorkspaceSnapshot snapshot = _sampleSnapshot,
   SidebarOrder sidebarOrder = const SidebarOrder(),
   AppFailure? sidebarOrderFailure,
   _FakeSidebarOrderRepository? sidebarOrderRepository,
@@ -478,7 +557,7 @@ ProviderContainer _buildContainer({
         const ServerScopeId('server-1'),
       ),
       homeRepositoryProvider.overrideWithValue(
-        const _FakeHomeRepository(_sampleSnapshot),
+        _FakeHomeRepository(snapshot),
       ),
       sidebarOrderRepositoryProvider.overrideWithValue(sidebarRepo),
     ],
@@ -532,11 +611,15 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
     this.sidebarOrder = const SidebarOrder(),
     this.loadFailure,
     this.updateFailure,
+    this.updateCompleters = const [],
+    this.failingUpdateCallIndexes = const {},
   });
 
   final SidebarOrder sidebarOrder;
   final AppFailure? loadFailure;
   final AppFailure? updateFailure;
+  final List<Completer<void>> updateCompleters;
+  final Set<int> failingUpdateCallIndexes;
   int patchCalls = 0;
 
   @override
@@ -551,6 +634,14 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
     required Map<String, Object> patch,
   }) async {
     patchCalls++;
-    if (updateFailure != null) throw updateFailure!;
+    final completerIndex = patchCalls - 1;
+    if (completerIndex < updateCompleters.length) {
+      await updateCompleters[completerIndex].future;
+    }
+    if (updateFailure != null ||
+        failingUpdateCallIndexes.contains(patchCalls)) {
+      throw updateFailure ??
+          const ServerFailure(message: 'Failed', statusCode: 500);
+    }
   }
 }

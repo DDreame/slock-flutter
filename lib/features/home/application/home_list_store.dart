@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/data/agent_item.dart';
@@ -1149,10 +1150,11 @@ class HomeListStore extends Notifier<HomeListState> {
     bool includeHiddenDmIds = false,
     bool includePinnedAgentIds = false,
   }) async {
+    final attempted = _sidebarOrder;
     try {
       await ref.read(sidebarOrderRepositoryProvider).updateSidebarOrder(
             serverScopeId,
-            patch: _sidebarOrder.toPatchMap(
+            patch: attempted.toPatchMap(
               includeChannelOrder: includeChannelOrder,
               includeDmOrder: includeDmOrder,
               includePinnedChannelIds: includePinnedChannelIds,
@@ -1162,9 +1164,58 @@ class HomeListStore extends Notifier<HomeListState> {
             ),
           );
     } on AppFailure {
-      _sidebarOrder = previous;
+      _sidebarOrder = _rollbackSidebarOrder(
+        previous: previous,
+        attempted: attempted,
+        current: _sidebarOrder,
+        includeChannelOrder: includeChannelOrder,
+        includeDmOrder: includeDmOrder,
+        includePinnedChannelIds: includePinnedChannelIds,
+        includePinnedOrder: includePinnedOrder,
+        includeHiddenDmIds: includeHiddenDmIds,
+        includePinnedAgentIds: includePinnedAgentIds,
+      );
       _emitPersonalizedState();
     }
+  }
+
+  SidebarOrder _rollbackSidebarOrder({
+    required SidebarOrder previous,
+    required SidebarOrder attempted,
+    required SidebarOrder current,
+    required bool includeChannelOrder,
+    required bool includeDmOrder,
+    required bool includePinnedChannelIds,
+    required bool includePinnedOrder,
+    required bool includeHiddenDmIds,
+    required bool includePinnedAgentIds,
+  }) {
+    return SidebarOrder(
+      channelOrder: includeChannelOrder &&
+              listEquals(current.channelOrder, attempted.channelOrder)
+          ? previous.channelOrder
+          : current.channelOrder,
+      dmOrder: includeDmOrder && listEquals(current.dmOrder, attempted.dmOrder)
+          ? previous.dmOrder
+          : current.dmOrder,
+      pinnedChannelIds: includePinnedChannelIds &&
+              listEquals(current.pinnedChannelIds, attempted.pinnedChannelIds)
+          ? previous.pinnedChannelIds
+          : current.pinnedChannelIds,
+      pinnedOrder: includePinnedOrder &&
+              listEquals(current.pinnedOrder, attempted.pinnedOrder)
+          ? previous.pinnedOrder
+          : current.pinnedOrder,
+      hiddenDmIds: includeHiddenDmIds &&
+              listEquals(current.hiddenDmIds, attempted.hiddenDmIds)
+          ? previous.hiddenDmIds
+          : current.hiddenDmIds,
+      agentOrder: current.agentOrder,
+      pinnedAgentIds: includePinnedAgentIds &&
+              listEquals(current.pinnedAgentIds, attempted.pinnedAgentIds)
+          ? previous.pinnedAgentIds
+          : current.pinnedAgentIds,
+    );
   }
 }
 

@@ -11,10 +11,34 @@ final channelManagementStoreProvider = NotifierProvider.autoDispose<
 
 class ChannelManagementStore
     extends AutoDisposeNotifier<ChannelManagementState> {
+  Future<String>? _createInFlight;
+  final Set<String> _operationKeys = <String>{};
+
   @override
   ChannelManagementState build() => const ChannelManagementState();
 
   Future<String> createChannel(
+    String name, {
+    required ServerScopeId serverId,
+    String? description,
+    bool? isPrivate,
+  }) {
+    final inFlight = _createInFlight;
+    if (inFlight != null) {
+      return inFlight;
+    }
+
+    final future = _createChannel(
+      name,
+      serverId: serverId,
+      description: description,
+      isPrivate: isPrivate,
+    ).whenComplete(() => _createInFlight = null);
+    _createInFlight = future;
+    return future;
+  }
+
+  Future<String> _createChannel(
     String name, {
     required ServerScopeId serverId,
     String? description,
@@ -50,6 +74,19 @@ class ChannelManagementStore
     ChannelScopeId scopeId, {
     required String name,
   }) async {
+    final operationKey = 'edit:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return;
+    try {
+      await _renameChannel(scopeId, name: name);
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _renameChannel(
+    ChannelScopeId scopeId, {
+    required String name,
+  }) async {
     state = state.copyWith(
       activeAction: ChannelManagementAction.edit,
       channelId: scopeId.value,
@@ -74,6 +111,16 @@ class ChannelManagementStore
   }
 
   Future<void> deleteChannel(ChannelScopeId scopeId) async {
+    final operationKey = 'delete:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return;
+    try {
+      await _deleteChannel(scopeId);
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _deleteChannel(ChannelScopeId scopeId) async {
     state = state.copyWith(
       activeAction: ChannelManagementAction.delete,
       channelId: scopeId.value,
@@ -97,6 +144,16 @@ class ChannelManagementStore
   }
 
   Future<void> leaveChannel(ChannelScopeId scopeId) async {
+    final operationKey = 'leave:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return;
+    try {
+      await _leaveChannel(scopeId);
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _leaveChannel(ChannelScopeId scopeId) async {
     state = state.copyWith(
       activeAction: ChannelManagementAction.leave,
       channelId: scopeId.value,
