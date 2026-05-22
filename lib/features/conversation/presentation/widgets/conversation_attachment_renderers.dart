@@ -598,8 +598,9 @@ class _AudioAttachmentRow extends ConsumerStatefulWidget {
 }
 
 class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
+  late final AudioAttachmentPlayerPool _playerPool;
   late final AudioPlayerController _player;
-  late final StateController<AudioPlayerController?> _activePlayer;
+  late final String _audioKey;
   AudioPlaybackState _playbackState = AudioPlaybackState.stopped;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -613,8 +614,9 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
   @override
   void initState() {
     super.initState();
-    _player = ref.read(audioPlayerServiceFactoryProvider)();
-    _activePlayer = ref.read(activeAudioPlayerProvider.notifier);
+    _playerPool = ref.read(audioAttachmentPlayerPoolProvider.notifier);
+    _player = _playerPool.player;
+    _audioKey = widget.attachment.url ?? widget.attachment.name;
     _resolveWaveform();
   }
 
@@ -638,7 +640,7 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
     if (url == null) return;
     try {
       _ensureSubscriptions();
-      final duration = await _player.load(url);
+      final duration = await _playerPool.load(_audioKey, url);
       if (duration != null && mounted) {
         setState(() {
           _duration = duration;
@@ -672,15 +674,6 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
     _stateSub?.cancel();
     _positionSub?.cancel();
     _durationSub?.cancel();
-    try {
-      final activePlayer = _activePlayer.state;
-      if (identical(activePlayer, _player)) {
-        _activePlayer.state = null;
-      }
-    } catch (_) {
-      // ProviderScope may already be tearing down during widget disposal.
-    }
-    _player.dispose();
     super.dispose();
   }
 
@@ -689,6 +682,12 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
     _initialized = true;
     _stateSub = _player.stateStream.listen((s) {
       if (!mounted) return;
+      if (!_playerPool.isActive(_audioKey)) {
+        setState(() {
+          _playbackState = AudioPlaybackState.stopped;
+        });
+        return;
+      }
       setState(() {
         _playbackState = s;
         if (s != AudioPlaybackState.error) {
@@ -707,10 +706,14 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
       _showPlaybackError();
     });
     _positionSub = _player.positionStream.listen((p) {
-      if (mounted) setState(() => _position = p);
+      if (mounted && _playerPool.isActive(_audioKey)) {
+        setState(() => _position = p);
+      }
     });
     _durationSub = _player.durationStream.listen((d) {
-      if (mounted) setState(() => _duration = d);
+      if (mounted && _playerPool.isActive(_audioKey)) {
+        setState(() => _duration = d);
+      }
     });
   }
 
@@ -721,15 +724,13 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
     switch (_playbackState) {
       case AudioPlaybackState.stopped:
       case AudioPlaybackState.error:
-        await _pauseOtherActivePlayer();
-        await _player.play(url);
+        await _playerPool.play(_audioKey, url);
         _syncPlaybackResult();
       case AudioPlaybackState.playing:
-        await _player.pause();
+        await _playerPool.pause(_audioKey);
         _syncPlaybackResult();
       case AudioPlaybackState.paused:
-        await _pauseOtherActivePlayer();
-        await _player.resume();
+        await _playerPool.resume(_audioKey);
         _syncPlaybackResult();
     }
   }
@@ -739,15 +740,8 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
     final target = Duration(
       milliseconds: (_duration.inMilliseconds * fraction).round(),
     );
-    await _player.seek(target);
+    await _playerPool.seek(_audioKey, target);
     _syncPlaybackResult();
-  }
-
-  Future<void> _pauseOtherActivePlayer() async {
-    final activePlayer = _activePlayer.state;
-    if (activePlayer != null && !identical(activePlayer, _player)) {
-      await activePlayer.pause();
-    }
   }
 
   void _syncPlaybackResult() {
@@ -757,10 +751,9 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
       _playbackState = state;
       _hasPlaybackError = state == AudioPlaybackState.error;
     });
-    if (state == AudioPlaybackState.playing) {
-      _activePlayer.state = _player;
-    } else if (identical(_activePlayer.state, _player)) {
-      _activePlayer.state = null;
+    if (state != AudioPlaybackState.playing &&
+        state != AudioPlaybackState.paused) {
+      _playerPool.clearIfActive(_audioKey);
     }
     if (state == AudioPlaybackState.error) {
       _showPlaybackError();
@@ -777,6 +770,7 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(audioAttachmentPlayerPoolProvider);
     return SizedBox(
       width: 240,
       child: Stack(
