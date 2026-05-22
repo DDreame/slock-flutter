@@ -94,36 +94,48 @@ class BaseUrlSettingsStore extends Notifier<BaseUrlSettingsState> {
 
   // -- Connection tests -----------------------------------------------------
 
+  /// Re-entrancy guard — prevents multiple concurrent testConnection()
+  /// calls from overlapping (e.g. rapid taps). Only the first call
+  /// executes; subsequent calls while in-flight are dropped (#726).
+  bool _isTestingConnection = false;
+
   Future<void> testConnection() async {
-    state = state.copyWith(
-      isTesting: true,
-      clearApiTest: true,
-      clearRealtimeTest: true,
-    );
+    if (_isTestingConnection) return;
+    _isTestingConnection = true;
 
-    final tester = ref.read(baseUrlConnectionTesterProvider);
-    final api = state.settings.apiBaseUrl.trim();
-    final rt = state.settings.realtimeUrl.trim();
+    try {
+      state = state.copyWith(
+        isTesting: true,
+        clearApiTest: true,
+        clearRealtimeTest: true,
+      );
 
-    ConnectionTestResult? apiResult;
-    ConnectionTestResult? rtResult;
+      final tester = ref.read(baseUrlConnectionTesterProvider);
+      final api = state.settings.apiBaseUrl.trim();
+      final rt = state.settings.realtimeUrl.trim();
 
-    if (api.isNotEmpty) {
-      apiResult = await tester.testApi(api);
-    }
-    if (rt.isNotEmpty) {
-      final normalized = BaseUrlValidator.normalizeRealtimeUrl(rt);
-      if (normalized != null && normalized.isNotEmpty) {
-        rtResult = await tester.testRealtime(normalized);
-      } else {
-        rtResult = ConnectionTestResult.invalidUrl;
+      ConnectionTestResult? apiResult;
+      ConnectionTestResult? rtResult;
+
+      if (api.isNotEmpty) {
+        apiResult = await tester.testApi(api);
       }
-    }
+      if (rt.isNotEmpty) {
+        final normalized = BaseUrlValidator.normalizeRealtimeUrl(rt);
+        if (normalized != null && normalized.isNotEmpty) {
+          rtResult = await tester.testRealtime(normalized);
+        } else {
+          rtResult = ConnectionTestResult.invalidUrl;
+        }
+      }
 
-    state = state.copyWith(
-      apiTestResult: apiResult,
-      realtimeTestResult: rtResult,
-      isTesting: false,
-    );
+      state = state.copyWith(
+        apiTestResult: apiResult,
+        realtimeTestResult: rtResult,
+        isTesting: false,
+      );
+    } finally {
+      _isTestingConnection = false;
+    }
   }
 }
