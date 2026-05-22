@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -1099,70 +1100,87 @@ void main() {
       () async {
         SharedPreferences.setMockInitialValues({});
         final prefs = await SharedPreferences.getInstance();
-        final connectivityCtrl =
-            StreamController<ConnectivityStatus>.broadcast();
-        final connectivity = ConnectivityService.withInitialStatus(
-          ConnectivityStatus.online,
-          controller: connectivityCtrl,
-        );
-        final repo = _ControllableConversationRepository();
+        fakeAsync((fake) {
+          final connectivityCtrl =
+              StreamController<ConnectivityStatus>.broadcast();
+          final connectivity = ConnectivityService.withInitialStatus(
+            ConnectivityStatus.online,
+            controller: connectivityCtrl,
+          );
+          final repo = _ControllableConversationRepository();
 
-        final container = ProviderContainer(
-          overrides: [
-            currentConversationDetailTargetProvider.overrideWithValue(target),
-            conversationRepositoryProvider.overrideWithValue(repo),
-            imageCompressorProvider
-                .overrideWithValue(const _NoOpImageCompressor()),
-            connectivityServiceProvider.overrideWithValue(connectivity),
-            sharedPreferencesProvider.overrideWithValue(prefs),
-          ],
-        );
-        container.listen(conversationDetailStoreProvider, (_, __) {});
-        addTearDown(() async {
+          final container = ProviderContainer(
+            overrides: [
+              currentConversationDetailTargetProvider.overrideWithValue(target),
+              conversationRepositoryProvider.overrideWithValue(repo),
+              imageCompressorProvider
+                  .overrideWithValue(const _NoOpImageCompressor()),
+              connectivityServiceProvider.overrideWithValue(connectivity),
+              sharedPreferencesProvider.overrideWithValue(prefs),
+            ],
+          );
+          final sub =
+              container.listen(conversationDetailStoreProvider, (_, __) {});
+
+          container.read(conversationDetailStoreProvider.notifier).load();
+          fake.flushMicrotasks();
+          final store =
+              container.read(conversationDetailStoreProvider.notifier);
+
+          // Start a send with a controllable completer.
+          store.updateDraft('Timeout race');
+          repo.sendCompleter = Completer<ConversationMessageSummary>();
+          store.send();
+          fake.flushMicrotasks();
+
+          final localId = container
+              .read(conversationDetailStoreProvider)
+              .pendingMessages
+              .first
+              .localId;
+
+          fake.elapse(ConversationDetailStore.sendTimeoutDuration);
+          fake.flushMicrotasks();
+
+          expect(
+            container
+                .read(conversationDetailStoreProvider)
+                .pendingMessages
+                .first
+                .status,
+            MessageSendStatus.queued,
+            reason: 'Timer callback must transition the message to queued',
+          );
+          expect(repo.lastSendCancelToken, isNotNull);
+          expect(repo.lastSendCancelToken!.isCancelled, isTrue);
+
+          final targetKey = outboxTargetKey(target);
+          expect(
+            container.read(outboxStoreProvider).items[targetKey],
+            hasLength(1),
+            reason: 'Timer callback must enqueue the message in outbox',
+          );
+
+          // Now the original send completes successfully (late).
+          repo.sendCompleter!
+              .complete(_fakeMessage('msg-late', 'Timeout race'));
+          fake.flushMicrotasks();
+
+          // Success path should have removed the outbox entry.
+          final outboxEntries =
+              container.read(outboxStoreProvider).items[targetKey] ?? [];
+          expect(
+            outboxEntries.where((m) => m.localId == localId),
+            isEmpty,
+            reason: 'Outbox entry must be removed on late success '
+                'to prevent duplicate send',
+          );
+
+          sub.close();
           container.dispose();
-          await connectivityCtrl.close();
+          connectivityCtrl.close();
+          fake.flushMicrotasks();
         });
-
-        await container.read(conversationDetailStoreProvider.notifier).load();
-        final store = container.read(conversationDetailStoreProvider.notifier);
-
-        // Start a send with a controllable completer
-        store.updateDraft('Timeout race');
-        repo.sendCompleter = Completer<ConversationMessageSummary>();
-        final sendFuture = store.send();
-        await Future<void>.delayed(Duration.zero);
-
-        // Get the local ID
-        final localId = container
-            .read(conversationDetailStoreProvider)
-            .pendingMessages
-            .first
-            .localId;
-
-        // Simulate the timeout firing by directly calling the timeout logic.
-        // In production this happens after 30s; for testing we trigger it
-        // manually via the outbox enqueue + status transition.
-        final outbox = container.read(outboxStoreProvider.notifier);
-        outbox.enqueue(
-          target,
-          'Timeout race',
-          localId: localId,
-        );
-
-        // Now the original send completes successfully (late)
-        repo.sendCompleter!.complete(_fakeMessage('msg-late', 'Timeout race'));
-        await sendFuture;
-
-        // Success path should have removed the outbox entry
-        final outboxState = container.read(outboxStoreProvider);
-        final targetKey = outboxTargetKey(target);
-        final outboxEntries = outboxState.items[targetKey] ?? [];
-        expect(
-          outboxEntries.where((m) => m.localId == localId),
-          isEmpty,
-          reason: 'Outbox entry must be removed on late success '
-              'to prevent duplicate send',
-        );
       },
     );
   });
@@ -1285,6 +1303,7 @@ ConversationMessageSummary _fakeMessage(String id, String content) {
 class _ControllableConversationRepository implements ConversationRepository {
   Completer<ConversationMessageSummary>? sendCompleter;
   List<String>? lastSendAttachmentIds;
+  CancelToken? lastSendCancelToken;
   final List<String> sentContents = [];
 
   @override
@@ -1334,6 +1353,7 @@ class _ControllableConversationRepository implements ConversationRepository {
   }) {
     sentContents.add(content);
     lastSendAttachmentIds = attachmentIds;
+    lastSendCancelToken = cancelToken;
     if (sendCompleter != null) {
       return sendCompleter!.future;
     }
