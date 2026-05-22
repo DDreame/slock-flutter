@@ -1029,6 +1029,9 @@ class ConversationDetailStore
       final messages = List<ConversationMessageSummary>.of(state.messages);
       messages[index] = messages[index].copyWith(isDeleted: true);
       state = state.copyWith(messages: messages);
+      // Soft-delete preserves list indices — update cache identity to avoid
+      // O(n) rebuild on the next lookup (#769).
+      _cachedIndexMapMessageList = state.messages;
       _persistSession();
       unawaited(
         ref

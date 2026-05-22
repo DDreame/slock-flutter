@@ -5,14 +5,12 @@
 // A. _handleMessageDeleted uses _messageIndexMap for O(1) lookup
 // B. Index consistency after multiple deletions (head, middle, tail)
 // C. Stale index map gracefully handles concurrent list mutations
+// D. Sequential deletes maintain warm cache (no O(n) rebuild per delete)
 // =============================================================================
-
-import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
@@ -170,6 +168,62 @@ void main() {
       expect(state.messages[26].isDeleted, isFalse);
       expect(state.messages[48].isDeleted, isFalse);
       expect(state.messages.length, 50);
+    });
+
+    test('sequential deletes keep index map cache warm (no O(n) rebuild)',
+        () async {
+      final messages = generateMessages(100);
+      final repo = _FakeRepository(messages: messages);
+      final ingress = RealtimeReductionIngress();
+
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repo),
+          realtimeReductionIngressProvider.overrideWithValue(ingress),
+        ],
+      );
+      container.listen(conversationDetailStoreProvider, (_, __) {});
+      addTearDown(() async {
+        container.dispose();
+        await ingress.dispose();
+      });
+
+      await container.read(conversationDetailStoreProvider.notifier).load();
+
+      final store = container.read(conversationDetailStoreProvider.notifier);
+
+      // Warm the cache by accessing the index map.
+      expect(store.messageIndexMapForTesting.length, 100);
+      expect(store.isMessageIndexMapCacheWarm, isTrue);
+
+      // Delete first message.
+      ingress.accept(_deleteEvent('msg-10', target, seq: 200));
+      await Future<void>.delayed(Duration.zero);
+
+      // Cache must still be warm after delete (no rebuild needed).
+      expect(store.isMessageIndexMapCacheWarm, isTrue,
+          reason: 'Soft-delete preserves indices — cache should stay warm');
+
+      // Delete second message — should also keep cache warm.
+      ingress.accept(_deleteEvent('msg-50', target, seq: 201));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.isMessageIndexMapCacheWarm, isTrue,
+          reason: 'Sequential deletes must not invalidate the index map cache');
+
+      // Delete third message — still warm.
+      ingress.accept(_deleteEvent('msg-99', target, seq: 202));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(store.isMessageIndexMapCacheWarm, isTrue,
+          reason: 'Third sequential delete keeps cache warm');
+
+      // Verify correctness — all three deleted.
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.messages[10].isDeleted, isTrue);
+      expect(state.messages[50].isDeleted, isTrue);
+      expect(state.messages[99].isDeleted, isTrue);
     });
 
     test('deletion of already-deleted message is no-op', () async {
