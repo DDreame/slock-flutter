@@ -127,6 +127,21 @@ mixin _ConversationDetailCoreMixin
     return requestEpoch == (this as ConversationDetailStore)._requestEpoch &&
         ref.read(currentConversationDetailTargetProvider) == target;
   }
+
+  List<ConversationMessageSummary> _updateMessageById(
+    List<ConversationMessageSummary> messages,
+    String messageId,
+    ConversationMessageSummary Function(ConversationMessageSummary message)
+        update,
+  ) {
+    var changed = false;
+    final next = messages.map((message) {
+      if (message.id != messageId) return message;
+      changed = true;
+      return update(message);
+    }).toList(growable: false);
+    return changed ? next : messages;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -671,7 +686,7 @@ class ConversationDetailStore
     final index = state.messages.indexWhere((m) => m.id == messageId);
     if (index == -1) return;
 
-    final previousMessages = state.messages;
+    final previousContent = state.messages[index].content;
     final messages = List<ConversationMessageSummary>.of(state.messages);
     messages[index] = messages[index].copyWith(content: newContent);
     state = state.copyWith(messages: messages);
@@ -682,7 +697,13 @@ class ConversationDetailStore
       _persistSession();
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
-      state = state.copyWith(messages: previousMessages);
+      state = state.copyWith(
+        messages: _updateMessageById(
+          state.messages,
+          messageId,
+          (message) => message.copyWith(content: previousContent),
+        ),
+      );
       _persistSession();
       rethrow;
     }
@@ -695,7 +716,7 @@ class ConversationDetailStore
     final index = state.messages.indexWhere((m) => m.id == messageId);
     if (index == -1) return;
 
-    final previousMessages = state.messages;
+    final wasDeleted = state.messages[index].isDeleted;
     final messages = List<ConversationMessageSummary>.of(state.messages);
     messages[index] = messages[index].copyWith(isDeleted: true);
     state = state.copyWith(messages: messages);
@@ -706,7 +727,13 @@ class ConversationDetailStore
       _persistSession();
     } on AppFailure {
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
-      state = state.copyWith(messages: previousMessages);
+      state = state.copyWith(
+        messages: _updateMessageById(
+          state.messages,
+          messageId,
+          (message) => message.copyWith(isDeleted: wasDeleted),
+        ),
+      );
       _persistSession();
       rethrow;
     }
