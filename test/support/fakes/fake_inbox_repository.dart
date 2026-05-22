@@ -24,6 +24,7 @@ class FakeInboxRepository implements InboxRepository {
   InboxResponse fetchResponse;
   AppFailure? fetchFailure;
   AppFailure? markDoneFailure;
+  AppFailure? markAllReadFailure;
 
   /// When true, the next [fetchInbox] call throws [UnknownFailure] and
   /// resets this flag to false. Useful for testing one-shot failures
@@ -77,5 +78,6 @@ class FakeInboxRepository implements InboxRepository {
   @override
   Future<void> markAllRead(ServerScopeId serverId) async {
     markAllReadCalled = true;
+    if (markAllReadFailure != null) throw markAllReadFailure!;
   }
 }

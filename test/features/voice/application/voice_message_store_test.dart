@@ -167,5 +167,41 @@ void main() {
       expect(cache['voice_1.m4a'], [0.1, 0.2]);
       expect(cache['voice_2.m4a'], [0.8, 0.9]);
     });
+
+    test('evicts the least recently accessed waveform', () {
+      final notifier = container.read(voiceWaveformCacheProvider.notifier);
+      for (var i = 0; i < VoiceWaveformCacheNotifier.maxSize; i++) {
+        notifier.put('voice_$i.m4a', [i.toDouble()]);
+      }
+
+      expect(notifier.get('voice_0.m4a'), [0.0],
+          reason: 'Reading an entry must mark it as recently used');
+      notifier.put('voice_50.m4a', [50.0]);
+
+      final cache = container.read(voiceWaveformCacheProvider);
+      expect(cache, hasLength(VoiceWaveformCacheNotifier.maxSize));
+      expect(cache.containsKey('voice_0.m4a'), isTrue,
+          reason: 'Recently accessed waveform should survive eviction');
+      expect(cache.containsKey('voice_1.m4a'), isFalse,
+          reason: 'The oldest unaccessed waveform should be evicted first');
+      expect(cache.containsKey('voice_50.m4a'), isTrue);
+    });
+
+    test('updated waveform survives eviction as recently used', () {
+      final notifier = container.read(voiceWaveformCacheProvider.notifier);
+      for (var i = 0; i < VoiceWaveformCacheNotifier.maxSize; i++) {
+        notifier.put('voice_$i.m4a', [i.toDouble()]);
+      }
+
+      notifier.put('voice_0.m4a', [100.0]);
+      notifier.put('voice_50.m4a', [50.0]);
+
+      final cache = container.read(voiceWaveformCacheProvider);
+      expect(cache.containsKey('voice_0.m4a'), isTrue,
+          reason: 'Updating an existing waveform should refresh recency');
+      expect(cache['voice_0.m4a'], [100.0]);
+      expect(cache.containsKey('voice_1.m4a'), isFalse);
+      expect(cache.containsKey('voice_50.m4a'), isTrue);
+    });
   });
 }

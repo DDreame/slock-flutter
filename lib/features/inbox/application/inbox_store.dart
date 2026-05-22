@@ -324,6 +324,8 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
+    final previousState = state;
+
     // Optimistic: zero all unread counts and clear isMentioned.
     final updatedItems = state.items.map((item) {
       if (item.unreadCount > 0 || item.isMentioned) {
@@ -355,7 +357,7 @@ class InboxStore extends Notifier<InboxState> {
     try {
       await ref.read(inboxRepositoryProvider).markAllRead(serverId);
     } on AppFailure {
-      // Silently handle — refresh will correct state.
+      state = previousState;
     }
   }
 }

@@ -123,25 +123,57 @@ class VoiceMessageStore extends AutoDisposeNotifier<VoiceMessageState> {
 class VoiceWaveformCacheNotifier
     extends StateNotifier<Map<String, List<double>>> {
   VoiceWaveformCacheNotifier([Map<String, List<double>>? initialData])
-      : super(initialData ?? {});
+      : super(initialData ?? {}) {
+    for (final key in state.keys) {
+      _lastAccessByName[key] = _nextAccessTick();
+    }
+  }
 
   /// Maximum number of cached waveform entries.
   static const maxSize = 50;
 
+  final Map<String, int> _lastAccessByName = {};
+  int _accessClock = 0;
+
+  /// Read a cached waveform entry and mark it as recently used.
+  List<double>? get(String name) {
+    final samples = state[name];
+    if (samples == null) return null;
+    _touch(name);
+    return samples;
+  }
+
   /// Insert or update a waveform entry.
   ///
-  /// When the cache exceeds [maxSize], the oldest (first-inserted)
-  /// entries are evicted to keep memory bounded.
+  /// When the cache exceeds [maxSize], the least recently used entries
+  /// are evicted to keep memory bounded.
   void put(String name, List<double> samples) {
-    final updated = {...state, name: samples};
-    if (updated.length > maxSize) {
-      final excess = updated.length - maxSize;
-      final keysToRemove = updated.keys.take(excess).toList();
-      for (final key in keysToRemove) {
-        updated.remove(key);
-      }
-    }
+    final updated = Map<String, List<double>>.of(state);
+    updated[name] = samples;
+    _touch(name);
+    _evictLeastRecentlyUsed(updated);
     state = updated;
+  }
+
+  void _touch(String name) {
+    _lastAccessByName[name] = _nextAccessTick();
+  }
+
+  int _nextAccessTick() => ++_accessClock;
+
+  void _evictLeastRecentlyUsed(Map<String, List<double>> updated) {
+    if (updated.length <= maxSize) return;
+    final excess = updated.length - maxSize;
+    final keysToRemove = updated.keys.toList()
+      ..sort((a, b) {
+        final accessA = _lastAccessByName[a] ?? 0;
+        final accessB = _lastAccessByName[b] ?? 0;
+        return accessA.compareTo(accessB);
+      });
+    for (final key in keysToRemove.take(excess)) {
+      updated.remove(key);
+      _lastAccessByName.remove(key);
+    }
   }
 }
 

@@ -778,6 +778,49 @@ void main() {
         await fixture.dispose();
       }
     });
+
+    test('rolls back unread state when markAllRead API fails', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.inboxRepository.fetchResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            channelName: 'general',
+            unreadCount: 5,
+            firstUnreadMessageId: 'msg-1',
+            isMentioned: true,
+          ),
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-1',
+            channelName: 'Alice',
+            unreadCount: 2,
+            firstUnreadMessageId: 'msg-2',
+          ),
+        ],
+        totalCount: 2,
+        totalUnreadCount: 7,
+        hasMore: false,
+      );
+      fixture.inboxRepository.markAllReadFailure =
+          const NetworkFailure(message: 'offline');
+
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+        final before = fixture.container.read(inboxStoreProvider);
+
+        await fixture.container.read(inboxStoreProvider.notifier).markAllRead();
+
+        final after = fixture.container.read(inboxStoreProvider);
+        expect(after, before,
+            reason: 'API failure must restore unread counts, mention flags, '
+                'first unread ids, totals, and pagination state');
+      } finally {
+        await fixture.dispose();
+      }
+    });
   });
 
   group('pagination cursor after optimistic removal', () {

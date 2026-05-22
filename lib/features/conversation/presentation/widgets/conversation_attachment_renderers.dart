@@ -622,8 +622,9 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
   /// or load audio eagerly to derive duration-based waveform for received audio.
   void _resolveWaveform() {
     // Check cache for own recordings (real amplitudes from recording session).
-    final cache = ref.read(voiceWaveformCacheProvider);
-    final cached = cache[widget.attachment.name];
+    final cached = ref
+        .read(voiceWaveformCacheProvider.notifier)
+        .get(widget.attachment.name);
     if (cached != null && cached.isNotEmpty) {
       _waveform = cached;
       return;
