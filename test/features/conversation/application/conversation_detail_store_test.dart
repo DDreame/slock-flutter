@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -383,6 +384,87 @@ void main() {
     expect(state.hasOlder, isFalse);
     expect(state.historyLimited, isTrue);
     expect(repository.olderRequests, [3]);
+  });
+
+  test('loadOlder wraps unexpected errors and clears loading', () async {
+    final crashReporter = _RecordingCrashReporter();
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-3',
+            content: 'Newest loaded',
+            createdAt: DateTime.parse('2026-04-19T15:02:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 3,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: true,
+      ),
+      olderError: const FormatException('bad older page'),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        currentConversationDetailTargetProvider.overrideWithValue(target),
+        conversationRepositoryProvider.overrideWithValue(repository),
+        crashReporterProvider.overrideWithValue(crashReporter),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(conversationDetailStoreProvider.notifier).load();
+    await container.read(conversationDetailStoreProvider.notifier).loadOlder();
+
+    final state = container.read(conversationDetailStoreProvider);
+    expect(state.isLoadingOlder, isFalse);
+    expect(state.failure, isA<UnknownFailure>());
+    expect(state.failure?.causeType, 'unexpected_exception');
+    expect(crashReporter.errors.single, isA<FormatException>());
+    expect(repository.olderRequests, [3]);
+  });
+
+  test('loadOlder clears loading even when crash reporting throws', () async {
+    final crashReporter = _RecordingCrashReporter(throwOnCapture: true);
+    final repository = _FakeConversationRepository(
+      snapshot: ConversationDetailSnapshot(
+        target: target,
+        title: '#general',
+        messages: [
+          ConversationMessageSummary(
+            id: 'message-3',
+            content: 'Newest loaded',
+            createdAt: DateTime.parse('2026-04-19T15:02:00Z'),
+            senderType: 'human',
+            messageType: 'message',
+            seq: 3,
+          ),
+        ],
+        historyLimited: false,
+        hasOlder: true,
+      ),
+      olderError: const FormatException('bad older page'),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        currentConversationDetailTargetProvider.overrideWithValue(target),
+        conversationRepositoryProvider.overrideWithValue(repository),
+        crashReporterProvider.overrideWithValue(crashReporter),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(conversationDetailStoreProvider.notifier).load();
+    await container.read(conversationDetailStoreProvider.notifier).loadOlder();
+
+    final state = container.read(conversationDetailStoreProvider);
+    expect(state.isLoadingOlder, isFalse);
+    expect(state.failure, isA<UnknownFailure>());
+    expect(state.failure?.causeType, 'unexpected_exception');
+    expect(crashReporter.errors.single, isA<FormatException>());
   });
 
   test('ensureLoaded restores cached window without re-requesting', () async {
@@ -865,6 +947,160 @@ void main() {
       final state = container.read(conversationDetailStoreProvider);
       expect(state.isLoadingNewer, isFalse);
       expect(state.failure, failure);
+    });
+
+    test('wraps unexpected errors and clears loading', () async {
+      final crashReporter = _RecordingCrashReporter();
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerPages: {
+          1: ConversationMessagePage(
+            messages: [
+              ConversationMessageSummary(
+                id: 'message-2',
+                content: 'Second',
+                createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 2,
+              ),
+            ],
+            historyLimited: false,
+            hasOlder: false,
+            hasNewer: true,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+          crashReporterProvider.overrideWithValue(crashReporter),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub1 = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      sub1.close();
+      await Future<void>.delayed(Duration.zero);
+
+      container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(container.read(conversationDetailStoreProvider).hasNewer, isTrue);
+
+      repository.newerError = const FormatException('bad newer page');
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadNewer();
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.isLoadingNewer, isFalse);
+      expect(state.failure, isA<UnknownFailure>());
+      expect(state.failure?.causeType, 'unexpected_exception');
+      expect(crashReporter.errors.single, isA<FormatException>());
+      expect(repository.newerRequests, [1, 2]);
+    });
+
+    test('clears loading when loadNewer crash reporting throws', () async {
+      final crashReporter = _RecordingCrashReporter(throwOnCapture: true);
+      final repository = _FakeConversationRepository(
+        snapshot: ConversationDetailSnapshot(
+          target: target,
+          title: '#general',
+          messages: [
+            ConversationMessageSummary(
+              id: 'message-1',
+              content: 'First',
+              createdAt: DateTime.parse('2026-04-19T15:00:00Z'),
+              senderType: 'human',
+              messageType: 'message',
+              seq: 1,
+            ),
+          ],
+          historyLimited: false,
+          hasOlder: false,
+        ),
+        newerPages: {
+          1: ConversationMessagePage(
+            messages: [
+              ConversationMessageSummary(
+                id: 'message-2',
+                content: 'Second',
+                createdAt: DateTime.parse('2026-04-19T15:05:00Z'),
+                senderType: 'human',
+                messageType: 'message',
+                seq: 2,
+              ),
+            ],
+            historyLimited: false,
+            hasOlder: false,
+            hasNewer: true,
+          ),
+        },
+      );
+      final container = ProviderContainer(
+        overrides: [
+          currentConversationDetailTargetProvider.overrideWithValue(target),
+          conversationRepositoryProvider.overrideWithValue(repository),
+          conversationDetailSessionStoreProvider
+              .overrideWith(() => ConversationDetailSessionStore()),
+          crashReporterProvider.overrideWithValue(crashReporter),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final sub1 = container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await container.read(conversationDetailStoreProvider.notifier).load();
+      sub1.close();
+      await Future<void>.delayed(Duration.zero);
+
+      container.listen(
+        conversationDetailStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      repository.newerError = const FormatException('bad newer page');
+      await container
+          .read(conversationDetailStoreProvider.notifier)
+          .loadNewer();
+
+      final state = container.read(conversationDetailStoreProvider);
+      expect(state.isLoadingNewer, isFalse);
+      expect(state.failure, isA<UnknownFailure>());
+      expect(state.failure?.causeType, 'unexpected_exception');
+      expect(crashReporter.errors.single, isA<FormatException>());
     });
 
     test('guards: no-op when hasNewer is false', () async {
@@ -2728,12 +2964,44 @@ class _MutableFakeConversationRepository implements ConversationRepository {
   }) async {}
 }
 
+class _RecordingCrashReporter implements CrashReporter {
+  _RecordingCrashReporter({this.throwOnCapture = false});
+
+  final bool throwOnCapture;
+  final errors = <Object>[];
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  void captureException(
+    Object error, {
+    StackTrace? stackTrace,
+    Map<String, dynamic>? extra,
+  }) {
+    errors.add(error);
+    if (throwOnCapture) {
+      throw StateError('crash reporter failed');
+    }
+  }
+
+  @override
+  void captureFlutterError(FlutterErrorDetails details) {}
+
+  @override
+  void addBreadcrumb(Breadcrumb breadcrumb) {}
+
+  @override
+  void setUser(String? userId, {String? displayName}) {}
+}
+
 class _FakeConversationRepository implements ConversationRepository {
   _FakeConversationRepository({
     this.snapshot,
     this.failure,
     this.olderPages = const {},
     this.newerPages = const {},
+    this.olderError,
     this.newerFailure,
     this.sentMessage,
     this.sendFailure,
@@ -2747,7 +3015,9 @@ class _FakeConversationRepository implements ConversationRepository {
   final AppFailure? failure;
   final Map<int, ConversationMessagePage> olderPages;
   final Map<int, ConversationMessagePage> newerPages;
+  Object? olderError;
   AppFailure? newerFailure;
+  Object? newerError;
   final ConversationMessageSummary? sentMessage;
   final AppFailure? sendFailure;
   final AppFailure? deleteFailure;
@@ -2784,6 +3054,10 @@ class _FakeConversationRepository implements ConversationRepository {
     required int beforeSeq,
   }) async {
     olderRequests.add(beforeSeq);
+    final error = olderError;
+    if (error != null) {
+      throw error;
+    }
     return olderPages[beforeSeq]!;
   }
 
@@ -2795,6 +3069,10 @@ class _FakeConversationRepository implements ConversationRepository {
     newerRequests.add(afterSeq);
     if (newerFailure != null) {
       throw newerFailure!;
+    }
+    final error = newerError;
+    if (error != null) {
+      throw error;
     }
     return newerPages[afterSeq] ??
         const ConversationMessagePage(

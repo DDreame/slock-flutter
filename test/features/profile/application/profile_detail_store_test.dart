@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -244,6 +245,76 @@ void main() {
     expect(state.failure?.message, 'Profile failed');
   });
 
+  test('server-scoped unexpected load error sets failure state', () async {
+    final crashReporter = _RecordingCrashReporter();
+    final container = ProviderContainer(
+      overrides: [
+        currentProfileTargetProvider.overrideWithValue(
+          const ProfileTarget(
+            userId: 'other-456',
+            serverId: ServerScopeId('server-1'),
+          ),
+        ),
+        sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+        profileRepositoryProvider.overrideWithValue(
+          _FakeProfileRepository(
+            error: const FormatException('bad profile payload'),
+          ),
+        ),
+        crashReporterProvider.overrideWithValue(crashReporter),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(
+      container.read(profileDetailStoreProvider).status,
+      ProfileDetailStatus.loading,
+    );
+
+    await _flushMicrotasks();
+
+    final state = container.read(profileDetailStoreProvider);
+    expect(state.status, ProfileDetailStatus.failure);
+    expect(state.failure, isA<UnknownFailure>());
+    expect(state.failure?.causeType, 'unexpected_exception');
+    expect(crashReporter.errors.single, isA<FormatException>());
+  });
+
+  test('server-scoped load recovers when crash reporting throws', () async {
+    final crashReporter = _RecordingCrashReporter(throwOnCapture: true);
+    final container = ProviderContainer(
+      overrides: [
+        currentProfileTargetProvider.overrideWithValue(
+          const ProfileTarget(
+            userId: 'other-456',
+            serverId: ServerScopeId('server-1'),
+          ),
+        ),
+        sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
+        profileRepositoryProvider.overrideWithValue(
+          _FakeProfileRepository(
+            error: const FormatException('bad profile payload'),
+          ),
+        ),
+        crashReporterProvider.overrideWithValue(crashReporter),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    expect(
+      container.read(profileDetailStoreProvider).status,
+      ProfileDetailStatus.loading,
+    );
+
+    await _flushMicrotasks();
+
+    final state = container.read(profileDetailStoreProvider);
+    expect(state.status, ProfileDetailStatus.failure);
+    expect(state.failure, isA<UnknownFailure>());
+    expect(state.failure?.causeType, 'unexpected_exception');
+    expect(crashReporter.errors.single, isA<FormatException>());
+  });
+
   test('openDirectMessage uses member repository when server scoped', () async {
     final memberRepository = _FakeMemberRepository(channelId: 'dm-789');
     final container = ProviderContainer(
@@ -303,11 +374,43 @@ class _FakeSessionStore extends SessionStore {
       );
 }
 
+class _RecordingCrashReporter implements CrashReporter {
+  _RecordingCrashReporter({this.throwOnCapture = false});
+
+  final bool throwOnCapture;
+  final errors = <Object>[];
+
+  @override
+  Future<void> init() async {}
+
+  @override
+  void captureException(
+    Object error, {
+    StackTrace? stackTrace,
+    Map<String, dynamic>? extra,
+  }) {
+    errors.add(error);
+    if (throwOnCapture) {
+      throw StateError('crash reporter failed');
+    }
+  }
+
+  @override
+  void captureFlutterError(FlutterErrorDetails details) {}
+
+  @override
+  void addBreadcrumb(Breadcrumb breadcrumb) {}
+
+  @override
+  void setUser(String? userId, {String? displayName}) {}
+}
+
 class _FakeProfileRepository implements ProfileRepository {
-  _FakeProfileRepository({this.profile, this.failure});
+  _FakeProfileRepository({this.profile, this.failure, this.error});
 
   final MemberProfile? profile;
   final AppFailure? failure;
+  final Object? error;
   final List<(ServerScopeId, String)> requests = [];
 
   @override
@@ -318,6 +421,10 @@ class _FakeProfileRepository implements ProfileRepository {
     requests.add((serverId, userId));
     if (failure != null) {
       throw failure!;
+    }
+    final unexpectedError = error;
+    if (unexpectedError != null) {
+      throw unexpectedError;
     }
     return profile ?? MemberProfile(id: userId, displayName: userId);
   }
