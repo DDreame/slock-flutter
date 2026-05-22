@@ -138,8 +138,7 @@ void main() {
       });
     });
 
-    test('retry timer cancelled when item scrolls offscreen during backoff',
-        () {
+    test('retry waits while item stays offscreen during backoff', () {
       fakeAsync((async) {
         var attempts = 0;
         final container = ProviderContainer();
@@ -160,11 +159,11 @@ void main() {
         // Item scrolls offscreen during the backoff window.
         scheduler.onVisibilityChanged('dl-vis', false);
 
-        // Advance past the retry timer (1s) — should NOT fire.
+        // Advance past the retry backoff — should NOT fire while offscreen.
         async.elapse(const Duration(seconds: 2));
         async.flushMicrotasks();
         expect(attempts, 1,
-            reason: '#741: Retry must not fire after item scrolls offscreen');
+            reason: '#741: Retry must not fire while item is offscreen');
 
         // Verify item is in deferred queue, not visible/in-flight.
         final state = container.read(downloadSchedulerProvider);
@@ -172,12 +171,105 @@ void main() {
         expect(state.inFlight, isEmpty);
         expect(state.pending, isEmpty);
 
-        // Re-promote: item becomes visible again → retry fires.
+        // Re-promote after backoff elapsed: item becomes visible again → retry fires.
         scheduler.onVisibilityChanged('dl-vis', true);
         async.flushMicrotasks();
         expect(attempts, 2,
             reason:
                 '#741: Re-visible item should resume retry from visible queue');
+      });
+    });
+
+    test('re-visibility during active backoff does not retry immediately', () {
+      fakeAsync((async) {
+        var attempts = 0;
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        container.listen(downloadSchedulerProvider, (_, __) {});
+
+        final scheduler = container.read(downloadSchedulerProvider.notifier);
+        scheduler.enqueue('dl-backoff-visible', () async {
+          attempts++;
+          throw StateError('transient');
+        });
+        scheduler.onVisibilityChanged('dl-backoff-visible', true);
+
+        async.flushMicrotasks();
+        expect(attempts, 1);
+
+        scheduler.onVisibilityChanged('dl-backoff-visible', false);
+        async.elapse(const Duration(milliseconds: 500));
+        scheduler.onVisibilityChanged('dl-backoff-visible', true);
+        async.flushMicrotasks();
+
+        expect(attempts, 1,
+            reason:
+                '#756: Active backoff must block immediate re-visible retry');
+
+        async.elapse(const Duration(milliseconds: 500));
+        async.flushMicrotasks();
+        expect(attempts, 2,
+            reason: '#756: Retry should fire when original backoff elapses');
+      });
+    });
+
+    test('re-visibility after backoff elapsed retries immediately', () {
+      fakeAsync((async) {
+        var attempts = 0;
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        container.listen(downloadSchedulerProvider, (_, __) {});
+
+        final scheduler = container.read(downloadSchedulerProvider.notifier);
+        scheduler.enqueue('dl-backoff-elapsed', () async {
+          attempts++;
+          throw StateError('transient');
+        });
+        scheduler.onVisibilityChanged('dl-backoff-elapsed', true);
+
+        async.flushMicrotasks();
+        expect(attempts, 1);
+
+        scheduler.onVisibilityChanged('dl-backoff-elapsed', false);
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+        expect(attempts, 1,
+            reason: '#756: Backoff expiry must not retry while offscreen');
+
+        scheduler.onVisibilityChanged('dl-backoff-elapsed', true);
+        async.flushMicrotasks();
+        expect(attempts, 2,
+            reason: '#756: Expired backoff allows immediate visible retry');
+      });
+    });
+
+    test('successful retry clears pending backoff state', () {
+      fakeAsync((async) {
+        var attempts = 0;
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        container.listen(downloadSchedulerProvider, (_, __) {});
+
+        final scheduler = container.read(downloadSchedulerProvider.notifier);
+        scheduler.enqueue('dl-success-clear', () async {
+          attempts++;
+          if (attempts == 1) throw StateError('transient');
+        });
+        scheduler.onVisibilityChanged('dl-success-clear', true);
+
+        async.flushMicrotasks();
+        expect(attempts, 1);
+
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+        expect(attempts, 2);
+
+        async.elapse(const Duration(seconds: 10));
+        scheduler.onVisibilityChanged('dl-success-clear', true);
+        async.flushMicrotasks();
+
+        expect(attempts, 2,
+            reason: '#756: Success must clear retry timers/backoff state');
       });
     });
   });

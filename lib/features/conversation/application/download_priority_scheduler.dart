@@ -92,6 +92,9 @@ class DownloadPriorityScheduler
   /// Active retry timers (so they can be cancelled on dispose).
   final Map<String, Timer> _retryTimers = {};
 
+  /// Retry backoff expiry timestamp per download ID.
+  final Map<String, DateTime> _retryBackoffExpiresAt = {};
+
   /// Whether this notifier has been disposed.
   bool _disposed = false;
 
@@ -103,6 +106,7 @@ class DownloadPriorityScheduler
         timer.cancel();
       }
       _retryTimers.clear();
+      _retryBackoffExpiresAt.clear();
     });
     return const DownloadSchedulerState();
   }
@@ -149,15 +153,13 @@ class DownloadPriorityScheduler
     if (!_entries.containsKey(id)) return;
 
     if (isVisible) {
-      // Promote to visible queue (if not already in-flight or visible).
       _deferredQueue.remove(id);
-      if (!_inFlight.contains(id) && !_visibleQueue.contains(id)) {
+      if (!_inFlight.contains(id) &&
+          !_visibleQueue.contains(id) &&
+          !_isBackoffActive(id)) {
         _visibleQueue.add(id);
       }
     } else {
-      // Cancel pending retry timer — item no longer visible (#741).
-      _retryTimers.remove(id)?.cancel();
-
       // Cancel if in-flight, move to deferred.
       if (_inFlight.contains(id)) {
         _inFlight.remove(id);
@@ -212,6 +214,8 @@ class DownloadPriorityScheduler
     if (succeeded) {
       _entries.remove(id);
       _retryCounts.remove(id);
+      _retryTimers.remove(id)?.cancel();
+      _retryBackoffExpiresAt.remove(id);
       _completed.add(id);
       _emitState();
       _pump();
@@ -224,16 +228,22 @@ class DownloadPriorityScheduler
         // Exhausted retries — mark as permanently failed.
         _entries.remove(id);
         _retryCounts.remove(id);
+        _retryTimers.remove(id)?.cancel();
+        _retryBackoffExpiresAt.remove(id);
         _failed.add(id);
         _emitState();
         _pump();
       } else {
         // Schedule retry with exponential backoff: 1s, 2s, 4s...
         final delay = Duration(seconds: 1 << (attempts - 1));
+        _retryBackoffExpiresAt[id] = DateTime.now().add(delay);
         _retryTimers[id] = Timer(delay, () {
           _retryTimers.remove(id);
-          // Re-enqueue to visible queue for retry (if entry still exists).
-          if (_entries.containsKey(id)) {
+          _retryBackoffExpiresAt.remove(id);
+          if (_entries.containsKey(id) &&
+              !_deferredQueue.contains(id) &&
+              !_inFlight.contains(id) &&
+              !_visibleQueue.contains(id)) {
             _visibleQueue.add(id);
             _emitState();
             _pump();
@@ -243,6 +253,13 @@ class DownloadPriorityScheduler
         _pump();
       }
     }
+  }
+
+  bool _isBackoffActive(String id) {
+    final timer = _retryTimers[id];
+    if (timer == null || !timer.isActive) return false;
+    final expiresAt = _retryBackoffExpiresAt[id];
+    return expiresAt == null || DateTime.now().isBefore(expiresAt);
   }
 
   /// Emit current state to watchers.
