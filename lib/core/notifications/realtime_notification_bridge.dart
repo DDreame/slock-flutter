@@ -8,10 +8,13 @@ import 'package:slock_app/core/realtime/realtime_reduction_ingress.dart';
 import 'package:slock_app/core/realtime/providers.dart'
     show realtimeReductionIngressProvider;
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/features/conversation/data/conversation_message_parser.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/inbox/application/message_preview_resolver.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/threads/application/known_thread_channel_ids_provider.dart';
+import 'package:slock_app/l10n/app_localizations_provider.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -326,9 +329,21 @@ final realtimeNotificationBridgeProvider = Provider<void>((ref) {
     // Build local notification payload with resolved routing
     // metadata for deep link resolution. For threads, use the
     // parent channel/message identity (not the threadChannelId).
+    final messageType = map['messageType'] as String?;
+    final isDeleted = map['isDeleted'] == true ||
+        (map['deletedAt'] is String && (map['deletedAt'] as String).isNotEmpty);
+    final attachments = parseAttachments(map['attachments']);
+    final body = MessagePreviewResolver.resolve(
+      l10n: ref.read(appLocalizationsProvider),
+      content: content,
+      messageType: messageType,
+      isDeleted: isDeleted,
+      attachments: attachments,
+    );
+
     final notificationPayload = <String, dynamic>{
       'title': senderName ?? 'New message',
-      'body': content,
+      'body': body,
       'channelId': resolved.parentChannelId ?? channelId,
       if (resolved.serverId != null) 'serverId': resolved.serverId,
       'type': resolved.surfaceName,

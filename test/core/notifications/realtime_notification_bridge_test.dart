@@ -60,6 +60,10 @@ RealtimeEventEnvelope _messageNewEvent({
   String? senderId,
   String? senderName,
   String content = 'hello',
+  String messageType = 'message',
+  Object? attachments,
+  bool? isDeleted,
+  String? deletedAt,
   String? threadId,
 }) {
   return RealtimeEventEnvelope(
@@ -72,7 +76,10 @@ RealtimeEventEnvelope _messageNewEvent({
       'content': content,
       'createdAt': DateTime.now().toIso8601String(),
       'senderType': 'human',
-      'messageType': 'message',
+      'messageType': messageType,
+      if (attachments != null) 'attachments': attachments,
+      if (isDeleted != null) 'isDeleted': isDeleted,
+      if (deletedAt != null) 'deletedAt': deletedAt,
       if (senderId != null) 'senderId': senderId,
       if (senderName != null) 'senderName': senderName,
       if (threadId != null) 'threadId': threadId,
@@ -176,6 +183,31 @@ void main() {
       // Resolved from home list state, not from raw payload:
       expect(payload['serverId'], _testServerId);
       expect(payload['type'], 'channel');
+    });
+
+    test('image-only message uses resolved preview body', () async {
+      container = buildContainer();
+      container.read(realtimeNotificationBridgeProvider);
+
+      ingress.accept(_messageNewEvent(
+        channelId: 'ch-1',
+        messageId: 'msg-image',
+        senderId: 'other-user',
+        senderName: 'Alice',
+        content: '',
+        attachments: const [
+          {
+            'id': 'att-1',
+            'filename': 'photo.png',
+            'mimeType': 'image/png',
+          },
+        ],
+      ));
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(showSink.shown, hasLength(1));
+      expect(showSink.shown.first['body'], 'Image');
     });
 
     test('DM message resolves type=dm from home list', () async {
