@@ -302,9 +302,14 @@ void main() {
           notifier.enqueue(target, 'Will retry with backoff');
 
           notifier.drainAll();
-          for (var i = 0; i < 8; i++) {
-            async.flushMicrotasks();
-          }
+          async.flushMicrotasks();
+          // First attempt fails (counter=1), Timer(100ms) scheduled.
+          async.elapse(const Duration(milliseconds: 100));
+          async.flushMicrotasks();
+          // Second attempt fails (counter=2), Timer(100ms) scheduled.
+          async.elapse(const Duration(milliseconds: 100));
+          async.flushMicrotasks();
+          // Third attempt fails (counter=3), backoff kicks in (30s).
 
           expect(repository.sentContents.length, 3);
           final targetKey = outboxTargetKey(target);
@@ -313,9 +318,10 @@ void main() {
 
           repository.sendFailure = null;
           async.elapse(const Duration(seconds: 30));
-          for (var i = 0; i < 4; i++) {
-            async.flushMicrotasks();
-          }
+          async.flushMicrotasks();
+          // Backoff timer fires → _scheduleDrainIfNeeded() → Timer(100ms).
+          async.elapse(const Duration(milliseconds: 100));
+          async.flushMicrotasks();
 
           expect(repository.sentContents.length, 4);
           expect(container.read(outboxStoreProvider).items[targetKey] ?? [],

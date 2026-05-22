@@ -233,7 +233,7 @@ void main() {
         () async {
       // Scenario: drain starts, first item succeeds but during that drain,
       // a new item is enqueued. The re-check after drain finds remaining
-      // pending items and schedules a fresh drain.
+      // pending items and schedules a fresh drain via Timer(100ms).
       final notifier = container.read(outboxStoreProvider.notifier);
 
       // Use a gate to control when the first send completes.
@@ -256,10 +256,8 @@ void main() {
       repository.sendGate!.complete();
       await drainFuture;
 
-      // Give the re-check microtask a chance to fire and drain remaining.
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
-      await Future<void>.delayed(Duration.zero);
+      // The reschedule uses Timer(100ms) — wait for it to fire.
+      await Future<void>.delayed(const Duration(milliseconds: 150));
       await Future<void>.delayed(Duration.zero);
 
       // Both messages should have been sent.
