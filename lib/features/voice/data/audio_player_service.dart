@@ -41,6 +41,67 @@ final activeAudioPlayerProvider = StateProvider<AudioPlayerController?>((ref) {
   return null;
 });
 
+final audioAttachmentPlayerPoolProvider =
+    StateNotifierProvider.autoDispose<AudioAttachmentPlayerPool, String?>(
+        (ref) {
+  return AudioAttachmentPlayerPool(
+    ref.read(audioPlayerServiceFactoryProvider)(),
+  );
+});
+
+class AudioAttachmentPlayerPool extends StateNotifier<String?> {
+  AudioAttachmentPlayerPool(this._player) : super(null);
+
+  final AudioPlayerController _player;
+
+  AudioPlayerController get player => _player;
+
+  bool isActive(String key) => state == key;
+
+  Future<Duration?> load(String key, String path) {
+    if (state != null && state != key) return Future.value();
+    return _player.load(path);
+  }
+
+  Future<void> play(String key, String path) async {
+    if (state != null && state != key) {
+      await _player.stop();
+    }
+    state = key;
+    await _player.play(path);
+  }
+
+  Future<void> pause(String key) async {
+    if (state != key) return;
+    await _player.pause();
+  }
+
+  Future<void> resume(String key) async {
+    if (state != null && state != key) {
+      await _player.stop();
+    }
+    state = key;
+    await _player.resume();
+  }
+
+  Future<void> seek(String key, Duration position) async {
+    if (state != key) return;
+    await _player.seek(position);
+  }
+
+  void clearIfActive(String key) {
+    if (state == key) {
+      state = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_player.dispose());
+    super.dispose();
+  }
+}
+
 /// Wraps `just_audio` for playing voice message audio files.
 ///
 /// Exposes streams for position, duration, and playback state.

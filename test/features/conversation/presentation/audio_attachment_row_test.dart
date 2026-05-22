@@ -58,14 +58,15 @@ void main() {
       expect(find.text('Audio playback failed'), findsOneWidget);
     });
 
-    testWidgets('starting second audio auto-pauses first audio',
+    testWidgets('starting second audio stops previous on shared player',
         (tester) async {
-      final first = _FakeAudioPlayerController();
-      final second = _FakeAudioPlayerController();
+      final player = _FakeAudioPlayerController();
+      var createdPlayers = 0;
 
       await tester.pumpWidget(
         _audioHarness(
-          [first, second],
+          [player],
+          onCreatePlayer: () => createdPlayers++,
           attachments: const [
             MessageAttachment(
               name: 'first.m4a',
@@ -84,18 +85,58 @@ void main() {
 
       final buttons = find.byKey(const ValueKey('voice-play-pause'));
       expect(buttons, findsNWidgets(2));
+      expect(createdPlayers, 1);
 
       await tester.tap(buttons.at(0));
       await tester.pump();
-      expect(first.state, AudioPlaybackState.playing);
+      expect(player.playCount, 1);
+      expect(player.currentPath, 'https://example.test/first.m4a');
+      expect(player.state, AudioPlaybackState.playing);
 
       await tester.tap(buttons.at(1));
       await tester.pump();
 
-      expect(first.pauseCount, 1);
-      expect(first.state, AudioPlaybackState.paused);
-      expect(second.playCount, 1);
-      expect(second.state, AudioPlaybackState.playing);
+      expect(player.stopCount, 1);
+      expect(player.playCount, 2);
+      expect(player.currentPath, 'https://example.test/second.m4a');
+      expect(player.state, AudioPlaybackState.playing);
+    });
+
+    testWidgets('many audio rows share one pooled player', (tester) async {
+      final player = _FakeAudioPlayerController();
+      var createdPlayers = 0;
+
+      await tester.pumpWidget(
+        _audioHarness(
+          [player],
+          onCreatePlayer: () => createdPlayers++,
+          attachments: List.generate(
+            12,
+            (index) => MessageAttachment(
+              name: 'voice_$index.m4a',
+              type: 'audio/m4a',
+              url: 'https://example.test/voice_$index.m4a',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('voice-play-pause')), findsNWidgets(12));
+      expect(createdPlayers, 1);
+    });
+
+    testWidgets('disposing audio rows releases pooled player', (tester) async {
+      final player = _FakeAudioPlayerController();
+
+      await tester.pumpWidget(_audioHarness([player]));
+      await tester.pump();
+      expect(player.disposeCount, 0);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+
+      expect(player.disposeCount, 1);
     });
 
     testWidgets('cached waveform row read refreshes LRU recency',
@@ -150,6 +191,7 @@ void main() {
 
 Widget _audioHarness(
   List<_FakeAudioPlayerController> players, {
+  VoidCallback? onCreatePlayer,
   List<MessageAttachment> attachments = const [
     MessageAttachment(
       name: 'voice.m4a',
@@ -162,13 +204,16 @@ Widget _audioHarness(
   return ProviderScope(
     overrides: [
       audioPlayerServiceFactoryProvider.overrideWithValue(() {
+        onCreatePlayer?.call();
         return players[index++];
       }),
     ],
     child: MaterialApp(
       home: Scaffold(
-        body: Center(
-          child: AttachmentSection(attachments: attachments),
+        body: SingleChildScrollView(
+          child: Center(
+            child: AttachmentSection(attachments: attachments),
+          ),
         ),
       ),
     ),
@@ -187,6 +232,7 @@ class _FakeAudioPlayerController implements AudioPlayerController {
   int playCount = 0;
   int pauseCount = 0;
   int resumeCount = 0;
+  int stopCount = 0;
   int disposeCount = 0;
 
   @override
@@ -237,6 +283,7 @@ class _FakeAudioPlayerController implements AudioPlayerController {
 
   @override
   Future<void> stop() async {
+    stopCount++;
     _setState(AudioPlaybackState.stopped);
   }
 
