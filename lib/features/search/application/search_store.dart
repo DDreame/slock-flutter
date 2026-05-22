@@ -353,7 +353,7 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
         return localMidnightUtc.toIso8601String();
       case SearchDateRange.last7days:
         return localMidnightUtc
-            .subtract(const Duration(days: 7))
+            .subtract(const Duration(days: 6))
             .toIso8601String();
       case SearchDateRange.last30days:
         return localMidnightUtc

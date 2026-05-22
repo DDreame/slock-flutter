@@ -87,7 +87,7 @@ void main() {
     // =========================================================================
     // B. setDateRange(last7days)
     // =========================================================================
-    test('setDateRange(last7days) includes after param 7 days ago', () async {
+    test('setDateRange(last7days) includes after param 6 days ago', () async {
       fakeSearchRepo.result =
           const SearchResultsPage(messages: [], hasMore: false);
 
@@ -101,11 +101,45 @@ void main() {
 
       final now = DateTime.now();
       final expectedAfter = DateTime(now.year, now.month, now.day)
-          .subtract(const Duration(days: 7))
+          .subtract(const Duration(days: 6))
           .toUtc()
           .toIso8601String();
       expect(fakeSearchRepo.lastCallParams?.after, expectedAfter,
-          reason: 'last7days filter must pass 7 days ago as after param');
+          reason: 'last7days includes today, so the cutoff is 6 days ago');
+    });
+
+    test('setDateRange(last7days) spans exactly 7 calendar days', () async {
+      final localFakeSearchRepo = _FakeSearchRepository()
+        ..result = const SearchResultsPage(messages: [], hasMore: false);
+      final localFakeLocalStore = FakeConversationLocalStore();
+      final localContainer = ProviderContainer(overrides: [
+        currentSearchServerIdProvider.overrideWithValue(serverId),
+        conversationLocalStoreProvider.overrideWithValue(localFakeLocalStore),
+        searchRepositoryProvider.overrideWithValue(localFakeSearchRepo),
+        searchNowProvider
+            .overrideWithValue(() => DateTime.utc(2026, 5, 22, 12)),
+        searchLocalMidnightUtcProvider.overrideWithValue(
+          (_) => DateTime.utc(2026, 5, 22),
+        ),
+      ]);
+      addTearDown(localContainer.dispose);
+
+      localContainer.listen<SearchState>(
+        searchStoreProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+
+      final localStore = localContainer.read(searchStoreProvider.notifier);
+      localStore.updateQuery('hello');
+      localStore.setDateRange(SearchDateRange.last7days);
+      await localStore.search();
+
+      expect(
+        localFakeSearchRepo.lastCallParams?.after,
+        DateTime.utc(2026, 5, 16).toIso8601String(),
+        reason: 'May 16, 17, 18, 19, 20, 21, and 22 are exactly 7 days',
+      );
     });
 
     // =========================================================================
