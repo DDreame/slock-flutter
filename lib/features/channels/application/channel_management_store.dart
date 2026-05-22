@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/application/agents_store.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
@@ -189,6 +190,10 @@ class ChannelManagementStore
     return ref.read(homeListStoreProvider.notifier).load();
   }
 
+  Future<void> _refreshAgents() {
+    return ref.read(agentsStoreProvider.notifier).load();
+  }
+
   Future<void> stopAllAgents(ChannelScopeId scopeId) async {
     final operationKey = 'stopAgents:${scopeId.value}';
     if (!_operationKeys.add(operationKey)) return;
@@ -211,6 +216,7 @@ class ChannelManagementStore
             scopeId.serverId,
             channelId: scopeId.value,
           );
+      await _refreshAgents();
       state = state.copyWith(clearAction: true, clearFailure: true);
     } on AppFailure catch (failure) {
       state = state.copyWith(
@@ -243,6 +249,7 @@ class ChannelManagementStore
             scopeId.serverId,
             channelId: scopeId.value,
           );
+      await _refreshAgents();
       state = state.copyWith(clearAction: true, clearFailure: true);
     } on AppFailure catch (failure) {
       state = state.copyWith(

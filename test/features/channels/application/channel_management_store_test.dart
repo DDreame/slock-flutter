@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/agents/data/agent_item.dart';
+import 'package:slock_app/features/agents/data/agents_repository.dart';
+import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository.dart';
 import 'package:slock_app/features/channels/data/channel_management_repository_provider.dart';
@@ -291,6 +294,81 @@ void main() {
     completer.complete();
     await first;
   });
+
+  test('stopAllAgents refreshes agents store after success', () async {
+    final homeRepository = _FakeHomeRepository();
+    final channelRepository = _FakeChannelManagementRepository();
+    final agentsRepository = _FakeAgentsRepository();
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+        agentsRepositoryProvider.overrideWithValue(agentsRepository),
+        agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(homeListStoreProvider.notifier).load();
+
+    const scopeId = ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'general',
+    );
+
+    final callsBefore = agentsRepository.listAgentsCalls;
+
+    await container
+        .read(channelManagementStoreProvider.notifier)
+        .stopAllAgents(scopeId);
+
+    expect(agentsRepository.listAgentsCalls, callsBefore + 1,
+        reason: '#737: stopAllAgents must refresh agents store after success');
+  });
+
+  test('resumeAllAgents refreshes agents store after success', () async {
+    final homeRepository = _FakeHomeRepository();
+    final channelRepository = _FakeChannelManagementRepository();
+    final agentsRepository = _FakeAgentsRepository();
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+        agentsRepositoryProvider.overrideWithValue(agentsRepository),
+        agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(homeListStoreProvider.notifier).load();
+
+    const scopeId = ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'general',
+    );
+
+    final callsBefore = agentsRepository.listAgentsCalls;
+
+    await container
+        .read(channelManagementStoreProvider.notifier)
+        .resumeAllAgents(scopeId);
+
+    expect(agentsRepository.listAgentsCalls, callsBefore + 1,
+        reason:
+            '#737: resumeAllAgents must refresh agents store after success');
+  });
 }
 
 class _FakeHomeRepository implements HomeRepository {
@@ -444,4 +522,30 @@ class _FakeSidebarOrderRepository implements SidebarOrderRepository {
     ServerScopeId serverId, {
     required Map<String, Object> patch,
   }) async {}
+}
+
+class _FakeAgentsRepository implements AgentsRepository {
+  int listAgentsCalls = 0;
+
+  @override
+  Future<List<AgentItem>> listAgents() async {
+    listAgentsCalls++;
+    return const [];
+  }
+
+  @override
+  Future<void> startAgent(String agentId) async {}
+
+  @override
+  Future<void> stopAgent(String agentId) async {}
+
+  @override
+  Future<void> resetAgent(String agentId, {required String mode}) async {}
+
+  @override
+  Future<List<AgentActivityLogEntry>> getActivityLog(
+    String agentId, {
+    int limit = 50,
+  }) async =>
+      const [];
 }
