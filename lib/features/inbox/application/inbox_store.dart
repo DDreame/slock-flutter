@@ -223,6 +223,8 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
+    final previousState = state;
+
     // Optimistic: remove the item from the list.
     final removedItem = state.items.where((i) => i.channelId == channelId);
     final removedUnread =
@@ -244,7 +246,7 @@ class InboxStore extends Notifier<InboxState> {
           .read(inboxRepositoryProvider)
           .markItemDone(serverId, channelId: channelId);
     } on AppFailure {
-      // Silently handle — refresh will correct state.
+      state = previousState;
     }
   }
 

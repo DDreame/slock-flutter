@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
@@ -39,16 +41,17 @@ void main() {
       expect(await service.hasCrashMarker(), isTrue);
     });
 
-    test('markCrash writes crash_marker key to storage', () async {
+    test('markCrash writes one atomic crash_marker payload', () async {
       await service.markCrash();
-      expect(fakeStorage.store['crash_marker'], 'true');
-    });
 
-    test('markCrash writes a valid ISO-8601 crash timestamp', () async {
-      await service.markCrash();
-      final raw = fakeStorage.store['crash_marker_timestamp'];
+      final raw = fakeStorage.store['crash_marker'];
       expect(raw, isNotNull);
-      expect(DateTime.tryParse(raw!), isNotNull);
+      expect(fakeStorage.store.containsKey('crash_marker_timestamp'), isFalse);
+
+      final payload = jsonDecode(raw!) as Map<String, Object?>;
+      expect(payload['crashed'], isTrue);
+      expect(payload['timestamp'], isA<String>());
+      expect(DateTime.tryParse(payload['timestamp']! as String), isNotNull);
     });
 
     test('getCrashTimestamp returns null when no marker exists', () async {
@@ -60,6 +63,21 @@ void main() {
       final timestamp = await service.getCrashTimestamp();
       expect(timestamp, isNotNull);
       expect(timestamp, isA<DateTime>());
+    });
+
+    test('partial marker state is ignored', () async {
+      fakeStorage.store['crash_marker'] = jsonEncode(<String, Object?>{
+        'crashed': true,
+      });
+
+      expect(await service.hasCrashMarker(), isFalse);
+      expect(await service.getCrashTimestamp(), isNull);
+
+      fakeStorage.store['crash_marker_timestamp'] =
+          DateTime.now().toIso8601String();
+
+      expect(await service.hasCrashMarker(), isFalse);
+      expect(await service.getCrashTimestamp(), isNull);
     });
 
     test('clearCrashMarker removes marker and timestamp', () async {

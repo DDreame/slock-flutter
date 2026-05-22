@@ -23,6 +23,7 @@ class FakeInboxRepository implements InboxRepository {
 
   InboxResponse fetchResponse;
   AppFailure? fetchFailure;
+  AppFailure? markDoneFailure;
 
   /// When true, the next [fetchInbox] call throws [UnknownFailure] and
   /// resets this flag to false. Useful for testing one-shot failures
@@ -70,6 +71,7 @@ class FakeInboxRepository implements InboxRepository {
     required String channelId,
   }) async {
     lastMarkDoneChannelId = channelId;
+    if (markDoneFailure != null) throw markDoneFailure!;
   }
 
   @override
