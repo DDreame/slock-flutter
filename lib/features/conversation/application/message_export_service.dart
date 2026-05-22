@@ -47,6 +47,7 @@ class MessageExportService {
     List<ConversationMessageSummary> messages, {
     required GlobalKey boundaryKey,
   }) async {
+    String? filePath;
     try {
       // 1. Find the RepaintBoundary render object.
       final context = boundaryKey.currentContext;
@@ -62,7 +63,7 @@ class MessageExportService {
       // 3. Save to temporary file (synchronous write for test compatibility).
       final dir = Directory.systemTemp;
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${dir.path}/slock_export_$timestamp.png';
+      filePath = '${dir.path}/slock_export_$timestamp.png';
       final file = File(filePath);
       file.writeAsBytesSync(byteData.buffer.asUint8List());
 
@@ -74,6 +75,19 @@ class MessageExportService {
       return filePath;
     } catch (_) {
       return null;
+    } finally {
+      // Clean up temp file after share completes (or on failure) to
+      // prevent unbounded disk usage from export operations (#723).
+      if (filePath != null) {
+        try {
+          final file = File(filePath);
+          if (file.existsSync()) {
+            file.deleteSync();
+          }
+        } catch (_) {
+          // Best-effort cleanup — don't fail the export if delete fails.
+        }
+      }
     }
   }
 }
