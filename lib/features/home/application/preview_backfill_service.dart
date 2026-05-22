@@ -99,8 +99,6 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
   /// Maximum concurrent lazy-load API requests.
   int get maxConcurrent => 5;
 
-  static final Map<String, Completer<void>> _channelBackfillInFlight = {};
-
   /// Re-entrancy guard for DM backfill (#741).
   Completer<void>? _dmBackfillInFlight;
 
@@ -127,7 +125,8 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
   }) async {
     final serverId = ref.read(activeServerScopeIdProvider);
     final guardKey = serverId?.value ?? '__no_server__';
-    if (_channelBackfillInFlight.containsKey(guardKey)) return;
+    final channelBackfillInFlight = ref.read(_channelBackfillInFlightProvider);
+    if (channelBackfillInFlight.containsKey(guardKey)) return;
 
     // Filter to only channels missing previews.
     final needsBackfill =
@@ -135,7 +134,7 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
     if (needsBackfill.isEmpty) return;
 
     final guardCompleter = Completer<void>();
-    _channelBackfillInFlight[guardKey] = guardCompleter;
+    channelBackfillInFlight[guardKey] = guardCompleter;
     _setBackfillState(
       PreviewBackfillState(
         isRunning: true,
@@ -264,7 +263,7 @@ class PreviewBackfillService extends Notifier<PreviewBackfillState> {
       }
     } finally {
       _setBackfillState(PreviewBackfillState(isRunning: false, filled: filled));
-      _channelBackfillInFlight.remove(guardKey);
+      channelBackfillInFlight.remove(guardKey);
       if (!guardCompleter.isCompleted) {
         guardCompleter.complete();
       }
@@ -423,3 +422,6 @@ final previewBackfillServiceProvider =
     NotifierProvider<PreviewBackfillService, PreviewBackfillState>(
   PreviewBackfillService.new,
 );
+
+final _channelBackfillInFlightProvider =
+    Provider<Map<String, Completer<void>>>((ref) => {});
