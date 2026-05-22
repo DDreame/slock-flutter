@@ -150,6 +150,77 @@ void main() {
     );
   });
 
+  test('concurrent delete and leave selects remaining valid workspace',
+      () async {
+    final deleteCompleter = Completer<void>();
+    final leaveCompleter = Completer<void>();
+    final repository = _FakeServerListRepository(
+      servers: const [
+        ServerSummary(id: 'server-a', name: 'Workspace A', role: 'owner'),
+        ServerSummary(id: 'server-b', name: 'Workspace B', role: 'member'),
+        ServerSummary(id: 'server-c', name: 'Workspace C', role: 'member'),
+      ],
+      deleteCompleters: {'server-a': deleteCompleter},
+      leaveCompleters: {'server-b': leaveCompleter},
+    );
+    final container = _buildContainer(repository: repository);
+    addTearDown(container.dispose);
+
+    await container
+        .read(serverSelectionStoreProvider.notifier)
+        .selectServer('server-a');
+    await container.read(serverListStoreProvider.notifier).load();
+
+    final invalidSelections = <String>[];
+    void captureInvalidSelection() {
+      final serverListState = container.read(serverListStoreProvider);
+      if (serverListState.status != ServerListStatus.success) {
+        return;
+      }
+      final selectedServerId =
+          container.read(serverSelectionStoreProvider).selectedServerId;
+      if (selectedServerId == null) {
+        return;
+      }
+      final serverIds = serverListState.servers.map((s) => s.id).toSet();
+      if (!serverIds.contains(selectedServerId)) {
+        invalidSelections.add('$selectedServerId not in $serverIds');
+      }
+    }
+
+    final serverSub = container.listen(serverListStoreProvider, (_, __) {
+      captureInvalidSelection();
+    });
+    final selectionSub =
+        container.listen(serverSelectionStoreProvider, (_, __) {
+      captureInvalidSelection();
+    });
+    addTearDown(serverSub.close);
+    addTearDown(selectionSub.close);
+
+    final store = container.read(serverListStoreProvider.notifier);
+    final deleteFuture = store.deleteServer('server-a');
+    final leaveFuture = store.leaveServer('server-b');
+    await Future<void>.delayed(Duration.zero);
+
+    deleteCompleter.complete();
+    await Future<void>.delayed(Duration.zero);
+    leaveCompleter.complete();
+    await Future.wait([deleteFuture, leaveFuture]);
+
+    expect(repository.deleteRequests, ['server-a']);
+    expect(repository.leaveRequests, ['server-b']);
+    expect(
+      container.read(serverListStoreProvider).servers.map((s) => s.id),
+      ['server-c'],
+    );
+    expect(
+      container.read(serverSelectionStoreProvider).selectedServerId,
+      'server-c',
+    );
+    expect(invalidSelections, isEmpty);
+  });
+
   test(
     'acceptInvite normalizes url token, refreshes list, and selects joined server',
     () async {
@@ -256,6 +327,8 @@ class _FakeServerListRepository
     this.renamedName,
     this.inviteServerId,
     this.acceptCompleter,
+    this.deleteCompleters = const {},
+    this.leaveCompleters = const {},
     List<ServerSummary>? reloadedServers,
   })  : _servers = List<ServerSummary>.of(servers ?? const []),
         _reloadedServers = reloadedServers == null
@@ -267,6 +340,8 @@ class _FakeServerListRepository
   final String? renamedName;
   final String? inviteServerId;
   final Completer<AcceptInviteResult>? acceptCompleter;
+  final Map<String, Completer<void>> deleteCompleters;
+  final Map<String, Completer<void>> leaveCompleters;
   final List<({String name, String slug})> createRequests = [];
   final List<({String serverId, String name})> renameRequests = [];
   final List<String> deleteRequests = [];
@@ -316,6 +391,10 @@ class _FakeServerListRepository
   @override
   Future<void> deleteServer(String serverId) async {
     deleteRequests.add(serverId);
+    final completer = deleteCompleters[serverId];
+    if (completer != null) {
+      await completer.future;
+    }
     _servers = _servers
         .where((server) => server.id != serverId)
         .toList(growable: false);
@@ -324,6 +403,10 @@ class _FakeServerListRepository
   @override
   Future<void> leaveServer(String serverId) async {
     leaveRequests.add(serverId);
+    final completer = leaveCompleters[serverId];
+    if (completer != null) {
+      await completer.future;
+    }
     _servers = _servers
         .where((server) => server.id != serverId)
         .toList(growable: false);
