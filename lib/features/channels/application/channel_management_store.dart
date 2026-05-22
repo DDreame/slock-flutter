@@ -80,14 +80,16 @@ class ChannelManagementStore
     }
   }
 
-  Future<void> renameChannel(
+  Future<bool> renameChannel(
     ChannelScopeId scopeId, {
     required String name,
   }) async {
+    if (state.isBusy) return false;
     final operationKey = 'edit:${scopeId.value}';
-    if (!_operationKeys.add(operationKey)) return;
+    if (!_operationKeys.add(operationKey)) return false;
     try {
       await _renameChannel(scopeId, name: name);
+      return true;
     } finally {
       _operationKeys.remove(operationKey);
     }
@@ -120,11 +122,13 @@ class ChannelManagementStore
     }
   }
 
-  Future<void> deleteChannel(ChannelScopeId scopeId) async {
+  Future<bool> deleteChannel(ChannelScopeId scopeId) async {
+    if (state.isBusy) return false;
     final operationKey = 'delete:${scopeId.value}';
-    if (!_operationKeys.add(operationKey)) return;
+    if (!_operationKeys.add(operationKey)) return false;
     try {
       await _deleteChannel(scopeId);
+      return true;
     } finally {
       _operationKeys.remove(operationKey);
     }
@@ -153,11 +157,13 @@ class ChannelManagementStore
     }
   }
 
-  Future<void> leaveChannel(ChannelScopeId scopeId) async {
+  Future<bool> leaveChannel(ChannelScopeId scopeId) async {
+    if (state.isBusy) return false;
     final operationKey = 'leave:${scopeId.value}';
-    if (!_operationKeys.add(operationKey)) return;
+    if (!_operationKeys.add(operationKey)) return false;
     try {
       await _leaveChannel(scopeId);
+      return true;
     } finally {
       _operationKeys.remove(operationKey);
     }
@@ -194,11 +200,13 @@ class ChannelManagementStore
     return ref.read(agentsStoreProvider.notifier).load();
   }
 
-  Future<void> stopAllAgents(ChannelScopeId scopeId) async {
+  Future<bool> stopAllAgents(ChannelScopeId scopeId) async {
+    if (state.isBusy) return false;
     final operationKey = 'stopAgents:${scopeId.value}';
-    if (!_operationKeys.add(operationKey)) return;
+    if (!_operationKeys.add(operationKey)) return false;
     try {
       await _stopAllAgents(scopeId);
+      return true;
     } finally {
       _operationKeys.remove(operationKey);
     }
@@ -227,11 +235,13 @@ class ChannelManagementStore
     }
   }
 
-  Future<void> resumeAllAgents(ChannelScopeId scopeId) async {
+  Future<bool> resumeAllAgents(ChannelScopeId scopeId) async {
+    if (state.isBusy) return false;
     final operationKey = 'resumeAgents:${scopeId.value}';
-    if (!_operationKeys.add(operationKey)) return;
+    if (!_operationKeys.add(operationKey)) return false;
     try {
       await _resumeAllAgents(scopeId);
+      return true;
     } finally {
       _operationKeys.remove(operationKey);
     }

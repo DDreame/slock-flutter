@@ -145,8 +145,8 @@ class _ChannelOverflowMenu extends ConsumerWidget {
         );
         if (confirmed && context.mounted) {
           try {
-            await store.stopAllAgents(scopeId);
-            if (context.mounted) {
+            final success = await store.stopAllAgents(scopeId);
+            if (success && context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(l10n.channelStopAllAgentsSuccess)),
               );
@@ -161,8 +161,8 @@ class _ChannelOverflowMenu extends ConsumerWidget {
         }
       case _ChannelOverflowAction.resumeAll:
         try {
-          await store.resumeAllAgents(scopeId);
-          if (context.mounted) {
+          final success = await store.resumeAllAgents(scopeId);
+          if (success && context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(l10n.channelResumeAllAgentsSuccess)),
             );
