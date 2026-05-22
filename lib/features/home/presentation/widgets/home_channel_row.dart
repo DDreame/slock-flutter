@@ -24,6 +24,7 @@ class HomeChannelRow extends ConsumerWidget {
     this.onDelete,
     this.onLeave,
     this.onTogglePin,
+    this.onMarkAsUnread,
     this.onMoveUp,
     this.onMoveDown,
     this.isMutating = false,
@@ -38,6 +39,7 @@ class HomeChannelRow extends ConsumerWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onLeave;
   final VoidCallback? onTogglePin;
+  final VoidCallback? onMarkAsUnread;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
   final bool isMutating;
@@ -163,6 +165,7 @@ class HomeChannelRow extends ConsumerWidget {
       onDelete != null ||
       onLeave != null ||
       onTogglePin != null ||
+      onMarkAsUnread != null ||
       onMoveUp != null ||
       onMoveDown != null;
 
@@ -185,6 +188,12 @@ class HomeChannelRow extends ConsumerWidget {
           key: 'channel-action-toggle-pin',
           label: isPinned ? 'Unpin channel' : 'Pin channel',
           icon: isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+        ),
+      if (onMarkAsUnread != null && unreadCount == 0)
+        const ListActionItem(
+          key: 'channel-action-mark-unread',
+          label: 'Mark as Unread',
+          icon: Icons.mark_email_unread_outlined,
         ),
       if (onEdit != null)
         const ListActionItem(
@@ -220,6 +229,8 @@ class HomeChannelRow extends ConsumerWidget {
         onMoveDown?.call();
       case 'channel-action-toggle-pin':
         onTogglePin?.call();
+      case 'channel-action-mark-unread':
+        onMarkAsUnread?.call();
       case 'channel-action-edit':
         onEdit?.call();
       case 'channel-action-leave':

@@ -32,6 +32,7 @@ class HomeDirectMessageRow extends ConsumerWidget {
     this.isAgent = false,
     this.agentActivity,
     this.onTogglePin,
+    this.onMarkAsUnread,
     this.onHide,
     this.onMoveUp,
     this.onMoveDown,
@@ -50,6 +51,7 @@ class HomeDirectMessageRow extends ConsumerWidget {
   /// instead of the boolean [isOnline]. Only set for agent DM rows.
   final AgentDisplayStatus? agentActivity;
   final VoidCallback? onTogglePin;
+  final VoidCallback? onMarkAsUnread;
   final VoidCallback? onHide;
   final VoidCallback? onMoveUp;
   final VoidCallback? onMoveDown;
@@ -262,6 +264,7 @@ class HomeDirectMessageRow extends ConsumerWidget {
 
   bool get _hasActions =>
       onTogglePin != null ||
+      onMarkAsUnread != null ||
       onHide != null ||
       onMoveUp != null ||
       onMoveDown != null;
@@ -286,6 +289,12 @@ class HomeDirectMessageRow extends ConsumerWidget {
           label: isPinned ? 'Unpin conversation' : 'Pin conversation',
           icon: isPinned ? Icons.push_pin_outlined : Icons.push_pin,
         ),
+      if (onMarkAsUnread != null && unreadCount == 0)
+        const ListActionItem(
+          key: 'dm-action-mark-unread',
+          label: 'Mark as Unread',
+          icon: Icons.mark_email_unread_outlined,
+        ),
       if (onHide != null)
         const ListActionItem(
           key: 'dm-action-hide',
@@ -307,6 +316,8 @@ class HomeDirectMessageRow extends ConsumerWidget {
         onMoveDown?.call();
       case 'dm-action-toggle-pin':
         onTogglePin?.call();
+      case 'dm-action-mark-unread':
+        onMarkAsUnread?.call();
       case 'dm-action-hide':
         onHide?.call();
     }

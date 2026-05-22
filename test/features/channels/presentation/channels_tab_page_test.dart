@@ -19,6 +19,8 @@ import 'package:slock_app/features/home/presentation/widgets/home_channel_row.da
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
+import 'package:slock_app/features/inbox/data/conversation_unread_repository.dart';
+import 'package:slock_app/features/inbox/data/conversation_unread_repository_provider.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -115,6 +117,7 @@ void main() {
     ServerScopeId? activeServerId = serverId,
     ChannelManagementRepository? channelManagementRepository,
     InboxRepository? inboxRepository,
+    ConversationUnreadRepository? conversationUnreadRepository,
     GoRouter? router,
   }) {
     final effectiveRouter = router ??
@@ -167,6 +170,10 @@ void main() {
           ),
         if (inboxRepository != null)
           inboxRepositoryProvider.overrideWithValue(inboxRepository),
+        if (conversationUnreadRepository != null)
+          conversationUnreadRepositoryProvider.overrideWithValue(
+            conversationUnreadRepository,
+          ),
       ],
       child: MaterialApp.router(
         routerConfig: effectiveRouter,
@@ -194,6 +201,48 @@ void main() {
       find.byKey(const ValueKey('channels-tab-random')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('shows Mark as Unread for read channel and calls store path',
+      (tester) async {
+    final inboxRepository = _FakeInboxRepository(
+      fetchResponse: const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'general',
+            channelName: 'general',
+            unreadCount: 0,
+          ),
+        ],
+        totalCount: 1,
+        totalUnreadCount: 0,
+        hasMore: false,
+      ),
+    );
+    final unreadRepository = _FakeConversationUnreadRepository();
+
+    await tester.pumpWidget(
+      buildApp(
+        homeRepository: const _FakeHomeRepository(sampleSnapshot),
+        inboxRepository: inboxRepository,
+        conversationUnreadRepository: unreadRepository,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.byKey(const ValueKey('channels-tab-general')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mark as Unread'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('channel-action-mark-unread')));
+    await tester.pumpAndSettle();
+
+    expect(unreadRepository.requests, [
+      (serverId, 'general'),
+    ]);
+    expect(find.text('Marked as unread'), findsOneWidget);
   });
 
   testWidgets('shows empty state when no channels', (tester) async {
@@ -1130,6 +1179,19 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     ServerScopeId serverId, {
     required String channelId,
   }) async {}
+}
+
+class _FakeConversationUnreadRepository
+    implements ConversationUnreadRepository {
+  final List<(ServerScopeId, String)> requests = [];
+
+  @override
+  Future<void> markAsUnread(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    requests.add((serverId, channelId));
+  }
 }
 
 class _FakeInboxRepository implements InboxRepository {

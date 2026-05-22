@@ -6,6 +6,8 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
+import 'package:slock_app/features/inbox/data/conversation_unread_repository.dart';
+import 'package:slock_app/features/inbox/data/conversation_unread_repository_provider.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
@@ -457,6 +459,94 @@ void main() {
       } finally {
         await fixture.dispose();
       }
+    });
+  });
+
+  group('InboxStore.markAsUnread', () {
+    test('sets existing read item unread and calls API', () async {
+      final inboxRepository = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-1',
+              channelName: 'general',
+              unreadCount: 0,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 0,
+          hasMore: false,
+        ),
+      );
+      final unreadRepository = _FakeConversationUnreadRepository();
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          inboxRepositoryProvider.overrideWithValue(inboxRepository),
+          conversationUnreadRepositoryProvider
+              .overrideWithValue(unreadRepository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+      await container
+          .read(inboxStoreProvider.notifier)
+          .markAsUnread(channelId: 'ch-1');
+
+      final state = container.read(inboxStoreProvider);
+      expect(unreadRepository.requests, [
+        (const ServerScopeId('server-1'), 'ch-1'),
+      ]);
+      expect(state.items.single.unreadCount, 1);
+      expect(state.totalUnreadCount, 1);
+    });
+
+    test('rolls back optimistic unread state when API fails', () async {
+      final inboxRepository = FakeInboxRepository(
+        fetchResponse: const InboxResponse(
+          items: [
+            InboxItem(
+              kind: InboxItemKind.channel,
+              channelId: 'ch-1',
+              channelName: 'general',
+              unreadCount: 0,
+            ),
+          ],
+          totalCount: 1,
+          totalUnreadCount: 0,
+          hasMore: false,
+        ),
+      );
+      final unreadRepository = _FakeConversationUnreadRepository(
+        failure: const NetworkFailure(message: 'offline'),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          activeServerScopeIdProvider.overrideWithValue(
+            const ServerScopeId('server-1'),
+          ),
+          inboxRepositoryProvider.overrideWithValue(inboxRepository),
+          conversationUnreadRepositoryProvider
+              .overrideWithValue(unreadRepository),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+      await expectLater(
+        container
+            .read(inboxStoreProvider.notifier)
+            .markAsUnread(channelId: 'ch-1'),
+        throwsA(isA<NetworkFailure>()),
+      );
+
+      final state = container.read(inboxStoreProvider);
+      expect(state.items.single.unreadCount, 0);
+      expect(state.totalUnreadCount, 0);
     });
   });
 
@@ -1038,6 +1128,24 @@ void main() {
       expect(postState.totalUnreadCount, 4);
     });
   });
+}
+
+class _FakeConversationUnreadRepository
+    implements ConversationUnreadRepository {
+  _FakeConversationUnreadRepository({this.failure});
+
+  final AppFailure? failure;
+  final List<(ServerScopeId, String)> requests = [];
+
+  @override
+  Future<void> markAsUnread(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    requests.add((serverId, channelId));
+    final failure = this.failure;
+    if (failure != null) throw failure;
+  }
 }
 
 // ---------------------------------------------------------------------------
