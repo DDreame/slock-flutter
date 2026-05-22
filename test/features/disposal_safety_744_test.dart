@@ -252,9 +252,8 @@ void main() {
       // No exception means both guards worked correctly.
     });
 
-    test(
-        'repository-thrown StateError still propagates '
-        '(guard is only on state writes, not blanket)', () async {
+    test('repository-thrown StateError is caught and rolls back item',
+        () async {
       const serverId = ServerScopeId('server-1');
       const sampleItem = ThreadInboxItem(
         routeTarget: ThreadRouteTarget(
@@ -296,13 +295,16 @@ void main() {
           .read(threadsInboxStoreProvider.notifier)
           .markDone(sampleItem);
 
-      // Complete with a StateError (simulating a real programming bug
-      // in the repository, NOT a disposal race).
+      // Complete with a StateError. The widened unexpected-error catch now
+      // treats this as a recoverable store failure: rollback, set failure,
+      // and do not propagate the raw exception.
       markDoneCompleter.completeError(StateError('unexpected repo bug'));
+      await future;
 
-      // The StateError from the repository must propagate — it is NOT
-      // swallowed by the disposal guard (which only wraps `state =` writes).
-      await expectLater(future, throwsStateError);
+      final state = container.read(threadsInboxStoreProvider);
+      expect(state.items, [sampleItem]);
+      expect(state.completingThreadIds, isEmpty);
+      expect(state.failure, isA<UnknownFailure>());
     });
   });
 

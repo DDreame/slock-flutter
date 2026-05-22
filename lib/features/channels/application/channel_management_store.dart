@@ -69,12 +69,27 @@ class ChannelManagementStore
                 isPrivate: isPrivate,
               );
       await _refreshHomeList();
-      state = state.copyWith(clearAction: true, clearFailure: true);
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
       return channelId;
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        failure: failure,
-        clearAction: true,
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
       );
       rethrow;
     }
@@ -112,11 +127,26 @@ class ChannelManagementStore
             name: name,
           );
       await _refreshHomeList();
-      state = state.copyWith(clearAction: true, clearFailure: true);
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        failure: failure,
-        clearAction: true,
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
       );
       rethrow;
     }
@@ -147,11 +177,26 @@ class ChannelManagementStore
             channelId: scopeId.value,
           );
       await _refreshHomeList();
-      state = state.copyWith(clearAction: true, clearFailure: true);
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        failure: failure,
-        clearAction: true,
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
       );
       rethrow;
     }
@@ -182,22 +227,55 @@ class ChannelManagementStore
             channelId: scopeId.value,
           );
       await _refreshHomeList();
-      state = state.copyWith(clearAction: true, clearFailure: true);
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        failure: failure,
-        clearAction: true,
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
       );
       rethrow;
     }
   }
 
-  Future<void> _refreshHomeList() {
-    return ref.read(homeListStoreProvider.notifier).load();
+  Future<void> _refreshHomeList() async {
+    try {
+      await ref.read(homeListStoreProvider.notifier).load();
+    } on StateError {
+      return;
+    }
   }
 
-  Future<void> _refreshAgents() {
-    return ref.read(agentsStoreProvider.notifier).load();
+  Future<void> _refreshAgents() async {
+    try {
+      await ref.read(agentsStoreProvider.notifier).load();
+    } on StateError {
+      return;
+    }
+  }
+
+  void _setStateIfMounted(
+    ChannelManagementState Function(ChannelManagementState current) update,
+  ) {
+    try {
+      state = update(state);
+    } on StateError {
+      return;
+    }
   }
 
   Future<bool> stopAllAgents(ChannelScopeId scopeId) async {
@@ -225,11 +303,26 @@ class ChannelManagementStore
             channelId: scopeId.value,
           );
       await _refreshAgents();
-      state = state.copyWith(clearAction: true, clearFailure: true);
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        failure: failure,
-        clearAction: true,
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
       );
       rethrow;
     }
@@ -260,11 +353,26 @@ class ChannelManagementStore
             channelId: scopeId.value,
           );
       await _refreshAgents();
-      state = state.copyWith(clearAction: true, clearFailure: true);
+      _setStateIfMounted(
+        (current) => current.copyWith(clearAction: true, clearFailure: true),
+      );
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        failure: failure,
-        clearAction: true,
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: failure,
+          clearAction: true,
+        ),
+      );
+      rethrow;
+    } catch (error) {
+      _setStateIfMounted(
+        (current) => current.copyWith(
+          failure: UnknownFailure(
+            message: 'Channel operation failed.',
+            causeType: error.runtimeType.toString(),
+          ),
+          clearAction: true,
+        ),
       );
       rethrow;
     }

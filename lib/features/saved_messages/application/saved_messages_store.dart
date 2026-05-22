@@ -43,6 +43,14 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
         status: SavedMessagesStatus.failure,
         failure: failure,
       );
+    } catch (error) {
+      state = state.copyWith(
+        status: SavedMessagesStatus.failure,
+        failure: UnknownFailure(
+          message: 'Failed to load saved messages.',
+          causeType: error.runtimeType.toString(),
+        ),
+      );
     }
   }
 

@@ -20,8 +20,12 @@ final threadRepliesStoreProvider =
 );
 
 class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
+  bool _disposed = false;
+
   @override
   ThreadRepliesState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     final routeTarget = ref.watch(currentThreadRouteTargetProvider);
     Future.microtask(() {
       if (state.status == ThreadRepliesStatus.initial) {
@@ -50,7 +54,7 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
       final resolvedThread = routeTarget.threadChannelId != null
           ? null
           : await ref.read(threadRepositoryProvider).resolveThread(routeTarget);
-      if (ref.read(currentThreadRouteTargetProvider) != routeTarget) {
+      if (!_isCurrentRoute(routeTarget)) {
         return;
       }
 
@@ -71,6 +75,7 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
       );
       final threadChannelId = state.resolvedThreadChannelId;
       if (threadChannelId != null) {
+        if (_disposed) return;
         final ids = ref.read(knownThreadChannelIdsProvider);
         ref.read(knownThreadChannelIdsProvider.notifier).state = {
           ...ids,
@@ -79,7 +84,7 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
         unawaited(_markRead(routeTarget, threadChannelId));
       }
     } on AppFailure catch (failure) {
-      if (ref.read(currentThreadRouteTargetProvider) != routeTarget) {
+      if (!_isCurrentRoute(routeTarget)) {
         return;
       }
       state = state.copyWith(
@@ -87,7 +92,7 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
         failure: failure,
       );
     } catch (e, st) {
-      if (ref.read(currentThreadRouteTargetProvider) != routeTarget) {
+      if (!_isCurrentRoute(routeTarget)) {
         return;
       }
       try {
@@ -109,6 +114,11 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
 
   Future<void> retry() => load();
 
+  bool _isCurrentRoute(ThreadRouteTarget routeTarget) {
+    if (_disposed) return false;
+    return ref.read(currentThreadRouteTargetProvider) == routeTarget;
+  }
+
   Future<void> follow() async {
     if (state.status != ThreadRepliesStatus.success ||
         state.isFollowing ||
@@ -121,22 +131,32 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
 
     try {
       await ref.read(threadRepositoryProvider).followThread(routeTarget);
-      if (ref.read(currentThreadRouteTargetProvider) != routeTarget) {
+      if (!_isCurrentRoute(routeTarget)) {
         return;
       }
       state = state.copyWith(
         routeTarget: routeTarget.copyWith(isFollowed: true),
-        isFollowingInFlight: false,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
-      if (ref.read(currentThreadRouteTargetProvider) != routeTarget) {
+      if (!_isCurrentRoute(routeTarget)) {
+        return;
+      }
+      state = state.copyWith(failure: failure);
+    } catch (error) {
+      if (!_isCurrentRoute(routeTarget)) {
         return;
       }
       state = state.copyWith(
-        isFollowingInFlight: false,
-        failure: failure,
+        failure: UnknownFailure(
+          message: 'Failed to follow thread.',
+          causeType: error.runtimeType.toString(),
+        ),
       );
+    } finally {
+      if (_isCurrentRoute(routeTarget)) {
+        state = state.copyWith(isFollowingInFlight: false);
+      }
     }
   }
 
@@ -157,22 +177,32 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
             ServerScopeId(routeTarget.serverId),
             threadChannelId: threadChannelId,
           );
-      if (ref.read(currentThreadRouteTargetProvider) != routeTarget) {
+      if (!_isCurrentRoute(routeTarget)) {
         return;
       }
       state = state.copyWith(
-        isDoneInFlight: false,
         isDone: true,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
-      if (ref.read(currentThreadRouteTargetProvider) != routeTarget) {
+      if (!_isCurrentRoute(routeTarget)) {
+        return;
+      }
+      state = state.copyWith(failure: failure);
+    } catch (error) {
+      if (!_isCurrentRoute(routeTarget)) {
         return;
       }
       state = state.copyWith(
-        isDoneInFlight: false,
-        failure: failure,
+        failure: UnknownFailure(
+          message: 'Failed to mark thread done.',
+          causeType: error.runtimeType.toString(),
+        ),
       );
+    } finally {
+      if (_isCurrentRoute(routeTarget)) {
+        state = state.copyWith(isDoneInFlight: false);
+      }
     }
   }
 
@@ -180,6 +210,7 @@ class ThreadRepliesStore extends AutoDisposeNotifier<ThreadRepliesState> {
     ThreadRouteTarget routeTarget,
     String threadChannelId,
   ) async {
+    if (_disposed) return;
     try {
       await ref.read(threadRepositoryProvider).markThreadRead(
             ServerScopeId(routeTarget.serverId),
