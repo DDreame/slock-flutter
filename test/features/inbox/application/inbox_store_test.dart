@@ -201,6 +201,59 @@ void main() {
       }
     });
 
+    test('deduplicates page-boundary items returned by loadMore', () async {
+      final repo = _ControllableInboxRepository();
+      repo.nextResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            unreadCount: 1,
+          ),
+        ],
+        totalCount: 3,
+        totalUnreadCount: 3,
+        hasMore: true,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          inboxRepositoryProvider.overrideWithValue(repo),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+
+      repo.nextResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            unreadCount: 1,
+          ),
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-1',
+            unreadCount: 2,
+          ),
+        ],
+        totalCount: 3,
+        totalUnreadCount: 3,
+        hasMore: false,
+      );
+
+      await container.read(inboxStoreProvider.notifier).loadMore();
+
+      final state = container.read(inboxStoreProvider);
+      expect(state.items.map((item) => item.channelId), ['ch-1', 'dm-1']);
+      expect(
+        state.items.where((item) => item.channelId == 'ch-1'),
+        hasLength(1),
+      );
+    });
+
     test('deduplicates concurrent loadMore calls for same offset (#712)',
         () async {
       final repo = _ControllableInboxRepository();
@@ -423,6 +476,62 @@ void main() {
       } finally {
         await fixture.dispose();
       }
+    });
+
+    test('failed markRead does not rollback later successful markAllRead',
+        () async {
+      final repo = _ControllableInboxRepository();
+      repo.nextResponse = const InboxResponse(
+        items: [
+          InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-1',
+            channelName: 'general',
+            unreadCount: 5,
+          ),
+          InboxItem(
+            kind: InboxItemKind.dm,
+            channelId: 'dm-1',
+            channelName: 'Bob',
+            unreadCount: 2,
+          ),
+        ],
+        totalCount: 2,
+        totalUnreadCount: 7,
+        hasMore: false,
+      );
+      final container = ProviderContainer(
+        overrides: [
+          inboxRepositoryProvider.overrideWithValue(repo),
+          activeServerScopeIdProvider
+              .overrideWithValue(const ServerScopeId('server-1')),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(inboxStoreProvider.notifier).load();
+
+      repo.markReadCompleter = Completer<void>();
+      repo.markAllReadCompleter = Completer<void>();
+      final markReadFuture = container
+          .read(inboxStoreProvider.notifier)
+          .markRead(channelId: 'ch-1');
+      await Future<void>.delayed(Duration.zero);
+
+      final markAllReadFuture =
+          container.read(inboxStoreProvider.notifier).markAllRead();
+      await Future<void>.delayed(Duration.zero);
+
+      repo.markAllReadCompleter!.complete();
+      await markAllReadFuture;
+
+      repo.markReadFailure = const NetworkFailure(message: 'offline');
+      repo.markReadCompleter!.complete();
+      await markReadFuture;
+
+      final state = container.read(inboxStoreProvider);
+      expect(state.totalUnreadCount, 0);
+      expect(state.items.map((item) => item.unreadCount), [0, 0]);
     });
 
     test('retains DM item in dms filter after markRead (#712)', () async {
@@ -1322,6 +1431,10 @@ class _FakeConversationUnreadRepository
 class _ControllableInboxRepository implements InboxRepository {
   InboxResponse? nextResponse;
   Completer<InboxResponse>? fetchCompleter;
+  Completer<void>? markReadCompleter;
+  Completer<void>? markAllReadCompleter;
+  AppFailure? markReadFailure;
+  AppFailure? markAllReadFailure;
   int fetchCallCount = 0;
 
   @override
@@ -1342,7 +1455,13 @@ class _ControllableInboxRepository implements InboxRepository {
   Future<void> markItemRead(
     ServerScopeId serverId, {
     required String channelId,
-  }) async {}
+  }) async {
+    if (markReadCompleter != null) {
+      await markReadCompleter!.future;
+    }
+    final failure = markReadFailure;
+    if (failure != null) throw failure;
+  }
 
   @override
   Future<void> markItemDone(
@@ -1351,7 +1470,13 @@ class _ControllableInboxRepository implements InboxRepository {
   }) async {}
 
   @override
-  Future<void> markAllRead(ServerScopeId serverId) async {}
+  Future<void> markAllRead(ServerScopeId serverId) async {
+    if (markAllReadCompleter != null) {
+      await markAllReadCompleter!.future;
+    }
+    final failure = markAllReadFailure;
+    if (failure != null) throw failure;
+  }
 }
 
 class _RecordingCrashReporter implements CrashReporter {
