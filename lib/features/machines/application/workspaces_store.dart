@@ -45,6 +45,15 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
         status: WorkspacesStatus.failure,
         failure: failure,
       );
+    } catch (e, st) {
+      _reportUnexpectedError('load', e, st);
+      state = state.copyWith(
+        status: WorkspacesStatus.failure,
+        failure: UnknownFailure(
+          message: 'Failed to load workspaces.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
     }
   }
 
@@ -75,6 +84,29 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
             state.deletingWorkspaceIds.difference({workspaceId}),
       );
       rethrow;
+    } catch (e, st) {
+      _reportUnexpectedError('deleteWorkspace', e, st);
+      // Rollback: restore previous items and clear deleting flag.
+      state = state.copyWith(
+        items: previousItems,
+        deletingWorkspaceIds:
+            state.deletingWorkspaceIds.difference({workspaceId}),
+        failure: UnknownFailure(
+          message: 'Failed to delete workspace.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
+      rethrow;
     }
+  }
+
+  void _reportUnexpectedError(String method, Object error, StackTrace st) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'WorkspacesStore',
+        '$method failed: $error',
+        metadata: {'stackTrace': st.toString()},
+      );
+    } catch (_) {}
   }
 }

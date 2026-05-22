@@ -60,6 +60,15 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
         status: ChannelMemberStatus.failure,
         failure: failure,
       );
+    } catch (e, st) {
+      _reportUnexpectedError('load', e, st);
+      state = state.copyWith(
+        status: ChannelMemberStatus.failure,
+        failure: UnknownFailure(
+          message: 'Failed to load channel members.',
+          causeType: e.runtimeType.toString(),
+        ),
+      );
     }
   }
 
@@ -142,4 +151,14 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
   }
 
   Future<void> retry() => load();
+
+  void _reportUnexpectedError(String method, Object error, StackTrace st) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'ChannelMemberStore',
+        '$method failed: $error',
+        metadata: {'stackTrace': st.toString()},
+      );
+    } catch (_) {}
+  }
 }

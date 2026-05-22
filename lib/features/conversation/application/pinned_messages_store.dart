@@ -22,11 +22,12 @@ class PinnedMessagesState {
     PinnedMessagesStatus? status,
     List<ConversationMessageSummary>? messages,
     String? error,
+    bool clearError = false,
   }) {
     return PinnedMessagesState(
       status: status ?? this.status,
       messages: messages ?? this.messages,
-      error: error ?? this.error,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 
@@ -57,7 +58,10 @@ class PinnedMessagesStore extends AutoDisposeNotifier<PinnedMessagesState> {
 
   Future<void> load() async {
     final target = ref.read(currentConversationDetailTargetProvider);
-    state = state.copyWith(status: PinnedMessagesStatus.loading);
+    state = state.copyWith(
+      status: PinnedMessagesStatus.loading,
+      clearError: true,
+    );
 
     try {
       final messages = await ref
@@ -71,6 +75,12 @@ class PinnedMessagesStore extends AutoDisposeNotifier<PinnedMessagesState> {
       state = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
         error: failure.message ?? 'Failed to load pinned messages.',
+      );
+    } catch (e, st) {
+      _reportUnexpectedError('load', e, st);
+      state = const PinnedMessagesState(
+        status: PinnedMessagesStatus.failure,
+        error: 'Failed to load pinned messages.',
       );
     }
   }
@@ -89,5 +99,15 @@ class PinnedMessagesStore extends AutoDisposeNotifier<PinnedMessagesState> {
     state = state.copyWith(
       messages: [message, ...state.messages],
     );
+  }
+
+  void _reportUnexpectedError(String method, Object error, StackTrace st) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'PinnedMessagesStore',
+        '$method failed: $error',
+        metadata: {'stackTrace': st.toString()},
+      );
+    } catch (_) {}
   }
 }
