@@ -143,8 +143,8 @@ void main() {
         conversationLocalStoreProvider.overrideWithValue(localFakeLocalStore),
         searchRepositoryProvider.overrideWithValue(localFakeSearchRepo),
         searchNowProvider.overrideWithValue(() => utcPlus8NowAt3am),
-        searchLocalTimeZoneOffsetProvider.overrideWithValue(
-          const Duration(hours: 8),
+        searchLocalMidnightUtcProvider.overrideWithValue(
+          (_) => DateTime.utc(2026, 5, 21, 16),
         ),
       ]);
       addTearDown(localContainer.dispose);
@@ -165,6 +165,25 @@ void main() {
         DateTime.utc(2026, 5, 21, 16).toIso8601String(),
         reason: 'UTC+8 03:00 on May 22 should start at May 22 local '
             'midnight, not May 21 UTC midnight',
+      );
+    });
+
+    test('local midnight helper uses the offset that applied at midnight', () {
+      final localNoonAfterDstJump = DateTime(2026, 3, 8, 12);
+
+      final midnightUtc = computeSearchLocalMidnightUtc(
+        localNoonAfterDstJump,
+        localDate: (year, month, day) {
+          expect((year, month, day), (2026, 3, 8));
+          return DateTime.parse('2026-03-08T00:00:00-0500');
+        },
+      );
+
+      expect(
+        midnightUtc,
+        DateTime.utc(2026, 3, 8, 5),
+        reason: 'America/New_York local midnight on the spring-forward day '
+            'is still -05:00 even though later that day is -04:00',
       );
     });
 

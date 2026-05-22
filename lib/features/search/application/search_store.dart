@@ -16,9 +16,17 @@ final currentSearchServerIdProvider = Provider<ServerScopeId>((ref) {
 
 final searchNowProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 
-final searchLocalTimeZoneOffsetProvider = Provider<Duration>(
-  (ref) => ref.read(searchNowProvider)().timeZoneOffset,
+final searchLocalMidnightUtcProvider = Provider<DateTime Function(DateTime)>(
+  (ref) => computeSearchLocalMidnightUtc,
 );
+
+DateTime computeSearchLocalMidnightUtc(
+  DateTime localNow, {
+  DateTime Function(int year, int month, int day)? localDate,
+}) {
+  final createLocalDate = localDate ?? DateTime.new;
+  return createLocalDate(localNow.year, localNow.month, localNow.day).toUtc();
+}
 
 final searchStoreProvider =
     NotifierProvider.autoDispose<SearchStore, SearchState>(
@@ -291,14 +299,9 @@ class SearchStore extends AutoDisposeNotifier<SearchState> {
   ///
   /// Returns `null` for [SearchDateRange.all] (no time restriction).
   String? _computeAfterDate(SearchDateRange range) {
-    final nowUtc = ref.read(searchNowProvider)().toUtc();
-    final localOffset = ref.read(searchLocalTimeZoneOffsetProvider);
-    final localNow = nowUtc.add(localOffset);
-    final localMidnightUtc = DateTime.utc(
-      localNow.year,
-      localNow.month,
-      localNow.day,
-    ).subtract(localOffset);
+    final now = ref.read(searchNowProvider)();
+    final localNow = now.isUtc ? now.toLocal() : now;
+    final localMidnightUtc = ref.read(searchLocalMidnightUtcProvider)(localNow);
     switch (range) {
       case SearchDateRange.all:
         return null;
