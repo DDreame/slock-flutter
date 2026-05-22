@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
@@ -127,6 +129,37 @@ void main() {
   );
 
   test(
+    'load preserves in-flight role update indicator until update completes',
+    () async {
+      final subscription = container.listen(
+        memberListStoreProvider,
+        (_, __) {},
+      );
+      addTearDown(subscription.close);
+      fakeRepository.members = const [
+        MemberProfile(id: 'user-456', displayName: 'Bob', role: 'member'),
+      ];
+      await store().load();
+
+      fakeRepository.updateRoleCompleter = Completer<void>();
+      final updateFuture = store().updateMemberRole('user-456', 'admin');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(state().isUpdatingRole('user-456'), isTrue);
+
+      await store().load();
+
+      expect(state().isUpdatingRole('user-456'), isTrue);
+
+      fakeRepository.updateRoleCompleter!.complete();
+      await updateFuture;
+
+      expect(state().isUpdatingRole('user-456'), isFalse);
+      expect(state().members.single.role, 'admin');
+    },
+  );
+
+  test(
     'removeMember deletes repository entry and removes member locally',
     () async {
       fakeRepository.members = const [
@@ -226,6 +259,7 @@ class _FakeMemberRepository
     implements MemberRepository, MemberInviteMutationRepository {
   List<MemberProfile> members = const [];
   AppFailure? failure;
+  Completer<void>? updateRoleCompleter;
   String inviteCode = 'https://slock.ai/invite/token-123';
   final List<ServerScopeId> listRequests = [];
   final List<ServerScopeId> inviteRequests = [];
@@ -272,6 +306,10 @@ class _FakeMemberRepository
     roleRequests.add((serverId, userId, role));
     if (failure != null) {
       throw failure!;
+    }
+    final completer = updateRoleCompleter;
+    if (completer != null) {
+      await completer.future;
     }
   }
 

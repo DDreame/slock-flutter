@@ -39,8 +39,6 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       clearFailure: true,
       isInvitingByEmail: false,
       clearOpeningDirectMessage: true,
-      updatingRoleMemberIds: const {},
-      removingMemberIds: const {},
     );
 
     try {
@@ -59,8 +57,6 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         clearFailure: true,
         isInvitingByEmail: false,
         clearOpeningDirectMessage: true,
-        updatingRoleMemberIds: const {},
-        removingMemberIds: const {},
       );
     } on AppFailure catch (failure) {
       state = state.copyWith(
@@ -68,8 +64,6 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         failure: failure,
         isInvitingByEmail: false,
         clearOpeningDirectMessage: true,
-        updatingRoleMemberIds: const {},
-        removingMemberIds: const {},
       );
     }
   }

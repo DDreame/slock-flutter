@@ -494,6 +494,52 @@ void main() {
         await fixture.dispose();
       }
     });
+
+    test('restores removed item at original position when API fails', () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedInbox([
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-1',
+          channelName: 'general',
+          unreadCount: 5,
+        ),
+        const InboxItem(
+          kind: InboxItemKind.channel,
+          channelId: 'ch-2',
+          channelName: 'random',
+          unreadCount: 3,
+        ),
+        const InboxItem(
+          kind: InboxItemKind.dm,
+          channelId: 'dm-1',
+          channelName: 'Bob',
+          unreadCount: 2,
+        ),
+      ]);
+      fixture.inboxRepository.markDoneFailure =
+          const NetworkFailure(message: 'mark done failed');
+
+      await fixture.boot();
+      try {
+        await fixture.container.read(inboxStoreProvider.notifier).load();
+
+        await fixture.container
+            .read(inboxStoreProvider.notifier)
+            .markDone(channelId: 'ch-2');
+
+        final state = fixture.container.read(inboxStoreProvider);
+        expect(
+          state.items.map((item) => item.channelId),
+          ['ch-1', 'ch-2', 'dm-1'],
+        );
+        expect(state.totalCount, 3);
+        expect(state.totalUnreadCount, 10);
+        expect(state.offset, 3);
+      } finally {
+        await fixture.dispose();
+      }
+    });
   });
 
   // Before: "optimistically zeros all unread counts" and "calls repository
