@@ -165,6 +165,11 @@ class ConversationDetailStore
   List<ConversationMessageSummary>? _cachedMessageList;
   Set<String> _cachedMessageIdSet = const {};
 
+  /// INV-LOOKUP-769: Cached Map of messageId → list index for O(1) lookup.
+  /// Rebuilt lazily alongside [_messageIdSet] using the same identity check.
+  List<ConversationMessageSummary>? _cachedIndexMapMessageList;
+  Map<String, int> _cachedMessageIndexMap = const {};
+
   /// Returns the current message ID set, rebuilding lazily when the
   /// messages list identity changes. O(1) amortized per dedup check.
   Set<String> get _messageIdSet {
@@ -176,10 +181,35 @@ class ConversationDetailStore
     return _cachedMessageIdSet;
   }
 
+  /// Returns a Map from messageId to list index, rebuilding lazily when the
+  /// messages list identity changes. O(1) amortized per index lookup (#769).
+  Map<String, int> get _messageIndexMap {
+    final currentMessages = state.messages;
+    if (!identical(currentMessages, _cachedIndexMapMessageList)) {
+      _cachedMessageIndexMap = {
+        for (var i = 0; i < currentMessages.length; i++)
+          currentMessages[i].id: i,
+      };
+      _cachedIndexMapMessageList = currentMessages;
+    }
+    return _cachedMessageIndexMap;
+  }
+
   /// INV-DEDUP-663-1: Exposes [_messageIdSet] for test verification of
   /// Set-based dedup invalidation.
   @visibleForTesting
   Set<String> get messageIdSetForTesting => _messageIdSet;
+
+  /// INV-LOOKUP-769: Exposes [_messageIndexMap] for test verification.
+  @visibleForTesting
+  Map<String, int> get messageIndexMapForTesting => _messageIndexMap;
+
+  /// INV-LOOKUP-769: Returns true when the index map was built from the
+  /// current [state.messages] list. Used to verify that [_handleMessageDeleted]
+  /// actually consults [_messageIndexMap] on the hot path.
+  @visibleForTesting
+  bool get isMessageIndexMapCacheWarm =>
+      identical(_cachedIndexMapMessageList, state.messages);
 
   /// INV-DEDUP-663-1: Returns true when the cached Set was built from the
   /// current [state.messages] list. Used to verify that [_appendDedupedMessage]
@@ -991,11 +1021,17 @@ class ConversationDetailStore
       return;
     }
 
-    final index = state.messages.indexWhere((m) => m.id == deleted.id);
-    if (index != -1 && !state.messages[index].isDeleted) {
+    final index = _messageIndexMap[deleted.id];
+    if (index != null &&
+        index < state.messages.length &&
+        state.messages[index].id == deleted.id &&
+        !state.messages[index].isDeleted) {
       final messages = List<ConversationMessageSummary>.of(state.messages);
       messages[index] = messages[index].copyWith(isDeleted: true);
       state = state.copyWith(messages: messages);
+      // Soft-delete preserves list indices — update cache identity to avoid
+      // O(n) rebuild on the next lookup (#769).
+      _cachedIndexMapMessageList = state.messages;
       _persistSession();
       unawaited(
         ref
