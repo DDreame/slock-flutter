@@ -141,9 +141,13 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
     // Create a CancelToken so the timeout can cancel the in-flight request.
     final sendCancelToken = CancelToken();
     _sendCancelTokens[localId] = sendCancelToken;
-    if (pendingFiles == null || pendingFiles.isEmpty) {
-      _startSendTimeout(localId, target, content, replyToId: replyToId);
-    }
+    _startSendTimeout(localId, target, content,
+        replyToId: replyToId,
+        hasAttachments: pendingFiles != null && pendingFiles.isNotEmpty);
+
+    // Persist session after optimistic insert so pending messages survive
+    // navigation-away / provider disposal (#763).
+    _persistSession();
 
     var failedUploadCount = 0;
     var totalAttachmentCount = 0;
@@ -340,9 +344,32 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       _sendCancelTokens.remove(localId);
 
       // CancelledFailure means the send timeout cancelled the in-flight
-      // request. The timeout handler already transitioned to .queued and
-      // enqueued in the outbox — skip the failure transition.
-      if (failure is CancelledFailure) return;
+      // request. For text-only messages, the timeout handler already
+      // transitioned to .queued — skip. For attachment messages, transition
+      // to .failed so the user can retry manually (#763).
+      if (failure is CancelledFailure) {
+        if (pendingFiles != null && pendingFiles.isNotEmpty) {
+          state = state.copyWith(
+            pendingMessages: state.pendingMessages.map((m) {
+              if (m.localId == localId) {
+                return m.copyWith(
+                  status: MessageSendStatus.failed,
+                  failure: failure,
+                );
+              }
+              return m;
+            }).toList(),
+          );
+          _persistSession();
+          _updateHomeSidebarPreview(
+            target: target,
+            content: content,
+            localId: localId,
+            sendState: MessageSendState.failed,
+          );
+        }
+        return;
+      }
 
       if (failure.isRetryable &&
           (pendingFiles == null || pendingFiles.isEmpty)) {
@@ -445,14 +472,15 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
     // Create a CancelToken so the timeout can cancel the in-flight request.
     final sendCancelToken = CancelToken();
     _sendCancelTokens[localId] = sendCancelToken;
-    if (pending.attachmentIds == null || pending.attachmentIds!.isEmpty) {
-      _startSendTimeout(
-        localId,
-        target,
-        pending.content,
-        replyToId: pending.replyToId,
-      );
-    }
+    final retryHasAttachments =
+        pending.attachmentIds != null && pending.attachmentIds!.isNotEmpty;
+    _startSendTimeout(
+      localId,
+      target,
+      pending.content,
+      replyToId: pending.replyToId,
+      hasAttachments: retryHasAttachments,
+    );
 
     try {
       final repo = ref.read(conversationRepositoryProvider);
@@ -468,7 +496,7 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       }
 
       // Success: cancel timeout, remove from outbox (handles late-success
-      // after timeout race), transition to sent.
+      // after timeout race), transition to sent, clear reply preview.
       _cancelSendTimeout(localId);
       _sendCancelTokens.remove(localId);
       ref.read(outboxStoreProvider.notifier).removeItem(target, localId);
@@ -480,6 +508,7 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
           }
           return m;
         }).toList(),
+        clearReplyToMessage: true,
       );
       _persistSession();
 
@@ -493,9 +522,33 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       _sendCancelTokens.remove(localId);
 
       // CancelledFailure means the send timeout cancelled the in-flight
-      // request. The timeout handler already transitioned to .queued and
-      // enqueued in the outbox — skip the failure transition.
-      if (failure is CancelledFailure) return;
+      // request. For text-only messages, the timeout handler already
+      // transitioned to .queued — skip. For attachment messages, transition
+      // to .failed so the user can retry manually (#763).
+      if (failure is CancelledFailure) {
+        if (pending.attachmentIds != null &&
+            pending.attachmentIds!.isNotEmpty) {
+          state = state.copyWith(
+            pendingMessages: state.pendingMessages.map((m) {
+              if (m.localId == localId) {
+                return m.copyWith(
+                  status: MessageSendStatus.failed,
+                  failure: failure,
+                );
+              }
+              return m;
+            }).toList(),
+          );
+          _persistSession();
+          _updateHomeSidebarPreview(
+            target: target,
+            content: pending.content,
+            localId: localId,
+            sendState: MessageSendState.failed,
+          );
+        }
+        return;
+      }
 
       if (failure.isRetryable &&
           (pending.attachmentIds == null || pending.attachmentIds!.isEmpty)) {
@@ -629,11 +682,16 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
   /// Start a timeout timer for a sending message. If the send takes longer
   /// than [sendTimeoutDuration], cancel the in-flight request and enqueue
   /// the message in the outbox for automatic retry.
+  ///
+  /// [hasAttachments] is captured at call-site because `pending.attachmentIds`
+  /// is only populated after uploads complete — the timer may fire while
+  /// uploads are still in-flight (#763).
   void _startSendTimeout(
     String localId,
     ConversationDetailTarget target,
     String content, {
     String? replyToId,
+    bool hasAttachments = false,
   }) {
     _sendTimeoutTimers[localId] =
         Timer(ConversationDetailStore.sendTimeoutDuration, () {
@@ -644,28 +702,48 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       if (pending == null || pending.status != MessageSendStatus.sending) {
         return;
       }
-      // Cancel the in-flight request BEFORE enqueuing in the outbox.
+      // Cancel the in-flight request BEFORE transitioning state.
       // This prevents the race where both the original request and
       // the outbox drain send the same message simultaneously.
       final cancelToken = _sendCancelTokens.remove(localId);
       if (cancelToken != null && !cancelToken.isCancelled) {
         cancelToken.cancel('Send timeout');
       }
-      // Enqueue in outbox and transition to queued.
-      ref.read(outboxStoreProvider.notifier).enqueue(
-            target,
-            content,
-            replyToId: replyToId,
-            localId: localId,
-          );
-      state = state.copyWith(
-        pendingMessages: state.pendingMessages.map((m) {
-          if (m.localId == localId) {
-            return m.copyWith(status: MessageSendStatus.queued);
-          }
-          return m;
-        }).toList(),
-      );
+
+      if (hasAttachments) {
+        // Outbox does not support attachment re-upload — transition to
+        // FAILED so the user sees the error and can manually retry (#763).
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(
+                status: MessageSendStatus.failed,
+                failure: const UnknownFailure(
+                  message: 'Send timed out.',
+                  causeType: 'SendTimeout',
+                ),
+              );
+            }
+            return m;
+          }).toList(),
+        );
+      } else {
+        // Text-only: enqueue in outbox for automatic retry.
+        ref.read(outboxStoreProvider.notifier).enqueue(
+              target,
+              content,
+              replyToId: replyToId,
+              localId: localId,
+            );
+        state = state.copyWith(
+          pendingMessages: state.pendingMessages.map((m) {
+            if (m.localId == localId) {
+              return m.copyWith(status: MessageSendStatus.queued);
+            }
+            return m;
+          }).toList(),
+        );
+      }
       _persistSession();
 
       // Update Home sidebar to "未发送，点击重试" — PM groups
