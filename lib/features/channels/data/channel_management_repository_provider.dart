@@ -122,6 +122,46 @@ class _ApiChannelManagementRepository implements ChannelManagementRepository {
     }
   }
 
+  @override
+  Future<void> stopAllAgents(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_channelsPath/$channelId/stop-all-agents',
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to stop all agents.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
+  @override
+  Future<void> resumeAllAgents(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    try {
+      await _appDioClient.post<Object?>(
+        '$_channelsPath/$channelId/resume-all-agents',
+        options: _serverScopedOptions(serverId),
+      );
+    } on AppFailure {
+      rethrow;
+    } catch (error) {
+      throw UnknownFailure(
+        message: 'Failed to resume all agents.',
+        causeType: error.runtimeType.toString(),
+      );
+    }
+  }
+
   Options _serverScopedOptions(ServerScopeId serverId) {
     return Options(headers: {_serverHeaderName: serverId.value});
   }

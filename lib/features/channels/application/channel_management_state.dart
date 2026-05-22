@@ -1,7 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:slock_app/core/core.dart';
 
-enum ChannelManagementAction { create, edit, delete, leave }
+enum ChannelManagementAction {
+  create,
+  edit,
+  delete,
+  leave,
+  stopAgents,
+  resumeAgents
+}
 
 @immutable
 class ChannelManagementState {

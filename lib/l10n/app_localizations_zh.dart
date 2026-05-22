@@ -1534,4 +1534,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get conversationReplySemantics => '回复';
+
+  @override
+  String get channelStopAllAgents => '停止所有 Agent';
+
+  @override
+  String get channelResumeAllAgents => '恢复所有 Agent';
+
+  @override
+  String get channelStopAllAgentsTitle => '停止所有 Agent';
+
+  @override
+  String get channelStopAllAgentsMessage => '停止此频道中的所有 Agent？停止后它们将不会响应，直到恢复。';
+
+  @override
+  String get channelStopAllAgentsConfirm => '全部停止';
+
+  @override
+  String get channelStopAllAgentsSuccess => '所有 Agent 已停止。';
+
+  @override
+  String get channelStopAllAgentsFailed => '停止 Agent 失败。';
+
+  @override
+  String get channelResumeAllAgentsSuccess => '所有 Agent 已恢复。';
+
+  @override
+  String get channelResumeAllAgentsFailed => '恢复 Agent 失败。';
+
+  @override
+  String get cancel => '取消';
 }

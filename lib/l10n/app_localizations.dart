@@ -3010,6 +3010,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reply'**
   String get conversationReplySemantics;
+
+  /// No description provided for @channelStopAllAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop All Agents'**
+  String get channelStopAllAgents;
+
+  /// No description provided for @channelResumeAllAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume All Agents'**
+  String get channelResumeAllAgents;
+
+  /// No description provided for @channelStopAllAgentsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop all agents'**
+  String get channelStopAllAgentsTitle;
+
+  /// No description provided for @channelStopAllAgentsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop all agents in this channel? They will not respond until resumed.'**
+  String get channelStopAllAgentsMessage;
+
+  /// No description provided for @channelStopAllAgentsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop All'**
+  String get channelStopAllAgentsConfirm;
+
+  /// No description provided for @channelStopAllAgentsSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'All agents stopped.'**
+  String get channelStopAllAgentsSuccess;
+
+  /// No description provided for @channelStopAllAgentsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to stop agents.'**
+  String get channelStopAllAgentsFailed;
+
+  /// No description provided for @channelResumeAllAgentsSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'All agents resumed.'**
+  String get channelResumeAllAgentsSuccess;
+
+  /// No description provided for @channelResumeAllAgentsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to resume agents.'**
+  String get channelResumeAllAgentsFailed;
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
 }
 
 class _AppLocalizationsDelegate

@@ -188,6 +188,70 @@ class ChannelManagementStore
   Future<void> _refreshHomeList() {
     return ref.read(homeListStoreProvider.notifier).load();
   }
+
+  Future<void> stopAllAgents(ChannelScopeId scopeId) async {
+    final operationKey = 'stopAgents:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return;
+    try {
+      await _stopAllAgents(scopeId);
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _stopAllAgents(ChannelScopeId scopeId) async {
+    state = state.copyWith(
+      activeAction: ChannelManagementAction.stopAgents,
+      channelId: scopeId.value,
+      clearFailure: true,
+    );
+
+    try {
+      await ref.read(channelManagementRepositoryProvider).stopAllAgents(
+            scopeId.serverId,
+            channelId: scopeId.value,
+          );
+      state = state.copyWith(clearAction: true, clearFailure: true);
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        failure: failure,
+        clearAction: true,
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> resumeAllAgents(ChannelScopeId scopeId) async {
+    final operationKey = 'resumeAgents:${scopeId.value}';
+    if (!_operationKeys.add(operationKey)) return;
+    try {
+      await _resumeAllAgents(scopeId);
+    } finally {
+      _operationKeys.remove(operationKey);
+    }
+  }
+
+  Future<void> _resumeAllAgents(ChannelScopeId scopeId) async {
+    state = state.copyWith(
+      activeAction: ChannelManagementAction.resumeAgents,
+      channelId: scopeId.value,
+      clearFailure: true,
+    );
+
+    try {
+      await ref.read(channelManagementRepositoryProvider).resumeAllAgents(
+            scopeId.serverId,
+            channelId: scopeId.value,
+          );
+      state = state.copyWith(clearAction: true, clearFailure: true);
+    } on AppFailure catch (failure) {
+      state = state.copyWith(
+        failure: failure,
+        clearAction: true,
+      );
+      rethrow;
+    }
+  }
 }
 
 typedef _CreateChannelRequest = ({

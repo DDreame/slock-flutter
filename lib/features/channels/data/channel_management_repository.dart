@@ -23,4 +23,14 @@ abstract class ChannelManagementRepository {
     ServerScopeId serverId, {
     required String channelId,
   });
+
+  Future<void> stopAllAgents(
+    ServerScopeId serverId, {
+    required String channelId,
+  });
+
+  Future<void> resumeAllAgents(
+    ServerScopeId serverId, {
+    required String channelId,
+  });
 }

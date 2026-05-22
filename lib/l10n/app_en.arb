@@ -648,5 +648,15 @@
   "conversationOpenLinkConfirm": "Open",
   "conversationMessageActionsSemantics": "Message actions",
   "conversationShowMessageMenuSemantics": "Show message menu",
-  "conversationReplySemantics": "Reply"
+  "conversationReplySemantics": "Reply",
+  "channelStopAllAgents": "Stop All Agents",
+  "channelResumeAllAgents": "Resume All Agents",
+  "channelStopAllAgentsTitle": "Stop all agents",
+  "channelStopAllAgentsMessage": "Stop all agents in this channel? They will not respond until resumed.",
+  "channelStopAllAgentsConfirm": "Stop All",
+  "channelStopAllAgentsSuccess": "All agents stopped.",
+  "channelStopAllAgentsFailed": "Failed to stop agents.",
+  "channelResumeAllAgentsSuccess": "All agents resumed.",
+  "channelResumeAllAgentsFailed": "Failed to resume agents.",
+  "cancel": "Cancel"
 }

@@ -181,6 +181,116 @@ void main() {
     expect(channelRepository.leftChannelIds, ['general']);
     expect(homeRepository.loadCalls, 4);
   });
+
+  // -------------------------------------------------------------------------
+  // #737 — Emergency Stop/Resume All Agents
+  // -------------------------------------------------------------------------
+
+  test('stopAllAgents calls repository and completes', () async {
+    final homeRepository = _FakeHomeRepository();
+    final channelRepository = _FakeChannelManagementRepository();
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(homeListStoreProvider.notifier).load();
+
+    const scopeId = ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'general',
+    );
+
+    await container
+        .read(channelManagementStoreProvider.notifier)
+        .stopAllAgents(scopeId);
+
+    expect(channelRepository.stoppedAllAgentsChannelIds, ['general'],
+        reason: '#737: stopAllAgents must call repo with channelId');
+  });
+
+  test('resumeAllAgents calls repository and completes', () async {
+    final homeRepository = _FakeHomeRepository();
+    final channelRepository = _FakeChannelManagementRepository();
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(homeListStoreProvider.notifier).load();
+
+    const scopeId = ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'general',
+    );
+
+    await container
+        .read(channelManagementStoreProvider.notifier)
+        .resumeAllAgents(scopeId);
+
+    expect(channelRepository.resumedAllAgentsChannelIds, ['general'],
+        reason: '#737: resumeAllAgents must call repo with channelId');
+  });
+
+  test('stopAllAgents concurrent call is dropped (re-entrancy guard)',
+      () async {
+    final completer = Completer<void>();
+    final homeRepository = _FakeHomeRepository();
+    final channelRepository = _FakeChannelManagementRepository(
+      stopAllCompleter: completer,
+    );
+    final container = ProviderContainer(
+      overrides: [
+        activeServerScopeIdProvider.overrideWithValue(
+          const ServerScopeId('server-1'),
+        ),
+        homeRepositoryProvider.overrideWithValue(homeRepository),
+        channelManagementRepositoryProvider
+            .overrideWithValue(channelRepository),
+        sidebarOrderRepositoryProvider
+            .overrideWithValue(const _FakeSidebarOrderRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(homeListStoreProvider.notifier).load();
+
+    const scopeId = ChannelScopeId(
+      serverId: ServerScopeId('server-1'),
+      value: 'general',
+    );
+
+    final store = container.read(channelManagementStoreProvider.notifier);
+    final first = store.stopAllAgents(scopeId);
+    final second = store.stopAllAgents(scopeId);
+
+    // Second call should return immediately (re-entrancy guard drops it).
+    await second;
+    expect(channelRepository.stoppedAllAgentsChannelIds, hasLength(1),
+        reason:
+            '#737: concurrent stopAllAgents must be dropped by re-entrancy guard');
+
+    completer.complete();
+    await first;
+  });
 }
 
 class _FakeHomeRepository implements HomeRepository {
@@ -241,16 +351,20 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     this.createdChannelId = 'new-channel-id',
     this.createCompleter,
     this.createCompletersByName = const <String, Completer<String>>{},
+    this.stopAllCompleter,
   });
 
   final String createdChannelId;
   final Completer<String>? createCompleter;
   final Map<String, Completer<String>> createCompletersByName;
+  final Completer<void>? stopAllCompleter;
   final List<String> createdNames = [];
   final List<ServerScopeId> createdServerIds = [];
   final List<(String, String)> updatedChannels = [];
   final List<String> deletedChannelIds = [];
   final List<String> leftChannelIds = [];
+  final List<String> stoppedAllAgentsChannelIds = [];
+  final List<String> resumedAllAgentsChannelIds = [];
 
   @override
   Future<String> createChannel(
@@ -295,6 +409,25 @@ class _FakeChannelManagementRepository implements ChannelManagementRepository {
     required String channelId,
   }) async {
     leftChannelIds.add(channelId);
+  }
+
+  @override
+  Future<void> stopAllAgents(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    stoppedAllAgentsChannelIds.add(channelId);
+    if (stopAllCompleter != null) {
+      await stopAllCompleter!.future;
+    }
+  }
+
+  @override
+  Future<void> resumeAllAgents(
+    ServerScopeId serverId, {
+    required String channelId,
+  }) async {
+    resumedAllAgentsChannelIds.add(channelId);
   }
 }
 
