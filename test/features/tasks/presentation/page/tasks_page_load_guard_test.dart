@@ -44,9 +44,9 @@ class _TrackingTasksStore extends TasksStore {
 
   /// Overrides the real ensureLoaded so we can track calls through loadCallCount.
   @override
-  void ensureLoaded() {
+  Future<void> ensureLoaded() async {
     if (state.status == TasksStatus.initial) {
-      load();
+      await load();
     }
   }
 }
