@@ -978,6 +978,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchFilterApply => '应用';
 
   @override
+  String get searchFilterDateAny => '不限时间';
+
+  @override
+  String get searchFilterDateToday => '今天';
+
+  @override
+  String get searchFilterDateWeek => '最近一周';
+
+  @override
+  String get searchFilterDateMonth => '最近一月';
+
+  @override
   String get searchCouldNotOpenConversation => '无法打开会话。';
 
   @override

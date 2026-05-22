@@ -511,6 +511,7 @@ class _FakeSearchRepository implements SearchRepository {
     String? senderId,
     SearchSortBy? sortBy,
     String? channelId,
+    String? after,
     int offset = 0,
     CancelToken? cancelToken,
   }) async {
@@ -528,6 +529,7 @@ class _ToggleSearchRepository implements SearchRepository {
     String? senderId,
     SearchSortBy? sortBy,
     String? channelId,
+    String? after,
     int offset = 0,
     CancelToken? cancelToken,
   }) async {
@@ -569,6 +571,7 @@ class _CaptureSearchRepository implements SearchRepository {
     String? senderId,
     SearchSortBy? sortBy,
     String? channelId,
+    String? after,
     int offset = 0,
     CancelToken? cancelToken,
   }) async {

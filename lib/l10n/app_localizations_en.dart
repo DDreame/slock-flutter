@@ -1025,6 +1025,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchFilterApply => 'Apply';
 
   @override
+  String get searchFilterDateAny => 'Any time';
+
+  @override
+  String get searchFilterDateToday => 'Today';
+
+  @override
+  String get searchFilterDateWeek => 'Past week';
+
+  @override
+  String get searchFilterDateMonth => 'Past month';
+
+  @override
   String get searchCouldNotOpenConversation => 'Could not open conversation.';
 
   @override

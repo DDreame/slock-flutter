@@ -25,6 +25,7 @@ class _ApiSearchRepository implements SearchRepository {
     String? senderId,
     SearchSortBy? sortBy,
     String? channelId,
+    String? after,
     int offset = 0,
     CancelToken? cancelToken,
   }) async {
@@ -37,6 +38,7 @@ class _ApiSearchRepository implements SearchRepository {
           if (senderId != null) 'sender_id': senderId,
           if (sortBy != null) 'sort_by': sortBy.name,
           if (channelId != null) 'channel_id': channelId,
+          if (after != null) 'after': after,
           if (offset > 0) 'offset': offset.toString(),
         },
         options: Options(headers: {_serverHeaderName: serverId.routeParam}),

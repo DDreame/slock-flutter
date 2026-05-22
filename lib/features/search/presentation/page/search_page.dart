@@ -789,6 +789,17 @@ class _FilterChipBar extends ConsumerWidget {
                 : null,
           ),
 
+          // Date range filter chip (#736).
+          FilterChip(
+            key: const ValueKey('search-filter-date-range'),
+            label: Text(_dateRangeLabel(state.dateRange, l10n)),
+            selected: state.dateRange != SearchDateRange.all,
+            onSelected: (_) => _showDateRangePicker(context, store),
+            onDeleted: state.dateRange != SearchDateRange.all
+                ? () => store.setDateRange(SearchDateRange.all)
+                : null,
+          ),
+
           // Clear all filters.
           if (state.hasActiveFilters)
             ActionChip(
@@ -836,6 +847,63 @@ class _FilterChipBar extends ConsumerWidget {
     if (result != null) {
       store.setChannelFilter(result.isEmpty ? null : result);
     }
+  }
+
+  /// Label for the date range chip based on current selection.
+  String _dateRangeLabel(SearchDateRange range, AppLocalizations l10n) {
+    switch (range) {
+      case SearchDateRange.all:
+        return l10n.searchFilterDateAny;
+      case SearchDateRange.today:
+        return l10n.searchFilterDateToday;
+      case SearchDateRange.last7days:
+        return l10n.searchFilterDateWeek;
+      case SearchDateRange.last30days:
+        return l10n.searchFilterDateMonth;
+    }
+  }
+
+  /// Show a simple bottom sheet to pick a date range.
+  void _showDateRangePicker(BuildContext context, SearchStore store) {
+    final l10n = context.l10n;
+    showModalBottomSheet<SearchDateRange>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const ValueKey('search-date-range-all'),
+              title: Text(l10n.searchFilterDateAny),
+              selected: state.dateRange == SearchDateRange.all,
+              onTap: () => Navigator.pop(context, SearchDateRange.all),
+            ),
+            ListTile(
+              key: const ValueKey('search-date-range-today'),
+              title: Text(l10n.searchFilterDateToday),
+              selected: state.dateRange == SearchDateRange.today,
+              onTap: () => Navigator.pop(context, SearchDateRange.today),
+            ),
+            ListTile(
+              key: const ValueKey('search-date-range-week'),
+              title: Text(l10n.searchFilterDateWeek),
+              selected: state.dateRange == SearchDateRange.last7days,
+              onTap: () => Navigator.pop(context, SearchDateRange.last7days),
+            ),
+            ListTile(
+              key: const ValueKey('search-date-range-month'),
+              title: Text(l10n.searchFilterDateMonth),
+              selected: state.dateRange == SearchDateRange.last30days,
+              onTap: () => Navigator.pop(context, SearchDateRange.last30days),
+            ),
+          ],
+        ),
+      ),
+    ).then((value) {
+      if (value != null) {
+        store.setDateRange(value);
+      }
+    });
   }
 }
 

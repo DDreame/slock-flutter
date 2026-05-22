@@ -1960,6 +1960,30 @@ abstract class AppLocalizations {
   /// **'Apply'**
   String get searchFilterApply;
 
+  /// No description provided for @searchFilterDateAny.
+  ///
+  /// In en, this message translates to:
+  /// **'Any time'**
+  String get searchFilterDateAny;
+
+  /// No description provided for @searchFilterDateToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get searchFilterDateToday;
+
+  /// No description provided for @searchFilterDateWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Past week'**
+  String get searchFilterDateWeek;
+
+  /// No description provided for @searchFilterDateMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Past month'**
+  String get searchFilterDateMonth;
+
   /// No description provided for @searchCouldNotOpenConversation.
   ///
   /// In en, this message translates to:
