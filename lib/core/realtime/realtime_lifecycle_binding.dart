@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/bootstrap/app_ready_provider.dart';
 import 'package:slock_app/core/realtime/realtime_connection_state.dart';
+import 'package:slock_app/core/realtime/realtime_socket_client.dart';
 import 'package:slock_app/core/realtime/providers.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -48,6 +49,13 @@ final realtimeLifecycleBindingProvider = Provider<void>((ref) {
     },
   );
   ref.listen<bool>(appReadyProvider, (_, __) {
+    unawaited(syncConnection());
+  });
+
+  // #775: Token refresh rebuilds realtimeSocketClientProvider (via options
+  // dependency chain) without changing isAuthenticated or appReady. Listen
+  // for socket client identity changes so we reconnect with the new client.
+  ref.listen<RealtimeSocketClient>(realtimeSocketClientProvider, (_, __) {
     unawaited(syncConnection());
   });
 
