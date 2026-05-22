@@ -141,7 +141,9 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
     // Create a CancelToken so the timeout can cancel the in-flight request.
     final sendCancelToken = CancelToken();
     _sendCancelTokens[localId] = sendCancelToken;
-    _startSendTimeout(localId, target, content, replyToId: replyToId);
+    _startSendTimeout(localId, target, content,
+        replyToId: replyToId,
+        hasAttachments: pendingFiles != null && pendingFiles.isNotEmpty);
 
     // Persist session after optimistic insert so pending messages survive
     // navigation-away / provider disposal (#763).
@@ -470,14 +472,15 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
     // Create a CancelToken so the timeout can cancel the in-flight request.
     final sendCancelToken = CancelToken();
     _sendCancelTokens[localId] = sendCancelToken;
-    if (pending.attachmentIds == null || pending.attachmentIds!.isEmpty) {
-      _startSendTimeout(
-        localId,
-        target,
-        pending.content,
-        replyToId: pending.replyToId,
-      );
-    }
+    final retryHasAttachments =
+        pending.attachmentIds != null && pending.attachmentIds!.isNotEmpty;
+    _startSendTimeout(
+      localId,
+      target,
+      pending.content,
+      replyToId: pending.replyToId,
+      hasAttachments: retryHasAttachments,
+    );
 
     try {
       final repo = ref.read(conversationRepositoryProvider);
@@ -678,11 +681,16 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
   /// Start a timeout timer for a sending message. If the send takes longer
   /// than [sendTimeoutDuration], cancel the in-flight request and enqueue
   /// the message in the outbox for automatic retry.
+  ///
+  /// [hasAttachments] is captured at call-site because `pending.attachmentIds`
+  /// is only populated after uploads complete — the timer may fire while
+  /// uploads are still in-flight (#763).
   void _startSendTimeout(
     String localId,
     ConversationDetailTarget target,
     String content, {
     String? replyToId,
+    bool hasAttachments = false,
   }) {
     _sendTimeoutTimers[localId] =
         Timer(ConversationDetailStore.sendTimeoutDuration, () {
@@ -700,9 +708,6 @@ mixin _ConversationDetailSendMixin on _ConversationDetailCoreMixin {
       if (cancelToken != null && !cancelToken.isCancelled) {
         cancelToken.cancel('Send timeout');
       }
-
-      final hasAttachments =
-          pending.attachmentIds != null && pending.attachmentIds!.isNotEmpty;
 
       if (hasAttachments) {
         // Outbox does not support attachment re-upload — transition to

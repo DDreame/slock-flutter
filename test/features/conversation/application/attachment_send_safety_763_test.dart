@@ -117,6 +117,94 @@ void main() {
       });
     });
 
+    test('timeout during in-flight upload transitions to FAILED (not queued)',
+        () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      fakeAsync((fake) {
+        final connectivityCtrl =
+            StreamController<ConnectivityStatus>.broadcast();
+        final connectivity = ConnectivityService.withInitialStatus(
+          ConnectivityStatus.online,
+          controller: connectivityCtrl,
+        );
+        final repo = _ControllableConversationRepository();
+        // Keep upload in-flight — never completes until we say so.
+        repo.uploadCompleter = Completer<String>();
+
+        final container = ProviderContainer(
+          overrides: [
+            currentConversationDetailTargetProvider.overrideWithValue(target),
+            conversationRepositoryProvider.overrideWithValue(repo),
+            imageCompressorProvider
+                .overrideWithValue(const _NoOpImageCompressor()),
+            connectivityServiceProvider.overrideWithValue(connectivity),
+            sharedPreferencesProvider.overrideWithValue(prefs),
+          ],
+        );
+        final sub =
+            container.listen(conversationDetailStoreProvider, (_, __) {});
+
+        container.read(conversationDetailStoreProvider.notifier).load();
+        fake.flushMicrotasks();
+        final store =
+            container.read(conversationDetailStoreProvider.notifier);
+
+        // Start send with attachment — upload will never complete.
+        store.addPendingAttachment(const PendingAttachment(
+          path: '/tmp/big-video.mp4',
+          name: 'big-video.mp4',
+          mimeType: 'video/mp4',
+        ));
+        store.updateDraft('slow upload');
+        store.send();
+        fake.flushMicrotasks();
+
+        // Pending message is in sending state, attachmentIds still null
+        // (upload hasn't completed).
+        final pendingBefore = container
+            .read(conversationDetailStoreProvider)
+            .pendingMessages
+            .first;
+        expect(pendingBefore.status, MessageSendStatus.sending);
+        expect(pendingBefore.attachmentIds, isNull,
+            reason: 'Upload is still in-flight, no IDs yet');
+
+        // Elapse the send timeout while upload is still in-flight.
+        fake.elapse(ConversationDetailStore.sendTimeoutDuration);
+        fake.flushMicrotasks();
+
+        // Must transition to FAILED (not queued) because hasAttachments
+        // flag was captured at call-site, not from pending.attachmentIds.
+        final afterTimeout = container
+            .read(conversationDetailStoreProvider)
+            .pendingMessages
+            .first;
+        expect(
+          afterTimeout.status,
+          MessageSendStatus.failed,
+          reason: 'Timeout during upload must transition to FAILED — '
+              'hasAttachments flag captured before upload starts',
+        );
+
+        // Outbox must NOT have the message.
+        final targetKey = outboxTargetKey(target);
+        final outboxEntries =
+            container.read(outboxStoreProvider).items[targetKey] ?? [];
+        expect(
+          outboxEntries,
+          isEmpty,
+          reason: 'Attachment messages must NOT be enqueued in outbox '
+              'even when attachmentIds is still null on pending',
+        );
+
+        sub.close();
+        container.dispose();
+        connectivityCtrl.close();
+        fake.flushMicrotasks();
+      });
+    });
+
     test('text-only send timeout still transitions to queued', () async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
@@ -537,6 +625,7 @@ class _ControllableConversationRepository implements ConversationRepository {
   ConversationMessageSummary? autoSendResult;
   List<String>? lastSendAttachmentIds;
   CancelToken? lastSendCancelToken;
+  Completer<String>? uploadCompleter;
 
   @override
   Future<ConversationDetailSnapshot> loadConversation(
@@ -600,8 +689,11 @@ class _ControllableConversationRepository implements ConversationRepository {
     PendingAttachment attachment, {
     void Function(int sent, int total)? onSendProgress,
     CancelToken? cancelToken,
-  }) async {
-    return 'att-fake-id';
+  }) {
+    if (uploadCompleter != null) {
+      return uploadCompleter!.future;
+    }
+    return Future.value('att-fake-id');
   }
 
   @override
