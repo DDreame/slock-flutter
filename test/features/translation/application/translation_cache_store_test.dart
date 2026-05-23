@@ -158,6 +158,144 @@ void main() {
       expect(translations.containsKey('msg-209'), isTrue);
     });
 
+    test('LRU promotion keeps recently-read entry when trimming', () async {
+      final repo = _ScriptedTranslationRepository([
+        [
+          for (var i = 0; i < 200; i++)
+            TranslationResult(
+              messageId: 'msg-$i',
+              translatedContent: 'translated-$i',
+              sourceLanguage: 'en',
+              targetLanguage: 'ja',
+              status: TranslationStatus.translated,
+            ),
+        ],
+        [
+          for (var i = 200; i < 251; i++)
+            TranslationResult(
+              messageId: 'msg-$i',
+              translatedContent: 'translated-$i',
+              sourceLanguage: 'en',
+              targetLanguage: 'ja',
+              status: TranslationStatus.translated,
+            ),
+        ],
+      ]);
+      final container = createContainer(repo: repo);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(translationCacheStoreProvider.notifier);
+      await notifier.translateMessages([
+        for (var i = 0; i < 200; i++) 'msg-$i',
+      ]);
+
+      expect(
+          notifier.getTranslation('msg-0')?.translatedContent, 'translated-0');
+      await notifier.translateMessages([
+        for (var i = 200; i < 251; i++) 'msg-$i',
+      ]);
+
+      final translations =
+          container.read(translationCacheStoreProvider).translations;
+      expect(translations.length, lessThanOrEqualTo(200));
+      expect(translations.containsKey('msg-0'), isTrue);
+      expect(translations.containsKey('msg-1'), isFalse);
+      expect(translations.containsKey('msg-250'), isTrue);
+    });
+
+    test(
+        'cached visible messages are promoted when auto-translate rechecks them',
+        () async {
+      final repo = _ScriptedTranslationRepository([
+        [
+          for (var i = 0; i < 200; i++)
+            TranslationResult(
+              messageId: 'msg-$i',
+              translatedContent: 'translated-$i',
+              sourceLanguage: 'en',
+              targetLanguage: 'ja',
+              status: TranslationStatus.translated,
+            ),
+        ],
+        [
+          for (var i = 200; i < 251; i++)
+            TranslationResult(
+              messageId: 'msg-$i',
+              translatedContent: 'translated-$i',
+              sourceLanguage: 'en',
+              targetLanguage: 'ja',
+              status: TranslationStatus.translated,
+            ),
+        ],
+      ]);
+      final container = createContainer(repo: repo);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(translationCacheStoreProvider.notifier);
+      await notifier.translateMessages([
+        for (var i = 0; i < 200; i++) 'msg-$i',
+      ]);
+      await notifier.translateMessages(['msg-0']);
+      expect(repo.batchCallCount, 1);
+
+      await notifier.translateMessages([
+        for (var i = 200; i < 251; i++) 'msg-$i',
+      ]);
+
+      final translations =
+          container.read(translationCacheStoreProvider).translations;
+      expect(translations.containsKey('msg-0'), isTrue);
+      expect(translations.containsKey('msg-1'), isFalse);
+      expect(repo.batchCallCount, 2);
+    });
+
+    test('repeated LRU touches and trim stay within hot-path budget', () async {
+      final repo = _ScriptedTranslationRepository([
+        [
+          for (var i = 0; i < 200; i++)
+            TranslationResult(
+              messageId: 'msg-$i',
+              translatedContent: 'translated-$i',
+              sourceLanguage: 'en',
+              targetLanguage: 'ja',
+              status: TranslationStatus.translated,
+            ),
+        ],
+        [
+          for (var i = 200; i < 251; i++)
+            TranslationResult(
+              messageId: 'msg-$i',
+              translatedContent: 'translated-$i',
+              sourceLanguage: 'en',
+              targetLanguage: 'ja',
+              status: TranslationStatus.translated,
+            ),
+        ],
+      ]);
+      final container = createContainer(repo: repo);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(translationCacheStoreProvider.notifier);
+      await notifier.translateMessages([
+        for (var i = 0; i < 200; i++) 'msg-$i',
+      ]);
+
+      final stopwatch = Stopwatch()..start();
+      for (var i = 0; i < 1000; i++) {
+        notifier.getTranslation('msg-${i % 200}');
+      }
+      await notifier.translateMessages([
+        for (var i = 200; i < 251; i++) 'msg-$i',
+      ]);
+      stopwatch.stop();
+
+      expect(stopwatch.elapsedMilliseconds, lessThan(500));
+      expect(
+        container.read(translationCacheStoreProvider).translations.length,
+        lessThanOrEqualTo(200),
+      );
+    });
+
     test('no-ops when serverId is null', () async {
       final fakeRepo = _FakeTranslationRepository();
       final container = createContainer(serverId: null, repo: fakeRepo);

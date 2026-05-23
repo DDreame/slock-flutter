@@ -155,8 +155,15 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
   }
 
   /// Returns the cached translation for [messageId], or null.
+  ///
+  /// Cache hits are promoted to the back of the insertion-ordered map, making
+  /// [_trimTranslations] evict least-recently-used entries instead of merely
+  /// oldest-inserted entries.
   TranslationEntry? getTranslation(String messageId) {
-    return state.translations[messageId];
+    final entry = state.translations[messageId];
+    if (entry == null) return null;
+    _promoteTranslations([messageId]);
+    return entry;
   }
 
   /// Whether the translated view is active for [messageId].
@@ -192,6 +199,8 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
     // Read preferred language from settings.
     final settingsState = ref.read(translationSettingsStoreProvider);
     final targetLanguage = settingsState.settings.preferredLanguage;
+
+    _promoteTranslations(messageIds);
 
     // Filter out already-cached (translated or pending) messages
     // AND messages currently in-flight (concurrent dedup guard).
@@ -301,6 +310,16 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
       state = state.copyWith(
         showTranslation: {...state.showTranslation, messageId: true},
       );
+    }
+  }
+
+  void _promoteTranslations(Iterable<String> messageIds) {
+    final translations = state.translations;
+    if (translations.isEmpty) return;
+    for (final messageId in messageIds) {
+      final entry = translations.remove(messageId);
+      if (entry == null) continue;
+      translations[messageId] = entry;
     }
   }
 
