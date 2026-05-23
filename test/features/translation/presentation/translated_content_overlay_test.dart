@@ -60,6 +60,43 @@ void main() {
     expect(find.byKey(const ValueKey('translation-done-icon')), findsOneWidget);
   });
 
+  testWidgets('translation toggle is an accessible button with 48dp target',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+
+    const entry = TranslationEntry(
+      messageId: 'msg-1',
+      translatedContent: 'こんにちは',
+      sourceLanguage: 'en',
+      targetLanguage: 'ja',
+      status: TranslationEntryStatus.translated,
+    );
+
+    await tester.pumpWidget(buildTestWidget(entry: entry));
+    await tester.pumpAndSettle();
+
+    final toggle = find.byKey(const ValueKey('translation-toggle'));
+    expect(toggle, findsOneWidget);
+    expect(tester.widget<TextButton>(toggle).onPressed, isNotNull);
+
+    final size = tester.getSize(toggle);
+    expect(size.width, greaterThanOrEqualTo(48));
+    expect(size.height, greaterThanOrEqualTo(48));
+    expect(
+      tester.getSemantics(find.text('Show translation')),
+      matchesSemantics(
+        label: 'Show translation',
+        isButton: true,
+        hasEnabledState: true,
+        isEnabled: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasFocusAction: true,
+      ),
+    );
+    semantics.dispose();
+  });
+
   testWidgets('shows translated content when toggle is active', (tester) async {
     const entry = TranslationEntry(
       messageId: 'msg-1',
@@ -153,6 +190,40 @@ void main() {
     // Retry text.
     expect(find.byKey(const ValueKey('translation-retry')), findsOneWidget);
     expect(find.text('Translation failed. Tap to retry.'), findsOneWidget);
+  });
+
+  testWidgets('translation retry is an accessible button with 48dp target',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+
+    const entry = TranslationEntry(
+      messageId: 'msg-1',
+      status: TranslationEntryStatus.failed,
+    );
+
+    await tester.pumpWidget(buildTestWidget(entry: entry));
+    await tester.pumpAndSettle();
+
+    final retry = find.byKey(const ValueKey('translation-retry'));
+    expect(retry, findsOneWidget);
+    expect(tester.widget<TextButton>(retry).onPressed, isNotNull);
+
+    final size = tester.getSize(retry);
+    expect(size.width, greaterThanOrEqualTo(48));
+    expect(size.height, greaterThanOrEqualTo(48));
+    expect(
+      tester.getSemantics(find.text('Translation failed. Tap to retry.')),
+      matchesSemantics(
+        label: 'Translation failed. Tap to retry.',
+        isButton: true,
+        hasEnabledState: true,
+        isEnabled: true,
+        isFocusable: true,
+        hasTapAction: true,
+        hasFocusAction: true,
+      ),
+    );
+    semantics.dispose();
   });
 }
 
