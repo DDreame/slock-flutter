@@ -30,6 +30,7 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
       final repo = ref.read(conversationRepositoryProvider);
       await repo.addReaction(target, messageId: messageId, emoji: emoji);
     } on AppFailure {
+      if ((this as ConversationDetailStore)._disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(
         messages: _updateMessageById(
@@ -67,6 +68,7 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
       final repo = ref.read(conversationRepositoryProvider);
       await repo.removeReaction(target, messageId: messageId, emoji: emoji);
     } on AppFailure {
+      if ((this as ConversationDetailStore)._disposed) return;
       if (ref.read(currentConversationDetailTargetProvider) != target) return;
       state = state.copyWith(
         messages: _updateMessageById(
