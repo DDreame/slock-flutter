@@ -148,9 +148,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     if (state.hasError) {
       final error = state.error;
       setState(() {
-        _errorText = error is AppFailure
-            ? (error.message ?? l10n.registerFailedFallback)
-            : l10n.registerFailedFallback;
+        _errorText =
+            error is AppFailure ? error.userMessage(l10n) : l10n.errorUnknown;
       });
     }
   }

@@ -178,8 +178,8 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
       final error = result.error;
       setState(() {
         _errorText = error is AppFailure
-            ? (error.message ?? context.l10n.resetPasswordFailedFallback)
-            : context.l10n.resetPasswordFailedFallback;
+            ? error.userMessage(context.l10n)
+            : context.l10n.errorUnknown;
       });
     } else {
       setState(() {

@@ -89,7 +89,7 @@ void main() {
       expect(find.text('Password is required.'), findsOneWidget);
     });
 
-    testWidgets('shows API error on login failure', (tester) async {
+    testWidgets('shows localized error on login failure', (tester) async {
       final repo = _FakeAuthRepository(
         loginFailure: const UnauthorizedFailure(message: 'Invalid credentials'),
       );
@@ -109,7 +109,12 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('login-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Invalid credentials'), findsOneWidget);
+      // #790: raw message must not leak; localized string must appear.
+      expect(find.text('Invalid credentials'), findsNothing);
+      expect(
+        find.text('Session expired. Please sign in again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('password visibility toggle works', (tester) async {
@@ -269,7 +274,8 @@ void main() {
       expect(find.text('Password is required.'), findsOneWidget);
     });
 
-    testWidgets('shows API error on registration failure', (tester) async {
+    testWidgets('shows localized error on registration failure',
+        (tester) async {
       final repo = _FakeAuthRepository(
         registerFailure:
             const ServerFailure(message: 'Email already registered'),
@@ -294,7 +300,12 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('register-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Email already registered'), findsOneWidget);
+      // #790: raw message must not leak; localized string must appear.
+      expect(find.text('Email already registered'), findsNothing);
+      expect(
+        find.text('Server error. Please try again later.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('password visibility toggle works', (tester) async {
@@ -427,7 +438,7 @@ void main() {
       );
     });
 
-    testWidgets('shows API error on failure', (tester) async {
+    testWidgets('shows localized error on failure', (tester) async {
       final repo = _FakeAuthRepository(
         forgotPasswordFailure: const NetworkFailure(message: 'Network error'),
       );
@@ -443,7 +454,12 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('forgot-password-submit')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Network error'), findsOneWidget);
+      // #790: raw message must not leak; localized string must appear.
+      expect(find.text('Network error'), findsNothing);
+      expect(
+        find.text('Network error. Please check your connection and try again.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('body is scrollable for keyboard safety', (tester) async {

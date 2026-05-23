@@ -142,9 +142,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (state.hasError) {
       final error = state.error;
       setState(() {
-        _errorText = error is AppFailure
-            ? (error.message ?? l10n.loginFailedFallback)
-            : l10n.loginFailedFallback;
+        _errorText =
+            error is AppFailure ? error.userMessage(l10n) : l10n.errorUnknown;
       });
     }
   }
