@@ -105,6 +105,9 @@ class AnnouncementStore extends Notifier<AnnouncementState> {
       final repo = ref.read(announcementRepositoryProvider);
       final all = await repo.getActive(serverId);
 
+      // Guard: server may have switched during the await.
+      if (ref.read(activeServerScopeIdProvider) != serverId) return;
+
       final dismissed = ref.read(dismissedAnnouncementIdsProvider);
       final filtered = all.where((a) => !dismissed.contains(a.id)).toList();
 
