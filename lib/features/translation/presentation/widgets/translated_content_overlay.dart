@@ -134,16 +134,14 @@ class _TranslationStatusRow extends ConsumerWidget {
 
         // Toggle button.
         if (entry.status == TranslationEntryStatus.translated)
-          GestureDetector(
+          TextButton(
             key: const ValueKey('translation-toggle'),
-            onTap: () => ref
+            style: _translationTextButtonStyle(colors.primary),
+            onPressed: () => ref
                 .read(translationCacheStoreProvider.notifier)
                 .toggleTranslation(messageId),
             child: Text(
               isShowingTranslation ? 'Show original' : 'Show translation',
-              style: AppTypography.caption.copyWith(
-                color: colors.primary,
-              ),
             ),
           )
         else if (entry.status == TranslationEntryStatus.pending)
@@ -155,19 +153,25 @@ class _TranslationStatusRow extends ConsumerWidget {
             ),
           )
         else
-          GestureDetector(
+          TextButton(
             key: const ValueKey('translation-retry'),
-            onTap: () => ref
+            style: _translationTextButtonStyle(colors.error),
+            onPressed: () => ref
                 .read(translationCacheStoreProvider.notifier)
                 .translateMessage(messageId),
-            child: Text(
-              'Translation failed. Tap to retry.',
-              style: AppTypography.caption.copyWith(
-                color: colors.error,
-              ),
-            ),
+            child: const Text('Translation failed. Tap to retry.'),
           ),
       ],
     );
   }
+}
+
+ButtonStyle _translationTextButtonStyle(Color foregroundColor) {
+  return TextButton.styleFrom(
+    foregroundColor: foregroundColor,
+    minimumSize: const Size(48, 48),
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+    tapTargetSize: MaterialTapTargetSize.padded,
+    textStyle: AppTypography.caption,
+  );
 }
