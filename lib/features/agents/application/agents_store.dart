@@ -239,6 +239,18 @@ class AgentsStore extends Notifier<AgentsState> {
     } on AppFailure {
       state = state.copyWith(items: previousItems);
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'AgentsStore.startAgent',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to start agent.',
+      );
+      state = state.copyWith(items: previousItems, failure: failure);
+      throw failure;
     } finally {
       state = state.copyWith(
         controlActionAgentIds: {...state.controlActionAgentIds}
@@ -266,6 +278,18 @@ class AgentsStore extends Notifier<AgentsState> {
     } on AppFailure {
       state = state.copyWith(items: previousItems);
       rethrow;
+    } catch (error, stackTrace) {
+      _captureUnexpectedError(
+        error,
+        stackTrace,
+        operation: 'AgentsStore.stopAgent',
+      );
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to stop agent.',
+      );
+      state = state.copyWith(items: previousItems, failure: failure);
+      throw failure;
     } finally {
       state = state.copyWith(
         controlActionAgentIds: {...state.controlActionAgentIds}

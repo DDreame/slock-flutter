@@ -286,6 +286,46 @@ void main() {
       expect(state().items.first.activity, 'working');
     });
 
+    test('startAgent wraps non-AppFailure and rolls back optimistic state',
+        () async {
+      fakeRepo.listResult = [
+        makeAgent(id: 'a1', status: 'stopped', activity: 'offline'),
+      ];
+      await store().load();
+
+      fakeRepo.thrownError = StateError('start transport failed');
+
+      await expectLater(
+        store().startAgent('a1'),
+        throwsA(isA<UnknownFailure>()),
+      );
+
+      expect(state().items.first.status, 'stopped');
+      expect(state().items.first.activity, 'offline');
+      expect(state().isControlActionInFlight('a1'), isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
+    test('stopAgent wraps non-AppFailure and rolls back optimistic state',
+        () async {
+      fakeRepo.listResult = [
+        makeAgent(id: 'a1', status: 'active', activity: 'working'),
+      ];
+      await store().load();
+
+      fakeRepo.thrownError = StateError('stop transport failed');
+
+      await expectLater(
+        store().stopAgent('a1'),
+        throwsA(isA<UnknownFailure>()),
+      );
+
+      expect(state().items.first.status, 'active');
+      expect(state().items.first.activity, 'working');
+      expect(state().isControlActionInFlight('a1'), isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
     test('resetAgent completes without error', () async {
       fakeRepo.listResult = [makeAgent(id: 'a1')];
       await store().load();
@@ -575,6 +615,7 @@ class _FakeAgentsRepository
 
   @override
   Future<void> startAgent(String agentId) async {
+    if (thrownError != null) throw thrownError!;
     if (shouldFail) {
       throw const UnknownFailure(message: 'Start failed', causeType: 'test');
     }
@@ -582,6 +623,7 @@ class _FakeAgentsRepository
 
   @override
   Future<void> stopAgent(String agentId) async {
+    if (thrownError != null) throw thrownError!;
     if (shouldFail) {
       throw const UnknownFailure(message: 'Stop failed', causeType: 'test');
     }

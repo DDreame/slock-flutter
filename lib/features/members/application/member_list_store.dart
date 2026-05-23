@@ -65,6 +65,17 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         isInvitingByEmail: false,
         clearOpeningDirectMessage: true,
       );
+    } catch (error, stackTrace) {
+      _reportUnexpectedError('load', error, stackTrace);
+      state = state.copyWith(
+        status: MemberListStatus.failure,
+        failure: _unexpectedFailure(
+          error,
+          message: 'Failed to load members.',
+        ),
+        isInvitingByEmail: false,
+        clearOpeningDirectMessage: true,
+      );
     }
   }
 
@@ -81,6 +92,14 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(failure: failure, isInvitingByEmail: false);
       rethrow;
+    } catch (error, stackTrace) {
+      _reportUnexpectedError('inviteByEmail', error, stackTrace);
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to send invite email.',
+      );
+      state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      throw failure;
     }
   }
 
@@ -96,6 +115,14 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(failure: failure, isInvitingByEmail: false);
       rethrow;
+    } catch (error, stackTrace) {
+      _reportUnexpectedError('createInvite', error, stackTrace);
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to generate invite link.',
+      );
+      state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      throw failure;
     }
   }
 
@@ -124,6 +151,17 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         updatingRoleMemberIds: {...state.updatingRoleMemberIds}..remove(userId),
       );
       rethrow;
+    } catch (error, stackTrace) {
+      _reportUnexpectedError('updateMemberRole', error, stackTrace);
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to update member role.',
+      );
+      state = state.copyWith(
+        failure: failure,
+        updatingRoleMemberIds: {...state.updatingRoleMemberIds}..remove(userId),
+      );
+      throw failure;
     }
   }
 
@@ -151,6 +189,17 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         removingMemberIds: {...state.removingMemberIds}..remove(userId),
       );
       rethrow;
+    } catch (error, stackTrace) {
+      _reportUnexpectedError('removeMember', error, stackTrace);
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to remove member.',
+      );
+      state = state.copyWith(
+        failure: failure,
+        removingMemberIds: {...state.removingMemberIds}..remove(userId),
+      );
+      throw failure;
     }
   }
 
@@ -180,11 +229,48 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     } on AppFailure catch (failure) {
       state = state.copyWith(failure: failure, clearOpeningDirectMessage: true);
       rethrow;
+    } catch (error, stackTrace) {
+      _reportUnexpectedError('openDirectMessage', error, stackTrace);
+      final failure = _unexpectedFailure(
+        error,
+        message: 'Failed to open direct message.',
+      );
+      state = state.copyWith(
+        failure: failure,
+        clearOpeningDirectMessage: true,
+      );
+      throw failure;
     }
   }
 
   /// Update the search query for filtering the member list.
   void setQuery(String query) {
     state = state.copyWith(query: query);
+  }
+
+  void _reportUnexpectedError(String method, Object error, StackTrace st) {
+    try {
+      ref.read(diagnosticsCollectorProvider).error(
+        'MemberListStore',
+        '$method failed: $error',
+        metadata: {'stackTrace': st.toString()},
+      );
+    } catch (_) {}
+    if (error is! StateError) {
+      try {
+        ref.read(crashReporterProvider).captureException(
+          error,
+          stackTrace: st,
+          extra: {'store': 'MemberListStore', 'method': method},
+        );
+      } catch (_) {}
+    }
+  }
+
+  AppFailure _unexpectedFailure(Object error, {required String message}) {
+    return UnknownFailure(
+      message: message,
+      causeType: error.runtimeType.toString(),
+    );
   }
 }

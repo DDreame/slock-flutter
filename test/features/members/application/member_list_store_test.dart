@@ -253,12 +253,103 @@ void main() {
 
     expect(state().humans.length, 2);
   });
+
+  group('non-AppFailure handling', () {
+    test('load wraps unexpected errors and sets failure status', () async {
+      fakeRepository.thrownError = StateError('sqlite member load failed');
+
+      await store().load();
+
+      expect(state().status, MemberListStatus.failure);
+      expect(state().failure, isA<UnknownFailure>());
+      expect(state().isInvitingByEmail, isFalse);
+    });
+
+    test('inviteByEmail wraps unexpected errors and clears busy flag',
+        () async {
+      fakeRepository.thrownError = StateError('smtp invite failed');
+
+      await expectLater(
+        store().inviteByEmail('user@example.com'),
+        throwsA(isA<UnknownFailure>()),
+      );
+
+      expect(state().isInvitingByEmail, isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
+    test('createInvite wraps unexpected errors and clears busy flag', () async {
+      fakeRepository.thrownError = StateError('invite link failed');
+
+      await expectLater(
+        store().createInvite(),
+        throwsA(isA<UnknownFailure>()),
+      );
+
+      expect(state().isInvitingByEmail, isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
+    test('updateMemberRole wraps unexpected errors and clears guard', () async {
+      fakeRepository.members = const [
+        MemberProfile(id: 'user-456', displayName: 'Bob', role: 'member'),
+      ];
+      await store().load();
+      fakeRepository.thrownError = StateError('role write failed');
+
+      await expectLater(
+        store().updateMemberRole('user-456', 'admin'),
+        throwsA(isA<UnknownFailure>()),
+      );
+
+      expect(state().members.single.role, 'member');
+      expect(state().isUpdatingRole('user-456'), isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
+    test('removeMember wraps unexpected errors and clears guard', () async {
+      fakeRepository.members = const [
+        MemberProfile(id: 'user-456', displayName: 'Bob'),
+        MemberProfile(id: 'user-789', displayName: 'Carol'),
+      ];
+      await store().load();
+      fakeRepository.thrownError = StateError('remove failed');
+
+      await expectLater(
+        store().removeMember('user-456'),
+        throwsA(isA<UnknownFailure>()),
+      );
+
+      expect(
+          state().members.map((member) => member.id), ['user-456', 'user-789']);
+      expect(state().isRemovingMember('user-456'), isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+
+    test('openDirectMessage wraps unexpected errors and clears guard',
+        () async {
+      fakeRepository.members = const [
+        MemberProfile(id: 'user-456', displayName: 'Bob'),
+      ];
+      await store().load();
+      fakeRepository.thrownError = StateError('dm open failed');
+
+      await expectLater(
+        store().openDirectMessage('user-456'),
+        throwsA(isA<UnknownFailure>()),
+      );
+
+      expect(state().isOpeningDirectMessage('user-456'), isFalse);
+      expect(state().failure, isA<UnknownFailure>());
+    });
+  });
 }
 
 class _FakeMemberRepository
     implements MemberRepository, MemberInviteMutationRepository {
   List<MemberProfile> members = const [];
   AppFailure? failure;
+  Object? thrownError;
   Completer<void>? updateRoleCompleter;
   String inviteCode = 'https://slock.ai/invite/token-123';
   final List<ServerScopeId> listRequests = [];
@@ -271,6 +362,7 @@ class _FakeMemberRepository
   @override
   Future<List<MemberProfile>> listMembers(ServerScopeId serverId) async {
     listRequests.add(serverId);
+    if (thrownError != null) throw thrownError!;
     if (failure != null) {
       throw failure!;
     }
@@ -280,6 +372,7 @@ class _FakeMemberRepository
   @override
   Future<String> createInvite(ServerScopeId serverId) async {
     inviteRequests.add(serverId);
+    if (thrownError != null) throw thrownError!;
     if (failure != null) {
       throw failure!;
     }
@@ -292,6 +385,7 @@ class _FakeMemberRepository
     required String email,
   }) async {
     inviteEmailRequests.add((serverId, email));
+    if (thrownError != null) throw thrownError!;
     if (failure != null) {
       throw failure!;
     }
@@ -304,6 +398,7 @@ class _FakeMemberRepository
     required String role,
   }) async {
     roleRequests.add((serverId, userId, role));
+    if (thrownError != null) throw thrownError!;
     if (failure != null) {
       throw failure!;
     }
@@ -319,6 +414,7 @@ class _FakeMemberRepository
     required String userId,
   }) async {
     removeRequests.add((serverId, userId));
+    if (thrownError != null) throw thrownError!;
     if (failure != null) {
       throw failure!;
     }
@@ -330,6 +426,7 @@ class _FakeMemberRepository
     required String userId,
   }) async {
     openRequests.add((serverId, userId));
+    if (thrownError != null) throw thrownError!;
     if (failure != null) {
       throw failure!;
     }
@@ -340,8 +437,13 @@ class _FakeMemberRepository
   Future<String> openAgentDirectMessage(
     ServerScopeId serverId, {
     required String agentId,
-  }) async =>
-      'dm-agent-$agentId';
+  }) async {
+    if (thrownError != null) throw thrownError!;
+    if (failure != null) {
+      throw failure!;
+    }
+    return 'dm-agent-$agentId';
+  }
 }
 
 class _FakeSessionStore extends SessionStore {
