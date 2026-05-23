@@ -162,6 +162,11 @@ void main() {
       );
       addTearDown(container.dispose);
 
+      // Keep provider alive with an active listener — ensures the notifier
+      // stays live through the server switch so the in-flight load() can
+      // still write to state (which the guard must prevent).
+      final sub = container.listen(announcementStoreProvider, (_, __) {});
+
       final store = container.read(announcementStoreProvider.notifier);
       final loadFuture = store.load();
 
@@ -182,6 +187,8 @@ void main() {
       // State should still be loading (since load for server B hasn't run).
       expect(state.status, isNot(AnnouncementStatus.success),
           reason: '#785: stale write must not set success');
+
+      sub.close();
     });
   });
 }
