@@ -274,6 +274,101 @@ void main() {
     expect(router.routeInformationProvider.value.uri.path, '/home');
   });
 
+  testWidgets('first launch can open public base URL settings', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(sessionStoreProvider.notifier)
+        .login(email: 'a@b.com', password: 'p');
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _buildRouterApp(router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    router.go('/settings/base-url');
+    await tester.pumpAndSettle();
+
+    expect(
+        router.routeInformationProvider.value.uri.path, '/settings/base-url');
+  });
+
+  testWidgets('pending deep link during onboarding is restored on finish', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        serverListRepositoryProvider.overrideWithValue(
+          _FakeServerListRepository(['server-1']),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(sessionStoreProvider.notifier)
+        .login(email: 'a@b.com', password: 'p');
+    await container.read(serverListStoreProvider.notifier).load();
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _buildRouterApp(router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/onboarding');
+
+    container.read(pendingDeepLinkProvider.notifier).state =
+        '/servers/server-1/channels/general';
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/onboarding');
+    expect(
+      container.read(pendingDeepLinkProvider),
+      '/servers/server-1/channels/general',
+    );
+
+    await tester.tap(find.byKey(const ValueKey('onboarding-skip')));
+    await tester.pumpAndSettle();
+
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/servers/server-1/channels/general',
+    );
+    expect(container.read(pendingDeepLinkProvider), isNull);
+  });
+
   group('authRedirect', () {
     test('unknown status + /splash stays on splash', () {
       const session = SessionState();

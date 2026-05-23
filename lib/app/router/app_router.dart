@@ -209,6 +209,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (session.isAuthenticated &&
           bootstrapComplete &&
           !onboardingComplete &&
+          !_publicRoutes.contains(path) &&
           path != '/onboarding' &&
           path != '/profile/edit') {
         return '/onboarding';
@@ -575,6 +576,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     final session = ref.read(sessionStoreProvider);
     final bootstrapComplete = ref.read(appReadyProvider);
     if (!session.isAuthenticated || !bootstrapComplete) return;
+    if (!ref.read(onboardingStoreProvider).isComplete) return;
 
     ref.read(pendingDeepLinkProvider.notifier).state = null;
     if (isInviteDeepLink(next)) {
