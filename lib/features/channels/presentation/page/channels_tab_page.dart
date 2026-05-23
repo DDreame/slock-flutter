@@ -146,7 +146,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             ],
           ),
         HomeListStatus.failure => _ChannelsErrorState(
-            message: state.failure?.message ?? l10n.homeLoadFailedFallback,
+            message: state.failure?.userMessage(l10n) ?? l10n.errorUnknown,
             onRetry: homeStore.retry,
           ),
         HomeListStatus.success => RefreshIndicator(

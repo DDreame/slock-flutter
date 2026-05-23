@@ -1226,7 +1226,8 @@ class _ConversationFailureView extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              state.failure?.message ?? 'Please try again.',
+              state.failure?.userMessage(context.l10n) ??
+                  context.l10n.errorUnknown,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),

@@ -94,7 +94,8 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
                 child: Center(child: CircularProgressIndicator()),
               ),
             ServerListStatus.failure => _ServerListError(
-                message: failure?.message ?? 'Unable to load workspaces.',
+                message: failure?.userMessage(context.l10n) ??
+                    context.l10n.errorUnknown,
                 onRetry: ref.read(serverListStoreProvider.notifier).retry,
               ),
             ServerListStatus.success when servers.isEmpty => const Padding(

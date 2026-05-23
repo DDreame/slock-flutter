@@ -108,7 +108,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             ],
           ),
         HomeListStatus.failure => _HomeErrorState(
-            message: state.failure?.message ?? l10n.homeLoadFailedFallback,
+            message: state.failure?.userMessage(l10n) ?? l10n.errorUnknown,
             onRetry: homeStore.retry,
           ),
         HomeListStatus.success => Column(
