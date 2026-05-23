@@ -376,6 +376,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
   ) async {
     final router = GoRouter.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
 
     try {
       final channelId = await ref
@@ -392,7 +393,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            failure.userMessage(context.l10n),
+            failure.userMessage(l10n),
           ),
         ),
       );

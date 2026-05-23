@@ -161,6 +161,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       ).showSnackBar(const SnackBar(content: Text('Workspace created.')));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
+      if (!mounted) return;
       _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
@@ -184,6 +185,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       ).showSnackBar(const SnackBar(content: Text('Workspace joined.')));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
+      if (!mounted) return;
       _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
@@ -208,6 +210,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Workspace renamed.')));
     } on AppFailure catch (failure) {
+      if (!mounted) return;
       _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
@@ -238,6 +241,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       ).showSnackBar(const SnackBar(content: Text('Workspace deleted.')));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
+      if (!mounted) return;
       _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
@@ -268,6 +272,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       ).showSnackBar(const SnackBar(content: Text('Workspace left.')));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
+      if (!mounted) return;
       _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
