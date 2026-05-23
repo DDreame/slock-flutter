@@ -363,20 +363,18 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
         context: context,
         member: member,
       ),
-      onMessage: () => _openDirectMessage(context, member.id, widget.serverId),
+      onMessage: () => _openDirectMessage(member.id, widget.serverId),
       onChangeRole: (role) => _changeMemberRole(member, role),
       onRemove: () => _removeMember(member),
     );
   }
 
   Future<void> _openDirectMessage(
-    BuildContext context,
     String userId,
     ServerScopeId serverId,
   ) async {
     final router = GoRouter.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    final l10n = context.l10n;
 
     try {
       final channelId = await ref
@@ -393,7 +391,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            failure.userMessage(l10n),
+            failure.userMessage(context.l10n),
           ),
         ),
       );
