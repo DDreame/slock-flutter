@@ -8,6 +8,7 @@ import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
+import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
 import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
@@ -361,6 +362,137 @@ void main() {
 
       final state = container.read(homeListStoreProvider);
       expect(state.directMessages, isEmpty);
+    });
+  });
+
+  group('sort hot path optimization', () {
+    test('realtime channel update preserves sorted output without resorting',
+        () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedHome(
+        channels: const [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-a',
+            ),
+            name: 'A',
+          ),
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-b',
+            ),
+            name: 'B',
+          ),
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'ch-c',
+            ),
+            name: 'C',
+          ),
+        ],
+        directMessages: const [
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-a',
+            ),
+            title: 'A',
+          ),
+          HomeDirectMessageSummary(
+            scopeId: DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-b',
+            ),
+            title: 'B',
+          ),
+        ],
+        sidebarOrder: const SidebarOrder(
+          channelOrder: ['ch-c', 'ch-a', 'ch-b'],
+          dmOrder: ['dm-b', 'dm-a'],
+          pinnedChannelIds: ['ch-a'],
+          pinnedOrder: ['ch-a'],
+        ),
+      );
+      await fixture.boot();
+      addTearDown(fixture.dispose);
+      await fixture.container.read(homeListStoreProvider.notifier).load();
+
+      final directMessagesBefore =
+          fixture.container.read(homeListStoreProvider).directMessages;
+      fixture.container
+          .read(homeListStoreProvider.notifier)
+          .updateChannelLastMessage(
+            conversationId: 'ch-c',
+            messageId: 'msg-1',
+            preview: 'new preview',
+            activityAt: DateTime.utc(2026, 5, 23),
+          );
+
+      final state = fixture.container.read(homeListStoreProvider);
+      expect(state.directMessages, same(directMessagesBefore));
+      expect(state.pinnedChannels.map((c) => c.scopeId.value), ['ch-a']);
+      expect(state.channels.map((c) => c.scopeId.value), ['ch-c', 'ch-b']);
+      expect(
+          state.directMessages.map((d) => d.scopeId.value), ['dm-b', 'dm-a']);
+      expect(state.channels.first.lastMessagePreview, 'new preview');
+    });
+
+    test(
+        'message edit preview update overlays current DM lists without sorting',
+        () async {
+      final fixture = RuntimeAppFixture();
+      fixture.seedHome(
+        directMessages: [
+          HomeDirectMessageSummary(
+            scopeId: const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-a',
+            ),
+            title: 'A',
+            lastMessageId: 'msg-a',
+            lastMessagePreview: 'old A',
+            lastActivityAt: DateTime.utc(2026, 5, 22),
+          ),
+          HomeDirectMessageSummary(
+            scopeId: const DirectMessageScopeId(
+              serverId: ServerScopeId('server-1'),
+              value: 'dm-b',
+            ),
+            title: 'B',
+            lastMessageId: 'msg-b',
+            lastMessagePreview: 'old B',
+            lastActivityAt: DateTime.utc(2026, 5, 22),
+          ),
+        ],
+        sidebarOrder: const SidebarOrder(
+          dmOrder: ['dm-b', 'dm-a'],
+          pinnedChannelIds: ['dm-b'],
+          pinnedOrder: ['dm-b'],
+        ),
+      );
+      await fixture.boot();
+      addTearDown(fixture.dispose);
+      await fixture.container.read(homeListStoreProvider.notifier).load();
+
+      final channelsBefore =
+          fixture.container.read(homeListStoreProvider).channels;
+      final directMessagesBefore =
+          fixture.container.read(homeListStoreProvider).directMessages;
+      fixture.container.read(homeListStoreProvider.notifier).updateDmPreview(
+            conversationId: 'dm-b',
+            messageId: 'msg-b',
+            preview: 'edited B',
+          );
+
+      final state = fixture.container.read(homeListStoreProvider);
+      expect(state.channels, same(channelsBefore));
+      expect(state.directMessages, same(directMessagesBefore));
+      expect(state.pinnedDirectMessages.map((d) => d.scopeId.value), ['dm-b']);
+      expect(state.directMessages.map((d) => d.scopeId.value), ['dm-a']);
+      expect(state.pinnedDirectMessages.single.lastMessagePreview, 'edited B');
     });
   });
 
