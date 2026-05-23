@@ -66,9 +66,16 @@ class VoiceRecordingController
   /// Synchronous flag for the re-entrancy guard (#772).
   bool _isStartingRecording = false;
 
+  /// Disposal flag — prevents ref.read() after container is disposed (#788).
+  bool _disposed = false;
+
   @override
   VoiceRecordingControllerState build() {
-    ref.onDispose(_cleanup);
+    _disposed = false;
+    ref.onDispose(() {
+      _disposed = true;
+      _cleanup();
+    });
     return const VoiceRecordingControllerState();
   }
 
@@ -97,7 +104,9 @@ class VoiceRecordingController
       return await _startRecordingImpl();
     } finally {
       _isStartingRecording = false;
-      state = const VoiceRecordingControllerState(isStarting: false);
+      if (!_disposed) {
+        state = const VoiceRecordingControllerState(isStarting: false);
+      }
     }
   }
 
@@ -145,10 +154,11 @@ class VoiceRecordingController
   }
 
   /// Stop recording and return the file path. Cleans up subscriptions.
-  /// Returns null if not recording.
+  /// Returns null if not recording or if disposed during stop.
   Future<String?> stopRecording() async {
     _cancelSubscriptions();
     final path = await recorder.stop();
+    if (_disposed) return path;
     ref.read(voiceMessageStoreProvider.notifier).reset();
     return path;
   }
@@ -157,6 +167,7 @@ class VoiceRecordingController
   Future<void> cancelRecording() async {
     _cancelSubscriptions();
     await recorder.cancel();
+    if (_disposed) return;
     ref.read(voiceMessageStoreProvider.notifier).reset();
   }
 
