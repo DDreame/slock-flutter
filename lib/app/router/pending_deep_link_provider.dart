@@ -36,3 +36,26 @@ String? extractDeepLinkServerId(String path) {
   }
   return null;
 }
+
+String? resolvePendingDeepLinkTarget(
+  String? pending, {
+  required Iterable<String> memberServerIds,
+}) {
+  if (pending == null) return null;
+  if (isInviteDeepLink(pending)) return pending;
+
+  if (isConversationDeepLink(pending)) {
+    final serverId = extractDeepLinkServerId(pending);
+    return serverId != null && memberServerIds.contains(serverId)
+        ? pending
+        : null;
+  }
+
+  if (isNotificationDeepLink(pending)) {
+    final serverId = extractDeepLinkServerId(pending);
+    if (serverId == null) return pending;
+    return memberServerIds.contains(serverId) ? pending : null;
+  }
+
+  return null;
+}

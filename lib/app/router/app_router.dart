@@ -29,6 +29,8 @@ import 'package:slock_app/features/home/presentation/page/unread_list_page.dart'
 import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
 import 'package:slock_app/features/machines/presentation/page/machines_page.dart';
 import 'package:slock_app/features/members/presentation/page/members_page.dart';
+import 'package:slock_app/features/onboarding/application/onboarding_store.dart';
+import 'package:slock_app/features/onboarding/presentation/page/onboarding_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_edit_page.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
@@ -203,34 +205,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return '/home';
       }
 
+      final onboardingComplete = ref.read(onboardingStoreProvider).isComplete;
+      if (session.isAuthenticated &&
+          bootstrapComplete &&
+          !onboardingComplete &&
+          path != '/onboarding' &&
+          path != '/profile/edit') {
+        return '/onboarding';
+      }
+      if (session.isAuthenticated &&
+          bootstrapComplete &&
+          onboardingComplete &&
+          path == '/onboarding') {
+        return '/home';
+      }
+
       final redirect = authRedirect(session, path);
 
       if (redirect == '/home') {
         final pending = ref.read(pendingDeepLinkProvider);
         if (pending != null) {
           ref.read(pendingDeepLinkProvider.notifier).state = null;
-          if (isInviteDeepLink(pending)) {
-            return pending;
-          } else if (isConversationDeepLink(pending)) {
-            final pendingServerId = extractDeepLinkServerId(pending);
-            final servers = ref.read(serverListStoreProvider).servers;
-            if (pendingServerId != null &&
-                servers.any((s) => s.id == pendingServerId)) {
-              return pending;
-            }
-          } else if (isNotificationDeepLink(pending)) {
-            final pendingServerId = extractDeepLinkServerId(pending);
-            if (pendingServerId != null) {
-              final servers = ref.read(serverListStoreProvider).servers;
-              if (servers.any((s) => s.id == pendingServerId)) {
-                return pending;
-              }
-              // Server not in membership list — reject silently
-            } else {
-              // No server scope (e.g. /profile/u1) — allow
-              return pending;
-            }
-          }
+          final target = resolvePendingDeepLinkTarget(
+            pending,
+            memberServerIds: ref
+                .read(serverListStoreProvider)
+                .servers
+                .map((server) => server.id),
+          );
+          if (target != null) return target;
         }
       }
 
@@ -238,6 +241,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/splash', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingPage(),
+      ),
       GoRoute(
         path: '/biometric-lock',
         builder: (context, state) => const BiometricLockPage(),

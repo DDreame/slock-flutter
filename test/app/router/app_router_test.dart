@@ -27,6 +27,7 @@ import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_item.dart';
+import 'package:slock_app/features/onboarding/application/onboarding_store.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/core/auth/biometric_service.dart';
@@ -88,6 +89,7 @@ void main() {
 
     const expectedRoutes = [
       '/splash',
+      '/onboarding',
       '/biometric-lock',
       '/login',
       '/register',
@@ -200,6 +202,76 @@ void main() {
 
     expect(router.routeInformationProvider.value.uri.path, '/login');
     expect(find.byType(NavigationBar), findsNothing);
+  });
+
+  testWidgets('authenticated first launch redirects to onboarding', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(sessionStoreProvider.notifier)
+        .login(email: 'a@b.com', password: 'p');
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _buildRouterApp(router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/onboarding');
+  });
+
+  testWidgets('completed onboarding skips first-run wizard', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      OnboardingRepository.completeKey: true,
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(
+      overrides: [
+        secureStorageProvider.overrideWithValue(_FakeSecureStorage()),
+        authRepositoryProvider.overrideWithValue(const FakeAuthRepository()),
+        splashControllerProvider
+            .overrideWith(() => _StallingSplashController()),
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await container
+        .read(sessionStoreProvider.notifier)
+        .login(email: 'a@b.com', password: 'p');
+    container.read(appReadyProvider.notifier).state = true;
+
+    final router = container.read(appRouterProvider);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: _buildRouterApp(router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, '/home');
   });
 
   group('authRedirect', () {
@@ -727,6 +799,72 @@ void main() {
       },
     );
 
+    testWidgets(
+      'first-run onboarding finish restores pending conversation deep link',
+      (tester) async {
+        SharedPreferences.setMockInitialValues({});
+        final prefs = await SharedPreferences.getInstance();
+        final storage = _FakeSecureStorage();
+        storage._store[ServerSelectionStorageKeys.selectedServerId] =
+            'server-1';
+        final container = ProviderContainer(
+          overrides: [
+            sharedPreferencesProvider.overrideWithValue(prefs),
+            secureStorageProvider.overrideWithValue(storage),
+            authRepositoryProvider.overrideWithValue(
+              const FakeAuthRepository(),
+            ),
+            splashControllerProvider.overrideWith(
+              () => _StallingSplashController(),
+            ),
+            serverListRepositoryProvider.overrideWithValue(
+              _FakeServerListRepository(['server-1']),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        final router = container.read(appRouterProvider);
+
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: _buildRouterApp(router),
+          ),
+        );
+        await tester.pump();
+
+        router.go('/servers/server-1/channels/general');
+        await tester.pump();
+        expect(
+          container.read(pendingDeepLinkProvider),
+          '/servers/server-1/channels/general',
+        );
+
+        await container
+            .read(sessionStoreProvider.notifier)
+            .login(email: 'a@b.com', password: 'p');
+        await container
+            .read(serverSelectionStoreProvider.notifier)
+            .restoreSelection();
+        await container.read(serverListStoreProvider.notifier).load();
+        container.read(appReadyProvider.notifier).state = true;
+        await tester.pumpAndSettle();
+
+        expect(router.routeInformationProvider.value.uri.path, '/onboarding');
+
+        await tester.tap(find.byKey(const ValueKey('onboarding-skip')));
+        await tester.pumpAndSettle();
+
+        expect(
+          router.routeInformationProvider.value.uri.path,
+          '/servers/server-1/channels/general',
+        );
+        expect(container.read(pendingDeepLinkProvider), isNull);
+        expect(prefs.getBool(OnboardingRepository.completeKey), isTrue);
+      },
+    );
+
     testWidgets('captures DM deep link and restores after bootstrap', (
       tester,
     ) async {
@@ -1184,7 +1322,9 @@ void main() {
       WidgetTester tester, {
       InboxState? inboxState,
     }) async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues({
+        OnboardingRepository.completeKey: true,
+      });
       final prefs = await SharedPreferences.getInstance();
 
       final container = ProviderContainer(
@@ -1844,7 +1984,9 @@ void main() {
     late SharedPreferences biometricPrefs;
 
     setUp(() async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues({
+        OnboardingRepository.completeKey: true,
+      });
       biometricPrefs = await SharedPreferences.getInstance();
     });
 

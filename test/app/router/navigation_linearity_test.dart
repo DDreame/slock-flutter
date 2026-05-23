@@ -31,6 +31,7 @@ import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/features/auth/data/auth_repository_provider.dart';
 import 'package:slock_app/features/home/application/home_list_state.dart';
 import 'package:slock_app/features/home/application/home_list_store.dart';
+import 'package:slock_app/features/onboarding/application/onboarding_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -103,7 +104,9 @@ void main() {
   late SharedPreferences prefs;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      OnboardingRepository.completeKey: true,
+    });
     prefs = await SharedPreferences.getInstance();
   });
 
