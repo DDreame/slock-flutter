@@ -12,6 +12,7 @@ import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Full-page contact picker for starting a new direct message.
 ///
@@ -184,7 +185,7 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? 'Failed to open conversation.'),
+          content: Text(failure.userMessage(context.l10n)),
         ),
       );
   }

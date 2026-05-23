@@ -31,7 +31,7 @@ import 'package:slock_app/features/translation/application/translation_settings_
 import 'package:slock_app/features/translation/data/translation_settings.dart';
 import 'package:slock_app/features/translation/presentation/widgets/translated_content_overlay.dart';
 import 'package:slock_app/stores/session/session_store.dart';
-import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 AppLocalizations _conversationL10n(BuildContext context) =>
     AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
@@ -763,8 +763,7 @@ class ConversationMessageCardState
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ??
-                _conversationL10n(context).conversationReactionFailedFallback),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }
@@ -900,8 +899,7 @@ class ConversationMessageCardState
             ..hideCurrentSnackBar()
             ..showSnackBar(
               SnackBar(
-                content: Text(failure.message ??
-                    'Failed to ${widget.message.isPinned ? 'unpin' : 'pin'} message.'),
+                content: Text(failure.userMessage(context.l10n)),
               ),
             );
         }
@@ -966,8 +964,7 @@ class ConversationMessageCardState
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ??
-                _conversationL10n(context).conversationReactionFailedFallback),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }
@@ -1030,8 +1027,7 @@ class ConversationMessageCardState
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ??
-                _conversationL10n(context).conversationDeleteFailedFallback),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }
@@ -1059,7 +1055,7 @@ class ConversationMessageCardState
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to create task.'),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }

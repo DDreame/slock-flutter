@@ -6,6 +6,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/application/channel_management_state.dart';
 import 'package:slock_app/features/channels/application/channel_management_store.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Full-page form for creating a new channel.
 ///
@@ -140,7 +141,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to create channel.'),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }

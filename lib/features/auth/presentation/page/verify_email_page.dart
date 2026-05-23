@@ -187,7 +187,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       setState(() {
-        _errorText = failure.message ?? context.l10n.verifyEmailFailedFallback;
+        _errorText = failure.userMessage(context.l10n);
       });
     }
   }
@@ -208,8 +208,7 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
     } on AppFailure catch (failure) {
       if (!mounted) return;
       setState(() {
-        _errorText =
-            failure.message ?? context.l10n.verifyEmailResendFailedFallback;
+        _errorText = failure.userMessage(context.l10n);
       });
     }
   }

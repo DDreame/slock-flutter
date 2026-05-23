@@ -13,6 +13,7 @@ import 'package:slock_app/features/members/application/members_realtime_binding.
 import 'package:slock_app/features/members/presentation/widgets/member_list_item.dart';
 import 'package:slock_app/features/members/presentation/widgets/member_profile_sheet.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class MembersPage extends StatelessWidget {
   MembersPage({super.key, required String serverId})
@@ -150,7 +151,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             messenger.showSnackBar(
               SnackBar(
                 content: Text(
-                  failure.message ?? 'Failed to send invite email.',
+                  failure.userMessage(context.l10n),
                 ),
               ),
             );
@@ -164,7 +165,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             messenger.showSnackBar(
               SnackBar(
                 content: Text(
-                  failure.message ?? 'Failed to generate invite link.',
+                  failure.userMessage(context.l10n),
                 ),
               ),
             );
@@ -391,7 +392,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            failure.message ?? 'Failed to open direct message.',
+            failure.userMessage(context.l10n),
           ),
         ),
       );
@@ -433,7 +434,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            failure.message ?? 'Failed to update member role.',
+            failure.userMessage(context.l10n),
           ),
         ),
       );
@@ -489,7 +490,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            failure.message ?? 'Failed to remove member.',
+            failure.userMessage(context.l10n),
           ),
         ),
       );

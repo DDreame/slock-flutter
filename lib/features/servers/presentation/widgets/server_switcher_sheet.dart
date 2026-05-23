@@ -10,6 +10,7 @@ import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_management_dialogs.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 Future<void> showServerSwitcherSheet(BuildContext context) {
   return showModalBottomSheet<void>(
@@ -159,7 +160,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       ).showSnackBar(const SnackBar(content: Text('Workspace created.')));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
-      _showFailureSnackBar(failure.message ?? 'Failed to create workspace.');
+      _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
 
@@ -182,7 +183,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       ).showSnackBar(const SnackBar(content: Text('Workspace joined.')));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
-      _showFailureSnackBar(failure.message ?? 'Failed to join workspace.');
+      _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
 
@@ -206,7 +207,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Workspace renamed.')));
     } on AppFailure catch (failure) {
-      _showFailureSnackBar(failure.message ?? 'Failed to rename workspace.');
+      _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
 
@@ -236,7 +237,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       ).showSnackBar(const SnackBar(content: Text('Workspace deleted.')));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
-      _showFailureSnackBar(failure.message ?? 'Failed to delete workspace.');
+      _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
 
@@ -266,7 +267,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       ).showSnackBar(const SnackBar(content: Text('Workspace left.')));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
-      _showFailureSnackBar(failure.message ?? 'Failed to leave workspace.');
+      _showFailureSnackBar(failure.userMessage(context.l10n));
     }
   }
 

@@ -1679,4 +1679,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
+
+  @override
+  String get errorNetwork =>
+      'Network error. Please check your connection and try again.';
+
+  @override
+  String get errorTimeout => 'Request timed out. Please try again.';
+
+  @override
+  String get errorUnauthorized => 'Session expired. Please sign in again.';
+
+  @override
+  String get errorForbidden =>
+      'You don\'t have permission to perform this action.';
+
+  @override
+  String get errorNotFound => 'The requested resource was not found.';
+
+  @override
+  String get errorConflict =>
+      'A conflict occurred. Please refresh and try again.';
+
+  @override
+  String get errorValidation => 'Invalid input. Please check and try again.';
+
+  @override
+  String get errorRateLimit =>
+      'Too many requests. Please wait a moment and try again.';
+
+  @override
+  String get errorServer => 'Server error. Please try again later.';
+
+  @override
+  String get errorCancelled => 'Request was cancelled.';
+
+  @override
+  String get errorUnknown => 'Something went wrong. Please try again.';
 }

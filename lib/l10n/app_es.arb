@@ -432,5 +432,16 @@
   "channelStopAllAgentsFailed": "Error al detener los agentes.",
   "channelResumeAllAgentsSuccess": "Todos los agentes reanudados.",
   "channelResumeAllAgentsFailed": "Error al reanudar los agentes.",
-  "cancel": "Cancelar"
+  "cancel": "Cancelar",
+  "errorNetwork": "Error de red. Verifica tu conexión e intenta de nuevo.",
+  "errorTimeout": "Tiempo de espera agotado. Intenta de nuevo.",
+  "errorUnauthorized": "Sesión expirada. Inicia sesión de nuevo.",
+  "errorForbidden": "No tienes permiso para realizar esta acción.",
+  "errorNotFound": "El recurso solicitado no fue encontrado.",
+  "errorConflict": "Ocurrió un conflicto. Actualiza e intenta de nuevo.",
+  "errorValidation": "Entrada no válida. Verifica e intenta de nuevo.",
+  "errorRateLimit": "Demasiadas solicitudes. Espera un momento e intenta de nuevo.",
+  "errorServer": "Error del servidor. Intenta más tarde.",
+  "errorCancelled": "Solicitud cancelada.",
+  "errorUnknown": "Algo salió mal. Intenta de nuevo."
 }

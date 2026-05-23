@@ -11,6 +11,7 @@ import 'package:slock_app/features/channels/application/channel_member_store.dar
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class AddMemberDialog extends StatelessWidget {
   final String serverId;
@@ -201,7 +202,7 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(failure.message ?? 'Failed to add member.')),
+          SnackBar(content: Text(failure.userMessage(context.l10n))),
         );
     }
   }
@@ -225,7 +226,7 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(content: Text(failure.message ?? 'Failed to add agent.')),
+          SnackBar(content: Text(failure.userMessage(context.l10n))),
         );
     }
   }

@@ -224,7 +224,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       if (!mounted) {
         return;
       }
-      showAppSnackBar(context, failure.message ?? 'Failed to create agent.');
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 
@@ -244,7 +244,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       if (!mounted) {
         return;
       }
-      showAppSnackBar(context, failure.message ?? 'Failed to update agent.');
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 
@@ -305,7 +305,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       if (!mounted) {
         return;
       }
-      showAppSnackBar(context, failure.message ?? 'Failed to delete agent.');
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 
@@ -314,7 +314,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       await ref.read(agentsStoreProvider.notifier).startAgent(agent.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(context, failure.message ?? 'Failed to start agent.');
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 
@@ -348,7 +348,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       await ref.read(agentsStoreProvider.notifier).stopAgent(agent.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(context, failure.message ?? 'Failed to stop agent.');
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 
@@ -384,7 +384,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       showAppSnackBar(context, 'Agent reset.');
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(context, failure.message ?? 'Failed to reset agent.');
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 
@@ -404,8 +404,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       context.push('/servers/$serverId/dms/$channelId');
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(
-          context, failure.message ?? 'Failed to open conversation.');
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 
