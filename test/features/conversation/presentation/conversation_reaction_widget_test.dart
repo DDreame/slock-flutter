@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
@@ -12,6 +13,7 @@ import 'package:slock_app/features/saved_messages/data/saved_messages_repository
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/features/saved_messages/data/saved_message_item.dart'
     as saved_data;
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -134,8 +136,9 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('emoji-👍')));
       await tester.pumpAndSettle();
 
-      // Should show failure snackbar
-      expect(find.text('Forbidden.'), findsOneWidget);
+      // #790: localized error, not raw message.
+      expect(
+          find.text('Server error. Please try again later.'), findsOneWidget);
     });
 
     testWidgets('toggleReaction remove failure shows error snackbar',
@@ -181,8 +184,9 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('reaction-👍')));
       await tester.pumpAndSettle();
 
-      // Should show failure snackbar
-      expect(find.text('Rate limited.'), findsOneWidget);
+      // #790: localized error, not raw message.
+      expect(
+          find.text('Server error. Please try again later.'), findsOneWidget);
     });
   });
 
@@ -231,8 +235,9 @@ void main() {
       await tester.tapAt(shellTL + const Offset(10, 10));
       await tester.pumpAndSettle();
 
-      // Should show failure snackbar
-      expect(find.text('Server error.'), findsOneWidget);
+      // #790: localized error, not raw message.
+      expect(
+          find.text('Server error. Please try again later.'), findsOneWidget);
     });
   });
 }
@@ -253,6 +258,13 @@ Widget _buildApp({
     ],
     child: MaterialApp(
       theme: AppTheme.light,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
       home: child,
     ),
   );

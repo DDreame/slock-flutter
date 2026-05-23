@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
@@ -8,6 +9,7 @@ import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/presentation/page/invite_landing_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   Widget buildPage({
@@ -19,6 +21,13 @@ void main() {
         serverListStoreProvider.overrideWith(() => store),
       ],
       child: MaterialApp(
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
         home: InviteLandingPage(token: token),
         routes: {'/home': (_) => const Scaffold(body: Text('Home'))},
         onGenerateRoute: (settings) {
@@ -122,7 +131,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('invite-accept')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Invite expired'), findsOneWidget);
+    // #790: localized error, not raw message.
+    expect(find.text('Server error. Please try again later.'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
     expect(find.text('Go home'), findsOneWidget);
   });
