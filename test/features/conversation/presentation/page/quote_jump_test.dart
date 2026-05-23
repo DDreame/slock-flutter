@@ -296,7 +296,7 @@ void main() {
         historyLimited: false,
         hasOlder: false,
       ));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // ASSERT: loading gone, notFound visible.
       expect(
@@ -311,8 +311,47 @@ void main() {
         reason: 'Not-found must appear after fetch completes without '
             'finding the target (INV-QUOTE-JUMP-TEMPORAL)',
       );
+
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
     },
   );
+
+  testWidgets('Quote-jump notFound auto-dismisses after timer', (tester) async {
+    final repo =
+        _FakeConversationRepository(snapshot: _makeSnapshotMissingTarget());
+
+    await tester.pumpWidget(_buildConversationApp(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('quoted-msg-5')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('quote-jump-not-found')), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 3));
+    expect(find.byKey(const ValueKey('quote-jump-not-found')), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const ValueKey('quote-jump-not-found')), findsNothing);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Quote-jump notFound can be dismissed by tap', (tester) async {
+    final repo =
+        _FakeConversationRepository(snapshot: _makeSnapshotMissingTarget());
+
+    await tester.pumpWidget(_buildConversationApp(repo));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('quoted-msg-5')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('quote-jump-not-found')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('quote-jump-overlay')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey('quote-jump-not-found')), findsNothing);
+    await tester.pumpAndSettle();
+  });
 }
 
 // ---------------------------------------------------------------------------
