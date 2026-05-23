@@ -553,7 +553,7 @@ class HomeListStore extends Notifier<HomeListState> {
       lastActivityAt: activityAt,
     );
     _allChannels = channels;
-    _emitPersonalizedState();
+    _emitChannelPreviewOnly(channels[index]);
   }
 
   void updateDmLastMessage({
@@ -574,7 +574,7 @@ class HomeListStore extends Notifier<HomeListState> {
       lastActivityAt: activityAt,
     );
     _allDirectMessages = dms;
-    _emitPersonalizedState();
+    _emitDmPreviewOnly(dms[index]);
   }
 
   void updateChannelPreview({
@@ -591,7 +591,7 @@ class HomeListStore extends Notifier<HomeListState> {
     final channels = List<HomeChannelSummary>.of(_allChannels);
     channels[index] = channel.copyWith(lastMessagePreview: preview);
     _allChannels = channels;
-    _emitPersonalizedState();
+    _emitChannelPreviewOnly(channels[index]);
   }
 
   void updateDmPreview({
@@ -608,7 +608,7 @@ class HomeListStore extends Notifier<HomeListState> {
     final dms = List<HomeDirectMessageSummary>.of(_allDirectMessages);
     dms[index] = dm.copyWith(lastMessagePreview: preview);
     _allDirectMessages = dms;
-    _emitPersonalizedState();
+    _emitDmPreviewOnly(dms[index]);
   }
 
   /// Applies a backfilled preview to a channel.
@@ -1088,12 +1088,26 @@ class HomeListStore extends Notifier<HomeListState> {
       }
     }
 
+    final orderedChannelIds = [
+      for (final channel in sortedChannels) channel.scopeId.value,
+    ];
+    final orderedDirectMessageIds = [
+      for (final dm in sortedDms) dm.scopeId.value,
+    ];
+    final orderedAgentIds = [
+      for (final agent in sortedAgents) agent.id,
+    ];
+
     state = state.copyWith(
       serverScopeId: serverScopeId,
       status: status,
       pinnedChannels: pinned,
       pinnedDirectMessages: pinnedDms,
-      pinnedConversationOrder: _currentPinnedConversationIds(),
+      pinnedConversationOrder: _currentPinnedConversationIds(
+        orderedChannelIds: orderedChannelIds,
+        orderedDirectMessageIds: orderedDirectMessageIds,
+        orderedAgentIds: orderedAgentIds,
+      ),
       channels: unpinned,
       directMessages: visibleDms,
       hiddenDirectMessages: hiddenDms,
@@ -1177,12 +1191,20 @@ class HomeListStore extends Notifier<HomeListState> {
     ).map((agent) => agent.id).toList(growable: false);
   }
 
-  List<String> _currentPinnedOrder() {
+  List<String> _currentPinnedOrder({
+    List<String>? orderedChannelIds,
+    List<String>? orderedDirectMessageIds,
+    List<String>? orderedAgentIds,
+  }) {
+    final channelIds = orderedChannelIds ?? _orderedChannelIds();
+    final directMessageIds =
+        orderedDirectMessageIds ?? _orderedDirectMessageIds();
+    final agentIds = orderedAgentIds ?? _orderedAgentIds();
     final hiddenDmIds = _sidebarOrder.hiddenDmIds.toSet();
     final pinnedConversationIds = {
-      for (final channelId in _orderedChannelIds())
+      for (final channelId in channelIds)
         if (_sidebarOrder.isChannelPinned(channelId)) channelId,
-      for (final dmId in _orderedDirectMessageIds())
+      for (final dmId in directMessageIds)
         if (_sidebarOrder.isChannelPinned(dmId) && !hiddenDmIds.contains(dmId))
           dmId,
     };
@@ -1198,21 +1220,21 @@ class HomeListStore extends Notifier<HomeListState> {
       }
     }
 
-    for (final id in _orderedChannelIds()) {
+    for (final id in channelIds) {
       if (pinnedConversationIds.contains(id) &&
           !currentPinnedOrderSet.contains(id)) {
         currentPinnedOrder.add(id);
         currentPinnedOrderSet.add(id);
       }
     }
-    for (final id in _orderedDirectMessageIds()) {
+    for (final id in directMessageIds) {
       if (pinnedConversationIds.contains(id) &&
           !currentPinnedOrderSet.contains(id)) {
         currentPinnedOrder.add(id);
         currentPinnedOrderSet.add(id);
       }
     }
-    for (final id in _orderedAgentIds()) {
+    for (final id in agentIds) {
       if (pinnedAgentIds.contains(id) && !currentPinnedOrderSet.contains(id)) {
         currentPinnedOrder.add(id);
         currentPinnedOrderSet.add(id);
@@ -1222,18 +1244,79 @@ class HomeListStore extends Notifier<HomeListState> {
     return currentPinnedOrder;
   }
 
-  List<String> _currentPinnedConversationIds() {
+  List<String> _currentPinnedConversationIds({
+    List<String>? orderedChannelIds,
+    List<String>? orderedDirectMessageIds,
+    List<String>? orderedAgentIds,
+  }) {
+    final channelIds = orderedChannelIds ?? _orderedChannelIds();
+    final directMessageIds =
+        orderedDirectMessageIds ?? _orderedDirectMessageIds();
     final hiddenDmIds = _sidebarOrder.hiddenDmIds.toSet();
     final pinnedConversationIds = {
-      for (final channelId in _orderedChannelIds())
+      for (final channelId in channelIds)
         if (_sidebarOrder.isChannelPinned(channelId)) channelId,
-      for (final dmId in _orderedDirectMessageIds())
+      for (final dmId in directMessageIds)
         if (_sidebarOrder.isChannelPinned(dmId) && !hiddenDmIds.contains(dmId))
           dmId,
     };
-    return _currentPinnedOrder()
-        .where((id) => pinnedConversationIds.contains(id))
-        .toList(growable: false);
+    return _currentPinnedOrder(
+      orderedChannelIds: channelIds,
+      orderedDirectMessageIds: directMessageIds,
+      orderedAgentIds: orderedAgentIds,
+    ).where((id) => pinnedConversationIds.contains(id)).toList(growable: false);
+  }
+
+  void _emitChannelPreviewOnly(HomeChannelSummary updated) {
+    state = state.copyWith(
+      pinnedChannels: _replaceChannelSummary(state.pinnedChannels, updated),
+      channels: _replaceChannelSummary(state.channels, updated),
+    );
+  }
+
+  void _emitDmPreviewOnly(HomeDirectMessageSummary updated) {
+    state = state.copyWith(
+      pinnedDirectMessages:
+          _replaceDirectMessageSummary(state.pinnedDirectMessages, updated),
+      directMessages:
+          _replaceDirectMessageSummary(state.directMessages, updated),
+      hiddenDirectMessages:
+          _replaceDirectMessageSummary(state.hiddenDirectMessages, updated),
+    );
+  }
+
+  List<HomeChannelSummary> _replaceChannelSummary(
+    List<HomeChannelSummary> items,
+    HomeChannelSummary updated,
+  ) {
+    var changed = false;
+    final next = <HomeChannelSummary>[];
+    for (final item in items) {
+      if (item.scopeId == updated.scopeId) {
+        next.add(updated);
+        changed = true;
+      } else {
+        next.add(item);
+      }
+    }
+    return changed ? next : items;
+  }
+
+  List<HomeDirectMessageSummary> _replaceDirectMessageSummary(
+    List<HomeDirectMessageSummary> items,
+    HomeDirectMessageSummary updated,
+  ) {
+    var changed = false;
+    final next = <HomeDirectMessageSummary>[];
+    for (final item in items) {
+      if (item.scopeId == updated.scopeId) {
+        next.add(updated);
+        changed = true;
+      } else {
+        next.add(item);
+      }
+    }
+    return changed ? next : items;
   }
 
   Future<bool> _persistSidebarOrder(
