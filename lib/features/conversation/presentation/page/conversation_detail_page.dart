@@ -199,6 +199,7 @@ class _ConversationDetailScreenState
   String? _highlightedMessageId;
   Timer? _highlightTimer;
   QuoteJumpState _quoteJumpState = QuoteJumpState.idle;
+  Timer? _quoteJumpNotFoundTimer;
   final Map<String, GlobalKey> _messageGlobalKeys = {};
   int _lastRegisteredMessageCount = 0;
 
@@ -213,13 +214,9 @@ class _ConversationDetailScreenState
   List<ChannelMember> _mentionMembers = [];
   bool _mentionMembersLoaded = false;
 
-  // Voice recording.
-  late final VoiceMessageStore _voiceMessageStore;
-
   @override
   void initState() {
     super.initState();
-    _voiceMessageStore = ref.read(voiceMessageStoreProvider.notifier);
     // Register test hook for observing GlobalKey map size.
     ConversationDetailPage.debugMessageGlobalKeyCount =
         () => _messageGlobalKeys.length;
@@ -279,13 +276,12 @@ class _ConversationDetailScreenState
     _messageGlobalKeys.clear();
     // Voice recording cleanup handled by voiceRecordingControllerProvider
     // (AutoDispose — cleaned up when page disposes and listeners are removed).
-    // Deferred to avoid "modify provider during tree finalization" error.
-    Future.microtask(_voiceMessageStore.reset);
     _stateSubscription?.close();
     _translationSettingsSub?.close();
     _deferredMarkReadSub?.close();
     _scrollThrottleTimer?.cancel();
     _highlightTimer?.cancel();
+    _quoteJumpNotFoundTimer?.cancel();
     if (_scrollController.hasClients) {
       ref
           .read(conversationDetailStoreProvider.notifier)
@@ -531,9 +527,16 @@ class _ConversationDetailScreenState
                             ),
                             if (_quoteJumpState != QuoteJumpState.idle)
                               Positioned.fill(
-                                child: QuoteJumpOverlay(
-                                  key: const ValueKey('quote-jump-overlay'),
-                                  state: _quoteJumpState,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap:
+                                      _quoteJumpState == QuoteJumpState.notFound
+                                          ? _dismissQuoteJumpNotFound
+                                          : null,
+                                  child: QuoteJumpOverlay(
+                                    key: const ValueKey('quote-jump-overlay'),
+                                    state: _quoteJumpState,
+                                  ),
                                 ),
                               ),
                             if (_showScrollToBottom)
@@ -1119,6 +1122,7 @@ class _ConversationDetailScreenState
   void _scrollToAndHighlight(String messageId) {
     // Clear any existing highlight first.
     _highlightTimer?.cancel();
+    _quoteJumpNotFoundTimer?.cancel();
 
     // Set the highlight immediately so the widget tree rebuilds with it.
     setState(() {
@@ -1163,6 +1167,7 @@ class _ConversationDetailScreenState
   /// Attempts to load older messages; if the target is still not found,
   /// shows a persistent "not found" feedback widget.
   Future<void> _handleQuoteJumpMissing(String messageId) async {
+    _quoteJumpNotFoundTimer?.cancel();
     setState(() => _quoteJumpState = QuoteJumpState.loading);
 
     final notifier = ref.read(conversationDetailStoreProvider.notifier);
@@ -1187,7 +1192,22 @@ class _ConversationDetailScreenState
     // Still not found — show "not found" feedback.
     if (mounted) {
       setState(() => _quoteJumpState = QuoteJumpState.notFound);
+      _scheduleQuoteJumpNotFoundDismiss();
     }
+  }
+
+  void _scheduleQuoteJumpNotFoundDismiss() {
+    _quoteJumpNotFoundTimer?.cancel();
+    _quoteJumpNotFoundTimer = Timer(const Duration(seconds: 4), () {
+      if (!mounted || _quoteJumpState != QuoteJumpState.notFound) return;
+      setState(() => _quoteJumpState = QuoteJumpState.idle);
+    });
+  }
+
+  void _dismissQuoteJumpNotFound() {
+    if (_quoteJumpState != QuoteJumpState.notFound) return;
+    _quoteJumpNotFoundTimer?.cancel();
+    setState(() => _quoteJumpState = QuoteJumpState.idle);
   }
 
   void _showRefreshFailedSnackBar() {

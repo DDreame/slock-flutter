@@ -259,7 +259,7 @@ class ConversationComposer extends ConsumerWidget {
                         ),
                         padding: EdgeInsets.zero,
                         tooltip: 'Send',
-                        onPressed: onSend,
+                        onPressed: state.isSending ? null : onSend,
                       ),
                     )
                   else

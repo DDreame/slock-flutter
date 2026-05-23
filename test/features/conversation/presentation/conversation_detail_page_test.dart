@@ -11,12 +11,14 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/channels/presentation/page/channel_page.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
+import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/pending_attachment.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/features/conversation/presentation/widgets/conversation_composer.dart';
 import 'package:slock_app/features/conversation/presentation/page/pinned_messages_page.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/file_preview_page.dart';
 import 'package:slock_app/features/messages/presentation/page/messages_page.dart';
@@ -481,6 +483,67 @@ void main() {
     );
     // Message content visible in pending card
     expect(find.text('Keep me'), findsOneWidget);
+  });
+
+  testWidgets('send button is disabled while send is in progress',
+      (tester) async {
+    var sendCalls = 0;
+    final controller = TextEditingController(text: 'Hello');
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          theme: AppTheme.light,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          home: Scaffold(
+            body: ConversationComposer(
+              controller: controller,
+              focusNode: focusNode,
+              state: ConversationDetailState(
+                target: ConversationDetailTarget.channel(
+                  const ChannelScopeId(
+                    serverId: ServerScopeId('server-1'),
+                    value: 'general',
+                  ),
+                ),
+                status: ConversationDetailStatus.success,
+                draft: 'Hello',
+                isSending: true,
+              ),
+              isRecording: false,
+              isFormattingToolbarVisible: false,
+              isEmojiPickerVisible: false,
+              onToggleFormattingToolbar: () {},
+              onToggleEmojiPicker: () {},
+              onChanged: (_) {},
+              onSend: () async => sendCalls++,
+              onPickAttachment: (_) {},
+              onRemoveAttachment: (_) {},
+              onCancelUpload: (_) {},
+              onClearReply: () {},
+              onMicTap: () {},
+              onSendRecording: () {},
+              onCancelRecording: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final sendButton = find.descendant(
+      of: find.byKey(const ValueKey('composer-send')),
+      matching: find.byType(IconButton),
+    );
+    expect(sendButton, findsOneWidget);
+    expect(tester.widget<IconButton>(sendButton).onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('composer-send')));
+    await tester.pump();
+    expect(sendCalls, 0);
   });
 
   testWidgets('send button is disabled after optimistic insert clears draft', (
