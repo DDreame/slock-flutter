@@ -41,7 +41,8 @@ void main() {
       esArb = jsonDecode(esFile.readAsStringSync()) as Map<String, dynamic>;
     });
 
-    test('app_en.arb and app_es.arb have matching message key sets '
+    test(
+        'app_en.arb and app_es.arb have matching message key sets '
         '(INV-ES-PARITY-1)', () {
       // Extract message keys: exclude @metadata keys and @@locale.
       final enKeys = enArb.keys.where((k) => !k.startsWith('@')).toSet();
@@ -61,7 +62,8 @@ void main() {
     // -------------------------------------------------------------------------
     // INV-ES-PARITY-2: Spot-check newly added keys from #795
     // -------------------------------------------------------------------------
-    test('representative newly added task/machine/workspace/screenshot keys '
+    test(
+        'representative newly added task/machine/workspace/screenshot keys '
         'exist in ES (INV-ES-PARITY-2)', () {
       // Sample keys from each category added in this PR.
       const sampleKeys = [
@@ -111,7 +113,8 @@ void main() {
     // INV-ES-PARITY-2b: Verify ES values differ from EN for non-placeholder keys
     // (ensures actual translation, not copy-paste of English)
     // -------------------------------------------------------------------------
-    test('ES translations differ from EN for keyword-bearing keys '
+    test(
+        'ES translations differ from EN for keyword-bearing keys '
         '(INV-ES-PARITY-2b)', () {
       // Pick keys whose Spanish translation should obviously differ from EN.
       const mustDifferKeys = [

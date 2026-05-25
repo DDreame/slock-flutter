@@ -95,7 +95,8 @@ void main() {
       );
 
       // Mutate only channelUnreadCounts — sources and isLoaded stay identical.
-      container.read(stateProvider.notifier).state = UnreadSourceProjectionState(
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
         sources: baseState.sources,
         channelUnreadCounts: {channelScopeId: 99},
         dmUnreadCounts: baseState.dmUnreadCounts,
@@ -105,7 +106,8 @@ void main() {
       expect(
         selectNotifyCount,
         0,
-        reason: 'channelUnreadCounts change must not notify (sources, isLoaded) '
+        reason:
+            'channelUnreadCounts change must not notify (sources, isLoaded) '
             'selector (INV-SELECT-UNREAD-HOME)',
       );
 
@@ -145,7 +147,8 @@ void main() {
       );
 
       // Mutate only dmUnreadCounts — sources and isLoaded stay identical.
-      container.read(stateProvider.notifier).state = UnreadSourceProjectionState(
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
         sources: baseState.sources,
         channelUnreadCounts: baseState.channelUnreadCounts,
         dmUnreadCounts: {dmScopeId: 77},
@@ -195,7 +198,8 @@ void main() {
       );
 
       // Mutate both maps simultaneously — sources and isLoaded unchanged.
-      container.read(stateProvider.notifier).state = UnreadSourceProjectionState(
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
         sources: baseState.sources,
         channelUnreadCounts: {channelScopeId: 50},
         dmUnreadCounts: {dmScopeId: 25},
@@ -252,7 +256,8 @@ void main() {
         unreadCount: 2,
         visibility: UnreadSourceVisibility.visible,
       );
-      container.read(stateProvider.notifier).state = UnreadSourceProjectionState(
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
         sources: [...baseState.sources, newSource],
         channelUnreadCounts: baseState.channelUnreadCounts,
         dmUnreadCounts: baseState.dmUnreadCounts,
@@ -296,7 +301,8 @@ void main() {
       );
 
       // Flip isLoaded to true — same sources and maps.
-      container.read(stateProvider.notifier).state = UnreadSourceProjectionState(
+      container.read(stateProvider.notifier).state =
+          UnreadSourceProjectionState(
         sources: initialState.sources,
         channelUnreadCounts: initialState.channelUnreadCounts,
         dmUnreadCounts: initialState.dmUnreadCounts,
