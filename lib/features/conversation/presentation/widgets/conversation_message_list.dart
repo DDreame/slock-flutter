@@ -408,10 +408,10 @@ class _ConversationHistoryHeader extends StatelessWidget {
     }
 
     if (historyLimited) {
-      return const Center(
-        key: ValueKey('conversation-history-limited'),
+      return Center(
+        key: const ValueKey('conversation-history-limited'),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Text(context.l10n.pendingEarlierHistoryLimited),
         ),
       );
