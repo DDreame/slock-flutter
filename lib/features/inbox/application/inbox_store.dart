@@ -454,14 +454,24 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
-    // Per-item snapshot for rollback — includes original index (#807).
+    // Per-item snapshot for rollback — uses neighbor channelIds for stable
+    // position restoration regardless of concurrent failure ordering (#807).
+    final currentItems = state.items;
     final originalIndex =
-        state.items.indexWhere((i) => i.channelId == channelId);
+        currentItems.indexWhere((i) => i.channelId == channelId);
     final removedItems =
-        state.items.where((i) => i.channelId == channelId).toList();
+        currentItems.where((i) => i.channelId == channelId).toList();
     final removedUnread =
         removedItems.fold<int>(0, (sum, i) => sum + i.unreadCount);
     final removedCount = removedItems.length;
+
+    // Capture successor/predecessor channelIds for position-stable rollback.
+    final String? successorChannelId =
+        (originalIndex >= 0 && originalIndex + 1 < currentItems.length)
+            ? currentItems[originalIndex + 1].channelId
+            : null;
+    final String? predecessorChannelId =
+        (originalIndex > 0) ? currentItems[originalIndex - 1].channelId : null;
 
     // Optimistic: remove the item from the list.
     state = state.copyWith(
@@ -484,23 +494,50 @@ class InboxStore extends Notifier<InboxState> {
         removedItems: removedItems,
         removedUnread: removedUnread,
         removedCount: removedCount,
-        originalIndex: originalIndex,
+        successorChannelId: successorChannelId,
+        predecessorChannelId: predecessorChannelId,
       );
     }
   }
 
   /// Rollback helper for [markDone] — re-inserts only the removed item (#807).
+  ///
+  /// Uses neighbor channelIds (successor first, predecessor fallback) to find
+  /// the correct insertion position regardless of concurrent operation ordering.
   void _rollbackMarkDone({
     required List<InboxItem> removedItems,
     required int removedUnread,
     required int removedCount,
-    required int originalIndex,
+    required String? successorChannelId,
+    required String? predecessorChannelId,
   }) {
     if (removedItems.isEmpty) return;
 
     final items = List<InboxItem>.of(state.items);
-    // Re-insert at the original position (clamped to current bounds).
-    final insertIndex = originalIndex.clamp(0, items.length);
+
+    // Determine insertion point by locating surviving neighbors.
+    int insertIndex;
+    if (successorChannelId != null) {
+      final succIdx =
+          items.indexWhere((i) => i.channelId == successorChannelId);
+      if (succIdx >= 0) {
+        insertIndex = succIdx;
+      } else if (predecessorChannelId != null) {
+        final predIdx =
+            items.indexWhere((i) => i.channelId == predecessorChannelId);
+        insertIndex = predIdx >= 0 ? predIdx + 1 : items.length;
+      } else {
+        insertIndex = 0;
+      }
+    } else if (predecessorChannelId != null) {
+      final predIdx =
+          items.indexWhere((i) => i.channelId == predecessorChannelId);
+      insertIndex = predIdx >= 0 ? predIdx + 1 : items.length;
+    } else {
+      // Item was first and only — insert at beginning.
+      insertIndex = 0;
+    }
+
     items.insertAll(insertIndex, removedItems);
     state = state.copyWith(
       items: items,

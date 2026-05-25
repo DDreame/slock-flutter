@@ -291,6 +291,138 @@ void main() {
         );
       },
     );
+
+    test(
+      'concurrent markDone both fail (A first): original order [A, B, C] restored',
+      () async {
+        final items = [
+          const InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-A',
+            channelName: 'Channel A',
+            unreadCount: 2,
+          ),
+          const InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-B',
+            channelName: 'Channel B',
+            unreadCount: 3,
+          ),
+          const InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-C',
+            channelName: 'Channel C',
+            unreadCount: 1,
+          ),
+        ];
+
+        final inboxRepo = _ControllableInboxRepository(seedItems: items);
+        final unreadRepo = _ControllableUnreadRepository();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider
+                .overrideWith((_) => const ServerScopeId('srv-1')),
+            conversationUnreadRepositoryProvider
+                .overrideWithValue(unreadRepo),
+            inboxRepositoryProvider.overrideWithValue(inboxRepo),
+            realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        container.read(realtimeServiceProvider);
+        final store = container.read(inboxStoreProvider.notifier);
+        await store.load();
+
+        // Mark A and B as done concurrently.
+        final futureA = store.markDone(channelId: 'ch-A');
+        final futureB = store.markDone(channelId: 'ch-B');
+
+        // Both fail — A fails first, B fails second.
+        inboxRepo.failDone(
+            'ch-A', const NetworkFailure(message: 'server error'));
+        await futureA;
+
+        inboxRepo.failDone(
+            'ch-B', const NetworkFailure(message: 'server error'));
+        await futureB;
+
+        // CRITICAL: original order must be restored regardless of failure order.
+        expect(
+          _channelIds(container),
+          equals(['ch-A', 'ch-B', 'ch-C']),
+          reason: 'Both failed — original order [A, B, C] must be restored '
+              'regardless of which failure arrives first',
+        );
+      },
+    );
+
+    test(
+      'concurrent markDone both fail (B first): original order [A, B, C] restored',
+      () async {
+        final items = [
+          const InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-A',
+            channelName: 'Channel A',
+            unreadCount: 2,
+          ),
+          const InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-B',
+            channelName: 'Channel B',
+            unreadCount: 3,
+          ),
+          const InboxItem(
+            kind: InboxItemKind.channel,
+            channelId: 'ch-C',
+            channelName: 'Channel C',
+            unreadCount: 1,
+          ),
+        ];
+
+        final inboxRepo = _ControllableInboxRepository(seedItems: items);
+        final unreadRepo = _ControllableUnreadRepository();
+
+        final container = ProviderContainer(
+          overrides: [
+            activeServerScopeIdProvider
+                .overrideWith((_) => const ServerScopeId('srv-1')),
+            conversationUnreadRepositoryProvider
+                .overrideWithValue(unreadRepo),
+            inboxRepositoryProvider.overrideWithValue(inboxRepo),
+            realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        container.read(realtimeServiceProvider);
+        final store = container.read(inboxStoreProvider.notifier);
+        await store.load();
+
+        // Mark A and B as done concurrently.
+        final futureA = store.markDone(channelId: 'ch-A');
+        final futureB = store.markDone(channelId: 'ch-B');
+
+        // Both fail — B fails first, A fails second (reverse order).
+        inboxRepo.failDone(
+            'ch-B', const NetworkFailure(message: 'server error'));
+        await futureB;
+
+        inboxRepo.failDone(
+            'ch-A', const NetworkFailure(message: 'server error'));
+        await futureA;
+
+        // CRITICAL: original order must be restored regardless of failure order.
+        expect(
+          _channelIds(container),
+          equals(['ch-A', 'ch-B', 'ch-C']),
+          reason: 'Both failed — original order [A, B, C] must be restored '
+              'regardless of which failure arrives first',
+        );
+      },
+    );
   });
 
   // ---------------------------------------------------------------------------
@@ -451,6 +583,14 @@ InboxItem? _findItem(ProviderContainer container, String channelId) {
 
 int _itemCount(ProviderContainer container) {
   return container.read(inboxStoreProvider).items.length;
+}
+
+List<String> _channelIds(ProviderContainer container) {
+  return container
+      .read(inboxStoreProvider)
+      .items
+      .map((i) => i.channelId)
+      .toList();
 }
 
 // =============================================================================
