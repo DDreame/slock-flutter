@@ -58,10 +58,14 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   final TextEditingController _searchController = TextEditingController();
 
   // INV-SELECT-809: Memoize sorted DM list. Only re-sort when the source
-  // list identity or sort preference changes — avoids O(n log n) on every
+  // list references or sort preference changes — avoids O(n log n) on every
   // rebuild triggered by unrelated field changes (e.g. unread counts).
+  // Keys are the stable provider-sourced list references (from .select()),
+  // NOT the freshly-concatenated derived list (which has a new identity on
+  // every call even when contents are unchanged).
   List<HomeDirectMessageSummary>? _cachedSorted;
-  List<HomeDirectMessageSummary>? _lastAllDms;
+  List<HomeDirectMessageSummary>? _lastPinnedDms;
+  List<HomeDirectMessageSummary>? _lastUnpinnedDms;
   DmSortPreference? _lastSortPreference;
   String _lastSearchQuery = '';
 
@@ -72,21 +76,39 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   }
 
   /// INV-SELECT-809: Returns the sorted DM list, reusing the cached result
-  /// when the source list identity, sort preference, and search query have
-  /// not changed since the last call.
+  /// when the source list references (from the provider .select()), sort
+  /// preference, and search query have not changed since the last call.
+  /// Uses [identical] on the provider-sourced lists which are stable
+  /// references between rebuilds when their content hasn't changed.
   List<HomeDirectMessageSummary> _memoizedSort(
-    List<HomeDirectMessageSummary> filtered,
+    List<HomeDirectMessageSummary> pinnedDms,
+    List<HomeDirectMessageSummary> unpinnedDms,
     DmSortPreference sortPreference,
   ) {
-    if (identical(filtered, _lastAllDms) &&
+    if (identical(pinnedDms, _lastPinnedDms) &&
+        identical(unpinnedDms, _lastUnpinnedDms) &&
         sortPreference == _lastSortPreference &&
         _searchQuery == _lastSearchQuery &&
         _cachedSorted != null) {
       return _cachedSorted!;
     }
-    _lastAllDms = filtered;
+    _lastPinnedDms = pinnedDms;
+    _lastUnpinnedDms = unpinnedDms;
     _lastSortPreference = sortPreference;
     _lastSearchQuery = _searchQuery;
+
+    // Combine pinned + unpinned DMs.
+    final allDms = [...pinnedDms, ...unpinnedDms];
+
+    // Apply search filter.
+    final filtered = _searchQuery.isEmpty
+        ? allDms
+        : () {
+            final queryLower = _searchQuery.toLowerCase();
+            return allDms
+                .where((dm) => dm.title.toLowerCase().contains(queryLower))
+                .toList();
+          }();
 
     final result = List<HomeDirectMessageSummary>.of(filtered);
     switch (sortPreference) {
@@ -265,27 +287,17 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       ...persistedNames,
     };
 
-    // Combine pinned + unpinned DMs.
-    final allDms = [
-      ...state.pinnedDirectMessages,
-      ...state.directMessages,
-    ];
-
-    // Apply search filter.
-    final filtered = _searchQuery.isEmpty
-        ? allDms
-        : () {
-            final queryLower = _searchQuery.toLowerCase();
-            return allDms
-                .where((dm) => dm.title.toLowerCase().contains(queryLower))
-                .toList();
-          }();
-
-    // INV-SELECT-809: Memoized sort — only re-sort when the source list,
-    // sort preference, or search query actually changes. Avoids O(n log n)
-    // on every rebuild triggered by unrelated state changes.
+    // INV-SELECT-809: Memoized sort — only re-sort when the stable provider
+    // list references, sort preference, or search query actually change.
+    // Uses the provider-sourced lists directly (stable identity between
+    // rebuilds when content hasn't changed) instead of freshly-concatenated
+    // derived lists.
     final sortPreference = ref.watch(dmSortPreferenceProvider);
-    final sorted = _memoizedSort(filtered, sortPreference);
+    final sorted = _memoizedSort(
+      state.pinnedDirectMessages,
+      state.directMessages,
+      sortPreference,
+    );
 
     final pinnedIds =
         state.pinnedDirectMessages.map((dm) => dm.scopeId.value).toSet();
