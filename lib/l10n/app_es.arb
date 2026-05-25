@@ -443,5 +443,179 @@
   "errorRateLimit": "Demasiadas solicitudes. Espera un momento e intenta de nuevo.",
   "errorServer": "Error del servidor. Intenta más tarde.",
   "errorCancelled": "Solicitud cancelada.",
-  "errorUnknown": "Algo salió mal. Intenta de nuevo."
+  "errorUnknown": "Algo salió mal. Intenta de nuevo.",
+
+  "tasksHeaderTitle": "Tareas",
+  "tasksNewButton": "Nueva",
+  "tasksFilterAll": "Todas",
+  "tasksEmptyAll": "Aún no hay tareas.",
+  "tasksEmptyChannel": "No hay tareas en este canal.",
+  "tasksNoChannelsAvailable": "No hay canales disponibles.",
+  "tasksLoadFailed": "Error al cargar las tareas.",
+  "tasksRetryButton": "Reintentar",
+  "tasksRetryAction": "REINTENTAR",
+  "tasksSectionTodo": "Por hacer",
+  "tasksSectionInProgress": "En progreso",
+  "tasksSectionInReview": "En revisión",
+  "tasksSectionDone": "Completadas",
+  "tasksSectionClosed": "Cerradas",
+  "tasksSummaryTodo": "Por hacer",
+  "tasksSummaryInProgress": "En progreso",
+  "tasksSummaryReview": "Revisión",
+  "tasksSummaryDone": "Completadas",
+  "tasksSummaryClosed": "Cerradas",
+  "tasksAccessibilityTodo": "Por hacer",
+  "tasksAccessibilityInProgress": "En progreso",
+  "tasksAccessibilityInReview": "En revisión",
+  "tasksAccessibilityDone": "Completada",
+  "tasksAccessibilityClosed": "Cancelada",
+  "tasksActionClaim": "Reclamar",
+  "tasksActionUnclaim": "Liberar",
+  "tasksActionStart": "Iniciar",
+  "tasksActionMoveToReview": "Mover a revisión",
+  "tasksActionMarkDone": "Marcar como completada",
+  "tasksActionClose": "Cerrar tarea",
+  "tasksActionReopen": "Reabrir",
+  "tasksActionRevertInProgress": "Revertir a En progreso",
+  "tasksActionRevertTodo": "Revertir a Por hacer",
+  "tasksActionDelete": "Eliminar",
+  "tasksActionsTooltip": "Acciones de tarea",
+  "tasksClaimFailed": "Error al reclamar la tarea.",
+  "tasksUnclaimFailed": "Error al liberar la tarea.",
+  "tasksUpdateFailed": "Error al actualizar la tarea.",
+  "tasksSwipeDone": "Completada",
+  "tasksCreateTitle": "Crear tarea",
+  "tasksCreateTitleLabel": "Título",
+  "tasksCreateChannelLabel": "Canal",
+  "tasksCreateConfirm": "Crear",
+  "tasksCreateCancel": "Cancelar",
+  "tasksCreateFailed": "Error al crear la tarea.",
+  "tasksCreatedSnackbar": "Tarea creada.",
+  "tasksDeleteTitle": "¿Eliminar tarea?",
+  "tasksDeleteMessage": "¿Eliminar \"{title}\"? Esta acción no se puede deshacer.",
+  "@tasksDeleteMessage": {
+    "placeholders": {
+      "title": {"type": "String"}
+    }
+  },
+  "tasksDeleteConfirm": "Eliminar",
+  "tasksDeleteCancel": "Cancelar",
+  "tasksDeleteFailed": "Error al eliminar la tarea.",
+  "tasksDeletedSnackbar": "Tarea eliminada.",
+
+  "machinesPageTitle": "Máquinas",
+  "machinesAddButton": "Agregar máquina",
+  "machinesRetryButton": "Reintentar",
+  "machinesDoneButton": "Listo",
+  "machinesCopyButton": "Copiar",
+  "machinesEmptyTitle": "Aún no hay máquinas registradas.",
+  "machinesEmptyDescription": "Registra una máquina para vincular entornos de ejecución y operaciones de administración a este servidor.",
+  "machinesLoadFailed": "Error al cargar las máquinas.",
+  "machinesStatusOnline": "En línea",
+  "machinesStatusOffline": "Desconectada",
+  "machinesStatusError": "Error",
+  "machinesMetaHost": "Host",
+  "machinesMetaOs": "SO",
+  "machinesMetaDaemon": "Daemon",
+  "machinesLatestDaemon": "Último daemon",
+  "machinesSummaryCount": "{count} máquina(s)",
+  "@machinesSummaryCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "machinesSummaryOnline": "{count} en línea",
+  "@machinesSummaryOnline": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "machinesApiKeyCopied": "Clave API copiada.",
+  "machinesApiKeyPrefix": "Clave {prefix}...",
+  "@machinesApiKeyPrefix": {
+    "placeholders": {
+      "prefix": {"type": "String"}
+    }
+  },
+  "machinesApiKeyRevealedNote": "Esta clave solo se muestra al momento de creación o rotación.",
+  "machinesCopyApiKeyMessage": "Copia la clave API de {name} ahora.",
+  "@machinesCopyApiKeyMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "machinesMenuWorkspaces": "Espacios de trabajo",
+  "machinesMenuRename": "Renombrar",
+  "machinesMenuRotateApiKey": "Rotar clave API",
+  "machinesMenuDelete": "Eliminar",
+  "machinesNameLabel": "Nombre de la máquina",
+  "machinesNameDialogCancel": "Cancelar",
+  "machinesRegisterTitle": "Registrar máquina",
+  "machinesRegisterButton": "Registrar máquina",
+  "machinesRegisterAction": "Registrar",
+  "machinesRegisterHelper": "Crea una máquina y revela su clave API una sola vez.",
+  "machinesRegisterFailed": "Error al registrar la máquina.",
+  "machinesRegisteredTitle": "Máquina registrada",
+  "machinesRenameTitle": "Renombrar máquina",
+  "machinesRenameSaveAction": "Guardar",
+  "machinesRenameHelper": "Actualiza la etiqueta de la máquina visible en todo el espacio de trabajo.",
+  "machinesRenameFailed": "Error al renombrar la máquina.",
+  "machinesRenamedSnackbar": "Máquina renombrada.",
+  "machinesDeleteTitle": "¿Eliminar máquina?",
+  "machinesDeleteMessage": "¿Eliminar {name}? Esto quita la máquina de la lista del servidor.",
+  "@machinesDeleteMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "machinesDeleteConfirm": "Eliminar",
+  "machinesDeleteCancel": "Cancelar",
+  "machinesDeleteFailed": "Error al eliminar la máquina.",
+  "machinesDeletedSnackbar": "Máquina eliminada.",
+  "machinesRotatedApiKeyTitle": "Clave API rotada",
+  "machinesRotateApiKeyFailed": "Error al rotar la clave API de la máquina.",
+
+  "workspacesPageTitle": "Espacios de trabajo",
+  "workspacesEmpty": "No hay espacios de trabajo en esta máquina.",
+  "workspacesLoadFailed": "Error al cargar los espacios de trabajo.",
+  "workspacesRetryButton": "Reintentar",
+  "workspacesStatusActive": "Activo",
+  "workspacesStatusInactive": "Inactivo",
+  "workspacesMetaAgent": "Agente",
+  "workspacesMetaPath": "Ruta",
+  "workspacesDeleteTitle": "¿Eliminar espacio de trabajo?",
+  "workspacesDeleteMessage": "¿Eliminar el espacio de trabajo \"{name}\"? Esta acción no se puede deshacer.",
+  "@workspacesDeleteMessage": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "workspacesDeleteConfirm": "Eliminar",
+  "workspacesDeleteCancel": "Cancelar",
+  "workspacesDeleteFailed": "Error al eliminar el espacio de trabajo.",
+  "workspacesDeletedSnackbar": "Espacio de trabajo eliminado.",
+
+  "screenshotAnnotateTitle": "Anotar captura de pantalla",
+  "screenshotAnnotateAddButton": "Agregar",
+  "screenshotAnnotateAddTextTitle": "Agregar texto",
+  "screenshotAnnotateCancel": "Cancelar",
+  "screenshotAnnotateTextHint": "Ingresa texto...",
+  "screenshotAnnotateSaveTooltip": "Guardar en dispositivo",
+  "screenshotAnnotateShareTooltip": "Compartir",
+  "screenshotAnnotateDiscardTooltip": "Descartar",
+  "screenshotAnnotateShareSubject": "Captura de pantalla",
+  "screenshotAnnotateNoCapture": "No se capturó ninguna pantalla",
+  "screenshotAnnotateExportFailed": "Error al exportar la captura",
+  "screenshotAnnotateExportError": "Error al exportar: {error}",
+  "@screenshotAnnotateExportError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "screenshotAnnotateSaveFailed": "Error al guardar: {error}",
+  "@screenshotAnnotateSaveFailed": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  }
 }
