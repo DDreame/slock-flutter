@@ -5,6 +5,7 @@ import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_recorder_widget.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('VoiceRecorderWidget', () {
@@ -23,6 +24,8 @@ void main() {
             ),
         ],
         child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: VoiceRecorderWidget(
               onSend: onSend ?? () {},
@@ -150,6 +153,8 @@ void main() {
         // mutates the growable list and updates amplitudeCount in state.
         final widget = ProviderScope(
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: VoiceRecorderWidget(
                 onSend: () {},

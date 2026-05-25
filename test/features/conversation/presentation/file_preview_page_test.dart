@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart'
@@ -387,6 +388,8 @@ Widget _buildApp({
     ],
     child: MaterialApp(
       theme: AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: FilePreviewPage(attachment: attachment),
     ),
   );

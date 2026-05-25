@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/screenshot/data/annotation.dart';
 import 'package:slock_app/features/screenshot/presentation/widgets/annotation_toolbar.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('AnnotationToolbar', () {
@@ -22,6 +23,8 @@ void main() {
       redoCalls = 0;
 
       return MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
