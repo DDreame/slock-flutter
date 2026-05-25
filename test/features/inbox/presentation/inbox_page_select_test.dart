@@ -92,7 +92,7 @@ class _ControllableInboxStore extends InboxStore {
 class _ControllableHomeListStore extends HomeListStore {
   @override
   HomeListState build() {
-    return const HomeListState(
+    return HomeListState(
       status: HomeListStatus.success,
       agents: _agents,
       pinnedAgents: [],

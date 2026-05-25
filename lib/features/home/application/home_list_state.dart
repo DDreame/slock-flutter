@@ -8,9 +8,13 @@ import 'package:slock_app/features/threads/data/thread_repository.dart';
 
 enum HomeListStatus { initial, loading, success, failure, noActiveServer }
 
-@immutable
+/// Home list state — holds tier-1 and tier-2 data for the home screen.
+///
+/// [activeTaskCount] is always derived from [taskItems] at construction
+/// time (initializer list), guaranteeing consistency regardless of
+/// whether the state is created via the constructor or [copyWith].
 class HomeListState {
-  const HomeListState({
+  HomeListState({
     this.serverScopeId,
     this.status = HomeListStatus.initial,
     this.pinnedChannels = const [],
@@ -30,7 +34,9 @@ class HomeListState {
     this.isRefreshing = false,
     this.failure,
     this.taskLoadFailure,
-  });
+  }) : activeTaskCount = taskItems
+            .where((t) => t.status == 'in_progress' || t.status == 'todo')
+            .length;
 
   final ServerScopeId? serverScopeId;
   final HomeListStatus status;
@@ -69,6 +75,11 @@ class HomeListState {
       hiddenDirectMessages.isEmpty &&
       pinnedAgents.isEmpty &&
       agents.isEmpty;
+
+  /// Number of tasks with status 'in_progress' or 'todo'.
+  /// Pre-computed at construction/copyWith time for true O(1)
+  /// access in .select() callbacks — no per-emission scan.
+  final int activeTaskCount;
 
   HomeListState copyWith({
     ServerScopeId? serverScopeId,
@@ -139,6 +150,7 @@ class HomeListState {
             listEquals(agents, other.agents) &&
             taskCount == other.taskCount &&
             listEquals(taskItems, other.taskItems) &&
+            activeTaskCount == other.activeTaskCount &&
             machineCount == other.machineCount &&
             threadCount == other.threadCount &&
             listEquals(threadItems, other.threadItems) &&
@@ -162,6 +174,7 @@ class HomeListState {
         Object.hashAll(agents),
         taskCount,
         Object.hashAll(taskItems),
+        activeTaskCount,
         machineCount,
         threadCount,
         Object.hashAll(threadItems),

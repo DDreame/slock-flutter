@@ -9,7 +9,6 @@ import 'package:slock_app/features/inbox/application/conversation_projection.dar
 import 'package:slock_app/features/inbox/application/inbox_state.dart';
 import 'package:slock_app/features/inbox/application/inbox_store.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
-import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -48,19 +47,19 @@ class _UnreadListPageState extends ConsumerState<UnreadListPage> {
     final (:filter, :hasMore) = ref.watch(
       inboxStoreProvider.select((s) => (filter: s.filter, hasMore: s.hasMore)),
     );
-    // INV-SELECT-UNREAD-LIST: Only sources + isLoaded consumed — skip rebuilds
-    // from channelUnreadCounts / dmUnreadCounts map changes.
-    final (:sources, :isLoaded) = ref.watch(
+    // INV-SELECT-UNREAD-LIST: Use pre-computed cached fields — eliminates
+    // dual O(n) .where().toList() passes per build.
+    final (:visibleSources, :hiddenSources, :isLoaded) = ref.watch(
       unreadSourceProjectionProvider.select(
-        (s) => (sources: s.sources, isLoaded: s.isLoaded),
+        (s) => (
+          visibleSources: s.visibleSources,
+          hiddenSources: s.hiddenSources,
+          isLoaded: s.isLoaded,
+        ),
       ),
     );
-    final items = sources
-        .where((s) => s.visibility == UnreadSourceVisibility.visible)
-        .toList();
-    final hiddenItems = sources
-        .where((s) => s.visibility == UnreadSourceVisibility.hidden)
-        .toList();
+    final items = visibleSources;
+    final hiddenItems = hiddenSources;
 
     return Scaffold(
       backgroundColor: colors.background,

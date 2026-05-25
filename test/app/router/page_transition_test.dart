@@ -346,5 +346,5 @@ class _FakeSecureStorage implements SecureStorage {
 
 class _TestHomeListStore extends HomeListStore {
   @override
-  HomeListState build() => const HomeListState();
+  HomeListState build() => HomeListState();
 }

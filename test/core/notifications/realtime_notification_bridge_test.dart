@@ -88,11 +88,11 @@ RealtimeEventEnvelope _messageNewEvent({
 }
 
 /// Default home list state with one channel and one DM.
-HomeListState _defaultHomeState() => const HomeListState(
+HomeListState _defaultHomeState() => HomeListState(
       serverScopeId: _testServerScope,
       status: HomeListStatus.success,
       channels: [
-        HomeChannelSummary(
+        const HomeChannelSummary(
           scopeId: ChannelScopeId(
             serverId: _testServerScope,
             value: 'ch-1',
@@ -101,7 +101,7 @@ HomeListState _defaultHomeState() => const HomeListState(
         ),
       ],
       directMessages: [
-        HomeDirectMessageSummary(
+        const HomeDirectMessageSummary(
           scopeId: DirectMessageScopeId(
             serverId: _testServerScope,
             value: 'dm-1',
@@ -256,11 +256,11 @@ void main() {
         'thread channelId resolves type=thread with parent identity '
         'via threadItems', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           threadItems: [
-            ThreadInboxItem(
+            const ThreadInboxItem(
               routeTarget: ThreadRouteTarget(
                 serverId: _testServerId,
                 parentChannelId: 'parent-ch-1',
@@ -491,11 +491,11 @@ void main() {
 
     test('thread message with visible thread target is suppressed', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           threadItems: [
-            ThreadInboxItem(
+            const ThreadInboxItem(
               routeTarget: ThreadRouteTarget(
                 serverId: _testServerId,
                 parentChannelId: 'parent-ch-1',
@@ -691,11 +691,11 @@ void main() {
 
     test('pinned channel resolves correctly', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           pinnedChannels: [
-            HomeChannelSummary(
+            const HomeChannelSummary(
               scopeId: ChannelScopeId(
                 serverId: _testServerScope,
                 value: 'pinned-ch',
@@ -724,11 +724,11 @@ void main() {
 
     test('hidden DM resolves as dm', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           hiddenDirectMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: DirectMessageScopeId(
                 serverId: _testServerScope,
                 value: 'hidden-dm',
@@ -756,11 +756,11 @@ void main() {
 
     test('pinned DM resolves as dm', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           pinnedDirectMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: DirectMessageScopeId(
                 serverId: _testServerScope,
                 value: 'pinned-dm',

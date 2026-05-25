@@ -80,7 +80,7 @@ class _ThrowingNotificationStore extends NotificationStore {
 /// scheduling load() microtask that accesses un-overridden providers.
 class _StubHomeListStore extends HomeListStore {
   @override
-  HomeListState build() => const HomeListState();
+  HomeListState build() => HomeListState();
 }
 
 // ---------------------------------------------------------------------------

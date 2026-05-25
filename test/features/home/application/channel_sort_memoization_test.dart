@@ -196,7 +196,7 @@ void main() {
       // Mutable unread backing provider — allows us to emit unread changes.
       final unreadBackingProvider =
           StateProvider<UnreadSourceProjectionState>((ref) {
-        return const UnreadSourceProjectionState(isLoaded: true);
+        return UnreadSourceProjectionState(isLoaded: true);
       });
 
       final container = ProviderContainer(

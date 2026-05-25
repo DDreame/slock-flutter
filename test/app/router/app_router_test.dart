@@ -2386,5 +2386,5 @@ class _TestShareIntentStore extends ShareIntentStore {
 
 class _TestHomeListStore extends HomeListStore {
   @override
-  HomeListState build() => const HomeListState();
+  HomeListState build() => HomeListState();
 }

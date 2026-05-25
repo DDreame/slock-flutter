@@ -21,7 +21,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 
 class _ControllableHomeListStore extends HomeListStore {
   @override
-  HomeListState build() => const HomeListState();
+  HomeListState build() => HomeListState();
 
   void setIsRefreshingDirect(bool value) {
     state = state.copyWith(isRefreshing: value);

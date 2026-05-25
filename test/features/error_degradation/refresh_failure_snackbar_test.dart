@@ -150,7 +150,7 @@ class _FakeAgentsStore extends AgentsStore {
 
 class _FakeHomeListStore extends HomeListStore {
   @override
-  HomeListState build() => const HomeListState(
+  HomeListState build() => HomeListState(
         status: HomeListStatus.success,
       );
 
@@ -453,7 +453,7 @@ void main() {
         activeServerScopeIdProvider
             .overrideWithValue(const ServerScopeId('server-1')),
         unreadSourceProjectionProvider
-            .overrideWithValue(const UnreadSourceProjectionState()),
+            .overrideWithValue(UnreadSourceProjectionState()),
         channelManagementStoreProvider.overrideWith(
           () => _FakeChannelManagementStore(),
         ),
@@ -502,7 +502,7 @@ void main() {
         activeServerScopeIdProvider
             .overrideWithValue(const ServerScopeId('server-1')),
         unreadSourceProjectionProvider
-            .overrideWithValue(const UnreadSourceProjectionState()),
+            .overrideWithValue(UnreadSourceProjectionState()),
         persistedAgentNamesProvider.overrideWith(
           () => _FakePersistedAgentNames(),
         ),
@@ -554,7 +554,7 @@ void main() {
         activeServerScopeIdProvider
             .overrideWithValue(const ServerScopeId('server-1')),
         unreadSourceProjectionProvider
-            .overrideWithValue(const UnreadSourceProjectionState()),
+            .overrideWithValue(UnreadSourceProjectionState()),
         serverListStoreProvider.overrideWith(() => _FakeServerListStore()),
         agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
         sharedPreferencesProvider.overrideWithValue(prefs),

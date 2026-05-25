@@ -51,7 +51,7 @@ final unreadSourceProjectionProvider =
       status == InboxStatus.initial ||
       status == InboxStatus.failure ||
       (status == InboxStatus.loading && items.isEmpty)) {
-    return const UnreadSourceProjectionState();
+    return UnreadSourceProjectionState();
   }
 
   final ctx = _visibilityContextFromSelected(homeVis);

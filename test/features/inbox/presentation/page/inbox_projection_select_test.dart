@@ -62,10 +62,10 @@ void main() {
     'inboxProjectionProvider: tier-2 homeListStore changes do not '
     'trigger rebuild (INV-PROJ-OPT-2)',
     () {
-      final homeStore = _ControllableHomeListStore(const HomeListState(
+      final homeStore = _ControllableHomeListStore(HomeListState(
         status: HomeListStatus.success,
         channels: [
-          HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
+          const HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
         ],
       ));
       final inboxStore = _ControllableInboxStore(const InboxState(
@@ -142,10 +142,10 @@ void main() {
     'inboxProjectionProvider: channel/DM changes update projection '
     'correctly (INV-PROJ-OPT-3)',
     () {
-      final homeStore = _ControllableHomeListStore(const HomeListState(
+      final homeStore = _ControllableHomeListStore(HomeListState(
         status: HomeListStatus.success,
         channels: [
-          HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
+          const HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
         ],
       ));
       final inboxStore = _ControllableInboxStore(const InboxState(
@@ -242,7 +242,7 @@ void main() {
     '(INV-PROJ-OPT-1)',
     () {
       // Start with initial homeListStore (not yet loaded).
-      final homeStore = _ControllableHomeListStore(const HomeListState());
+      final homeStore = _ControllableHomeListStore(HomeListState());
       final inboxStore = _ControllableInboxStore(const InboxState(
         status: InboxStatus.success,
         items: [
@@ -278,10 +278,10 @@ void main() {
       ));
 
       // Step 2: homeListStore → success with channels/DMs (tier-1 load).
-      homeStore.setState(const HomeListState(
+      homeStore.setState(HomeListState(
         status: HomeListStatus.success,
         channels: [
-          HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
+          const HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
         ],
       ));
 

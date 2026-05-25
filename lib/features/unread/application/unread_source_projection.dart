@@ -96,9 +96,8 @@ class UnreadSourceProjection extends ConversationProjection {
 
 /// Immutable state holding the projected unread sources and
 /// precomputed lookup maps for tab compatibility.
-@immutable
 class UnreadSourceProjectionState {
-  const UnreadSourceProjectionState({
+  UnreadSourceProjectionState({
     this.sources = const [],
     this.channelUnreadCounts = const {},
     this.dmUnreadCounts = const {},
@@ -150,12 +149,14 @@ class UnreadSourceProjectionState {
       .fold(0, (sum, s) => sum + s.unreadCount);
 
   /// Only sources that are [UnreadSourceVisibility.visible].
-  List<UnreadSourceProjection> get visibleSources => sources
+  /// Cached on first access for O(1) subsequent reads.
+  late final List<UnreadSourceProjection> visibleSources = sources
       .where((s) => s.visibility == UnreadSourceVisibility.visible)
       .toList();
 
   /// Only sources that are [UnreadSourceVisibility.hidden].
-  List<UnreadSourceProjection> get hiddenSources => sources
+  /// Cached on first access for O(1) subsequent reads.
+  late final List<UnreadSourceProjection> hiddenSources = sources
       .where((s) => s.visibility == UnreadSourceVisibility.hidden)
       .toList();
 
