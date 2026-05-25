@@ -162,7 +162,8 @@ void main() {
 
       completer.complete([_sampleTask]);
       final result = await createFuture;
-      expect(result, isNull, reason: 'disposed store returns null');
+      expect(result, hasLength(1),
+          reason: 'disposed store returns tasks without state mutation');
     });
 
     test('dispose during updateTaskStatus() does not throw StateError',
@@ -296,7 +297,8 @@ void main() {
 
       completer.complete(_sampleTask);
       final result = await convertFuture;
-      expect(result, isNull, reason: 'disposed store returns null');
+      expect(result.id, _sampleTask.id,
+          reason: 'disposed store returns task without state mutation');
     });
 
     test(

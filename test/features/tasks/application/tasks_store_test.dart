@@ -258,7 +258,7 @@ void main() {
 
       final result = await store().convertMessageToTask(messageId: 'msg-1');
 
-      expect(result?.id, 'task-converted');
+      expect(result.id, 'task-converted');
       expect(state().items.length, 2);
       expect(state().items.last.title, 'Converted from message');
     });

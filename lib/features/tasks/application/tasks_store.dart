@@ -95,7 +95,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     }
   }
 
-  Future<List<TaskItem>?> createTasks({
+  Future<List<TaskItem>> createTasks({
     required String channelId,
     required List<String> titles,
   }) async {
@@ -107,7 +107,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         channelId: channelId,
         titles: titles,
       );
-      if (_disposed) return null;
+      if (_disposed) return created;
       final itemsById = <String, TaskItem>{
         for (final item in state.items) item.id: item,
         for (final item in created) item.id: item,
@@ -259,13 +259,13 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     }
   }
 
-  Future<TaskItem?> convertMessageToTask({required String messageId}) async {
+  Future<TaskItem> convertMessageToTask({required String messageId}) async {
     final serverId = ref.read(currentTasksServerIdProvider);
     try {
       final repo = ref.read(tasksRepositoryProvider);
       final task =
           await repo.convertMessageToTask(serverId, messageId: messageId);
-      if (_disposed) return null;
+      if (_disposed) return task;
       state = state.copyWith(items: [...state.items, task]);
       return task;
     } on AppFailure {
