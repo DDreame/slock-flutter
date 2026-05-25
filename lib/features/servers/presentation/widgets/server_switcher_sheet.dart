@@ -315,14 +315,27 @@ class _ServerList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(serverListStoreProvider);
+    // INV-SELECT-810: Only rebuild when the per-server busy sets change.
+    // Status, servers list, isCreating, isJoiningInvite changes must NOT
+    // trigger row rebuilds in this sub-widget.
+    final busySets = ref.watch(
+      serverListStoreProvider.select(
+        (s) => (
+          savingServerIds: s.savingServerIds,
+          deletingServerIds: s.deletingServerIds,
+          leavingServerIds: s.leavingServerIds,
+        ),
+      ),
+    );
     return ListView.builder(
       shrinkWrap: true,
       itemCount: servers.length,
       itemBuilder: (context, index) {
         final server = servers[index];
         final isSelected = server.id == selectedServerId;
-        final isBusy = state.isBusy(server.id);
+        final isBusy = busySets.savingServerIds.contains(server.id) ||
+            busySets.deletingServerIds.contains(server.id) ||
+            busySets.leavingServerIds.contains(server.id);
         return ListTile(
           key: ValueKey('server-${server.id}'),
           title: Text(server.name),

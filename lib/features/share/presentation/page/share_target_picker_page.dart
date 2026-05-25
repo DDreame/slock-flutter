@@ -80,6 +80,60 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
   final _searchController = TextEditingController();
   String _query = '';
 
+  // INV-SELECT-810: Memoize concat+filter results. Only recompute when the
+  // stable provider-sourced lists or search query changes.
+  List<HomeChannelSummary>? _cachedFilteredChannels;
+  List<HomeDirectMessageSummary>? _cachedFilteredDms;
+  List<HomeChannelSummary>? _lastPinnedChannels;
+  List<HomeChannelSummary>? _lastChannels;
+  List<HomeDirectMessageSummary>? _lastPinnedDms;
+  List<HomeDirectMessageSummary>? _lastDms;
+  String _lastQuery = '';
+
+  /// INV-SELECT-810: Returns memoized concat+filter results for channels
+  /// and DMs. Reuses cached lists when the provider-sourced references and
+  /// query haven't changed.
+  ({List<HomeChannelSummary> channels, List<HomeDirectMessageSummary> dms})
+      _memoizedFilter({
+    required List<HomeChannelSummary> pinnedChannels,
+    required List<HomeChannelSummary> channels,
+    required List<HomeDirectMessageSummary> pinnedDirectMessages,
+    required List<HomeDirectMessageSummary> directMessages,
+  }) {
+    if (identical(pinnedChannels, _lastPinnedChannels) &&
+        identical(channels, _lastChannels) &&
+        identical(pinnedDirectMessages, _lastPinnedDms) &&
+        identical(directMessages, _lastDms) &&
+        _query == _lastQuery &&
+        _cachedFilteredChannels != null) {
+      return (channels: _cachedFilteredChannels!, dms: _cachedFilteredDms!);
+    }
+    _lastPinnedChannels = pinnedChannels;
+    _lastChannels = channels;
+    _lastPinnedDms = pinnedDirectMessages;
+    _lastDms = directMessages;
+    _lastQuery = _query;
+
+    final allChannels = [...pinnedChannels, ...channels];
+    final allDms = [...pinnedDirectMessages, ...directMessages];
+
+    final lowerQuery = _query.toLowerCase();
+    final filteredChannels = _query.isEmpty
+        ? allChannels
+        : allChannels
+            .where((ch) => ch.name.toLowerCase().contains(lowerQuery))
+            .toList();
+    final filteredDms = _query.isEmpty
+        ? allDms
+        : allDms
+            .where((dm) => dm.title.toLowerCase().contains(lowerQuery))
+            .toList();
+
+    _cachedFilteredChannels = filteredChannels;
+    _cachedFilteredDms = filteredDms;
+    return (channels: filteredChannels, dms: filteredDms);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -130,30 +184,14 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
       return const AppLoadingIndicator();
     }
 
-    final allChannels = [
-      ...homeState.pinnedChannels,
-      ...homeState.channels,
-    ];
-    final allDms = [
-      ...homeState.pinnedDirectMessages,
-      ...homeState.directMessages,
-    ];
-
-    final lowerQuery = _query.toLowerCase();
-    final filteredChannels = _query.isEmpty
-        ? allChannels
-        : allChannels
-            .where(
-              (ch) => ch.name.toLowerCase().contains(lowerQuery),
-            )
-            .toList();
-    final filteredDms = _query.isEmpty
-        ? allDms
-        : allDms
-            .where(
-              (dm) => dm.title.toLowerCase().contains(lowerQuery),
-            )
-            .toList();
+    // INV-SELECT-810: Memoized concat+filter — only recompute when the
+    // provider-sourced lists or query change.
+    final (:channels, :dms) = _memoizedFilter(
+      pinnedChannels: homeState.pinnedChannels,
+      channels: homeState.channels,
+      pinnedDirectMessages: homeState.pinnedDirectMessages,
+      directMessages: homeState.directMessages,
+    );
 
     return Column(
       children: [
@@ -185,10 +223,10 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
         Expanded(
           child: ListView(
             children: [
-              if (filteredChannels.isNotEmpty) ...[
+              if (channels.isNotEmpty) ...[
                 _SectionHeader(
                     title: context.l10n.shareSectionChannels, colors: colors),
-                ...filteredChannels.map(
+                ...channels.map(
                   (ch) => _ChannelTile(
                     channel: ch,
                     colors: colors,
@@ -198,11 +236,11 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
                   ),
                 ),
               ],
-              if (filteredDms.isNotEmpty) ...[
+              if (dms.isNotEmpty) ...[
                 _SectionHeader(
                     title: context.l10n.shareSectionDirectMessages,
                     colors: colors),
-                ...filteredDms.map(
+                ...dms.map(
                   (dm) => _DmTile(
                     directMessage: dm,
                     colors: colors,
