@@ -59,12 +59,12 @@ const _fallbackModelsByRuntime = <String, List<_AgentModelOption>>{
   'kimi': [_AgentModelOption(id: 'default', label: 'Configured Default')],
 };
 
-const _reasoningEffortOptions = <_AgentModelOption>[
-  _AgentModelOption(id: 'low', label: 'Low'),
-  _AgentModelOption(id: 'medium', label: 'Medium'),
-  _AgentModelOption(id: 'high', label: 'High'),
-  _AgentModelOption(id: 'xhigh', label: 'Extra High'),
-];
+List<_AgentModelOption> _reasoningEffortOptions(AppLocalizations l10n) => [
+      _AgentModelOption(id: 'low', label: l10n.agentsReasoningLow),
+      _AgentModelOption(id: 'medium', label: l10n.agentsReasoningMedium),
+      _AgentModelOption(id: 'high', label: l10n.agentsReasoningHigh),
+      _AgentModelOption(id: 'xhigh', label: l10n.agentsReasoningExtraHigh),
+    ];
 
 const _reasoningRuntimes = {'codex', 'copilot'};
 
@@ -311,25 +311,25 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
 
     if (name.isEmpty) {
       setState(() {
-        _formError = 'Name is required.';
+        _formError = context.l10n.agentsFormNameRequired;
       });
       return;
     }
     if (machineId == null) {
       setState(() {
-        _formError = 'Machine is required.';
+        _formError = context.l10n.agentsFormMachineRequired;
       });
       return;
     }
     if (runtime == null || runtime.isEmpty) {
       setState(() {
-        _formError = 'Runtime is required.';
+        _formError = context.l10n.agentsFormRuntimeRequired;
       });
       return;
     }
     if (model.isEmpty) {
       setState(() {
-        _formError = 'Model is required.';
+        _formError = context.l10n.agentsFormModelRequired;
       });
       return;
     }
@@ -354,7 +354,9 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
         _reasoningRuntimes.contains(_selectedRuntime);
 
     return AlertDialog(
-      title: Text(widget.isEditing ? 'Edit Agent' : 'Create Agent'),
+      title: Text(widget.isEditing
+          ? context.l10n.agentsFormEditTitle
+          : context.l10n.agentsFormCreateTitle),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: _isLoadingMachines
@@ -371,7 +373,7 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                       const SizedBox(height: 12),
                       FilledButton(
                         onPressed: _loadMachines,
-                        child: const Text('Retry'),
+                        child: Text(context.l10n.agentsFormRetry),
                       ),
                     ],
                   )
@@ -390,14 +392,15 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                           const SizedBox(height: 12),
                         ],
                         if (_machines.isEmpty) ...[
-                          const Text('No machines available for this server.'),
+                          Text(context.l10n.agentsFormNoMachines),
                         ] else ...[
                           DropdownButtonFormField<String>(
                             key: const ValueKey('agent-form-machine'),
                             initialValue: _selectedMachineId,
                             isExpanded: true,
-                            decoration:
-                                const InputDecoration(labelText: 'Machine'),
+                            decoration: InputDecoration(
+                              labelText: context.l10n.agentsFormLabelMachine,
+                            ),
                             items: _machines
                                 .map(
                                   (machine) => DropdownMenuItem<String>(
@@ -417,16 +420,18 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                           TextField(
                             key: const ValueKey('agent-form-name'),
                             controller: _nameController,
-                            decoration:
-                                const InputDecoration(labelText: 'Name'),
+                            decoration: InputDecoration(
+                              labelText: context.l10n.agentsFormLabelName,
+                            ),
                             textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: 12),
                           TextField(
                             key: const ValueKey('agent-form-description'),
                             controller: _descriptionController,
-                            decoration: const InputDecoration(
-                              labelText: 'Description',
+                            decoration: InputDecoration(
+                              labelText:
+                                  context.l10n.agentsFormLabelDescription,
                             ),
                             minLines: 2,
                             maxLines: 4,
@@ -436,8 +441,9 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                             key: const ValueKey('agent-form-runtime'),
                             initialValue: _selectedRuntime,
                             isExpanded: true,
-                            decoration:
-                                const InputDecoration(labelText: 'Runtime'),
+                            decoration: InputDecoration(
+                              labelText: context.l10n.agentsFormLabelRuntime,
+                            ),
                             items: runtimeOptions
                                 .map(
                                   (runtime) => DropdownMenuItem<String>(
@@ -457,7 +463,7 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                             key: const ValueKey('agent-form-model'),
                             controller: _modelController,
                             decoration: InputDecoration(
-                              labelText: 'Model',
+                              labelText: context.l10n.agentsFormLabelModel,
                               suffixIcon: _isLoadingModels
                                   ? const Padding(
                                       padding: EdgeInsets.all(12),
@@ -498,10 +504,11 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
                             DropdownButtonFormField<String>(
                               key: const ValueKey('agent-form-reasoning'),
                               initialValue: _reasoningEffort,
-                              decoration: const InputDecoration(
-                                labelText: 'Reasoning Effort',
+                              decoration: InputDecoration(
+                                labelText:
+                                    context.l10n.agentsFormLabelReasoningEffort,
                               ),
-                              items: _reasoningEffortOptions
+                              items: _reasoningEffortOptions(context.l10n)
                                   .map(
                                     (option) => DropdownMenuItem<String>(
                                       value: option.id,
@@ -527,12 +534,14 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.agentsFormCancel),
         ),
         FilledButton(
           key: const ValueKey('agent-form-submit'),
           onPressed: _machines.isEmpty || _isLoadingMachines ? null : _submit,
-          child: Text(widget.isEditing ? 'Save' : 'Create'),
+          child: Text(widget.isEditing
+              ? context.l10n.agentsFormSave
+              : context.l10n.agentsFormCreate),
         ),
       ],
     );

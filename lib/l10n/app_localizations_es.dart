@@ -1842,4 +1842,193 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get onboardingProfileButton => 'Editar perfil';
+
+  @override
+  String get agentsEmptyTitle => 'Aún no hay agentes.';
+
+  @override
+  String get agentsSelectServerFirst => 'Selecciona un servidor primero.';
+
+  @override
+  String get agentsCreated => 'Agente creado.';
+
+  @override
+  String get agentsUpdated => 'Agente actualizado.';
+
+  @override
+  String get agentsDeleted => 'Agente eliminado.';
+
+  @override
+  String get agentsResetSuccess => 'Agente reiniciado.';
+
+  @override
+  String get agentsDeleteTitle => '¿Eliminar agente?';
+
+  @override
+  String agentsDeleteMessage(String name) {
+    return '¿Eliminar $name? Esto eliminará la configuración del agente del espacio de trabajo.';
+  }
+
+  @override
+  String get agentsStopTitle => '¿Detener agente?';
+
+  @override
+  String agentsStopMessage(String name) {
+    return '¿Detener $name? El agente terminará su acción actual antes de detenerse.';
+  }
+
+  @override
+  String get agentsResetTitle => '¿Reiniciar sesión?';
+
+  @override
+  String agentsResetMessage(String name) {
+    return '¿Reiniciar $name? Esto borrará el historial de conversación del agente.';
+  }
+
+  @override
+  String agentsSummary(int active, int stopped) {
+    return '$active activos / $stopped detenidos';
+  }
+
+  @override
+  String get agentsActionStart => 'Iniciar';
+
+  @override
+  String get agentsActionStop => 'Detener';
+
+  @override
+  String get agentsActionReset => 'Reiniciar';
+
+  @override
+  String get agentsActionResetSession => 'Reiniciar sesión';
+
+  @override
+  String get agentsActionMessage => 'Mensaje';
+
+  @override
+  String get agentsActionDelete => 'Eliminar';
+
+  @override
+  String get agentsActionCancel => 'Cancelar';
+
+  @override
+  String get agentsAppBarTitle => 'Agente';
+
+  @override
+  String get agentsFailedToLoad => 'Error al cargar agentes.';
+
+  @override
+  String get agentsNotFound => 'Agente no encontrado.';
+
+  @override
+  String get agentsActivityLogTitle => 'Registro de actividad';
+
+  @override
+  String get agentsActivityLogEmpty =>
+      'Sin entradas en el registro de actividad.';
+
+  @override
+  String get agentsConfigMachine => 'Máquina';
+
+  @override
+  String get agentsConfigRuntime => 'Entorno';
+
+  @override
+  String get agentsConfigModel => 'Modelo';
+
+  @override
+  String get agentsConfigReasoning => 'Razonamiento';
+
+  @override
+  String get agentsEnvVarsTitle => 'Variables de entorno';
+
+  @override
+  String get agentsEnvVarsEmpty => 'Sin variables de entorno';
+
+  @override
+  String get agentsRetry => 'Reintentar';
+
+  @override
+  String get agentsActivityOnline => 'En línea';
+
+  @override
+  String get agentsActivityThinking => 'Pensando...';
+
+  @override
+  String get agentsActivityWorking => 'Trabajando...';
+
+  @override
+  String get agentsActivityError => 'Error';
+
+  @override
+  String agentsActivityErrorDetail(String detail) {
+    return 'Error: $detail';
+  }
+
+  @override
+  String get agentsActivityOffline => 'Sin conexión';
+
+  @override
+  String get agentsFormEditTitle => 'Editar agente';
+
+  @override
+  String get agentsFormCreateTitle => 'Crear agente';
+
+  @override
+  String get agentsFormNameRequired => 'El nombre es obligatorio.';
+
+  @override
+  String get agentsFormMachineRequired => 'La máquina es obligatoria.';
+
+  @override
+  String get agentsFormRuntimeRequired => 'El entorno es obligatorio.';
+
+  @override
+  String get agentsFormModelRequired => 'El modelo es obligatorio.';
+
+  @override
+  String get agentsFormNoMachines =>
+      'No hay máquinas disponibles para este servidor.';
+
+  @override
+  String get agentsFormLabelMachine => 'Máquina';
+
+  @override
+  String get agentsFormLabelName => 'Nombre';
+
+  @override
+  String get agentsFormLabelDescription => 'Descripción';
+
+  @override
+  String get agentsFormLabelRuntime => 'Entorno';
+
+  @override
+  String get agentsFormLabelModel => 'Modelo';
+
+  @override
+  String get agentsFormLabelReasoningEffort => 'Nivel de razonamiento';
+
+  @override
+  String get agentsFormSave => 'Guardar';
+
+  @override
+  String get agentsFormCreate => 'Crear';
+
+  @override
+  String get agentsFormCancel => 'Cancelar';
+
+  @override
+  String get agentsFormRetry => 'Reintentar';
+
+  @override
+  String get agentsReasoningLow => 'Bajo';
+
+  @override
+  String get agentsReasoningMedium => 'Medio';
+
+  @override
+  String get agentsReasoningHigh => 'Alto';
+
+  @override
+  String get agentsReasoningExtraHigh => 'Muy alto';
 }

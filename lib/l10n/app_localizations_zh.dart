@@ -1755,4 +1755,191 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get onboardingProfileButton => '编辑个人资料';
+
+  @override
+  String get agentsEmptyTitle => '暂无智能体。';
+
+  @override
+  String get agentsSelectServerFirst => '请先选择一个服务器。';
+
+  @override
+  String get agentsCreated => '智能体已创建。';
+
+  @override
+  String get agentsUpdated => '智能体已更新。';
+
+  @override
+  String get agentsDeleted => '智能体已删除。';
+
+  @override
+  String get agentsResetSuccess => '智能体已重置。';
+
+  @override
+  String get agentsDeleteTitle => '删除智能体？';
+
+  @override
+  String agentsDeleteMessage(String name) {
+    return '删除 $name？这将从工作区移除该智能体配置。';
+  }
+
+  @override
+  String get agentsStopTitle => '停止智能体？';
+
+  @override
+  String agentsStopMessage(String name) {
+    return '停止 $name？智能体将在完成当前操作后停止。';
+  }
+
+  @override
+  String get agentsResetTitle => '重置会话？';
+
+  @override
+  String agentsResetMessage(String name) {
+    return '重置 $name？这将清除智能体的对话历史。';
+  }
+
+  @override
+  String agentsSummary(int active, int stopped) {
+    return '$active 运行中 / $stopped 已停止';
+  }
+
+  @override
+  String get agentsActionStart => '启动';
+
+  @override
+  String get agentsActionStop => '停止';
+
+  @override
+  String get agentsActionReset => '重置';
+
+  @override
+  String get agentsActionResetSession => '重置会话';
+
+  @override
+  String get agentsActionMessage => '发消息';
+
+  @override
+  String get agentsActionDelete => '删除';
+
+  @override
+  String get agentsActionCancel => '取消';
+
+  @override
+  String get agentsAppBarTitle => '智能体';
+
+  @override
+  String get agentsFailedToLoad => '加载智能体失败。';
+
+  @override
+  String get agentsNotFound => '未找到智能体。';
+
+  @override
+  String get agentsActivityLogTitle => '活动日志';
+
+  @override
+  String get agentsActivityLogEmpty => '暂无活动日志。';
+
+  @override
+  String get agentsConfigMachine => '机器';
+
+  @override
+  String get agentsConfigRuntime => '运行时';
+
+  @override
+  String get agentsConfigModel => '模型';
+
+  @override
+  String get agentsConfigReasoning => '推理';
+
+  @override
+  String get agentsEnvVarsTitle => '环境变量';
+
+  @override
+  String get agentsEnvVarsEmpty => '无环境变量';
+
+  @override
+  String get agentsRetry => '重试';
+
+  @override
+  String get agentsActivityOnline => '在线';
+
+  @override
+  String get agentsActivityThinking => '思考中…';
+
+  @override
+  String get agentsActivityWorking => '工作中…';
+
+  @override
+  String get agentsActivityError => '错误';
+
+  @override
+  String agentsActivityErrorDetail(String detail) {
+    return '错误：$detail';
+  }
+
+  @override
+  String get agentsActivityOffline => '离线';
+
+  @override
+  String get agentsFormEditTitle => '编辑智能体';
+
+  @override
+  String get agentsFormCreateTitle => '创建智能体';
+
+  @override
+  String get agentsFormNameRequired => '名称不能为空。';
+
+  @override
+  String get agentsFormMachineRequired => '请选择机器。';
+
+  @override
+  String get agentsFormRuntimeRequired => '请选择运行时。';
+
+  @override
+  String get agentsFormModelRequired => '请选择模型。';
+
+  @override
+  String get agentsFormNoMachines => '该服务器暂无可用机器。';
+
+  @override
+  String get agentsFormLabelMachine => '机器';
+
+  @override
+  String get agentsFormLabelName => '名称';
+
+  @override
+  String get agentsFormLabelDescription => '描述';
+
+  @override
+  String get agentsFormLabelRuntime => '运行时';
+
+  @override
+  String get agentsFormLabelModel => '模型';
+
+  @override
+  String get agentsFormLabelReasoningEffort => '推理强度';
+
+  @override
+  String get agentsFormSave => '保存';
+
+  @override
+  String get agentsFormCreate => '创建';
+
+  @override
+  String get agentsFormCancel => '取消';
+
+  @override
+  String get agentsFormRetry => '重试';
+
+  @override
+  String get agentsReasoningLow => '低';
+
+  @override
+  String get agentsReasoningMedium => '中';
+
+  @override
+  String get agentsReasoningHigh => '高';
+
+  @override
+  String get agentsReasoningExtraHigh => '极高';
 }
