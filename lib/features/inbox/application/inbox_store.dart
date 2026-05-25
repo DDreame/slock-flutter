@@ -256,10 +256,13 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
-    final previousState = state;
     final index = state.items.indexWhere((item) => item.channelId == channelId);
     final items = List<InboxItem>.of(state.items);
     var unreadDelta = 0;
+
+    // Snapshot only the affected item for per-ID rollback (#807).
+    final InboxItem? previousItem = index >= 0 ? items[index] : null;
+    final bool wasInserted;
 
     if (index >= 0) {
       final current = items[index];
@@ -269,6 +272,7 @@ class InboxStore extends Notifier<InboxState> {
       items[index] = current.copyWith(
         unreadCount: current.unreadCount > 0 ? current.unreadCount : 1,
       );
+      wasInserted = false;
     } else {
       unreadDelta = 1;
       final knownItem = _knownItemsByChannelId[channelId];
@@ -282,15 +286,16 @@ class InboxStore extends Notifier<InboxState> {
               unreadCount: 1,
             ),
       );
+      wasInserted = true;
     }
 
     _rememberInboxItems(items);
 
     state = state.copyWith(
       items: items,
-      totalCount: state.totalCount + (index >= 0 ? 0 : 1),
+      totalCount: state.totalCount + (wasInserted ? 1 : 0),
       totalUnreadCount: state.totalUnreadCount + unreadDelta,
-      offset: state.offset + (index >= 0 ? 0 : 1),
+      offset: state.offset + (wasInserted ? 1 : 0),
       clearFailure: true,
     );
 
@@ -299,7 +304,13 @@ class InboxStore extends Notifier<InboxState> {
           .read(conversationUnreadRepositoryProvider)
           .markAsUnread(serverId, channelId: channelId);
     } on AppFailure catch (failure, stackTrace) {
-      state = previousState;
+      // Per-item rollback: revert only this item, not the full state (#807).
+      _rollbackMarkAsUnread(
+        channelId: channelId,
+        previousItem: previousItem,
+        wasInserted: wasInserted,
+        unreadDelta: unreadDelta,
+      );
       try {
         ref.read(crashReporterProvider).captureException(
           failure,
@@ -307,6 +318,39 @@ class InboxStore extends Notifier<InboxState> {
           extra: const {'operation': 'InboxStore.markAsUnread'},
         );
       } catch (_) {}
+    }
+  }
+
+  /// Rollback helper for [markAsUnread] — reverts only the single item (#807).
+  void _rollbackMarkAsUnread({
+    required String channelId,
+    required InboxItem? previousItem,
+    required bool wasInserted,
+    required int unreadDelta,
+  }) {
+    final items = List<InboxItem>.of(state.items);
+
+    if (wasInserted) {
+      // The item was newly inserted — remove it.
+      items.removeWhere((i) => i.channelId == channelId);
+      state = state.copyWith(
+        items: items,
+        totalCount: state.totalCount - 1,
+        totalUnreadCount: (state.totalUnreadCount - unreadDelta)
+            .clamp(0, state.totalUnreadCount),
+        offset: (state.offset - 1).clamp(0, state.offset),
+      );
+    } else if (previousItem != null) {
+      // The item existed — restore its previous unreadCount.
+      final currentIndex = items.indexWhere((i) => i.channelId == channelId);
+      if (currentIndex >= 0) {
+        items[currentIndex] = previousItem;
+        state = state.copyWith(
+          items: items,
+          totalUnreadCount: (state.totalUnreadCount - unreadDelta)
+              .clamp(0, state.totalUnreadCount),
+        );
+      }
     }
   }
 
@@ -411,14 +455,26 @@ class InboxStore extends Notifier<InboxState> {
     final serverId = ref.read(activeServerScopeIdProvider);
     if (serverId == null) return;
 
-    final previousState = state;
+    // Per-item snapshot for rollback — uses neighbor channelIds for stable
+    // position restoration regardless of concurrent failure ordering (#807).
+    final currentItems = state.items;
+    final originalIndex =
+        currentItems.indexWhere((i) => i.channelId == channelId);
+    final removedItems =
+        currentItems.where((i) => i.channelId == channelId).toList();
+    final removedUnread =
+        removedItems.fold<int>(0, (sum, i) => sum + i.unreadCount);
+    final removedCount = removedItems.length;
+
+    // Capture successor/predecessor channelIds for position-stable rollback.
+    final String? successorChannelId =
+        (originalIndex >= 0 && originalIndex + 1 < currentItems.length)
+            ? currentItems[originalIndex + 1].channelId
+            : null;
+    final String? predecessorChannelId =
+        (originalIndex > 0) ? currentItems[originalIndex - 1].channelId : null;
 
     // Optimistic: remove the item from the list.
-    final removedItem = state.items.where((i) => i.channelId == channelId);
-    final removedUnread =
-        removedItem.fold<int>(0, (sum, i) => sum + i.unreadCount);
-    final removedCount = removedItem.length;
-
     state = state.copyWith(
       items: state.items
           .where((i) => i.channelId != channelId)
@@ -434,8 +490,62 @@ class InboxStore extends Notifier<InboxState> {
           .read(inboxRepositoryProvider)
           .markItemDone(serverId, channelId: channelId);
     } on AppFailure {
-      state = previousState;
+      // Per-item rollback: re-insert only the removed item (#807).
+      _rollbackMarkDone(
+        removedItems: removedItems,
+        removedUnread: removedUnread,
+        removedCount: removedCount,
+        successorChannelId: successorChannelId,
+        predecessorChannelId: predecessorChannelId,
+      );
     }
+  }
+
+  /// Rollback helper for [markDone] — re-inserts only the removed item (#807).
+  ///
+  /// Uses neighbor channelIds (successor first, predecessor fallback) to find
+  /// the correct insertion position regardless of concurrent operation ordering.
+  void _rollbackMarkDone({
+    required List<InboxItem> removedItems,
+    required int removedUnread,
+    required int removedCount,
+    required String? successorChannelId,
+    required String? predecessorChannelId,
+  }) {
+    if (removedItems.isEmpty) return;
+
+    final items = List<InboxItem>.of(state.items);
+
+    // Determine insertion point by locating surviving neighbors.
+    int insertIndex;
+    if (successorChannelId != null) {
+      final succIdx =
+          items.indexWhere((i) => i.channelId == successorChannelId);
+      if (succIdx >= 0) {
+        insertIndex = succIdx;
+      } else if (predecessorChannelId != null) {
+        final predIdx =
+            items.indexWhere((i) => i.channelId == predecessorChannelId);
+        insertIndex = predIdx >= 0 ? predIdx + 1 : items.length;
+      } else {
+        insertIndex = 0;
+      }
+    } else if (predecessorChannelId != null) {
+      final predIdx =
+          items.indexWhere((i) => i.channelId == predecessorChannelId);
+      insertIndex = predIdx >= 0 ? predIdx + 1 : items.length;
+    } else {
+      // Item was first and only — insert at beginning.
+      insertIndex = 0;
+    }
+
+    items.insertAll(insertIndex, removedItems);
+    state = state.copyWith(
+      items: items,
+      totalCount: state.totalCount + removedCount,
+      totalUnreadCount: state.totalUnreadCount + removedUnread,
+      offset: state.offset + removedCount,
+    );
   }
 
   /// Mark all inbox items as read (optimistic).
