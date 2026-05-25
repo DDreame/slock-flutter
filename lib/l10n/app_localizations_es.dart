@@ -1074,401 +1074,403 @@ class AppLocalizationsEs extends AppLocalizations {
   String get searchRecentClear => 'Borrar';
 
   @override
-  String get machinesPageTitle => 'Machines';
+  String get machinesPageTitle => 'Máquinas';
 
   @override
-  String get machinesAddButton => 'Add Machine';
+  String get machinesAddButton => 'Agregar máquina';
 
   @override
-  String get machinesLoadFailed => 'Failed to load machines.';
+  String get machinesLoadFailed => 'Error al cargar las máquinas.';
 
   @override
-  String get machinesRegisterTitle => 'Register Machine';
+  String get machinesRegisterTitle => 'Registrar máquina';
 
   @override
-  String get machinesRegisterAction => 'Register';
+  String get machinesRegisterAction => 'Registrar';
 
   @override
   String get machinesRegisterHelper =>
-      'Create a machine and reveal its API key once.';
+      'Crea una máquina y revela su clave API una sola vez.';
 
   @override
-  String get machinesRegisteredTitle => 'Machine Registered';
+  String get machinesRegisteredTitle => 'Máquina registrada';
 
   @override
-  String get machinesRegisterFailed => 'Failed to register machine.';
+  String get machinesRegisterFailed => 'Error al registrar la máquina.';
 
   @override
-  String get machinesRenameTitle => 'Rename Machine';
+  String get machinesRenameTitle => 'Renombrar máquina';
 
   @override
-  String get machinesRenameSaveAction => 'Save';
+  String get machinesRenameSaveAction => 'Guardar';
 
   @override
   String get machinesRenameHelper =>
-      'Update the machine label shown across the workspace.';
+      'Actualiza la etiqueta de la máquina visible en todo el espacio de trabajo.';
 
   @override
-  String get machinesRenamedSnackbar => 'Machine renamed.';
+  String get machinesRenamedSnackbar => 'Máquina renombrada.';
 
   @override
-  String get machinesRenameFailed => 'Failed to rename machine.';
+  String get machinesRenameFailed => 'Error al renombrar la máquina.';
 
   @override
-  String get machinesRotatedApiKeyTitle => 'Rotated API Key';
+  String get machinesRotatedApiKeyTitle => 'Clave API rotada';
 
   @override
-  String get machinesRotateApiKeyFailed => 'Failed to rotate machine API key.';
+  String get machinesRotateApiKeyFailed =>
+      'Error al rotar la clave API de la máquina.';
 
   @override
-  String get machinesDeleteTitle => 'Delete Machine?';
+  String get machinesDeleteTitle => '¿Eliminar máquina?';
 
   @override
-  String get machinesDeleteCancel => 'Cancel';
+  String get machinesDeleteCancel => 'Cancelar';
 
   @override
-  String get machinesDeleteConfirm => 'Delete';
+  String get machinesDeleteConfirm => 'Eliminar';
 
   @override
-  String get machinesDeletedSnackbar => 'Machine deleted.';
+  String get machinesDeletedSnackbar => 'Máquina eliminada.';
 
   @override
-  String get machinesDeleteFailed => 'Failed to delete machine.';
+  String get machinesDeleteFailed => 'Error al eliminar la máquina.';
 
   @override
   String get machinesApiKeyRevealedNote =>
-      'This key is only revealed at creation or rotation time.';
+      'Esta clave solo se muestra al momento de creación o rotación.';
 
   @override
-  String get machinesApiKeyCopied => 'API key copied.';
+  String get machinesApiKeyCopied => 'Clave API copiada.';
 
   @override
-  String get machinesCopyButton => 'Copy';
+  String get machinesCopyButton => 'Copiar';
 
   @override
-  String get machinesDoneButton => 'Done';
+  String get machinesDoneButton => 'Listo';
 
   @override
-  String get machinesRetryButton => 'Retry';
+  String get machinesRetryButton => 'Reintentar';
 
   @override
-  String get machinesLatestDaemon => 'Latest daemon';
+  String get machinesLatestDaemon => 'Último daemon';
 
   @override
-  String get machinesEmptyTitle => 'No machines registered yet.';
+  String get machinesEmptyTitle => 'Aún no hay máquinas registradas.';
 
   @override
   String get machinesEmptyDescription =>
-      'Register a machine to attach runtimes and admin operations to this server.';
+      'Registra una máquina para vincular entornos de ejecución y operaciones de administración a este servidor.';
 
   @override
-  String get machinesRegisterButton => 'Register Machine';
+  String get machinesRegisterButton => 'Registrar máquina';
 
   @override
-  String get machinesMenuRename => 'Rename';
+  String get machinesMenuRename => 'Renombrar';
 
   @override
-  String get machinesMenuRotateApiKey => 'Rotate API Key';
+  String get machinesMenuRotateApiKey => 'Rotar clave API';
 
   @override
-  String get machinesMenuDelete => 'Delete';
+  String get machinesMenuDelete => 'Eliminar';
 
   @override
   String get machinesMetaHost => 'Host';
 
   @override
-  String get machinesMetaOs => 'OS';
+  String get machinesMetaOs => 'SO';
 
   @override
   String get machinesMetaDaemon => 'Daemon';
 
   @override
-  String get machinesStatusOnline => 'Online';
+  String get machinesStatusOnline => 'En línea';
 
   @override
-  String get machinesStatusOffline => 'Offline';
+  String get machinesStatusOffline => 'Desconectada';
 
   @override
   String get machinesStatusError => 'Error';
 
   @override
-  String get machinesNameLabel => 'Machine name';
+  String get machinesNameLabel => 'Nombre de la máquina';
 
   @override
-  String get machinesNameDialogCancel => 'Cancel';
+  String get machinesNameDialogCancel => 'Cancelar';
 
   @override
   String machinesDeleteMessage(String name) {
-    return 'Delete $name? This removes the machine from the server list.';
+    return '¿Eliminar $name? Esto quita la máquina de la lista del servidor.';
   }
 
   @override
   String machinesCopyApiKeyMessage(String name) {
-    return 'Copy the API key for $name now.';
+    return 'Copia la clave API de $name ahora.';
   }
 
   @override
   String machinesSummaryCount(int count) {
-    return '$count machine(s)';
+    return '$count máquina(s)';
   }
 
   @override
   String machinesSummaryOnline(int count) {
-    return '$count online';
+    return '$count en línea';
   }
 
   @override
   String machinesApiKeyPrefix(String prefix) {
-    return 'Key $prefix...';
+    return 'Clave $prefix...';
   }
 
   @override
-  String get machinesMenuWorkspaces => 'Workspaces';
+  String get machinesMenuWorkspaces => 'Espacios de trabajo';
 
   @override
-  String get workspacesPageTitle => 'Workspaces';
+  String get workspacesPageTitle => 'Espacios de trabajo';
 
   @override
-  String get workspacesEmpty => 'No workspaces on this machine.';
+  String get workspacesEmpty => 'No hay espacios de trabajo en esta máquina.';
 
   @override
-  String get workspacesLoadFailed => 'Failed to load workspaces.';
+  String get workspacesLoadFailed => 'Error al cargar los espacios de trabajo.';
 
   @override
-  String get workspacesRetryButton => 'Retry';
+  String get workspacesRetryButton => 'Reintentar';
 
   @override
-  String get workspacesDeleteTitle => 'Delete Workspace?';
+  String get workspacesDeleteTitle => '¿Eliminar espacio de trabajo?';
 
   @override
   String workspacesDeleteMessage(String name) {
-    return 'Delete workspace \"$name\"? This cannot be undone.';
+    return '¿Eliminar el espacio de trabajo \"$name\"? Esta acción no se puede deshacer.';
   }
 
   @override
-  String get workspacesDeleteCancel => 'Cancel';
+  String get workspacesDeleteCancel => 'Cancelar';
 
   @override
-  String get workspacesDeleteConfirm => 'Delete';
+  String get workspacesDeleteConfirm => 'Eliminar';
 
   @override
-  String get workspacesDeletedSnackbar => 'Workspace deleted.';
+  String get workspacesDeletedSnackbar => 'Espacio de trabajo eliminado.';
 
   @override
-  String get workspacesDeleteFailed => 'Failed to delete workspace.';
+  String get workspacesDeleteFailed =>
+      'Error al eliminar el espacio de trabajo.';
 
   @override
-  String get workspacesMetaPath => 'Path';
+  String get workspacesMetaPath => 'Ruta';
 
   @override
-  String get workspacesMetaAgent => 'Agent';
+  String get workspacesMetaAgent => 'Agente';
 
   @override
-  String get workspacesStatusActive => 'Active';
+  String get workspacesStatusActive => 'Activo';
 
   @override
-  String get workspacesStatusInactive => 'Inactive';
+  String get workspacesStatusInactive => 'Inactivo';
 
   @override
-  String get tasksLoadFailed => 'Failed to load tasks.';
+  String get tasksLoadFailed => 'Error al cargar las tareas.';
 
   @override
-  String get tasksEmptyAll => 'No tasks yet.';
+  String get tasksEmptyAll => 'Aún no hay tareas.';
 
   @override
-  String get tasksNoChannelsAvailable => 'No channels available.';
+  String get tasksNoChannelsAvailable => 'No hay canales disponibles.';
 
   @override
-  String get tasksCreatedSnackbar => 'Task created.';
+  String get tasksCreatedSnackbar => 'Tarea creada.';
 
   @override
-  String get tasksCreateFailed => 'Failed to create task.';
+  String get tasksCreateFailed => 'Error al crear la tarea.';
 
   @override
-  String get tasksUpdateFailed => 'Failed to update task.';
+  String get tasksUpdateFailed => 'Error al actualizar la tarea.';
 
   @override
-  String get tasksRetryAction => 'RETRY';
+  String get tasksRetryAction => 'REINTENTAR';
 
   @override
-  String get tasksDeleteTitle => 'Delete Task?';
+  String get tasksDeleteTitle => '¿Eliminar tarea?';
 
   @override
   String tasksDeleteMessage(String title) {
-    return 'Delete \"$title\"? This cannot be undone.';
+    return '¿Eliminar \"$title\"? Esta acción no se puede deshacer.';
   }
 
   @override
-  String get tasksDeleteCancel => 'Cancel';
+  String get tasksDeleteCancel => 'Cancelar';
 
   @override
-  String get tasksDeleteConfirm => 'Delete';
+  String get tasksDeleteConfirm => 'Eliminar';
 
   @override
-  String get tasksDeletedSnackbar => 'Task deleted.';
+  String get tasksDeletedSnackbar => 'Tarea eliminada.';
 
   @override
-  String get tasksDeleteFailed => 'Failed to delete task.';
+  String get tasksDeleteFailed => 'Error al eliminar la tarea.';
 
   @override
-  String get tasksClaimFailed => 'Failed to claim task.';
+  String get tasksClaimFailed => 'Error al reclamar la tarea.';
 
   @override
-  String get tasksUnclaimFailed => 'Failed to unclaim task.';
+  String get tasksUnclaimFailed => 'Error al liberar la tarea.';
 
   @override
-  String get tasksHeaderTitle => 'Tasks';
+  String get tasksHeaderTitle => 'Tareas';
 
   @override
-  String get tasksNewButton => 'New';
+  String get tasksNewButton => 'Nueva';
 
   @override
-  String get tasksSummaryTodo => 'To Do';
+  String get tasksSummaryTodo => 'Por hacer';
 
   @override
-  String get tasksSummaryInProgress => 'In Progress';
+  String get tasksSummaryInProgress => 'En progreso';
 
   @override
-  String get tasksSummaryReview => 'Review';
+  String get tasksSummaryReview => 'Revisión';
 
   @override
-  String get tasksSummaryDone => 'Done';
+  String get tasksSummaryDone => 'Completadas';
 
   @override
-  String get tasksSummaryClosed => 'Closed';
+  String get tasksSummaryClosed => 'Cerradas';
 
   @override
-  String get tasksEmptyChannel => 'No tasks in this channel.';
+  String get tasksEmptyChannel => 'No hay tareas en este canal.';
 
   @override
-  String get tasksFilterAll => 'All';
+  String get tasksFilterAll => 'Todas';
 
   @override
-  String get tasksSectionTodo => 'To Do';
+  String get tasksSectionTodo => 'Por hacer';
 
   @override
-  String get tasksSectionInProgress => 'In Progress';
+  String get tasksSectionInProgress => 'En progreso';
 
   @override
-  String get tasksSectionInReview => 'In Review';
+  String get tasksSectionInReview => 'En revisión';
 
   @override
-  String get tasksSectionDone => 'Done';
+  String get tasksSectionDone => 'Completadas';
 
   @override
-  String get tasksSectionClosed => 'Closed';
+  String get tasksSectionClosed => 'Cerradas';
 
   @override
-  String get tasksActionsTooltip => 'Task actions';
+  String get tasksActionsTooltip => 'Acciones de tarea';
 
   @override
-  String get tasksSwipeDone => 'Done';
+  String get tasksSwipeDone => 'Completada';
 
   @override
-  String get tasksActionMarkDone => 'Mark Done';
+  String get tasksActionMarkDone => 'Marcar como completada';
 
   @override
-  String get tasksActionClose => 'Close Task';
+  String get tasksActionClose => 'Cerrar tarea';
 
   @override
-  String get tasksActionStart => 'Start';
+  String get tasksActionStart => 'Iniciar';
 
   @override
-  String get tasksActionMoveToReview => 'Move to Review';
+  String get tasksActionMoveToReview => 'Mover a revisión';
 
   @override
-  String get tasksActionReopen => 'Reopen';
+  String get tasksActionReopen => 'Reabrir';
 
   @override
-  String get tasksActionRevertInProgress => 'Revert to In Progress';
+  String get tasksActionRevertInProgress => 'Revertir a En progreso';
 
   @override
-  String get tasksActionRevertTodo => 'Revert to To Do';
+  String get tasksActionRevertTodo => 'Revertir a Por hacer';
 
   @override
-  String get tasksActionClaim => 'Claim';
+  String get tasksActionClaim => 'Reclamar';
 
   @override
-  String get tasksActionUnclaim => 'Unclaim';
+  String get tasksActionUnclaim => 'Liberar';
 
   @override
-  String get tasksActionDelete => 'Delete';
+  String get tasksActionDelete => 'Eliminar';
 
   @override
-  String get tasksRetryButton => 'Retry';
+  String get tasksRetryButton => 'Reintentar';
 
   @override
-  String get tasksCreateTitle => 'Create Task';
+  String get tasksCreateTitle => 'Crear tarea';
 
   @override
-  String get tasksCreateChannelLabel => 'Channel';
+  String get tasksCreateChannelLabel => 'Canal';
 
   @override
-  String get tasksCreateTitleLabel => 'Title';
+  String get tasksCreateTitleLabel => 'Título';
 
   @override
-  String get tasksCreateCancel => 'Cancel';
+  String get tasksCreateCancel => 'Cancelar';
 
   @override
-  String get tasksCreateConfirm => 'Create';
+  String get tasksCreateConfirm => 'Crear';
 
   @override
-  String get tasksAccessibilityTodo => 'To Do';
+  String get tasksAccessibilityTodo => 'Por hacer';
 
   @override
-  String get tasksAccessibilityInProgress => 'In Progress';
+  String get tasksAccessibilityInProgress => 'En progreso';
 
   @override
-  String get tasksAccessibilityInReview => 'In Review';
+  String get tasksAccessibilityInReview => 'En revisión';
 
   @override
-  String get tasksAccessibilityDone => 'Done';
+  String get tasksAccessibilityDone => 'Completada';
 
   @override
-  String get tasksAccessibilityClosed => 'Cancelled';
+  String get tasksAccessibilityClosed => 'Cancelada';
 
   @override
-  String get screenshotAnnotateNoCapture => 'No screenshot captured';
+  String get screenshotAnnotateNoCapture => 'No se capturó ninguna pantalla';
 
   @override
-  String get screenshotAnnotateDiscardTooltip => 'Discard';
+  String get screenshotAnnotateDiscardTooltip => 'Descartar';
 
   @override
-  String get screenshotAnnotateTitle => 'Annotate Screenshot';
+  String get screenshotAnnotateTitle => 'Anotar captura de pantalla';
 
   @override
-  String get screenshotAnnotateSaveTooltip => 'Save to device';
+  String get screenshotAnnotateSaveTooltip => 'Guardar en dispositivo';
 
   @override
-  String get screenshotAnnotateShareTooltip => 'Share';
+  String get screenshotAnnotateShareTooltip => 'Compartir';
 
   @override
-  String get screenshotAnnotateAddTextTitle => 'Add Text';
+  String get screenshotAnnotateAddTextTitle => 'Agregar texto';
 
   @override
-  String get screenshotAnnotateTextHint => 'Enter text...';
+  String get screenshotAnnotateTextHint => 'Ingresa texto...';
 
   @override
-  String get screenshotAnnotateCancel => 'Cancel';
+  String get screenshotAnnotateCancel => 'Cancelar';
 
   @override
-  String get screenshotAnnotateAddButton => 'Add';
+  String get screenshotAnnotateAddButton => 'Agregar';
 
   @override
-  String get screenshotAnnotateExportFailed => 'Failed to export screenshot';
+  String get screenshotAnnotateExportFailed => 'Error al exportar la captura';
 
   @override
   String screenshotAnnotateExportError(String error) {
-    return 'Export failed: $error';
+    return 'Error al exportar: $error';
   }
 
   @override
   String screenshotAnnotateSaveFailed(String error) {
-    return 'Save failed: $error';
+    return 'Error al guardar: $error';
   }
 
   @override
-  String get screenshotAnnotateShareSubject => 'Screenshot';
+  String get screenshotAnnotateShareSubject => 'Captura de pantalla';
 
   @override
   String get dateSeparatorToday => 'Hoy';
