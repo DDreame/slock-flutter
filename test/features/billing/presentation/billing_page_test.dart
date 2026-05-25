@@ -191,7 +191,7 @@ Widget _buildApp({
       if (launcher != null)
         billingPortalLauncherProvider.overrideWithValue(launcher),
     ],
-    child: MaterialApp(
+    child: const MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: BillingPage()),

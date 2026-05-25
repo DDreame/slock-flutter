@@ -131,6 +131,8 @@ void main() {
             ),
           ],
           child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             routerConfig: router,
           ),
@@ -199,6 +201,8 @@ void main() {
             ),
           ],
           child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             routerConfig: router,
           ),
@@ -271,6 +275,8 @@ void main() {
             ),
           ],
           child: MaterialApp.router(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             routerConfig: router,
           ),
