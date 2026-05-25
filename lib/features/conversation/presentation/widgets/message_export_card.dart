@@ -20,7 +20,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 /// - Messages list with sender name + content
 /// - Timestamp footer
 /// - Branded background color ([exportCardBackgroundColor])
-class MessageExportCard extends StatelessWidget {
+class MessageExportCard extends StatefulWidget {
   const MessageExportCard({
     super.key,
     required this.messages,
@@ -34,21 +34,47 @@ class MessageExportCard extends StatelessWidget {
   final GlobalKey boundaryKey;
 
   @override
-  Widget build(BuildContext context) {
-    // Sort messages chronologically.
-    final sorted = List<ConversationMessageSummary>.from(messages)
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  State<MessageExportCard> createState() => _MessageExportCardState();
+}
 
+class _MessageExportCardState extends State<MessageExportCard> {
+  // INV-SEL-816: Cache the sorted list so it is computed once per
+  // messages change, not on every parent rebuild.
+  late List<ConversationMessageSummary> _sorted;
+
+  @override
+  void initState() {
+    super.initState();
+    _sorted = _sortMessages(widget.messages);
+  }
+
+  @override
+  void didUpdateWidget(MessageExportCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.messages, widget.messages)) {
+      _sorted = _sortMessages(widget.messages);
+    }
+  }
+
+  static List<ConversationMessageSummary> _sortMessages(
+    List<ConversationMessageSummary> messages,
+  ) {
+    return List<ConversationMessageSummary>.from(messages)
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Determine timestamp range for footer.
-    final earliest = sorted.first.createdAt;
-    final latest = sorted.last.createdAt;
+    final earliest = _sorted.first.createdAt;
+    final latest = _sorted.last.createdAt;
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
-    final footerText = sorted.length == 1
+    final footerText = _sorted.length == 1
         ? dateFormat.format(earliest)
         : '${dateFormat.format(earliest)} – ${dateFormat.format(latest)}';
 
     return RepaintBoundary(
-      key: boundaryKey,
+      key: widget.boundaryKey,
       child: Container(
         key: const ValueKey('message-export-card'),
         color: exportCardBackgroundColor,
@@ -74,7 +100,7 @@ class MessageExportCard extends StatelessWidget {
             const SizedBox(height: 12),
 
             // ── Messages ──
-            ...sorted.map((msg) => Padding(
+            ..._sorted.map((msg) => Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

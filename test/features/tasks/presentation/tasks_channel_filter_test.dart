@@ -280,6 +280,60 @@ void main() {
 
       expect(find.text('No tasks in this channel.'), findsOneWidget);
     });
+
+    testWidgets(
+      'filter chips refresh when channels change while items stay identical '
+      '(PERF-816-REGRESSION)',
+      (tester) async {
+        // Setup: 2 tasks in ch-1 and ch-2, initial channels = [A, B].
+        final items = [
+          _taskItem(id: 't1', channelId: 'ch-1'),
+          _taskItem(id: 't2', channelId: 'ch-2'),
+        ];
+        final store = _FakeTasksStore(
+          initialState: TasksState(
+            status: TasksStatus.success,
+            items: items,
+          ),
+        );
+        final homeStore = _MutableFakeHomeListStore([
+          _channel('ch-1', 'General'),
+          _channel('ch-2', 'Engineering'),
+        ]);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              tasksStoreProvider.overrideWith(() => store),
+              homeListStoreProvider.overrideWith(() => homeStore),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              theme: AppTheme.light,
+              home: const TasksPage(serverId: 'server-1'),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Initial state: filter bar has ch-1 and ch-2 chips.
+        expect(find.byKey(const ValueKey('task-filter-ch-1')), findsOneWidget);
+        expect(find.byKey(const ValueKey('task-filter-ch-2')), findsOneWidget);
+        expect(find.byKey(const ValueKey('task-filter-ch-3')), findsNothing);
+
+        // Act: Update home channels to add ch-3 while items stay identical.
+        homeStore.updateChannels([
+          _channel('ch-1', 'General'),
+          _channel('ch-2', 'Engineering'),
+          _channel('ch-3', 'Design'),
+        ]);
+        await tester.pumpAndSettle();
+
+        // Assert: The new channel chip appears — cache was invalidated.
+        expect(find.byKey(const ValueKey('task-filter-ch-3')), findsOneWidget);
+      },
+    );
   });
 
   group('Tasks error handling', () {
@@ -372,4 +426,25 @@ class _FakeHomeListStore extends HomeListStore {
         status: HomeListStatus.success,
         channels: _channels,
       );
+}
+
+/// Mutable variant that allows updating channels after initial build,
+/// used to test cache invalidation when widget.channels changes.
+class _MutableFakeHomeListStore extends HomeListStore {
+  _MutableFakeHomeListStore(this._channels);
+
+  final List<HomeChannelSummary> _channels;
+
+  @override
+  HomeListState build() => HomeListState(
+        status: HomeListStatus.success,
+        channels: _channels,
+      );
+
+  void updateChannels(List<HomeChannelSummary> channels) {
+    state = HomeListState(
+      status: HomeListStatus.success,
+      channels: channels,
+    );
+  }
 }

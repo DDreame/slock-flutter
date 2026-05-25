@@ -478,6 +478,14 @@ class _TasksListSurface extends ConsumerStatefulWidget {
 class _TasksListSurfaceState extends ConsumerState<_TasksListSurface> {
   String? _selectedChannelId; // null = All
 
+  // INV-SEL-816: Cache filter results — only recompute when items identity,
+  // selectedChannelId, or widget.channels changes.
+  List<TaskItem>? _lastItems;
+  String? _lastSelectedChannelId;
+  List<HomeChannelSummary>? _lastChannels;
+  List<TaskItem> _cachedFilteredItems = const [];
+  List<String> _cachedFilterChannelIds = const [];
+
   /// Build the ordered list of channel IDs for filter chips.
   ///
   /// Includes all channels from the home list (the server's channel set)
@@ -513,6 +521,20 @@ class _TasksListSurfaceState extends ConsumerState<_TasksListSurface> {
     return items.where((t) => t.channelId == _selectedChannelId).toList();
   }
 
+  /// Recompute cached filter outputs only when inputs change.
+  void _ensureFiltersComputed(List<TaskItem> items) {
+    if (identical(items, _lastItems) &&
+        _selectedChannelId == _lastSelectedChannelId &&
+        identical(widget.channels, _lastChannels)) {
+      return;
+    }
+    _lastItems = items;
+    _lastSelectedChannelId = _selectedChannelId;
+    _lastChannels = widget.channels;
+    _cachedFilteredItems = _filteredItems(items);
+    _cachedFilterChannelIds = _filterChannelIds(items);
+  }
+
   @override
   Widget build(BuildContext context) {
     // INV-TASKS-662-SELECT-2: List surface watches items independently so
@@ -521,9 +543,12 @@ class _TasksListSurfaceState extends ConsumerState<_TasksListSurface> {
     final items = ref.watch(
       tasksStoreProvider.select((s) => s.items),
     );
-    final filteredItems = _filteredItems(items);
-    // #653: Compute filterChannelIds once instead of twice per build.
-    final filterChannelIds = _filterChannelIds(items);
+    // INV-SEL-816: Cached filter — skips recomputation when items identity
+    // and selectedChannelId are unchanged (e.g. parent rebuild from
+    // isRefreshing or channels prop change).
+    _ensureFiltersComputed(items);
+    final filteredItems = _cachedFilteredItems;
+    final filterChannelIds = _cachedFilterChannelIds;
 
     return SafeArea(
       child: Column(

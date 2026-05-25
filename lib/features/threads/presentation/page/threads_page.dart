@@ -35,21 +35,27 @@ class _ThreadsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(threadsInboxRealtimeBindingProvider);
-    final state = ref.watch(threadsInboxStoreProvider);
+    // INV-SEL-816: Narrow .select() to scaffold-driving fields only.
+    // completingThreadIds is consumed exclusively by _ThreadsListSurface,
+    // so changes to it no longer rebuild the entire page scaffold.
+    final (:status, :items, :failure) = ref.watch(
+      threadsInboxStoreProvider.select(
+        (s) => (status: s.status, items: s.items, failure: s.failure),
+      ),
+    );
     final store = ref.read(threadsInboxStoreProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.threadsTitle)),
-      body: switch (state.status) {
+      body: switch (status) {
         ThreadsInboxStatus.initial ||
-        ThreadsInboxStatus.loading when state.items.isEmpty =>
+        ThreadsInboxStatus.loading when items.isEmpty =>
           const Center(
             key: ValueKey('threads-loading'),
             child: CircularProgressIndicator(),
           ),
         ThreadsInboxStatus.loading => _ThreadsListSurface(
-            items: state.items,
-            isCompleting: state.isCompleting,
+            items: items,
             onOpen: (item) => context.push(item.routeTarget.toLocation()),
             onDone: store.markDone,
             onRefresh: store.load,
@@ -57,17 +63,16 @@ class _ThreadsScreen extends ConsumerWidget {
         ThreadsInboxStatus.initial ||
         ThreadsInboxStatus.failure =>
           AppErrorView(
-            message: state.failure?.userMessage(context.l10n) ??
-                context.l10n.errorUnknown,
+            message:
+                failure?.userMessage(context.l10n) ?? context.l10n.errorUnknown,
             onRetry: () => store.retry(),
           ),
-        ThreadsInboxStatus.success when state.items.isEmpty => Center(
+        ThreadsInboxStatus.success when items.isEmpty => Center(
             key: const ValueKey('threads-empty'),
             child: Text(context.l10n.threadsEmpty),
           ),
         ThreadsInboxStatus.success => _ThreadsListSurface(
-            items: state.items,
-            isCompleting: state.isCompleting,
+            items: items,
             onOpen: (item) => context.push(item.routeTarget.toLocation()),
             onDone: store.markDone,
             onRefresh: store.load,
@@ -77,23 +82,27 @@ class _ThreadsScreen extends ConsumerWidget {
   }
 }
 
-class _ThreadsListSurface extends StatelessWidget {
+class _ThreadsListSurface extends ConsumerWidget {
   const _ThreadsListSurface({
     required this.items,
-    required this.isCompleting,
     required this.onOpen,
     required this.onDone,
     required this.onRefresh,
   });
 
   final List<ThreadInboxItem> items;
-  final bool Function(String threadChannelId) isCompleting;
   final void Function(ThreadInboxItem item) onOpen;
   final Future<void> Function(ThreadInboxItem item) onDone;
   final Future<void> Function() onRefresh;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // INV-SEL-816: Watch completingThreadIds here (leaf) instead of in the
+    // scaffold — only this list surface rebuilds when completion state changes.
+    final completingThreadIds = ref.watch(
+      threadsInboxStoreProvider.select((s) => s.completingThreadIds),
+    );
+
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView.separated(
@@ -103,9 +112,10 @@ class _ThreadsListSurface extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           final item = items[index];
+          final threadChannelId = item.routeTarget.threadChannelId ?? '';
           return _ThreadInboxCard(
             item: item,
-            isCompleting: isCompleting(item.routeTarget.threadChannelId ?? ''),
+            isCompleting: completingThreadIds.contains(threadChannelId),
             onOpen: () => onOpen(item),
             onDone: () => onDone(item),
           );
