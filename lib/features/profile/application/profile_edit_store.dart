@@ -17,6 +17,7 @@ class ProfileEditState {
     this.selectedAvatarPath,
     this.status = ProfileEditStatus.idle,
     this.failure,
+    this.avatarCommitted = false,
   });
 
   final String displayName;
@@ -25,6 +26,10 @@ class ProfileEditState {
   final String? selectedAvatarPath;
   final ProfileEditStatus status;
   final AppFailure? failure;
+
+  /// True when avatar was uploaded successfully but profile PATCH failed.
+  /// Allows UI to surface partial success and prevents re-upload on retry.
+  final bool avatarCommitted;
 
   bool get isSaving => status == ProfileEditStatus.saving;
 
@@ -38,6 +43,7 @@ class ProfileEditState {
     ProfileEditStatus? status,
     AppFailure? failure,
     bool clearFailure = false,
+    bool? avatarCommitted,
   }) {
     return ProfileEditState(
       displayName: displayName ?? this.displayName,
@@ -48,6 +54,7 @@ class ProfileEditState {
           : (selectedAvatarPath ?? this.selectedAvatarPath),
       status: status ?? this.status,
       failure: clearFailure ? null : (failure ?? this.failure),
+      avatarCommitted: avatarCommitted ?? this.avatarCommitted,
     );
   }
 
@@ -61,7 +68,8 @@ class ProfileEditState {
           avatarUrl == other.avatarUrl &&
           selectedAvatarPath == other.selectedAvatarPath &&
           status == other.status &&
-          failure == other.failure;
+          failure == other.failure &&
+          avatarCommitted == other.avatarCommitted;
 
   @override
   int get hashCode => Object.hash(
@@ -71,6 +79,7 @@ class ProfileEditState {
         selectedAvatarPath,
         status,
         failure,
+        avatarCommitted,
       );
 }
 
@@ -137,6 +146,12 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
               selectedAvatarPath,
             );
         avatarUrl = uploadedAvatarUrl;
+        // Avatar committed server-side — clear the path so retry won't
+        // re-upload, and update avatarUrl optimistically (#799).
+        state = state.copyWith(
+          avatarUrl: uploadedAvatarUrl,
+          clearSelectedAvatarPath: true,
+        );
       }
 
       await ref.read(sessionStoreProvider.notifier).updateProfile(
@@ -164,6 +179,7 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         clearSelectedAvatarPath: true,
         status: ProfileEditStatus.success,
         clearFailure: true,
+        avatarCommitted: false,
       );
     } on AppFailure catch (failure) {
       await _rollbackSession(
@@ -174,6 +190,7 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
         avatarUrl: uploadedAvatarUrl,
         status: ProfileEditStatus.failure,
         failure: failure,
+        avatarCommitted: uploadedAvatarUrl != null,
       );
     } on AvatarUploadException catch (error) {
       await _rollbackSession(previousSession);
@@ -184,6 +201,7 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
               message: error.message,
               causeType: error.runtimeType.toString(),
             ),
+        avatarCommitted: false,
       );
     } catch (error, stackTrace) {
       _reportUnexpectedError(error, stackTrace);
@@ -194,6 +212,7 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
           message: 'Failed to update profile.',
           causeType: error.runtimeType.toString(),
         ),
+        avatarCommitted: false,
       );
     }
   }
