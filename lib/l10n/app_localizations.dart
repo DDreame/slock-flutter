@@ -3448,6 +3448,366 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit profile'**
   String get onboardingProfileButton;
+
+  /// No description provided for @agentsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No agents yet.'**
+  String get agentsEmptyTitle;
+
+  /// No description provided for @agentsSelectServerFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a server first.'**
+  String get agentsSelectServerFirst;
+
+  /// No description provided for @agentsCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent created.'**
+  String get agentsCreated;
+
+  /// No description provided for @agentsUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent updated.'**
+  String get agentsUpdated;
+
+  /// No description provided for @agentsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent deleted.'**
+  String get agentsDeleted;
+
+  /// No description provided for @agentsResetSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent reset.'**
+  String get agentsResetSuccess;
+
+  /// No description provided for @agentsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Agent?'**
+  String get agentsDeleteTitle;
+
+  /// No description provided for @agentsDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}? This removes the agent configuration from the workspace.'**
+  String agentsDeleteMessage(String name);
+
+  /// No description provided for @agentsStopTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop Agent?'**
+  String get agentsStopTitle;
+
+  /// No description provided for @agentsStopMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop {name}? The agent will finish its current action before stopping.'**
+  String agentsStopMessage(String name);
+
+  /// No description provided for @agentsResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Session?'**
+  String get agentsResetTitle;
+
+  /// No description provided for @agentsResetMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset {name}? This clears the agent\'s conversation history.'**
+  String agentsResetMessage(String name);
+
+  /// No description provided for @agentsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{active} active / {stopped} stopped'**
+  String agentsSummary(int active, int stopped);
+
+  /// No description provided for @agentsActionStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get agentsActionStart;
+
+  /// No description provided for @agentsActionStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get agentsActionStop;
+
+  /// No description provided for @agentsActionReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get agentsActionReset;
+
+  /// No description provided for @agentsActionResetSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Session'**
+  String get agentsActionResetSession;
+
+  /// No description provided for @agentsActionMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get agentsActionMessage;
+
+  /// No description provided for @agentsActionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get agentsActionDelete;
+
+  /// No description provided for @agentsActionCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get agentsActionCancel;
+
+  /// No description provided for @agentsAppBarTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get agentsAppBarTitle;
+
+  /// No description provided for @agentsFailedToLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load agents.'**
+  String get agentsFailedToLoad;
+
+  /// No description provided for @agentsNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent not found.'**
+  String get agentsNotFound;
+
+  /// No description provided for @agentsActivityLogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity Log'**
+  String get agentsActivityLogTitle;
+
+  /// No description provided for @agentsActivityLogEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity log entries.'**
+  String get agentsActivityLogEmpty;
+
+  /// No description provided for @agentsConfigMachine.
+  ///
+  /// In en, this message translates to:
+  /// **'Machine'**
+  String get agentsConfigMachine;
+
+  /// No description provided for @agentsConfigRuntime.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime'**
+  String get agentsConfigRuntime;
+
+  /// No description provided for @agentsConfigModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get agentsConfigModel;
+
+  /// No description provided for @agentsConfigReasoning.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning'**
+  String get agentsConfigReasoning;
+
+  /// No description provided for @agentsEnvVarsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Environment Variables'**
+  String get agentsEnvVarsTitle;
+
+  /// No description provided for @agentsEnvVarsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No environment variables'**
+  String get agentsEnvVarsEmpty;
+
+  /// No description provided for @agentsRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get agentsRetry;
+
+  /// No description provided for @agentsActivityOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get agentsActivityOnline;
+
+  /// No description provided for @agentsActivityThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking...'**
+  String get agentsActivityThinking;
+
+  /// No description provided for @agentsActivityWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working...'**
+  String get agentsActivityWorking;
+
+  /// No description provided for @agentsActivityError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get agentsActivityError;
+
+  /// No description provided for @agentsActivityErrorDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {detail}'**
+  String agentsActivityErrorDetail(String detail);
+
+  /// No description provided for @agentsActivityOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get agentsActivityOffline;
+
+  /// No description provided for @agentsFormEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Agent'**
+  String get agentsFormEditTitle;
+
+  /// No description provided for @agentsFormCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Agent'**
+  String get agentsFormCreateTitle;
+
+  /// No description provided for @agentsFormNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name is required.'**
+  String get agentsFormNameRequired;
+
+  /// No description provided for @agentsFormMachineRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Machine is required.'**
+  String get agentsFormMachineRequired;
+
+  /// No description provided for @agentsFormRuntimeRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime is required.'**
+  String get agentsFormRuntimeRequired;
+
+  /// No description provided for @agentsFormModelRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Model is required.'**
+  String get agentsFormModelRequired;
+
+  /// No description provided for @agentsFormNoMachines.
+  ///
+  /// In en, this message translates to:
+  /// **'No machines available for this server.'**
+  String get agentsFormNoMachines;
+
+  /// No description provided for @agentsFormLabelMachine.
+  ///
+  /// In en, this message translates to:
+  /// **'Machine'**
+  String get agentsFormLabelMachine;
+
+  /// No description provided for @agentsFormLabelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get agentsFormLabelName;
+
+  /// No description provided for @agentsFormLabelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get agentsFormLabelDescription;
+
+  /// No description provided for @agentsFormLabelRuntime.
+  ///
+  /// In en, this message translates to:
+  /// **'Runtime'**
+  String get agentsFormLabelRuntime;
+
+  /// No description provided for @agentsFormLabelModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get agentsFormLabelModel;
+
+  /// No description provided for @agentsFormLabelReasoningEffort.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning Effort'**
+  String get agentsFormLabelReasoningEffort;
+
+  /// No description provided for @agentsFormSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get agentsFormSave;
+
+  /// No description provided for @agentsFormCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get agentsFormCreate;
+
+  /// No description provided for @agentsFormCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get agentsFormCancel;
+
+  /// No description provided for @agentsFormRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get agentsFormRetry;
+
+  /// No description provided for @agentsReasoningLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low'**
+  String get agentsReasoningLow;
+
+  /// No description provided for @agentsReasoningMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Medium'**
+  String get agentsReasoningMedium;
+
+  /// No description provided for @agentsReasoningHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'High'**
+  String get agentsReasoningHigh;
+
+  /// No description provided for @agentsReasoningExtraHigh.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra High'**
+  String get agentsReasoningExtraHigh;
+
+  /// No description provided for @agentsFormConfiguredDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Configured Default'**
+  String get agentsFormConfiguredDefault;
 }
 
 class _AppLocalizationsDelegate

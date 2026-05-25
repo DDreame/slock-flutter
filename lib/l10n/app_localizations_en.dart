@@ -1818,4 +1818,194 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardingProfileButton => 'Edit profile';
+
+  @override
+  String get agentsEmptyTitle => 'No agents yet.';
+
+  @override
+  String get agentsSelectServerFirst => 'Select a server first.';
+
+  @override
+  String get agentsCreated => 'Agent created.';
+
+  @override
+  String get agentsUpdated => 'Agent updated.';
+
+  @override
+  String get agentsDeleted => 'Agent deleted.';
+
+  @override
+  String get agentsResetSuccess => 'Agent reset.';
+
+  @override
+  String get agentsDeleteTitle => 'Delete Agent?';
+
+  @override
+  String agentsDeleteMessage(String name) {
+    return 'Delete $name? This removes the agent configuration from the workspace.';
+  }
+
+  @override
+  String get agentsStopTitle => 'Stop Agent?';
+
+  @override
+  String agentsStopMessage(String name) {
+    return 'Stop $name? The agent will finish its current action before stopping.';
+  }
+
+  @override
+  String get agentsResetTitle => 'Reset Session?';
+
+  @override
+  String agentsResetMessage(String name) {
+    return 'Reset $name? This clears the agent\'s conversation history.';
+  }
+
+  @override
+  String agentsSummary(int active, int stopped) {
+    return '$active active / $stopped stopped';
+  }
+
+  @override
+  String get agentsActionStart => 'Start';
+
+  @override
+  String get agentsActionStop => 'Stop';
+
+  @override
+  String get agentsActionReset => 'Reset';
+
+  @override
+  String get agentsActionResetSession => 'Reset Session';
+
+  @override
+  String get agentsActionMessage => 'Message';
+
+  @override
+  String get agentsActionDelete => 'Delete';
+
+  @override
+  String get agentsActionCancel => 'Cancel';
+
+  @override
+  String get agentsAppBarTitle => 'Agent';
+
+  @override
+  String get agentsFailedToLoad => 'Failed to load agents.';
+
+  @override
+  String get agentsNotFound => 'Agent not found.';
+
+  @override
+  String get agentsActivityLogTitle => 'Activity Log';
+
+  @override
+  String get agentsActivityLogEmpty => 'No activity log entries.';
+
+  @override
+  String get agentsConfigMachine => 'Machine';
+
+  @override
+  String get agentsConfigRuntime => 'Runtime';
+
+  @override
+  String get agentsConfigModel => 'Model';
+
+  @override
+  String get agentsConfigReasoning => 'Reasoning';
+
+  @override
+  String get agentsEnvVarsTitle => 'Environment Variables';
+
+  @override
+  String get agentsEnvVarsEmpty => 'No environment variables';
+
+  @override
+  String get agentsRetry => 'Retry';
+
+  @override
+  String get agentsActivityOnline => 'Online';
+
+  @override
+  String get agentsActivityThinking => 'Thinking...';
+
+  @override
+  String get agentsActivityWorking => 'Working...';
+
+  @override
+  String get agentsActivityError => 'Error';
+
+  @override
+  String agentsActivityErrorDetail(String detail) {
+    return 'Error: $detail';
+  }
+
+  @override
+  String get agentsActivityOffline => 'Offline';
+
+  @override
+  String get agentsFormEditTitle => 'Edit Agent';
+
+  @override
+  String get agentsFormCreateTitle => 'Create Agent';
+
+  @override
+  String get agentsFormNameRequired => 'Name is required.';
+
+  @override
+  String get agentsFormMachineRequired => 'Machine is required.';
+
+  @override
+  String get agentsFormRuntimeRequired => 'Runtime is required.';
+
+  @override
+  String get agentsFormModelRequired => 'Model is required.';
+
+  @override
+  String get agentsFormNoMachines => 'No machines available for this server.';
+
+  @override
+  String get agentsFormLabelMachine => 'Machine';
+
+  @override
+  String get agentsFormLabelName => 'Name';
+
+  @override
+  String get agentsFormLabelDescription => 'Description';
+
+  @override
+  String get agentsFormLabelRuntime => 'Runtime';
+
+  @override
+  String get agentsFormLabelModel => 'Model';
+
+  @override
+  String get agentsFormLabelReasoningEffort => 'Reasoning Effort';
+
+  @override
+  String get agentsFormSave => 'Save';
+
+  @override
+  String get agentsFormCreate => 'Create';
+
+  @override
+  String get agentsFormCancel => 'Cancel';
+
+  @override
+  String get agentsFormRetry => 'Retry';
+
+  @override
+  String get agentsReasoningLow => 'Low';
+
+  @override
+  String get agentsReasoningMedium => 'Medium';
+
+  @override
+  String get agentsReasoningHigh => 'High';
+
+  @override
+  String get agentsReasoningExtraHigh => 'Extra High';
+
+  @override
+  String get agentsFormConfiguredDefault => 'Configured Default';
 }

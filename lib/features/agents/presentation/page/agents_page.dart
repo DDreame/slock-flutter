@@ -145,10 +145,10 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
                 context.l10n.errorUnknown,
             onRetry: ref.read(agentsStoreProvider.notifier).retry,
           ),
-        AgentsStatus.success when state.items.isEmpty => const EmptyStateWidget(
-            key: ValueKey('agents-empty'),
+        AgentsStatus.success when state.items.isEmpty => EmptyStateWidget(
+            key: const ValueKey('agents-empty'),
             icon: Icons.smart_toy_outlined,
-            title: 'No agents yet.',
+            title: context.l10n.agentsEmptyTitle,
           ),
         AgentsStatus.success => _buildGroupedList(
             state.items,
@@ -197,7 +197,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   Future<AgentMutationInput?> _showAgentFormDialog({AgentItem? agent}) async {
     final serverId = _resolvedServerId();
     if (serverId == null) {
-      showAppSnackBar(context, 'Select a server first.');
+      showAppSnackBar(context, context.l10n.agentsSelectServerFirst);
       return null;
     }
 
@@ -220,7 +220,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       if (!mounted) {
         return;
       }
-      showAppSnackBar(context, 'Agent created.');
+      showAppSnackBar(context, context.l10n.agentsCreated);
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
@@ -240,7 +240,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
       if (!mounted) {
         return;
       }
-      showAppSnackBar(context, 'Agent updated.');
+      showAppSnackBar(context, context.l10n.agentsUpdated);
     } on AppFailure catch (failure) {
       if (!mounted) {
         return;
@@ -254,19 +254,19 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
-              title: const Text('Delete Agent?'),
+              title: Text(context.l10n.agentsDeleteTitle),
               content: Text(
-                'Delete ${agent.label}? This removes the agent configuration from the workspace.',
+                context.l10n.agentsDeleteMessage(agent.label),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.agentsActionCancel),
                 ),
                 FilledButton(
                   key: const ValueKey('agent-delete-confirm'),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Delete'),
+                  child: Text(context.l10n.agentsActionDelete),
                 ),
               ],
             );
@@ -283,7 +283,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         return;
       }
 
-      showAppSnackBar(context, 'Agent deleted.');
+      showAppSnackBar(context, context.l10n.agentsDeleted);
 
       if (widget.agentId != null) {
         // Use GoRouter's canPop instead of Navigator.canPop so the check
@@ -324,19 +324,19 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
-              title: const Text('Stop Agent?'),
+              title: Text(context.l10n.agentsStopTitle),
               content: Text(
-                'Stop ${agent.label}? The agent will finish its current action before stopping.',
+                context.l10n.agentsStopMessage(agent.label),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.agentsActionCancel),
                 ),
                 FilledButton(
                   key: const ValueKey('agent-stop-confirm'),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Stop'),
+                  child: Text(context.l10n.agentsActionStop),
                 ),
               ],
             );
@@ -358,19 +358,19 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
-              title: const Text('Reset Session?'),
+              title: Text(context.l10n.agentsResetTitle),
               content: Text(
-                'Reset ${agent.label}? This clears the agent\'s conversation history.',
+                context.l10n.agentsResetMessage(agent.label),
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.agentsActionCancel),
                 ),
                 FilledButton(
                   key: const ValueKey('agent-reset-confirm'),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Reset'),
+                  child: Text(context.l10n.agentsActionReset),
                 ),
               ],
             );
@@ -382,7 +382,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
     try {
       await ref.read(agentsStoreProvider.notifier).resetAgent(agent.id);
       if (!mounted) return;
-      showAppSnackBar(context, 'Agent reset.');
+      showAppSnackBar(context, context.l10n.agentsResetSuccess);
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(context, failure.userMessage(context.l10n));
@@ -392,7 +392,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
   Future<void> _messageAgent(AgentItem agent) async {
     final serverId = _resolvedServerId();
     if (serverId == null) {
-      showAppSnackBar(context, 'Select a server first.');
+      showAppSnackBar(context, context.l10n.agentsSelectServerFirst);
       return;
     }
     try {
@@ -443,7 +443,7 @@ class _AgentsStatsSummary extends StatelessWidget {
         horizontal: AppSpacing.pageHorizontal,
       ),
       child: Text(
-        '$activeCount active / $stoppedCount stopped',
+        context.l10n.agentsSummary(activeCount, stoppedCount),
         key: const ValueKey('agents-stats-text'),
         style: AppTypography.bodySmall.copyWith(
           color: colors.textSecondary,
@@ -785,7 +785,8 @@ class _AgentRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _activityLabel(agent.activity, agent.activityDetail),
+                    _activityLabel(
+                        agent.activity, agent.activityDetail, context.l10n),
                     style: AppTypography.bodySmall.copyWith(
                       color: colors.textSecondary,
                     ),
@@ -812,23 +813,24 @@ class _AgentRow extends StatelessWidget {
   }
 
   Future<void> _showAgentActions(BuildContext context) async {
+    final l10n = context.l10n;
     final actions = <ListActionItem>[
       if (agent.isStopped)
-        const ListActionItem(
+        ListActionItem(
           key: 'agent-action-start',
-          label: 'Start',
+          label: l10n.agentsActionStart,
           icon: Icons.play_arrow,
         ),
       if (agent.isActive)
-        const ListActionItem(
+        ListActionItem(
           key: 'agent-action-stop',
-          label: 'Stop',
+          label: l10n.agentsActionStop,
           icon: Icons.stop,
         ),
       if (agent.isActive)
-        const ListActionItem(
+        ListActionItem(
           key: 'agent-action-reset',
-          label: 'Reset Session',
+          label: l10n.agentsActionResetSession,
           icon: Icons.refresh,
         ),
     ];
@@ -885,15 +887,15 @@ class _AgentDetailScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     if (agent == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Agent')),
+        appBar: AppBar(title: Text(context.l10n.agentsAppBarTitle)),
         body: isLoading
             ? const AppLoadingIndicator()
             : isFailure
                 ? _AgentsFailureView(
-                    message: failureMessage ?? 'Failed to load agents.',
+                    message: failureMessage ?? context.l10n.agentsFailedToLoad,
                     onRetry: onRetry,
                   )
-                : const Center(child: Text('Agent not found.')),
+                : Center(child: Text(context.l10n.agentsNotFound)),
       );
     }
 
@@ -996,7 +998,7 @@ class _AgentDetailBody extends ConsumerWidget {
         // --- Status text ---
         Center(
           child: Text(
-            _activityLabel(agent.activity, agent.activityDetail),
+            _activityLabel(agent.activity, agent.activityDetail, context.l10n),
             style: AppTypography.bodySmall.copyWith(
               color: colors.textSecondary,
             ),
@@ -1042,14 +1044,14 @@ class _AgentDetailBody extends ConsumerWidget {
 
         // --- Activity Log ---
         Text(
-          'Activity Log',
+          context.l10n.agentsActivityLogTitle,
           key: const ValueKey('agent-activity-log-section'),
           style: AppTypography.title.copyWith(color: colors.text),
         ),
         const SizedBox(height: AppSpacing.sm),
         if (activityLog.isEmpty)
           Text(
-            'No activity log entries.',
+            context.l10n.agentsActivityLogEmpty,
             style: AppTypography.bodySmall.copyWith(
               color: colors.textSecondary,
             ),
@@ -1114,6 +1116,7 @@ class _ActionButtonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Wrap(
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
@@ -1124,14 +1127,14 @@ class _ActionButtonRow extends StatelessWidget {
           key: const ValueKey('agent-message-btn'),
           onPressed: onMessage == null ? null : () => onMessage!(agent),
           icon: const Icon(Icons.message_outlined),
-          label: const Text('Message'),
+          label: Text(l10n.agentsActionMessage),
         ),
         if (agent.isStopped)
           FilledButton.icon(
             key: const ValueKey('agent-start-btn'),
             onPressed: onStart == null ? null : () => onStart!(agent),
             icon: const Icon(Icons.play_arrow),
-            label: const Text('Start'),
+            label: Text(l10n.agentsActionStart),
           ),
         if (agent.isActive)
           OutlinedButton.icon(
@@ -1142,14 +1145,14 @@ class _ActionButtonRow extends StatelessWidget {
               side: BorderSide(color: colors.error),
             ),
             icon: const Icon(Icons.stop),
-            label: const Text('Stop'),
+            label: Text(l10n.agentsActionStop),
           ),
         if (agent.isActive)
           OutlinedButton.icon(
             key: const ValueKey('agent-reset-btn'),
             onPressed: onReset == null ? null : () => onReset!(agent),
             icon: const Icon(Icons.refresh),
-            label: const Text('Reset'),
+            label: Text(l10n.agentsActionReset),
           ),
       ],
     );
@@ -1172,13 +1175,14 @@ class _ConfigGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: _ConfigCell(
-                label: 'Machine',
+                label: l10n.agentsConfigMachine,
                 value: agent.machineId ?? '-',
                 colors: colors,
               ),
@@ -1186,7 +1190,7 @@ class _ConfigGrid extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: _ConfigCell(
-                label: 'Runtime',
+                label: l10n.agentsConfigRuntime,
                 value: agent.runtime,
                 colors: colors,
               ),
@@ -1198,7 +1202,7 @@ class _ConfigGrid extends StatelessWidget {
           children: [
             Expanded(
               child: _ConfigCell(
-                label: 'Model',
+                label: l10n.agentsConfigModel,
                 value: agent.model,
                 colors: colors,
               ),
@@ -1206,7 +1210,7 @@ class _ConfigGrid extends StatelessWidget {
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: _ConfigCell(
-                label: 'Reasoning',
+                label: l10n.agentsConfigReasoning,
                 value: agent.reasoningEffort ?? '-',
                 colors: colors,
               ),
@@ -1274,7 +1278,7 @@ class _EnvVarsSection extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Environment Variables',
+                context.l10n.agentsEnvVarsTitle,
                 style: AppTypography.title.copyWith(color: colors.text),
               ),
             ),
@@ -1285,7 +1289,7 @@ class _EnvVarsSection extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Text(
-              'No environment variables',
+              context.l10n.agentsEnvVarsEmpty,
               key: const ValueKey('agent-env-vars-empty'),
               style: AppTypography.bodySmall.copyWith(
                 color: colors.textSecondary,
@@ -1318,7 +1322,10 @@ class _AgentsFailureView extends StatelessWidget {
           children: [
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: AppSpacing.md),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.agentsRetry),
+            ),
           ],
         ),
       ),
@@ -1330,13 +1337,15 @@ class _AgentsFailureView extends StatelessWidget {
 // Helpers
 // ---------------------------------------------------------------------------
 
-String _activityLabel(String activity, String? detail) {
+String _activityLabel(String activity, String? detail, AppLocalizations l10n) {
   return switch (activity) {
-    'online' => 'Online',
-    'thinking' => 'Thinking...',
-    'working' => detail ?? 'Working...',
-    'error' => 'Error${detail != null ? ': $detail' : ''}',
-    'offline' => 'Offline',
+    'online' => l10n.agentsActivityOnline,
+    'thinking' => l10n.agentsActivityThinking,
+    'working' => detail ?? l10n.agentsActivityWorking,
+    'error' => detail != null
+        ? l10n.agentsActivityErrorDetail(detail)
+        : l10n.agentsActivityError,
+    'offline' => l10n.agentsActivityOffline,
     _ => activity,
   };
 }

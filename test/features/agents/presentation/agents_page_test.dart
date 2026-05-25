@@ -363,6 +363,9 @@ void main() {
               },
               child: MaterialApp(
                   theme: AppTheme.light,
+                  localizationsDelegates:
+                      AppLocalizations.localizationsDelegates,
+                  supportedLocales: AppLocalizations.supportedLocales,
                   home: const TickerMode(
                       enabled: false, child: AgentsPage(agentId: 'agent-1'))),
             ),
@@ -450,6 +453,8 @@ void main() {
             ],
             child: MaterialApp(
                 theme: AppTheme.light,
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
                 home: const TickerMode(
                     enabled: false, child: AgentsPage(agentId: 'agent-1'))),
           ),
@@ -610,6 +615,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const TickerMode(
               enabled: false,
               child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
@@ -665,6 +672,8 @@ void main() {
             ],
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const TickerMode(
                 enabled: false,
                 child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
@@ -765,6 +774,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const TickerMode(
               enabled: false,
               child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
@@ -807,6 +818,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const TickerMode(
               enabled: false,
               child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
@@ -847,6 +860,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const TickerMode(
               enabled: false,
               child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
@@ -889,6 +904,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const TickerMode(
               enabled: false,
               child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),
@@ -927,6 +944,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const TickerMode(
               enabled: false,
               child: AgentsPage(agentId: 'agent-1', serverId: 'server-1'),

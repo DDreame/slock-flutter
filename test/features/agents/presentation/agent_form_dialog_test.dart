@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/agents/presentation/widgets/agent_form_dialog.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('dialog renders without overflow on narrow screen',
@@ -18,6 +19,8 @@ void main() {
           appDioClientProvider.overrideWithValue(_FakeDioClient()),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: AgentFormDialog(serverId: 'server-1'),
           ),
@@ -43,6 +46,8 @@ void main() {
           appDioClientProvider.overrideWithValue(_FakeDioClient()),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: AgentFormDialog(serverId: 'server-1'),
           ),
