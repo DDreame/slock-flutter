@@ -227,23 +227,30 @@ class _PeopleTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(memberListStoreProvider);
+    // INV-SELECT-809: Only rebuild when status, failure, or members change.
+    // isInvitingByEmail, updatingRoleMemberIds, query, etc. do not affect
+    // the contact picker.
+    final (:status, :failure, :members) = ref.watch(
+      memberListStoreProvider.select(
+        (s) => (status: s.status, failure: s.failure, members: s.members),
+      ),
+    );
 
-    return switch (state.status) {
+    return switch (status) {
       MemberListStatus.initial ||
       MemberListStatus.loading =>
         const AppLoadingIndicator(),
       MemberListStatus.failure => _ErrorContent(
-          message: state.failure?.userMessage(context.l10n) ??
-              context.l10n.errorUnknown,
+          message:
+              failure?.userMessage(context.l10n) ?? context.l10n.errorUnknown,
           onRetry: ref.read(memberListStoreProvider.notifier).load,
         ),
-      MemberListStatus.success => _buildFilteredList(state),
+      MemberListStatus.success => _buildFilteredList(members),
     };
   }
 
-  Widget _buildFilteredList(MemberListState state) {
-    final nonSelfMembers = state.members.where((m) => !m.isSelf).toList();
+  Widget _buildFilteredList(List<MemberProfile> members) {
+    final nonSelfMembers = members.where((m) => !m.isSelf).toList();
     // Hoist toLowerCase() outside iteration to avoid per-item allocation.
     final lowerQuery = searchQuery.toLowerCase();
     final filtered = searchQuery.isEmpty

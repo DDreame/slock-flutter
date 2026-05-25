@@ -67,7 +67,8 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
       );
       if (!mounted) return;
       setState(() {
-        _files = files;
+        // INV-SELECT-809: Sort once on arrival, not in build().
+        _files = List<MessageAttachment>.of(files)..sort(_newestFirst);
         _loading = false;
       });
     } on AppFailure catch (e) {
@@ -122,7 +123,8 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
       );
     }
 
-    final files = List<MessageAttachment>.of(_files ?? [])..sort(_newestFirst);
+    // INV-SELECT-809: _files is pre-sorted on arrival — no sort in build().
+    final files = _files ?? [];
     if (files.isEmpty) {
       final colors = Theme.of(context).extension<AppColors>()!;
       return Center(
