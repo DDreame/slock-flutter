@@ -47,7 +47,7 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
       if (!mounted) return;
       setState(() {
         _isJoining = false;
-        _errorMessage = 'Failed to join workspace.';
+        _errorMessage = context.l10n.serversInviteFailedFallback;
       });
     }
   }
@@ -55,17 +55,17 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Join Workspace')),
+      appBar: AppBar(title: Text(context.l10n.serversInviteTitle)),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: _isJoining
-              ? const Column(
+              ? Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Joining workspace...'),
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(context.l10n.serversInviteJoining),
                   ],
                 )
               : _result != null
@@ -86,12 +86,12 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
                             const SizedBox(height: 16),
                             FilledButton(
                               onPressed: _isJoining ? null : _acceptInvite,
-                              child: const Text('Retry'),
+                              child: Text(context.l10n.serversInviteRetry),
                             ),
                             const SizedBox(height: 8),
                             TextButton(
                               onPressed: () => context.go('/home'),
-                              child: const Text('Go home'),
+                              child: Text(context.l10n.serversInviteGoHome),
                             ),
                           ],
                         )
@@ -100,20 +100,20 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
                           children: [
                             const Icon(Icons.mail_outline, size: 48),
                             const SizedBox(height: 16),
-                            const Text(
-                              'You have been invited to join a workspace.',
+                            Text(
+                              context.l10n.serversInviteDescription,
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 24),
                             FilledButton(
                               key: const ValueKey('invite-accept'),
                               onPressed: _isJoining ? null : _acceptInvite,
-                              child: const Text('Join workspace'),
+                              child: Text(context.l10n.serversInviteAccept),
                             ),
                             const SizedBox(height: 8),
                             TextButton(
                               onPressed: () => context.go('/home'),
-                              child: const Text('Cancel'),
+                              child: Text(context.l10n.serversInviteCancel),
                             ),
                           ],
                         ),
@@ -132,7 +132,10 @@ class _SuccessView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = result.workspaceName;
-    final message = name != null ? 'Joined $name!' : 'Joined workspace!';
+    final l10n = context.l10n;
+    final message = name != null
+        ? l10n.serversInviteSuccessNamed(name)
+        : l10n.serversInviteSuccessGeneric;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -149,7 +152,7 @@ class _SuccessView extends StatelessWidget {
         FilledButton(
           key: const ValueKey('invite-continue'),
           onPressed: onContinue,
-          child: const Text('Continue'),
+          child: Text(l10n.serversInviteContinue),
         ),
       ],
     );

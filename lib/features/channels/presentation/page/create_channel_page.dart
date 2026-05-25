@@ -49,14 +49,14 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Channel'),
+        title: Text(context.l10n.channelsCreateTitle),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _SectionLabel(label: 'CHANNEL NAME'),
+            _SectionLabel(label: context.l10n.channelsCreateSectionName),
             const SizedBox(height: 8),
             TextField(
               key: const ValueKey('create-channel-name'),
@@ -69,7 +69,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
                   color: colors?.textTertiary ??
                       Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
-                hintText: 'channel-name',
+                hintText: context.l10n.channelsCreateNameHint,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -77,7 +77,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
-            const _SectionLabel(label: 'DESCRIPTION (OPTIONAL)'),
+            _SectionLabel(label: context.l10n.channelsCreateSectionDescription),
             const SizedBox(height: 8),
             TextField(
               key: const ValueKey('create-channel-description'),
@@ -85,14 +85,14 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
               enabled: !isSubmitting,
               maxLines: 3,
               decoration: InputDecoration(
-                hintText: 'What is this channel about?',
+                hintText: context.l10n.channelsCreateDescriptionHint,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-            const _SectionLabel(label: 'VISIBILITY'),
+            _SectionLabel(label: context.l10n.channelsCreateSectionVisibility),
             const SizedBox(height: 8),
             _VisibilitySelector(
               isPrivate: _isPrivate,
@@ -103,7 +103,9 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
             FilledButton(
               key: const ValueKey('create-channel-submit'),
               onPressed: canSubmit ? _handleSubmit : null,
-              child: Text(isSubmitting ? 'Creating...' : 'Create Channel'),
+              child: Text(isSubmitting
+                  ? context.l10n.channelsCreateSubmitting
+                  : context.l10n.channelsCreateSubmit),
             ),
           ],
         ),
@@ -120,7 +122,7 @@ class _CreateChannelPageState extends ConsumerState<CreateChannelPage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('No active server selected.')),
+          SnackBar(content: Text(context.l10n.channelsCreateNoServer)),
         );
       return;
     }
@@ -186,14 +188,15 @@ class _VisibilitySelector extends StatelessWidget {
     final surface = colors?.surface ?? Theme.of(context).colorScheme.surface;
     final border =
         colors?.border ?? Theme.of(context).colorScheme.outlineVariant;
+    final l10n = context.l10n;
 
     return Row(
       children: [
         Expanded(
           child: _VisibilityOption(
             key: const ValueKey('create-channel-visibility-public'),
-            label: 'Public',
-            sublabel: 'Visible to all',
+            label: l10n.channelsCreateVisibilityPublic,
+            sublabel: l10n.channelsCreateVisibilityPublicSub,
             isSelected: !isPrivate,
             accent: accent,
             surface: surface,
@@ -205,8 +208,8 @@ class _VisibilitySelector extends StatelessWidget {
         Expanded(
           child: _VisibilityOption(
             key: const ValueKey('create-channel-visibility-private'),
-            label: 'Private',
-            sublabel: 'Invite only',
+            label: l10n.channelsCreateVisibilityPrivate,
+            sublabel: l10n.channelsCreateVisibilityPrivateSub,
             isSelected: isPrivate,
             accent: accent,
             surface: surface,

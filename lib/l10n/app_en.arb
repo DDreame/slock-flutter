@@ -721,6 +721,127 @@
   "channelActionLeave": "Leave channel",
   "channelActionDelete": "Delete channel",
 
+  "channelsSortAlphabetical": "Sort A-Z",
+  "channelsSortRecent": "Sort by recent",
+  "channelsMarkAllRead": "Mark all read",
+  "channelsClearSearch": "Clear search",
+  "channelsMarkedUnread": "Marked as unread",
+
+  "channelsCreateTitle": "New Channel",
+  "channelsCreateSectionName": "CHANNEL NAME",
+  "channelsCreateNameHint": "channel-name",
+  "channelsCreateSectionDescription": "DESCRIPTION (OPTIONAL)",
+  "channelsCreateDescriptionHint": "What is this channel about?",
+  "channelsCreateSectionVisibility": "VISIBILITY",
+  "channelsCreateSubmitting": "Creating...",
+  "channelsCreateSubmit": "Create Channel",
+  "channelsCreateNoServer": "No active server selected.",
+  "channelsCreateVisibilityPublic": "Public",
+  "channelsCreateVisibilityPublicSub": "Visible to all",
+  "channelsCreateVisibilityPrivate": "Private",
+  "channelsCreateVisibilityPrivateSub": "Invite only",
+
+  "channelsMembersTitle": "Channel Members",
+  "channelsMembersRetry": "Retry",
+  "channelsMembersEmpty": "No members in this channel.",
+  "channelsMembersTypeAgent": "Agent",
+  "channelsMembersTypeHuman": "Human",
+  "channelsMembersMessageTooltip": "Message",
+  "channelsMembersRemoveTitle": "Remove Member?",
+  "channelsMembersRemoveMessage": "Remove {name} from this channel?",
+  "@channelsMembersRemoveMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "channelsMembersRemoveCancel": "Cancel",
+  "channelsMembersRemoveConfirm": "Remove",
+
+  "channelsAddMemberTitle": "Add Member",
+  "channelsAddMemberTabHumans": "Humans",
+  "channelsAddMemberTabAgents": "Agents",
+  "channelsAddMemberClose": "Close",
+  "channelsAddMemberNoHumans": "No more humans to add.",
+  "channelsAddMemberNoAgents": "No more agents to add.",
+
+  "channelsDialogCreateTitle": "Create channel",
+  "channelsDialogCreateNameLabel": "Channel name",
+  "channelsDialogCreateCancel": "Cancel",
+  "channelsDialogCreateSubmitting": "Creating...",
+  "channelsDialogCreateSubmit": "Create",
+  "channelsDialogEditTitle": "Edit channel",
+  "channelsDialogEditNameLabel": "Channel name",
+  "channelsDialogEditCancel": "Cancel",
+  "channelsDialogEditSubmitting": "Saving...",
+  "channelsDialogEditSubmit": "Save",
+  "channelsDialogConfirmCancel": "Cancel",
+  "channelsDialogConfirmWorking": "Working...",
+
+  "serversInviteTitle": "Join Workspace",
+  "serversInviteJoining": "Joining workspace...",
+  "serversInviteFailedFallback": "Failed to join workspace.",
+  "serversInviteRetry": "Retry",
+  "serversInviteGoHome": "Go home",
+  "serversInviteDescription": "You have been invited to join a workspace.",
+  "serversInviteAccept": "Join workspace",
+  "serversInviteCancel": "Cancel",
+  "serversInviteSuccessNamed": "Joined {name}!",
+  "@serversInviteSuccessNamed": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "serversInviteSuccessGeneric": "Joined workspace!",
+  "serversInviteContinue": "Continue",
+
+  "serversDialogCreateTitle": "Create workspace",
+  "serversDialogCreateNameLabel": "Workspace name",
+  "serversDialogCreateCancel": "Cancel",
+  "serversDialogCreateSubmit": "Create",
+  "serversDialogRenameTitle": "Rename workspace",
+  "serversDialogRenameNameLabel": "Workspace name",
+  "serversDialogRenameCancel": "Cancel",
+  "serversDialogRenameSubmit": "Save",
+  "serversDialogJoinTitle": "Join workspace",
+  "serversDialogJoinLabel": "Invite code or link",
+  "serversDialogJoinHint": "https://slock.ai/invite/token-123",
+  "serversDialogJoinCancel": "Cancel",
+  "serversDialogJoinSubmit": "Join",
+  "serversDialogConfirmCancel": "Cancel",
+
+  "serversSwitcherTitle": "Switch workspace",
+  "serversSwitcherCreating": "Creating...",
+  "serversSwitcherCreateAction": "Create workspace",
+  "serversSwitcherJoining": "Joining...",
+  "serversSwitcherJoinAction": "Join workspace",
+  "serversSwitcherEmpty": "No workspaces available.",
+  "serversSwitcherSettings": "Workspace Settings",
+  "serversSwitcherCreatedSnackbar": "Workspace created.",
+  "serversSwitcherJoinedSnackbar": "Workspace joined.",
+  "serversSwitcherDeleteTitle": "Delete workspace?",
+  "serversSwitcherDeleteMessage": "Delete {name}? This permanently removes the workspace.",
+  "@serversSwitcherDeleteMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "serversSwitcherDeleteConfirm": "Delete",
+  "serversSwitcherDeletedSnackbar": "Workspace deleted.",
+  "serversSwitcherLeaveTitle": "Leave workspace?",
+  "serversSwitcherLeaveMessage": "Leave {name}? You can rejoin later with a new invite.",
+  "@serversSwitcherLeaveMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "serversSwitcherLeaveConfirm": "Leave",
+  "serversSwitcherLeftSnackbar": "Workspace left.",
+  "serversSwitcherRenamedSnackbar": "Workspace renamed.",
+  "serversSwitcherRowRename": "Rename",
+  "serversSwitcherRowDelete": "Delete workspace",
+  "serversSwitcherRowLeave": "Leave workspace",
+  "serversSwitcherRetry": "Retry",
+
   "onboardingWelcomeTitle": "Welcome to Slock",
   "onboardingBack": "Back",
   "onboardingSkip": "Skip",

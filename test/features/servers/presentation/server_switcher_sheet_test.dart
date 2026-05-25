@@ -5,6 +5,7 @@ import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/server_selection/server_selection_store.dart';
 
 void main() {
@@ -176,6 +177,8 @@ Widget _buildApp(ProviderContainer container) {
   return UncontrolledProviderScope(
     container: container,
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: Builder(
           builder: (context) {

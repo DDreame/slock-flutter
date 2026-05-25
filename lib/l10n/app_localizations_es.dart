@@ -1802,6 +1802,297 @@ class AppLocalizationsEs extends AppLocalizations {
   String get channelActionDelete => 'Eliminar canal';
 
   @override
+  String get channelsSortAlphabetical => 'Ordenar A-Z';
+
+  @override
+  String get channelsSortRecent => 'Ordenar por reciente';
+
+  @override
+  String get channelsMarkAllRead => 'Marcar todo como leído';
+
+  @override
+  String get channelsClearSearch => 'Borrar búsqueda';
+
+  @override
+  String get channelsMarkedUnread => 'Marcado como no leído';
+
+  @override
+  String get channelsCreateTitle => 'Nuevo canal';
+
+  @override
+  String get channelsCreateSectionName => 'NOMBRE DEL CANAL';
+
+  @override
+  String get channelsCreateNameHint => 'nombre-del-canal';
+
+  @override
+  String get channelsCreateSectionDescription => 'DESCRIPCIÓN (OPCIONAL)';
+
+  @override
+  String get channelsCreateDescriptionHint => '¿De qué trata este canal?';
+
+  @override
+  String get channelsCreateSectionVisibility => 'VISIBILIDAD';
+
+  @override
+  String get channelsCreateSubmitting => 'Creando...';
+
+  @override
+  String get channelsCreateSubmit => 'Crear canal';
+
+  @override
+  String get channelsCreateNoServer =>
+      'No se ha seleccionado un servidor activo.';
+
+  @override
+  String get channelsCreateVisibilityPublic => 'Público';
+
+  @override
+  String get channelsCreateVisibilityPublicSub => 'Visible para todos';
+
+  @override
+  String get channelsCreateVisibilityPrivate => 'Privado';
+
+  @override
+  String get channelsCreateVisibilityPrivateSub => 'Solo por invitación';
+
+  @override
+  String get channelsMembersTitle => 'Miembros del canal';
+
+  @override
+  String get channelsMembersRetry => 'Reintentar';
+
+  @override
+  String get channelsMembersEmpty => 'No hay miembros en este canal.';
+
+  @override
+  String get channelsMembersTypeAgent => 'Agente';
+
+  @override
+  String get channelsMembersTypeHuman => 'Humano';
+
+  @override
+  String get channelsMembersMessageTooltip => 'Mensaje';
+
+  @override
+  String get channelsMembersRemoveTitle => '¿Eliminar miembro?';
+
+  @override
+  String channelsMembersRemoveMessage(String name) {
+    return '¿Eliminar a $name de este canal?';
+  }
+
+  @override
+  String get channelsMembersRemoveCancel => 'Cancelar';
+
+  @override
+  String get channelsMembersRemoveConfirm => 'Eliminar';
+
+  @override
+  String get channelsAddMemberTitle => 'Añadir miembro';
+
+  @override
+  String get channelsAddMemberTabHumans => 'Humanos';
+
+  @override
+  String get channelsAddMemberTabAgents => 'Agentes';
+
+  @override
+  String get channelsAddMemberClose => 'Cerrar';
+
+  @override
+  String get channelsAddMemberNoHumans => 'No hay más humanos para añadir.';
+
+  @override
+  String get channelsAddMemberNoAgents => 'No hay más agentes para añadir.';
+
+  @override
+  String get channelsDialogCreateTitle => 'Crear canal';
+
+  @override
+  String get channelsDialogCreateNameLabel => 'Nombre del canal';
+
+  @override
+  String get channelsDialogCreateCancel => 'Cancelar';
+
+  @override
+  String get channelsDialogCreateSubmitting => 'Creando...';
+
+  @override
+  String get channelsDialogCreateSubmit => 'Crear';
+
+  @override
+  String get channelsDialogEditTitle => 'Editar canal';
+
+  @override
+  String get channelsDialogEditNameLabel => 'Nombre del canal';
+
+  @override
+  String get channelsDialogEditCancel => 'Cancelar';
+
+  @override
+  String get channelsDialogEditSubmitting => 'Guardando...';
+
+  @override
+  String get channelsDialogEditSubmit => 'Guardar';
+
+  @override
+  String get channelsDialogConfirmCancel => 'Cancelar';
+
+  @override
+  String get channelsDialogConfirmWorking => 'Procesando...';
+
+  @override
+  String get serversInviteTitle => 'Unirse al espacio de trabajo';
+
+  @override
+  String get serversInviteJoining => 'Uniéndose al espacio de trabajo...';
+
+  @override
+  String get serversInviteFailedFallback =>
+      'Error al unirse al espacio de trabajo.';
+
+  @override
+  String get serversInviteRetry => 'Reintentar';
+
+  @override
+  String get serversInviteGoHome => 'Ir al inicio';
+
+  @override
+  String get serversInviteDescription =>
+      'Has sido invitado a unirte a un espacio de trabajo.';
+
+  @override
+  String get serversInviteAccept => 'Unirse al espacio de trabajo';
+
+  @override
+  String get serversInviteCancel => 'Cancelar';
+
+  @override
+  String serversInviteSuccessNamed(String name) {
+    return '¡Te uniste a $name!';
+  }
+
+  @override
+  String get serversInviteSuccessGeneric => '¡Te uniste al espacio de trabajo!';
+
+  @override
+  String get serversInviteContinue => 'Continuar';
+
+  @override
+  String get serversDialogCreateTitle => 'Crear espacio de trabajo';
+
+  @override
+  String get serversDialogCreateNameLabel => 'Nombre del espacio de trabajo';
+
+  @override
+  String get serversDialogCreateCancel => 'Cancelar';
+
+  @override
+  String get serversDialogCreateSubmit => 'Crear';
+
+  @override
+  String get serversDialogRenameTitle => 'Renombrar espacio de trabajo';
+
+  @override
+  String get serversDialogRenameNameLabel => 'Nombre del espacio de trabajo';
+
+  @override
+  String get serversDialogRenameCancel => 'Cancelar';
+
+  @override
+  String get serversDialogRenameSubmit => 'Guardar';
+
+  @override
+  String get serversDialogJoinTitle => 'Unirse al espacio de trabajo';
+
+  @override
+  String get serversDialogJoinLabel => 'Código de invitación o enlace';
+
+  @override
+  String get serversDialogJoinHint => 'https://slock.ai/invite/token-123';
+
+  @override
+  String get serversDialogJoinCancel => 'Cancelar';
+
+  @override
+  String get serversDialogJoinSubmit => 'Unirse';
+
+  @override
+  String get serversDialogConfirmCancel => 'Cancelar';
+
+  @override
+  String get serversSwitcherTitle => 'Cambiar espacio de trabajo';
+
+  @override
+  String get serversSwitcherCreating => 'Creando...';
+
+  @override
+  String get serversSwitcherCreateAction => 'Crear espacio de trabajo';
+
+  @override
+  String get serversSwitcherJoining => 'Uniéndose...';
+
+  @override
+  String get serversSwitcherJoinAction => 'Unirse al espacio de trabajo';
+
+  @override
+  String get serversSwitcherEmpty => 'No hay espacios de trabajo disponibles.';
+
+  @override
+  String get serversSwitcherSettings => 'Configuración del espacio de trabajo';
+
+  @override
+  String get serversSwitcherCreatedSnackbar => 'Espacio de trabajo creado.';
+
+  @override
+  String get serversSwitcherJoinedSnackbar =>
+      'Te uniste al espacio de trabajo.';
+
+  @override
+  String get serversSwitcherDeleteTitle => '¿Eliminar espacio de trabajo?';
+
+  @override
+  String serversSwitcherDeleteMessage(String name) {
+    return '¿Eliminar $name? Esto eliminará permanentemente el espacio de trabajo.';
+  }
+
+  @override
+  String get serversSwitcherDeleteConfirm => 'Eliminar';
+
+  @override
+  String get serversSwitcherDeletedSnackbar => 'Espacio de trabajo eliminado.';
+
+  @override
+  String get serversSwitcherLeaveTitle => '¿Salir del espacio de trabajo?';
+
+  @override
+  String serversSwitcherLeaveMessage(String name) {
+    return '¿Salir de $name? Puedes volver a unirte más tarde con una nueva invitación.';
+  }
+
+  @override
+  String get serversSwitcherLeaveConfirm => 'Salir';
+
+  @override
+  String get serversSwitcherLeftSnackbar => 'Saliste del espacio de trabajo.';
+
+  @override
+  String get serversSwitcherRenamedSnackbar => 'Espacio de trabajo renombrado.';
+
+  @override
+  String get serversSwitcherRowRename => 'Renombrar';
+
+  @override
+  String get serversSwitcherRowDelete => 'Eliminar espacio de trabajo';
+
+  @override
+  String get serversSwitcherRowLeave => 'Salir del espacio de trabajo';
+
+  @override
+  String get serversSwitcherRetry => 'Reintentar';
+
+  @override
   String get onboardingWelcomeTitle => 'Bienvenido a Slock';
 
   @override

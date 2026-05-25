@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class CreateServerDialog extends StatefulWidget {
   const CreateServerDialog({super.key});
@@ -27,24 +28,25 @@ class _CreateServerDialogState extends State<CreateServerDialog> {
     final name = _controller.text.trim();
     return AlertDialog(
       key: const ValueKey('create-server-dialog'),
-      title: const Text('Create workspace'),
+      title: Text(context.l10n.serversDialogCreateTitle),
       content: TextField(
         key: const ValueKey('create-server-name'),
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Workspace name'),
+        decoration: InputDecoration(
+            labelText: context.l10n.serversDialogCreateNameLabel),
         onChanged: (_) => setState(() {}),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.serversDialogCreateCancel),
         ),
         FilledButton(
           key: const ValueKey('create-server-submit'),
           onPressed:
               name.isEmpty ? null : () => Navigator.of(context).pop(name),
-          child: const Text('Create'),
+          child: Text(context.l10n.serversDialogCreateSubmit),
         ),
       ],
     );
@@ -81,23 +83,24 @@ class _RenameServerDialogState extends State<RenameServerDialog> {
     final canSave = name.isNotEmpty && name != widget.currentName;
     return AlertDialog(
       key: const ValueKey('rename-server-dialog'),
-      title: const Text('Rename workspace'),
+      title: Text(context.l10n.serversDialogRenameTitle),
       content: TextField(
         key: const ValueKey('rename-server-name'),
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Workspace name'),
+        decoration: InputDecoration(
+            labelText: context.l10n.serversDialogRenameNameLabel),
         onChanged: (_) => setState(() {}),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.serversDialogRenameCancel),
         ),
         FilledButton(
           key: const ValueKey('rename-server-submit'),
           onPressed: canSave ? () => Navigator.of(context).pop(name) : null,
-          child: const Text('Save'),
+          child: Text(context.l10n.serversDialogRenameSubmit),
         ),
       ],
     );
@@ -131,14 +134,14 @@ class _JoinServerDialogState extends State<JoinServerDialog> {
     final token = _controller.text.trim();
     return AlertDialog(
       key: const ValueKey('join-server-dialog'),
-      title: const Text('Join workspace'),
+      title: Text(context.l10n.serversDialogJoinTitle),
       content: TextField(
         key: const ValueKey('join-server-token'),
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(
-          labelText: 'Invite code or link',
-          hintText: 'https://slock.ai/invite/token-123',
+        decoration: InputDecoration(
+          labelText: context.l10n.serversDialogJoinLabel,
+          hintText: context.l10n.serversDialogJoinHint,
         ),
         minLines: 1,
         maxLines: 2,
@@ -147,13 +150,13 @@ class _JoinServerDialogState extends State<JoinServerDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.serversDialogJoinCancel),
         ),
         FilledButton(
           key: const ValueKey('join-server-submit'),
           onPressed:
               token.isEmpty ? null : () => Navigator.of(context).pop(token),
-          child: const Text('Join'),
+          child: Text(context.l10n.serversDialogJoinSubmit),
         ),
       ],
     );
@@ -182,7 +185,7 @@ class ConfirmServerActionDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.serversDialogConfirmCancel),
         ),
         FilledButton(
           key: confirmKey,

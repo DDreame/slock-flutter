@@ -3371,6 +3371,564 @@ abstract class AppLocalizations {
   /// **'Delete channel'**
   String get channelActionDelete;
 
+  /// No description provided for @channelsSortAlphabetical.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort A-Z'**
+  String get channelsSortAlphabetical;
+
+  /// No description provided for @channelsSortRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by recent'**
+  String get channelsSortRecent;
+
+  /// No description provided for @channelsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get channelsMarkAllRead;
+
+  /// No description provided for @channelsClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get channelsClearSearch;
+
+  /// No description provided for @channelsMarkedUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as unread'**
+  String get channelsMarkedUnread;
+
+  /// No description provided for @channelsCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Channel'**
+  String get channelsCreateTitle;
+
+  /// No description provided for @channelsCreateSectionName.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANNEL NAME'**
+  String get channelsCreateSectionName;
+
+  /// No description provided for @channelsCreateNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'channel-name'**
+  String get channelsCreateNameHint;
+
+  /// No description provided for @channelsCreateSectionDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'DESCRIPTION (OPTIONAL)'**
+  String get channelsCreateSectionDescription;
+
+  /// No description provided for @channelsCreateDescriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What is this channel about?'**
+  String get channelsCreateDescriptionHint;
+
+  /// No description provided for @channelsCreateSectionVisibility.
+  ///
+  /// In en, this message translates to:
+  /// **'VISIBILITY'**
+  String get channelsCreateSectionVisibility;
+
+  /// No description provided for @channelsCreateSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating...'**
+  String get channelsCreateSubmitting;
+
+  /// No description provided for @channelsCreateSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Channel'**
+  String get channelsCreateSubmit;
+
+  /// No description provided for @channelsCreateNoServer.
+  ///
+  /// In en, this message translates to:
+  /// **'No active server selected.'**
+  String get channelsCreateNoServer;
+
+  /// No description provided for @channelsCreateVisibilityPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'Public'**
+  String get channelsCreateVisibilityPublic;
+
+  /// No description provided for @channelsCreateVisibilityPublicSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Visible to all'**
+  String get channelsCreateVisibilityPublicSub;
+
+  /// No description provided for @channelsCreateVisibilityPrivate.
+  ///
+  /// In en, this message translates to:
+  /// **'Private'**
+  String get channelsCreateVisibilityPrivate;
+
+  /// No description provided for @channelsCreateVisibilityPrivateSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite only'**
+  String get channelsCreateVisibilityPrivateSub;
+
+  /// No description provided for @channelsMembersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel Members'**
+  String get channelsMembersTitle;
+
+  /// No description provided for @channelsMembersRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get channelsMembersRetry;
+
+  /// No description provided for @channelsMembersEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No members in this channel.'**
+  String get channelsMembersEmpty;
+
+  /// No description provided for @channelsMembersTypeAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Agent'**
+  String get channelsMembersTypeAgent;
+
+  /// No description provided for @channelsMembersTypeHuman.
+  ///
+  /// In en, this message translates to:
+  /// **'Human'**
+  String get channelsMembersTypeHuman;
+
+  /// No description provided for @channelsMembersMessageTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get channelsMembersMessageTooltip;
+
+  /// No description provided for @channelsMembersRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Member?'**
+  String get channelsMembersRemoveTitle;
+
+  /// No description provided for @channelsMembersRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name} from this channel?'**
+  String channelsMembersRemoveMessage(String name);
+
+  /// No description provided for @channelsMembersRemoveCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get channelsMembersRemoveCancel;
+
+  /// No description provided for @channelsMembersRemoveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get channelsMembersRemoveConfirm;
+
+  /// No description provided for @channelsAddMemberTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Member'**
+  String get channelsAddMemberTitle;
+
+  /// No description provided for @channelsAddMemberTabHumans.
+  ///
+  /// In en, this message translates to:
+  /// **'Humans'**
+  String get channelsAddMemberTabHumans;
+
+  /// No description provided for @channelsAddMemberTabAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents'**
+  String get channelsAddMemberTabAgents;
+
+  /// No description provided for @channelsAddMemberClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get channelsAddMemberClose;
+
+  /// No description provided for @channelsAddMemberNoHumans.
+  ///
+  /// In en, this message translates to:
+  /// **'No more humans to add.'**
+  String get channelsAddMemberNoHumans;
+
+  /// No description provided for @channelsAddMemberNoAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'No more agents to add.'**
+  String get channelsAddMemberNoAgents;
+
+  /// No description provided for @channelsDialogCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create channel'**
+  String get channelsDialogCreateTitle;
+
+  /// No description provided for @channelsDialogCreateNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel name'**
+  String get channelsDialogCreateNameLabel;
+
+  /// No description provided for @channelsDialogCreateCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get channelsDialogCreateCancel;
+
+  /// No description provided for @channelsDialogCreateSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating...'**
+  String get channelsDialogCreateSubmitting;
+
+  /// No description provided for @channelsDialogCreateSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get channelsDialogCreateSubmit;
+
+  /// No description provided for @channelsDialogEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit channel'**
+  String get channelsDialogEditTitle;
+
+  /// No description provided for @channelsDialogEditNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel name'**
+  String get channelsDialogEditNameLabel;
+
+  /// No description provided for @channelsDialogEditCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get channelsDialogEditCancel;
+
+  /// No description provided for @channelsDialogEditSubmitting.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving...'**
+  String get channelsDialogEditSubmitting;
+
+  /// No description provided for @channelsDialogEditSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get channelsDialogEditSubmit;
+
+  /// No description provided for @channelsDialogConfirmCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get channelsDialogConfirmCancel;
+
+  /// No description provided for @channelsDialogConfirmWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Working...'**
+  String get channelsDialogConfirmWorking;
+
+  /// No description provided for @serversInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Workspace'**
+  String get serversInviteTitle;
+
+  /// No description provided for @serversInviteJoining.
+  ///
+  /// In en, this message translates to:
+  /// **'Joining workspace...'**
+  String get serversInviteJoining;
+
+  /// No description provided for @serversInviteFailedFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to join workspace.'**
+  String get serversInviteFailedFallback;
+
+  /// No description provided for @serversInviteRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get serversInviteRetry;
+
+  /// No description provided for @serversInviteGoHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Go home'**
+  String get serversInviteGoHome;
+
+  /// No description provided for @serversInviteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'You have been invited to join a workspace.'**
+  String get serversInviteDescription;
+
+  /// No description provided for @serversInviteAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Join workspace'**
+  String get serversInviteAccept;
+
+  /// No description provided for @serversInviteCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get serversInviteCancel;
+
+  /// No description provided for @serversInviteSuccessNamed.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined {name}!'**
+  String serversInviteSuccessNamed(String name);
+
+  /// No description provided for @serversInviteSuccessGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined workspace!'**
+  String get serversInviteSuccessGeneric;
+
+  /// No description provided for @serversInviteContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get serversInviteContinue;
+
+  /// No description provided for @serversDialogCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create workspace'**
+  String get serversDialogCreateTitle;
+
+  /// No description provided for @serversDialogCreateNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace name'**
+  String get serversDialogCreateNameLabel;
+
+  /// No description provided for @serversDialogCreateCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get serversDialogCreateCancel;
+
+  /// No description provided for @serversDialogCreateSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get serversDialogCreateSubmit;
+
+  /// No description provided for @serversDialogRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename workspace'**
+  String get serversDialogRenameTitle;
+
+  /// No description provided for @serversDialogRenameNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace name'**
+  String get serversDialogRenameNameLabel;
+
+  /// No description provided for @serversDialogRenameCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get serversDialogRenameCancel;
+
+  /// No description provided for @serversDialogRenameSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get serversDialogRenameSubmit;
+
+  /// No description provided for @serversDialogJoinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join workspace'**
+  String get serversDialogJoinTitle;
+
+  /// No description provided for @serversDialogJoinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite code or link'**
+  String get serversDialogJoinLabel;
+
+  /// No description provided for @serversDialogJoinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://slock.ai/invite/token-123'**
+  String get serversDialogJoinHint;
+
+  /// No description provided for @serversDialogJoinCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get serversDialogJoinCancel;
+
+  /// No description provided for @serversDialogJoinSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get serversDialogJoinSubmit;
+
+  /// No description provided for @serversDialogConfirmCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get serversDialogConfirmCancel;
+
+  /// No description provided for @serversSwitcherTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch workspace'**
+  String get serversSwitcherTitle;
+
+  /// No description provided for @serversSwitcherCreating.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating...'**
+  String get serversSwitcherCreating;
+
+  /// No description provided for @serversSwitcherCreateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Create workspace'**
+  String get serversSwitcherCreateAction;
+
+  /// No description provided for @serversSwitcherJoining.
+  ///
+  /// In en, this message translates to:
+  /// **'Joining...'**
+  String get serversSwitcherJoining;
+
+  /// No description provided for @serversSwitcherJoinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Join workspace'**
+  String get serversSwitcherJoinAction;
+
+  /// No description provided for @serversSwitcherEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No workspaces available.'**
+  String get serversSwitcherEmpty;
+
+  /// No description provided for @serversSwitcherSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace Settings'**
+  String get serversSwitcherSettings;
+
+  /// No description provided for @serversSwitcherCreatedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace created.'**
+  String get serversSwitcherCreatedSnackbar;
+
+  /// No description provided for @serversSwitcherJoinedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace joined.'**
+  String get serversSwitcherJoinedSnackbar;
+
+  /// No description provided for @serversSwitcherDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete workspace?'**
+  String get serversSwitcherDeleteTitle;
+
+  /// No description provided for @serversSwitcherDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {name}? This permanently removes the workspace.'**
+  String serversSwitcherDeleteMessage(String name);
+
+  /// No description provided for @serversSwitcherDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get serversSwitcherDeleteConfirm;
+
+  /// No description provided for @serversSwitcherDeletedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace deleted.'**
+  String get serversSwitcherDeletedSnackbar;
+
+  /// No description provided for @serversSwitcherLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave workspace?'**
+  String get serversSwitcherLeaveTitle;
+
+  /// No description provided for @serversSwitcherLeaveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave {name}? You can rejoin later with a new invite.'**
+  String serversSwitcherLeaveMessage(String name);
+
+  /// No description provided for @serversSwitcherLeaveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get serversSwitcherLeaveConfirm;
+
+  /// No description provided for @serversSwitcherLeftSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace left.'**
+  String get serversSwitcherLeftSnackbar;
+
+  /// No description provided for @serversSwitcherRenamedSnackbar.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace renamed.'**
+  String get serversSwitcherRenamedSnackbar;
+
+  /// No description provided for @serversSwitcherRowRename.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get serversSwitcherRowRename;
+
+  /// No description provided for @serversSwitcherRowDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete workspace'**
+  String get serversSwitcherRowDelete;
+
+  /// No description provided for @serversSwitcherRowLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave workspace'**
+  String get serversSwitcherRowLeave;
+
+  /// No description provided for @serversSwitcherRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get serversSwitcherRetry;
+
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In en, this message translates to:

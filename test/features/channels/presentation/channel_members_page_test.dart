@@ -18,6 +18,7 @@ import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 
@@ -93,13 +94,19 @@ void main() {
       );
       return ProviderScope(
         overrides: overrides,
-        child: MaterialApp.router(routerConfig: router),
+        child: MaterialApp.router(
+          routerConfig: router,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+        ),
       );
     }
 
     return ProviderScope(
       overrides: overrides,
       child: const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: ChannelMembersPage(serverId: 'server-1', channelId: 'channel-1'),
       ),
     );
@@ -163,6 +170,8 @@ void main() {
           agentsMachinesLoaderProvider.overrideWithValue(() async => const []),
         ],
         child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: AddMemberDialog(
               serverId: 'server-1',
