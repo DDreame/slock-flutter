@@ -52,7 +52,7 @@ void main() {
   );
 
   final baseState = UnreadSourceProjectionState(
-    sources: [baseSource],
+    sources: const [baseSource],
     channelUnreadCounts: {channelScopeId: 3},
     dmUnreadCounts: {dmScopeId: 1},
     isLoaded: true,
