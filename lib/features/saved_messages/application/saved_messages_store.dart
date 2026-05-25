@@ -17,8 +17,13 @@ final savedMessagesStoreProvider =
 );
 
 class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
+  /// Prevents post-await state mutations after the store is disposed.
+  bool _disposed = false;
+
   @override
   SavedMessagesState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     return const SavedMessagesState();
   }
 
@@ -32,6 +37,7 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
     try {
       final repo = ref.read(savedMessagesRepositoryProvider);
       final page = await repo.listSavedMessages(serverId);
+      if (_disposed) return;
       state = state.copyWith(
         status: SavedMessagesStatus.success,
         items: page.items,
@@ -39,11 +45,13 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         status: SavedMessagesStatus.failure,
         failure: failure,
       );
     } catch (error) {
+      if (_disposed) return;
       state = state.copyWith(
         status: SavedMessagesStatus.failure,
         failure: UnknownFailure(
@@ -81,14 +89,17 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
         serverId,
         offset: state.items.length,
       );
+      if (_disposed) return;
       state = state.copyWith(
         items: [...state.items, ...page.items],
         hasMore: page.hasMore,
         isLoadingMore: false,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(failure: failure, isLoadingMore: false);
     } catch (e, st) {
+      if (_disposed) return;
       try {
         ref.read(diagnosticsCollectorProvider).error(
           'SavedMessagesStore',
@@ -132,6 +143,7 @@ class SavedMessagesStore extends AutoDisposeNotifier<SavedMessagesState> {
       final repo = ref.read(savedMessagesRepositoryProvider);
       await repo.unsaveMessage(serverId, messageId);
     } on AppFailure {
+      if (_disposed) return;
       // Re-insert the single item at its original position instead of
       // restoring the entire previous snapshot — preserves any items
       // added by concurrent loadMore().
