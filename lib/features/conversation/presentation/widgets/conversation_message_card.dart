@@ -266,7 +266,8 @@ class ConversationMessageCardState
     final highlightQuery = widget.highlightQuery;
     final isCurrentSearchMatch = widget.isCurrentSearchMatch;
     final onScrollToMessage = widget.onScrollToMessage;
-    final timestamp = formatRelativeTime(message.createdAt);
+    final timestamp =
+        formatRelativeTime(message.createdAt, now: DateTime.now());
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
 

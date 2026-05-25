@@ -311,7 +311,7 @@ class _SavedMessageCard extends StatelessWidget {
                 left: 32 + AppSpacing.sm,
               ),
               child: Text(
-                formatRelativeTime(message.createdAt),
+                formatRelativeTime(message.createdAt, now: DateTime.now()),
                 style:
                     AppTypography.caption.copyWith(color: colors.textSecondary),
               ),

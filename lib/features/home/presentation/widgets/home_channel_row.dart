@@ -4,15 +4,14 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/list_action_sheet.dart';
+import 'package:slock_app/app/widgets/relative_time_text.dart';
 import 'package:slock_app/app/widgets/unread_badge.dart';
-import 'package:slock_app/core/core.dart';
-import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/realtime/application/list_typing_indicator_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
-class HomeChannelRow extends ConsumerWidget {
+class HomeChannelRow extends StatelessWidget {
   const HomeChannelRow({
     super.key,
     required this.channel,
@@ -47,10 +46,9 @@ class HomeChannelRow extends ConsumerWidget {
   final bool isMutating;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final hasUnread = unreadCount > 0;
-    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     return Material(
       color: hasUnread ? colors.primaryLight : Colors.transparent,
@@ -141,8 +139,8 @@ class HomeChannelRow extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (channel.lastActivityAt != null)
-                    Text(
-                      formatRelativeTime(channel.lastActivityAt!, now: now),
+                    RelativeTimeText(
+                      time: channel.lastActivityAt!,
                       style: AppTypography.caption.copyWith(
                         color: hasUnread ? colors.primary : colors.textTertiary,
                       ),
