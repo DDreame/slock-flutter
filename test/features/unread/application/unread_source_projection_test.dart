@@ -118,7 +118,7 @@ void main() {
 
   group('UnreadSourceProjectionState', () {
     test('default state has empty sources and is not loaded', () {
-      const state = UnreadSourceProjectionState();
+      final state = UnreadSourceProjectionState();
 
       expect(state.sources, isEmpty);
       expect(state.channelUnreadCounts, isEmpty);
@@ -133,7 +133,7 @@ void main() {
     });
 
     test('channelUnreadCount returns 0 for unknown scope', () {
-      const state = UnreadSourceProjectionState(isLoaded: true);
+      final state = UnreadSourceProjectionState(isLoaded: true);
       const unknownId = ChannelScopeId(
         serverId: serverId,
         value: 'unknown',
@@ -144,7 +144,7 @@ void main() {
     });
 
     test('dmUnreadCount returns 0 for unknown scope', () {
-      const state = UnreadSourceProjectionState(isLoaded: true);
+      final state = UnreadSourceProjectionState(isLoaded: true);
       const unknownId = DirectMessageScopeId(
         serverId: serverId,
         value: 'unknown',
@@ -209,7 +209,7 @@ void main() {
           visibility: UnreadSourceVisibility.visible,
         ),
       ];
-      const state = UnreadSourceProjectionState(
+      final state = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
@@ -268,7 +268,7 @@ void main() {
           visibility: UnreadSourceVisibility.visible,
         ),
       ];
-      const state = UnreadSourceProjectionState(
+      final state = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
@@ -303,7 +303,7 @@ void main() {
           visibility: UnreadSourceVisibility.visible,
         ),
       ];
-      const state = UnreadSourceProjectionState(
+      final state = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
@@ -332,7 +332,7 @@ void main() {
           visibility: UnreadSourceVisibility.hidden,
         ),
       ];
-      const state = UnreadSourceProjectionState(
+      final state = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
@@ -353,15 +353,15 @@ void main() {
         ),
       ];
 
-      const a = UnreadSourceProjectionState(
+      final a = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
-      const b = UnreadSourceProjectionState(
+      final b = UnreadSourceProjectionState(
         sources: sources,
         isLoaded: true,
       );
-      const c = UnreadSourceProjectionState(
+      final c = UnreadSourceProjectionState(
         isLoaded: false,
       );
 

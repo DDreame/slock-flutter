@@ -19,7 +19,7 @@ void main() {
 
   group('DM presence subtitle — peerId lookup', () {
     test('resolves peerId from directMessages', () {
-      const state = HomeListState(
+      final state = HomeListState(
         status: HomeListStatus.success,
         directMessages: [
           HomeDirectMessageSummary(
@@ -49,7 +49,7 @@ void main() {
     });
 
     test('resolves peerId from pinnedDirectMessages', () {
-      const state = HomeListState(
+      final state = HomeListState(
         status: HomeListStatus.success,
         pinnedDirectMessages: [
           HomeDirectMessageSummary(
@@ -75,7 +75,7 @@ void main() {
     });
 
     test('resolves peerId from hiddenDirectMessages', () {
-      const state = HomeListState(
+      final state = HomeListState(
         status: HomeListStatus.success,
         hiddenDirectMessages: [
           HomeDirectMessageSummary(

@@ -70,7 +70,7 @@ void main() {
         // Setup: HomeListState with pinnedChannels=[general] + channels=[random].
         // Inbox has items referencing both channel IDs with null channelName.
         // Assert: projection resolves display names via local store fallback.
-        const homeState = HomeListState(
+        final homeState = HomeListState(
           status: HomeListStatus.success,
           pinnedChannels: [
             HomeChannelSummary(scopeId: chGeneral, name: 'general'),
@@ -121,7 +121,7 @@ void main() {
         // directMessages=[bob].
         // Inbox has DM items with null channelName.
         // Assert: projection titles resolve from DM titles.
-        const homeState = HomeListState(
+        final homeState = HomeListState(
           status: HomeListStatus.success,
           pinnedDirectMessages: [
             HomeDirectMessageSummary(scopeId: dmAlice, title: 'Alice'),
@@ -164,7 +164,7 @@ void main() {
         // Setup: DM with peerId='user-alice'. Inbox item has
         // senderId='user-alice' but null senderName.
         // Assert: projection's senderName resolves from DM peer data.
-        const homeState = HomeListState(
+        final homeState = HomeListState(
           status: HomeListStatus.success,
           directMessages: [
             HomeDirectMessageSummary(
@@ -215,7 +215,7 @@ void main() {
           activity: 'working',
         );
 
-        const homeState = HomeListState(
+        final homeState = HomeListState(
           status: HomeListStatus.success,
           agents: [agent],
           channels: [
@@ -253,7 +253,7 @@ void main() {
         // Setup: HomeListState with status=loading (not success).
         // Inbox has items.
         // Assert: projection names fall back to raw IDs / null.
-        const homeState = HomeListState(
+        final homeState = HomeListState(
           status: HomeListStatus.loading,
           channels: [
             HomeChannelSummary(scopeId: chGeneral, name: 'general'),
