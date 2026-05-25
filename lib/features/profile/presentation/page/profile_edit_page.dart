@@ -49,14 +49,15 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
         ..showSnackBar(const SnackBar(content: Text('Profile updated.')));
       if (context.canPop()) context.pop();
     } else if (state.failure != null) {
+      // Surface partial success when avatar was committed but profile
+      // PATCH failed — user should know retry won't re-upload (#799).
+      final message = state.avatarCommitted
+          ? 'Avatar updated. Profile save failed — tap Save to retry.'
+          : (state.failure?.userMessage(context.l10n) ??
+              context.l10n.errorUnknown);
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(state.failure?.userMessage(context.l10n) ??
-                context.l10n.errorUnknown),
-          ),
-        );
+        ..showSnackBar(SnackBar(content: Text(message)));
     }
   }
 

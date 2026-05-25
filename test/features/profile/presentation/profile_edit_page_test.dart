@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/profile/application/avatar_upload_service.dart';
+import 'package:slock_app/features/profile/application/profile_edit_store.dart';
 import 'package:slock_app/features/profile/data/profile_edit_repository.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_edit_page.dart';
@@ -68,9 +70,57 @@ void main() {
     ));
     await tester.pumpAndSettle();
   });
+
+  // ---------------------------------------------------------------------------
+  // #799: Partial success snackbar when avatar uploaded but PATCH fails
+  // ---------------------------------------------------------------------------
+  testWidgets(
+    'save with avatar + PATCH failure shows partial-success snackbar (#799)',
+    (tester) async {
+      final repository = _FakeProfileEditRepository(
+        failure: const ServerFailure(
+          message: 'Internal Server Error',
+          statusCode: 500,
+        ),
+      );
+      final avatarService = _FakeAvatarUploadService(
+        resultUrl: 'https://cdn.example.com/new-avatar.png',
+      );
+
+      await tester.pumpWidget(
+        _buildApp(repository: repository, avatarService: avatarService),
+      );
+      await tester.pumpAndSettle();
+
+      // Simulate selecting an avatar by directly setting state via the store.
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(ProfileEditPage)),
+      );
+      container.read(profileEditStoreProvider.notifier).setSelectedAvatarPath(
+            '/tmp/new-avatar.png',
+          );
+      await tester.pump();
+
+      // Tap save — avatar uploads successfully, PATCH fails.
+      await tester.tap(find.byKey(const ValueKey('profile-edit-save')));
+      await tester.pumpAndSettle();
+
+      // Verify partial-success snackbar appears.
+      expect(
+        find.text(
+          'Avatar updated. Profile save failed — tap Save to retry.',
+        ),
+        findsOneWidget,
+        reason: 'Should show partial-success message, not generic error',
+      );
+    },
+  );
 }
 
-Widget _buildApp({required _FakeProfileEditRepository repository}) {
+Widget _buildApp({
+  required _FakeProfileEditRepository repository,
+  _FakeAvatarUploadService? avatarService,
+}) {
   final router = GoRouter(
     initialLocation: '/profile/edit',
     routes: [
@@ -89,7 +139,8 @@ Widget _buildApp({required _FakeProfileEditRepository repository}) {
     overrides: [
       sessionStoreProvider.overrideWith(() => _FakeSessionStore()),
       profileEditRepositoryProvider.overrideWithValue(repository),
-      avatarUploadServiceProvider.overrideWithValue(_FakeAvatarUploadService()),
+      avatarUploadServiceProvider
+          .overrideWithValue(avatarService ?? _FakeAvatarUploadService()),
     ],
     child: MaterialApp.router(
       theme: AppTheme.light,
@@ -130,9 +181,10 @@ class _FakeSessionStore extends SessionStore {
 }
 
 class _FakeProfileEditRepository implements ProfileEditRepository {
-  _FakeProfileEditRepository({this.completer});
+  _FakeProfileEditRepository({this.completer, this.failure});
 
   final Completer<MemberProfile>? completer;
+  final AppFailure? failure;
   final requests = <(String, String)>[];
 
   @override
@@ -141,6 +193,8 @@ class _FakeProfileEditRepository implements ProfileEditRepository {
     required String bio,
   }) async {
     requests.add((displayName, bio));
+    final failure = this.failure;
+    if (failure != null) throw failure;
     final completer = this.completer;
     if (completer != null) return completer.future;
     return MemberProfile(
@@ -153,6 +207,10 @@ class _FakeProfileEditRepository implements ProfileEditRepository {
 }
 
 class _FakeAvatarUploadService implements AvatarUploadService {
+  _FakeAvatarUploadService({this.resultUrl = 'uploaded-avatar.png'});
+
+  final String resultUrl;
+
   @override
-  Future<String> upload(String filePath) async => 'uploaded-avatar.png';
+  Future<String> upload(String filePath) async => resultUrl;
 }
