@@ -148,7 +148,9 @@ void main() {
       container.dispose();
 
       completer.complete('https://invite.link');
-      await future;
+      // Must still return the fetched value even when disposed.
+      final result = await future;
+      expect(result, 'https://invite.link');
     });
 
     test('dispose during updateMemberRole() does not throw StateError',

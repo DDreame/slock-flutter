@@ -120,21 +120,25 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     try {
       final inviteCode =
           await ref.read(memberRepositoryProvider).createInvite(serverId);
-      if (_disposed) return '';
+      if (_disposed) return inviteCode;
       state = state.copyWith(isInvitingByEmail: false);
       return inviteCode;
     } on AppFailure catch (failure) {
-      if (_disposed) return '';
-      state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      if (!_disposed) {
+        state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      }
       rethrow;
     } catch (error, stackTrace) {
-      if (_disposed) return '';
-      _reportUnexpectedError('createInvite', error, stackTrace);
+      if (!_disposed) {
+        _reportUnexpectedError('createInvite', error, stackTrace);
+      }
       final failure = _unexpectedFailure(
         error,
         message: 'Failed to generate invite link.',
       );
-      state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      if (!_disposed) {
+        state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      }
       throw failure;
     }
   }
@@ -243,24 +247,30 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       final channelId = member.isAgent
           ? await repo.openAgentDirectMessage(serverId, agentId: userId)
           : await repo.openDirectMessage(serverId, userId: userId);
-      if (_disposed) return '';
-      state = state.copyWith(clearOpeningDirectMessage: true);
+      if (!_disposed) {
+        state = state.copyWith(clearOpeningDirectMessage: true);
+      }
       return channelId;
     } on AppFailure catch (failure) {
-      if (_disposed) return '';
-      state = state.copyWith(failure: failure, clearOpeningDirectMessage: true);
+      if (!_disposed) {
+        state =
+            state.copyWith(failure: failure, clearOpeningDirectMessage: true);
+      }
       rethrow;
     } catch (error, stackTrace) {
-      if (_disposed) return '';
-      _reportUnexpectedError('openDirectMessage', error, stackTrace);
+      if (!_disposed) {
+        _reportUnexpectedError('openDirectMessage', error, stackTrace);
+      }
       final failure = _unexpectedFailure(
         error,
         message: 'Failed to open direct message.',
       );
-      state = state.copyWith(
-        failure: failure,
-        clearOpeningDirectMessage: true,
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          failure: failure,
+          clearOpeningDirectMessage: true,
+        );
+      }
       throw failure;
     }
   }
