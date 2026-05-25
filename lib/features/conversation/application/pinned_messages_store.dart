@@ -51,8 +51,12 @@ final pinnedMessagesStoreProvider =
 );
 
 class PinnedMessagesStore extends AutoDisposeNotifier<PinnedMessagesState> {
+  bool _disposed = false;
+
   @override
   PinnedMessagesState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     return const PinnedMessagesState();
   }
 
@@ -67,16 +71,19 @@ class PinnedMessagesStore extends AutoDisposeNotifier<PinnedMessagesState> {
       final messages = await ref
           .read(conversationRepositoryProvider)
           .loadPinnedMessages(target);
+      if (_disposed) return;
       state = PinnedMessagesState(
         status: PinnedMessagesStatus.success,
         messages: messages,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
         failure: failure,
       );
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('load', e, st);
       state = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
