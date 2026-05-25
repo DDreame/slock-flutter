@@ -18,10 +18,10 @@ void main() {
         overrides: [
           appDioClientProvider.overrideWithValue(_FakeDioClient()),
         ],
-        child: MaterialApp(
+        child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(
+          home: Scaffold(
             body: AgentFormDialog(serverId: 'server-1'),
           ),
         ),
@@ -45,10 +45,10 @@ void main() {
         overrides: [
           appDioClientProvider.overrideWithValue(_FakeDioClient()),
         ],
-        child: MaterialApp(
+        child: const MaterialApp(
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(
+          home: Scaffold(
             body: AgentFormDialog(serverId: 'server-1'),
           ),
         ),
