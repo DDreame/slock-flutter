@@ -270,8 +270,9 @@ void main() {
         unreadRepo.fail('ch-A', const NetworkFailure(message: 'timeout'));
         await future;
 
-        // The optimistic value should remain because rollback was guarded.
-        expect(_unreadCountFor(container, 'ch-A'), equals(1),
+        // After server switch, InboxStore rebuilds for the new server.
+        // The stale rollback must NOT inject old server data into new state.
+        expect(_findItem(container, 'ch-A'), isNull,
             reason: 'Rollback must be skipped when server switched — '
                 'stale rollback would corrupt the new server state');
       },
