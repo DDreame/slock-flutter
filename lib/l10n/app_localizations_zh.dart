@@ -1942,4 +1942,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get agentsReasoningExtraHigh => '极高';
+
+  @override
+  String get agentsFormConfiguredDefault => '使用配置默认值';
 }

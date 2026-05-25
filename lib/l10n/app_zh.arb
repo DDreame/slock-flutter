@@ -670,5 +670,6 @@
   "agentsReasoningLow": "低",
   "agentsReasoningMedium": "中",
   "agentsReasoningHigh": "高",
-  "agentsReasoningExtraHigh": "极高"
+  "agentsReasoningExtraHigh": "极高",
+  "agentsFormConfiguredDefault": "使用配置默认值"
 }

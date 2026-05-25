@@ -3802,6 +3802,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Extra High'**
   String get agentsReasoningExtraHigh;
+
+  /// No description provided for @agentsFormConfiguredDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Configured Default'**
+  String get agentsFormConfiguredDefault;
 }
 
 class _AppLocalizationsDelegate

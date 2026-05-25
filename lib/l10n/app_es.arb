@@ -717,6 +717,7 @@
   "agentsFormCreate": "Crear",
   "agentsFormCancel": "Cancelar",
   "agentsFormRetry": "Reintentar",
+  "agentsFormConfiguredDefault": "Configurado por defecto",
   "agentsReasoningLow": "Bajo",
   "agentsReasoningMedium": "Medio",
   "agentsReasoningHigh": "Alto",

@@ -2031,4 +2031,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get agentsReasoningExtraHigh => 'Muy alto';
+
+  @override
+  String get agentsFormConfiguredDefault => 'Configurado por defecto';
 }

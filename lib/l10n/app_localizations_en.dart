@@ -2005,4 +2005,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get agentsReasoningExtraHigh => 'Extra High';
+
+  @override
+  String get agentsFormConfiguredDefault => 'Configured Default';
 }

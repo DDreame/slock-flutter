@@ -19,45 +19,53 @@ const _runtimeLabels = <String, String>{
   'gemini': 'Gemini CLI',
 };
 
-const _fallbackModelsByRuntime = <String, List<_AgentModelOption>>{
-  'claude': [
-    _AgentModelOption(id: 'sonnet', label: 'Sonnet'),
-    _AgentModelOption(id: 'opus', label: 'Opus'),
-    _AgentModelOption(id: 'haiku', label: 'Haiku'),
-  ],
-  'codex': [
-    _AgentModelOption(id: 'gpt-5.5', label: 'GPT-5.5'),
-    _AgentModelOption(id: 'gpt-5.4', label: 'GPT-5.4'),
-    _AgentModelOption(id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex'),
-    _AgentModelOption(id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex'),
-    _AgentModelOption(id: 'gpt-5.2', label: 'GPT-5.2'),
-    _AgentModelOption(id: 'gpt-5', label: 'GPT-5'),
-  ],
-  'copilot': [
-    _AgentModelOption(id: 'gpt-5.4', label: 'GPT-5.4'),
-    _AgentModelOption(id: 'gpt-5.2', label: 'GPT-5.2'),
-    _AgentModelOption(id: 'claude-4-sonnet', label: 'Claude 4 Sonnet'),
-    _AgentModelOption(id: 'claude-4.5-sonnet', label: 'Claude 4.5 Sonnet'),
-  ],
-  'cursor': [
-    _AgentModelOption(id: 'composer-2-fast', label: 'Composer 2 Fast'),
-    _AgentModelOption(id: 'composer-2', label: 'Composer 2'),
-    _AgentModelOption(id: 'auto', label: 'Auto'),
-  ],
-  'gemini': [
-    _AgentModelOption(
-      id: 'gemini-3.1-pro-preview',
-      label: 'Gemini 3.1 Pro (Preview)',
-    ),
-    _AgentModelOption(
-      id: 'gemini-3-flash-preview',
-      label: 'Gemini 3 Flash (Preview)',
-    ),
-    _AgentModelOption(id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro'),
-    _AgentModelOption(id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash'),
-  ],
-  'kimi': [_AgentModelOption(id: 'default', label: 'Configured Default')],
-};
+Map<String, List<_AgentModelOption>> _fallbackModelsByRuntime(
+  AppLocalizations l10n,
+) =>
+    <String, List<_AgentModelOption>>{
+      'claude': const [
+        _AgentModelOption(id: 'sonnet', label: 'Sonnet'),
+        _AgentModelOption(id: 'opus', label: 'Opus'),
+        _AgentModelOption(id: 'haiku', label: 'Haiku'),
+      ],
+      'codex': const [
+        _AgentModelOption(id: 'gpt-5.5', label: 'GPT-5.5'),
+        _AgentModelOption(id: 'gpt-5.4', label: 'GPT-5.4'),
+        _AgentModelOption(id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex'),
+        _AgentModelOption(id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex'),
+        _AgentModelOption(id: 'gpt-5.2', label: 'GPT-5.2'),
+        _AgentModelOption(id: 'gpt-5', label: 'GPT-5'),
+      ],
+      'copilot': const [
+        _AgentModelOption(id: 'gpt-5.4', label: 'GPT-5.4'),
+        _AgentModelOption(id: 'gpt-5.2', label: 'GPT-5.2'),
+        _AgentModelOption(id: 'claude-4-sonnet', label: 'Claude 4 Sonnet'),
+        _AgentModelOption(id: 'claude-4.5-sonnet', label: 'Claude 4.5 Sonnet'),
+      ],
+      'cursor': const [
+        _AgentModelOption(id: 'composer-2-fast', label: 'Composer 2 Fast'),
+        _AgentModelOption(id: 'composer-2', label: 'Composer 2'),
+        _AgentModelOption(id: 'auto', label: 'Auto'),
+      ],
+      'gemini': const [
+        _AgentModelOption(
+          id: 'gemini-3.1-pro-preview',
+          label: 'Gemini 3.1 Pro (Preview)',
+        ),
+        _AgentModelOption(
+          id: 'gemini-3-flash-preview',
+          label: 'Gemini 3 Flash (Preview)',
+        ),
+        _AgentModelOption(id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro'),
+        _AgentModelOption(id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash'),
+      ],
+      'kimi': [
+        _AgentModelOption(
+          id: 'default',
+          label: l10n.agentsFormConfiguredDefault,
+        ),
+      ],
+    };
 
 List<_AgentModelOption> _reasoningEffortOptions(AppLocalizations l10n) => [
       _AgentModelOption(id: 'low', label: l10n.agentsReasoningLow),
@@ -251,7 +259,7 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
   }
 
   List<_AgentModelOption> _fallbackModelsForRuntime(String runtime) {
-    return _fallbackModelsByRuntime[runtime] ?? const [];
+    return _fallbackModelsByRuntime(context.l10n)[runtime] ?? const [];
   }
 
   String _defaultModelForRuntime(String runtime) {

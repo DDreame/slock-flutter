@@ -798,5 +798,6 @@
   "agentsReasoningLow": "Low",
   "agentsReasoningMedium": "Medium",
   "agentsReasoningHigh": "High",
-  "agentsReasoningExtraHigh": "Extra High"
+  "agentsReasoningExtraHigh": "Extra High",
+  "agentsFormConfiguredDefault": "Configured Default"
 }
