@@ -481,8 +481,7 @@ class _HomeTasksSection extends ConsumerWidget {
       child: taskLoadFailure != null
           ? _TasksUnavailableState(
               key: const ValueKey('home-tasks-unavailable'),
-              message:
-                  taskLoadFailure!.message ?? l10n.homeCardTasksUnavailable,
+              message: taskLoadFailure!.userMessage(l10n),
               onRetry: () => ref.read(homeListStoreProvider.notifier).refresh(),
             )
           : visibleTasks.isEmpty

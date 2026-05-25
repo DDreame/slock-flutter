@@ -10,6 +10,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_state.dart';
 import 'package:slock_app/features/saved_messages/application/saved_messages_store.dart';
 import 'package:slock_app/features/saved_messages/data/saved_message_item.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class SavedMessagesPage extends StatelessWidget {
   const SavedMessagesPage({super.key, required this.serverId});
@@ -73,7 +74,8 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
         SavedMessagesStatus.initial ||
         SavedMessagesStatus.failure =>
           _SavedMessagesFailureView(
-            message: state.failure?.message ?? 'Failed to load saved messages.',
+            message: state.failure?.userMessage(context.l10n) ??
+                context.l10n.errorUnknown,
             onRetry: ref.read(savedMessagesStoreProvider.notifier).retry,
           ),
         SavedMessagesStatus.success when state.items.isEmpty =>

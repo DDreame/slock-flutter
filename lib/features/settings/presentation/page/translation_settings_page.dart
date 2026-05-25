@@ -5,9 +5,11 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
 import 'package:slock_app/features/translation/data/translation_settings.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Settings page for configuring message translation preferences.
 ///
@@ -81,8 +83,8 @@ class _TranslationSettingsPageState
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            state.failure?.message ??
-                                'Failed to load translation settings.',
+                            state.failure?.userMessage(context.l10n) ??
+                                context.l10n.errorUnknown,
                             style: AppTypography.body
                                 .copyWith(color: colors.textSecondary),
                           ),

@@ -414,7 +414,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Should show failure snackbar (not success)
-      expect(find.text('Forbidden.'), findsOneWidget);
+      expect(
+          find.text('Server error. Please try again later.'), findsOneWidget);
       expect(find.text('Message edited.'), findsNothing);
       // Dialog stays open — user's text preserved
       expect(find.byKey(const ValueKey('edit-message-dialog')), findsOneWidget);

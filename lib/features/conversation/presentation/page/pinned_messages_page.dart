@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/pinned_messages_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class PinnedMessagesPage extends ConsumerStatefulWidget {
   const PinnedMessagesPage({
@@ -55,7 +57,8 @@ class _PinnedMessagesPageState extends ConsumerState<PinnedMessagesPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                state.error ?? 'Failed to load pinned messages.',
+                state.failure?.userMessage(context.l10n) ??
+                    context.l10n.errorUnknown,
                 style: AppTypography.body.copyWith(
                   color: colors.textSecondary,
                 ),

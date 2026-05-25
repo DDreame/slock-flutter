@@ -69,7 +69,8 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
             child: CircularProgressIndicator(),
           ),
         MachinesStatus.failure => _MachinesFailureView(
-            message: state.failure?.message ?? context.l10n.machinesLoadFailed,
+            message: state.failure?.userMessage(context.l10n) ??
+                context.l10n.machinesLoadFailed,
             onRetry: ref.read(machinesStoreProvider.notifier).load,
           ),
         MachinesStatus.success => _MachinesSuccessView(

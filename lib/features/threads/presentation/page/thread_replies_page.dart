@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
 import 'package:slock_app/features/threads/application/current_open_thread_target_provider.dart';
 import 'package:slock_app/features/threads/application/thread_replies_state.dart';
 import 'package:slock_app/features/threads/application/thread_replies_store.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/application/threads_realtime_binding.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class ThreadRepliesPage extends StatelessWidget {
   const ThreadRepliesPage({super.key, required this.routeTarget});
@@ -77,7 +79,8 @@ class _ThreadRepliesScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  state.failure?.message ?? 'Unable to open thread replies.',
+                  state.failure?.userMessage(context.l10n) ??
+                      context.l10n.errorUnknown,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),

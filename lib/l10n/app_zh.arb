@@ -572,5 +572,43 @@
   "errorRateLimit": "请求过于频繁，请稍后再试。",
   "errorServer": "服务器错误，请稍后重试。",
   "errorCancelled": "请求已取消。",
-  "errorUnknown": "操作失败，请重试。"
+  "errorUnknown": "操作失败，请重试。",
+
+  "pendingNewMessages": "新消息",
+  "pendingSending": "发送中……",
+  "pendingQueued": "已排队 — 等待网络连接",
+  "pendingSent": "已发送",
+  "pendingFailedToSend": "发送失败",
+  "pendingRetry": "重试",
+  "pendingDismiss": "取消",
+  "pendingEarlierHistoryLimited": "更早的历史记录不可用。",
+
+  "composerSendTooltip": "发送",
+  "composerVoiceMessageTooltip": "语音消息",
+  "composerFileTooLarge": "文件过大，最大支持 50 MB",
+
+  "messageSenderYou": "你",
+
+  "channelActionMoveUp": "上移",
+  "channelActionMoveDown": "下移",
+  "channelActionPin": "置顶频道",
+  "channelActionUnpin": "取消置顶",
+  "channelActionMarkUnread": "标记为未读",
+  "channelActionEdit": "编辑频道",
+  "channelActionLeave": "离开频道",
+  "channelActionDelete": "删除频道",
+
+  "onboardingWelcomeTitle": "欢迎使用 Slock",
+  "onboardingBack": "返回",
+  "onboardingSkip": "跳过",
+  "onboardingFinish": "完成",
+  "onboardingNext": "下一步",
+  "onboardingSetupTitle": "设置你的工作区",
+  "onboardingSetupBody": "Slock 已准备就绪。花一分钟配置通知和个人资料，然后开始使用。",
+  "onboardingNotificationsTitle": "保持同步",
+  "onboardingNotificationsBody": "启用通知，让提及、回复和任务及时到达你。",
+  "onboardingNotificationsButton": "启用通知",
+  "onboardingProfileTitle": "完善你的个人资料",
+  "onboardingProfileBody": "添加显示名称、简介或头像，让队友更容易认出你。",
+  "onboardingProfileButton": "编辑个人资料"
 }

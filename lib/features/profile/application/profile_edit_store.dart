@@ -179,10 +179,11 @@ class ProfileEditStore extends AutoDisposeNotifier<ProfileEditState> {
       await _rollbackSession(previousSession);
       state = state.copyWith(
         status: ProfileEditStatus.failure,
-        failure: UnknownFailure(
-          message: error.message,
-          causeType: error.runtimeType.toString(),
-        ),
+        failure: error.failure ??
+            UnknownFailure(
+              message: error.message,
+              causeType: error.runtimeType.toString(),
+            ),
       );
     } catch (error, stackTrace) {
       _reportUnexpectedError(error, stackTrace);
