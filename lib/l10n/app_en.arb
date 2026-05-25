@@ -684,5 +684,16 @@
   "channelStopAllAgentsFailed": "Failed to stop agents.",
   "channelResumeAllAgentsSuccess": "All agents resumed.",
   "channelResumeAllAgentsFailed": "Failed to resume agents.",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "errorNetwork": "Network error. Please check your connection and try again.",
+  "errorTimeout": "Request timed out. Please try again.",
+  "errorUnauthorized": "Session expired. Please sign in again.",
+  "errorForbidden": "You don't have permission to perform this action.",
+  "errorNotFound": "The requested resource was not found.",
+  "errorConflict": "A conflict occurred. Please refresh and try again.",
+  "errorValidation": "Invalid input. Please check and try again.",
+  "errorRateLimit": "Too many requests. Please wait a moment and try again.",
+  "errorServer": "Server error. Please try again later.",
+  "errorCancelled": "Request was cancelled.",
+  "errorUnknown": "Something went wrong. Please try again."
 }

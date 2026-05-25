@@ -6,6 +6,7 @@ import 'package:slock_app/features/agents/data/agent_item.dart';
 import 'package:slock_app/features/agents/data/agents_repository.dart';
 import 'package:slock_app/features/machines/data/machine_item.dart';
 import 'package:slock_app/features/machines/data/machines_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 const _serverHeaderName = 'X-Server-Id';
 
@@ -172,7 +173,7 @@ class _AgentFormDialogState extends ConsumerState<AgentFormDialog> {
       }
       setState(() {
         _isLoadingMachines = false;
-        _machinesError = failure.message ?? 'Failed to load machines.';
+        _machinesError = failure.userMessage(context.l10n);
       });
     }
   }

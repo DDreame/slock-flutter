@@ -561,5 +561,16 @@
   "channelStopAllAgentsFailed": "停止 Agent 失败。",
   "channelResumeAllAgentsSuccess": "所有 Agent 已恢复。",
   "channelResumeAllAgentsFailed": "恢复 Agent 失败。",
-  "cancel": "取消"
+  "cancel": "取消",
+  "errorNetwork": "网络连接失败，请检查网络后重试。",
+  "errorTimeout": "请求超时，请稍后重试。",
+  "errorUnauthorized": "登录已过期，请重新登录。",
+  "errorForbidden": "没有权限执行此操作。",
+  "errorNotFound": "请求的资源不存在。",
+  "errorConflict": "发生冲突，请刷新后重试。",
+  "errorValidation": "输入无效，请检查后重试。",
+  "errorRateLimit": "请求过于频繁，请稍后再试。",
+  "errorServer": "服务器错误，请稍后重试。",
+  "errorCancelled": "请求已取消。",
+  "errorUnknown": "操作失败，请重试。"
 }

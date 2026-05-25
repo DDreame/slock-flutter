@@ -231,7 +231,7 @@ class _SearchBody extends ConsumerWidget {
           child: CircularProgressIndicator(),
         ),
       SearchStatus.failure when !state.hasResults => _SearchFailureView(
-          message: state.failure?.message ?? l10n.searchFailedFallback,
+          message: state.failure?.userMessage(l10n) ?? l10n.errorUnknown,
         ),
       _ when state.hasResults => _buildScopedResults(state),
       SearchStatus.success when !state.hasResults => Center(

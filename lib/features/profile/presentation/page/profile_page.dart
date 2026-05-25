@@ -12,6 +12,7 @@ import 'package:slock_app/features/profile/application/avatar_upload_service.dar
 import 'package:slock_app/features/profile/application/profile_detail_store.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key, this.userId, this.serverId});
@@ -60,7 +61,7 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to open direct message.'),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }

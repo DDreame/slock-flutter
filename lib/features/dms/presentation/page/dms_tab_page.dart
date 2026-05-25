@@ -538,7 +538,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
       if (!mounted) return;
       showAppSnackBar(
         context,
-        failure.message ?? 'Failed to mark as unread.',
+        failure.userMessage(context.l10n),
       );
     }
   }

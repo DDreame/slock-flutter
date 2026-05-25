@@ -155,8 +155,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       final error = state.error;
       setState(() {
         _errorText = error is AppFailure
-            ? (error.message ?? context.l10n.forgotPasswordFailedFallback)
-            : context.l10n.forgotPasswordFailedFallback;
+            ? error.userMessage(context.l10n)
+            : context.l10n.errorUnknown;
       });
     } else {
       setState(() => _submitted = true);

@@ -1623,4 +1623,37 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cancel => '取消';
+
+  @override
+  String get errorNetwork => '网络连接失败，请检查网络后重试。';
+
+  @override
+  String get errorTimeout => '请求超时，请稍后重试。';
+
+  @override
+  String get errorUnauthorized => '登录已过期，请重新登录。';
+
+  @override
+  String get errorForbidden => '没有权限执行此操作。';
+
+  @override
+  String get errorNotFound => '请求的资源不存在。';
+
+  @override
+  String get errorConflict => '发生冲突，请刷新后重试。';
+
+  @override
+  String get errorValidation => '输入无效，请检查后重试。';
+
+  @override
+  String get errorRateLimit => '请求过于频繁，请稍后再试。';
+
+  @override
+  String get errorServer => '服务器错误，请稍后重试。';
+
+  @override
+  String get errorCancelled => '请求已取消。';
+
+  @override
+  String get errorUnknown => '操作失败，请重试。';
 }

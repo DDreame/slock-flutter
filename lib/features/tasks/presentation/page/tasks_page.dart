@@ -199,8 +199,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
               showAppSnackBar(context, context.l10n.tasksCreatedSnackbar);
             } on AppFailure catch (failure) {
               if (!mounted) return;
-              showAppSnackBar(
-                  context, failure.message ?? context.l10n.tasksCreateFailed);
+              showAppSnackBar(context, failure.userMessage(context.l10n));
             }
           },
         );
@@ -219,7 +218,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       HapticFeedback.errorNotification();
       showAppSnackBarWithAction(
         context,
-        failure.message ?? context.l10n.tasksUpdateFailed,
+        failure.userMessage(context.l10n),
         actionLabel: context.l10n.tasksRetryAction,
         onAction: () => _updateStatus(task, newStatus),
       );
@@ -261,7 +260,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       showAppSnackBar(context, l10n.tasksDeletedSnackbar);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(context, failure.message ?? l10n.tasksDeleteFailed);
+      showAppSnackBar(context, failure.userMessage(l10n));
     }
   }
 
@@ -270,8 +269,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       await ref.read(tasksStoreProvider.notifier).claimTask(task.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(
-          context, failure.message ?? context.l10n.tasksClaimFailed);
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 
@@ -280,8 +278,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
       await ref.read(tasksStoreProvider.notifier).unclaimTask(task.id);
     } on AppFailure catch (failure) {
       if (!mounted) return;
-      showAppSnackBar(
-          context, failure.message ?? context.l10n.tasksUnclaimFailed);
+      showAppSnackBar(context, failure.userMessage(context.l10n));
     }
   }
 

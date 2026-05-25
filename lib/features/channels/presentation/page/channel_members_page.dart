@@ -14,6 +14,7 @@ import 'package:slock_app/features/members/data/member_repository_provider.dart'
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class ChannelMembersPage extends ConsumerStatefulWidget {
   final String serverId;
@@ -219,7 +220,7 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to remove member.'),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }
@@ -241,7 +242,7 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ?? 'Failed to open conversation.'),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }

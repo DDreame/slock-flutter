@@ -120,7 +120,7 @@ class _WorkspacesScreenState extends ConsumerState<_WorkspacesScreen> {
       }
       messenger.showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? l10n.workspacesDeleteFailed),
+          content: Text(failure.userMessage(l10n)),
         ),
       );
     }

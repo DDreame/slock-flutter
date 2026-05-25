@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
+import 'package:slock_app/core/errors/app_failure_user_message.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
@@ -266,7 +267,7 @@ class _ActionsSection extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            failure.message ?? l10n.workspaceSettingsRenameFailed,
+            failure.userMessage(l10n),
           ),
         ),
       );
@@ -296,7 +297,7 @@ class _ActionsSection extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            failure.message ?? l10n.workspaceSettingsDeleteFailed,
+            failure.userMessage(l10n),
           ),
         ),
       );
@@ -326,7 +327,7 @@ class _ActionsSection extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            failure.message ?? l10n.workspaceSettingsLeaveFailed,
+            failure.userMessage(l10n),
           ),
         ),
       );

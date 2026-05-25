@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
@@ -10,6 +11,7 @@ import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   const serverId = ServerScopeId('server-1');
@@ -31,6 +33,13 @@ void main() {
       child: MaterialApp(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
         home: const NewDmPage(serverId: serverId),
       ),
     );
@@ -274,7 +283,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Failed to open conversation.'), findsOneWidget);
+      // #790: localized error, not raw message.
+      expect(
+          find.text('Something went wrong. Please try again.'), findsOneWidget);
     });
 
     testWidgets(
@@ -299,7 +310,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(SnackBar), findsOneWidget);
-      expect(find.text('Failed to open conversation.'), findsOneWidget);
+      // #790: localized error, not raw message.
+      expect(
+          find.text('Something went wrong. Please try again.'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
 
       repo.openDmError = null;

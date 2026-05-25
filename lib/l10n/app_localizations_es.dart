@@ -1699,4 +1699,41 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get cancel => 'Cancelar';
+
+  @override
+  String get errorNetwork =>
+      'Error de red. Verifica tu conexión e intenta de nuevo.';
+
+  @override
+  String get errorTimeout => 'Tiempo de espera agotado. Intenta de nuevo.';
+
+  @override
+  String get errorUnauthorized => 'Sesión expirada. Inicia sesión de nuevo.';
+
+  @override
+  String get errorForbidden => 'No tienes permiso para realizar esta acción.';
+
+  @override
+  String get errorNotFound => 'El recurso solicitado no fue encontrado.';
+
+  @override
+  String get errorConflict =>
+      'Ocurrió un conflicto. Actualiza e intenta de nuevo.';
+
+  @override
+  String get errorValidation =>
+      'Entrada no válida. Verifica e intenta de nuevo.';
+
+  @override
+  String get errorRateLimit =>
+      'Demasiadas solicitudes. Espera un momento e intenta de nuevo.';
+
+  @override
+  String get errorServer => 'Error del servidor. Intenta más tarde.';
+
+  @override
+  String get errorCancelled => 'Solicitud cancelada.';
+
+  @override
+  String get errorUnknown => 'Algo salió mal. Intenta de nuevo.';
 }

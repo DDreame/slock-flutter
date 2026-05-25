@@ -116,7 +116,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       }
       messenger.showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? l10n.machinesRegisterFailed),
+          content: Text(failure.userMessage(l10n)),
         ),
       );
     }
@@ -149,7 +149,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
         return;
       }
       messenger.showSnackBar(
-        SnackBar(content: Text(failure.message ?? l10n.machinesRenameFailed)),
+        SnackBar(content: Text(failure.userMessage(l10n))),
       );
     }
   }
@@ -176,7 +176,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
       }
       messenger.showSnackBar(
         SnackBar(
-          content: Text(failure.message ?? l10n.machinesRotateApiKeyFailed),
+          content: Text(failure.userMessage(l10n)),
         ),
       );
     }
@@ -224,7 +224,7 @@ class _MachinesScreenState extends ConsumerState<_MachinesScreen> {
         return;
       }
       messenger.showSnackBar(
-        SnackBar(content: Text(failure.message ?? l10n.machinesDeleteFailed)),
+        SnackBar(content: Text(failure.userMessage(l10n))),
       );
     }
   }

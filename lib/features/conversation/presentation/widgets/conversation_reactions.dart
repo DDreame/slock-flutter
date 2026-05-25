@@ -6,7 +6,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
-import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 AppLocalizations _conversationL10n(BuildContext context) =>
     AppLocalizations.of(context) ?? lookupAppLocalizations(const Locale('en'));
@@ -269,9 +269,7 @@ class _ReactionChip extends ConsumerWidget {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(failure.message ??
-                _conversationL10n(context)
-                    .conversationReactionUpdateFailedFallback),
+            content: Text(failure.userMessage(context.l10n)),
           ),
         );
     }

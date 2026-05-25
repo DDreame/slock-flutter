@@ -146,7 +146,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             ],
           ),
         HomeListStatus.failure => _ChannelsErrorState(
-            message: state.failure?.message ?? l10n.homeLoadFailedFallback,
+            message: state.failure?.userMessage(l10n) ?? l10n.errorUnknown,
             onRetry: homeStore.retry,
           ),
         HomeListStatus.success => RefreshIndicator(
@@ -454,7 +454,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
       if (!mounted) return;
       showAppSnackBar(
         context,
-        failure.message ?? 'Failed to mark as unread.',
+        failure.userMessage(context.l10n),
       );
     }
   }
@@ -514,7 +514,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                   if (!context.mounted) return;
                   showAppSnackBar(
                     context,
-                    failure.message ?? l10n.homeChannelUpdateFailed,
+                    failure.userMessage(l10n),
                   );
                 }
               },
@@ -558,7 +558,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                   if (!context.mounted) return;
                   showAppSnackBar(
                     context,
-                    failure.message ?? l10n.homeChannelDeleteFailed,
+                    failure.userMessage(l10n),
                   );
                 }
               },
@@ -602,7 +602,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                   if (!context.mounted) return;
                   showAppSnackBar(
                     context,
-                    failure.message ?? l10n.homeChannelLeaveFailed,
+                    failure.userMessage(l10n),
                   );
                 }
               },

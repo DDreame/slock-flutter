@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
+import 'package:slock_app/core/errors/app_failure_user_message.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class InviteLandingPage extends ConsumerStatefulWidget {
   const InviteLandingPage({required this.token, super.key});
@@ -39,7 +41,7 @@ class _InviteLandingPageState extends ConsumerState<InviteLandingPage> {
       if (!mounted) return;
       setState(() {
         _isJoining = false;
-        _errorMessage = failure.message ?? 'Failed to join workspace.';
+        _errorMessage = failure.userMessage(context.l10n);
       });
     } catch (_) {
       if (!mounted) return;

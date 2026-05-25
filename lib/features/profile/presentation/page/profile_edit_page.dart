@@ -5,8 +5,10 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
+import 'package:slock_app/core/errors/app_failure_user_message.dart';
 import 'package:slock_app/features/profile/application/profile_edit_store.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class ProfileEditPage extends ConsumerStatefulWidget {
   const ProfileEditPage({super.key});
@@ -51,8 +53,8 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content:
-                Text(state.failure!.message ?? 'Failed to update profile.'),
+            content: Text(state.failure?.userMessage(context.l10n) ??
+                context.l10n.errorUnknown),
           ),
         );
     }
