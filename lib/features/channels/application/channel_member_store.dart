@@ -25,8 +25,12 @@ final channelMemberStoreProvider =
 );
 
 class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
+  bool _disposed = false;
+
   @override
   ChannelMemberState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     return const ChannelMemberState();
   }
 
@@ -50,17 +54,20 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
     try {
       final repo = ref.read(channelMemberRepositoryProvider);
       final members = await repo.listMembers(serverId, channelId: channelId);
+      if (_disposed) return;
       state = state.copyWith(
         status: ChannelMemberStatus.success,
         items: members,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         status: ChannelMemberStatus.failure,
         failure: failure,
       );
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('load', e, st);
       state = state.copyWith(
         status: ChannelMemberStatus.failure,
@@ -83,8 +90,10 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
         channelId: channelId,
         userId: userId,
       );
+      if (_disposed) return;
       await load();
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(failure: failure);
       rethrow;
     }
@@ -101,8 +110,10 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
         channelId: channelId,
         agentId: agentId,
       );
+      if (_disposed) return;
       await load();
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(failure: failure);
       rethrow;
     }
@@ -124,9 +135,11 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
         userId: userId,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(items: previousItems, failure: failure);
       rethrow;
     } catch (error) {
+      if (_disposed) return;
       state = state.copyWith(
         items: previousItems,
         failure: UnknownFailure(
@@ -154,9 +167,11 @@ class ChannelMemberStore extends AutoDisposeNotifier<ChannelMemberState> {
         agentId: agentId,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(items: previousItems, failure: failure);
       rethrow;
     } catch (error) {
+      if (_disposed) return;
       state = state.copyWith(
         items: previousItems,
         failure: UnknownFailure(

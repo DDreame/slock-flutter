@@ -18,8 +18,12 @@ final memberListStoreProvider =
 );
 
 class MemberListStore extends AutoDisposeNotifier<MemberListState> {
+  bool _disposed = false;
+
   @override
   MemberListState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     ref.watch(currentMembersServerIdProvider);
     return MemberListState();
   }
@@ -45,6 +49,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       final sessionUserId = ref.read(sessionStoreProvider).userId;
       final members =
           await ref.read(memberRepositoryProvider).listMembers(serverId);
+      if (_disposed) return;
       state = state.copyWith(
         status: MemberListStatus.success,
         members: members
@@ -59,6 +64,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         clearOpeningDirectMessage: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         status: MemberListStatus.failure,
         failure: failure,
@@ -66,6 +72,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         clearOpeningDirectMessage: true,
       );
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _reportUnexpectedError('load', error, stackTrace);
       state = state.copyWith(
         status: MemberListStatus.failure,
@@ -88,11 +95,14 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       await ref
           .read(memberRepositoryProvider)
           .inviteByEmail(serverId, email: normalizedEmail);
+      if (_disposed) return;
       state = state.copyWith(isInvitingByEmail: false);
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(failure: failure, isInvitingByEmail: false);
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _reportUnexpectedError('inviteByEmail', error, stackTrace);
       final failure = _unexpectedFailure(
         error,
@@ -110,18 +120,25 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
     try {
       final inviteCode =
           await ref.read(memberRepositoryProvider).createInvite(serverId);
+      if (_disposed) return inviteCode;
       state = state.copyWith(isInvitingByEmail: false);
       return inviteCode;
     } on AppFailure catch (failure) {
-      state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      if (!_disposed) {
+        state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      }
       rethrow;
     } catch (error, stackTrace) {
-      _reportUnexpectedError('createInvite', error, stackTrace);
+      if (!_disposed) {
+        _reportUnexpectedError('createInvite', error, stackTrace);
+      }
       final failure = _unexpectedFailure(
         error,
         message: 'Failed to generate invite link.',
       );
-      state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      if (!_disposed) {
+        state = state.copyWith(failure: failure, isInvitingByEmail: false);
+      }
       throw failure;
     }
   }
@@ -138,6 +155,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       await ref
           .read(memberRepositoryProvider)
           .updateMemberRole(serverId, userId: userId, role: role);
+      if (_disposed) return;
       state = state.copyWith(
         members: [
           for (final member in state.members)
@@ -146,12 +164,14 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         updatingRoleMemberIds: {...state.updatingRoleMemberIds}..remove(userId),
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         failure: failure,
         updatingRoleMemberIds: {...state.updatingRoleMemberIds}..remove(userId),
       );
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _reportUnexpectedError('updateMemberRole', error, stackTrace);
       final failure = _unexpectedFailure(
         error,
@@ -176,6 +196,7 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       await ref
           .read(memberRepositoryProvider)
           .removeMember(serverId, userId: userId);
+      if (_disposed) return;
       state = state.copyWith(
         members: [
           for (final member in state.members)
@@ -184,12 +205,14 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
         removingMemberIds: {...state.removingMemberIds}..remove(userId),
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         failure: failure,
         removingMemberIds: {...state.removingMemberIds}..remove(userId),
       );
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _reportUnexpectedError('removeMember', error, stackTrace);
       final failure = _unexpectedFailure(
         error,
@@ -224,21 +247,30 @@ class MemberListStore extends AutoDisposeNotifier<MemberListState> {
       final channelId = member.isAgent
           ? await repo.openAgentDirectMessage(serverId, agentId: userId)
           : await repo.openDirectMessage(serverId, userId: userId);
-      state = state.copyWith(clearOpeningDirectMessage: true);
+      if (!_disposed) {
+        state = state.copyWith(clearOpeningDirectMessage: true);
+      }
       return channelId;
     } on AppFailure catch (failure) {
-      state = state.copyWith(failure: failure, clearOpeningDirectMessage: true);
+      if (!_disposed) {
+        state =
+            state.copyWith(failure: failure, clearOpeningDirectMessage: true);
+      }
       rethrow;
     } catch (error, stackTrace) {
-      _reportUnexpectedError('openDirectMessage', error, stackTrace);
+      if (!_disposed) {
+        _reportUnexpectedError('openDirectMessage', error, stackTrace);
+      }
       final failure = _unexpectedFailure(
         error,
         message: 'Failed to open direct message.',
       );
-      state = state.copyWith(
-        failure: failure,
-        clearOpeningDirectMessage: true,
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          failure: failure,
+          clearOpeningDirectMessage: true,
+        );
+      }
       throw failure;
     }
   }
