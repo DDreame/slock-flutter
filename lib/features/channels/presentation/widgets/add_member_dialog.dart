@@ -120,22 +120,26 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
   }
 
   Widget _buildHumansList() {
-    final memberState = ref.watch(memberListStoreProvider);
-    if (memberState.status == MemberListStatus.initial ||
-        memberState.status == MemberListStatus.loading) {
+    // INV-SELECT-809: Only rebuild when status, failure, or members change.
+    // isInvitingByEmail, updatingRoleMemberIds, etc. do not affect this list.
+    final (:status, :failure, :members) = ref.watch(
+      memberListStoreProvider.select(
+        (s) => (status: s.status, failure: s.failure, members: s.members),
+      ),
+    );
+    if (status == MemberListStatus.initial ||
+        status == MemberListStatus.loading) {
       return const AppLoadingIndicator();
     }
-    if (memberState.status == MemberListStatus.failure) {
+    if (status == MemberListStatus.failure) {
       return Center(
         child: Text(
-          memberState.failure?.userMessage(context.l10n) ??
-              context.l10n.errorUnknown,
+          failure?.userMessage(context.l10n) ?? context.l10n.errorUnknown,
         ),
       );
     }
-    final candidates = memberState.members
-        .where((m) => !_existingUserIds.contains(m.id))
-        .toList();
+    final candidates =
+        members.where((m) => !_existingUserIds.contains(m.id)).toList();
     if (candidates.isEmpty) {
       return Center(child: Text(context.l10n.channelsAddMemberNoHumans));
     }
@@ -153,22 +157,25 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
   }
 
   Widget _buildAgentsList() {
-    final agentsState = ref.watch(agentsStoreProvider);
-    if (agentsState.status == AgentsStatus.initial ||
-        agentsState.status == AgentsStatus.loading) {
+    // INV-SELECT-809: Only rebuild when status, failure, or items change.
+    // machines, activityLogs, isRefreshing, isCreating do not affect this list.
+    final (:status, :failure, :items) = ref.watch(
+      agentsStoreProvider.select(
+        (s) => (status: s.status, failure: s.failure, items: s.items),
+      ),
+    );
+    if (status == AgentsStatus.initial || status == AgentsStatus.loading) {
       return const AppLoadingIndicator();
     }
-    if (agentsState.status == AgentsStatus.failure) {
+    if (status == AgentsStatus.failure) {
       return Center(
         child: Text(
-          agentsState.failure?.userMessage(context.l10n) ??
-              context.l10n.errorUnknown,
+          failure?.userMessage(context.l10n) ?? context.l10n.errorUnknown,
         ),
       );
     }
-    final candidates = agentsState.items
-        .where((a) => !_existingAgentIds.contains(a.id))
-        .toList();
+    final candidates =
+        items.where((a) => !_existingAgentIds.contains(a.id)).toList();
     if (candidates.isEmpty) {
       return Center(child: Text(context.l10n.channelsAddMemberNoAgents));
     }
