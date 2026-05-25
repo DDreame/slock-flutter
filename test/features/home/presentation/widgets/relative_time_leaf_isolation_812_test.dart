@@ -27,14 +27,11 @@ void main() {
         ],
       );
       addTearDown(container.dispose);
-      // Keepalive the provider during test
       final sub = container.listen(homeNowProvider, (_, __) {});
       addTearDown(sub.close);
 
-      // Emit initial time
-      final time1 = DateTime(2026, 5, 20, 10, 0, 0);
-      final base = DateTime(2026, 5, 20, 9, 55, 0); // 5 minutes ago
-      controller.add(time1);
+      final base = DateTime(2026, 5, 20, 9, 55, 0); // target time
+
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -51,17 +48,19 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
 
-      // Initial: 5 minutes ago
+      // Emit first time (5 min after base) → "5m ago"
+      final time1 = DateTime(2026, 5, 20, 10, 0, 0);
+      controller.add(time1);
+      await tester.pumpAndSettle();
+
       expect(find.text('5m ago'), findsOneWidget);
 
-      // Emit a new tick: 10 minutes later
+      // Emit second time (15 min after base) → "15m ago"
       final time2 = DateTime(2026, 5, 20, 10, 10, 0);
       controller.add(time2);
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      // Now shows 15 minutes ago
       expect(find.text('15m ago'), findsOneWidget);
     });
 
@@ -81,9 +80,6 @@ void main() {
       addTearDown(container.dispose);
       final sub = container.listen(homeNowProvider, (_, __) {});
       addTearDown(sub.close);
-
-      final time1 = DateTime(2026, 5, 20, 10, 0, 0);
-      controller.add(time1);
 
       var parentBuildCount = 0;
 
@@ -113,15 +109,20 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
 
-      // Record build count after initial render
+      // Emit first time to establish baseline
+      final time1 = DateTime(2026, 5, 20, 10, 0, 0);
+      controller.add(time1);
+      await tester.pumpAndSettle();
+
+      // Record build count after initial render + first tick
       final initialBuildCount = parentBuildCount;
+      expect(find.text('5m ago'), findsOneWidget);
 
       // Emit a new time tick
       final time2 = DateTime(2026, 5, 20, 10, 5, 0);
       controller.add(time2);
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // Parent build count should NOT have increased —
       // homeNowProvider is only watched by RelativeTimeText leaf

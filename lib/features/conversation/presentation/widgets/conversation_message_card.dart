@@ -95,6 +95,7 @@ class ConversationMessageCard extends ConsumerStatefulWidget {
     this.isCurrentSearchMatch = false,
     this.isQuoteJumpHighlighted = false,
     this.onScrollToMessage,
+    this.now,
   });
 
   final ConversationDetailTarget target;
@@ -105,6 +106,10 @@ class ConversationMessageCard extends ConsumerStatefulWidget {
   final bool isCurrentSearchMatch;
   final bool isQuoteJumpHighlighted;
   final ValueChanged<String>? onScrollToMessage;
+
+  /// Shared current time for relative timestamp formatting.
+  /// When provided, avoids per-card DateTime.now() syscall.
+  final DateTime? now;
 
   // ---------------------------------------------------------------------------
   // #655: Exposed base style constants for test identity assertions.
@@ -266,8 +271,8 @@ class ConversationMessageCardState
     final highlightQuery = widget.highlightQuery;
     final isCurrentSearchMatch = widget.isCurrentSearchMatch;
     final onScrollToMessage = widget.onScrollToMessage;
-    final timestamp =
-        formatRelativeTime(message.createdAt, now: DateTime.now());
+    final timestamp = formatRelativeTime(message.createdAt,
+        now: widget.now ?? DateTime.now());
     final theme = Theme.of(context);
     final colors = theme.extension<AppColors>()!;
 

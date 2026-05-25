@@ -10,6 +10,7 @@ import 'package:slock_app/features/conversation/application/conversation_detail_
 import 'package:slock_app/features/conversation/application/message_send_status.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_card.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -73,6 +74,10 @@ class ConversationMessageList extends ConsumerWidget {
             : -1;
 
     final toLocal = ref.watch(dateSeparatorToLocalProvider);
+
+    // #812: Capture current time once per build frame for all message cards.
+    // Avoids N per-card DateTime.now() syscalls.
+    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     return Semantics(
       label: context.l10n.conversationMessageListSemantics,
@@ -174,6 +179,7 @@ class ConversationMessageList extends ConsumerWidget {
                   highlightQuery: state.searchQuery,
                   isCurrentSearchMatch: isCurrentSearchMatch,
                   isQuoteJumpHighlighted: isQuoteJumpHighlighted,
+                  now: now,
                   onScrollToMessage: onScrollToMessage != null
                       ? (messageId) =>
                           onScrollToMessage!(messageId, state.messages)
