@@ -50,7 +50,13 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(savedMessagesStoreProvider);
+    // Only rebuild on status/items/failure changes — skip hasMore/isLoadingMore
+    // which are only consumed by the scroll listener (ref.read) (#813).
+    final state = ref.watch(savedMessagesStoreProvider.select((s) => (
+          status: s.status,
+          items: s.items,
+          failure: s.failure,
+        )));
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return Scaffold(
@@ -69,7 +75,7 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
         SavedMessagesStatus.loading when state.items.isEmpty =>
           const AppLoadingIndicator(),
         SavedMessagesStatus.loading => _SavedMessagesListSurface(
-            state: state,
+            items: state.items,
             isRefreshing: true,
           ),
         SavedMessagesStatus.initial ||
@@ -86,7 +92,8 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
             title: context.l10n.savedMessagesEmptyTitle,
             subtitle: context.l10n.savedMessagesEmptySubtitle,
           ),
-        SavedMessagesStatus.success => _SavedMessagesListSurface(state: state),
+        SavedMessagesStatus.success =>
+          _SavedMessagesListSurface(items: state.items),
       },
     );
   }
@@ -94,18 +101,18 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
 
 class _SavedMessagesListSurface extends StatelessWidget {
   const _SavedMessagesListSurface({
-    required this.state,
+    required this.items,
     this.isRefreshing = false,
   });
 
-  final SavedMessagesState state;
+  final List<SavedMessageItem> items;
   final bool isRefreshing;
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _SavedMessagesList(state: state),
+        _SavedMessagesList(items: items),
         if (isRefreshing)
           const Align(
             alignment: Alignment.topCenter,
@@ -119,9 +126,9 @@ class _SavedMessagesListSurface extends StatelessWidget {
 }
 
 class _SavedMessagesList extends ConsumerStatefulWidget {
-  const _SavedMessagesList({required this.state});
+  const _SavedMessagesList({required this.items});
 
-  final SavedMessagesState state;
+  final List<SavedMessageItem> items;
 
   @override
   ConsumerState<_SavedMessagesList> createState() => _SavedMessagesListState();
@@ -152,7 +159,7 @@ class _SavedMessagesListState extends ConsumerState<_SavedMessagesList> {
 
   @override
   Widget build(BuildContext context) {
-    final items = widget.state.items;
+    final items = widget.items;
     // #812: Capture current time once per build frame for all cards.
     final now = ref.watch(homeNowProvider).value ?? DateTime.now();
     return RefreshIndicator(

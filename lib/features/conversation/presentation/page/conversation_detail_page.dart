@@ -13,6 +13,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/channels/data/channel_member.dart';
 import 'package:slock_app/features/channels/data/channel_member_repository_provider.dart';
+import 'package:slock_app/features/conversation/presentation/page/mention_filter_cache.dart';
 import 'package:slock_app/features/conversation/application/current_open_conversation_target_provider.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_session_store.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
@@ -213,6 +214,7 @@ class _ConversationDetailScreenState
   int _mentionTriggerOffset = -1;
   List<ChannelMember> _mentionMembers = [];
   bool _mentionMembersLoaded = false;
+  final MentionFilterCache _mentionFilterCache = MentionFilterCache();
 
   @override
   void initState() {
@@ -697,6 +699,7 @@ class _ConversationDetailScreenState
 
   void _closeMentionOverlay() {
     if (_showMentionOverlay) {
+      _mentionFilterCache.invalidate();
       setState(() {
         _showMentionOverlay = false;
         _mentionQuery = '';
@@ -729,11 +732,7 @@ class _ConversationDetailScreenState
   }
 
   List<ChannelMember> get _filteredMentionMembers {
-    if (_mentionQuery.isEmpty) return _mentionMembers;
-    final queryLower = _mentionQuery.toLowerCase();
-    return _mentionMembers
-        .where((m) => m.displayName.toLowerCase().contains(queryLower))
-        .toList();
+    return _mentionFilterCache.filter(_mentionMembers, _mentionQuery);
   }
 
   void _insertMention(ChannelMember member) {

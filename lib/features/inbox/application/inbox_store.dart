@@ -304,6 +304,8 @@ class InboxStore extends Notifier<InboxState> {
           .read(conversationUnreadRepositoryProvider)
           .markAsUnread(serverId, channelId: channelId);
     } on AppFailure catch (failure, stackTrace) {
+      // Skip rollback if the user switched servers during the await (#813).
+      if (ref.read(activeServerScopeIdProvider) != serverId) return;
       // Per-item rollback: revert only this item, not the full state (#807).
       _rollbackMarkAsUnread(
         channelId: channelId,
@@ -490,6 +492,8 @@ class InboxStore extends Notifier<InboxState> {
           .read(inboxRepositoryProvider)
           .markItemDone(serverId, channelId: channelId);
     } on AppFailure {
+      // Skip rollback if the user switched servers during the await (#813).
+      if (ref.read(activeServerScopeIdProvider) != serverId) return;
       // Per-item rollback: re-insert only the removed item (#807).
       _rollbackMarkDone(
         removedItems: removedItems,
