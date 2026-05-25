@@ -7,6 +7,7 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/features/onboarding/application/onboarding_store.dart';
 import 'package:slock_app/features/onboarding/presentation/page/onboarding_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() {
@@ -41,6 +42,8 @@ void main() {
         ],
         child: MaterialApp.router(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           routerConfig: router,
         ),
       ),

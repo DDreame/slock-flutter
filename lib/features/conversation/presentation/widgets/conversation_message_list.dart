@@ -239,7 +239,7 @@ class _UnreadDivider extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: Text(
-              'New messages',
+              context.l10n.pendingNewMessages,
               style: AppTypography.caption.copyWith(
                 color: colors.primary,
                 fontWeight: FontWeight.w600,
@@ -408,11 +408,11 @@ class _ConversationHistoryHeader extends StatelessWidget {
     }
 
     if (historyLimited) {
-      return const Center(
-        key: ValueKey('conversation-history-limited'),
+      return Center(
+        key: const ValueKey('conversation-history-limited'),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 4),
-          child: Text('Earlier history is limited.'),
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(context.l10n.pendingEarlierHistoryLimited),
         ),
       );
     }
@@ -483,7 +483,7 @@ class _PendingMessageCard extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              'Sending...',
+              context.l10n.pendingSending,
               style: AppTypography.caption.copyWith(
                 color: colors.textSecondary,
               ),
@@ -498,20 +498,25 @@ class _PendingMessageCard extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              'Queued — waiting for connection',
+              context.l10n.pendingQueued,
               key: const ValueKey('pending-queued-label'),
               style: AppTypography.caption.copyWith(
                 color: colors.warning,
               ),
             ),
             const SizedBox(width: 8),
-            GestureDetector(
+            TextButton(
               key: const ValueKey('pending-queued-dismiss-button'),
-              onTap: () => ref
+              onPressed: () => ref
                   .read(conversationDetailStoreProvider.notifier)
                   .dismissPendingMessage(pending.localId),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
               child: Text(
-                'Dismiss',
+                context.l10n.pendingDismiss,
                 style: AppTypography.caption.copyWith(
                   color: colors.textTertiary,
                 ),
@@ -527,7 +532,7 @@ class _PendingMessageCard extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              'Sent',
+              context.l10n.pendingSent,
               key: const ValueKey('pending-sent-label'),
               style: AppTypography.caption.copyWith(
                 color: colors.success,
@@ -543,20 +548,25 @@ class _PendingMessageCard extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              'Failed to send',
+              context.l10n.pendingFailedToSend,
               key: const ValueKey('pending-failed-label'),
               style: AppTypography.caption.copyWith(
                 color: colors.error,
               ),
             ),
             const SizedBox(width: 8),
-            GestureDetector(
+            TextButton(
               key: const ValueKey('pending-retry-button'),
-              onTap: () => ref
+              onPressed: () => ref
                   .read(conversationDetailStoreProvider.notifier)
                   .retrySend(pending.localId),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
               child: Text(
-                'Retry',
+                context.l10n.pendingRetry,
                 style: AppTypography.caption.copyWith(
                   color: colors.primary,
                   fontWeight: FontWeight.w600,
@@ -564,13 +574,18 @@ class _PendingMessageCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            GestureDetector(
+            TextButton(
               key: const ValueKey('pending-dismiss-button'),
-              onTap: () => ref
+              onPressed: () => ref
                   .read(conversationDetailStoreProvider.notifier)
                   .dismissPendingMessage(pending.localId),
+              style: TextButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
               child: Text(
-                'Dismiss',
+                context.l10n.pendingDismiss,
                 style: AppTypography.caption.copyWith(
                   color: colors.textTertiary,
                 ),

@@ -10,7 +10,7 @@ import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/realtime/application/list_typing_indicator_store.dart';
-import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class HomeChannelRow extends ConsumerWidget {
   const HomeChannelRow({
@@ -176,47 +176,48 @@ class HomeChannelRow extends ConsumerWidget {
       onMoveDown != null;
 
   Future<void> _showActionSheet(BuildContext context) async {
+    final l10n = context.l10n;
     final actions = <ListActionItem>[
       if (onMoveUp != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'channel-action-move-up',
-          label: 'Move up',
+          label: l10n.channelActionMoveUp,
           icon: Icons.arrow_upward,
         ),
       if (onMoveDown != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'channel-action-move-down',
-          label: 'Move down',
+          label: l10n.channelActionMoveDown,
           icon: Icons.arrow_downward,
         ),
       if (onTogglePin != null)
         ListActionItem(
           key: 'channel-action-toggle-pin',
-          label: isPinned ? 'Unpin channel' : 'Pin channel',
+          label: isPinned ? l10n.channelActionUnpin : l10n.channelActionPin,
           icon: isPinned ? Icons.push_pin_outlined : Icons.push_pin,
         ),
       if (onMarkAsUnread != null && unreadCount == 0)
-        const ListActionItem(
+        ListActionItem(
           key: 'channel-action-mark-unread',
-          label: 'Mark as Unread',
+          label: l10n.channelActionMarkUnread,
           icon: Icons.mark_email_unread_outlined,
         ),
       if (onEdit != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'channel-action-edit',
-          label: 'Edit channel',
+          label: l10n.channelActionEdit,
           icon: Icons.edit_outlined,
         ),
       if (onLeave != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'channel-action-leave',
-          label: 'Leave channel',
+          label: l10n.channelActionLeave,
           icon: Icons.exit_to_app,
         ),
       if (onDelete != null)
-        const ListActionItem(
+        ListActionItem(
           key: 'channel-action-delete',
-          label: 'Delete channel',
+          label: l10n.channelActionDelete,
           icon: Icons.delete_outline,
           isDestructive: true,
         ),
