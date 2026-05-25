@@ -21,6 +21,7 @@ import 'package:slock_app/features/biometric/presentation/page/biometric_lock_pa
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -47,7 +48,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: BiometricLockPage()),
+        child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: BiometricLockPage()),
       ),
     );
 

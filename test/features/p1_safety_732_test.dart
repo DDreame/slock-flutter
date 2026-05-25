@@ -24,6 +24,7 @@ import 'package:slock_app/features/settings/data/biometric_preference.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   // ===========================================================================
@@ -93,7 +94,10 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: const MaterialApp(home: BiometricLockPage()),
+            child: MaterialApp(
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                home: BiometricLockPage()),
           ),
         );
         // Post-frame callback triggers _authenticate.

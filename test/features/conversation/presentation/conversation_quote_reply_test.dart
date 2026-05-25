@@ -15,6 +15,7 @@ import 'package:slock_app/features/saved_messages/data/saved_message_item.dart'
     as saved_data;
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   final target = ConversationDetailTarget.channel(
@@ -355,6 +356,8 @@ Widget _buildApp({
           .overrideWithValue(_FakeSavedMessagesRepository()),
     ],
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.light,
       home: child,
     ),

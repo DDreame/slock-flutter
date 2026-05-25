@@ -9,6 +9,7 @@ import 'package:slock_app/features/threads/application/threads_realtime_binding.
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('keeps thread inbox visible while reloading', (tester) async {
@@ -27,6 +28,8 @@ void main() {
           threadsInboxRealtimeBindingProvider.overrideWith((ref) {}),
         ],
         child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const ThreadsPage(serverId: 'server-1')),
       ),

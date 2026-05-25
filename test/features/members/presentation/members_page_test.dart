@@ -10,6 +10,7 @@ import 'package:slock_app/features/members/presentation/page/members_page.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('MembersPage loads and renders members list', (
@@ -690,6 +691,8 @@ Widget _buildApp({
       memberRepositoryProvider.overrideWithValue(repository),
     ],
     child: MaterialApp.router(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.light,
       routerConfig: appRouter,
     ),

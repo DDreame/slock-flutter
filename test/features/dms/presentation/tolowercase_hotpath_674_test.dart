@@ -13,6 +13,7 @@ import 'package:slock_app/features/dms/presentation/page/new_dm_page.dart';
 import 'package:slock_app/features/members/data/member_repository.dart';
 import 'package:slock_app/features/members/data/member_repository_provider.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// #674: Verify toLowerCase pre-computation preserves correct behavior.
 ///
@@ -33,6 +34,8 @@ void main() {
         ),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         home: const NewDmPage(serverId: serverId),

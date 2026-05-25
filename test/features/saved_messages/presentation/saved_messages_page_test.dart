@@ -13,6 +13,7 @@ import 'package:slock_app/features/saved_messages/data/saved_messages_repository
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('SavedMessagesPage', () {
@@ -32,6 +33,8 @@ void main() {
             savedMessagesStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
@@ -64,6 +67,8 @@ void main() {
             savedMessagesStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
@@ -315,6 +320,8 @@ void main() {
             savedMessagesStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
@@ -353,6 +360,8 @@ void main() {
             savedMessagesRepositoryProvider.overrideWithValue(repo),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
@@ -384,6 +393,8 @@ void main() {
             savedMessagesStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
@@ -421,6 +432,8 @@ void main() {
             savedMessagesStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
@@ -446,6 +459,8 @@ void main() {
             savedMessagesStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.dark,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
@@ -518,6 +533,8 @@ void main() {
             savedMessagesStoreProvider.overrideWith(() => store),
           ],
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             theme: AppTheme.light,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
