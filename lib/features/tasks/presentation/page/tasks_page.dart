@@ -478,10 +478,11 @@ class _TasksListSurface extends ConsumerStatefulWidget {
 class _TasksListSurfaceState extends ConsumerState<_TasksListSurface> {
   String? _selectedChannelId; // null = All
 
-  // INV-SEL-816: Cache filter results — only recompute when items identity
-  // or selectedChannelId actually changes, not on every parent rebuild.
+  // INV-SEL-816: Cache filter results — only recompute when items identity,
+  // selectedChannelId, or widget.channels changes.
   List<TaskItem>? _lastItems;
   String? _lastSelectedChannelId;
+  List<HomeChannelSummary>? _lastChannels;
   List<TaskItem> _cachedFilteredItems = const [];
   List<String> _cachedFilterChannelIds = const [];
 
@@ -523,11 +524,13 @@ class _TasksListSurfaceState extends ConsumerState<_TasksListSurface> {
   /// Recompute cached filter outputs only when inputs change.
   void _ensureFiltersComputed(List<TaskItem> items) {
     if (identical(items, _lastItems) &&
-        _selectedChannelId == _lastSelectedChannelId) {
+        _selectedChannelId == _lastSelectedChannelId &&
+        identical(widget.channels, _lastChannels)) {
       return;
     }
     _lastItems = items;
     _lastSelectedChannelId = _selectedChannelId;
+    _lastChannels = widget.channels;
     _cachedFilteredItems = _filteredItems(items);
     _cachedFilterChannelIds = _filterChannelIds(items);
   }
