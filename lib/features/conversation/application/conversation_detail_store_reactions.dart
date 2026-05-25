@@ -16,7 +16,10 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
     final currentUserId = ref.read(sessionStoreProvider).userId;
     if (currentUserId == null) return;
 
-    final previousReactions = state.messages[index].reactions;
+    // Capture only this emoji's prior state for isolated rollback (#798).
+    final previousReaction = state.messages[index].reactions
+        .where((r) => r.emoji == emoji)
+        .firstOrNull;
     final messages = List<ConversationMessageSummary>.of(state.messages);
     messages[index] = _addReactionToMessage(
       messages[index],
@@ -36,7 +39,13 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
         messages: _updateMessageById(
           state.messages,
           messageId,
-          (message) => message.copyWith(reactions: previousReactions),
+          (message) => message.copyWith(
+            reactions: _restoreReactionForEmoji(
+              message.reactions,
+              emoji,
+              previousReaction,
+            ),
+          ),
         ),
       );
       _persistSession();
@@ -54,7 +63,10 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
     final currentUserId = ref.read(sessionStoreProvider).userId;
     if (currentUserId == null) return;
 
-    final previousReactions = state.messages[index].reactions;
+    // Capture only this emoji's prior state for isolated rollback (#798).
+    final previousReaction = state.messages[index].reactions
+        .where((r) => r.emoji == emoji)
+        .firstOrNull;
     final messages = List<ConversationMessageSummary>.of(state.messages);
     messages[index] = _removeReactionFromMessage(
       messages[index],
@@ -74,7 +86,13 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
         messages: _updateMessageById(
           state.messages,
           messageId,
-          (message) => message.copyWith(reactions: previousReactions),
+          (message) => message.copyWith(
+            reactions: _restoreReactionForEmoji(
+              message.reactions,
+              emoji,
+              previousReaction,
+            ),
+          ),
         ),
       );
       _persistSession();
@@ -206,5 +224,32 @@ mixin _ConversationDetailReactionsMixin on _ConversationDetailCoreMixin {
       );
     }
     return message.copyWith(reactions: reactions);
+  }
+
+  /// Restores a single emoji's reaction state within the current reactions
+  /// list, without disturbing other emojis that may have been modified by
+  /// concurrent operations (#798).
+  List<MessageReaction> _restoreReactionForEmoji(
+    List<MessageReaction> currentReactions,
+    String emoji,
+    MessageReaction? previousState,
+  ) {
+    final reactions = List<MessageReaction>.of(currentReactions);
+    final existingIndex = reactions.indexWhere((r) => r.emoji == emoji);
+
+    if (previousState == null) {
+      // Emoji did not exist before — remove it entirely.
+      if (existingIndex != -1) {
+        reactions.removeAt(existingIndex);
+      }
+    } else {
+      // Emoji existed before — restore its prior state.
+      if (existingIndex != -1) {
+        reactions[existingIndex] = previousState;
+      } else {
+        reactions.add(previousState);
+      }
+    }
+    return reactions;
   }
 }
