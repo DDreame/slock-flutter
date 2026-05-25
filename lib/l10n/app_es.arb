@@ -617,5 +617,43 @@
     "placeholders": {
       "error": {"type": "String"}
     }
-  }
+  },
+
+  "pendingNewMessages": "Mensajes nuevos",
+  "pendingSending": "Enviando...",
+  "pendingQueued": "En cola — esperando conexión",
+  "pendingSent": "Enviado",
+  "pendingFailedToSend": "Error al enviar",
+  "pendingRetry": "Reintentar",
+  "pendingDismiss": "Descartar",
+  "pendingEarlierHistoryLimited": "El historial anterior es limitado.",
+
+  "composerSendTooltip": "Enviar",
+  "composerVoiceMessageTooltip": "Mensaje de voz",
+  "composerFileTooLarge": "Archivo demasiado grande. Tamaño máximo: 50 MB",
+
+  "messageSenderYou": "Tú",
+
+  "channelActionMoveUp": "Mover arriba",
+  "channelActionMoveDown": "Mover abajo",
+  "channelActionPin": "Fijar canal",
+  "channelActionUnpin": "Desfijar canal",
+  "channelActionMarkUnread": "Marcar como no leído",
+  "channelActionEdit": "Editar canal",
+  "channelActionLeave": "Salir del canal",
+  "channelActionDelete": "Eliminar canal",
+
+  "onboardingWelcomeTitle": "Bienvenido a Slock",
+  "onboardingBack": "Atrás",
+  "onboardingSkip": "Omitir",
+  "onboardingFinish": "Finalizar",
+  "onboardingNext": "Siguiente",
+  "onboardingSetupTitle": "Configura tu espacio de trabajo",
+  "onboardingSetupBody": "Slock está listo. Tómate un momento para configurar las notificaciones y tu perfil antes de comenzar.",
+  "onboardingNotificationsTitle": "Mantente al día",
+  "onboardingNotificationsBody": "Activa las notificaciones para que las menciones, respuestas y tareas te lleguen rápidamente.",
+  "onboardingNotificationsButton": "Activar notificaciones",
+  "onboardingProfileTitle": "Completa tu perfil",
+  "onboardingProfileBody": "Agrega tu nombre, biografía o avatar para que tus compañeros te reconozcan.",
+  "onboardingProfileButton": "Editar perfil"
 }

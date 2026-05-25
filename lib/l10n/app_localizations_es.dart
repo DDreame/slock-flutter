@@ -1740,104 +1740,106 @@ class AppLocalizationsEs extends AppLocalizations {
   String get errorUnknown => 'Algo salió mal. Intenta de nuevo.';
 
   @override
-  String get pendingNewMessages => 'New messages';
+  String get pendingNewMessages => 'Mensajes nuevos';
 
   @override
-  String get pendingSending => 'Sending...';
+  String get pendingSending => 'Enviando...';
 
   @override
-  String get pendingQueued => 'Queued — waiting for connection';
+  String get pendingQueued => 'En cola — esperando conexión';
 
   @override
-  String get pendingSent => 'Sent';
+  String get pendingSent => 'Enviado';
 
   @override
-  String get pendingFailedToSend => 'Failed to send';
+  String get pendingFailedToSend => 'Error al enviar';
 
   @override
-  String get pendingRetry => 'Retry';
+  String get pendingRetry => 'Reintentar';
 
   @override
-  String get pendingDismiss => 'Dismiss';
+  String get pendingDismiss => 'Descartar';
 
   @override
-  String get pendingEarlierHistoryLimited => 'Earlier history is limited.';
+  String get pendingEarlierHistoryLimited =>
+      'El historial anterior es limitado.';
 
   @override
-  String get composerSendTooltip => 'Send';
+  String get composerSendTooltip => 'Enviar';
 
   @override
-  String get composerVoiceMessageTooltip => 'Voice message';
+  String get composerVoiceMessageTooltip => 'Mensaje de voz';
 
   @override
-  String get composerFileTooLarge => 'File too large. Maximum size: 50 MB';
+  String get composerFileTooLarge =>
+      'Archivo demasiado grande. Tamaño máximo: 50 MB';
 
   @override
-  String get messageSenderYou => 'You';
+  String get messageSenderYou => 'Tú';
 
   @override
-  String get channelActionMoveUp => 'Move up';
+  String get channelActionMoveUp => 'Mover arriba';
 
   @override
-  String get channelActionMoveDown => 'Move down';
+  String get channelActionMoveDown => 'Mover abajo';
 
   @override
-  String get channelActionPin => 'Pin channel';
+  String get channelActionPin => 'Fijar canal';
 
   @override
-  String get channelActionUnpin => 'Unpin channel';
+  String get channelActionUnpin => 'Desfijar canal';
 
   @override
-  String get channelActionMarkUnread => 'Mark as Unread';
+  String get channelActionMarkUnread => 'Marcar como no leído';
 
   @override
-  String get channelActionEdit => 'Edit channel';
+  String get channelActionEdit => 'Editar canal';
 
   @override
-  String get channelActionLeave => 'Leave channel';
+  String get channelActionLeave => 'Salir del canal';
 
   @override
-  String get channelActionDelete => 'Delete channel';
+  String get channelActionDelete => 'Eliminar canal';
 
   @override
-  String get onboardingWelcomeTitle => 'Welcome to Slock';
+  String get onboardingWelcomeTitle => 'Bienvenido a Slock';
 
   @override
-  String get onboardingBack => 'Back';
+  String get onboardingBack => 'Atrás';
 
   @override
-  String get onboardingSkip => 'Skip';
+  String get onboardingSkip => 'Omitir';
 
   @override
-  String get onboardingFinish => 'Finish';
+  String get onboardingFinish => 'Finalizar';
 
   @override
-  String get onboardingNext => 'Next';
+  String get onboardingNext => 'Siguiente';
 
   @override
-  String get onboardingSetupTitle => 'Set up your workspace';
+  String get onboardingSetupTitle => 'Configura tu espacio de trabajo';
 
   @override
   String get onboardingSetupBody =>
-      'Slock is ready. Take a minute to configure notifications and your profile before jumping in.';
+      'Slock está listo. Tómate un momento para configurar las notificaciones y tu perfil antes de comenzar.';
 
   @override
-  String get onboardingNotificationsTitle => 'Stay in the loop';
+  String get onboardingNotificationsTitle => 'Mantente al día';
 
   @override
   String get onboardingNotificationsBody =>
-      'Enable notifications so mentions, replies, and tasks reach you quickly.';
+      'Activa las notificaciones para que las menciones, respuestas y tareas te lleguen rápidamente.';
 
   @override
-  String get onboardingNotificationsButton => 'Enable notifications';
+  String get onboardingNotificationsButton => 'Activar notificaciones';
 
   @override
-  String get onboardingProfileTitle => 'Complete your profile';
+  String get onboardingProfileTitle => 'Completa tu perfil';
 
   @override
   String get onboardingProfileBody =>
-      'Add your display name, bio, or avatar so teammates can recognize you.';
+      'Agrega tu nombre, biografía o avatar para que tus compañeros te reconozcan.';
 
   @override
-  String get onboardingProfileButton => 'Edit profile';
+  String get onboardingProfileButton => 'Editar perfil';
 }
