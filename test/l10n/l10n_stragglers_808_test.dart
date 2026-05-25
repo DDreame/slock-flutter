@@ -14,7 +14,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
-import 'package:slock_app/core/scope/server_scope_id.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/telemetry/crash_marker_service.dart';
 import 'package:slock_app/core/telemetry/crash_recovery_dialog.dart';
@@ -65,16 +64,10 @@ class _FakeSecureStorage implements SecureStorage {
   Future<String?> read({required String key}) async => null;
 
   @override
-  Future<void> write({required String key, required String? value}) async {}
+  Future<void> write({required String key, required String value}) async {}
 
   @override
   Future<void> delete({required String key}) async {}
-
-  @override
-  Future<void> deleteAll() async {}
-
-  @override
-  Future<Map<String, String>> readAll() async => {};
 }
 
 // ---------------------------------------------------------------------------
