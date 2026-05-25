@@ -21,7 +21,8 @@ import 'package:slock_app/core/telemetry/crash_recovery_dialog.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/members/application/member_list_state.dart';
 import 'package:slock_app/features/members/application/member_list_store.dart';
-import 'package:slock_app/features/profile/data/profile_repository.dart';
+import 'package:slock_app/features/members/application/members_realtime_binding.dart';
+import 'package:slock_app/features/members/presentation/page/members_page.dart';
 import 'package:slock_app/features/settings/data/notification_preference.dart';
 import 'package:slock_app/features/settings/presentation/page/notification_settings_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -42,31 +43,10 @@ class _FakeNotificationStore extends NotificationStore {
       );
 }
 
-class _FakeMemberListStore extends MemberListStore {
+class _FakeMemberListStoreFailure extends MemberListStore {
   @override
   MemberListState build() => MemberListState(
-        status: MemberListStatus.success,
-        members: const [
-          MemberProfile(
-            id: 'u1',
-            displayName: 'Alice',
-            type: MemberType.human,
-            role: 'owner',
-            isSelf: true,
-          ),
-          MemberProfile(
-            id: 'u2',
-            displayName: 'Bob',
-            type: MemberType.human,
-            role: 'admin',
-          ),
-          MemberProfile(
-            id: 'u3',
-            displayName: 'Carol',
-            type: MemberType.human,
-            role: 'member',
-          ),
-        ],
+        status: MemberListStatus.failure,
       );
 
   @override
@@ -129,12 +109,51 @@ void main() {
         await tester.pump();
         expect(tester.takeException(), isNull);
 
-        // Verify ZH l10n strings rendered (not the English fallback enum fields).
-        // The ZH translations for notification prefs should not match the
-        // English enum `title` values.
+        // Negative: old English enum field values must NOT appear.
         expect(find.text('All Messages'), findsNothing);
         expect(find.text('Mentions & DMs Only'), findsNothing);
         expect(find.text('Mute'), findsNothing);
+
+        // Positive: ZH l10n strings must be present.
+        expect(find.text('所有消息'), findsOneWidget);
+        expect(find.text('仅提及和私信'), findsOneWidget);
+        expect(find.text('静音'), findsOneWidget);
+        // Page title from l10n.
+        expect(find.text('通知设置'), findsOneWidget);
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // MembersPage — l10n error state strings render in ZH
+  // ---------------------------------------------------------------------------
+  group('MembersPage locale render', () {
+    testWidgets(
+      'renders error state strings from l10n in ZH (INV-808-RENDER-2)',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              memberListStoreProvider
+                  .overrideWith(() => _FakeMemberListStoreFailure()),
+              membersRealtimeBindingProvider.overrideWith((ref) {}),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.light,
+              locale: const Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: MembersPage(serverId: 'srv-1'),
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+
+        // Positive: ZH l10n error state strings must be present.
+        expect(find.text('成员'), findsOneWidget); // page title
+        expect(find.text('成员不可用'), findsOneWidget); // error title
+        expect(find.text('目前无法加载工作区成员。'), findsOneWidget); // error msg
       },
     );
   });
@@ -173,10 +192,14 @@ void main() {
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
 
-        // Verify old English hardcoded strings are NOT present.
+        // Negative: old English hardcoded strings must NOT appear.
         expect(find.text('Something went wrong'), findsNothing);
         expect(find.text('Export Diagnostics'), findsNothing);
-        expect(find.text('Continue'), findsNothing);
+
+        // Positive: ZH l10n strings must be present.
+        expect(find.text('应用已恢复'), findsOneWidget);
+        expect(find.text('继续'), findsOneWidget);
+        expect(find.text('导出诊断日志'), findsOneWidget);
       },
     );
   });
