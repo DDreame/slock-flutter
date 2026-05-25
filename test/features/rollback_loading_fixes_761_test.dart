@@ -239,7 +239,7 @@ void main() {
       final state = container.read(pinnedMessagesStoreProvider);
       expect(state.status, PinnedMessagesStatus.failure,
           reason: '#761: status must not stick at loading');
-      expect(state.error, isNotNull);
+      expect(state.failure, isNotNull);
     });
 
     test('stale error is cleared on retry', () async {
@@ -252,7 +252,7 @@ void main() {
 
       // First load fails.
       await container.read(pinnedMessagesStoreProvider.notifier).load();
-      expect(container.read(pinnedMessagesStoreProvider).error, isNotNull);
+      expect(container.read(pinnedMessagesStoreProvider).failure, isNotNull);
 
       // Second load succeeds — error should be cleared.
       repo.throwNonAppFailure = false;
@@ -260,7 +260,7 @@ void main() {
 
       final state = container.read(pinnedMessagesStoreProvider);
       expect(state.status, PinnedMessagesStatus.success);
-      expect(state.error, isNull,
+      expect(state.failure, isNull,
           reason: '#761: stale error must be cleared on successful retry');
     });
 

@@ -121,7 +121,8 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(state.failure?.message ?? 'Failed to load members.'),
+              Text(state.failure?.userMessage(context.l10n) ??
+                  context.l10n.errorUnknown),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () =>

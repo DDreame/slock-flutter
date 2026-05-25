@@ -376,11 +376,11 @@ void main() {
     test('different error → not equal', () {
       const a = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
-        error: 'Error A',
+        failure: UnknownFailure(message: 'Error A', causeType: 'test'),
       );
       const b = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
-        error: 'Error B',
+        failure: UnknownFailure(message: 'Error B', causeType: 'test'),
       );
       expect(a, isNot(equals(b)));
     });
@@ -409,11 +409,11 @@ void main() {
     test('hashCode consistent for equal states', () {
       const a = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
-        error: 'test error',
+        failure: UnknownFailure(message: 'test error', causeType: 'test'),
       );
       const b = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
-        error: 'test error',
+        failure: UnknownFailure(message: 'test error', causeType: 'test'),
       );
       expect(a.hashCode, b.hashCode);
     });

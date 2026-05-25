@@ -234,7 +234,8 @@ class _PeopleTab extends ConsumerWidget {
       MemberListStatus.loading =>
         const AppLoadingIndicator(),
       MemberListStatus.failure => _ErrorContent(
-          message: state.failure?.message ?? 'Failed to load members.',
+          message: state.failure?.userMessage(context.l10n) ??
+              context.l10n.errorUnknown,
           onRetry: ref.read(memberListStoreProvider.notifier).load,
         ),
       MemberListStatus.success => _buildFilteredList(state),
@@ -288,7 +289,8 @@ class _AgentsTab extends ConsumerWidget {
       AgentsStatus.loading =>
         const AppLoadingIndicator(),
       AgentsStatus.failure => _ErrorContent(
-          message: failure?.message ?? 'Failed to load agents.',
+          message:
+              failure?.userMessage(context.l10n) ?? context.l10n.errorUnknown,
           onRetry: () async => ref.read(agentsStoreProvider.notifier).retry(),
         ),
       AgentsStatus.success => _buildFilteredList(items),

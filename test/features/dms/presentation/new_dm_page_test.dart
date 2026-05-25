@@ -100,6 +100,8 @@ void main() {
           child: MaterialApp(
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Builder(
               builder: (context) => Scaffold(
                 body: FilledButton(
@@ -181,7 +183,8 @@ void main() {
       await tester.pumpWidget(buildApp(memberRepository: repo));
       await tester.pumpAndSettle();
 
-      expect(find.text('Network error'), findsOneWidget);
+      expect(
+          find.text('Something went wrong. Please try again.'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
 
       repo.failure = null;

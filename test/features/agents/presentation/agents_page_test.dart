@@ -28,12 +28,12 @@ import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository.dart';
 import 'package:slock_app/features/servers/data/server_list_repository_provider.dart';
 import 'package:slock_app/features/tasks/data/task_item.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository.dart';
 import 'package:slock_app/features/tasks/data/tasks_repository_provider.dart';
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
-import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 void main() {
@@ -85,6 +85,8 @@ void main() {
           ],
           child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const TickerMode(
                   enabled: false, child: AgentsPage(agentId: 'agent-1'))),
         ),
@@ -92,7 +94,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Failed to load agents.'), findsOneWidget);
+      expect(
+          find.text('Something went wrong. Please try again.'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
       expect(find.text('Agent not found.'), findsNothing);
     });
@@ -127,6 +130,8 @@ void main() {
           ],
           child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const TickerMode(
                   enabled: false, child: AgentsPage(agentId: 'agent-1'))),
         ),
@@ -134,13 +139,15 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Failed to load agents.'), findsOneWidget);
+      expect(
+          find.text('Something went wrong. Please try again.'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
       await tester.pumpAndSettle();
 
       expect(find.text('Bot'), findsOneWidget);
-      expect(find.text('Failed to load agents.'), findsNothing);
+      expect(
+          find.text('Something went wrong. Please try again.'), findsNothing);
     });
 
     testWidgets(

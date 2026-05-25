@@ -39,8 +39,9 @@ abstract class AvatarUploadService {
 
 /// Exception thrown when avatar upload fails.
 class AvatarUploadException implements Exception {
-  AvatarUploadException(this.message);
+  AvatarUploadException(this.message, {this.failure});
   final String message;
+  final AppFailure? failure;
 
   @override
   String toString() => 'AvatarUploadException: $message';
@@ -125,7 +126,8 @@ class _ApiAvatarUploadService implements AvatarUploadService {
       rethrow;
     } on AppFailure catch (failure) {
       throw AvatarUploadException(
-        failure.message ?? 'Upload failed. Please try again.',
+        'Upload failed.',
+        failure: failure,
       );
     } catch (error) {
       throw AvatarUploadException('Upload failed. Please try again.');

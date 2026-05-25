@@ -316,10 +316,16 @@ class TranslationCacheStore extends AutoDisposeNotifier<TranslationCacheState> {
   void _promoteTranslations(Iterable<String> messageIds) {
     final translations = state.translations;
     if (translations.isEmpty) return;
+    final copy = Map<String, TranslationEntry>.from(translations);
+    var changed = false;
     for (final messageId in messageIds) {
-      final entry = translations.remove(messageId);
+      final entry = copy.remove(messageId);
       if (entry == null) continue;
-      translations[messageId] = entry;
+      copy[messageId] = entry;
+      changed = true;
+    }
+    if (changed) {
+      state = state.copyWith(translations: copy);
     }
   }
 

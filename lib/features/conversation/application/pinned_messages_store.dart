@@ -11,23 +11,23 @@ class PinnedMessagesState {
   const PinnedMessagesState({
     this.status = PinnedMessagesStatus.initial,
     this.messages = const [],
-    this.error,
+    this.failure,
   });
 
   final PinnedMessagesStatus status;
   final List<ConversationMessageSummary> messages;
-  final String? error;
+  final AppFailure? failure;
 
   PinnedMessagesState copyWith({
     PinnedMessagesStatus? status,
     List<ConversationMessageSummary>? messages,
-    String? error,
-    bool clearError = false,
+    AppFailure? failure,
+    bool clearFailure = false,
   }) {
     return PinnedMessagesState(
       status: status ?? this.status,
       messages: messages ?? this.messages,
-      error: clearError ? null : (error ?? this.error),
+      failure: clearFailure ? null : (failure ?? this.failure),
     );
   }
 
@@ -37,11 +37,11 @@ class PinnedMessagesState {
       other is PinnedMessagesState &&
           runtimeType == other.runtimeType &&
           status == other.status &&
-          error == other.error &&
+          failure == other.failure &&
           listEquals(messages, other.messages);
 
   @override
-  int get hashCode => Object.hash(status, error, Object.hashAll(messages));
+  int get hashCode => Object.hash(status, failure, Object.hashAll(messages));
 }
 
 final pinnedMessagesStoreProvider =
@@ -60,7 +60,7 @@ class PinnedMessagesStore extends AutoDisposeNotifier<PinnedMessagesState> {
     final target = ref.read(currentConversationDetailTargetProvider);
     state = state.copyWith(
       status: PinnedMessagesStatus.loading,
-      clearError: true,
+      clearFailure: true,
     );
 
     try {
@@ -74,13 +74,16 @@ class PinnedMessagesStore extends AutoDisposeNotifier<PinnedMessagesState> {
     } on AppFailure catch (failure) {
       state = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
-        error: failure.message ?? 'Failed to load pinned messages.',
+        failure: failure,
       );
     } catch (e, st) {
       _reportUnexpectedError('load', e, st);
-      state = const PinnedMessagesState(
+      state = PinnedMessagesState(
         status: PinnedMessagesStatus.failure,
-        error: 'Failed to load pinned messages.',
+        failure: UnknownFailure(
+          message: e.toString(),
+          causeType: e.runtimeType.toString(),
+        ),
       );
     }
   }

@@ -96,7 +96,7 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         isLoading: state.status == AgentsStatus.loading ||
             state.status == AgentsStatus.initial,
         isFailure: state.status == AgentsStatus.failure,
-        failureMessage: state.failure?.message,
+        failureMessage: state.failure?.userMessage(context.l10n),
         onRetry: ref.read(agentsStoreProvider.notifier).retry,
         onEdit: agent == null || isBusy(agent.id) ? null : _editAgent,
         onDelete: agent == null || isBusy(agent.id) ? null : _deleteAgent,
@@ -141,7 +141,8 @@ class _AgentsPageState extends ConsumerState<AgentsPage> {
         AgentsStatus.loading =>
           const AppLoadingIndicator(),
         AgentsStatus.failure => _AgentsFailureView(
-            message: state.failure?.message ?? 'Failed to load agents.',
+            message: state.failure?.userMessage(context.l10n) ??
+                context.l10n.errorUnknown,
             onRetry: ref.read(agentsStoreProvider.notifier).retry,
           ),
         AgentsStatus.success when state.items.isEmpty => const EmptyStateWidget(

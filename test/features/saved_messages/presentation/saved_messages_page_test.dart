@@ -12,6 +12,7 @@ import 'package:slock_app/features/saved_messages/data/saved_message_item.dart'
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository.dart';
 import 'package:slock_app/features/saved_messages/data/saved_messages_repository_provider.dart';
 import 'package:slock_app/features/saved_messages/presentation/page/saved_messages_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 void main() {
   group('SavedMessagesPage', () {
@@ -475,13 +476,16 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const SavedMessagesPage(serverId: 'server-1'),
           ),
         ),
       );
       await tester.pump();
 
-      expect(find.text('Network error'), findsOneWidget);
+      expect(
+          find.text('Something went wrong. Please try again.'), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
     });
 

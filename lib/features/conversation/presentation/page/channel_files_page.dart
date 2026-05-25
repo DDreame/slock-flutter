@@ -8,6 +8,7 @@ import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/conversation/data/channel_files_repository.dart';
 import 'package:slock_app/features/conversation/data/channel_files_repository_provider.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Page that lists all files shared in a channel, sorted newest-first
 /// (INV-FILES-1). Tapping a file opens FilePreviewPage (INV-FILES-2).
@@ -72,13 +73,13 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
     } on AppFailure catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message ?? 'Failed to load files.';
+        _error = e.userMessage(context.l10n);
         _loading = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Failed to load files.';
+        _error = context.l10n.errorUnknown;
         _loading = false;
       });
     }
