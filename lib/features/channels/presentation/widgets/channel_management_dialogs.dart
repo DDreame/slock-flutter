@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class CreateChannelDialog extends StatefulWidget {
   const CreateChannelDialog({
@@ -36,25 +37,28 @@ class _CreateChannelDialogState extends State<CreateChannelDialog> {
     final name = _controller.text.trim();
     return AlertDialog(
       key: const ValueKey('create-channel-dialog'),
-      title: const Text('Create channel'),
+      title: Text(context.l10n.channelsDialogCreateTitle),
       content: TextField(
         key: const ValueKey('create-channel-name'),
         controller: _controller,
         enabled: !widget.isSubmitting,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Channel name'),
+        decoration: InputDecoration(
+            labelText: context.l10n.channelsDialogCreateNameLabel),
         onChanged: (_) => setState(() {}),
       ),
       actions: [
         TextButton(
           onPressed: widget.isSubmitting ? null : widget.onCancel,
-          child: const Text('Cancel'),
+          child: Text(context.l10n.channelsDialogCreateCancel),
         ),
         FilledButton(
           onPressed: widget.isSubmitting || name.isEmpty
               ? null
               : () => widget.onCreate(name),
-          child: Text(widget.isSubmitting ? 'Creating...' : 'Create'),
+          child: Text(widget.isSubmitting
+              ? context.l10n.channelsDialogCreateSubmitting
+              : context.l10n.channelsDialogCreateSubmit),
         ),
       ],
     );
@@ -100,25 +104,28 @@ class _EditChannelDialogState extends State<EditChannelDialog> {
     final canSave = name.isNotEmpty && name != widget.currentName;
     return AlertDialog(
       key: const ValueKey('edit-channel-dialog'),
-      title: const Text('Edit channel'),
+      title: Text(context.l10n.channelsDialogEditTitle),
       content: TextField(
         key: const ValueKey('edit-channel-name'),
         controller: _controller,
         enabled: !widget.isSubmitting,
         autofocus: true,
-        decoration: const InputDecoration(labelText: 'Channel name'),
+        decoration: InputDecoration(
+            labelText: context.l10n.channelsDialogEditNameLabel),
         onChanged: (_) => setState(() {}),
       ),
       actions: [
         TextButton(
           onPressed: widget.isSubmitting ? null : widget.onCancel,
-          child: const Text('Cancel'),
+          child: Text(context.l10n.channelsDialogEditCancel),
         ),
         FilledButton(
           onPressed: widget.isSubmitting || !canSave
               ? null
               : () => widget.onSave(name),
-          child: Text(widget.isSubmitting ? 'Saving...' : 'Save'),
+          child: Text(widget.isSubmitting
+              ? context.l10n.channelsDialogEditSubmitting
+              : context.l10n.channelsDialogEditSubmit),
         ),
       ],
     );
@@ -154,11 +161,13 @@ class ConfirmChannelActionDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: isSubmitting ? null : onCancel,
-          child: const Text('Cancel'),
+          child: Text(context.l10n.channelsDialogConfirmCancel),
         ),
         FilledButton(
           onPressed: isSubmitting ? null : onConfirm,
-          child: Text(isSubmitting ? 'Working...' : confirmLabel),
+          child: Text(isSubmitting
+              ? context.l10n.channelsDialogConfirmWorking
+              : confirmLabel),
         ),
       ],
     );

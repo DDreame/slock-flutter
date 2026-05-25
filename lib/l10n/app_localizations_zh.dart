@@ -1718,6 +1718,293 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelActionDelete => '删除频道';
 
   @override
+  String get channelsSortAlphabetical => '按字母排序';
+
+  @override
+  String get channelsSortRecent => '按最近活动排序';
+
+  @override
+  String get channelsMarkAllRead => '全部标记已读';
+
+  @override
+  String get channelsClearSearch => '清除搜索';
+
+  @override
+  String get channelsMarkedUnread => '已标记为未读';
+
+  @override
+  String get channelsCreateTitle => '新建频道';
+
+  @override
+  String get channelsCreateSectionName => '频道名称';
+
+  @override
+  String get channelsCreateNameHint => '频道名称';
+
+  @override
+  String get channelsCreateSectionDescription => '描述（可选）';
+
+  @override
+  String get channelsCreateDescriptionHint => '这个频道是关于什么的？';
+
+  @override
+  String get channelsCreateSectionVisibility => '可见性';
+
+  @override
+  String get channelsCreateSubmitting => '创建中...';
+
+  @override
+  String get channelsCreateSubmit => '创建频道';
+
+  @override
+  String get channelsCreateNoServer => '未选择活动服务器。';
+
+  @override
+  String get channelsCreateVisibilityPublic => '公开';
+
+  @override
+  String get channelsCreateVisibilityPublicSub => '所有人可见';
+
+  @override
+  String get channelsCreateVisibilityPrivate => '私密';
+
+  @override
+  String get channelsCreateVisibilityPrivateSub => '仅限邀请';
+
+  @override
+  String get channelsMembersTitle => '频道成员';
+
+  @override
+  String get channelsMembersRetry => '重试';
+
+  @override
+  String get channelsMembersEmpty => '此频道暂无成员。';
+
+  @override
+  String get channelsMembersTypeAgent => 'AI 代理';
+
+  @override
+  String get channelsMembersTypeHuman => '用户';
+
+  @override
+  String get channelsMembersMessageTooltip => '发送消息';
+
+  @override
+  String get channelsMembersRemoveTitle => '移除成员？';
+
+  @override
+  String channelsMembersRemoveMessage(String name) {
+    return '确定要将 $name 从此频道移除吗？';
+  }
+
+  @override
+  String get channelsMembersRemoveCancel => '取消';
+
+  @override
+  String get channelsMembersRemoveConfirm => '移除';
+
+  @override
+  String get channelsAddMemberTitle => '添加成员';
+
+  @override
+  String get channelsAddMemberTabHumans => '用户';
+
+  @override
+  String get channelsAddMemberTabAgents => 'AI 代理';
+
+  @override
+  String get channelsAddMemberClose => '关闭';
+
+  @override
+  String get channelsAddMemberNoHumans => '没有更多用户可添加。';
+
+  @override
+  String get channelsAddMemberNoAgents => '没有更多代理可添加。';
+
+  @override
+  String get channelsDialogCreateTitle => '创建频道';
+
+  @override
+  String get channelsDialogCreateNameLabel => '频道名称';
+
+  @override
+  String get channelsDialogCreateCancel => '取消';
+
+  @override
+  String get channelsDialogCreateSubmitting => '创建中...';
+
+  @override
+  String get channelsDialogCreateSubmit => '创建';
+
+  @override
+  String get channelsDialogEditTitle => '编辑频道';
+
+  @override
+  String get channelsDialogEditNameLabel => '频道名称';
+
+  @override
+  String get channelsDialogEditCancel => '取消';
+
+  @override
+  String get channelsDialogEditSubmitting => '保存中...';
+
+  @override
+  String get channelsDialogEditSubmit => '保存';
+
+  @override
+  String get channelsDialogConfirmCancel => '取消';
+
+  @override
+  String get channelsDialogConfirmWorking => '处理中...';
+
+  @override
+  String get serversInviteTitle => '加入工作区';
+
+  @override
+  String get serversInviteJoining => '正在加入工作区...';
+
+  @override
+  String get serversInviteFailedFallback => '加入工作区失败。';
+
+  @override
+  String get serversInviteRetry => '重试';
+
+  @override
+  String get serversInviteGoHome => '返回首页';
+
+  @override
+  String get serversInviteDescription => '您已被邀请加入一个工作区。';
+
+  @override
+  String get serversInviteAccept => '加入工作区';
+
+  @override
+  String get serversInviteCancel => '取消';
+
+  @override
+  String serversInviteSuccessNamed(String name) {
+    return '已加入 $name！';
+  }
+
+  @override
+  String get serversInviteSuccessGeneric => '已加入工作区！';
+
+  @override
+  String get serversInviteContinue => '继续';
+
+  @override
+  String get serversDialogCreateTitle => '创建工作区';
+
+  @override
+  String get serversDialogCreateNameLabel => '工作区名称';
+
+  @override
+  String get serversDialogCreateCancel => '取消';
+
+  @override
+  String get serversDialogCreateSubmit => '创建';
+
+  @override
+  String get serversDialogRenameTitle => '重命名工作区';
+
+  @override
+  String get serversDialogRenameNameLabel => '工作区名称';
+
+  @override
+  String get serversDialogRenameCancel => '取消';
+
+  @override
+  String get serversDialogRenameSubmit => '保存';
+
+  @override
+  String get serversDialogJoinTitle => '加入工作区';
+
+  @override
+  String get serversDialogJoinLabel => '邀请码或链接';
+
+  @override
+  String get serversDialogJoinHint => 'https://slock.ai/invite/token-123';
+
+  @override
+  String get serversDialogJoinCancel => '取消';
+
+  @override
+  String get serversDialogJoinSubmit => '加入';
+
+  @override
+  String get serversDialogConfirmCancel => '取消';
+
+  @override
+  String get serversSwitcherTitle => '切换工作区';
+
+  @override
+  String get serversSwitcherCreating => '创建中...';
+
+  @override
+  String get serversSwitcherCreateAction => '创建工作区';
+
+  @override
+  String get serversSwitcherJoining => '加入中...';
+
+  @override
+  String get serversSwitcherJoinAction => '加入工作区';
+
+  @override
+  String get serversSwitcherEmpty => '暂无可用工作区。';
+
+  @override
+  String get serversSwitcherSettings => '工作区设置';
+
+  @override
+  String get serversSwitcherCreatedSnackbar => '工作区已创建。';
+
+  @override
+  String get serversSwitcherJoinedSnackbar => '已加入工作区。';
+
+  @override
+  String get serversSwitcherDeleteTitle => '删除工作区？';
+
+  @override
+  String serversSwitcherDeleteMessage(String name) {
+    return '删除 $name？此操作将永久移除该工作区。';
+  }
+
+  @override
+  String get serversSwitcherDeleteConfirm => '删除';
+
+  @override
+  String get serversSwitcherDeletedSnackbar => '工作区已删除。';
+
+  @override
+  String get serversSwitcherLeaveTitle => '离开工作区？';
+
+  @override
+  String serversSwitcherLeaveMessage(String name) {
+    return '离开 $name？您稍后可通过新邀请重新加入。';
+  }
+
+  @override
+  String get serversSwitcherLeaveConfirm => '离开';
+
+  @override
+  String get serversSwitcherLeftSnackbar => '已离开工作区。';
+
+  @override
+  String get serversSwitcherRenamedSnackbar => '工作区已重命名。';
+
+  @override
+  String get serversSwitcherRowRename => '重命名';
+
+  @override
+  String get serversSwitcherRowDelete => '删除工作区';
+
+  @override
+  String get serversSwitcherRowLeave => '离开工作区';
+
+  @override
+  String get serversSwitcherRetry => '重试';
+
+  @override
   String get onboardingWelcomeTitle => '欢迎使用 Slock';
 
   @override

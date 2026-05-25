@@ -93,7 +93,7 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Channel Members'),
+        title: Text(context.l10n.channelsMembersTitle),
         actions: canManageMembers
             ? [
                 IconButton(
@@ -127,14 +127,14 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
               ElevatedButton(
                 onPressed: () =>
                     ref.read(channelMemberStoreProvider.notifier).retry(),
-                child: const Text('Retry'),
+                child: Text(context.l10n.channelsMembersRetry),
               ),
             ],
           ),
         );
       case ChannelMemberStatus.success:
         if (state.items.isEmpty) {
-          return const Center(child: Text('No members in this channel.'));
+          return Center(child: Text(context.l10n.channelsMembersEmpty));
         }
         final currentUserId =
             ref.watch(sessionStoreProvider.select((s) => s.userId));
@@ -184,20 +184,20 @@ class _ChannelMembersBodyState extends ConsumerState<_ChannelMembersBody> {
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
-              title: const Text('Remove Member?'),
+              title: Text(context.l10n.channelsMembersRemoveTitle),
               content: Text(
-                'Remove ${member.displayName} from this channel?',
+                context.l10n.channelsMembersRemoveMessage(member.displayName),
               ),
               actions: [
                 TextButton(
                   key: const ValueKey('channel-member-remove-cancel'),
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.channelsMembersRemoveCancel),
                 ),
                 FilledButton(
                   key: const ValueKey('channel-member-remove-confirm'),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Remove'),
+                  child: Text(context.l10n.channelsMembersRemoveConfirm),
                 ),
               ],
             );
@@ -288,7 +288,9 @@ class _MemberTile extends StatelessWidget {
             )
           : avatar,
       title: Text(member.displayName),
-      subtitle: Text(member.isAgent ? 'Agent' : 'Human'),
+      subtitle: Text(member.isAgent
+          ? context.l10n.channelsMembersTypeAgent
+          : context.l10n.channelsMembersTypeHuman),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -296,7 +298,7 @@ class _MemberTile extends StatelessWidget {
             IconButton(
               key: ValueKey('channel-member-message-${member.id}'),
               icon: const Icon(Icons.chat_bubble_outline),
-              tooltip: 'Message',
+              tooltip: context.l10n.channelsMembersMessageTooltip,
               onPressed: onMessage,
             ),
           if (canManageMembers)

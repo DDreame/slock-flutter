@@ -99,8 +99,8 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
                   : Icons.access_time,
             ),
             tooltip: sortPreference == ChannelSortPreference.recentActivity
-                ? 'Sort A-Z'
-                : 'Sort by recent',
+                ? l10n.channelsSortAlphabetical
+                : l10n.channelsSortRecent,
             onPressed: () {
               final notifier = ref.read(channelSortPreferenceProvider.notifier);
               notifier.setSortPreference(
@@ -114,7 +114,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             IconButton(
               key: const ValueKey('channels-tab-mark-all-read'),
               icon: const Icon(Icons.done_all),
-              tooltip: 'Mark all read',
+              tooltip: l10n.channelsMarkAllRead,
               onPressed: () {
                 ref.read(inboxStoreProvider.notifier).markAllRead();
               },
@@ -344,7 +344,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchQuery.isNotEmpty
               ? Tooltip(
-                  message: 'Clear search',
+                  message: l10n.channelsClearSearch,
                   child: IconButton(
                     key: const ValueKey('search-clear-button'),
                     icon: const Icon(Icons.clear),
@@ -449,7 +449,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
             channelName: channel.name,
           );
       if (!mounted) return;
-      showAppSnackBar(context, 'Marked as unread');
+      showAppSnackBar(context, context.l10n.channelsMarkedUnread);
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(

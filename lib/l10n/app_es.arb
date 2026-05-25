@@ -643,6 +643,127 @@
   "channelActionLeave": "Salir del canal",
   "channelActionDelete": "Eliminar canal",
 
+  "channelsSortAlphabetical": "Ordenar A-Z",
+  "channelsSortRecent": "Ordenar por reciente",
+  "channelsMarkAllRead": "Marcar todo como leído",
+  "channelsClearSearch": "Borrar búsqueda",
+  "channelsMarkedUnread": "Marcado como no leído",
+
+  "channelsCreateTitle": "Nuevo canal",
+  "channelsCreateSectionName": "NOMBRE DEL CANAL",
+  "channelsCreateNameHint": "nombre-del-canal",
+  "channelsCreateSectionDescription": "DESCRIPCIÓN (OPCIONAL)",
+  "channelsCreateDescriptionHint": "¿De qué trata este canal?",
+  "channelsCreateSectionVisibility": "VISIBILIDAD",
+  "channelsCreateSubmitting": "Creando...",
+  "channelsCreateSubmit": "Crear canal",
+  "channelsCreateNoServer": "No se ha seleccionado un servidor activo.",
+  "channelsCreateVisibilityPublic": "Público",
+  "channelsCreateVisibilityPublicSub": "Visible para todos",
+  "channelsCreateVisibilityPrivate": "Privado",
+  "channelsCreateVisibilityPrivateSub": "Solo por invitación",
+
+  "channelsMembersTitle": "Miembros del canal",
+  "channelsMembersRetry": "Reintentar",
+  "channelsMembersEmpty": "No hay miembros en este canal.",
+  "channelsMembersTypeAgent": "Agente",
+  "channelsMembersTypeHuman": "Humano",
+  "channelsMembersMessageTooltip": "Mensaje",
+  "channelsMembersRemoveTitle": "¿Eliminar miembro?",
+  "channelsMembersRemoveMessage": "¿Eliminar a {name} de este canal?",
+  "@channelsMembersRemoveMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "channelsMembersRemoveCancel": "Cancelar",
+  "channelsMembersRemoveConfirm": "Eliminar",
+
+  "channelsAddMemberTitle": "Añadir miembro",
+  "channelsAddMemberTabHumans": "Humanos",
+  "channelsAddMemberTabAgents": "Agentes",
+  "channelsAddMemberClose": "Cerrar",
+  "channelsAddMemberNoHumans": "No hay más humanos para añadir.",
+  "channelsAddMemberNoAgents": "No hay más agentes para añadir.",
+
+  "channelsDialogCreateTitle": "Crear canal",
+  "channelsDialogCreateNameLabel": "Nombre del canal",
+  "channelsDialogCreateCancel": "Cancelar",
+  "channelsDialogCreateSubmitting": "Creando...",
+  "channelsDialogCreateSubmit": "Crear",
+  "channelsDialogEditTitle": "Editar canal",
+  "channelsDialogEditNameLabel": "Nombre del canal",
+  "channelsDialogEditCancel": "Cancelar",
+  "channelsDialogEditSubmitting": "Guardando...",
+  "channelsDialogEditSubmit": "Guardar",
+  "channelsDialogConfirmCancel": "Cancelar",
+  "channelsDialogConfirmWorking": "Procesando...",
+
+  "serversInviteTitle": "Unirse al espacio de trabajo",
+  "serversInviteJoining": "Uniéndose al espacio de trabajo...",
+  "serversInviteFailedFallback": "Error al unirse al espacio de trabajo.",
+  "serversInviteRetry": "Reintentar",
+  "serversInviteGoHome": "Ir al inicio",
+  "serversInviteDescription": "Has sido invitado a unirte a un espacio de trabajo.",
+  "serversInviteAccept": "Unirse al espacio de trabajo",
+  "serversInviteCancel": "Cancelar",
+  "serversInviteSuccessNamed": "¡Te uniste a {name}!",
+  "@serversInviteSuccessNamed": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "serversInviteSuccessGeneric": "¡Te uniste al espacio de trabajo!",
+  "serversInviteContinue": "Continuar",
+
+  "serversDialogCreateTitle": "Crear espacio de trabajo",
+  "serversDialogCreateNameLabel": "Nombre del espacio de trabajo",
+  "serversDialogCreateCancel": "Cancelar",
+  "serversDialogCreateSubmit": "Crear",
+  "serversDialogRenameTitle": "Renombrar espacio de trabajo",
+  "serversDialogRenameNameLabel": "Nombre del espacio de trabajo",
+  "serversDialogRenameCancel": "Cancelar",
+  "serversDialogRenameSubmit": "Guardar",
+  "serversDialogJoinTitle": "Unirse al espacio de trabajo",
+  "serversDialogJoinLabel": "Código de invitación o enlace",
+  "serversDialogJoinHint": "https://slock.ai/invite/token-123",
+  "serversDialogJoinCancel": "Cancelar",
+  "serversDialogJoinSubmit": "Unirse",
+  "serversDialogConfirmCancel": "Cancelar",
+
+  "serversSwitcherTitle": "Cambiar espacio de trabajo",
+  "serversSwitcherCreating": "Creando...",
+  "serversSwitcherCreateAction": "Crear espacio de trabajo",
+  "serversSwitcherJoining": "Uniéndose...",
+  "serversSwitcherJoinAction": "Unirse al espacio de trabajo",
+  "serversSwitcherEmpty": "No hay espacios de trabajo disponibles.",
+  "serversSwitcherSettings": "Configuración del espacio de trabajo",
+  "serversSwitcherCreatedSnackbar": "Espacio de trabajo creado.",
+  "serversSwitcherJoinedSnackbar": "Te uniste al espacio de trabajo.",
+  "serversSwitcherDeleteTitle": "¿Eliminar espacio de trabajo?",
+  "serversSwitcherDeleteMessage": "¿Eliminar {name}? Esto eliminará permanentemente el espacio de trabajo.",
+  "@serversSwitcherDeleteMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "serversSwitcherDeleteConfirm": "Eliminar",
+  "serversSwitcherDeletedSnackbar": "Espacio de trabajo eliminado.",
+  "serversSwitcherLeaveTitle": "¿Salir del espacio de trabajo?",
+  "serversSwitcherLeaveMessage": "¿Salir de {name}? Puedes volver a unirte más tarde con una nueva invitación.",
+  "@serversSwitcherLeaveMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "serversSwitcherLeaveConfirm": "Salir",
+  "serversSwitcherLeftSnackbar": "Saliste del espacio de trabajo.",
+  "serversSwitcherRenamedSnackbar": "Espacio de trabajo renombrado.",
+  "serversSwitcherRowRename": "Renombrar",
+  "serversSwitcherRowDelete": "Eliminar espacio de trabajo",
+  "serversSwitcherRowLeave": "Salir del espacio de trabajo",
+  "serversSwitcherRetry": "Reintentar",
+
   "onboardingWelcomeTitle": "Bienvenido a Slock",
   "onboardingBack": "Atrás",
   "onboardingSkip": "Omitir",

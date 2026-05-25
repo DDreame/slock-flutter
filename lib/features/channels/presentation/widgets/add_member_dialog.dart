@@ -85,17 +85,17 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
     return DefaultTabController(
       length: 2,
       child: AlertDialog(
-        title: const Text('Add Member'),
+        title: Text(context.l10n.channelsAddMemberTitle),
         contentPadding: EdgeInsets.zero,
         content: SizedBox(
           width: double.maxFinite,
           height: 400,
           child: Column(
             children: [
-              const TabBar(
+              TabBar(
                 tabs: [
-                  Tab(text: 'Humans'),
-                  Tab(text: 'Agents'),
+                  Tab(text: context.l10n.channelsAddMemberTabHumans),
+                  Tab(text: context.l10n.channelsAddMemberTabAgents),
                 ],
               ),
               Expanded(
@@ -112,7 +112,7 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(_added),
-            child: const Text('Close'),
+            child: Text(context.l10n.channelsAddMemberClose),
           ),
         ],
       ),
@@ -137,7 +137,7 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
         .where((m) => !_existingUserIds.contains(m.id))
         .toList();
     if (candidates.isEmpty) {
-      return const Center(child: Text('No more humans to add.'));
+      return Center(child: Text(context.l10n.channelsAddMemberNoHumans));
     }
     return ListView.builder(
       itemCount: candidates.length,
@@ -170,7 +170,7 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
         .where((a) => !_existingAgentIds.contains(a.id))
         .toList();
     if (candidates.isEmpty) {
-      return const Center(child: Text('No more agents to add.'));
+      return Center(child: Text(context.l10n.channelsAddMemberNoAgents));
     }
     return ListView.builder(
       itemCount: candidates.length,

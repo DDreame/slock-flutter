@@ -56,7 +56,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
-              'Switch workspace',
+              context.l10n.serversSwitcherTitle,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
@@ -71,7 +71,9 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
                   onPressed: isCreating ? null : _showCreateServerDialog,
                   icon: const Icon(Icons.add_circle_outline),
                   label: Text(
-                    isCreating ? 'Creating...' : 'Create workspace',
+                    isCreating
+                        ? context.l10n.serversSwitcherCreating
+                        : context.l10n.serversSwitcherCreateAction,
                   ),
                 ),
                 OutlinedButton.icon(
@@ -79,7 +81,9 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
                   onPressed: isJoiningInvite ? null : _showJoinServerDialog,
                   icon: const Icon(Icons.group_add_outlined),
                   label: Text(
-                    isJoiningInvite ? 'Joining...' : 'Join workspace',
+                    isJoiningInvite
+                        ? context.l10n.serversSwitcherJoining
+                        : context.l10n.serversSwitcherJoinAction,
                   ),
                 ),
               ],
@@ -98,9 +102,9 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
                     context.l10n.errorUnknown,
                 onRetry: ref.read(serverListStoreProvider.notifier).retry,
               ),
-            ServerListStatus.success when servers.isEmpty => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: Text('No workspaces available.')),
+            ServerListStatus.success when servers.isEmpty => Padding(
+                padding: const EdgeInsets.all(24),
+                child: Center(child: Text(context.l10n.serversSwitcherEmpty)),
               ),
             ServerListStatus.success => Flexible(
                 child: _ServerList(
@@ -118,7 +122,7 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
             ListTile(
               key: const ValueKey('server-switcher-settings'),
               leading: const Icon(Icons.settings_outlined),
-              title: const Text('Workspace Settings'),
+              title: Text(context.l10n.serversSwitcherSettings),
               onTap: () {
                 Navigator.of(context).pop();
                 context.push(
@@ -158,7 +162,8 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Workspace created.')));
+      ).showSnackBar(
+          SnackBar(content: Text(context.l10n.serversSwitcherCreatedSnackbar)));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
       if (!mounted) return;
@@ -182,7 +187,8 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Workspace joined.')));
+      ).showSnackBar(
+          SnackBar(content: Text(context.l10n.serversSwitcherJoinedSnackbar)));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
       if (!mounted) return;
@@ -208,7 +214,8 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Workspace renamed.')));
+      ).showSnackBar(
+          SnackBar(content: Text(context.l10n.serversSwitcherRenamedSnackbar)));
     } on AppFailure catch (failure) {
       if (!mounted) return;
       _showFailureSnackBar(failure.userMessage(context.l10n));
@@ -216,13 +223,13 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
   }
 
   Future<void> _deleteServer(ServerSummary server) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (_) => ConfirmServerActionDialog(
-            title: 'Delete workspace?',
-            message:
-                'Delete ${server.name}? This permanently removes the workspace.',
-            confirmLabel: 'Delete',
+            title: l10n.serversSwitcherDeleteTitle,
+            message: l10n.serversSwitcherDeleteMessage(server.name),
+            confirmLabel: l10n.serversSwitcherDeleteConfirm,
             confirmKey: const ValueKey('delete-server-confirm'),
           ),
         ) ??
@@ -238,7 +245,8 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Workspace deleted.')));
+      ).showSnackBar(
+          SnackBar(content: Text(context.l10n.serversSwitcherDeletedSnackbar)));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
       if (!mounted) return;
@@ -247,13 +255,13 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
   }
 
   Future<void> _leaveServer(ServerSummary server) async {
+    final l10n = context.l10n;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (_) => ConfirmServerActionDialog(
-            title: 'Leave workspace?',
-            message:
-                'Leave ${server.name}? You can rejoin later with a new invite.',
-            confirmLabel: 'Leave',
+            title: l10n.serversSwitcherLeaveTitle,
+            message: l10n.serversSwitcherLeaveMessage(server.name),
+            confirmLabel: l10n.serversSwitcherLeaveConfirm,
             confirmKey: const ValueKey('leave-server-confirm'),
           ),
         ) ??
@@ -269,7 +277,8 @@ class _ServerSwitcherSheetState extends ConsumerState<ServerSwitcherSheet> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Workspace left.')));
+      ).showSnackBar(
+          SnackBar(content: Text(context.l10n.serversSwitcherLeftSnackbar)));
       Navigator.of(context).pop();
     } on AppFailure catch (failure) {
       if (!mounted) return;
@@ -347,10 +356,11 @@ class _ServerList extends ConsumerWidget {
                     }
                   },
                   itemBuilder: (context) {
+                    final l10n = context.l10n;
                     return [
-                      const PopupMenuItem<_ServerRowAction>(
+                      PopupMenuItem<_ServerRowAction>(
                         value: _ServerRowAction.rename,
-                        child: Text('Rename'),
+                        child: Text(l10n.serversSwitcherRowRename),
                       ),
                       PopupMenuItem<_ServerRowAction>(
                         value: server.isOwner
@@ -358,8 +368,8 @@ class _ServerList extends ConsumerWidget {
                             : _ServerRowAction.leave,
                         child: Text(
                           server.isOwner
-                              ? 'Delete workspace'
-                              : 'Leave workspace',
+                              ? l10n.serversSwitcherRowDelete
+                              : l10n.serversSwitcherRowLeave,
                         ),
                       ),
                     ];
@@ -392,7 +402,9 @@ class _ServerListError extends StatelessWidget {
         children: [
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          FilledButton(onPressed: onRetry, child: const Text('Retry')),
+          FilledButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.serversSwitcherRetry)),
         ],
       ),
     );
