@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:slock_app/app/widgets/app_loading_indicator.dart';
 import 'package:slock_app/app/widgets/friendly_error_state.dart';
 import 'package:slock_app/core/errors/app_failure.dart';
@@ -122,16 +123,12 @@ class _InfoSection extends StatelessWidget {
           if (server.createdAt != null)
             _InfoRow(
               label: l10n.workspaceSettingsCreatedLabel,
-              value: _formatDate(server.createdAt!),
+              value:
+                  DateFormat.yMMMd(l10n.localeName).format(server.createdAt!),
             ),
         ],
       ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}'
-        '-${date.day.toString().padLeft(2, '0')}';
   }
 }
 
