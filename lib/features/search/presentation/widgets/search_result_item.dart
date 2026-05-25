@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:slock_app/core/utils/time_format.dart';
-import 'package:slock_app/features/home/application/home_now_provider.dart';
+import 'package:slock_app/app/widgets/relative_time_text.dart';
 import 'package:slock_app/features/search/data/search_repository.dart';
 
-class SearchResultItem extends ConsumerWidget {
+class SearchResultItem extends StatelessWidget {
   const SearchResultItem({
     super.key,
     required this.result,
@@ -17,11 +15,9 @@ class SearchResultItem extends ConsumerWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final message = result.message;
-    // #657: Watch refreshing time provider so timestamps stay live.
-    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     return InkWell(
       key: ValueKey('search-result-${message.id}'),
@@ -56,8 +52,8 @@ class SearchResultItem extends ConsumerWidget {
                     style: theme.textTheme.labelMedium,
                   ),
                 ),
-                Text(
-                  formatRelativeTime(message.createdAt, now: now),
+                RelativeTimeText(
+                  time: message.createdAt,
                   style: theme.textTheme.bodySmall,
                 ),
               ],

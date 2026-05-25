@@ -30,6 +30,7 @@ import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/translation/data/translation_repository.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
@@ -635,6 +636,7 @@ void main() {
       overrides: [
         conversationRepositoryProvider.overrideWithValue(repository),
         realtimeSocketClientProvider.overrideWithValue(socket),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
     addTearDown(container.dispose);
@@ -718,6 +720,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         conversationRepositoryProvider.overrideWithValue(repository),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
     addTearDown(container.dispose);
@@ -825,6 +828,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         conversationRepositoryProvider.overrideWithValue(repository),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
     addTearDown(container.dispose);
@@ -1570,6 +1574,7 @@ void main() {
         sessionStoreProvider.overrideWith(
           () => _FixedSessionStore(const SessionState()),
         ),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
 
@@ -1721,6 +1726,8 @@ void main() {
               sessionStoreProvider.overrideWith(
                 () => _FixedSessionStore(const SessionState()),
               ),
+              homeNowProvider
+                  .overrideWith((ref) => Stream.value(DateTime.now())),
             ],
           ),
           child: MaterialApp(
@@ -1815,6 +1822,8 @@ void main() {
                   'recording.m4a': [0.3, 0.5, 0.8, 0.6, 0.4, 0.7, 0.9, 0.2],
                 }),
               ),
+              homeNowProvider
+                  .overrideWith((ref) => Stream.value(DateTime.now())),
             ],
           ),
           child: MaterialApp(
@@ -1871,6 +1880,7 @@ void main() {
       overrides: [
         conversationRepositoryProvider.overrideWithValue(repository),
         realtimeSocketClientProvider.overrideWithValue(socket),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
     addTearDown(container.dispose);
@@ -1971,6 +1981,7 @@ void main() {
           sessionStoreProvider.overrideWith(
             () => _FixedSessionStore(const SessionState()),
           ),
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
         ],
         child: MaterialApp.router(
           routerConfig: _testGoRouter(
@@ -2039,6 +2050,7 @@ void main() {
           sessionStoreProvider.overrideWith(
             () => _FixedSessionStore(const SessionState()),
           ),
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
         ],
         child: MaterialApp.router(
           routerConfig: _testGoRouter(
@@ -2082,6 +2094,7 @@ Widget _buildApp({
       sessionStoreProvider.overrideWith(
         () => _FixedSessionStore(sessionState),
       ),
+      homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       if (prefs != null) sharedPreferencesProvider.overrideWithValue(prefs),
     ],
     child: MaterialApp.router(

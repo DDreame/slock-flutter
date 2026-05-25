@@ -15,6 +15,7 @@ import 'package:slock_app/features/threads/application/known_thread_channel_ids_
 import 'package:slock_app/features/threads/application/thread_route.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/data/thread_repository_provider.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/threads/presentation/page/thread_replies_page.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
@@ -96,6 +97,7 @@ void main() {
       overrides: [
         threadRepositoryProvider.overrideWithValue(threadRepository),
         realtimeSocketClientProvider.overrideWithValue(socket),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
     addTearDown(() async {
@@ -252,6 +254,7 @@ void main() {
         threadRepositoryProvider.overrideWithValue(threadRepository),
         conversationRepositoryProvider
             .overrideWithValue(conversationRepository),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
     addTearDown(container.dispose);
@@ -337,6 +340,7 @@ void main() {
           threadRepositoryProvider.overrideWithValue(threadRepository),
           conversationRepositoryProvider
               .overrideWithValue(conversationRepository),
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
         ],
         child: MaterialApp.router(
           routerConfig: router,
@@ -398,6 +402,7 @@ void main() {
         conversationRepositoryProvider
             .overrideWithValue(conversationRepository),
         realtimeSocketClientProvider.overrideWithValue(socket),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
     addTearDown(() async {
@@ -516,6 +521,7 @@ Widget _buildApp({
         if (conversationRepository != null)
           conversationRepositoryProvider
               .overrideWithValue(conversationRepository),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
       child: MaterialApp(
         theme: AppTheme.light,

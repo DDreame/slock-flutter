@@ -22,6 +22,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/home/data/home_repository_provider.dart';
 import 'package:slock_app/features/home/data/sidebar_order.dart';
 import 'package:slock_app/features/home/data/sidebar_order_repository.dart';
+import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
@@ -82,6 +83,7 @@ void main() {
             displayName: 'Test User',
           )),
         ),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
       child: MaterialApp.router(
         routerConfig: router,
@@ -267,6 +269,7 @@ void main() {
               displayName: 'Test User',
             )),
           ),
+          homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
         ],
       );
       addTearDown(container.dispose);

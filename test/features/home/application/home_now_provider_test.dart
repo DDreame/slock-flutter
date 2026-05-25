@@ -14,18 +14,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 
-class _DisposeObserver extends ProviderObserver {
-  final disposedProviders = <ProviderBase<Object?>>[];
-
-  @override
-  void didDisposeProvider(
-    ProviderBase<Object?> provider,
-    ProviderContainer container,
-  ) {
-    disposedProviders.add(provider);
-  }
-}
-
 void main() {
   // ---------------------------------------------------------------------------
   // INV-NOW-STREAM-1: provider emits updated values over time
@@ -106,9 +94,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(container.read(homeNowProvider).value, fixedTime);
     });
-    test('autoDispose releases stream when unwatched', () async {
-      final observer = _DisposeObserver();
-      final container = ProviderContainer(observers: [observer]);
+    test('non-autoDispose provider persists after watchers removed', () async {
+      final container = ProviderContainer();
       addTearDown(container.dispose);
 
       final sub = container.listen(homeNowProvider, (_, __) {});
@@ -118,7 +105,8 @@ void main() {
       sub.close();
       await Future<void>.delayed(Duration.zero);
 
-      expect(observer.disposedProviders, contains(homeNowProvider));
+      // Provider still alive — value is still accessible.
+      expect(container.read(homeNowProvider).value, isA<DateTime>());
     });
   });
 

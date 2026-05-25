@@ -456,7 +456,6 @@ class _HomeTasksSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     // Memoized filtered+sorted+sliced task list from provider.
     final visibleTasks = ref.watch(homeTaskSectionProvider);
@@ -493,7 +492,6 @@ class _HomeTasksSection extends ConsumerWidget {
                       _TaskItemRow(
                         key: ValueKey('task-item-${task.taskId}'),
                         task: task,
-                        now: now,
                       ),
                     if (overflowCount > 0)
                       Padding(
@@ -589,11 +587,9 @@ class _TaskItemRow extends StatelessWidget {
   const _TaskItemRow({
     super.key,
     required this.task,
-    required this.now,
   });
 
   final HomeTaskItem task;
-  final DateTime now;
 
   @override
   Widget build(BuildContext context) {
@@ -659,9 +655,8 @@ class _TaskItemRow extends StatelessWidget {
               padding: const EdgeInsets.only(
                 right: AppSpacing.xs,
               ),
-              child: _DurationChip(
-                duration: now.difference(task.claimedAt!),
-                l10n: l10n,
+              child: _LiveDurationChip(
+                claimedAt: task.claimedAt!,
               ),
             ),
           _TaskStatusChip(
@@ -673,6 +668,24 @@ class _TaskItemRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Leaf ConsumerWidget that watches [homeNowProvider] to compute live duration.
+/// Isolates the 60s tick rebuild to just this chip, not the entire task row.
+class _LiveDurationChip extends ConsumerWidget {
+  const _LiveDurationChip({required this.claimedAt});
+
+  final DateTime claimedAt;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
+    final l10n = context.l10n;
+    return _DurationChip(
+      duration: now.difference(claimedAt),
+      l10n: l10n,
     );
   }
 }
@@ -846,7 +859,6 @@ class _InboxUnreadListContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
 
     final visible = unreadItems.take(_maxVisibleUnreads).toList();
     final overflowCount = unreadItems.length - visible.length;
@@ -858,7 +870,6 @@ class _InboxUnreadListContent extends ConsumerWidget {
           _UnreadItemRow(
             key: ValueKey('unread-item-$i'),
             item: visible[i],
-            now: now,
           ),
         if (overflowCount > 0)
           GestureDetector(
@@ -913,11 +924,9 @@ class _UnreadItemRow extends ConsumerWidget {
   const _UnreadItemRow({
     super.key,
     required this.item,
-    required this.now,
   });
 
   final ConversationProjection item;
-  final DateTime now;
 
   /// Z2-style type glyph and theme-safe badge color per kind.
   /// Colors: THREAD=purple(primary), CHANNEL=teal, DM=blue.
@@ -1042,7 +1051,6 @@ class _UnreadItemRow extends ConsumerWidget {
                           const SizedBox(width: 4),
                           _TimeAgoLabel(
                             time: item.lastActivityAt!,
-                            now: now,
                           ),
                         ],
                       ],
@@ -1121,19 +1129,18 @@ class _UnreadItemRow extends ConsumerWidget {
   }
 }
 
-class _TimeAgoLabel extends StatelessWidget {
+class _TimeAgoLabel extends ConsumerWidget {
   const _TimeAgoLabel({
     required this.time,
-    required this.now,
   });
 
   final DateTime time;
-  final DateTime now;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
+    final now = ref.watch(homeNowProvider).value ?? DateTime.now();
     final diff = now.difference(time);
 
     final String text;
