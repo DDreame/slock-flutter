@@ -65,7 +65,7 @@ void main() {
       final homeStore = _ControllableHomeListStore(HomeListState(
         status: HomeListStatus.success,
         channels: [
-          HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
+          const HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
         ],
       ));
       final inboxStore = _ControllableInboxStore(const InboxState(
@@ -145,7 +145,7 @@ void main() {
       final homeStore = _ControllableHomeListStore(HomeListState(
         status: HomeListStatus.success,
         channels: [
-          HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
+          const HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
         ],
       ));
       final inboxStore = _ControllableInboxStore(const InboxState(
@@ -281,7 +281,7 @@ void main() {
       homeStore.setState(HomeListState(
         status: HomeListStatus.success,
         channels: [
-          HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
+          const HomeChannelSummary(scopeId: channelGeneral, name: 'general'),
         ],
       ));
 

@@ -92,7 +92,7 @@ HomeListState _defaultHomeState() => HomeListState(
       serverScopeId: _testServerScope,
       status: HomeListStatus.success,
       channels: [
-        HomeChannelSummary(
+        const HomeChannelSummary(
           scopeId: ChannelScopeId(
             serverId: _testServerScope,
             value: 'ch-1',
@@ -101,7 +101,7 @@ HomeListState _defaultHomeState() => HomeListState(
         ),
       ],
       directMessages: [
-        HomeDirectMessageSummary(
+        const HomeDirectMessageSummary(
           scopeId: DirectMessageScopeId(
             serverId: _testServerScope,
             value: 'dm-1',
@@ -260,7 +260,7 @@ void main() {
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           threadItems: [
-            ThreadInboxItem(
+            const ThreadInboxItem(
               routeTarget: ThreadRouteTarget(
                 serverId: _testServerId,
                 parentChannelId: 'parent-ch-1',
@@ -495,7 +495,7 @@ void main() {
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           threadItems: [
-            ThreadInboxItem(
+            const ThreadInboxItem(
               routeTarget: ThreadRouteTarget(
                 serverId: _testServerId,
                 parentChannelId: 'parent-ch-1',
@@ -695,7 +695,7 @@ void main() {
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           pinnedChannels: [
-            HomeChannelSummary(
+            const HomeChannelSummary(
               scopeId: ChannelScopeId(
                 serverId: _testServerScope,
                 value: 'pinned-ch',
@@ -728,7 +728,7 @@ void main() {
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           hiddenDirectMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: DirectMessageScopeId(
                 serverId: _testServerScope,
                 value: 'hidden-dm',
@@ -760,7 +760,7 @@ void main() {
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           pinnedDirectMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: DirectMessageScopeId(
                 serverId: _testServerScope,
                 value: 'pinned-dm',

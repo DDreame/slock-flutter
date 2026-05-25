@@ -219,7 +219,7 @@ void main() {
             initialState: HomeListState(
               status: HomeListStatus.success,
               directMessages: [
-                HomeDirectMessageSummary(
+                const HomeDirectMessageSummary(
                   scopeId: dmScopeId,
                   title: 'Alice',
                   peerId: 'user-alice',
