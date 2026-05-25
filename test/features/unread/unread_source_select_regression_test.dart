@@ -42,7 +42,7 @@ void main() {
     value: 'dm-1',
   );
 
-  final baseSource = UnreadSourceProjection(
+  const baseSource = UnreadSourceProjection(
     kind: ConversationProjectionKind.channel,
     id: 'channel:general',
     title: '#general',
@@ -244,7 +244,7 @@ void main() {
       );
 
       // Add a new source — list reference changes.
-      final newSource = UnreadSourceProjection(
+      const newSource = UnreadSourceProjection(
         kind: ConversationProjectionKind.dm,
         id: 'dm:dm-1',
         title: 'Alice',
