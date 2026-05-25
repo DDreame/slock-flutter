@@ -12,6 +12,7 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #510: Projection SWR filter-switch 盲区修复 — Phase A (test-only)
@@ -234,6 +235,8 @@ Widget _buildInboxApp(InboxRepository repo, {ThemeData? theme}) {
     ],
     child: MaterialApp(
       theme: theme ?? AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const InboxPage(),
     ),
   );

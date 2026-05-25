@@ -61,13 +61,13 @@ class _TranslationSettingsPageState
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Translation')),
+      appBar: AppBar(title: Text(context.l10n.settingsTranslationPageTitle)),
       body: !hasServer
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
                 child: Text(
-                  'No active workspace. Translation settings are workspace-level.',
+                  context.l10n.settingsTranslationNoActiveWorkspace,
                   key: const ValueKey('translation-no-server'),
                   style:
                       AppTypography.body.copyWith(color: colors.textSecondary),
@@ -94,7 +94,7 @@ class _TranslationSettingsPageState
                             onPressed: () => ref
                                 .read(translationSettingsStoreProvider.notifier)
                                 .load(),
-                            child: const Text('Retry'),
+                            child: Text(context.l10n.settingsTranslationRetry),
                           ),
                         ],
                       ),
@@ -123,7 +123,7 @@ class _SettingsBody extends ConsumerWidget {
       children: [
         // — Translation Mode —
         Text(
-          'Translation Mode',
+          context.l10n.settingsTranslationSectionMode,
           key: const ValueKey('translation-section-mode'),
           style: AppTypography.title.copyWith(color: colors.text),
         ),
@@ -153,7 +153,7 @@ class _SettingsBody extends ConsumerWidget {
 
         // — Preferred Language —
         Text(
-          'Preferred Language',
+          context.l10n.settingsTranslationSectionLanguage,
           key: const ValueKey('translation-section-language'),
           style: AppTypography.title.copyWith(color: colors.text),
         ),
@@ -192,6 +192,7 @@ class _TranslationModeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -213,12 +214,12 @@ class _TranslationModeTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _titleForMode(mode),
+                    _titleForMode(mode, l10n),
                     style: AppTypography.body.copyWith(color: colors.text),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _descriptionForMode(mode),
+                    _descriptionForMode(mode, l10n),
                     style: AppTypography.caption.copyWith(
                       color: colors.textSecondary,
                     ),
@@ -244,21 +245,20 @@ class _TranslationModeTile extends StatelessWidget {
     };
   }
 
-  static String _titleForMode(TranslationMode mode) {
+  static String _titleForMode(TranslationMode mode, AppLocalizations l10n) {
     return switch (mode) {
-      TranslationMode.auto => 'Automatic',
-      TranslationMode.manual => 'Manual',
-      TranslationMode.off => 'Off',
+      TranslationMode.auto => l10n.settingsTranslationModeAutoTitle,
+      TranslationMode.manual => l10n.settingsTranslationModeManualTitle,
+      TranslationMode.off => l10n.settingsTranslationModeOffTitle,
     };
   }
 
-  static String _descriptionForMode(TranslationMode mode) {
+  static String _descriptionForMode(
+      TranslationMode mode, AppLocalizations l10n) {
     return switch (mode) {
-      TranslationMode.auto =>
-        'Automatically translate messages when entering a conversation',
-      TranslationMode.manual =>
-        'Translate only when you tap the translate button',
-      TranslationMode.off => 'Translation is disabled',
+      TranslationMode.auto => l10n.settingsTranslationModeAutoDescription,
+      TranslationMode.manual => l10n.settingsTranslationModeManualDescription,
+      TranslationMode.off => l10n.settingsTranslationModeOffDescription,
     };
   }
 }

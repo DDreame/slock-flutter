@@ -43,18 +43,18 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     if (!mounted) return;
     final state = ref.read(profileEditStoreProvider);
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
     if (state.status == ProfileEditStatus.success) {
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Profile updated.')));
+        ..showSnackBar(SnackBar(content: Text(l10n.profileEditSnackbarSaved)));
       if (context.canPop()) context.pop();
     } else if (state.failure != null) {
       // Surface partial success when avatar was committed but profile
       // PATCH failed — user should know retry won't re-upload (#799).
       final message = state.avatarCommitted
-          ? 'Avatar updated. Profile save failed — tap Save to retry.'
-          : (state.failure?.userMessage(context.l10n) ??
-              context.l10n.errorUnknown);
+          ? l10n.profileEditSnackbarAvatarSavedProfileFailed
+          : (state.failure?.userMessage(l10n) ?? l10n.errorUnknown);
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(message)));
@@ -68,7 +68,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(context.l10n.profileEditTitle),
         actions: [
           TextButton(
             key: const ValueKey('profile-edit-save'),
@@ -80,7 +80,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save'),
+                : Text(context.l10n.profileEditSave),
           ),
         ],
       ),
@@ -101,7 +101,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                   if (state.selectedAvatarPath != null) ...[
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      'New avatar selected',
+                      context.l10n.profileEditNewAvatarSelected,
                       key: const ValueKey('profile-edit-avatar-selected'),
                       style: AppTypography.bodySmall.copyWith(
                         color: colors.textSecondary,
@@ -117,7 +117,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                             .read(profileEditStoreProvider.notifier)
                             .pickAvatar(),
                     icon: const Icon(Icons.camera_alt_outlined),
-                    label: const Text('Change avatar'),
+                    label: Text(context.l10n.profileEditChangeAvatar),
                   ),
                 ],
               ),
@@ -128,7 +128,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Profile details',
+                    context.l10n.profileEditSectionDetails,
                     style: AppTypography.title.copyWith(color: colors.text),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -136,8 +136,8 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                     key: const ValueKey('profile-edit-display-name'),
                     controller: _displayNameController,
                     enabled: !state.isSaving,
-                    decoration: const InputDecoration(
-                      labelText: 'Display name',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.profileEditDisplayNameLabel,
                     ),
                     textInputAction: TextInputAction.next,
                     onChanged: ref
@@ -145,7 +145,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                         .setDisplayName,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Display name is required.';
+                        return context.l10n.profileEditDisplayNameRequired;
                       }
                       return null;
                     },
@@ -155,8 +155,8 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                     key: const ValueKey('profile-edit-bio'),
                     controller: _bioController,
                     enabled: !state.isSaving,
-                    decoration: const InputDecoration(
-                      labelText: 'Bio / status',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.profileEditBioLabel,
                       alignLabelWithHint: true,
                     ),
                     maxLines: 4,

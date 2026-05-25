@@ -903,6 +903,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notificationSettingsDeviceNotRegistered => '设备注册暂不可用。';
 
   @override
+  String get notificationSettingsDateRecently => '最近';
+
+  @override
   String get notificationSettingsResultGranted => '通知访问已授权，设备注册已刷新。';
 
   @override
@@ -2232,4 +2235,273 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get agentsFormConfiguredDefault => '使用配置默认值';
+
+  @override
+  String get profileEditTitle => '编辑资料';
+
+  @override
+  String get profileEditSave => '保存';
+
+  @override
+  String get profileEditSnackbarSaved => '资料已更新。';
+
+  @override
+  String get profileEditSnackbarAvatarSavedProfileFailed =>
+      '头像已更新。资料保存失败——点击保存重试。';
+
+  @override
+  String get profileEditNewAvatarSelected => '已选择新头像';
+
+  @override
+  String get profileEditChangeAvatar => '更换头像';
+
+  @override
+  String get profileEditSectionDetails => '资料详情';
+
+  @override
+  String get profileEditDisplayNameLabel => '显示名称';
+
+  @override
+  String get profileEditDisplayNameRequired => '显示名称为必填项。';
+
+  @override
+  String get profileEditBioLabel => '简介 / 状态';
+
+  @override
+  String get profileTitleSelf => '我的资料';
+
+  @override
+  String get profileTitle => '个人资料';
+
+  @override
+  String get profileRetry => '重试';
+
+  @override
+  String get profileNotAvailable => '资料不可用。';
+
+  @override
+  String get profileLabelUserId => '用户 ID';
+
+  @override
+  String get profileLabelUsername => '用户名';
+
+  @override
+  String get profileLabelEmail => '邮箱';
+
+  @override
+  String get profileLabelRole => '角色';
+
+  @override
+  String get profileLabelMemberSince => '加入时间';
+
+  @override
+  String get profileEditComingSoon => '资料编辑功能即将上线';
+
+  @override
+  String get profileEditButton => '编辑资料';
+
+  @override
+  String get profileThisIsYou => '这是你';
+
+  @override
+  String get profileMessageButton => '发消息';
+
+  @override
+  String profileDateFormat(String month, int day, int year) {
+    return '$year年$month$day日';
+  }
+
+  @override
+  String get profileMonthJan => '1月';
+
+  @override
+  String get profileMonthFeb => '2月';
+
+  @override
+  String get profileMonthMar => '3月';
+
+  @override
+  String get profileMonthApr => '4月';
+
+  @override
+  String get profileMonthMay => '5月';
+
+  @override
+  String get profileMonthJun => '6月';
+
+  @override
+  String get profileMonthJul => '7月';
+
+  @override
+  String get profileMonthAug => '8月';
+
+  @override
+  String get profileMonthSep => '9月';
+
+  @override
+  String get profileMonthOct => '10月';
+
+  @override
+  String get profileMonthNov => '11月';
+
+  @override
+  String get profileMonthDec => '12月';
+
+  @override
+  String get settingsEditProfileTitle => '编辑资料';
+
+  @override
+  String get settingsEditProfileSubtitle => '更新显示名称、简介和头像';
+
+  @override
+  String get inboxTitle => '收件箱';
+
+  @override
+  String get inboxMarkAllReadTooltip => '全部标记已读';
+
+  @override
+  String get inboxLoadFailed => '加载收件箱失败';
+
+  @override
+  String get inboxRetry => '重试';
+
+  @override
+  String get inboxEmptyTitle => '全部已读！';
+
+  @override
+  String get inboxEmptySubtitle => '收件箱中没有消息';
+
+  @override
+  String get inboxActionMarkRead => '标为已读';
+
+  @override
+  String get inboxSwipeLabelRead => '已读';
+
+  @override
+  String get inboxFilterUnread => '未读';
+
+  @override
+  String get inboxFilterMentions => '@提及';
+
+  @override
+  String get inboxFilterDms => '私信';
+
+  @override
+  String get inboxFilterAll => '全部';
+
+  @override
+  String get inboxMentionBadge => '@你';
+
+  @override
+  String get inboxTimeNow => '刚刚';
+
+  @override
+  String inboxTimeMinutes(int count) {
+    return '$count分钟';
+  }
+
+  @override
+  String inboxTimeHours(int count) {
+    return '$count小时';
+  }
+
+  @override
+  String inboxTimeDays(int count) {
+    return '$count天';
+  }
+
+  @override
+  String get inboxUnreadCountOverflow => '99+';
+
+  @override
+  String get settingsAppearanceTitle => '外观';
+
+  @override
+  String get settingsAppearanceThemeSection => '主题';
+
+  @override
+  String get settingsThemeSystemTitle => '跟随系统';
+
+  @override
+  String get settingsThemeSystemDescription => '使用设备主题设置。';
+
+  @override
+  String get settingsThemeLightTitle => '浅色';
+
+  @override
+  String get settingsThemeLightDescription => '始终使用浅色主题。';
+
+  @override
+  String get settingsThemeDarkTitle => '深色';
+
+  @override
+  String get settingsThemeDarkDescription => '始终使用深色主题。';
+
+  @override
+  String get settingsDiagnosticsPageTitle => '诊断';
+
+  @override
+  String settingsDiagnosticsEntryCount(int count) {
+    return '$count 条记录';
+  }
+
+  @override
+  String get settingsDiagnosticsFilterAll => '全部';
+
+  @override
+  String get settingsDiagnosticsFilterInfo => '信息';
+
+  @override
+  String get settingsDiagnosticsFilterWarning => '警告';
+
+  @override
+  String get settingsDiagnosticsFilterError => '错误';
+
+  @override
+  String get settingsDiagnosticsEmpty => '没有诊断记录';
+
+  @override
+  String get settingsDiagnosticsWorkerLoading => '后台工作进程：加载中…';
+
+  @override
+  String get settingsDiagnosticsWorkerUnavailable => '后台工作进程诊断不可用';
+
+  @override
+  String get settingsDiagnosticsWorkerNotRunning => '后台工作进程：未运行';
+
+  @override
+  String get settingsDiagnosticsWorkerTitle => '后台工作进程';
+
+  @override
+  String get settingsTranslationPageTitle => '翻译';
+
+  @override
+  String get settingsTranslationNoActiveWorkspace => '没有活动的工作区。翻译设置属于工作区级别。';
+
+  @override
+  String get settingsTranslationRetry => '重试';
+
+  @override
+  String get settingsTranslationSectionMode => '翻译模式';
+
+  @override
+  String get settingsTranslationSectionLanguage => '首选语言';
+
+  @override
+  String get settingsTranslationModeAutoTitle => '自动';
+
+  @override
+  String get settingsTranslationModeManualTitle => '手动';
+
+  @override
+  String get settingsTranslationModeOffTitle => '关闭';
+
+  @override
+  String get settingsTranslationModeAutoDescription => '进入对话时自动翻译消息';
+
+  @override
+  String get settingsTranslationModeManualDescription => '仅在点击翻译按钮时翻译';
+
+  @override
+  String get settingsTranslationModeOffDescription => '翻译已禁用';
 }

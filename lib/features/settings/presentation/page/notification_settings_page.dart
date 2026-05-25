@@ -326,7 +326,8 @@ String _permissionSubtitle(
   final tokenState = state.pushToken == null
       ? l10n.notificationSettingsDeviceNotRegistered
       : l10n.notificationSettingsDeviceRegistered(
-          state.pushTokenUpdatedAt?.toIso8601String() ?? 'recently',
+          state.pushTokenUpdatedAt?.toIso8601String() ??
+              l10n.notificationSettingsDateRecently,
         );
   return '$status\n$tokenState';
 }

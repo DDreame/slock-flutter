@@ -112,7 +112,7 @@ class _InboxPageState extends ConsumerState<InboxPage> {
       key: const ValueKey('inbox-page'),
       backgroundColor: colors.background,
       appBar: AppBar(
-        title: const Text('Inbox'),
+        title: Text(context.l10n.inboxTitle),
         backgroundColor: colors.surface,
         foregroundColor: colors.text,
         elevation: 0,
@@ -122,7 +122,7 @@ class _InboxPageState extends ConsumerState<InboxPage> {
             IconButton(
               key: const ValueKey('inbox-mark-all-read'),
               icon: const Icon(Icons.done_all),
-              tooltip: 'Mark all read',
+              tooltip: context.l10n.inboxMarkAllReadTooltip,
               onPressed: () {
                 ref.read(inboxStoreProvider.notifier).markAllRead();
               },
@@ -185,13 +185,13 @@ class _InboxPageState extends ConsumerState<InboxPage> {
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Failed to load inbox',
+              context.l10n.inboxLoadFailed,
               style: AppTypography.body.copyWith(color: colors.textTertiary),
             ),
             const SizedBox(height: AppSpacing.md),
             TextButton(
               onPressed: () => ref.read(inboxStoreProvider.notifier).refresh(),
-              child: const Text('Retry'),
+              child: Text(context.l10n.inboxRetry),
             ),
           ],
         ),
@@ -199,11 +199,11 @@ class _InboxPageState extends ConsumerState<InboxPage> {
     }
 
     if (inboxState.items.isEmpty) {
-      return const EmptyStateWidget(
-        key: ValueKey('inbox-empty'),
+      return EmptyStateWidget(
+        key: const ValueKey('inbox-empty'),
         icon: Icons.inbox_outlined,
-        title: 'All caught up!',
-        subtitle: 'No messages in your inbox',
+        title: context.l10n.inboxEmptyTitle,
+        subtitle: context.l10n.inboxEmptySubtitle,
       );
     }
 
@@ -302,9 +302,9 @@ class _InboxPageState extends ConsumerState<InboxPage> {
   ) async {
     final actions = <ListActionItem>[
       if (projection.unreadCount > 0)
-        const ListActionItem(
+        ListActionItem(
           key: 'inbox-action-mark-read',
-          label: 'Mark Read',
+          label: context.l10n.inboxActionMarkRead,
           icon: Icons.mark_email_read,
         ),
     ];
@@ -384,7 +384,7 @@ class _SwipeableInboxItemState extends State<_SwipeableInboxItem> {
           alignment: Alignment.centerRight,
           color: colors.primary,
           icon: Icons.mark_email_read,
-          label: 'Read',
+          label: context.l10n.inboxSwipeLabelRead,
         ),
         confirmDismiss: (_) async {
           widget.onMarkRead();
@@ -484,7 +484,7 @@ class _InboxFilterTabs extends StatelessWidget {
         children: [
           _FilterTab(
             key: const ValueKey('inbox-filter-unread'),
-            label: 'Unread',
+            label: context.l10n.inboxFilterUnread,
             isSelected: currentFilter == InboxFilter.unread,
             colors: colors,
             onTap: () => onFilterChanged(InboxFilter.unread),
@@ -492,7 +492,7 @@ class _InboxFilterTabs extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           _FilterTab(
             key: const ValueKey('inbox-filter-mentions'),
-            label: '@Mentions',
+            label: context.l10n.inboxFilterMentions,
             isSelected: currentFilter == InboxFilter.mentions,
             colors: colors,
             onTap: () => onFilterChanged(InboxFilter.mentions),
@@ -500,7 +500,7 @@ class _InboxFilterTabs extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           _FilterTab(
             key: const ValueKey('inbox-filter-dms'),
-            label: 'DMs',
+            label: context.l10n.inboxFilterDms,
             isSelected: currentFilter == InboxFilter.dms,
             colors: colors,
             onTap: () => onFilterChanged(InboxFilter.dms),
@@ -508,7 +508,7 @@ class _InboxFilterTabs extends StatelessWidget {
           const SizedBox(width: AppSpacing.sm),
           _FilterTab(
             key: const ValueKey('inbox-filter-all'),
-            label: 'All',
+            label: context.l10n.inboxFilterAll,
             isSelected: currentFilter == InboxFilter.all,
             colors: colors,
             onTap: () => onFilterChanged(InboxFilter.all),

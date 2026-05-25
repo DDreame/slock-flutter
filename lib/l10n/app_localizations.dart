@@ -1810,6 +1810,12 @@ abstract class AppLocalizations {
   /// **'Device registration not available yet.'**
   String get notificationSettingsDeviceNotRegistered;
 
+  /// No description provided for @notificationSettingsDateRecently.
+  ///
+  /// In en, this message translates to:
+  /// **'recently'**
+  String get notificationSettingsDateRecently;
+
   /// No description provided for @notificationSettingsResultGranted.
   ///
   /// In en, this message translates to:
@@ -4366,6 +4372,522 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Configured Default'**
   String get agentsFormConfiguredDefault;
+
+  /// No description provided for @profileEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get profileEditTitle;
+
+  /// No description provided for @profileEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get profileEditSave;
+
+  /// No description provided for @profileEditSnackbarSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile updated.'**
+  String get profileEditSnackbarSaved;
+
+  /// No description provided for @profileEditSnackbarAvatarSavedProfileFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Avatar updated. Profile save failed — tap Save to retry.'**
+  String get profileEditSnackbarAvatarSavedProfileFailed;
+
+  /// No description provided for @profileEditNewAvatarSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'New avatar selected'**
+  String get profileEditNewAvatarSelected;
+
+  /// No description provided for @profileEditChangeAvatar.
+  ///
+  /// In en, this message translates to:
+  /// **'Change avatar'**
+  String get profileEditChangeAvatar;
+
+  /// No description provided for @profileEditSectionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile details'**
+  String get profileEditSectionDetails;
+
+  /// No description provided for @profileEditDisplayNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name'**
+  String get profileEditDisplayNameLabel;
+
+  /// No description provided for @profileEditDisplayNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Display name is required.'**
+  String get profileEditDisplayNameRequired;
+
+  /// No description provided for @profileEditBioLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Bio / status'**
+  String get profileEditBioLabel;
+
+  /// No description provided for @profileTitleSelf.
+  ///
+  /// In en, this message translates to:
+  /// **'My Profile'**
+  String get profileTitleSelf;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profileTitle;
+
+  /// No description provided for @profileRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get profileRetry;
+
+  /// No description provided for @profileNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile not available.'**
+  String get profileNotAvailable;
+
+  /// No description provided for @profileLabelUserId.
+  ///
+  /// In en, this message translates to:
+  /// **'User ID'**
+  String get profileLabelUserId;
+
+  /// No description provided for @profileLabelUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get profileLabelUsername;
+
+  /// No description provided for @profileLabelEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get profileLabelEmail;
+
+  /// No description provided for @profileLabelRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Role'**
+  String get profileLabelRole;
+
+  /// No description provided for @profileLabelMemberSince.
+  ///
+  /// In en, this message translates to:
+  /// **'Member since'**
+  String get profileLabelMemberSince;
+
+  /// No description provided for @profileEditComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile editing coming soon'**
+  String get profileEditComingSoon;
+
+  /// No description provided for @profileEditButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Profile'**
+  String get profileEditButton;
+
+  /// No description provided for @profileThisIsYou.
+  ///
+  /// In en, this message translates to:
+  /// **'This is you'**
+  String get profileThisIsYou;
+
+  /// No description provided for @profileMessageButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get profileMessageButton;
+
+  /// No description provided for @profileDateFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'{month} {day}, {year}'**
+  String profileDateFormat(String month, int day, int year);
+
+  /// No description provided for @profileMonthJan.
+  ///
+  /// In en, this message translates to:
+  /// **'Jan'**
+  String get profileMonthJan;
+
+  /// No description provided for @profileMonthFeb.
+  ///
+  /// In en, this message translates to:
+  /// **'Feb'**
+  String get profileMonthFeb;
+
+  /// No description provided for @profileMonthMar.
+  ///
+  /// In en, this message translates to:
+  /// **'Mar'**
+  String get profileMonthMar;
+
+  /// No description provided for @profileMonthApr.
+  ///
+  /// In en, this message translates to:
+  /// **'Apr'**
+  String get profileMonthApr;
+
+  /// No description provided for @profileMonthMay.
+  ///
+  /// In en, this message translates to:
+  /// **'May'**
+  String get profileMonthMay;
+
+  /// No description provided for @profileMonthJun.
+  ///
+  /// In en, this message translates to:
+  /// **'Jun'**
+  String get profileMonthJun;
+
+  /// No description provided for @profileMonthJul.
+  ///
+  /// In en, this message translates to:
+  /// **'Jul'**
+  String get profileMonthJul;
+
+  /// No description provided for @profileMonthAug.
+  ///
+  /// In en, this message translates to:
+  /// **'Aug'**
+  String get profileMonthAug;
+
+  /// No description provided for @profileMonthSep.
+  ///
+  /// In en, this message translates to:
+  /// **'Sep'**
+  String get profileMonthSep;
+
+  /// No description provided for @profileMonthOct.
+  ///
+  /// In en, this message translates to:
+  /// **'Oct'**
+  String get profileMonthOct;
+
+  /// No description provided for @profileMonthNov.
+  ///
+  /// In en, this message translates to:
+  /// **'Nov'**
+  String get profileMonthNov;
+
+  /// No description provided for @profileMonthDec.
+  ///
+  /// In en, this message translates to:
+  /// **'Dec'**
+  String get profileMonthDec;
+
+  /// No description provided for @settingsEditProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile'**
+  String get settingsEditProfileTitle;
+
+  /// No description provided for @settingsEditProfileSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your display name, bio, and avatar'**
+  String get settingsEditProfileSubtitle;
+
+  /// No description provided for @inboxTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Inbox'**
+  String get inboxTitle;
+
+  /// No description provided for @inboxMarkAllReadTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get inboxMarkAllReadTooltip;
+
+  /// No description provided for @inboxLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load inbox'**
+  String get inboxLoadFailed;
+
+  /// No description provided for @inboxRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get inboxRetry;
+
+  /// No description provided for @inboxEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All caught up!'**
+  String get inboxEmptyTitle;
+
+  /// No description provided for @inboxEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages in your inbox'**
+  String get inboxEmptySubtitle;
+
+  /// No description provided for @inboxActionMarkRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark Read'**
+  String get inboxActionMarkRead;
+
+  /// No description provided for @inboxSwipeLabelRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read'**
+  String get inboxSwipeLabelRead;
+
+  /// No description provided for @inboxFilterUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get inboxFilterUnread;
+
+  /// No description provided for @inboxFilterMentions.
+  ///
+  /// In en, this message translates to:
+  /// **'@Mentions'**
+  String get inboxFilterMentions;
+
+  /// No description provided for @inboxFilterDms.
+  ///
+  /// In en, this message translates to:
+  /// **'DMs'**
+  String get inboxFilterDms;
+
+  /// No description provided for @inboxFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get inboxFilterAll;
+
+  /// No description provided for @inboxMentionBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'@you'**
+  String get inboxMentionBadge;
+
+  /// No description provided for @inboxTimeNow.
+  ///
+  /// In en, this message translates to:
+  /// **'now'**
+  String get inboxTimeNow;
+
+  /// No description provided for @inboxTimeMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}m'**
+  String inboxTimeMinutes(int count);
+
+  /// No description provided for @inboxTimeHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}h'**
+  String inboxTimeHours(int count);
+
+  /// No description provided for @inboxTimeDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}d'**
+  String inboxTimeDays(int count);
+
+  /// No description provided for @inboxUnreadCountOverflow.
+  ///
+  /// In en, this message translates to:
+  /// **'99+'**
+  String get inboxUnreadCountOverflow;
+
+  /// No description provided for @settingsAppearanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsAppearanceTitle;
+
+  /// No description provided for @settingsAppearanceThemeSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get settingsAppearanceThemeSection;
+
+  /// No description provided for @settingsThemeSystemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow System'**
+  String get settingsThemeSystemTitle;
+
+  /// No description provided for @settingsThemeSystemDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your device theme setting.'**
+  String get settingsThemeSystemDescription;
+
+  /// No description provided for @settingsThemeLightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get settingsThemeLightTitle;
+
+  /// No description provided for @settingsThemeLightDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Always use the light theme.'**
+  String get settingsThemeLightDescription;
+
+  /// No description provided for @settingsThemeDarkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get settingsThemeDarkTitle;
+
+  /// No description provided for @settingsThemeDarkDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Always use the dark theme.'**
+  String get settingsThemeDarkDescription;
+
+  /// No description provided for @settingsDiagnosticsPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get settingsDiagnosticsPageTitle;
+
+  /// No description provided for @settingsDiagnosticsEntryCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{entry} other{entries}}'**
+  String settingsDiagnosticsEntryCount(int count);
+
+  /// No description provided for @settingsDiagnosticsFilterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get settingsDiagnosticsFilterAll;
+
+  /// No description provided for @settingsDiagnosticsFilterInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get settingsDiagnosticsFilterInfo;
+
+  /// No description provided for @settingsDiagnosticsFilterWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning'**
+  String get settingsDiagnosticsFilterWarning;
+
+  /// No description provided for @settingsDiagnosticsFilterError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get settingsDiagnosticsFilterError;
+
+  /// No description provided for @settingsDiagnosticsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No diagnostic entries'**
+  String get settingsDiagnosticsEmpty;
+
+  /// No description provided for @settingsDiagnosticsWorkerLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Background worker: loading…'**
+  String get settingsDiagnosticsWorkerLoading;
+
+  /// No description provided for @settingsDiagnosticsWorkerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Background worker diagnostics unavailable'**
+  String get settingsDiagnosticsWorkerUnavailable;
+
+  /// No description provided for @settingsDiagnosticsWorkerNotRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Background worker: not running'**
+  String get settingsDiagnosticsWorkerNotRunning;
+
+  /// No description provided for @settingsDiagnosticsWorkerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Background worker'**
+  String get settingsDiagnosticsWorkerTitle;
+
+  /// No description provided for @settingsTranslationPageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation'**
+  String get settingsTranslationPageTitle;
+
+  /// No description provided for @settingsTranslationNoActiveWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'No active workspace. Translation settings are workspace-level.'**
+  String get settingsTranslationNoActiveWorkspace;
+
+  /// No description provided for @settingsTranslationRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get settingsTranslationRetry;
+
+  /// No description provided for @settingsTranslationSectionMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation Mode'**
+  String get settingsTranslationSectionMode;
+
+  /// No description provided for @settingsTranslationSectionLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred Language'**
+  String get settingsTranslationSectionLanguage;
+
+  /// No description provided for @settingsTranslationModeAutoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get settingsTranslationModeAutoTitle;
+
+  /// No description provided for @settingsTranslationModeManualTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual'**
+  String get settingsTranslationModeManualTitle;
+
+  /// No description provided for @settingsTranslationModeOffTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get settingsTranslationModeOffTitle;
+
+  /// No description provided for @settingsTranslationModeAutoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatically translate messages when entering a conversation'**
+  String get settingsTranslationModeAutoDescription;
+
+  /// No description provided for @settingsTranslationModeManualDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate only when you tap the translate button'**
+  String get settingsTranslationModeManualDescription;
+
+  /// No description provided for @settingsTranslationModeOffDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation is disabled'**
+  String get settingsTranslationModeOffDescription;
 }
 
 class _AppLocalizationsDelegate

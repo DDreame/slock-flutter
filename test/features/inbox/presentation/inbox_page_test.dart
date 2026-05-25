@@ -10,6 +10,7 @@ import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   late _FakeInboxRepository repo;
@@ -30,6 +31,8 @@ void main() {
       ],
       child: MaterialApp(
         theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: const InboxPage(),
       ),
     );

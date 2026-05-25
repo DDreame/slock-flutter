@@ -8,6 +8,7 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #509: Inbox page redesign — Phase A (test-only)
@@ -176,6 +177,8 @@ Widget _buildApp(_FakeInboxRepository repo, {ThemeData? theme}) {
     ],
     child: MaterialApp(
       theme: theme ?? AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const InboxPage(),
     ),
   );

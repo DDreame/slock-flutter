@@ -10,6 +10,7 @@ import 'package:slock_app/features/inbox/data/inbox_item.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository.dart';
 import 'package:slock_app/features/inbox/data/inbox_repository_provider.dart';
 import 'package:slock_app/features/inbox/presentation/page/inbox_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #511: Inbox 默认 Filter Race Fix — Phase A (test-only)
@@ -78,6 +79,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const InboxPage(),
           ),
         ),
@@ -118,6 +121,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const InboxPage(),
           ),
         ),
@@ -189,6 +194,8 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const InboxPage(),
           ),
         ),
