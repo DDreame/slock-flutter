@@ -7,6 +7,7 @@ import 'package:slock_app/features/billing/data/billing_repository_provider.dart
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/billing/presentation/billing_portal_launcher.dart';
 import 'package:slock_app/features/billing/presentation/page/billing_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('billing page shows subscription summary and server usage', (
@@ -190,7 +191,10 @@ Widget _buildApp({
       if (launcher != null)
         billingPortalLauncherProvider.overrideWithValue(launcher),
     ],
-    child: const MaterialApp(home: BillingPage()),
+    child: const MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        home: BillingPage()),
   );
 }
 

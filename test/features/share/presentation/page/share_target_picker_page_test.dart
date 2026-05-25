@@ -9,6 +9,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   final testServerId = ServerScopeId.fromRouteParam('test-server');
@@ -41,6 +42,8 @@ void main() {
         }),
       ],
       child: MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: AppTheme.light,
         home: ShareTargetPickerPage(
           onTargetSelected: onTargetSelected ?? (_) {},

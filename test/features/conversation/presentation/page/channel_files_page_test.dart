@@ -7,6 +7,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/page/channel_files_page.dart';
 
 import '../../../conversation/data/channel_files_repository_test.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   /// Builds a test harness with a real GoRouter so context.push works.
@@ -40,6 +41,8 @@ void main() {
 
     return ProviderScope(
       child: MaterialApp.router(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: AppTheme.light,
         routerConfig: router,
       ),

@@ -6,6 +6,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #569: Conversation Info Page Consolidation
@@ -84,11 +85,11 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
           // ── Notifications / Mute Toggle ──
           SwitchListTile(
             key: const ValueKey('conversation-info-mute-toggle'),
-            title: const Text('Mute Notifications'),
+            title: Text(context.l10n.conversationInfoMute),
             subtitle: Text(
               _isMuted
-                  ? 'Notifications are silenced'
-                  : 'Receiving all notifications',
+                  ? context.l10n.conversationInfoMuted
+                  : context.l10n.conversationInfoUnmuted,
             ),
             secondary: Icon(
               _isMuted ? Icons.notifications_off : Icons.notifications_active,
@@ -129,7 +130,7 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
             _InfoSection(
               key: const ValueKey('conversation-info-members-section'),
               icon: Icons.people_outline,
-              label: 'Members',
+              label: context.l10n.conversationInfoMembers,
               isActive:
                   widget.initialSection == ConversationInfoSection.members,
               onTap: () {
@@ -143,7 +144,7 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
             _InfoSection(
               key: const ValueKey('conversation-info-files-section'),
               icon: Icons.folder_outlined,
-              label: 'Shared files',
+              label: context.l10n.conversationInfoFiles,
               isActive: widget.initialSection == ConversationInfoSection.files,
               onTap: () {
                 context.push(
@@ -156,7 +157,7 @@ class _ConversationInfoPageState extends ConsumerState<ConversationInfoPage> {
             _InfoSection(
               key: const ValueKey('conversation-info-pinned-section'),
               icon: Icons.push_pin_outlined,
-              label: 'Pinned messages',
+              label: context.l10n.conversationInfoPinned,
               isActive: widget.initialSection == ConversationInfoSection.pinned,
               onTap: () async {
                 final messageId = await context.push<String>(
@@ -305,7 +306,7 @@ class _DmUserProfile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Profile',
+            context.l10n.conversationInfoProfileSection,
             style: AppTypography.label.copyWith(
               color: colors.textSecondary,
             ),
@@ -324,7 +325,7 @@ class _DmUserProfile extends StatelessWidget {
             ),
             title: Text(displayName, style: AppTypography.body),
             subtitle: Text(
-              'Direct message',
+              context.l10n.conversationInfoDmSubtitle,
               style: AppTypography.caption.copyWith(
                 color: colors.textSecondary,
               ),

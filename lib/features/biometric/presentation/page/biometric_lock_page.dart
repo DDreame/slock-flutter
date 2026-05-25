@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/auth/biometric_service.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 
 /// Full-screen biometric lock overlay.
@@ -45,7 +46,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
 
     final service = ref.read(biometricServiceProvider);
     final result = await service.authenticate(
-      localizedReason: 'Authenticate to continue using Slock',
+      localizedReason: context.l10n.biometricPrompt,
     );
 
     if (!mounted) return;
@@ -64,34 +65,34 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
         _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Too many attempts. Please try again later.';
+          _errorMessage = context.l10n.biometricErrorLockout;
         });
       case BiometricAuthResult.permanentLockout:
         _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Biometrics locked. Please use your device passcode.';
+          _errorMessage = context.l10n.biometricErrorPermanentLockout;
           _showDisableButton = true;
         });
       case BiometricAuthResult.notAvailable:
         _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Biometrics unavailable. Please try again.';
+          _errorMessage = context.l10n.biometricErrorNotAvailable;
           _showDisableButton = false;
         });
       case BiometricAuthResult.notEnrolled:
         _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'No biometrics enrolled. Please try again.';
+          _errorMessage = context.l10n.biometricErrorNotEnrolled;
           _showDisableButton = false;
         });
       case BiometricAuthResult.error:
         _cancelCount++;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Authentication failed. Try again ($_cancelCount/3).';
+          _errorMessage = context.l10n.biometricErrorGeneric(_cancelCount);
           _showDisableButton = false;
         });
     }
@@ -125,14 +126,14 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Authenticate to continue',
+                  context.l10n.biometricLockTitle,
                   key: const ValueKey('biometric-lock-title'),
                   style: theme.textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Verify your identity to access Slock',
+                  context.l10n.biometricLockSubtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -155,7 +156,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                     key: const ValueKey('biometric-lock-retry'),
                     onPressed: _authenticate,
                     icon: const Icon(Icons.fingerprint),
-                    label: const Text('Try again'),
+                    label: Text(context.l10n.biometricTryAgain),
                   ),
                 if (_isAuthenticating)
                   const CircularProgressIndicator(
@@ -166,7 +167,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                   OutlinedButton(
                     key: const ValueKey('biometric-lock-disable'),
                     onPressed: _disableAndContinue,
-                    child: const Text('Disable & Continue'),
+                    child: Text(context.l10n.biometricDisableContinue),
                   ),
                 ],
                 if (_cancelCount >= 3) ...[
@@ -174,7 +175,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                   TextButton(
                     key: const ValueKey('biometric-lock-skip'),
                     onPressed: _skipForNow,
-                    child: const Text('Skip for now'),
+                    child: Text(context.l10n.biometricSkipForNow),
                   ),
                 ],
               ],

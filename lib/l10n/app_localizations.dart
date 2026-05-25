@@ -4888,6 +4888,990 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Translation is disabled'**
   String get settingsTranslationModeOffDescription;
+
+  /// No description provided for @billingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing'**
+  String get billingTitle;
+
+  /// No description provided for @billingUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing unavailable'**
+  String get billingUnavailableTitle;
+
+  /// No description provided for @billingUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not load billing details right now.'**
+  String get billingUnavailableMessage;
+
+  /// No description provided for @billingCouldNotOpenManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open billing management.'**
+  String get billingCouldNotOpenManagement;
+
+  /// No description provided for @billingSubscriptionManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription management'**
+  String get billingSubscriptionManagement;
+
+  /// No description provided for @billingSubscriptionManagementDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your current subscription and open the billing portal when management is available.'**
+  String get billingSubscriptionManagementDesc;
+
+  /// No description provided for @billingSubscriptionSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription summary'**
+  String get billingSubscriptionSummary;
+
+  /// No description provided for @billingStatusUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Status unavailable'**
+  String get billingStatusUnavailable;
+
+  /// No description provided for @billingCurrentPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Current price'**
+  String get billingCurrentPrice;
+
+  /// No description provided for @billingRenewalPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Renewal / period'**
+  String get billingRenewalPeriod;
+
+  /// No description provided for @billingDetailsNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing details are not available yet.'**
+  String get billingDetailsNotAvailable;
+
+  /// No description provided for @billingManagementUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing management unavailable'**
+  String get billingManagementUnavailable;
+
+  /// No description provided for @billingOpenPortal.
+  ///
+  /// In en, this message translates to:
+  /// **'Open billing portal'**
+  String get billingOpenPortal;
+
+  /// No description provided for @billingManagementUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Billing management is not available for this workspace yet. Subscription details will continue to appear here when provided by the server.'**
+  String get billingManagementUnavailableMessage;
+
+  /// No description provided for @billingManageSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your subscription with the billing portal.'**
+  String get billingManageSubscription;
+
+  /// No description provided for @billingWorkspacePlanManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace plan management'**
+  String get billingWorkspacePlanManagement;
+
+  /// No description provided for @billingWorkspacePlanDescActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Review current workspace limits and any upgrade or downgrade guidance.'**
+  String get billingWorkspacePlanDescActive;
+
+  /// No description provided for @billingWorkspacePlanDescSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a workspace to review server-scoped billing limits and plan guidance.'**
+  String get billingWorkspacePlanDescSelect;
+
+  /// No description provided for @billingUsageSelectWorkspace.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace plan requires a selected workspace'**
+  String get billingUsageSelectWorkspace;
+
+  /// No description provided for @billingUsageSelectWorkspaceMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a workspace to see current usage, plan limits, and upgrade guidance.'**
+  String get billingUsageSelectWorkspaceMessage;
+
+  /// No description provided for @billingUsageUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace usage unavailable'**
+  String get billingUsageUnavailableTitle;
+
+  /// No description provided for @billingUsageUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage details are unavailable right now.'**
+  String get billingUsageUnavailableMessage;
+
+  /// No description provided for @billingServerUsageAndLimits.
+  ///
+  /// In en, this message translates to:
+  /// **'Server usage and limits'**
+  String get billingServerUsageAndLimits;
+
+  /// No description provided for @billingPlanDetailsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan details unavailable'**
+  String get billingPlanDetailsUnavailable;
+
+  /// No description provided for @billingMessageHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Message history'**
+  String get billingMessageHistory;
+
+  /// No description provided for @billingPlanDowngraded.
+  ///
+  /// In en, this message translates to:
+  /// **'Workspace plan downgraded'**
+  String get billingPlanDowngraded;
+
+  /// No description provided for @billingPlanDowngradedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This workspace plan was downgraded on {date}. Upgrade to restore higher limits.'**
+  String billingPlanDowngradedMessage(String date);
+
+  /// No description provided for @billingNeedMoreCapacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Need more capacity?'**
+  String get billingNeedMoreCapacity;
+
+  /// No description provided for @billingUpgradePortalMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the billing portal to review upgrade options for this workspace plan.'**
+  String get billingUpgradePortalMessage;
+
+  /// No description provided for @billingUpgradeUnavailableMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade options will appear here when billing management is available for this workspace.'**
+  String get billingUpgradeUnavailableMessage;
+
+  /// No description provided for @billingMessageHistoryUnlimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited'**
+  String get billingMessageHistoryUnlimited;
+
+  /// No description provided for @billingMessageHistoryOneDay.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day'**
+  String get billingMessageHistoryOneDay;
+
+  /// No description provided for @billingMessageHistoryDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days'**
+  String billingMessageHistoryDays(int count);
+
+  /// No description provided for @threadsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Threads'**
+  String get threadsTitle;
+
+  /// No description provided for @threadsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No followed threads yet.'**
+  String get threadsEmpty;
+
+  /// No description provided for @threadsSwipeDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get threadsSwipeDone;
+
+  /// No description provided for @threadsRepliesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} replies'**
+  String threadsRepliesCount(int count);
+
+  /// No description provided for @threadsUnreadCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} unread'**
+  String threadsUnreadCount(int count);
+
+  /// No description provided for @threadsActionOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open thread'**
+  String get threadsActionOpen;
+
+  /// No description provided for @threadsActionDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get threadsActionDone;
+
+  /// No description provided for @threadRepliesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Thread replies'**
+  String get threadRepliesTitle;
+
+  /// No description provided for @threadRepliesMissingContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Missing thread route context.'**
+  String get threadRepliesMissingContext;
+
+  /// No description provided for @threadRepliesRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get threadRepliesRetry;
+
+  /// No description provided for @threadRepliesFollowTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow thread'**
+  String get threadRepliesFollowTooltip;
+
+  /// No description provided for @threadRepliesDoneTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark thread done'**
+  String get threadRepliesDoneTooltip;
+
+  /// No description provided for @dmsSortAZ.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort A-Z'**
+  String get dmsSortAZ;
+
+  /// No description provided for @dmsSortRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by recent'**
+  String get dmsSortRecent;
+
+  /// No description provided for @dmsMarkAllRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get dmsMarkAllRead;
+
+  /// No description provided for @dmsClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get dmsClearSearch;
+
+  /// No description provided for @dmsMarkedUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as unread'**
+  String get dmsMarkedUnread;
+
+  /// No description provided for @dmsNewMessageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New message'**
+  String get dmsNewMessageTitle;
+
+  /// No description provided for @dmsTabPeople.
+  ///
+  /// In en, this message translates to:
+  /// **'People'**
+  String get dmsTabPeople;
+
+  /// No description provided for @dmsTabAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents'**
+  String get dmsTabAgents;
+
+  /// No description provided for @dmsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search...'**
+  String get dmsSearchHint;
+
+  /// No description provided for @dmsNoAgentsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No agents found.'**
+  String get dmsNoAgentsFound;
+
+  /// No description provided for @dmsNoMembersFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No members found.'**
+  String get dmsNoMembersFound;
+
+  /// No description provided for @dmsRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get dmsRetry;
+
+  /// No description provided for @searchScopeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get searchScopeAll;
+
+  /// No description provided for @searchScopeMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages'**
+  String get searchScopeMessages;
+
+  /// No description provided for @searchScopeChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get searchScopeChannels;
+
+  /// No description provided for @searchScopeContacts.
+  ///
+  /// In en, this message translates to:
+  /// **'Contacts'**
+  String get searchScopeContacts;
+
+  /// No description provided for @searchBadgeDm.
+  ///
+  /// In en, this message translates to:
+  /// **'DM'**
+  String get searchBadgeDm;
+
+  /// No description provided for @searchBadgeChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'Channel'**
+  String get searchBadgeChannel;
+
+  /// No description provided for @conversationFilesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get conversationFilesTitle;
+
+  /// No description provided for @conversationFilesRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get conversationFilesRetry;
+
+  /// No description provided for @conversationFilesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No files in this channel'**
+  String get conversationFilesEmpty;
+
+  /// No description provided for @conversationQuoteLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading message…'**
+  String get conversationQuoteLoading;
+
+  /// No description provided for @conversationQuoteNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Message not available'**
+  String get conversationQuoteNotFound;
+
+  /// No description provided for @conversationMemberCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{member} other{members}}'**
+  String conversationMemberCount(int count);
+
+  /// No description provided for @conversationCloseSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Close search'**
+  String get conversationCloseSearch;
+
+  /// No description provided for @conversationSearchTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get conversationSearchTooltip;
+
+  /// No description provided for @conversationInfoTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation info'**
+  String get conversationInfoTooltip;
+
+  /// No description provided for @conversationScreenshotTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshot'**
+  String get conversationScreenshotTooltip;
+
+  /// No description provided for @conversationMicDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission denied. Please enable it in Settings.'**
+  String get conversationMicDenied;
+
+  /// No description provided for @conversationMicUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not start recording. Please check microphone availability.'**
+  String get conversationMicUnavailable;
+
+  /// No description provided for @conversationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load {title}.'**
+  String conversationLoadFailed(String title);
+
+  /// No description provided for @conversationRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get conversationRetry;
+
+  /// No description provided for @conversationEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages in {title} yet.'**
+  String conversationEmpty(String title);
+
+  /// No description provided for @conversationPresenceOnline.
+  ///
+  /// In en, this message translates to:
+  /// **'Online'**
+  String get conversationPresenceOnline;
+
+  /// No description provided for @conversationPresenceIdle.
+  ///
+  /// In en, this message translates to:
+  /// **'Idle'**
+  String get conversationPresenceIdle;
+
+  /// No description provided for @conversationPresenceOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline'**
+  String get conversationPresenceOffline;
+
+  /// No description provided for @conversationOfflineBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'You are offline. Messages will be sent when you reconnect.'**
+  String get conversationOfflineBanner;
+
+  /// No description provided for @conversationInfoMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute Notifications'**
+  String get conversationInfoMute;
+
+  /// No description provided for @conversationInfoMuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are silenced'**
+  String get conversationInfoMuted;
+
+  /// No description provided for @conversationInfoUnmuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Receiving all notifications'**
+  String get conversationInfoUnmuted;
+
+  /// No description provided for @conversationInfoMembers.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get conversationInfoMembers;
+
+  /// No description provided for @conversationInfoFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared files'**
+  String get conversationInfoFiles;
+
+  /// No description provided for @conversationInfoPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned messages'**
+  String get conversationInfoPinned;
+
+  /// No description provided for @conversationInfoProfileSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get conversationInfoProfileSection;
+
+  /// No description provided for @conversationInfoDmSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct message'**
+  String get conversationInfoDmSubtitle;
+
+  /// No description provided for @conversationPinnedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned messages'**
+  String get conversationPinnedTitle;
+
+  /// No description provided for @conversationPinnedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get conversationPinnedRetry;
+
+  /// No description provided for @conversationPinnedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No pinned messages'**
+  String get conversationPinnedEmpty;
+
+  /// No description provided for @conversationMessageAiBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get conversationMessageAiBadge;
+
+  /// No description provided for @conversationMessageReplyCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {count, plural, =1{reply} other{replies}}'**
+  String conversationMessageReplyCount(int count);
+
+  /// No description provided for @conversationMessageInThread.
+  ///
+  /// In en, this message translates to:
+  /// **'In thread'**
+  String get conversationMessageInThread;
+
+  /// No description provided for @conversationCopiedToClipboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied to clipboard.'**
+  String get conversationCopiedToClipboard;
+
+  /// No description provided for @conversationMessageForwarded.
+  ///
+  /// In en, this message translates to:
+  /// **'Message forwarded'**
+  String get conversationMessageForwarded;
+
+  /// No description provided for @conversationSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send. Please try again.'**
+  String get conversationSendFailed;
+
+  /// No description provided for @conversationTaskCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Task created.'**
+  String get conversationTaskCreated;
+
+  /// No description provided for @conversationQuoteFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'[Message]'**
+  String get conversationQuoteFallback;
+
+  /// No description provided for @conversationProfileMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get conversationProfileMessage;
+
+  /// No description provided for @conversationSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in conversation...'**
+  String get conversationSearchHint;
+
+  /// No description provided for @conversationSearchPrevious.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous result'**
+  String get conversationSearchPrevious;
+
+  /// No description provided for @conversationSearchNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next result'**
+  String get conversationSearchNext;
+
+  /// No description provided for @conversationSearchClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close search'**
+  String get conversationSearchClose;
+
+  /// No description provided for @conversationFormatBold.
+  ///
+  /// In en, this message translates to:
+  /// **'Bold'**
+  String get conversationFormatBold;
+
+  /// No description provided for @conversationFormatItalic.
+  ///
+  /// In en, this message translates to:
+  /// **'Italic'**
+  String get conversationFormatItalic;
+
+  /// No description provided for @conversationFormatInlineCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Inline code'**
+  String get conversationFormatInlineCode;
+
+  /// No description provided for @conversationFormatCodeBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Code block'**
+  String get conversationFormatCodeBlock;
+
+  /// No description provided for @conversationFormatLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link'**
+  String get conversationFormatLink;
+
+  /// No description provided for @conversationMessageListSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'Message list'**
+  String get conversationMessageListSemantics;
+
+  /// No description provided for @membersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Members'**
+  String get membersTitle;
+
+  /// No description provided for @membersRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Member?'**
+  String get membersRemoveTitle;
+
+  /// No description provided for @membersCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get membersCancel;
+
+  /// No description provided for @membersRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get membersRemove;
+
+  /// No description provided for @membersConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get membersConfirm;
+
+  /// No description provided for @membersMemberRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} removed.'**
+  String membersMemberRemoved(String name);
+
+  /// No description provided for @membersInviteCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite link copied.'**
+  String get membersInviteCopied;
+
+  /// No description provided for @membersSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get membersSend;
+
+  /// No description provided for @membersGenerateLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Link'**
+  String get membersGenerateLink;
+
+  /// No description provided for @membersChangeRole.
+  ///
+  /// In en, this message translates to:
+  /// **'Change Role'**
+  String get membersChangeRole;
+
+  /// No description provided for @membersRoleAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Admin'**
+  String get membersRoleAdmin;
+
+  /// No description provided for @membersRoleMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get membersRoleMember;
+
+  /// No description provided for @membersMakeAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Make admin'**
+  String get membersMakeAdmin;
+
+  /// No description provided for @membersMakeMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Make member'**
+  String get membersMakeMember;
+
+  /// No description provided for @membersRemoveMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove member'**
+  String get membersRemoveMember;
+
+  /// No description provided for @membersProfileMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get membersProfileMessage;
+
+  /// No description provided for @savedMessagesRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get savedMessagesRetry;
+
+  /// No description provided for @biometricTryAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get biometricTryAgain;
+
+  /// No description provided for @biometricDisableContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable & Continue'**
+  String get biometricDisableContinue;
+
+  /// No description provided for @biometricSkipForNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip for now'**
+  String get biometricSkipForNow;
+
+  /// No description provided for @shareTargetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share to...'**
+  String get shareTargetTitle;
+
+  /// No description provided for @translationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Translation failed. Tap to retry.'**
+  String get translationFailed;
+
+  /// No description provided for @membersRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name} from this server?'**
+  String membersRemoveBody(String name);
+
+  /// No description provided for @membersEmailValidationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address'**
+  String get membersEmailValidationError;
+
+  /// No description provided for @membersInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Human'**
+  String get membersInviteTitle;
+
+  /// No description provided for @membersInviteEmailSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Send email invite'**
+  String get membersInviteEmailSection;
+
+  /// No description provided for @membersInviteEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get membersInviteEmailLabel;
+
+  /// No description provided for @membersInviteEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'user@example.com'**
+  String get membersInviteEmailHint;
+
+  /// No description provided for @membersInviteLinkSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Or share invite link'**
+  String get membersInviteLinkSection;
+
+  /// No description provided for @membersInviteCopyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get membersInviteCopyLink;
+
+  /// No description provided for @membersRoleAdminSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Can manage members and invite'**
+  String get membersRoleAdminSubtitle;
+
+  /// No description provided for @membersRoleMemberSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard workspace access'**
+  String get membersRoleMemberSubtitle;
+
+  /// No description provided for @savedMessagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get savedMessagesTitle;
+
+  /// No description provided for @savedMessagesEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved messages'**
+  String get savedMessagesEmptyTitle;
+
+  /// No description provided for @savedMessagesEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press a message and tap \"Save\" to bookmark it.\nSaved messages appear here for quick reference.'**
+  String get savedMessagesEmptySubtitle;
+
+  /// No description provided for @savedMessagesUnsaveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave'**
+  String get savedMessagesUnsaveTooltip;
+
+  /// No description provided for @savedMessagesSourceDm.
+  ///
+  /// In en, this message translates to:
+  /// **'· DM'**
+  String get savedMessagesSourceDm;
+
+  /// No description provided for @savedMessagesSourceChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'· # {name}'**
+  String savedMessagesSourceChannel(String name);
+
+  /// No description provided for @biometricPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate to continue using Slock'**
+  String get biometricPrompt;
+
+  /// No description provided for @biometricLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate to continue'**
+  String get biometricLockTitle;
+
+  /// No description provided for @biometricLockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your identity to access Slock'**
+  String get biometricLockSubtitle;
+
+  /// No description provided for @biometricErrorLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again later.'**
+  String get biometricErrorLockout;
+
+  /// No description provided for @biometricErrorPermanentLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometrics locked. Please use your device passcode.'**
+  String get biometricErrorPermanentLockout;
+
+  /// No description provided for @biometricErrorNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometrics unavailable. Please try again.'**
+  String get biometricErrorNotAvailable;
+
+  /// No description provided for @biometricErrorNotEnrolled.
+  ///
+  /// In en, this message translates to:
+  /// **'No biometrics enrolled. Please try again.'**
+  String get biometricErrorNotEnrolled;
+
+  /// No description provided for @biometricErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed. Try again ({count}/3).'**
+  String biometricErrorGeneric(int count);
+
+  /// No description provided for @shareSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search conversations...'**
+  String get shareSearchHint;
+
+  /// No description provided for @shareSectionChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get shareSectionChannels;
+
+  /// No description provided for @shareSectionDirectMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct Messages'**
+  String get shareSectionDirectMessages;
+
+  /// No description provided for @translationShowOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Show original'**
+  String get translationShowOriginal;
+
+  /// No description provided for @translationShowTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Show translation'**
+  String get translationShowTranslation;
+
+  /// No description provided for @translationPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Translating…'**
+  String get translationPending;
 }
 
 class _AppLocalizationsDelegate

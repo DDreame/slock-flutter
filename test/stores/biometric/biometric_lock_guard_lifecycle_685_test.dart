@@ -24,6 +24,7 @@ import 'package:slock_app/stores/biometric/biometric_lock_lifecycle_binding.dart
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart'
     show sharedPreferencesProvider;
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   late SharedPreferences prefs;
@@ -135,7 +136,10 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: const MaterialApp(home: BiometricLockPage()),
+            child: MaterialApp(
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                home: BiometricLockPage()),
           ),
         );
         // Post-frame callback fires _authenticate.
@@ -179,7 +183,10 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: const MaterialApp(home: BiometricLockPage()),
+            child: MaterialApp(
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                home: BiometricLockPage()),
           ),
         );
         await tester.pumpAndSettle();
@@ -226,7 +233,10 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: const MaterialApp(home: BiometricLockPage()),
+            child: MaterialApp(
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                home: BiometricLockPage()),
           ),
         );
         // First attempt: auto-prompt fails with cancelled.
@@ -268,7 +278,10 @@ void main() {
         await tester.pumpWidget(
           UncontrolledProviderScope(
             container: container,
-            child: const MaterialApp(home: BiometricLockPage()),
+            child: MaterialApp(
+                localizationsDelegates: AppLocalizations.localizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
+                home: BiometricLockPage()),
           ),
         );
         await tester.pumpAndSettle();

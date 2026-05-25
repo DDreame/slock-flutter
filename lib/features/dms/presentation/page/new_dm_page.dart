@@ -76,16 +76,16 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('New message'),
-          bottom: const TabBar(
+          title: Text(context.l10n.dmsNewMessageTitle),
+          bottom: TabBar(
             tabs: [
               Tab(
-                key: ValueKey('new-dm-tab-people'),
-                text: 'People',
+                key: const ValueKey('new-dm-tab-people'),
+                text: context.l10n.dmsTabPeople,
               ),
               Tab(
-                key: ValueKey('new-dm-tab-agents'),
-                text: 'Agents',
+                key: const ValueKey('new-dm-tab-agents'),
+                text: context.l10n.dmsTabAgents,
               ),
             ],
           ),
@@ -98,7 +98,7 @@ class _NewDmPageContentState extends ConsumerState<_NewDmPageContent> {
                 key: const ValueKey('new-dm-search'),
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search...',
+                  hintText: context.l10n.dmsSearchHint,
                   prefixIcon: const Icon(Icons.search),
                   isDense: true,
                   border: OutlineInputBorder(
@@ -293,11 +293,11 @@ class _AgentsTab extends ConsumerWidget {
               failure?.userMessage(context.l10n) ?? context.l10n.errorUnknown,
           onRetry: () async => ref.read(agentsStoreProvider.notifier).retry(),
         ),
-      AgentsStatus.success => _buildFilteredList(items),
+      AgentsStatus.success => _buildFilteredList(context, items),
     };
   }
 
-  Widget _buildFilteredList(List<AgentItem> items) {
+  Widget _buildFilteredList(BuildContext context, List<AgentItem> items) {
     // Hoist toLowerCase() outside iteration to avoid per-item allocation.
     final lowerQuery = searchQuery.toLowerCase();
     final filtered = searchQuery.isEmpty
@@ -311,7 +311,7 @@ class _AgentsTab extends ConsumerWidget {
             .toList();
 
     if (filtered.isEmpty) {
-      return const Center(child: Text('No agents found.'));
+      return Center(child: Text(context.l10n.dmsNoAgentsFound));
     }
 
     return ListView.builder(
@@ -364,7 +364,7 @@ class _MemberList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (members.isEmpty) {
-      return const Center(child: Text('No members found.'));
+      return Center(child: Text(context.l10n.dmsNoMembersFound));
     }
     final colors = Theme.of(context).extension<AppColors>();
     return ListView.builder(
@@ -421,7 +421,7 @@ class _ErrorContent extends StatelessWidget {
         children: [
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          FilledButton(onPressed: onRetry, child: const Text('Retry')),
+          FilledButton(onPressed: onRetry, child: Text(context.l10n.dmsRetry)),
         ],
       ),
     );

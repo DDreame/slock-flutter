@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Integration-level tests that prove the formatting toolbar correctly syncs
 /// draft state through the onChanged callback — the same wiring used in
@@ -31,6 +32,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: AppTheme.light,
           home: Scaffold(
             body: StatefulBuilder(
@@ -103,6 +106,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: AppTheme.light,
           home: Scaffold(
             body: StatefulBuilder(
@@ -156,6 +161,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: AppTheme.light,
           home: Scaffold(
             body: StatefulBuilder(
@@ -214,6 +221,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           theme: AppTheme.light,
           home: Scaffold(
             body: StatefulBuilder(

@@ -7,6 +7,7 @@ import 'package:slock_app/core/hero/hero_tags.dart';
 import 'package:slock_app/features/presence/presentation/widgets/presence_avatar.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Returns the [AppColors] token color for a given role string.
 ///
@@ -153,18 +154,18 @@ class MemberListItem extends StatelessWidget {
                     itemBuilder: (context) {
                       return [
                         if (member.role != 'admin')
-                          const PopupMenuItem<_MemberAction>(
+                          PopupMenuItem<_MemberAction>(
                             value: _MemberAction.makeAdmin,
-                            child: Text('Make admin'),
+                            child: Text(context.l10n.membersMakeAdmin),
                           ),
                         if (member.role != 'member')
-                          const PopupMenuItem<_MemberAction>(
+                          PopupMenuItem<_MemberAction>(
                             value: _MemberAction.makeMember,
-                            child: Text('Make member'),
+                            child: Text(context.l10n.membersMakeMember),
                           ),
-                        const PopupMenuItem<_MemberAction>(
+                        PopupMenuItem<_MemberAction>(
                           value: _MemberAction.remove,
-                          child: Text('Remove member'),
+                          child: Text(context.l10n.membersRemoveMember),
                         ),
                       ];
                     },

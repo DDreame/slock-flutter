@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/formatting_toolbar.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   late TextEditingController controller;
@@ -19,6 +20,8 @@ void main() {
 
   Widget buildToolbar({bool visible = true}) {
     return MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: AppTheme.light,
       home: Scaffold(
         body: Column(

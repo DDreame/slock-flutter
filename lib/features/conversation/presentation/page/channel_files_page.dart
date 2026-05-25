@@ -90,7 +90,7 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
     return Scaffold(
       key: const ValueKey('channel-files-page'),
       appBar: AppBar(
-        title: const Text('Files'),
+        title: Text(context.l10n.conversationFilesTitle),
       ),
       body: _buildBody(context),
     );
@@ -115,7 +115,7 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
             ElevatedButton(
               key: const ValueKey('channel-files-retry'),
               onPressed: _loadFiles,
-              child: const Text('Retry'),
+              child: Text(context.l10n.conversationFilesRetry),
             ),
           ],
         ),
@@ -136,7 +136,7 @@ class _ChannelFilesPageState extends ConsumerState<ChannelFilesPage> {
                   size: 48, color: colors.textTertiary),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'No files in this channel',
+                context.l10n.conversationFilesEmpty,
                 style: AppTypography.body.copyWith(color: colors.textSecondary),
                 textAlign: TextAlign.center,
               ),

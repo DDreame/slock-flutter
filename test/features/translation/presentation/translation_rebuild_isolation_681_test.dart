@@ -19,6 +19,7 @@ import 'package:slock_app/features/translation/application/translation_cache_sto
 import 'package:slock_app/features/translation/presentation/widgets/translated_content_overlay.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('#681 — TranslatedContentOverlay rebuild isolation', () {
@@ -52,6 +53,8 @@ void main() {
           UncontrolledProviderScope(
             container: container,
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               theme: AppTheme.light,
               home: Scaffold(
                 body: Column(
@@ -128,6 +131,8 @@ void main() {
           UncontrolledProviderScope(
             container: container,
             child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               theme: AppTheme.light,
               home: Scaffold(
                 body: TranslatedContentOverlay(

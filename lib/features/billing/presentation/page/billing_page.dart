@@ -9,6 +9,7 @@ import 'package:slock_app/features/billing/data/billing_repository.dart';
 import 'package:slock_app/features/billing/presentation/billing_portal_launcher.dart';
 import 'package:slock_app/features/billing/presentation/widgets/billing_action_card.dart';
 import 'package:slock_app/features/billing/presentation/widgets/billing_management_section.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class BillingPage extends ConsumerStatefulWidget {
   const BillingPage({super.key});
@@ -29,7 +30,7 @@ class _BillingPageState extends ConsumerState<BillingPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Billing')),
+      appBar: AppBar(title: Text(context.l10n.billingTitle)),
       body: switch (state.status) {
         BillingStatus.initial || BillingStatus.loading => const Center(
             key: ValueKey('billing-loading'),
@@ -37,8 +38,8 @@ class _BillingPageState extends ConsumerState<BillingPage> {
           ),
         BillingStatus.failure => FriendlyErrorState(
             key: const ValueKey('billing-error'),
-            title: 'Billing unavailable',
-            message: 'We could not load billing details right now.',
+            title: context.l10n.billingUnavailableTitle,
+            message: context.l10n.billingUnavailableMessage,
             onRetry: ref.read(billingStoreProvider.notifier).load,
             onShareDiagnostics: () => DiagnosticShareSheet.show(context),
           ),
@@ -61,7 +62,7 @@ class _BillingPageState extends ConsumerState<BillingPage> {
     }
 
     messenger.showSnackBar(
-      const SnackBar(content: Text('Could not open billing management.')),
+      SnackBar(content: Text(context.l10n.billingCouldNotOpenManagement)),
     );
   }
 }
@@ -81,6 +82,7 @@ class _BillingSuccess extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final effectiveSummary = summary ?? const BillingSummary();
     final effectiveUsage = usage;
     final manageUrl = effectiveSummary.manageUrl;
@@ -91,9 +93,8 @@ class _BillingSuccess extends StatelessWidget {
       children: [
         BillingManagementSection(
           key: const ValueKey('billing-subscription-section'),
-          title: 'Subscription management',
-          description:
-              'Review your current subscription and open the billing portal when management is available.',
+          title: l10n.billingSubscriptionManagement,
+          description: l10n.billingSubscriptionManagementDesc,
           children: [
             Card(
               child: Padding(
@@ -102,29 +103,30 @@ class _BillingSuccess extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      effectiveSummary.planName ?? 'Subscription summary',
+                      effectiveSummary.planName ??
+                          l10n.billingSubscriptionSummary,
                       key: const ValueKey('billing-plan-name'),
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      effectiveSummary.status ?? 'Status unavailable',
+                      effectiveSummary.status ?? l10n.billingStatusUnavailable,
                       key: const ValueKey('billing-status'),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 12),
                     if (effectiveSummary.amountLabel != null)
                       _BillingDetailRow(
-                        label: 'Current price',
+                        label: l10n.billingCurrentPrice,
                         value: effectiveSummary.amountLabel!,
                       ),
                     if (effectiveSummary.renewalLabel != null)
                       _BillingDetailRow(
-                        label: 'Renewal / period',
+                        label: l10n.billingRenewalPeriod,
                         value: effectiveSummary.renewalLabel!,
                       ),
                     if (effectiveSummary.isEmpty)
-                      const Text('Billing details are not available yet.'),
+                      Text(l10n.billingDetailsNotAvailable),
                   ],
                 ),
               ),
@@ -138,15 +140,15 @@ class _BillingSuccess extends StatelessWidget {
               ),
               icon: manageUrl == null ? Icons.info_outline : Icons.open_in_new,
               title: manageUrl == null
-                  ? 'Billing management unavailable'
-                  : 'Open billing portal',
+                  ? l10n.billingManagementUnavailable
+                  : l10n.billingOpenPortal,
               message: manageUrl == null
-                  ? 'Billing management is not available for this workspace yet. Subscription details will continue to appear here when provided by the server.'
-                  : 'Manage your subscription with the billing portal.',
+                  ? l10n.billingManagementUnavailableMessage
+                  : l10n.billingManageSubscription,
               actionKey: manageUrl == null
                   ? null
                   : const ValueKey('billing-manage-action'),
-              actionLabel: manageUrl == null ? null : 'Open billing portal',
+              actionLabel: manageUrl == null ? null : l10n.billingOpenPortal,
               onAction: manageUrl == null
                   ? null
                   : () => onOpenManagePortal(manageUrl),
@@ -156,10 +158,10 @@ class _BillingSuccess extends StatelessWidget {
         const SizedBox(height: 12),
         BillingManagementSection(
           key: const ValueKey('billing-workspace-section'),
-          title: 'Workspace plan management',
+          title: l10n.billingWorkspacePlanManagement,
           description: hasActiveServerScope
-              ? 'Review current workspace limits and any upgrade or downgrade guidance.'
-              : 'Select a workspace to review server-scoped billing limits and plan guidance.',
+              ? l10n.billingWorkspacePlanDescActive
+              : l10n.billingWorkspacePlanDescSelect,
           children: [
             _BillingUsageSection(
               summary: effectiveSummary,
@@ -191,22 +193,22 @@ class _BillingUsageSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     if (!hasActiveServerScope) {
-      return const BillingActionCard(
-        cardKey: ValueKey('billing-usage-select-server'),
+      return BillingActionCard(
+        cardKey: const ValueKey('billing-usage-select-server'),
         icon: Icons.dns_outlined,
-        title: 'Workspace plan requires a selected workspace',
-        message:
-            'Select a workspace to see current usage, plan limits, and upgrade guidance.',
+        title: l10n.billingUsageSelectWorkspace,
+        message: l10n.billingUsageSelectWorkspaceMessage,
       );
     }
 
     if (usage == null || usage!.isEmpty) {
-      return const BillingActionCard(
-        cardKey: ValueKey('billing-usage-unavailable'),
+      return BillingActionCard(
+        cardKey: const ValueKey('billing-usage-unavailable'),
         icon: Icons.bar_chart_outlined,
-        title: 'Workspace usage unavailable',
-        message: 'Usage details are unavailable right now.',
+        title: l10n.billingUsageUnavailableTitle,
+        message: l10n.billingUsageUnavailableMessage,
       );
     }
 
@@ -220,12 +222,12 @@ class _BillingUsageSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Server usage and limits',
+                l10n.billingServerUsageAndLimits,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
               Text(
-                effectiveUsage.planName ?? 'Plan details unavailable',
+                effectiveUsage.planName ?? l10n.billingPlanDetailsUnavailable,
                 key: const ValueKey('billing-usage-plan-name'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
@@ -242,9 +244,10 @@ class _BillingUsageSection extends StatelessWidget {
                 _BillingUsageRow(resource: resource),
               if (effectiveUsage.messageHistoryDays != null)
                 _BillingDetailRow(
-                  label: 'Message history',
+                  label: l10n.billingMessageHistory,
                   value: _formatMessageHistoryDays(
                     effectiveUsage.messageHistoryDays!,
+                    l10n,
                   ),
                 ),
             ],
@@ -259,10 +262,11 @@ class _BillingUsageSection extends StatelessWidget {
         BillingActionCard(
           cardKey: const ValueKey('billing-plan-downgraded'),
           icon: Icons.warning_amber_rounded,
-          title: 'Workspace plan downgraded',
-          message:
-              'This workspace plan was downgraded on ${effectiveUsage.planDowngradedAt}. Upgrade to restore higher limits.',
-          actionLabel: summary.manageUrl == null ? null : 'Open billing portal',
+          title: l10n.billingPlanDowngraded,
+          message: l10n
+              .billingPlanDowngradedMessage(effectiveUsage.planDowngradedAt!),
+          actionLabel:
+              summary.manageUrl == null ? null : l10n.billingOpenPortal,
           onAction: onOpenManagePortal,
         ),
       ]);
@@ -272,11 +276,12 @@ class _BillingUsageSection extends StatelessWidget {
         BillingActionCard(
           cardKey: const ValueKey('billing-upgrade-prompt'),
           icon: Icons.upgrade,
-          title: 'Need more capacity?',
+          title: l10n.billingNeedMoreCapacity,
           message: summary.manageUrl != null
-              ? 'Open the billing portal to review upgrade options for this workspace plan.'
-              : 'Upgrade options will appear here when billing management is available for this workspace.',
-          actionLabel: summary.manageUrl == null ? null : 'Open billing portal',
+              ? l10n.billingUpgradePortalMessage
+              : l10n.billingUpgradeUnavailableMessage,
+          actionLabel:
+              summary.manageUrl == null ? null : l10n.billingOpenPortal,
           onAction: onOpenManagePortal,
         ),
       ]);
@@ -348,12 +353,12 @@ class _BillingUsageRow extends StatelessWidget {
   }
 }
 
-String _formatMessageHistoryDays(int days) {
+String _formatMessageHistoryDays(int days, AppLocalizations l10n) {
   if (days < 0) {
-    return 'Unlimited';
+    return l10n.billingMessageHistoryUnlimited;
   }
   if (days == 1) {
-    return '1 day';
+    return l10n.billingMessageHistoryOneDay;
   }
-  return '$days days';
+  return l10n.billingMessageHistoryDays(days);
 }

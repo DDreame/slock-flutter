@@ -4,6 +4,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/translation/application/translation_cache_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Overlay widget that wraps message content and shows either the
 /// original or the translated version, with a status indicator and
@@ -141,12 +142,14 @@ class _TranslationStatusRow extends ConsumerWidget {
                 .read(translationCacheStoreProvider.notifier)
                 .toggleTranslation(messageId),
             child: Text(
-              isShowingTranslation ? 'Show original' : 'Show translation',
+              isShowingTranslation
+                  ? context.l10n.translationShowOriginal
+                  : context.l10n.translationShowTranslation,
             ),
           )
         else if (entry.status == TranslationEntryStatus.pending)
           Text(
-            'Translating…',
+            context.l10n.translationPending,
             key: const ValueKey('translation-pending-text'),
             style: AppTypography.caption.copyWith(
               color: colors.textTertiary,
@@ -159,7 +162,7 @@ class _TranslationStatusRow extends ConsumerWidget {
             onPressed: () => ref
                 .read(translationCacheStoreProvider.notifier)
                 .translateMessage(messageId),
-            child: const Text('Translation failed. Tap to retry.'),
+            child: Text(context.l10n.translationFailed),
           ),
       ],
     );

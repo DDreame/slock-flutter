@@ -10,6 +10,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/conversation/presentation/page/conversation_detail_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   // ---------------------------------------------------------------------------
@@ -62,6 +63,8 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: QuoteJumpOverlay(state: QuoteJumpState.loading),
           ),
@@ -75,6 +78,8 @@ void main() {
     testWidgets('notFound state shows "Message not available"', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: QuoteJumpOverlay(state: QuoteJumpState.notFound),
           ),
@@ -88,6 +93,8 @@ void main() {
     testWidgets('idle state renders nothing (SizedBox.shrink)', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: QuoteJumpOverlay(state: QuoteJumpState.idle),
           ),

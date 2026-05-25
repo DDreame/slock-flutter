@@ -7,6 +7,7 @@ import 'package:slock_app/app/widgets/status_glow_ring.dart';
 import 'package:slock_app/features/members/presentation/widgets/member_list_item.dart';
 import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Shows a read-only profile bottom sheet for a member.
 Future<void> showMemberProfileSheet({
@@ -172,7 +173,7 @@ class _MemberProfileSheet extends StatelessWidget {
                   key: const ValueKey('member-profile-dm-action'),
                   onPressed: onMessageTap,
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                  label: const Text('Message'),
+                  label: Text(context.l10n.membersProfileMessage),
                 ),
               ),
             if (onMessageTap != null) const SizedBox(height: AppSpacing.lg),

@@ -520,7 +520,7 @@ class ConversationMessageCardState
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
                 child: Text(
-                  'AI',
+                  context.l10n.conversationMessageAiBadge,
                   // #655: Use pre-computed captionBold.
                   style: ConversationMessageCard.aiBadgeBaseStyle.copyWith(
                     color: colors.primaryForeground,
@@ -563,8 +563,9 @@ class ConversationMessageCardState
               const SizedBox(width: 4),
               Text(
                 message.replyCount != null && message.replyCount! > 0
-                    ? '${message.replyCount} ${message.replyCount == 1 ? 'reply' : 'replies'}'
-                    : 'In thread',
+                    ? context.l10n
+                        .conversationMessageReplyCount(message.replyCount!)
+                    : context.l10n.conversationMessageInThread,
                 key: const ValueKey('message-thread-indicator'),
                 style: AppTypography.label.copyWith(
                   color: colors.primary,
@@ -837,7 +838,8 @@ class ConversationMessageCardState
         Clipboard.setData(ClipboardData(text: widget.message.content));
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('Copied to clipboard.')));
+          ..showSnackBar(SnackBar(
+              content: Text(context.l10n.conversationCopiedToClipboard)));
       },
       onForward: () {
         final messageContent = widget.message.content;
@@ -867,15 +869,17 @@ class ConversationMessageCardState
                   ScaffoldMessenger.of(context)
                     ..hideCurrentSnackBar()
                     ..showSnackBar(
-                      const SnackBar(content: Text('Message forwarded')),
+                      SnackBar(
+                          content:
+                              Text(context.l10n.conversationMessageForwarded)),
                     );
                 } catch (_) {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context)
                     ..hideCurrentSnackBar()
                     ..showSnackBar(
-                      const SnackBar(
-                        content: Text('Failed to send. Please try again.'),
+                      SnackBar(
+                        content: Text(context.l10n.conversationSendFailed),
                       ),
                     );
                 }
@@ -1047,7 +1051,7 @@ class ConversationMessageCardState
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('Task created.')),
+          SnackBar(content: Text(context.l10n.conversationTaskCreated)),
         );
     } on AppFailure catch (failure) {
       if (!context.mounted) return;
@@ -1219,7 +1223,9 @@ class _QuotedMessageBlock extends StatelessWidget {
               ),
             ),
             Text(
-              replyTo.content.isEmpty ? '[Message]' : replyTo.content,
+              replyTo.content.isEmpty
+                  ? context.l10n.conversationQuoteFallback
+                  : replyTo.content,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.caption.copyWith(
@@ -1445,7 +1451,7 @@ class _MemberProfileSheetContent extends StatelessWidget {
                   key: const ValueKey('member-profile-dm-action'),
                   onPressed: onMessageTap,
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),
-                  label: const Text('Message'),
+                  label: Text(context.l10n.conversationProfileMessage),
                 ),
               ),
             if (onMessageTap != null) const SizedBox(height: AppSpacing.lg),

@@ -11,6 +11,7 @@ import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/share/application/share_intent_store.dart';
 import 'package:slock_app/features/share/data/shared_content.dart';
 import 'package:slock_app/features/share/presentation/widgets/share_preview_card.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Whitespace splitter for avatar-initials extraction in the share picker.
 ///
@@ -107,7 +108,7 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
           icon: const Icon(Icons.close),
           onPressed: widget.onCancel,
         ),
-        title: const Text('Share to...'),
+        title: Text(context.l10n.shareTargetTitle),
       ),
       body: _buildBody(colors, homeState, sharedContent),
     );
@@ -166,7 +167,7 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search conversations...',
+              hintText: context.l10n.shareSearchHint,
               prefixIcon: const Icon(Icons.search, size: 20),
               isDense: true,
               border: OutlineInputBorder(
@@ -185,7 +186,8 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
           child: ListView(
             children: [
               if (filteredChannels.isNotEmpty) ...[
-                _SectionHeader(title: 'Channels', colors: colors),
+                _SectionHeader(
+                    title: context.l10n.shareSectionChannels, colors: colors),
                 ...filteredChannels.map(
                   (ch) => _ChannelTile(
                     channel: ch,
@@ -197,7 +199,9 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
                 ),
               ],
               if (filteredDms.isNotEmpty) ...[
-                _SectionHeader(title: 'Direct Messages', colors: colors),
+                _SectionHeader(
+                    title: context.l10n.shareSectionDirectMessages,
+                    colors: colors),
                 ...filteredDms.map(
                   (dm) => _DmTile(
                     directMessage: dm,

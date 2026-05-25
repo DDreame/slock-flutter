@@ -1041,5 +1041,244 @@
   "settingsTranslationModeOffTitle": "Off",
   "settingsTranslationModeAutoDescription": "Automatically translate messages when entering a conversation",
   "settingsTranslationModeManualDescription": "Translate only when you tap the translate button",
-  "settingsTranslationModeOffDescription": "Translation is disabled"
+  "settingsTranslationModeOffDescription": "Translation is disabled",
+
+  "billingTitle": "Billing",
+  "billingUnavailableTitle": "Billing unavailable",
+  "billingUnavailableMessage": "We could not load billing details right now.",
+  "billingCouldNotOpenManagement": "Could not open billing management.",
+  "billingSubscriptionManagement": "Subscription management",
+  "billingSubscriptionManagementDesc": "Review your current subscription and open the billing portal when management is available.",
+  "billingSubscriptionSummary": "Subscription summary",
+  "billingStatusUnavailable": "Status unavailable",
+  "billingCurrentPrice": "Current price",
+  "billingRenewalPeriod": "Renewal / period",
+  "billingDetailsNotAvailable": "Billing details are not available yet.",
+  "billingManagementUnavailable": "Billing management unavailable",
+  "billingOpenPortal": "Open billing portal",
+  "billingManagementUnavailableMessage": "Billing management is not available for this workspace yet. Subscription details will continue to appear here when provided by the server.",
+  "billingManageSubscription": "Manage your subscription with the billing portal.",
+  "billingWorkspacePlanManagement": "Workspace plan management",
+  "billingWorkspacePlanDescActive": "Review current workspace limits and any upgrade or downgrade guidance.",
+  "billingWorkspacePlanDescSelect": "Select a workspace to review server-scoped billing limits and plan guidance.",
+  "billingUsageSelectWorkspace": "Workspace plan requires a selected workspace",
+  "billingUsageSelectWorkspaceMessage": "Select a workspace to see current usage, plan limits, and upgrade guidance.",
+  "billingUsageUnavailableTitle": "Workspace usage unavailable",
+  "billingUsageUnavailableMessage": "Usage details are unavailable right now.",
+  "billingServerUsageAndLimits": "Server usage and limits",
+  "billingPlanDetailsUnavailable": "Plan details unavailable",
+  "billingMessageHistory": "Message history",
+  "billingPlanDowngraded": "Workspace plan downgraded",
+  "billingPlanDowngradedMessage": "This workspace plan was downgraded on {date}. Upgrade to restore higher limits.",
+  "@billingPlanDowngradedMessage": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "billingNeedMoreCapacity": "Need more capacity?",
+  "billingUpgradePortalMessage": "Open the billing portal to review upgrade options for this workspace plan.",
+  "billingUpgradeUnavailableMessage": "Upgrade options will appear here when billing management is available for this workspace.",
+  "billingMessageHistoryUnlimited": "Unlimited",
+  "billingMessageHistoryOneDay": "1 day",
+  "billingMessageHistoryDays": "{count} days",
+  "@billingMessageHistoryDays": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "threadsTitle": "Threads",
+  "threadsEmpty": "No followed threads yet.",
+  "threadsSwipeDone": "Done",
+  "threadsRepliesCount": "{count} replies",
+  "@threadsRepliesCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "threadsUnreadCount": "{count} unread",
+  "@threadsUnreadCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "threadsActionOpen": "Open thread",
+  "threadsActionDone": "Done",
+  "threadRepliesTitle": "Thread replies",
+  "threadRepliesMissingContext": "Missing thread route context.",
+  "threadRepliesRetry": "Retry",
+  "threadRepliesFollowTooltip": "Follow thread",
+  "threadRepliesDoneTooltip": "Mark thread done",
+
+  "dmsSortAZ": "Sort A-Z",
+  "dmsSortRecent": "Sort by recent",
+  "dmsMarkAllRead": "Mark all read",
+  "dmsClearSearch": "Clear search",
+  "dmsMarkedUnread": "Marked as unread",
+  "dmsNewMessageTitle": "New message",
+  "dmsTabPeople": "People",
+  "dmsTabAgents": "Agents",
+  "dmsSearchHint": "Search...",
+  "dmsNoAgentsFound": "No agents found.",
+  "dmsNoMembersFound": "No members found.",
+  "dmsRetry": "Retry",
+
+  "searchScopeAll": "All",
+  "searchScopeMessages": "Messages",
+  "searchScopeChannels": "Channels",
+  "searchScopeContacts": "Contacts",
+  "searchBadgeDm": "DM",
+  "searchBadgeChannel": "Channel",
+
+  "conversationFilesTitle": "Files",
+  "conversationFilesRetry": "Retry",
+  "conversationFilesEmpty": "No files in this channel",
+  "conversationQuoteLoading": "Loading message…",
+  "conversationQuoteNotFound": "Message not available",
+  "conversationMemberCount": "{count} {count, plural, =1{member} other{members}}",
+  "@conversationMemberCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "conversationCloseSearch": "Close search",
+  "conversationSearchTooltip": "Search",
+  "conversationInfoTooltip": "Conversation info",
+  "conversationScreenshotTooltip": "Screenshot",
+  "conversationMicDenied": "Microphone permission denied. Please enable it in Settings.",
+  "conversationMicUnavailable": "Could not start recording. Please check microphone availability.",
+  "conversationLoadFailed": "Could not load {title}.",
+  "@conversationLoadFailed": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "conversationRetry": "Retry",
+  "conversationEmpty": "No messages in {title} yet.",
+  "@conversationEmpty": {
+    "placeholders": {
+      "title": { "type": "String" }
+    }
+  },
+  "conversationPresenceOnline": "Online",
+  "conversationPresenceIdle": "Idle",
+  "conversationPresenceOffline": "Offline",
+  "conversationOfflineBanner": "You are offline. Messages will be sent when you reconnect.",
+  "conversationInfoMute": "Mute Notifications",
+  "conversationInfoMuted": "Notifications are silenced",
+  "conversationInfoUnmuted": "Receiving all notifications",
+  "conversationInfoMembers": "Members",
+  "conversationInfoFiles": "Shared files",
+  "conversationInfoPinned": "Pinned messages",
+  "conversationInfoProfileSection": "Profile",
+  "conversationInfoDmSubtitle": "Direct message",
+  "conversationPinnedTitle": "Pinned messages",
+  "conversationPinnedRetry": "Retry",
+  "conversationPinnedEmpty": "No pinned messages",
+  "conversationMessageAiBadge": "AI",
+  "conversationMessageReplyCount": "{count} {count, plural, =1{reply} other{replies}}",
+  "@conversationMessageReplyCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "conversationMessageInThread": "In thread",
+  "conversationCopiedToClipboard": "Copied to clipboard.",
+  "conversationMessageForwarded": "Message forwarded",
+  "conversationSendFailed": "Failed to send. Please try again.",
+  "conversationTaskCreated": "Task created.",
+  "conversationQuoteFallback": "[Message]",
+  "conversationProfileMessage": "Message",
+  "conversationSearchHint": "Search in conversation...",
+  "conversationSearchPrevious": "Previous result",
+  "conversationSearchNext": "Next result",
+  "conversationSearchClose": "Close search",
+  "conversationFormatBold": "Bold",
+  "conversationFormatItalic": "Italic",
+  "conversationFormatInlineCode": "Inline code",
+  "conversationFormatCodeBlock": "Code block",
+  "conversationFormatLink": "Link",
+  "conversationMessageListSemantics": "Message list",
+
+  "membersTitle": "Members",
+  "membersRemoveTitle": "Remove Member?",
+  "membersCancel": "Cancel",
+  "membersRemove": "Remove",
+  "membersConfirm": "Confirm",
+  "membersMemberRemoved": "{name} removed.",
+  "@membersMemberRemoved": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  },
+  "membersInviteCopied": "Invite link copied.",
+  "membersSend": "Send",
+  "membersGenerateLink": "Generate Link",
+  "membersChangeRole": "Change Role",
+  "membersRoleAdmin": "Admin",
+  "membersRoleMember": "Member",
+  "membersMakeAdmin": "Make admin",
+  "membersMakeMember": "Make member",
+  "membersRemoveMember": "Remove member",
+  "membersProfileMessage": "Message",
+
+  "savedMessagesRetry": "Retry",
+
+  "biometricTryAgain": "Try again",
+  "biometricDisableContinue": "Disable & Continue",
+  "biometricSkipForNow": "Skip for now",
+
+  "shareTargetTitle": "Share to...",
+
+  "translationFailed": "Translation failed. Tap to retry.",
+
+  "membersRemoveBody": "Remove {name} from this server?",
+  "@membersRemoveBody": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "membersEmailValidationError": "Enter a valid email address",
+  "membersInviteTitle": "Invite Human",
+  "membersInviteEmailSection": "Send email invite",
+  "membersInviteEmailLabel": "Email",
+  "membersInviteEmailHint": "user@example.com",
+  "membersInviteLinkSection": "Or share invite link",
+  "membersInviteCopyLink": "Copy link",
+  "membersRoleAdminSubtitle": "Can manage members and invite",
+  "membersRoleMemberSubtitle": "Standard workspace access",
+
+  "savedMessagesTitle": "Saved",
+  "savedMessagesEmptyTitle": "No saved messages",
+  "savedMessagesEmptySubtitle": "Long-press a message and tap \"Save\" to bookmark it.\nSaved messages appear here for quick reference.",
+  "savedMessagesUnsaveTooltip": "Unsave",
+  "savedMessagesSourceDm": "\u00b7 DM",
+  "savedMessagesSourceChannel": "\u00b7 # {name}",
+  "@savedMessagesSourceChannel": {
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+
+  "biometricPrompt": "Authenticate to continue using Slock",
+  "biometricLockTitle": "Authenticate to continue",
+  "biometricLockSubtitle": "Verify your identity to access Slock",
+  "biometricErrorLockout": "Too many attempts. Please try again later.",
+  "biometricErrorPermanentLockout": "Biometrics locked. Please use your device passcode.",
+  "biometricErrorNotAvailable": "Biometrics unavailable. Please try again.",
+  "biometricErrorNotEnrolled": "No biometrics enrolled. Please try again.",
+  "biometricErrorGeneric": "Authentication failed. Try again ({count}/3).",
+  "@biometricErrorGeneric": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "shareSearchHint": "Search conversations...",
+  "shareSectionChannels": "Channels",
+  "shareSectionDirectMessages": "Direct Messages",
+
+  "translationShowOriginal": "Show original",
+  "translationShowTranslation": "Show translation",
+  "translationPending": "Translating\u2026"
 }

@@ -119,8 +119,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
                   : Icons.access_time,
             ),
             tooltip: sortPreference == DmSortPreference.recentActivity
-                ? 'Sort A-Z'
-                : 'Sort by recent',
+                ? context.l10n.dmsSortAZ
+                : context.l10n.dmsSortRecent,
             onPressed: () {
               final notifier = ref.read(dmSortPreferenceProvider.notifier);
               notifier.setSortPreference(
@@ -134,7 +134,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             IconButton(
               key: const ValueKey('dms-tab-mark-all-read'),
               icon: const Icon(Icons.done_all),
-              tooltip: 'Mark all read',
+              tooltip: context.l10n.dmsMarkAllRead,
               onPressed: () {
                 ref.read(inboxStoreProvider.notifier).markAllRead();
               },
@@ -443,7 +443,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchQuery.isNotEmpty
               ? Tooltip(
-                  message: 'Clear search',
+                  message: context.l10n.dmsClearSearch,
                   child: IconButton(
                     key: const ValueKey('search-clear-button'),
                     icon: const Icon(Icons.clear),
@@ -534,7 +534,7 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             channelName: dm.title,
           );
       if (!mounted) return;
-      showAppSnackBar(context, 'Marked as unread');
+      showAppSnackBar(context, context.l10n.dmsMarkedUnread);
     } on AppFailure catch (failure) {
       if (!mounted) return;
       showAppSnackBar(

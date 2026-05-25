@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Segmented control for switching between search scopes.
 class SearchScopeTabs extends StatelessWidget {
@@ -37,14 +38,14 @@ class SearchScopeTabs extends StatelessWidget {
         children: [
           _ScopeTab(
             key: const ValueKey('search-scope-all'),
-            label: 'All',
+            label: context.l10n.searchScopeAll,
             count: null,
             isActive: activeScope == SearchScope.all,
             onTap: () => onScopeChanged(SearchScope.all),
           ),
           _ScopeTab(
             key: const ValueKey('search-scope-messages'),
-            label: 'Messages',
+            label: context.l10n.searchScopeMessages,
             count: messageCount,
             countKey: const ValueKey('search-scope-messages-count'),
             isActive: activeScope == SearchScope.messages,
@@ -52,7 +53,7 @@ class SearchScopeTabs extends StatelessWidget {
           ),
           _ScopeTab(
             key: const ValueKey('search-scope-channels'),
-            label: 'Channels',
+            label: context.l10n.searchScopeChannels,
             count: channelCount,
             countKey: const ValueKey('search-scope-channels-count'),
             isActive: activeScope == SearchScope.channels,
@@ -60,7 +61,7 @@ class SearchScopeTabs extends StatelessWidget {
           ),
           _ScopeTab(
             key: const ValueKey('search-scope-contacts'),
-            label: 'Contacts',
+            label: context.l10n.searchScopeContacts,
             count: contactCount,
             countKey: const ValueKey('search-scope-contacts-count'),
             isActive: activeScope == SearchScope.contacts,
