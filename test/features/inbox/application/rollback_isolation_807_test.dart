@@ -67,8 +67,7 @@ void main() {
           overrides: [
             activeServerScopeIdProvider
                 .overrideWith((_) => const ServerScopeId('srv-1')),
-            conversationUnreadRepositoryProvider
-                .overrideWithValue(unreadRepo),
+            conversationUnreadRepositoryProvider.overrideWithValue(unreadRepo),
             inboxRepositoryProvider.overrideWithValue(inboxRepo),
             realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
           ],
@@ -161,8 +160,7 @@ void main() {
           overrides: [
             activeServerScopeIdProvider
                 .overrideWith((_) => const ServerScopeId('srv-1')),
-            conversationUnreadRepositoryProvider
-                .overrideWithValue(unreadRepo),
+            conversationUnreadRepositoryProvider.overrideWithValue(unreadRepo),
             inboxRepositoryProvider.overrideWithValue(inboxRepo),
             realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
           ],
@@ -237,8 +235,7 @@ void main() {
           overrides: [
             activeServerScopeIdProvider
                 .overrideWith((_) => const ServerScopeId('srv-1')),
-            conversationUnreadRepositoryProvider
-                .overrideWithValue(unreadRepo),
+            conversationUnreadRepositoryProvider.overrideWithValue(unreadRepo),
             inboxRepositoryProvider.overrideWithValue(inboxRepo),
             realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
           ],
@@ -323,8 +320,7 @@ void main() {
           overrides: [
             activeServerScopeIdProvider
                 .overrideWith((_) => const ServerScopeId('srv-1')),
-            conversationUnreadRepositoryProvider
-                .overrideWithValue(unreadRepo),
+            conversationUnreadRepositoryProvider.overrideWithValue(unreadRepo),
             inboxRepositoryProvider.overrideWithValue(inboxRepo),
             realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
           ],
@@ -389,8 +385,7 @@ void main() {
           overrides: [
             activeServerScopeIdProvider
                 .overrideWith((_) => const ServerScopeId('srv-1')),
-            conversationUnreadRepositoryProvider
-                .overrideWithValue(unreadRepo),
+            conversationUnreadRepositoryProvider.overrideWithValue(unreadRepo),
             inboxRepositoryProvider.overrideWithValue(inboxRepo),
             realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
           ],
@@ -454,8 +449,7 @@ void main() {
           overrides: [
             activeServerScopeIdProvider
                 .overrideWith((_) => const ServerScopeId('srv-1')),
-            conversationUnreadRepositoryProvider
-                .overrideWithValue(unreadRepo),
+            conversationUnreadRepositoryProvider.overrideWithValue(unreadRepo),
             inboxRepositoryProvider.overrideWithValue(inboxRepo),
             realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
           ],
@@ -522,8 +516,7 @@ void main() {
           overrides: [
             activeServerScopeIdProvider
                 .overrideWith((_) => const ServerScopeId('srv-1')),
-            conversationUnreadRepositoryProvider
-                .overrideWithValue(unreadRepo),
+            conversationUnreadRepositoryProvider.overrideWithValue(unreadRepo),
             inboxRepositoryProvider.overrideWithValue(inboxRepo),
             realtimeServiceProvider.overrideWith(_FakeRealtimeNotifier.new),
           ],

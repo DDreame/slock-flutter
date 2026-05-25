@@ -336,18 +336,19 @@ class InboxStore extends Notifier<InboxState> {
       state = state.copyWith(
         items: items,
         totalCount: state.totalCount - 1,
-        totalUnreadCount: (state.totalUnreadCount - unreadDelta).clamp(0, state.totalUnreadCount),
+        totalUnreadCount: (state.totalUnreadCount - unreadDelta)
+            .clamp(0, state.totalUnreadCount),
         offset: (state.offset - 1).clamp(0, state.offset),
       );
     } else if (previousItem != null) {
       // The item existed — restore its previous unreadCount.
-      final currentIndex =
-          items.indexWhere((i) => i.channelId == channelId);
+      final currentIndex = items.indexWhere((i) => i.channelId == channelId);
       if (currentIndex >= 0) {
         items[currentIndex] = previousItem;
         state = state.copyWith(
           items: items,
-          totalUnreadCount: (state.totalUnreadCount - unreadDelta).clamp(0, state.totalUnreadCount),
+          totalUnreadCount: (state.totalUnreadCount - unreadDelta)
+              .clamp(0, state.totalUnreadCount),
         );
       }
     }
