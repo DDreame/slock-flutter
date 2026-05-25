@@ -53,11 +53,32 @@ class _ThreadRepliesScreen extends ConsumerWidget {
     final routeTarget = ref.watch(currentThreadRouteTargetProvider);
     ref.watch(currentOpenThreadRegistrationProvider(routeTarget));
     ref.watch(threadRepliesRealtimeBindingProvider);
-    final state = ref.watch(threadRepliesStoreProvider);
+    // INV-SELECT-THREAD-1: Only rebuild on fields used by this scaffold.
+    // Excludes replyCount, participantIds, lastReplyAt which change
+    // frequently as new replies arrive but don't affect this widget (#800).
+    final (
+      :status,
+      :conversationTarget,
+      :failure,
+      :isFollowing,
+      :isFollowingInFlight,
+      :isDoneInFlight,
+      :storeRouteTarget,
+    ) = ref.watch(
+      threadRepliesStoreProvider.select((s) => (
+            status: s.status,
+            conversationTarget: s.conversationTarget,
+            failure: s.failure,
+            isFollowing: s.isFollowing,
+            isFollowingInFlight: s.isFollowingInFlight,
+            isDoneInFlight: s.isDoneInFlight,
+            storeRouteTarget: s.routeTarget,
+          )),
+    );
     final store = ref.read(threadRepliesStoreProvider.notifier);
 
-    if (state.status == ThreadRepliesStatus.initial ||
-        state.status == ThreadRepliesStatus.loading) {
+    if (status == ThreadRepliesStatus.initial ||
+        status == ThreadRepliesStatus.loading) {
       return Scaffold(
         appBar: AppBar(title: const Text('Thread replies')),
         body: const Center(
@@ -67,8 +88,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
       );
     }
 
-    if (state.status == ThreadRepliesStatus.failure ||
-        state.conversationTarget == null) {
+    if (status == ThreadRepliesStatus.failure || conversationTarget == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Thread replies')),
         body: Center(
@@ -79,7 +99,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  state.failure?.userMessage(context.l10n) ??
+                  failure?.userMessage(context.l10n) ??
                       context.l10n.errorUnknown,
                   textAlign: TextAlign.center,
                 ),
@@ -94,30 +114,36 @@ class _ThreadRepliesScreen extends ConsumerWidget {
     }
 
     return ConversationDetailPage(
-      target: state.conversationTarget!,
+      target: conversationTarget,
       titleOverride: 'Thread replies',
       registerOpenTarget: false,
       highlightMessageId: routeTarget.highlightMessageId,
       appBarActionsBuilder: (context, ref, _) => _buildThreadActions(
         context,
         ref,
-        state,
+        isFollowing: isFollowing,
+        isFollowingInFlight: isFollowingInFlight,
+        isDoneInFlight: isDoneInFlight,
+        serverId: storeRouteTarget.serverId,
       ),
     );
   }
 
   List<Widget> _buildThreadActions(
     BuildContext context,
-    WidgetRef ref,
-    ThreadRepliesState state,
-  ) {
+    WidgetRef ref, {
+    required bool isFollowing,
+    required bool isFollowingInFlight,
+    required bool isDoneInFlight,
+    required String serverId,
+  }) {
     final store = ref.read(threadRepliesStoreProvider.notifier);
     return [
-      if (!state.isFollowing)
+      if (!isFollowing)
         IconButton(
           key: const ValueKey('thread-follow-action'),
-          onPressed: state.isFollowingInFlight ? null : store.follow,
-          icon: state.isFollowingInFlight
+          onPressed: isFollowingInFlight ? null : store.follow,
+          icon: isFollowingInFlight
               ? const SizedBox(
                   width: 18,
                   height: 18,
@@ -128,7 +154,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
         ),
       IconButton(
         key: const ValueKey('thread-done-action'),
-        onPressed: state.isDoneInFlight
+        onPressed: isDoneInFlight
             ? null
             : () async {
                 await store.markDone();
@@ -137,12 +163,11 @@ class _ThreadRepliesScreen extends ConsumerWidget {
                   if (context.canPop()) {
                     context.pop();
                   } else {
-                    context.go(
-                        '/servers/${nextState.routeTarget.serverId}/threads');
+                    context.go('/servers/$serverId/threads');
                   }
                 }
               },
-        icon: state.isDoneInFlight
+        icon: isDoneInFlight
             ? const SizedBox(
                 width: 18,
                 height: 18,

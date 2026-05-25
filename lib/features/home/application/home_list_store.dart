@@ -246,7 +246,13 @@ class HomeListStore extends Notifier<HomeListState> {
       unawaited(_loadAndMergeSupplemental(serverScopeId));
     } on AppFailure catch (failure) {
       if (ref.read(activeServerScopeIdProvider) != serverScopeId) return;
-      if (cached != null) return;
+      if (cached != null) {
+        // Propagate failure alongside cached data so UI can show a
+        // "refresh failed" indicator instead of silently showing stale
+        // data indefinitely (#800 P2-3).
+        state = state.copyWith(failure: failure);
+        return;
+      }
       state = state.copyWith(
         serverScopeId: serverScopeId,
         status: HomeListStatus.failure,

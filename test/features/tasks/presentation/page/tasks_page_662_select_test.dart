@@ -2,14 +2,17 @@
 // #662 — TasksPage scaffold .select() rebuild isolation (widget-path)
 //
 // Invariant: INV-TASKS-662-SELECT-1
-//   _TasksScreen scaffold only rebuilds on (status, isEmpty, isRefreshing)
-//   changes. Item mutations within a non-empty list don't trigger scaffold
-//   rebuild because _TasksListSurface is a separate ConsumerWidget that
-//   watches items independently.
+//   _TasksScreen scaffold only rebuilds on (status, isEmpty, isRefreshing,
+//   failure) changes. Item mutations within a non-empty list don't trigger
+//   scaffold rebuild because _TasksListSurface is a separate ConsumerWidget
+//   that watches items independently.
+//
+// Updated by #800 P2-5: failure was added to the scaffold selector so the
+// failure view can update when the error message changes.
 //
 // Strategy (widget-path tests using pumpWidget + Consumer rebuild counters):
 // T1: items mutation (non-empty list change) must NOT rebuild scaffold.
-// T2: failure change must NOT rebuild scaffold.
+// T2: failure change DOES rebuild scaffold (included in select since #800).
 // T3: status change DOES rebuild scaffold.
 // T4: isRefreshing change DOES rebuild scaffold.
 // T5: dual-select decomposition — scaffold and list surface selects have
@@ -81,6 +84,7 @@ TaskItem _makeTask(String id) => TaskItem(
 ///     status: s.status,
 ///     isEmpty: s.items.isEmpty,
 ///     isRefreshing: s.isRefreshing,
+///     failure: s.failure,
 ///   )))
 class _ScaffoldSelectConsumer extends ConsumerWidget {
   const _ScaffoldSelectConsumer({required this.onBuild});
@@ -95,6 +99,7 @@ class _ScaffoldSelectConsumer extends ConsumerWidget {
           status: s.status,
           isEmpty: s.items.isEmpty,
           isRefreshing: s.isRefreshing,
+          failure: s.failure,
         ),
       ),
     );
@@ -181,10 +186,11 @@ void main() {
   );
 
   // -------------------------------------------------------------------------
-  // T2: failure change must NOT rebuild scaffold.
+  // T2: failure change DOES rebuild scaffold (included in select since #800).
   // -------------------------------------------------------------------------
   testWidgets(
-    'INV-TASKS-662-SELECT-1: failure change does NOT rebuild scaffold widget',
+    'INV-TASKS-662-SELECT-1: failure change DOES rebuild scaffold widget '
+    '(#800 P2-5)',
     (tester) async {
       int scaffoldBuildCount = 0;
 
@@ -213,9 +219,9 @@ void main() {
 
       expect(
         scaffoldBuildCount,
-        1,
-        reason: 'Scaffold must NOT rebuild on failure change '
-            '(INV-TASKS-662-SELECT-1)',
+        2,
+        reason: 'Scaffold must rebuild on failure change since #800 '
+            'added failure to the select record',
       );
     },
   );
@@ -336,16 +342,16 @@ void main() {
       expect(scaffoldCount, 1);
       expect(listSurfaceCount, 2);
 
-      // 2. Failure mutation — neither rebuilds.
+      // 2. Failure mutation — scaffold rebuilds (included in select since #800).
       store.setFailureDirect(const NetworkFailure(message: 'x'));
       await tester.pump();
-      expect(scaffoldCount, 1);
+      expect(scaffoldCount, 2);
       expect(listSurfaceCount, 2);
 
       // 3. Status mutation — scaffold rebuilds.
       store.setStatusDirect(TasksStatus.loading);
       await tester.pump();
-      expect(scaffoldCount, 2);
+      expect(scaffoldCount, 3);
     },
   );
 }
