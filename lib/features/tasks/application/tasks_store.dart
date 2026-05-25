@@ -21,8 +21,13 @@ final tasksStoreProvider = NotifierProvider.autoDispose<TasksStore, TasksState>(
 class TasksStore extends AutoDisposeNotifier<TasksState> {
   Completer<void>? _ensureLoadedCompleter;
 
+  /// Prevents post-await state mutations after the store is disposed.
+  bool _disposed = false;
+
   @override
   TasksState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     return const TasksState();
   }
 
@@ -46,6 +51,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     try {
       final repo = ref.read(tasksRepositoryProvider);
       final tasks = await repo.listServerTasks(serverId);
+      if (_disposed) return;
       state = state.copyWith(
         status: TasksStatus.success,
         items: tasks,
@@ -53,6 +59,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       if (hasStaleData) {
         // SWR: preserve success status, surface error as overlay.
         state = state.copyWith(
@@ -66,6 +73,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         );
       }
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('load', e, st);
       if (hasStaleData) {
         state = state.copyWith(
@@ -99,6 +107,7 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         channelId: channelId,
         titles: titles,
       );
+      if (_disposed) return null;
       final itemsById = <String, TaskItem>{
         for (final item in state.items) item.id: item,
         for (final item in created) item.id: item,
@@ -131,13 +140,16 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
         taskId: taskId,
         status: status,
       );
+      if (_disposed) return;
       state = state.copyWith(
         items: state.items.map((t) => t.id == taskId ? updated : t).toList(),
       );
     } on AppFailure {
+      if (_disposed) return;
       state = state.copyWith(items: previousItems);
       rethrow;
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('updateTaskStatus', e, st);
       state = state.copyWith(items: previousItems);
       throw UnknownFailure(
@@ -157,10 +169,13 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     try {
       final repo = ref.read(tasksRepositoryProvider);
       await repo.deleteTask(serverId, taskId: taskId);
+      if (_disposed) return;
     } on AppFailure {
+      if (_disposed) return;
       state = state.copyWith(items: previousItems);
       rethrow;
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('deleteTask', e, st);
       state = state.copyWith(items: previousItems);
       throw UnknownFailure(
@@ -192,13 +207,16 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     try {
       final repo = ref.read(tasksRepositoryProvider);
       final updated = await repo.claimTask(serverId, taskId: taskId);
+      if (_disposed) return;
       state = state.copyWith(
         items: state.items.map((t) => t.id == taskId ? updated : t).toList(),
       );
     } on AppFailure {
+      if (_disposed) return;
       state = state.copyWith(items: previousItems);
       rethrow;
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('claimTask', e, st);
       state = state.copyWith(items: previousItems);
       throw UnknownFailure(
@@ -222,13 +240,16 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     try {
       final repo = ref.read(tasksRepositoryProvider);
       final updated = await repo.unclaimTask(serverId, taskId: taskId);
+      if (_disposed) return;
       state = state.copyWith(
         items: state.items.map((t) => t.id == taskId ? updated : t).toList(),
       );
     } on AppFailure {
+      if (_disposed) return;
       state = state.copyWith(items: previousItems);
       rethrow;
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('unclaimTask', e, st);
       state = state.copyWith(items: previousItems);
       throw UnknownFailure(
@@ -238,12 +259,13 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
     }
   }
 
-  Future<TaskItem> convertMessageToTask({required String messageId}) async {
+  Future<TaskItem?> convertMessageToTask({required String messageId}) async {
     final serverId = ref.read(currentTasksServerIdProvider);
     try {
       final repo = ref.read(tasksRepositoryProvider);
       final task =
           await repo.convertMessageToTask(serverId, messageId: messageId);
+      if (_disposed) return null;
       state = state.copyWith(items: [...state.items, task]);
       return task;
     } on AppFailure {
