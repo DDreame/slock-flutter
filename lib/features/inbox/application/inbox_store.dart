@@ -150,6 +150,8 @@ class InboxStore extends Notifier<InboxState> {
             limit: inboxPageSize,
             offset: state.offset,
           );
+      // Discard stale response if the server changed during the await.
+      if (ref.read(activeServerScopeIdProvider) != serverId) return;
       final mergedItems = _mergeInboxItemsDeduped(
         state.items,
         response.items,
@@ -164,6 +166,7 @@ class InboxStore extends Notifier<InboxState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (ref.read(activeServerScopeIdProvider) != serverId) return;
       state = state.copyWith(failure: failure);
     } finally {
       _isLoadingMore = false;
