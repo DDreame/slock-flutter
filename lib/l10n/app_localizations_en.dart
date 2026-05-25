@@ -945,6 +945,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Device registration not available yet.';
 
   @override
+  String get notificationSettingsDateRecently => 'recently';
+
+  @override
   String get notificationSettingsResultGranted =>
       'Notification access granted and device registration refreshed.';
 
@@ -2296,4 +2299,285 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get agentsFormConfiguredDefault => 'Configured Default';
+
+  @override
+  String get profileEditTitle => 'Edit Profile';
+
+  @override
+  String get profileEditSave => 'Save';
+
+  @override
+  String get profileEditSnackbarSaved => 'Profile updated.';
+
+  @override
+  String get profileEditSnackbarAvatarSavedProfileFailed =>
+      'Avatar updated. Profile save failed — tap Save to retry.';
+
+  @override
+  String get profileEditNewAvatarSelected => 'New avatar selected';
+
+  @override
+  String get profileEditChangeAvatar => 'Change avatar';
+
+  @override
+  String get profileEditSectionDetails => 'Profile details';
+
+  @override
+  String get profileEditDisplayNameLabel => 'Display name';
+
+  @override
+  String get profileEditDisplayNameRequired => 'Display name is required.';
+
+  @override
+  String get profileEditBioLabel => 'Bio / status';
+
+  @override
+  String get profileTitleSelf => 'My Profile';
+
+  @override
+  String get profileTitle => 'Profile';
+
+  @override
+  String get profileRetry => 'Retry';
+
+  @override
+  String get profileNotAvailable => 'Profile not available.';
+
+  @override
+  String get profileLabelUserId => 'User ID';
+
+  @override
+  String get profileLabelUsername => 'Username';
+
+  @override
+  String get profileLabelEmail => 'Email';
+
+  @override
+  String get profileLabelRole => 'Role';
+
+  @override
+  String get profileLabelMemberSince => 'Member since';
+
+  @override
+  String get profileEditComingSoon => 'Profile editing coming soon';
+
+  @override
+  String get profileEditButton => 'Edit Profile';
+
+  @override
+  String get profileThisIsYou => 'This is you';
+
+  @override
+  String get profileMessageButton => 'Message';
+
+  @override
+  String profileDateFormat(String month, int day, int year) {
+    return '$month $day, $year';
+  }
+
+  @override
+  String get profileMonthJan => 'Jan';
+
+  @override
+  String get profileMonthFeb => 'Feb';
+
+  @override
+  String get profileMonthMar => 'Mar';
+
+  @override
+  String get profileMonthApr => 'Apr';
+
+  @override
+  String get profileMonthMay => 'May';
+
+  @override
+  String get profileMonthJun => 'Jun';
+
+  @override
+  String get profileMonthJul => 'Jul';
+
+  @override
+  String get profileMonthAug => 'Aug';
+
+  @override
+  String get profileMonthSep => 'Sep';
+
+  @override
+  String get profileMonthOct => 'Oct';
+
+  @override
+  String get profileMonthNov => 'Nov';
+
+  @override
+  String get profileMonthDec => 'Dec';
+
+  @override
+  String get settingsEditProfileTitle => 'Edit profile';
+
+  @override
+  String get settingsEditProfileSubtitle =>
+      'Update your display name, bio, and avatar';
+
+  @override
+  String get inboxTitle => 'Inbox';
+
+  @override
+  String get inboxMarkAllReadTooltip => 'Mark all read';
+
+  @override
+  String get inboxLoadFailed => 'Failed to load inbox';
+
+  @override
+  String get inboxRetry => 'Retry';
+
+  @override
+  String get inboxEmptyTitle => 'All caught up!';
+
+  @override
+  String get inboxEmptySubtitle => 'No messages in your inbox';
+
+  @override
+  String get inboxActionMarkRead => 'Mark Read';
+
+  @override
+  String get inboxSwipeLabelRead => 'Read';
+
+  @override
+  String get inboxFilterUnread => 'Unread';
+
+  @override
+  String get inboxFilterMentions => '@Mentions';
+
+  @override
+  String get inboxFilterDms => 'DMs';
+
+  @override
+  String get inboxFilterAll => 'All';
+
+  @override
+  String get inboxMentionBadge => '@you';
+
+  @override
+  String get inboxTimeNow => 'now';
+
+  @override
+  String inboxTimeMinutes(int count) {
+    return '${count}m';
+  }
+
+  @override
+  String inboxTimeHours(int count) {
+    return '${count}h';
+  }
+
+  @override
+  String inboxTimeDays(int count) {
+    return '${count}d';
+  }
+
+  @override
+  String get inboxUnreadCountOverflow => '99+';
+
+  @override
+  String get settingsAppearanceTitle => 'Appearance';
+
+  @override
+  String get settingsAppearanceThemeSection => 'Theme';
+
+  @override
+  String get settingsThemeSystemTitle => 'Follow System';
+
+  @override
+  String get settingsThemeSystemDescription => 'Use your device theme setting.';
+
+  @override
+  String get settingsThemeLightTitle => 'Light';
+
+  @override
+  String get settingsThemeLightDescription => 'Always use the light theme.';
+
+  @override
+  String get settingsThemeDarkTitle => 'Dark';
+
+  @override
+  String get settingsThemeDarkDescription => 'Always use the dark theme.';
+
+  @override
+  String get settingsDiagnosticsPageTitle => 'Diagnostics';
+
+  @override
+  String settingsDiagnosticsEntryCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'entries',
+      one: 'entry',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String get settingsDiagnosticsFilterAll => 'All';
+
+  @override
+  String get settingsDiagnosticsFilterInfo => 'Info';
+
+  @override
+  String get settingsDiagnosticsFilterWarning => 'Warning';
+
+  @override
+  String get settingsDiagnosticsFilterError => 'Error';
+
+  @override
+  String get settingsDiagnosticsEmpty => 'No diagnostic entries';
+
+  @override
+  String get settingsDiagnosticsWorkerLoading => 'Background worker: loading…';
+
+  @override
+  String get settingsDiagnosticsWorkerUnavailable =>
+      'Background worker diagnostics unavailable';
+
+  @override
+  String get settingsDiagnosticsWorkerNotRunning =>
+      'Background worker: not running';
+
+  @override
+  String get settingsDiagnosticsWorkerTitle => 'Background worker';
+
+  @override
+  String get settingsTranslationPageTitle => 'Translation';
+
+  @override
+  String get settingsTranslationNoActiveWorkspace =>
+      'No active workspace. Translation settings are workspace-level.';
+
+  @override
+  String get settingsTranslationRetry => 'Retry';
+
+  @override
+  String get settingsTranslationSectionMode => 'Translation Mode';
+
+  @override
+  String get settingsTranslationSectionLanguage => 'Preferred Language';
+
+  @override
+  String get settingsTranslationModeAutoTitle => 'Automatic';
+
+  @override
+  String get settingsTranslationModeManualTitle => 'Manual';
+
+  @override
+  String get settingsTranslationModeOffTitle => 'Off';
+
+  @override
+  String get settingsTranslationModeAutoDescription =>
+      'Automatically translate messages when entering a conversation';
+
+  @override
+  String get settingsTranslationModeManualDescription =>
+      'Translate only when you tap the translate button';
+
+  @override
+  String get settingsTranslationModeOffDescription => 'Translation is disabled';
 }

@@ -3,6 +3,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 // ---------------------------------------------------------------------------
 // #509: Redesigned inbox item tile — full item anatomy per Z2 mockup.
@@ -48,12 +49,13 @@ class InboxItemTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final l10n = context.l10n;
 
     final content = InkWell(
       onTap: onTap,
       child: _isUnread
-          ? _buildUnreadContainer(colors)
-          : _buildReadContainer(colors),
+          ? _buildUnreadContainer(colors, l10n)
+          : _buildReadContainer(colors, l10n),
     );
 
     return content;
@@ -63,7 +65,7 @@ class InboxItemTile extends StatelessWidget {
   // Unread item: accent-soft bg + 3px left bar
   // -------------------------------------------------------------------------
 
-  Widget _buildUnreadContainer(AppColors colors) {
+  Widget _buildUnreadContainer(AppColors colors, AppLocalizations l10n) {
     return Container(
       key: ValueKey('inbox-tile-unread-indicator-$_keyId'),
       decoration: BoxDecoration(
@@ -75,7 +77,7 @@ class InboxItemTile extends StatelessWidget {
           ),
         ),
       ),
-      child: _buildTileContent(colors),
+      child: _buildTileContent(colors, l10n),
     );
   }
 
@@ -83,15 +85,15 @@ class InboxItemTile extends StatelessWidget {
   // Read item: transparent bg, no bar
   // -------------------------------------------------------------------------
 
-  Widget _buildReadContainer(AppColors colors) {
-    return _buildTileContent(colors);
+  Widget _buildReadContainer(AppColors colors, AppLocalizations l10n) {
+    return _buildTileContent(colors, l10n);
   }
 
   // -------------------------------------------------------------------------
   // Shared tile content: avatar + text columns + count
   // -------------------------------------------------------------------------
 
-  Widget _buildTileContent(AppColors colors) {
+  Widget _buildTileContent(AppColors colors, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.pageHorizontal,
@@ -101,10 +103,10 @@ class InboxItemTile extends StatelessWidget {
         children: [
           _buildAvatar(colors),
           const SizedBox(width: AppSpacing.md),
-          Expanded(child: _buildTextColumn(colors)),
+          Expanded(child: _buildTextColumn(colors, l10n)),
           if (_isUnread) ...[
             const SizedBox(width: AppSpacing.sm),
-            _buildCountPill(colors),
+            _buildCountPill(colors, l10n),
           ],
         ],
       ),
@@ -148,7 +150,7 @@ class InboxItemTile extends StatelessWidget {
   // Text column: [sender + source + @mention] [preview] — with time
   // -------------------------------------------------------------------------
 
-  Widget _buildTextColumn(AppColors colors) {
+  Widget _buildTextColumn(AppColors colors, AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -177,13 +179,13 @@ class InboxItemTile extends StatelessWidget {
                   ],
                   if (isMentioned) ...[
                     const SizedBox(width: AppSpacing.xs),
-                    _buildMentionBadge(colors),
+                    _buildMentionBadge(colors, l10n),
                   ],
                 ],
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            _buildTime(colors),
+            _buildTime(colors, l10n),
           ],
         ),
 
@@ -233,7 +235,7 @@ class InboxItemTile extends StatelessWidget {
   // @mention badge (10px "@you")
   // -------------------------------------------------------------------------
 
-  Widget _buildMentionBadge(AppColors colors) {
+  Widget _buildMentionBadge(AppColors colors, AppLocalizations l10n) {
     return Container(
       key: ValueKey('inbox-tile-mention-badge-$_keyId'),
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -242,7 +244,7 @@ class InboxItemTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        '@you',
+        l10n.inboxMentionBadge,
         style: AppTypography.caption.copyWith(
           color: colors.primary,
           fontSize: 10,
@@ -256,10 +258,10 @@ class InboxItemTile extends StatelessWidget {
   // Time display (12px tabular-nums)
   // -------------------------------------------------------------------------
 
-  Widget _buildTime(AppColors colors) {
+  Widget _buildTime(AppColors colors, AppLocalizations l10n) {
     if (projection.lastActivityAt == null) return const SizedBox.shrink();
     return Text(
-      _formatTime(projection.lastActivityAt!),
+      _formatTime(projection.lastActivityAt!, l10n),
       key: ValueKey('inbox-tile-time-$_keyId'),
       style: AppTypography.label.copyWith(
         color: _isUnread ? colors.primary : colors.textTertiary,
@@ -273,7 +275,7 @@ class InboxItemTile extends StatelessWidget {
   // Count pill
   // -------------------------------------------------------------------------
 
-  Widget _buildCountPill(AppColors colors) {
+  Widget _buildCountPill(AppColors colors, AppLocalizations l10n) {
     return Container(
       key: ValueKey('inbox-tile-count-$_keyId'),
       child: Container(
@@ -286,7 +288,9 @@ class InboxItemTile extends StatelessWidget {
         ),
         alignment: Alignment.center,
         child: Text(
-          projection.unreadCount > 99 ? '99+' : '${projection.unreadCount}',
+          projection.unreadCount > 99
+              ? l10n.inboxUnreadCountOverflow
+              : '${projection.unreadCount}',
           style: AppTypography.caption.copyWith(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -301,13 +305,13 @@ class InboxItemTile extends StatelessWidget {
   // Time formatting
   // -------------------------------------------------------------------------
 
-  static String _formatTime(DateTime time) {
+  static String _formatTime(DateTime time, AppLocalizations l10n) {
     final now = DateTime.now();
     final diff = now.difference(time);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
+    if (diff.inMinutes < 1) return l10n.inboxTimeNow;
+    if (diff.inMinutes < 60) return l10n.inboxTimeMinutes(diff.inMinutes);
+    if (diff.inHours < 24) return l10n.inboxTimeHours(diff.inHours);
+    if (diff.inDays < 7) return l10n.inboxTimeDays(diff.inDays);
     return '${time.month}/${time.day}';
   }
 }

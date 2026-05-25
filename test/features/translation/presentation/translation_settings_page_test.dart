@@ -7,6 +7,7 @@ import 'package:slock_app/features/home/application/active_server_scope_provider
 import 'package:slock_app/features/settings/presentation/page/translation_settings_page.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
 import 'package:slock_app/features/translation/data/translation_settings.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('renders mode options and language dropdown', (tester) async {
@@ -26,6 +27,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const TranslationSettingsPage(),
         ),
       ),
@@ -73,6 +76,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const TranslationSettingsPage(),
         ),
       ),
@@ -95,6 +100,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const TranslationSettingsPage(),
         ),
       ),
@@ -117,6 +124,8 @@ void main() {
         ],
         child: MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: const TranslationSettingsPage(),
         ),
       ),

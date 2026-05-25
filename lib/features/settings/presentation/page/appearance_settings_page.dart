@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/features/settings/data/theme_preference.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/theme/theme_mode_store.dart';
 
 class AppearanceSettingsPage extends ConsumerWidget {
@@ -16,12 +17,12 @@ class AppearanceSettingsPage extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Appearance')),
+      appBar: AppBar(title: Text(context.l10n.settingsAppearanceTitle)),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
         children: [
           Text(
-            'Theme',
+            context.l10n.settingsAppearanceThemeSection,
             key: const ValueKey('appearance-section-theme'),
             style: AppTypography.title.copyWith(color: colors.text),
           ),
@@ -69,6 +70,7 @@ class _ThemeOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -90,14 +92,14 @@ class _ThemeOptionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    preference.title,
+                    _titleForPreference(preference, l10n),
                     style: AppTypography.body.copyWith(
                       color: colors.text,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    preference.description,
+                    _descriptionForPreference(preference, l10n),
                     style: AppTypography.caption.copyWith(
                       color: colors.textSecondary,
                     ),
@@ -128,6 +130,24 @@ class _ThemeOptionTile extends StatelessWidget {
       ThemePreference.system => Icons.settings_brightness,
       ThemePreference.light => Icons.light_mode_outlined,
       ThemePreference.dark => Icons.dark_mode_outlined,
+    };
+  }
+
+  static String _titleForPreference(
+      ThemePreference pref, AppLocalizations l10n) {
+    return switch (pref) {
+      ThemePreference.system => l10n.settingsThemeSystemTitle,
+      ThemePreference.light => l10n.settingsThemeLightTitle,
+      ThemePreference.dark => l10n.settingsThemeDarkTitle,
+    };
+  }
+
+  static String _descriptionForPreference(
+      ThemePreference pref, AppLocalizations l10n) {
+    return switch (pref) {
+      ThemePreference.system => l10n.settingsThemeSystemDescription,
+      ThemePreference.light => l10n.settingsThemeLightDescription,
+      ThemePreference.dark => l10n.settingsThemeDarkDescription,
     };
   }
 }

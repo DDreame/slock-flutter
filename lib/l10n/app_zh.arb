@@ -319,6 +319,7 @@
   "notificationSettingsPermissionUnknown": "权限尚未请求",
   "notificationSettingsDeviceRegistered": "设备已注册于 {date}。",
   "notificationSettingsDeviceNotRegistered": "设备注册暂不可用。",
+  "notificationSettingsDateRecently": "最近",
   "notificationSettingsResultGranted": "通知访问已授权，设备注册已刷新。",
   "notificationSettingsResultProvisional": "通知访问为临时授权，设备注册已刷新。",
   "notificationSettingsResultDenied": "通知访问被拒绝。",
@@ -772,5 +773,118 @@
   "agentsReasoningMedium": "中",
   "agentsReasoningHigh": "高",
   "agentsReasoningExtraHigh": "极高",
-  "agentsFormConfiguredDefault": "使用配置默认值"
+  "agentsFormConfiguredDefault": "使用配置默认值",
+
+  "profileEditTitle": "编辑资料",
+  "profileEditSave": "保存",
+  "profileEditSnackbarSaved": "资料已更新。",
+  "profileEditSnackbarAvatarSavedProfileFailed": "头像已更新。资料保存失败——点击保存重试。",
+  "profileEditNewAvatarSelected": "已选择新头像",
+  "profileEditChangeAvatar": "更换头像",
+  "profileEditSectionDetails": "资料详情",
+  "profileEditDisplayNameLabel": "显示名称",
+  "profileEditDisplayNameRequired": "显示名称为必填项。",
+  "profileEditBioLabel": "简介 / 状态",
+
+  "profileTitleSelf": "我的资料",
+  "profileTitle": "个人资料",
+  "profileRetry": "重试",
+  "profileNotAvailable": "资料不可用。",
+  "profileLabelUserId": "用户 ID",
+  "profileLabelUsername": "用户名",
+  "profileLabelEmail": "邮箱",
+  "profileLabelRole": "角色",
+  "profileLabelMemberSince": "加入时间",
+  "profileEditComingSoon": "资料编辑功能即将上线",
+  "profileEditButton": "编辑资料",
+  "profileThisIsYou": "这是你",
+  "profileMessageButton": "发消息",
+  "profileDateFormat": "{year}年{month}{day}日",
+  "profileMonthJan": "1月",
+  "profileMonthFeb": "2月",
+  "profileMonthMar": "3月",
+  "profileMonthApr": "4月",
+  "profileMonthMay": "5月",
+  "profileMonthJun": "6月",
+  "profileMonthJul": "7月",
+  "profileMonthAug": "8月",
+  "profileMonthSep": "9月",
+  "profileMonthOct": "10月",
+  "profileMonthNov": "11月",
+  "profileMonthDec": "12月",
+
+  "settingsEditProfileTitle": "编辑资料",
+  "settingsEditProfileSubtitle": "更新显示名称、简介和头像",
+
+  "inboxTitle": "收件箱",
+  "inboxMarkAllReadTooltip": "全部标记已读",
+  "inboxLoadFailed": "加载收件箱失败",
+  "inboxRetry": "重试",
+  "inboxEmptyTitle": "全部已读！",
+  "inboxEmptySubtitle": "收件箱中没有消息",
+  "inboxActionMarkRead": "标为已读",
+  "inboxSwipeLabelRead": "已读",
+  "inboxFilterUnread": "未读",
+  "inboxFilterMentions": "@提及",
+  "inboxFilterDms": "私信",
+  "inboxFilterAll": "全部",
+  "inboxMentionBadge": "@你",
+  "inboxTimeNow": "刚刚",
+  "inboxTimeMinutes": "{count}分钟",
+  "@inboxTimeMinutes": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxTimeHours": "{count}小时",
+  "@inboxTimeHours": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxTimeDays": "{count}天",
+  "@inboxTimeDays": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxUnreadCountOverflow": "99+",
+
+  "settingsAppearanceTitle": "外观",
+  "settingsAppearanceThemeSection": "主题",
+  "settingsThemeSystemTitle": "跟随系统",
+  "settingsThemeSystemDescription": "使用设备主题设置。",
+  "settingsThemeLightTitle": "浅色",
+  "settingsThemeLightDescription": "始终使用浅色主题。",
+  "settingsThemeDarkTitle": "深色",
+  "settingsThemeDarkDescription": "始终使用深色主题。",
+
+  "settingsDiagnosticsPageTitle": "诊断",
+  "settingsDiagnosticsEntryCount": "{count} 条记录",
+  "@settingsDiagnosticsEntryCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "settingsDiagnosticsFilterAll": "全部",
+  "settingsDiagnosticsFilterInfo": "信息",
+  "settingsDiagnosticsFilterWarning": "警告",
+  "settingsDiagnosticsFilterError": "错误",
+  "settingsDiagnosticsEmpty": "没有诊断记录",
+  "settingsDiagnosticsWorkerLoading": "后台工作进程：加载中…",
+  "settingsDiagnosticsWorkerUnavailable": "后台工作进程诊断不可用",
+  "settingsDiagnosticsWorkerNotRunning": "后台工作进程：未运行",
+  "settingsDiagnosticsWorkerTitle": "后台工作进程",
+
+  "settingsTranslationPageTitle": "翻译",
+  "settingsTranslationNoActiveWorkspace": "没有活动的工作区。翻译设置属于工作区级别。",
+  "settingsTranslationRetry": "重试",
+  "settingsTranslationSectionMode": "翻译模式",
+  "settingsTranslationSectionLanguage": "首选语言",
+  "settingsTranslationModeAutoTitle": "自动",
+  "settingsTranslationModeManualTitle": "手动",
+  "settingsTranslationModeOffTitle": "关闭",
+  "settingsTranslationModeAutoDescription": "进入对话时自动翻译消息",
+  "settingsTranslationModeManualDescription": "仅在点击翻译按钮时翻译",
+  "settingsTranslationModeOffDescription": "翻译已禁用"
 }

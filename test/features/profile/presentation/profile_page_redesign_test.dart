@@ -15,6 +15,7 @@ import 'package:slock_app/features/profile/presentation/page/profile_page.dart';
 import 'package:slock_app/features/profile/presentation/widgets/profile_avatar.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   Widget buildApp({
@@ -32,6 +33,8 @@ void main() {
       ],
       child: MaterialApp(
         theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: child ?? const ProfilePage(),
       ),
     );
@@ -285,6 +288,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.dark,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const ProfilePage(),
           ),
         ),

@@ -13,6 +13,7 @@ import 'package:slock_app/features/profile/data/profile_repository.dart';
 import 'package:slock_app/features/profile/presentation/page/profile_edit_page.dart';
 import 'package:slock_app/stores/session/session_state.dart';
 import 'package:slock_app/stores/session/session_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   testWidgets('form renders current profile fields and validates name',
@@ -144,6 +145,8 @@ Widget _buildApp({
     ],
     child: MaterialApp.router(
       theme: AppTheme.light,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: router,
     ),
   );

@@ -365,6 +365,7 @@
     }
   },
   "notificationSettingsDeviceNotRegistered": "Device registration not available yet.",
+  "notificationSettingsDateRecently": "recently",
   "notificationSettingsResultGranted": "Notification access granted and device registration refreshed.",
   "notificationSettingsResultProvisional": "Notification access is provisional; device registration refreshed.",
   "notificationSettingsResultDenied": "Notification access was denied.",
@@ -920,5 +921,125 @@
   "agentsReasoningMedium": "Medium",
   "agentsReasoningHigh": "High",
   "agentsReasoningExtraHigh": "Extra High",
-  "agentsFormConfiguredDefault": "Configured Default"
+  "agentsFormConfiguredDefault": "Configured Default",
+
+  "profileEditTitle": "Edit Profile",
+  "profileEditSave": "Save",
+  "profileEditSnackbarSaved": "Profile updated.",
+  "profileEditSnackbarAvatarSavedProfileFailed": "Avatar updated. Profile save failed — tap Save to retry.",
+  "profileEditNewAvatarSelected": "New avatar selected",
+  "profileEditChangeAvatar": "Change avatar",
+  "profileEditSectionDetails": "Profile details",
+  "profileEditDisplayNameLabel": "Display name",
+  "profileEditDisplayNameRequired": "Display name is required.",
+  "profileEditBioLabel": "Bio / status",
+
+  "profileTitleSelf": "My Profile",
+  "profileTitle": "Profile",
+  "profileRetry": "Retry",
+  "profileNotAvailable": "Profile not available.",
+  "profileLabelUserId": "User ID",
+  "profileLabelUsername": "Username",
+  "profileLabelEmail": "Email",
+  "profileLabelRole": "Role",
+  "profileLabelMemberSince": "Member since",
+  "profileEditComingSoon": "Profile editing coming soon",
+  "profileEditButton": "Edit Profile",
+  "profileThisIsYou": "This is you",
+  "profileMessageButton": "Message",
+  "profileDateFormat": "{month} {day}, {year}",
+  "@profileDateFormat": {
+    "placeholders": {
+      "month": { "type": "String" },
+      "day": { "type": "int" },
+      "year": { "type": "int" }
+    }
+  },
+  "profileMonthJan": "Jan",
+  "profileMonthFeb": "Feb",
+  "profileMonthMar": "Mar",
+  "profileMonthApr": "Apr",
+  "profileMonthMay": "May",
+  "profileMonthJun": "Jun",
+  "profileMonthJul": "Jul",
+  "profileMonthAug": "Aug",
+  "profileMonthSep": "Sep",
+  "profileMonthOct": "Oct",
+  "profileMonthNov": "Nov",
+  "profileMonthDec": "Dec",
+
+  "settingsEditProfileTitle": "Edit profile",
+  "settingsEditProfileSubtitle": "Update your display name, bio, and avatar",
+
+  "inboxTitle": "Inbox",
+  "inboxMarkAllReadTooltip": "Mark all read",
+  "inboxLoadFailed": "Failed to load inbox",
+  "inboxRetry": "Retry",
+  "inboxEmptyTitle": "All caught up!",
+  "inboxEmptySubtitle": "No messages in your inbox",
+  "inboxActionMarkRead": "Mark Read",
+  "inboxSwipeLabelRead": "Read",
+  "inboxFilterUnread": "Unread",
+  "inboxFilterMentions": "@Mentions",
+  "inboxFilterDms": "DMs",
+  "inboxFilterAll": "All",
+  "inboxMentionBadge": "@you",
+  "inboxTimeNow": "now",
+  "inboxTimeMinutes": "{count}m",
+  "@inboxTimeMinutes": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxTimeHours": "{count}h",
+  "@inboxTimeHours": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxTimeDays": "{count}d",
+  "@inboxTimeDays": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxUnreadCountOverflow": "99+",
+
+  "settingsAppearanceTitle": "Appearance",
+  "settingsAppearanceThemeSection": "Theme",
+  "settingsThemeSystemTitle": "Follow System",
+  "settingsThemeSystemDescription": "Use your device theme setting.",
+  "settingsThemeLightTitle": "Light",
+  "settingsThemeLightDescription": "Always use the light theme.",
+  "settingsThemeDarkTitle": "Dark",
+  "settingsThemeDarkDescription": "Always use the dark theme.",
+
+  "settingsDiagnosticsPageTitle": "Diagnostics",
+  "settingsDiagnosticsEntryCount": "{count} {count, plural, =1{entry} other{entries}}",
+  "@settingsDiagnosticsEntryCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "settingsDiagnosticsFilterAll": "All",
+  "settingsDiagnosticsFilterInfo": "Info",
+  "settingsDiagnosticsFilterWarning": "Warning",
+  "settingsDiagnosticsFilterError": "Error",
+  "settingsDiagnosticsEmpty": "No diagnostic entries",
+  "settingsDiagnosticsWorkerLoading": "Background worker: loading…",
+  "settingsDiagnosticsWorkerUnavailable": "Background worker diagnostics unavailable",
+  "settingsDiagnosticsWorkerNotRunning": "Background worker: not running",
+  "settingsDiagnosticsWorkerTitle": "Background worker",
+
+  "settingsTranslationPageTitle": "Translation",
+  "settingsTranslationNoActiveWorkspace": "No active workspace. Translation settings are workspace-level.",
+  "settingsTranslationRetry": "Retry",
+  "settingsTranslationSectionMode": "Translation Mode",
+  "settingsTranslationSectionLanguage": "Preferred Language",
+  "settingsTranslationModeAutoTitle": "Automatic",
+  "settingsTranslationModeManualTitle": "Manual",
+  "settingsTranslationModeOffTitle": "Off",
+  "settingsTranslationModeAutoDescription": "Automatically translate messages when entering a conversation",
+  "settingsTranslationModeManualDescription": "Translate only when you tap the translate button",
+  "settingsTranslationModeOffDescription": "Translation is disabled"
 }

@@ -318,6 +318,7 @@
   "notificationSettingsPermissionUnknown": "Permiso no solicitado aún",
   "notificationSettingsDeviceRegistered": "Dispositivo registrado {date}.",
   "notificationSettingsDeviceNotRegistered": "Registro del dispositivo no disponible aún.",
+  "notificationSettingsDateRecently": "recientemente",
   "notificationSettingsResultGranted": "Acceso a notificaciones concedido y registro del dispositivo actualizado.",
   "notificationSettingsResultProvisional": "Acceso a notificaciones provisional; registro del dispositivo actualizado.",
   "notificationSettingsResultDenied": "Acceso a notificaciones denegado.",
@@ -842,5 +843,118 @@
   "agentsReasoningLow": "Bajo",
   "agentsReasoningMedium": "Medio",
   "agentsReasoningHigh": "Alto",
-  "agentsReasoningExtraHigh": "Muy alto"
+  "agentsReasoningExtraHigh": "Muy alto",
+
+  "profileEditTitle": "Editar perfil",
+  "profileEditSave": "Guardar",
+  "profileEditSnackbarSaved": "Perfil actualizado.",
+  "profileEditSnackbarAvatarSavedProfileFailed": "Avatar actualizado. Error al guardar el perfil — toca Guardar para reintentar.",
+  "profileEditNewAvatarSelected": "Nuevo avatar seleccionado",
+  "profileEditChangeAvatar": "Cambiar avatar",
+  "profileEditSectionDetails": "Detalles del perfil",
+  "profileEditDisplayNameLabel": "Nombre para mostrar",
+  "profileEditDisplayNameRequired": "El nombre para mostrar es obligatorio.",
+  "profileEditBioLabel": "Bio / estado",
+
+  "profileTitleSelf": "Mi perfil",
+  "profileTitle": "Perfil",
+  "profileRetry": "Reintentar",
+  "profileNotAvailable": "Perfil no disponible.",
+  "profileLabelUserId": "ID de usuario",
+  "profileLabelUsername": "Nombre de usuario",
+  "profileLabelEmail": "Correo electrónico",
+  "profileLabelRole": "Rol",
+  "profileLabelMemberSince": "Miembro desde",
+  "profileEditComingSoon": "Edición de perfil próximamente",
+  "profileEditButton": "Editar perfil",
+  "profileThisIsYou": "Eres tú",
+  "profileMessageButton": "Mensaje",
+  "profileDateFormat": "{day} de {month} de {year}",
+  "profileMonthJan": "ene",
+  "profileMonthFeb": "feb",
+  "profileMonthMar": "mar",
+  "profileMonthApr": "abr",
+  "profileMonthMay": "may",
+  "profileMonthJun": "jun",
+  "profileMonthJul": "jul",
+  "profileMonthAug": "ago",
+  "profileMonthSep": "sep",
+  "profileMonthOct": "oct",
+  "profileMonthNov": "nov",
+  "profileMonthDec": "dic",
+
+  "settingsEditProfileTitle": "Editar perfil",
+  "settingsEditProfileSubtitle": "Actualiza tu nombre, bio y avatar",
+
+  "inboxTitle": "Bandeja de entrada",
+  "inboxMarkAllReadTooltip": "Marcar todo como leído",
+  "inboxLoadFailed": "Error al cargar la bandeja de entrada",
+  "inboxRetry": "Reintentar",
+  "inboxEmptyTitle": "¡Todo al día!",
+  "inboxEmptySubtitle": "No hay mensajes en tu bandeja de entrada",
+  "inboxActionMarkRead": "Marcar como leído",
+  "inboxSwipeLabelRead": "Leído",
+  "inboxFilterUnread": "No leídos",
+  "inboxFilterMentions": "@Menciones",
+  "inboxFilterDms": "Mensajes directos",
+  "inboxFilterAll": "Todos",
+  "inboxMentionBadge": "@tú",
+  "inboxTimeNow": "ahora",
+  "inboxTimeMinutes": "{count}min",
+  "@inboxTimeMinutes": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxTimeHours": "{count}h",
+  "@inboxTimeHours": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxTimeDays": "{count}d",
+  "@inboxTimeDays": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "inboxUnreadCountOverflow": "99+",
+
+  "settingsAppearanceTitle": "Apariencia",
+  "settingsAppearanceThemeSection": "Tema",
+  "settingsThemeSystemTitle": "Seguir sistema",
+  "settingsThemeSystemDescription": "Usar el tema de tu dispositivo.",
+  "settingsThemeLightTitle": "Claro",
+  "settingsThemeLightDescription": "Siempre usar el tema claro.",
+  "settingsThemeDarkTitle": "Oscuro",
+  "settingsThemeDarkDescription": "Siempre usar el tema oscuro.",
+
+  "settingsDiagnosticsPageTitle": "Diagnósticos",
+  "settingsDiagnosticsEntryCount": "{count} {count, plural, =1{entrada} other{entradas}}",
+  "@settingsDiagnosticsEntryCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "settingsDiagnosticsFilterAll": "Todos",
+  "settingsDiagnosticsFilterInfo": "Info",
+  "settingsDiagnosticsFilterWarning": "Advertencia",
+  "settingsDiagnosticsFilterError": "Error",
+  "settingsDiagnosticsEmpty": "No hay entradas de diagnóstico",
+  "settingsDiagnosticsWorkerLoading": "Proceso en segundo plano: cargando…",
+  "settingsDiagnosticsWorkerUnavailable": "Diagnósticos del proceso en segundo plano no disponibles",
+  "settingsDiagnosticsWorkerNotRunning": "Proceso en segundo plano: no activo",
+  "settingsDiagnosticsWorkerTitle": "Proceso en segundo plano",
+
+  "settingsTranslationPageTitle": "Traducción",
+  "settingsTranslationNoActiveWorkspace": "No hay espacio de trabajo activo. La configuración de traducción es a nivel de espacio de trabajo.",
+  "settingsTranslationRetry": "Reintentar",
+  "settingsTranslationSectionMode": "Modo de traducción",
+  "settingsTranslationSectionLanguage": "Idioma preferido",
+  "settingsTranslationModeAutoTitle": "Automático",
+  "settingsTranslationModeManualTitle": "Manual",
+  "settingsTranslationModeOffTitle": "Desactivado",
+  "settingsTranslationModeAutoDescription": "Traducir mensajes automáticamente al entrar en una conversación",
+  "settingsTranslationModeManualDescription": "Traducir solo al tocar el botón de traducción",
+  "settingsTranslationModeOffDescription": "Traducción desactivada"
 }

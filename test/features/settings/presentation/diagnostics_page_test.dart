@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
 import 'package:slock_app/features/settings/presentation/page/diagnostics_page.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   late DiagnosticsCollector collector;
@@ -21,6 +22,8 @@ void main() {
       ],
       child: MaterialApp(
         theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: const DiagnosticsPage(),
       ),
     );

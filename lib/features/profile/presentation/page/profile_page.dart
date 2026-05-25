@@ -87,8 +87,8 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
           ref.watch(
             profileDetailStoreProvider.select((s) => s.profile?.isSelf == true),
           )
-              ? 'My Profile'
-              : 'Profile',
+              ? context.l10n.profileTitleSelf
+              : context.l10n.profileTitle,
         ),
       ),
       body: switch (status) {
@@ -117,7 +117,7 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
                   FilledButton(
                     onPressed: () =>
                         ref.read(profileDetailStoreProvider.notifier).retry(),
-                    child: const Text('Retry'),
+                    child: Text(context.l10n.profileRetry),
                   ),
                 ],
               ),
@@ -131,7 +131,7 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
         _ => Center(
             key: const ValueKey('profile-empty'),
             child: Text(
-              'Profile not available.',
+              context.l10n.profileNotAvailable,
               style: AppTypography.body.copyWith(color: colors.textSecondary),
             ),
           ),
@@ -286,7 +286,7 @@ class _ProfileSuccessBody extends ConsumerWidget {
                       infoKey: const ValueKey('profile-user-id'),
                       labelKey: const ValueKey('profile-user-id-label'),
                       valueKey: const ValueKey('profile-user-id-value'),
-                      label: 'User ID',
+                      label: context.l10n.profileLabelUserId,
                       value: profile.id,
                       colors: colors,
                     ),
@@ -296,7 +296,7 @@ class _ProfileSuccessBody extends ConsumerWidget {
                           color: colors.border),
                       _ProfileInfoRow(
                         infoKey: const ValueKey('profile-username'),
-                        label: 'Username',
+                        label: context.l10n.profileLabelUsername,
                         value: '@${profile.username!}',
                         colors: colors,
                       ),
@@ -307,7 +307,7 @@ class _ProfileSuccessBody extends ConsumerWidget {
                           color: colors.border),
                       _ProfileInfoRow(
                         infoKey: const ValueKey('profile-email'),
-                        label: 'Email',
+                        label: context.l10n.profileLabelEmail,
                         value: profile.email!,
                         colors: colors,
                       ),
@@ -322,7 +322,7 @@ class _ProfileSuccessBody extends ConsumerWidget {
                         child: Row(
                           children: [
                             Text(
-                              'Role',
+                              context.l10n.profileLabelRole,
                               style: AppTypography.label.copyWith(
                                 color: colors.textSecondary,
                               ),
@@ -342,8 +342,8 @@ class _ProfileSuccessBody extends ConsumerWidget {
                           color: colors.border),
                       _ProfileInfoRow(
                         infoKey: const ValueKey('profile-member-since'),
-                        label: 'Member since',
-                        value: _formatDate(profile.joinedAt!),
+                        label: context.l10n.profileLabelMemberSince,
+                        value: _formatDate(profile.joinedAt!, context.l10n),
                         colors: colors,
                       ),
                     ],
@@ -360,18 +360,18 @@ class _ProfileSuccessBody extends ConsumerWidget {
                     key: const ValueKey('profile-edit-button'),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Profile editing coming soon'),
+                        SnackBar(
+                          content: Text(context.l10n.profileEditComingSoon),
                         ),
                       );
                     },
                     icon: const Icon(Icons.edit_outlined),
-                    label: const Text('Edit Profile'),
+                    label: Text(context.l10n.profileEditButton),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Text(
-                  'This is you',
+                  context.l10n.profileThisIsYou,
                   key: const ValueKey('profile-self-badge'),
                   style: AppTypography.label.copyWith(
                     color: colors.primary,
@@ -392,7 +392,7 @@ class _ProfileSuccessBody extends ConsumerWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.chat_bubble_outline),
-                    label: const Text('Message'),
+                    label: Text(context.l10n.profileMessageButton),
                   ),
                 ),
               ],
@@ -408,22 +408,26 @@ class _ProfileSuccessBody extends ConsumerWidget {
     return role[0].toUpperCase() + role.substring(1);
   }
 
-  static String _formatDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+  static String _formatDate(DateTime date, AppLocalizations l10n) {
+    final months = [
+      l10n.profileMonthJan,
+      l10n.profileMonthFeb,
+      l10n.profileMonthMar,
+      l10n.profileMonthApr,
+      l10n.profileMonthMay,
+      l10n.profileMonthJun,
+      l10n.profileMonthJul,
+      l10n.profileMonthAug,
+      l10n.profileMonthSep,
+      l10n.profileMonthOct,
+      l10n.profileMonthNov,
+      l10n.profileMonthDec,
     ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    return l10n.profileDateFormat(
+      months[date.month - 1],
+      date.day,
+      date.year,
+    );
   }
 }
 

@@ -24,6 +24,7 @@ import 'package:slock_app/features/agents/data/agents_repository_provider.dart';
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/settings/presentation/page/translation_settings_page.dart';
 import 'package:slock_app/features/translation/application/translation_settings_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 import '../support/fakes/fake_app_dio_client.dart';
 
@@ -177,6 +178,8 @@ void main() {
             ],
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const TranslationSettingsPage(),
             ),
           ),
@@ -227,6 +230,8 @@ void main() {
             ],
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const TranslationSettingsPage(),
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/notifications/foreground_service_lifecycle_binding.dart';
 import 'package:slock_app/core/telemetry/diagnostic_share_sheet.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Page that displays diagnostic log entries with filtering and export.
 ///
@@ -47,14 +48,16 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
     final entries = _filteredEntries(allEntries);
     final colors = Theme.of(context).extension<AppColors>()!;
 
+    final l10n = context.l10n;
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Diagnostics'),
+            Text(l10n.settingsDiagnosticsPageTitle),
             Text(
-              '${allEntries.length} ${allEntries.length == 1 ? 'entry' : 'entries'}',
+              l10n.settingsDiagnosticsEntryCount(allEntries.length),
               key: const ValueKey('diagnostics-entry-count'),
               style: AppTypography.caption.copyWith(
                 color: colors.textSecondary,
@@ -86,7 +89,7 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
               children: [
                 _FilterChipWidget(
                   key: const ValueKey('diagnostics-filter-all'),
-                  label: 'All',
+                  label: l10n.settingsDiagnosticsFilterAll,
                   selected: _activeFilter == null,
                   onSelected: (_) => setState(() => _activeFilter = null),
                   colors: colors,
@@ -94,7 +97,7 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
                 const SizedBox(width: AppSpacing.sm),
                 _FilterChipWidget(
                   key: const ValueKey('diagnostics-filter-info'),
-                  label: 'Info',
+                  label: l10n.settingsDiagnosticsFilterInfo,
                   selected: _activeFilter == DiagnosticsLevel.info,
                   onSelected: (_) =>
                       setState(() => _activeFilter = DiagnosticsLevel.info),
@@ -103,7 +106,7 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
                 const SizedBox(width: AppSpacing.sm),
                 _FilterChipWidget(
                   key: const ValueKey('diagnostics-filter-warning'),
-                  label: 'Warning',
+                  label: l10n.settingsDiagnosticsFilterWarning,
                   selected: _activeFilter == DiagnosticsLevel.warning,
                   onSelected: (_) =>
                       setState(() => _activeFilter = DiagnosticsLevel.warning),
@@ -112,7 +115,7 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
                 const SizedBox(width: AppSpacing.sm),
                 _FilterChipWidget(
                   key: const ValueKey('diagnostics-filter-error'),
-                  label: 'Error',
+                  label: l10n.settingsDiagnosticsFilterError,
                   selected: _activeFilter == DiagnosticsLevel.error,
                   onSelected: (_) =>
                       setState(() => _activeFilter = DiagnosticsLevel.error),
@@ -129,7 +132,7 @@ class _DiagnosticsPageState extends ConsumerState<DiagnosticsPage> {
                 ? Center(
                     key: const ValueKey('diagnostics-empty'),
                     child: Text(
-                      'No diagnostic entries',
+                      l10n.settingsDiagnosticsEmpty,
                       style: AppTypography.body.copyWith(
                         color: colors.textSecondary,
                       ),
@@ -186,17 +189,17 @@ class _BackgroundWorkerDiagnosticsCard extends StatelessWidget {
         ),
         child: diagnostics.when(
           loading: () => Text(
-            'Background worker: loading…',
+            context.l10n.settingsDiagnosticsWorkerLoading,
             style: AppTypography.body.copyWith(color: colors.textSecondary),
           ),
           error: (_, __) => Text(
-            'Background worker diagnostics unavailable',
+            context.l10n.settingsDiagnosticsWorkerUnavailable,
             style: AppTypography.body.copyWith(color: colors.error),
           ),
           data: (snapshot) {
             if (snapshot == null) {
               return Text(
-                'Background worker: not running',
+                context.l10n.settingsDiagnosticsWorkerNotRunning,
                 style: AppTypography.body.copyWith(
                   color: colors.textSecondary,
                 ),
@@ -213,7 +216,7 @@ class _BackgroundWorkerDiagnosticsCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Background worker',
+                  context.l10n.settingsDiagnosticsWorkerTitle,
                   style: AppTypography.body.copyWith(
                     color: colors.text,
                     fontWeight: FontWeight.w600,
