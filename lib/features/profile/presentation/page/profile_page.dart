@@ -169,8 +169,8 @@ class _ProfileSuccessBody extends ConsumerWidget {
     } on AvatarUploadException catch (e) {
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-            content: Text(e.failure?.userMessage(l10n) ?? l10n.errorUnknown)));
+        ..showSnackBar(
+            SnackBar(content: Text(e.failure?.userMessage(l10n) ?? e.message)));
     } on Exception catch (e) {
       ref.read(diagnosticsCollectorProvider).error(
             'ProfilePage',
