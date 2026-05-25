@@ -5872,6 +5872,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Translating…'**
   String get translationPending;
+
+  /// No description provided for @notificationPrefAllTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All Messages'**
+  String get notificationPrefAllTitle;
+
+  /// No description provided for @notificationPrefAllDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive notifications for all messages.'**
+  String get notificationPrefAllDescription;
+
+  /// No description provided for @notificationPrefMentionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mentions & DMs Only'**
+  String get notificationPrefMentionsTitle;
+
+  /// No description provided for @notificationPrefMentionsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Only receive notifications for direct messages.'**
+  String get notificationPrefMentionsDescription;
+
+  /// No description provided for @notificationPrefMuteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get notificationPrefMuteTitle;
+
+  /// No description provided for @notificationPrefMuteDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not show any foreground notifications.'**
+  String get notificationPrefMuteDescription;
+
+  /// No description provided for @membersInviteHumanTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite human'**
+  String get membersInviteHumanTooltip;
+
+  /// No description provided for @membersErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Members unavailable'**
+  String get membersErrorTitle;
+
+  /// No description provided for @membersErrorMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not load workspace members right now.'**
+  String get membersErrorMessage;
+
+  /// No description provided for @membersEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No members yet.'**
+  String get membersEmptyMessage;
+
+  /// No description provided for @membersInviteSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite email sent to {email}.'**
+  String membersInviteSent(String email);
+
+  /// No description provided for @membersSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search members…'**
+  String get membersSearchHint;
+
+  /// No description provided for @membersSearchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No members match your search.'**
+  String get membersSearchEmpty;
+
+  /// No description provided for @membersSectionHumans.
+  ///
+  /// In en, this message translates to:
+  /// **'Humans'**
+  String get membersSectionHumans;
+
+  /// No description provided for @membersSectionAgents.
+  ///
+  /// In en, this message translates to:
+  /// **'Agents'**
+  String get membersSectionAgents;
+
+  /// No description provided for @membersRoleChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is now {role}.'**
+  String membersRoleChanged(String name, String role);
+
+  /// No description provided for @membersRoleOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner'**
+  String get membersRoleOwner;
+
+  /// No description provided for @homeSearchTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get homeSearchTooltip;
+
+  /// No description provided for @audioPlaybackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio playback failed'**
+  String get audioPlaybackFailed;
+
+  /// No description provided for @crashRecoveryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'App Recovered'**
+  String get crashRecoveryTitle;
+
+  /// No description provided for @crashRecoveryMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app stopped unexpectedly during your last session. You can export diagnostic logs to help us investigate.'**
+  String get crashRecoveryMessage;
+
+  /// No description provided for @crashRecoveryContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get crashRecoveryContinue;
+
+  /// No description provided for @crashRecoveryExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export Diagnostics'**
+  String get crashRecoveryExport;
+
+  /// No description provided for @filePreviewShareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to share file.'**
+  String get filePreviewShareFailed;
+
+  /// No description provided for @filePreviewShareTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get filePreviewShareTooltip;
+
+  /// No description provided for @filePreviewOpenExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in external app'**
+  String get filePreviewOpenExternal;
+
+  /// No description provided for @filePreviewRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get filePreviewRetry;
+
+  /// No description provided for @filePreviewOpenWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Open with…'**
+  String get filePreviewOpenWith;
+
+  /// No description provided for @annotationDraw.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw'**
+  String get annotationDraw;
+
+  /// No description provided for @annotationText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get annotationText;
+
+  /// No description provided for @annotationArrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Arrow'**
+  String get annotationArrow;
+
+  /// No description provided for @annotationUndo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get annotationUndo;
+
+  /// No description provided for @annotationRedo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get annotationRedo;
+
+  /// No description provided for @voiceRecorderCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel recording'**
+  String get voiceRecorderCancel;
+
+  /// No description provided for @voiceRecorderSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send voice message'**
+  String get voiceRecorderSend;
 }
 
 class _AppLocalizationsDelegate

@@ -3168,4 +3168,118 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get translationPending => 'Traduciendo…';
+
+  @override
+  String get notificationPrefAllTitle => 'Todos los mensajes';
+
+  @override
+  String get notificationPrefAllDescription =>
+      'Recibir notificaciones de todos los mensajes.';
+
+  @override
+  String get notificationPrefMentionsTitle => 'Solo menciones y DMs';
+
+  @override
+  String get notificationPrefMentionsDescription =>
+      'Solo recibir notificaciones de mensajes directos.';
+
+  @override
+  String get notificationPrefMuteTitle => 'Silenciar';
+
+  @override
+  String get notificationPrefMuteDescription =>
+      'No mostrar notificaciones en primer plano.';
+
+  @override
+  String get membersInviteHumanTooltip => 'Invitar persona';
+
+  @override
+  String get membersErrorTitle => 'Miembros no disponibles';
+
+  @override
+  String get membersErrorMessage =>
+      'No pudimos cargar los miembros del espacio de trabajo.';
+
+  @override
+  String get membersEmptyMessage => 'Aún no hay miembros.';
+
+  @override
+  String membersInviteSent(String email) {
+    return 'Correo de invitación enviado a $email.';
+  }
+
+  @override
+  String get membersSearchHint => 'Buscar miembros…';
+
+  @override
+  String get membersSearchEmpty => 'Ningún miembro coincide con tu búsqueda.';
+
+  @override
+  String get membersSectionHumans => 'Personas';
+
+  @override
+  String get membersSectionAgents => 'Agentes';
+
+  @override
+  String membersRoleChanged(String name, String role) {
+    return '$name ahora es $role.';
+  }
+
+  @override
+  String get membersRoleOwner => 'Propietario';
+
+  @override
+  String get homeSearchTooltip => 'Buscar';
+
+  @override
+  String get audioPlaybackFailed => 'Error en la reproducción de audio';
+
+  @override
+  String get crashRecoveryTitle => 'Aplicación recuperada';
+
+  @override
+  String get crashRecoveryMessage =>
+      'La aplicación se detuvo inesperadamente durante tu última sesión. Puedes exportar registros de diagnóstico para ayudarnos a investigar.';
+
+  @override
+  String get crashRecoveryContinue => 'Continuar';
+
+  @override
+  String get crashRecoveryExport => 'Exportar diagnósticos';
+
+  @override
+  String get filePreviewShareFailed => 'Error al compartir el archivo.';
+
+  @override
+  String get filePreviewShareTooltip => 'Compartir';
+
+  @override
+  String get filePreviewOpenExternal => 'Abrir en aplicación externa';
+
+  @override
+  String get filePreviewRetry => 'Reintentar';
+
+  @override
+  String get filePreviewOpenWith => 'Abrir con…';
+
+  @override
+  String get annotationDraw => 'Dibujar';
+
+  @override
+  String get annotationText => 'Texto';
+
+  @override
+  String get annotationArrow => 'Flecha';
+
+  @override
+  String get annotationUndo => 'Deshacer';
+
+  @override
+  String get annotationRedo => 'Rehacer';
+
+  @override
+  String get voiceRecorderCancel => 'Cancelar grabación';
+
+  @override
+  String get voiceRecorderSend => 'Enviar mensaje de voz';
 }

@@ -12,6 +12,7 @@ import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/core/hero/hero_tags.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/conversation/data/attachment_repository_provider.dart'
     show attachmentRepositoryProvider;
 import 'package:slock_app/features/conversation/data/conversation_repository.dart'
@@ -250,7 +251,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(
-            const SnackBar(content: Text('Failed to share file.')),
+            SnackBar(content: Text(context.l10n.filePreviewShareFailed)),
           );
       }
     } finally {
@@ -293,13 +294,13 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
                     )
                   : const Icon(Icons.share_outlined),
               onPressed: _sharing ? null : _shareFile,
-              tooltip: 'Share',
+              tooltip: context.l10n.filePreviewShareTooltip,
             ),
           IconButton(
             key: const ValueKey('file-preview-open-external'),
             icon: const Icon(Icons.open_in_new),
             onPressed: _openExternal,
-            tooltip: 'Open in external app',
+            tooltip: context.l10n.filePreviewOpenExternal,
           ),
         ],
       ),
@@ -359,7 +360,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
                 _loadAttachment();
               },
               icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              label: Text(context.l10n.filePreviewRetry),
             ),
           ],
         ),
@@ -551,7 +552,7 @@ class _FilePreviewPageState extends ConsumerState<FilePreviewPage> {
               key: const ValueKey('generic-file-open'),
               onPressed: _openExternal,
               icon: const Icon(Icons.open_in_new),
-              label: const Text('Open with…'),
+              label: Text(context.l10n.filePreviewOpenWith),
             ),
           ],
         ),

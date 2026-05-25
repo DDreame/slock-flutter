@@ -1280,5 +1280,61 @@
 
   "translationShowOriginal": "Show original",
   "translationShowTranslation": "Show translation",
-  "translationPending": "Translating\u2026"
+  "translationPending": "Translating\u2026",
+
+  "notificationPrefAllTitle": "All Messages",
+  "notificationPrefAllDescription": "Receive notifications for all messages.",
+  "notificationPrefMentionsTitle": "Mentions & DMs Only",
+  "notificationPrefMentionsDescription": "Only receive notifications for direct messages.",
+  "notificationPrefMuteTitle": "Mute",
+  "notificationPrefMuteDescription": "Do not show any foreground notifications.",
+
+  "membersInviteHumanTooltip": "Invite human",
+  "membersErrorTitle": "Members unavailable",
+  "membersErrorMessage": "We could not load workspace members right now.",
+  "membersEmptyMessage": "No members yet.",
+  "membersInviteSent": "Invite email sent to {email}.",
+  "@membersInviteSent": {
+    "placeholders": {
+      "email": {"type": "String"}
+    }
+  },
+  "membersSearchHint": "Search members\u2026",
+  "membersSearchEmpty": "No members match your search.",
+  "membersSectionHumans": "Humans",
+  "membersSectionAgents": "Agents",
+  "membersRoleChanged": "{name} is now {role}.",
+  "@membersRoleChanged": {
+    "placeholders": {
+      "name": {"type": "String"},
+      "role": {"type": "String"}
+    }
+  },
+  "membersRoleOwner": "Owner",
+  "membersRoleAdmin": "Admin",
+  "membersRoleMember": "Member",
+
+  "homeSearchTooltip": "Search",
+
+  "audioPlaybackFailed": "Audio playback failed",
+
+  "crashRecoveryTitle": "App Recovered",
+  "crashRecoveryMessage": "The app stopped unexpectedly during your last session. You can export diagnostic logs to help us investigate.",
+  "crashRecoveryContinue": "Continue",
+  "crashRecoveryExport": "Export Diagnostics",
+
+  "filePreviewShareFailed": "Failed to share file.",
+  "filePreviewShareTooltip": "Share",
+  "filePreviewOpenExternal": "Open in external app",
+  "filePreviewRetry": "Retry",
+  "filePreviewOpenWith": "Open with\u2026",
+
+  "annotationDraw": "Draw",
+  "annotationText": "Text",
+  "annotationArrow": "Arrow",
+  "annotationUndo": "Undo",
+  "annotationRedo": "Redo",
+
+  "voiceRecorderCancel": "Cancel recording",
+  "voiceRecorderSend": "Send voice message"
 }

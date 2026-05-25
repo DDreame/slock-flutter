@@ -3129,4 +3129,118 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get translationPending => 'Translating…';
+
+  @override
+  String get notificationPrefAllTitle => 'All Messages';
+
+  @override
+  String get notificationPrefAllDescription =>
+      'Receive notifications for all messages.';
+
+  @override
+  String get notificationPrefMentionsTitle => 'Mentions & DMs Only';
+
+  @override
+  String get notificationPrefMentionsDescription =>
+      'Only receive notifications for direct messages.';
+
+  @override
+  String get notificationPrefMuteTitle => 'Mute';
+
+  @override
+  String get notificationPrefMuteDescription =>
+      'Do not show any foreground notifications.';
+
+  @override
+  String get membersInviteHumanTooltip => 'Invite human';
+
+  @override
+  String get membersErrorTitle => 'Members unavailable';
+
+  @override
+  String get membersErrorMessage =>
+      'We could not load workspace members right now.';
+
+  @override
+  String get membersEmptyMessage => 'No members yet.';
+
+  @override
+  String membersInviteSent(String email) {
+    return 'Invite email sent to $email.';
+  }
+
+  @override
+  String get membersSearchHint => 'Search members…';
+
+  @override
+  String get membersSearchEmpty => 'No members match your search.';
+
+  @override
+  String get membersSectionHumans => 'Humans';
+
+  @override
+  String get membersSectionAgents => 'Agents';
+
+  @override
+  String membersRoleChanged(String name, String role) {
+    return '$name is now $role.';
+  }
+
+  @override
+  String get membersRoleOwner => 'Owner';
+
+  @override
+  String get homeSearchTooltip => 'Search';
+
+  @override
+  String get audioPlaybackFailed => 'Audio playback failed';
+
+  @override
+  String get crashRecoveryTitle => 'App Recovered';
+
+  @override
+  String get crashRecoveryMessage =>
+      'The app stopped unexpectedly during your last session. You can export diagnostic logs to help us investigate.';
+
+  @override
+  String get crashRecoveryContinue => 'Continue';
+
+  @override
+  String get crashRecoveryExport => 'Export Diagnostics';
+
+  @override
+  String get filePreviewShareFailed => 'Failed to share file.';
+
+  @override
+  String get filePreviewShareTooltip => 'Share';
+
+  @override
+  String get filePreviewOpenExternal => 'Open in external app';
+
+  @override
+  String get filePreviewRetry => 'Retry';
+
+  @override
+  String get filePreviewOpenWith => 'Open with…';
+
+  @override
+  String get annotationDraw => 'Draw';
+
+  @override
+  String get annotationText => 'Text';
+
+  @override
+  String get annotationArrow => 'Arrow';
+
+  @override
+  String get annotationUndo => 'Undo';
+
+  @override
+  String get annotationRedo => 'Redo';
+
+  @override
+  String get voiceRecorderCancel => 'Cancel recording';
+
+  @override
+  String get voiceRecorderSend => 'Send voice message';
 }

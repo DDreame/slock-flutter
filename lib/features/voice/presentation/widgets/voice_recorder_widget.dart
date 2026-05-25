@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/data/voice_recorder_service.dart';
 import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Inline recording UI that replaces the composer when recording.
 ///
@@ -43,7 +44,7 @@ class VoiceRecorderWidget extends ConsumerWidget {
               color: theme.colorScheme.error,
             ),
             onPressed: onCancel,
-            tooltip: 'Cancel recording',
+            tooltip: context.l10n.voiceRecorderCancel,
           ),
 
           // Recording indicator + elapsed time.
@@ -94,7 +95,7 @@ class VoiceRecorderWidget extends ConsumerWidget {
               color: theme.colorScheme.primary,
             ),
             onPressed: onSend,
-            tooltip: 'Send voice message',
+            tooltip: context.l10n.voiceRecorderSend,
           ),
         ],
       ),
