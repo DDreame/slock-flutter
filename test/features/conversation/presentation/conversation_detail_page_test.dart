@@ -828,6 +828,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         conversationRepositoryProvider.overrideWithValue(repository),
+        homeNowProvider.overrideWith((ref) => Stream.value(DateTime.now())),
       ],
     );
     addTearDown(container.dispose);
