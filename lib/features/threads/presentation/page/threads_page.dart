@@ -39,7 +39,7 @@ class _ThreadsScreen extends ConsumerWidget {
     final store = ref.read(threadsInboxStoreProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Threads')),
+      appBar: AppBar(title: Text(context.l10n.threadsTitle)),
       body: switch (state.status) {
         ThreadsInboxStatus.initial ||
         ThreadsInboxStatus.loading when state.items.isEmpty =>
@@ -61,9 +61,9 @@ class _ThreadsScreen extends ConsumerWidget {
                 context.l10n.errorUnknown,
             onRetry: () => store.retry(),
           ),
-        ThreadsInboxStatus.success when state.items.isEmpty => const Center(
-            key: ValueKey('threads-empty'),
-            child: Text('No followed threads yet.'),
+        ThreadsInboxStatus.success when state.items.isEmpty => Center(
+            key: const ValueKey('threads-empty'),
+            child: Text(context.l10n.threadsEmpty),
           ),
         ThreadsInboxStatus.success => _ThreadsListSurface(
             items: state.items,
@@ -139,7 +139,7 @@ class _ThreadInboxCard extends StatelessWidget {
       itemKey: item.routeTarget.parentMessageId,
       enabled: canMarkDone,
       action: SwipeActionConfig(
-        label: 'Done',
+        label: context.l10n.threadsSwipeDone,
         icon: Icons.done,
         color: colors.success,
         dismisses: true,
@@ -170,8 +170,8 @@ class _ThreadInboxCard extends StatelessWidget {
                 ),
               const SizedBox(height: 4),
               Text(
-                '${item.replyCount} replies'
-                '${item.unreadCount > 0 ? ' \u2022 ${item.unreadCount} unread' : ''}',
+                '${context.l10n.threadsRepliesCount(item.replyCount)}'
+                '${item.unreadCount > 0 ? ' \u2022 ${context.l10n.threadsUnreadCount(item.unreadCount)}' : ''}',
                 style: theme.textTheme.bodySmall,
               ),
             ],
@@ -184,15 +184,15 @@ class _ThreadInboxCard extends StatelessWidget {
 
   Future<void> _showThreadActions(BuildContext context) async {
     final actions = <ListActionItem>[
-      const ListActionItem(
+      ListActionItem(
         key: 'thread-action-open',
-        label: 'Open thread',
+        label: context.l10n.threadsActionOpen,
         icon: Icons.open_in_new,
       ),
       if (!isCompleting)
-        const ListActionItem(
+        ListActionItem(
           key: 'thread-action-done',
-          label: 'Done',
+          label: context.l10n.threadsActionDone,
           icon: Icons.done,
         ),
     ];

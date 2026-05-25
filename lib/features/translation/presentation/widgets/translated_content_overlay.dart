@@ -4,6 +4,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/translation/application/translation_cache_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Overlay widget that wraps message content and shows either the
 /// original or the translated version, with a status indicator and
@@ -159,7 +160,7 @@ class _TranslationStatusRow extends ConsumerWidget {
             onPressed: () => ref
                 .read(translationCacheStoreProvider.notifier)
                 .translateMessage(messageId),
-            child: const Text('Translation failed. Tap to retry.'),
+            child: Text(context.l10n.translationFailed),
           ),
       ],
     );

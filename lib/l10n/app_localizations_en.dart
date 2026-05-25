@@ -2580,4 +2580,452 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsTranslationModeOffDescription => 'Translation is disabled';
+
+  @override
+  String get billingTitle => 'Billing';
+
+  @override
+  String get billingUnavailableTitle => 'Billing unavailable';
+
+  @override
+  String get billingUnavailableMessage =>
+      'We could not load billing details right now.';
+
+  @override
+  String get billingCouldNotOpenManagement =>
+      'Could not open billing management.';
+
+  @override
+  String get billingSubscriptionManagement => 'Subscription management';
+
+  @override
+  String get billingSubscriptionManagementDesc =>
+      'Review your current subscription and open the billing portal when management is available.';
+
+  @override
+  String get billingSubscriptionSummary => 'Subscription summary';
+
+  @override
+  String get billingStatusUnavailable => 'Status unavailable';
+
+  @override
+  String get billingCurrentPrice => 'Current price';
+
+  @override
+  String get billingRenewalPeriod => 'Renewal / period';
+
+  @override
+  String get billingDetailsNotAvailable =>
+      'Billing details are not available yet.';
+
+  @override
+  String get billingManagementUnavailable => 'Billing management unavailable';
+
+  @override
+  String get billingOpenPortal => 'Open billing portal';
+
+  @override
+  String get billingManagementUnavailableMessage =>
+      'Billing management is not available for this workspace yet. Subscription details will continue to appear here when provided by the server.';
+
+  @override
+  String get billingManageSubscription =>
+      'Manage your subscription with the billing portal.';
+
+  @override
+  String get billingWorkspacePlanManagement => 'Workspace plan management';
+
+  @override
+  String get billingWorkspacePlanDescActive =>
+      'Review current workspace limits and any upgrade or downgrade guidance.';
+
+  @override
+  String get billingWorkspacePlanDescSelect =>
+      'Select a workspace to review server-scoped billing limits and plan guidance.';
+
+  @override
+  String get billingUsageSelectWorkspace =>
+      'Workspace plan requires a selected workspace';
+
+  @override
+  String get billingUsageSelectWorkspaceMessage =>
+      'Select a workspace to see current usage, plan limits, and upgrade guidance.';
+
+  @override
+  String get billingUsageUnavailableTitle => 'Workspace usage unavailable';
+
+  @override
+  String get billingUsageUnavailableMessage =>
+      'Usage details are unavailable right now.';
+
+  @override
+  String get billingServerUsageAndLimits => 'Server usage and limits';
+
+  @override
+  String get billingPlanDetailsUnavailable => 'Plan details unavailable';
+
+  @override
+  String get billingMessageHistory => 'Message history';
+
+  @override
+  String get billingPlanDowngraded => 'Workspace plan downgraded';
+
+  @override
+  String billingPlanDowngradedMessage(String date) {
+    return 'This workspace plan was downgraded on $date. Upgrade to restore higher limits.';
+  }
+
+  @override
+  String get billingNeedMoreCapacity => 'Need more capacity?';
+
+  @override
+  String get billingUpgradePortalMessage =>
+      'Open the billing portal to review upgrade options for this workspace plan.';
+
+  @override
+  String get billingUpgradeUnavailableMessage =>
+      'Upgrade options will appear here when billing management is available for this workspace.';
+
+  @override
+  String get billingMessageHistoryUnlimited => 'Unlimited';
+
+  @override
+  String get billingMessageHistoryOneDay => '1 day';
+
+  @override
+  String billingMessageHistoryDays(int count) {
+    return '$count days';
+  }
+
+  @override
+  String get threadsTitle => 'Threads';
+
+  @override
+  String get threadsEmpty => 'No followed threads yet.';
+
+  @override
+  String get threadsSwipeDone => 'Done';
+
+  @override
+  String threadsRepliesCount(int count) {
+    return '$count replies';
+  }
+
+  @override
+  String threadsUnreadCount(int count) {
+    return '$count unread';
+  }
+
+  @override
+  String get threadsActionOpen => 'Open thread';
+
+  @override
+  String get threadsActionDone => 'Done';
+
+  @override
+  String get threadRepliesTitle => 'Thread replies';
+
+  @override
+  String get threadRepliesMissingContext => 'Missing thread route context.';
+
+  @override
+  String get threadRepliesRetry => 'Retry';
+
+  @override
+  String get threadRepliesFollowTooltip => 'Follow thread';
+
+  @override
+  String get threadRepliesDoneTooltip => 'Mark thread done';
+
+  @override
+  String get dmsSortAZ => 'Sort A-Z';
+
+  @override
+  String get dmsSortRecent => 'Sort by recent';
+
+  @override
+  String get dmsMarkAllRead => 'Mark all read';
+
+  @override
+  String get dmsClearSearch => 'Clear search';
+
+  @override
+  String get dmsMarkedUnread => 'Marked as unread';
+
+  @override
+  String get dmsNewMessageTitle => 'New message';
+
+  @override
+  String get dmsTabPeople => 'People';
+
+  @override
+  String get dmsTabAgents => 'Agents';
+
+  @override
+  String get dmsSearchHint => 'Search...';
+
+  @override
+  String get dmsNoAgentsFound => 'No agents found.';
+
+  @override
+  String get dmsNoMembersFound => 'No members found.';
+
+  @override
+  String get dmsRetry => 'Retry';
+
+  @override
+  String get searchScopeAll => 'All';
+
+  @override
+  String get searchScopeMessages => 'Messages';
+
+  @override
+  String get searchScopeChannels => 'Channels';
+
+  @override
+  String get searchScopeContacts => 'Contacts';
+
+  @override
+  String get searchBadgeDm => 'DM';
+
+  @override
+  String get searchBadgeChannel => 'Channel';
+
+  @override
+  String get conversationFilesTitle => 'Files';
+
+  @override
+  String get conversationFilesRetry => 'Retry';
+
+  @override
+  String get conversationFilesEmpty => 'No files in this channel';
+
+  @override
+  String get conversationQuoteLoading => 'Loading message…';
+
+  @override
+  String get conversationQuoteNotFound => 'Message not available';
+
+  @override
+  String conversationMemberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'members',
+      one: 'member',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String get conversationCloseSearch => 'Close search';
+
+  @override
+  String get conversationSearchTooltip => 'Search';
+
+  @override
+  String get conversationInfoTooltip => 'Conversation info';
+
+  @override
+  String get conversationScreenshotTooltip => 'Screenshot';
+
+  @override
+  String get conversationMicDenied =>
+      'Microphone permission denied. Please enable it in Settings.';
+
+  @override
+  String get conversationMicUnavailable =>
+      'Could not start recording. Please check microphone availability.';
+
+  @override
+  String conversationLoadFailed(String title) {
+    return 'Could not load $title.';
+  }
+
+  @override
+  String get conversationRetry => 'Retry';
+
+  @override
+  String conversationEmpty(String title) {
+    return 'No messages in $title yet.';
+  }
+
+  @override
+  String get conversationPresenceOnline => 'Online';
+
+  @override
+  String get conversationPresenceIdle => 'Idle';
+
+  @override
+  String get conversationPresenceOffline => 'Offline';
+
+  @override
+  String get conversationOfflineBanner =>
+      'You are offline. Messages will be sent when you reconnect.';
+
+  @override
+  String get conversationInfoMute => 'Mute Notifications';
+
+  @override
+  String get conversationInfoMuted => 'Notifications are silenced';
+
+  @override
+  String get conversationInfoUnmuted => 'Receiving all notifications';
+
+  @override
+  String get conversationInfoMembers => 'Members';
+
+  @override
+  String get conversationInfoFiles => 'Shared files';
+
+  @override
+  String get conversationInfoPinned => 'Pinned messages';
+
+  @override
+  String get conversationInfoProfileSection => 'Profile';
+
+  @override
+  String get conversationInfoDmSubtitle => 'Direct message';
+
+  @override
+  String get conversationPinnedTitle => 'Pinned messages';
+
+  @override
+  String get conversationPinnedRetry => 'Retry';
+
+  @override
+  String get conversationPinnedEmpty => 'No pinned messages';
+
+  @override
+  String get conversationMessageAiBadge => 'AI';
+
+  @override
+  String conversationMessageReplyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'replies',
+      one: 'reply',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String get conversationMessageInThread => 'In thread';
+
+  @override
+  String get conversationCopiedToClipboard => 'Copied to clipboard.';
+
+  @override
+  String get conversationMessageForwarded => 'Message forwarded';
+
+  @override
+  String get conversationSendFailed => 'Failed to send. Please try again.';
+
+  @override
+  String get conversationTaskCreated => 'Task created.';
+
+  @override
+  String get conversationQuoteFallback => '[Message]';
+
+  @override
+  String get conversationProfileMessage => 'Message';
+
+  @override
+  String get conversationSearchHint => 'Search in conversation...';
+
+  @override
+  String get conversationSearchPrevious => 'Previous result';
+
+  @override
+  String get conversationSearchNext => 'Next result';
+
+  @override
+  String get conversationSearchClose => 'Close search';
+
+  @override
+  String get conversationFormatBold => 'Bold';
+
+  @override
+  String get conversationFormatItalic => 'Italic';
+
+  @override
+  String get conversationFormatInlineCode => 'Inline code';
+
+  @override
+  String get conversationFormatCodeBlock => 'Code block';
+
+  @override
+  String get conversationFormatLink => 'Link';
+
+  @override
+  String get conversationMessageListSemantics => 'Message list';
+
+  @override
+  String get membersTitle => 'Members';
+
+  @override
+  String get membersRemoveTitle => 'Remove Member?';
+
+  @override
+  String get membersCancel => 'Cancel';
+
+  @override
+  String get membersRemove => 'Remove';
+
+  @override
+  String get membersConfirm => 'Confirm';
+
+  @override
+  String membersMemberRemoved(String name) {
+    return '$name removed.';
+  }
+
+  @override
+  String get membersInviteCopied => 'Invite link copied.';
+
+  @override
+  String get membersSend => 'Send';
+
+  @override
+  String get membersGenerateLink => 'Generate Link';
+
+  @override
+  String get membersChangeRole => 'Change Role';
+
+  @override
+  String get membersRoleAdmin => 'Admin';
+
+  @override
+  String get membersRoleMember => 'Member';
+
+  @override
+  String get membersMakeAdmin => 'Make admin';
+
+  @override
+  String get membersMakeMember => 'Make member';
+
+  @override
+  String get membersRemoveMember => 'Remove member';
+
+  @override
+  String get membersProfileMessage => 'Message';
+
+  @override
+  String get savedMessagesRetry => 'Retry';
+
+  @override
+  String get biometricTryAgain => 'Try again';
+
+  @override
+  String get biometricDisableContinue => 'Disable & Continue';
+
+  @override
+  String get biometricSkipForNow => 'Skip for now';
+
+  @override
+  String get shareTargetTitle => 'Share to...';
+
+  @override
+  String get translationFailed => 'Translation failed. Tap to retry.';
 }

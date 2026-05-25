@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:slock_app/l10n/l10n.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 
@@ -202,31 +203,31 @@ class FormattingToolbar extends StatelessWidget {
           _ToolbarButton(
             key: const ValueKey('toolbar-bold'),
             icon: Icons.format_bold,
-            tooltip: 'Bold',
+            tooltip: context.l10n.conversationFormatBold,
             onTap: () => _apply(MarkdownFormat.bold),
           ),
           _ToolbarButton(
             key: const ValueKey('toolbar-italic'),
             icon: Icons.format_italic,
-            tooltip: 'Italic',
+            tooltip: context.l10n.conversationFormatItalic,
             onTap: () => _apply(MarkdownFormat.italic),
           ),
           _ToolbarButton(
             key: const ValueKey('toolbar-code'),
             icon: Icons.code,
-            tooltip: 'Inline code',
+            tooltip: context.l10n.conversationFormatInlineCode,
             onTap: () => _apply(MarkdownFormat.inlineCode),
           ),
           _ToolbarButton(
             key: const ValueKey('toolbar-codeblock'),
             icon: Icons.integration_instructions,
-            tooltip: 'Code block',
+            tooltip: context.l10n.conversationFormatCodeBlock,
             onTap: () => _apply(MarkdownFormat.codeBlock),
           ),
           _ToolbarButton(
             key: const ValueKey('toolbar-link'),
             icon: Icons.link,
-            tooltip: 'Link',
+            tooltip: context.l10n.conversationFormatLink,
             onTap: () => _apply(MarkdownFormat.link),
           ),
         ],

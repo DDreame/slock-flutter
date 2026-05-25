@@ -75,7 +75,7 @@ class ConversationMessageList extends ConsumerWidget {
     final toLocal = ref.watch(dateSeparatorToLocalProvider);
 
     return Semantics(
-      label: 'Message list',
+      label: context.l10n.conversationMessageListSemantics,
       child: ListView.separated(
         key: const ValueKey('conversation-success'),
         controller: controller,

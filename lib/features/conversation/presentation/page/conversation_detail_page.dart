@@ -69,37 +69,37 @@ class QuoteJumpOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (state) {
       QuoteJumpState.idle => const SizedBox.shrink(),
-      QuoteJumpState.loading => const Center(
+      QuoteJumpState.loading => Center(
           child: Card(
-            key: ValueKey('quote-jump-loading'),
+            key: const ValueKey('quote-jump-loading'),
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
+                  const SizedBox(
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  SizedBox(width: 12),
-                  Text('Loading message…'),
+                  const SizedBox(width: 12),
+                  Text(context.l10n.conversationQuoteLoading),
                 ],
               ),
             ),
           ),
         ),
-      QuoteJumpState.notFound => const Center(
+      QuoteJumpState.notFound => Center(
           child: Card(
-            key: ValueKey('quote-jump-not-found'),
+            key: const ValueKey('quote-jump-not-found'),
             child: Padding(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.info_outline, size: 16),
-                  SizedBox(width: 12),
-                  Text('Message not available'),
+                  const Icon(Icons.info_outline, size: 16),
+                  const SizedBox(width: 12),
+                  Text(context.l10n.conversationQuoteNotFound),
                 ],
               ),
             ),
@@ -398,8 +398,7 @@ class _ConversationDetailScreenState
                 )
               else if (state.memberCount != null)
                 Text(
-                  '${state.memberCount} '
-                  '${state.memberCount == 1 ? 'member' : 'members'}',
+                  context.l10n.conversationMemberCount(state.memberCount!),
                   key: const ValueKey('conversation-member-count'),
                   style: AppTypography.caption.copyWith(
                     color:
@@ -415,7 +414,9 @@ class _ConversationDetailScreenState
                 icon: Icon(
                   state.isSearchActive ? Icons.search_off : Icons.search,
                 ),
-                tooltip: state.isSearchActive ? 'Close search' : 'Search',
+                tooltip: state.isSearchActive
+                    ? context.l10n.conversationCloseSearch
+                    : context.l10n.conversationSearchTooltip,
                 onPressed: ref
                     .read(conversationDetailStoreProvider.notifier)
                     .toggleSearch,
@@ -424,7 +425,7 @@ class _ConversationDetailScreenState
               IconButton(
                 key: const ValueKey('conversation-members-shortcut'),
                 icon: const Icon(Icons.info_outline),
-                tooltip: 'Conversation info',
+                tooltip: context.l10n.conversationInfoTooltip,
                 onPressed: () {
                   final target =
                       ref.read(currentConversationDetailTargetProvider);
@@ -445,7 +446,7 @@ class _ConversationDetailScreenState
                 key: const ValueKey('conversation-screenshot'),
                 icon: const Icon(Icons.screenshot_outlined),
                 onPressed: () => _captureAndAnnotate(),
-                tooltip: 'Screenshot',
+                tooltip: context.l10n.conversationScreenshotTooltip,
               ),
             ...?widget.appBarActionsBuilder?.call(context, ref, state),
           ],
@@ -779,11 +780,10 @@ class _ConversationDetailScreenState
         break;
       case StartRecordingResult.permissionDenied:
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            key: ValueKey('mic-permission-denied'),
+          SnackBar(
+            key: const ValueKey('mic-permission-denied'),
             content: Text(
-              'Microphone permission denied. '
-              'Please enable it in Settings.',
+              context.l10n.conversationMicDenied,
             ),
           ),
         );
@@ -792,11 +792,10 @@ class _ConversationDetailScreenState
             .read(diagnosticsCollectorProvider)
             .error('VoiceRecording', 'Recording start failed');
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            key: ValueKey('recording-start-error'),
+          SnackBar(
+            key: const ValueKey('recording-start-error'),
             content: Text(
-              'Could not start recording. '
-              'Please check microphone availability.',
+              context.l10n.conversationMicUnavailable,
             ),
           ),
         );
@@ -1241,7 +1240,7 @@ class _ConversationFailureView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'Could not load ${state.resolvedTitle}.',
+              context.l10n.conversationLoadFailed(state.resolvedTitle),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
@@ -1251,7 +1250,9 @@ class _ConversationFailureView extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: const Text('Retry')),
+            FilledButton(
+                onPressed: onRetry,
+                child: Text(context.l10n.conversationRetry)),
           ],
         ),
       ),
@@ -1271,7 +1272,7 @@ class _ConversationEmptyView extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
-          'No messages in $title yet.',
+          context.l10n.conversationEmpty(title),
           textAlign: TextAlign.center,
         ),
       ),
@@ -1379,9 +1380,9 @@ class _DmPresenceSubtitle extends ConsumerWidget {
       UserPresenceStatus.offline => colors.textTertiary,
     };
     final statusText = switch (status) {
-      UserPresenceStatus.online => 'Online',
-      UserPresenceStatus.idle => 'Idle',
-      UserPresenceStatus.offline => 'Offline',
+      UserPresenceStatus.online => context.l10n.conversationPresenceOnline,
+      UserPresenceStatus.idle => context.l10n.conversationPresenceIdle,
+      UserPresenceStatus.offline => context.l10n.conversationPresenceOffline,
     };
 
     return Row(
@@ -1435,7 +1436,7 @@ class _OfflineBanner extends ConsumerWidget {
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              'You are offline. Messages will be sent when you reconnect.',
+              context.l10n.conversationOfflineBanner,
               style: AppTypography.caption.copyWith(color: colors.warning),
             ),
           ),

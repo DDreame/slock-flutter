@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:slock_app/core/auth/biometric_service.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/stores/biometric/biometric_store.dart';
 
 /// Full-screen biometric lock overlay.
@@ -155,7 +156,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                     key: const ValueKey('biometric-lock-retry'),
                     onPressed: _authenticate,
                     icon: const Icon(Icons.fingerprint),
-                    label: const Text('Try again'),
+                    label: Text(context.l10n.biometricTryAgain),
                   ),
                 if (_isAuthenticating)
                   const CircularProgressIndicator(
@@ -166,7 +167,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                   OutlinedButton(
                     key: const ValueKey('biometric-lock-disable'),
                     onPressed: _disableAndContinue,
-                    child: const Text('Disable & Continue'),
+                    child: Text(context.l10n.biometricDisableContinue),
                   ),
                 ],
                 if (_cancelCount >= 3) ...[
@@ -174,7 +175,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                   TextButton(
                     key: const ValueKey('biometric-lock-skip'),
                     onPressed: _skipForNow,
-                    child: const Text('Skip for now'),
+                    child: Text(context.l10n.biometricSkipForNow),
                   ),
                 ],
               ],

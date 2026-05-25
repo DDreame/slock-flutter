@@ -3,6 +3,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/features/search/application/search_state.dart';
 import 'package:slock_app/features/search/presentation/widgets/search_result_item.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// A search result item for channel/DM matches.
 class SearchChannelResultItem extends StatelessWidget {
@@ -97,7 +98,9 @@ class SearchChannelResultItem extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                isDm ? 'DM' : 'Channel',
+                isDm
+                    ? context.l10n.searchBadgeDm
+                    : context.l10n.searchBadgeChannel,
                 style: AppTypography.caption.copyWith(
                   color: colors?.textTertiary ??
                       theme.colorScheme.onSurfaceVariant,

@@ -2611,4 +2611,457 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsTranslationModeOffDescription => 'Traducción desactivada';
+
+  @override
+  String get billingTitle => 'Facturación';
+
+  @override
+  String get billingUnavailableTitle => 'Facturación no disponible';
+
+  @override
+  String get billingUnavailableMessage =>
+      'No pudimos cargar los detalles de facturación en este momento.';
+
+  @override
+  String get billingCouldNotOpenManagement =>
+      'No se pudo abrir la gestión de facturación.';
+
+  @override
+  String get billingSubscriptionManagement => 'Gestión de suscripción';
+
+  @override
+  String get billingSubscriptionManagementDesc =>
+      'Revisa tu suscripción actual y abre el portal de facturación cuando esté disponible.';
+
+  @override
+  String get billingSubscriptionSummary => 'Resumen de suscripción';
+
+  @override
+  String get billingStatusUnavailable => 'Estado no disponible';
+
+  @override
+  String get billingCurrentPrice => 'Precio actual';
+
+  @override
+  String get billingRenewalPeriod => 'Renovación / período';
+
+  @override
+  String get billingDetailsNotAvailable =>
+      'Los detalles de facturación aún no están disponibles.';
+
+  @override
+  String get billingManagementUnavailable =>
+      'Gestión de facturación no disponible';
+
+  @override
+  String get billingOpenPortal => 'Abrir portal de facturación';
+
+  @override
+  String get billingManagementUnavailableMessage =>
+      'La gestión de facturación aún no está disponible para este espacio de trabajo. Los detalles de suscripción seguirán apareciendo aquí cuando el servidor los proporcione.';
+
+  @override
+  String get billingManageSubscription =>
+      'Gestiona tu suscripción con el portal de facturación.';
+
+  @override
+  String get billingWorkspacePlanManagement =>
+      'Gestión del plan del espacio de trabajo';
+
+  @override
+  String get billingWorkspacePlanDescActive =>
+      'Revisa los límites actuales del espacio de trabajo y cualquier guía de actualización o degradación.';
+
+  @override
+  String get billingWorkspacePlanDescSelect =>
+      'Selecciona un espacio de trabajo para revisar los límites de facturación y la guía del plan.';
+
+  @override
+  String get billingUsageSelectWorkspace =>
+      'El plan del espacio de trabajo requiere seleccionar uno';
+
+  @override
+  String get billingUsageSelectWorkspaceMessage =>
+      'Selecciona un espacio de trabajo para ver el uso actual, límites del plan y guía de actualización.';
+
+  @override
+  String get billingUsageUnavailableTitle =>
+      'Uso del espacio de trabajo no disponible';
+
+  @override
+  String get billingUsageUnavailableMessage =>
+      'Los detalles de uso no están disponibles en este momento.';
+
+  @override
+  String get billingServerUsageAndLimits => 'Uso y límites del servidor';
+
+  @override
+  String get billingPlanDetailsUnavailable =>
+      'Detalles del plan no disponibles';
+
+  @override
+  String get billingMessageHistory => 'Historial de mensajes';
+
+  @override
+  String get billingPlanDowngraded => 'Plan del espacio de trabajo degradado';
+
+  @override
+  String billingPlanDowngradedMessage(String date) {
+    return 'El plan de este espacio de trabajo fue degradado el $date. Actualiza para restaurar límites superiores.';
+  }
+
+  @override
+  String get billingNeedMoreCapacity => '¿Necesitas más capacidad?';
+
+  @override
+  String get billingUpgradePortalMessage =>
+      'Abre el portal de facturación para revisar las opciones de actualización para este plan.';
+
+  @override
+  String get billingUpgradeUnavailableMessage =>
+      'Las opciones de actualización aparecerán aquí cuando la gestión de facturación esté disponible para este espacio de trabajo.';
+
+  @override
+  String get billingMessageHistoryUnlimited => 'Ilimitado';
+
+  @override
+  String get billingMessageHistoryOneDay => '1 día';
+
+  @override
+  String billingMessageHistoryDays(int count) {
+    return '$count días';
+  }
+
+  @override
+  String get threadsTitle => 'Hilos';
+
+  @override
+  String get threadsEmpty => 'Aún no sigues ningún hilo.';
+
+  @override
+  String get threadsSwipeDone => 'Hecho';
+
+  @override
+  String threadsRepliesCount(int count) {
+    return '$count respuestas';
+  }
+
+  @override
+  String threadsUnreadCount(int count) {
+    return '$count sin leer';
+  }
+
+  @override
+  String get threadsActionOpen => 'Abrir hilo';
+
+  @override
+  String get threadsActionDone => 'Hecho';
+
+  @override
+  String get threadRepliesTitle => 'Respuestas del hilo';
+
+  @override
+  String get threadRepliesMissingContext =>
+      'Falta el contexto de ruta del hilo.';
+
+  @override
+  String get threadRepliesRetry => 'Reintentar';
+
+  @override
+  String get threadRepliesFollowTooltip => 'Seguir hilo';
+
+  @override
+  String get threadRepliesDoneTooltip => 'Marcar hilo como hecho';
+
+  @override
+  String get dmsSortAZ => 'Ordenar A-Z';
+
+  @override
+  String get dmsSortRecent => 'Ordenar por reciente';
+
+  @override
+  String get dmsMarkAllRead => 'Marcar todo como leído';
+
+  @override
+  String get dmsClearSearch => 'Borrar búsqueda';
+
+  @override
+  String get dmsMarkedUnread => 'Marcado como no leído';
+
+  @override
+  String get dmsNewMessageTitle => 'Nuevo mensaje';
+
+  @override
+  String get dmsTabPeople => 'Personas';
+
+  @override
+  String get dmsTabAgents => 'Agentes';
+
+  @override
+  String get dmsSearchHint => 'Buscar...';
+
+  @override
+  String get dmsNoAgentsFound => 'No se encontraron agentes.';
+
+  @override
+  String get dmsNoMembersFound => 'No se encontraron miembros.';
+
+  @override
+  String get dmsRetry => 'Reintentar';
+
+  @override
+  String get searchScopeAll => 'Todo';
+
+  @override
+  String get searchScopeMessages => 'Mensajes';
+
+  @override
+  String get searchScopeChannels => 'Canales';
+
+  @override
+  String get searchScopeContacts => 'Contactos';
+
+  @override
+  String get searchBadgeDm => 'MD';
+
+  @override
+  String get searchBadgeChannel => 'Canal';
+
+  @override
+  String get conversationFilesTitle => 'Archivos';
+
+  @override
+  String get conversationFilesRetry => 'Reintentar';
+
+  @override
+  String get conversationFilesEmpty => 'No hay archivos en este canal';
+
+  @override
+  String get conversationQuoteLoading => 'Cargando mensaje…';
+
+  @override
+  String get conversationQuoteNotFound => 'Mensaje no disponible';
+
+  @override
+  String conversationMemberCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'miembros',
+      one: 'miembro',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String get conversationCloseSearch => 'Cerrar búsqueda';
+
+  @override
+  String get conversationSearchTooltip => 'Buscar';
+
+  @override
+  String get conversationInfoTooltip => 'Info de conversación';
+
+  @override
+  String get conversationScreenshotTooltip => 'Captura de pantalla';
+
+  @override
+  String get conversationMicDenied =>
+      'Permiso de micrófono denegado. Por favor, habilítalo en Configuración.';
+
+  @override
+  String get conversationMicUnavailable =>
+      'No se pudo iniciar la grabación. Verifica la disponibilidad del micrófono.';
+
+  @override
+  String conversationLoadFailed(String title) {
+    return 'No se pudo cargar $title.';
+  }
+
+  @override
+  String get conversationRetry => 'Reintentar';
+
+  @override
+  String conversationEmpty(String title) {
+    return 'Aún no hay mensajes en $title.';
+  }
+
+  @override
+  String get conversationPresenceOnline => 'En línea';
+
+  @override
+  String get conversationPresenceIdle => 'Inactivo';
+
+  @override
+  String get conversationPresenceOffline => 'Desconectado';
+
+  @override
+  String get conversationOfflineBanner =>
+      'Estás sin conexión. Los mensajes se enviarán cuando te reconectes.';
+
+  @override
+  String get conversationInfoMute => 'Silenciar notificaciones';
+
+  @override
+  String get conversationInfoMuted => 'Las notificaciones están silenciadas';
+
+  @override
+  String get conversationInfoUnmuted => 'Recibiendo todas las notificaciones';
+
+  @override
+  String get conversationInfoMembers => 'Miembros';
+
+  @override
+  String get conversationInfoFiles => 'Archivos compartidos';
+
+  @override
+  String get conversationInfoPinned => 'Mensajes fijados';
+
+  @override
+  String get conversationInfoProfileSection => 'Perfil';
+
+  @override
+  String get conversationInfoDmSubtitle => 'Mensaje directo';
+
+  @override
+  String get conversationPinnedTitle => 'Mensajes fijados';
+
+  @override
+  String get conversationPinnedRetry => 'Reintentar';
+
+  @override
+  String get conversationPinnedEmpty => 'No hay mensajes fijados';
+
+  @override
+  String get conversationMessageAiBadge => 'IA';
+
+  @override
+  String conversationMessageReplyCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'respuestas',
+      one: 'respuesta',
+    );
+    return '$count $_temp0';
+  }
+
+  @override
+  String get conversationMessageInThread => 'En hilo';
+
+  @override
+  String get conversationCopiedToClipboard => 'Copiado al portapapeles.';
+
+  @override
+  String get conversationMessageForwarded => 'Mensaje reenviado';
+
+  @override
+  String get conversationSendFailed => 'Error al enviar. Inténtalo de nuevo.';
+
+  @override
+  String get conversationTaskCreated => 'Tarea creada.';
+
+  @override
+  String get conversationQuoteFallback => '[Mensaje]';
+
+  @override
+  String get conversationProfileMessage => 'Mensaje';
+
+  @override
+  String get conversationSearchHint => 'Buscar en la conversación...';
+
+  @override
+  String get conversationSearchPrevious => 'Resultado anterior';
+
+  @override
+  String get conversationSearchNext => 'Siguiente resultado';
+
+  @override
+  String get conversationSearchClose => 'Cerrar búsqueda';
+
+  @override
+  String get conversationFormatBold => 'Negrita';
+
+  @override
+  String get conversationFormatItalic => 'Cursiva';
+
+  @override
+  String get conversationFormatInlineCode => 'Código en línea';
+
+  @override
+  String get conversationFormatCodeBlock => 'Bloque de código';
+
+  @override
+  String get conversationFormatLink => 'Enlace';
+
+  @override
+  String get conversationMessageListSemantics => 'Lista de mensajes';
+
+  @override
+  String get membersTitle => 'Miembros';
+
+  @override
+  String get membersRemoveTitle => '¿Eliminar miembro?';
+
+  @override
+  String get membersCancel => 'Cancelar';
+
+  @override
+  String get membersRemove => 'Eliminar';
+
+  @override
+  String get membersConfirm => 'Confirmar';
+
+  @override
+  String membersMemberRemoved(String name) {
+    return '$name eliminado.';
+  }
+
+  @override
+  String get membersInviteCopied => 'Enlace de invitación copiado.';
+
+  @override
+  String get membersSend => 'Enviar';
+
+  @override
+  String get membersGenerateLink => 'Generar enlace';
+
+  @override
+  String get membersChangeRole => 'Cambiar rol';
+
+  @override
+  String get membersRoleAdmin => 'Administrador';
+
+  @override
+  String get membersRoleMember => 'Miembro';
+
+  @override
+  String get membersMakeAdmin => 'Hacer administrador';
+
+  @override
+  String get membersMakeMember => 'Hacer miembro';
+
+  @override
+  String get membersRemoveMember => 'Eliminar miembro';
+
+  @override
+  String get membersProfileMessage => 'Mensaje';
+
+  @override
+  String get savedMessagesRetry => 'Reintentar';
+
+  @override
+  String get biometricTryAgain => 'Intentar de nuevo';
+
+  @override
+  String get biometricDisableContinue => 'Desactivar y continuar';
+
+  @override
+  String get biometricSkipForNow => 'Saltar por ahora';
+
+  @override
+  String get shareTargetTitle => 'Compartir en...';
+
+  @override
+  String get translationFailed => 'Traducción fallida. Toca para reintentar.';
 }

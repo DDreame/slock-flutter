@@ -20,10 +20,10 @@ class ThreadRepliesPage extends StatelessWidget {
     final target = routeTarget;
     if (target == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Thread replies')),
-        body: const Center(
-          key: ValueKey('thread-route-error'),
-          child: Text('Missing thread route context.'),
+        appBar: AppBar(title: Text(context.l10n.threadRepliesTitle)),
+        body: Center(
+          key: const ValueKey('thread-route-error'),
+          child: Text(context.l10n.threadRepliesMissingContext),
         ),
       );
     }
@@ -80,7 +80,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
     if (status == ThreadRepliesStatus.initial ||
         status == ThreadRepliesStatus.loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Thread replies')),
+        appBar: AppBar(title: Text(context.l10n.threadRepliesTitle)),
         body: const Center(
           key: ValueKey('thread-replies-loading'),
           child: CircularProgressIndicator(),
@@ -90,7 +90,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
 
     if (status == ThreadRepliesStatus.failure || conversationTarget == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Thread replies')),
+        appBar: AppBar(title: Text(context.l10n.threadRepliesTitle)),
         body: Center(
           key: const ValueKey('thread-replies-error'),
           child: Padding(
@@ -105,7 +105,8 @@ class _ThreadRepliesScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 FilledButton(
-                    onPressed: store.retry, child: const Text('Retry')),
+                    onPressed: store.retry,
+                    child: Text(context.l10n.threadRepliesRetry)),
               ],
             ),
           ),
@@ -115,7 +116,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
 
     return ConversationDetailPage(
       target: conversationTarget,
-      titleOverride: 'Thread replies',
+      titleOverride: context.l10n.threadRepliesTitle,
       registerOpenTarget: false,
       highlightMessageId: routeTarget.highlightMessageId,
       appBarActionsBuilder: (context, ref, _) => _buildThreadActions(
@@ -150,7 +151,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.notifications_outlined),
-          tooltip: 'Follow thread',
+          tooltip: context.l10n.threadRepliesFollowTooltip,
         ),
       IconButton(
         key: const ValueKey('thread-done-action'),
@@ -174,7 +175,7 @@ class _ThreadRepliesScreen extends ConsumerWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.done_all_outlined),
-        tooltip: 'Mark thread done',
+        tooltip: context.l10n.threadRepliesDoneTooltip,
       ),
     ];
   }

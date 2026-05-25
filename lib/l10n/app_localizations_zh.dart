@@ -2504,4 +2504,425 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsTranslationModeOffDescription => '翻译已禁用';
+
+  @override
+  String get billingTitle => '账单';
+
+  @override
+  String get billingUnavailableTitle => '账单不可用';
+
+  @override
+  String get billingUnavailableMessage => '当前无法加载账单详情。';
+
+  @override
+  String get billingCouldNotOpenManagement => '无法打开账单管理。';
+
+  @override
+  String get billingSubscriptionManagement => '订阅管理';
+
+  @override
+  String get billingSubscriptionManagementDesc => '查看当前订阅并在可用时打开账单门户。';
+
+  @override
+  String get billingSubscriptionSummary => '订阅概览';
+
+  @override
+  String get billingStatusUnavailable => '状态不可用';
+
+  @override
+  String get billingCurrentPrice => '当前价格';
+
+  @override
+  String get billingRenewalPeriod => '续期/周期';
+
+  @override
+  String get billingDetailsNotAvailable => '账单详情暂不可用。';
+
+  @override
+  String get billingManagementUnavailable => '账单管理不可用';
+
+  @override
+  String get billingOpenPortal => '打开账单门户';
+
+  @override
+  String get billingManagementUnavailableMessage =>
+      '此工作区暂不支持账单管理。当服务器提供时，订阅详情将继续显示在此处。';
+
+  @override
+  String get billingManageSubscription => '通过账单门户管理您的订阅。';
+
+  @override
+  String get billingWorkspacePlanManagement => '工作区计划管理';
+
+  @override
+  String get billingWorkspacePlanDescActive => '查看当前工作区限制及升级或降级指引。';
+
+  @override
+  String get billingWorkspacePlanDescSelect => '选择工作区以查看服务器范围的账单限制和计划指引。';
+
+  @override
+  String get billingUsageSelectWorkspace => '工作区计划需要选择一个工作区';
+
+  @override
+  String get billingUsageSelectWorkspaceMessage => '选择工作区以查看当前用量、计划限制和升级指引。';
+
+  @override
+  String get billingUsageUnavailableTitle => '工作区用量不可用';
+
+  @override
+  String get billingUsageUnavailableMessage => '用量详情当前不可用。';
+
+  @override
+  String get billingServerUsageAndLimits => '服务器用量和限制';
+
+  @override
+  String get billingPlanDetailsUnavailable => '计划详情不可用';
+
+  @override
+  String get billingMessageHistory => '消息历史';
+
+  @override
+  String get billingPlanDowngraded => '工作区计划已降级';
+
+  @override
+  String billingPlanDowngradedMessage(String date) {
+    return '此工作区计划于 $date 降级。升级以恢复更高限制。';
+  }
+
+  @override
+  String get billingNeedMoreCapacity => '需要更多容量？';
+
+  @override
+  String get billingUpgradePortalMessage => '打开账单门户查看此工作区计划的升级选项。';
+
+  @override
+  String get billingUpgradeUnavailableMessage => '当此工作区支持账单管理时，升级选项将显示在此处。';
+
+  @override
+  String get billingMessageHistoryUnlimited => '无限制';
+
+  @override
+  String get billingMessageHistoryOneDay => '1 天';
+
+  @override
+  String billingMessageHistoryDays(int count) {
+    return '$count 天';
+  }
+
+  @override
+  String get threadsTitle => '话题';
+
+  @override
+  String get threadsEmpty => '还没有关注的话题。';
+
+  @override
+  String get threadsSwipeDone => '完成';
+
+  @override
+  String threadsRepliesCount(int count) {
+    return '$count 条回复';
+  }
+
+  @override
+  String threadsUnreadCount(int count) {
+    return '$count 条未读';
+  }
+
+  @override
+  String get threadsActionOpen => '打开话题';
+
+  @override
+  String get threadsActionDone => '完成';
+
+  @override
+  String get threadRepliesTitle => '话题回复';
+
+  @override
+  String get threadRepliesMissingContext => '缺少话题路由上下文。';
+
+  @override
+  String get threadRepliesRetry => '重试';
+
+  @override
+  String get threadRepliesFollowTooltip => '关注话题';
+
+  @override
+  String get threadRepliesDoneTooltip => '标记话题完成';
+
+  @override
+  String get dmsSortAZ => '按字母排序';
+
+  @override
+  String get dmsSortRecent => '按最近排序';
+
+  @override
+  String get dmsMarkAllRead => '全部标为已读';
+
+  @override
+  String get dmsClearSearch => '清除搜索';
+
+  @override
+  String get dmsMarkedUnread => '已标为未读';
+
+  @override
+  String get dmsNewMessageTitle => '新消息';
+
+  @override
+  String get dmsTabPeople => '成员';
+
+  @override
+  String get dmsTabAgents => '智能体';
+
+  @override
+  String get dmsSearchHint => '搜索...';
+
+  @override
+  String get dmsNoAgentsFound => '未找到智能体。';
+
+  @override
+  String get dmsNoMembersFound => '未找到成员。';
+
+  @override
+  String get dmsRetry => '重试';
+
+  @override
+  String get searchScopeAll => '全部';
+
+  @override
+  String get searchScopeMessages => '消息';
+
+  @override
+  String get searchScopeChannels => '频道';
+
+  @override
+  String get searchScopeContacts => '联系人';
+
+  @override
+  String get searchBadgeDm => '私信';
+
+  @override
+  String get searchBadgeChannel => '频道';
+
+  @override
+  String get conversationFilesTitle => '文件';
+
+  @override
+  String get conversationFilesRetry => '重试';
+
+  @override
+  String get conversationFilesEmpty => '此频道暂无文件';
+
+  @override
+  String get conversationQuoteLoading => '加载消息中…';
+
+  @override
+  String get conversationQuoteNotFound => '消息不可用';
+
+  @override
+  String conversationMemberCount(int count) {
+    return '$count 位成员';
+  }
+
+  @override
+  String get conversationCloseSearch => '关闭搜索';
+
+  @override
+  String get conversationSearchTooltip => '搜索';
+
+  @override
+  String get conversationInfoTooltip => '会话信息';
+
+  @override
+  String get conversationScreenshotTooltip => '截图';
+
+  @override
+  String get conversationMicDenied => '麦克风权限被拒绝。请在设置中启用。';
+
+  @override
+  String get conversationMicUnavailable => '无法开始录音。请检查麦克风可用性。';
+
+  @override
+  String conversationLoadFailed(String title) {
+    return '无法加载 $title。';
+  }
+
+  @override
+  String get conversationRetry => '重试';
+
+  @override
+  String conversationEmpty(String title) {
+    return '$title 暂无消息。';
+  }
+
+  @override
+  String get conversationPresenceOnline => '在线';
+
+  @override
+  String get conversationPresenceIdle => '空闲';
+
+  @override
+  String get conversationPresenceOffline => '离线';
+
+  @override
+  String get conversationOfflineBanner => '您已离线。重新连接后消息将被发送。';
+
+  @override
+  String get conversationInfoMute => '静音通知';
+
+  @override
+  String get conversationInfoMuted => '通知已静音';
+
+  @override
+  String get conversationInfoUnmuted => '接收所有通知';
+
+  @override
+  String get conversationInfoMembers => '成员';
+
+  @override
+  String get conversationInfoFiles => '共享文件';
+
+  @override
+  String get conversationInfoPinned => '置顶消息';
+
+  @override
+  String get conversationInfoProfileSection => '个人资料';
+
+  @override
+  String get conversationInfoDmSubtitle => '私信';
+
+  @override
+  String get conversationPinnedTitle => '置顶消息';
+
+  @override
+  String get conversationPinnedRetry => '重试';
+
+  @override
+  String get conversationPinnedEmpty => '暂无置顶消息';
+
+  @override
+  String get conversationMessageAiBadge => 'AI';
+
+  @override
+  String conversationMessageReplyCount(int count) {
+    return '$count 条回复';
+  }
+
+  @override
+  String get conversationMessageInThread => '在话题中';
+
+  @override
+  String get conversationCopiedToClipboard => '已复制到剪贴板。';
+
+  @override
+  String get conversationMessageForwarded => '消息已转发';
+
+  @override
+  String get conversationSendFailed => '发送失败。请重试。';
+
+  @override
+  String get conversationTaskCreated => '任务已创建。';
+
+  @override
+  String get conversationQuoteFallback => '[消息]';
+
+  @override
+  String get conversationProfileMessage => '发消息';
+
+  @override
+  String get conversationSearchHint => '在会话中搜索...';
+
+  @override
+  String get conversationSearchPrevious => '上一个结果';
+
+  @override
+  String get conversationSearchNext => '下一个结果';
+
+  @override
+  String get conversationSearchClose => '关闭搜索';
+
+  @override
+  String get conversationFormatBold => '粗体';
+
+  @override
+  String get conversationFormatItalic => '斜体';
+
+  @override
+  String get conversationFormatInlineCode => '行内代码';
+
+  @override
+  String get conversationFormatCodeBlock => '代码块';
+
+  @override
+  String get conversationFormatLink => '链接';
+
+  @override
+  String get conversationMessageListSemantics => '消息列表';
+
+  @override
+  String get membersTitle => '成员';
+
+  @override
+  String get membersRemoveTitle => '移除成员？';
+
+  @override
+  String get membersCancel => '取消';
+
+  @override
+  String get membersRemove => '移除';
+
+  @override
+  String get membersConfirm => '确认';
+
+  @override
+  String membersMemberRemoved(String name) {
+    return '$name 已被移除。';
+  }
+
+  @override
+  String get membersInviteCopied => '邀请链接已复制。';
+
+  @override
+  String get membersSend => '发送';
+
+  @override
+  String get membersGenerateLink => '生成链接';
+
+  @override
+  String get membersChangeRole => '更改角色';
+
+  @override
+  String get membersRoleAdmin => '管理员';
+
+  @override
+  String get membersRoleMember => '成员';
+
+  @override
+  String get membersMakeAdmin => '设为管理员';
+
+  @override
+  String get membersMakeMember => '设为成员';
+
+  @override
+  String get membersRemoveMember => '移除成员';
+
+  @override
+  String get membersProfileMessage => '发消息';
+
+  @override
+  String get savedMessagesRetry => '重试';
+
+  @override
+  String get biometricTryAgain => '重试';
+
+  @override
+  String get biometricDisableContinue => '禁用并继续';
+
+  @override
+  String get biometricSkipForNow => '暂时跳过';
+
+  @override
+  String get shareTargetTitle => '分享到...';
+
+  @override
+  String get translationFailed => '翻译失败。点击重试。';
 }

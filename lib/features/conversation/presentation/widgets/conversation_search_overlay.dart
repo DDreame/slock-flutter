@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class ConversationSearchBar extends StatefulWidget {
   const ConversationSearchBar({
@@ -58,11 +59,11 @@ class ConversationSearchBarState extends State<ConversationSearchBar> {
               key: const ValueKey('conversation-search-input'),
               controller: _controller,
               autofocus: true,
-              decoration: const InputDecoration(
-                hintText: 'Search in conversation...',
+              decoration: InputDecoration(
+                hintText: context.l10n.conversationSearchHint,
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(vertical: 8),
               ),
               onChanged: widget.onChanged,
             ),
@@ -79,14 +80,14 @@ class ConversationSearchBarState extends State<ConversationSearchBar> {
             IconButton(
               key: const ValueKey('search-previous'),
               icon: const Icon(Icons.keyboard_arrow_up, size: 20),
-              tooltip: 'Previous result',
+              tooltip: context.l10n.conversationSearchPrevious,
               onPressed: widget.onPrevious,
               visualDensity: VisualDensity.compact,
             ),
             IconButton(
               key: const ValueKey('search-next'),
               icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-              tooltip: 'Next result',
+              tooltip: context.l10n.conversationSearchNext,
               onPressed: widget.onNext,
               visualDensity: VisualDensity.compact,
             ),
@@ -94,7 +95,7 @@ class ConversationSearchBarState extends State<ConversationSearchBar> {
           IconButton(
             key: const ValueKey('search-close'),
             icon: const Icon(Icons.close, size: 20),
-            tooltip: 'Close search',
+            tooltip: context.l10n.conversationSearchClose,
             onPressed: widget.onClose,
             visualDensity: VisualDensity.compact,
           ),

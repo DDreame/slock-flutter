@@ -36,7 +36,7 @@ class _PinnedMessagesPageState extends ConsumerState<PinnedMessagesPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pinned messages'),
+        title: Text(context.l10n.conversationPinnedTitle),
       ),
       body: _buildBody(state, colors),
     );
@@ -68,7 +68,7 @@ class _PinnedMessagesPageState extends ConsumerState<PinnedMessagesPage> {
                 key: const ValueKey('pinned-messages-retry'),
                 onPressed: () =>
                     ref.read(pinnedMessagesStoreProvider.notifier).load(),
-                child: const Text('Retry'),
+                child: Text(context.l10n.conversationPinnedRetry),
               ),
             ],
           ),
@@ -78,7 +78,7 @@ class _PinnedMessagesPageState extends ConsumerState<PinnedMessagesPage> {
           return Center(
             key: const ValueKey('pinned-messages-empty'),
             child: Text(
-              'No pinned messages',
+              context.l10n.conversationPinnedEmpty,
               style: AppTypography.body.copyWith(
                 color: colors.textSecondary,
               ),

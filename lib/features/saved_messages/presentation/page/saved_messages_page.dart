@@ -393,7 +393,7 @@ class _SavedMessagesFailureView extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             FilledButton(
               onPressed: onRetry,
-              child: const Text('Retry'),
+              child: Text(context.l10n.savedMessagesRetry),
             ),
           ],
         ),

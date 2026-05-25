@@ -70,7 +70,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Members'),
+        title: Text(context.l10n.membersTitle),
         actions: status == MemberListStatus.success && canManageMembers
             ? [
                 Padding(
@@ -446,7 +446,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
           context: context,
           builder: (dialogContext) {
             return AlertDialog(
-              title: const Text('Remove Member?'),
+              title: Text(context.l10n.membersRemoveTitle),
               content: Text(
                 'Remove ${member.displayName}'
                 ' from this server?',
@@ -454,14 +454,14 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.membersCancel),
                 ),
                 FilledButton(
                   key: const ValueKey(
                     'members-confirm-remove',
                   ),
                   onPressed: () => Navigator.of(dialogContext).pop(true),
-                  child: const Text('Remove'),
+                  child: Text(context.l10n.membersRemove),
                 ),
               ],
             );
@@ -479,7 +479,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
       }
       messenger.showSnackBar(
         SnackBar(
-          content: Text('${member.displayName} removed.'),
+          content: Text(context.l10n.membersMemberRemoved(member.displayName)),
         ),
       );
     } on AppFailure catch (failure) {
@@ -659,8 +659,8 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Invite link copied.'),
+      SnackBar(
+        content: Text(context.l10n.membersInviteCopied),
       ),
     );
   }
@@ -745,7 +745,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Text('Send'),
+                      : Text(context.l10n.membersSend),
                 ),
               ],
             ),
@@ -810,7 +810,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
                         ),
                       )
                     : const Icon(Icons.link),
-                label: const Text('Generate Link'),
+                label: Text(context.l10n.membersGenerateLink),
               ),
             const SizedBox(height: AppSpacing.md),
           ],
@@ -846,7 +846,7 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       key: const ValueKey('members-change-role-dialog'),
-      title: const Text('Change Role'),
+      title: Text(context.l10n.membersChangeRole),
       content: RadioGroup<String>(
         groupValue: _selectedRole,
         onChanged: (value) {
@@ -854,25 +854,25 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
             setState(() => _selectedRole = value);
           }
         },
-        child: const Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RadioListTile<String>(
-              key: ValueKey(
+              key: const ValueKey(
                 'members-role-option-admin',
               ),
-              title: Text('Admin'),
-              subtitle: Text(
+              title: Text(context.l10n.membersRoleAdmin),
+              subtitle: const Text(
                 'Can manage members and invite',
               ),
               value: 'admin',
             ),
             RadioListTile<String>(
-              key: ValueKey(
+              key: const ValueKey(
                 'members-role-option-member',
               ),
-              title: Text('Member'),
-              subtitle: Text(
+              title: Text(context.l10n.membersRoleMember),
+              subtitle: const Text(
                 'Standard workspace access',
               ),
               value: 'member',
@@ -883,7 +883,7 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.membersCancel),
         ),
         FilledButton(
           key: const ValueKey(
@@ -892,7 +892,7 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
           onPressed: _selectedRole == widget.currentRole
               ? null
               : () => Navigator.of(context).pop(_selectedRole),
-          child: const Text('Confirm'),
+          child: Text(context.l10n.membersConfirm),
         ),
       ],
     );
