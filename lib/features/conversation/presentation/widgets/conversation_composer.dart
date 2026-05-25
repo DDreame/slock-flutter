@@ -258,7 +258,7 @@ class ConversationComposer extends ConsumerWidget {
                           color: colors.primaryForeground,
                         ),
                         padding: EdgeInsets.zero,
-                        tooltip: 'Send',
+                        tooltip: l10n.composerSendTooltip,
                         onPressed: state.isSending ? null : onSend,
                       ),
                     )
@@ -278,7 +278,7 @@ class ConversationComposer extends ConsumerWidget {
                           color: colors.textTertiary,
                         ),
                         padding: EdgeInsets.zero,
-                        tooltip: 'Voice message',
+                        tooltip: l10n.composerVoiceMessageTooltip,
                         onPressed: state.isSending ? null : onMicTap,
                       ),
                     ),
@@ -358,17 +358,21 @@ class ConversationComposer extends ConsumerWidget {
     );
     if (option == null || !context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = _conversationL10n(context);
     switch (option) {
       case _AttachOption.gallery:
-        await _pickGallery(messenger);
+        await _pickGallery(messenger, l10n);
       case _AttachOption.camera:
-        await _pickCamera(ref, messenger, _conversationL10n(context));
+        await _pickCamera(ref, messenger, l10n);
       case _AttachOption.file:
-        await _pickFile(messenger);
+        await _pickFile(messenger, l10n);
     }
   }
 
-  Future<void> _pickGallery(ScaffoldMessengerState messenger) async {
+  Future<void> _pickGallery(
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
     final result = await FilePicker.platform.pickFiles(type: FileType.media);
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
@@ -376,6 +380,7 @@ class ConversationComposer extends ConsumerWidget {
     if (path == null) return;
     if (!await _isWithinFileSizeLimit(
       messenger,
+      l10n,
       path: path,
       fallbackSizeBytes: file.size,
     )) {
@@ -403,6 +408,7 @@ class ConversationComposer extends ConsumerWidget {
       final photoLength = await photo.length();
       if (!await _isWithinFileSizeLimit(
         messenger,
+        l10n,
         path: photo.path,
         fallbackSizeBytes: photoLength,
       )) {
@@ -430,7 +436,10 @@ class ConversationComposer extends ConsumerWidget {
     }
   }
 
-  Future<void> _pickFile(ScaffoldMessengerState messenger) async {
+  Future<void> _pickFile(
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n,
+  ) async {
     final result = await FilePicker.platform.pickFiles();
     if (result == null || result.files.isEmpty) return;
     final file = result.files.first;
@@ -438,6 +447,7 @@ class ConversationComposer extends ConsumerWidget {
     if (path == null) return;
     if (!await _isWithinFileSizeLimit(
       messenger,
+      l10n,
       path: path,
       fallbackSizeBytes: file.size,
     )) {
@@ -453,16 +463,17 @@ class ConversationComposer extends ConsumerWidget {
   }
 
   Future<bool> _isWithinFileSizeLimit(
-    ScaffoldMessengerState messenger, {
+    ScaffoldMessengerState messenger,
+    AppLocalizations l10n, {
     required String path,
     required int fallbackSizeBytes,
   }) async {
     final size = _fileSize(path, fallbackSizeBytes);
     if (size <= _maxAttachmentSizeBytes) return true;
     messenger.showSnackBar(
-      const SnackBar(
-        key: ValueKey('attachment-size-error-snackbar'),
-        content: Text('File too large. Maximum size: 50 MB'),
+      SnackBar(
+        key: const ValueKey('attachment-size-error-snackbar'),
+        content: Text(l10n.composerFileTooLarge),
       ),
     );
     return false;

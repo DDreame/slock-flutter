@@ -695,5 +695,43 @@
   "errorRateLimit": "Too many requests. Please wait a moment and try again.",
   "errorServer": "Server error. Please try again later.",
   "errorCancelled": "Request was cancelled.",
-  "errorUnknown": "Something went wrong. Please try again."
+  "errorUnknown": "Something went wrong. Please try again.",
+
+  "pendingNewMessages": "New messages",
+  "pendingSending": "Sending...",
+  "pendingQueued": "Queued — waiting for connection",
+  "pendingSent": "Sent",
+  "pendingFailedToSend": "Failed to send",
+  "pendingRetry": "Retry",
+  "pendingDismiss": "Dismiss",
+  "pendingEarlierHistoryLimited": "Earlier history is limited.",
+
+  "composerSendTooltip": "Send",
+  "composerVoiceMessageTooltip": "Voice message",
+  "composerFileTooLarge": "File too large. Maximum size: 50 MB",
+
+  "messageSenderYou": "You",
+
+  "channelActionMoveUp": "Move up",
+  "channelActionMoveDown": "Move down",
+  "channelActionPin": "Pin channel",
+  "channelActionUnpin": "Unpin channel",
+  "channelActionMarkUnread": "Mark as Unread",
+  "channelActionEdit": "Edit channel",
+  "channelActionLeave": "Leave channel",
+  "channelActionDelete": "Delete channel",
+
+  "onboardingWelcomeTitle": "Welcome to Slock",
+  "onboardingBack": "Back",
+  "onboardingSkip": "Skip",
+  "onboardingFinish": "Finish",
+  "onboardingNext": "Next",
+  "onboardingSetupTitle": "Set up your workspace",
+  "onboardingSetupBody": "Slock is ready. Take a minute to configure notifications and your profile before jumping in.",
+  "onboardingNotificationsTitle": "Stay in the loop",
+  "onboardingNotificationsBody": "Enable notifications so mentions, replies, and tasks reach you quickly.",
+  "onboardingNotificationsButton": "Enable notifications",
+  "onboardingProfileTitle": "Complete your profile",
+  "onboardingProfileBody": "Add your display name, bio, or avatar so teammates can recognize you.",
+  "onboardingProfileButton": "Edit profile"
 }

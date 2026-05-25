@@ -302,7 +302,7 @@ class ConversationMessageCardState
     final visualKind =
         _resolveConversationMessageVisualKind(message, currentUserId);
     final senderLabel = switch (visualKind) {
-      _ConversationMessageVisualKind.self => 'You',
+      _ConversationMessageVisualKind.self => context.l10n.messageSenderYou,
       _ => message.senderLabel,
     };
     final shellAlignment = switch (visualKind) {
@@ -396,7 +396,7 @@ class ConversationMessageCardState
               child: Row(
                 children: [
                   Expanded(
-                    child: Text('You',
+                    child: Text(context.l10n.messageSenderYou,
                         style: senderStyle.copyWith(
                           color: foregroundColor,
                         )),

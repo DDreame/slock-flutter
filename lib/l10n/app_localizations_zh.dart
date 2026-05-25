@@ -1656,4 +1656,103 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get errorUnknown => '操作失败，请重试。';
+
+  @override
+  String get pendingNewMessages => '新消息';
+
+  @override
+  String get pendingSending => '发送中……';
+
+  @override
+  String get pendingQueued => '已排队 — 等待网络连接';
+
+  @override
+  String get pendingSent => '已发送';
+
+  @override
+  String get pendingFailedToSend => '发送失败';
+
+  @override
+  String get pendingRetry => '重试';
+
+  @override
+  String get pendingDismiss => '取消';
+
+  @override
+  String get pendingEarlierHistoryLimited => '更早的历史记录不可用。';
+
+  @override
+  String get composerSendTooltip => '发送';
+
+  @override
+  String get composerVoiceMessageTooltip => '语音消息';
+
+  @override
+  String get composerFileTooLarge => '文件过大，最大支持 50 MB';
+
+  @override
+  String get messageSenderYou => '你';
+
+  @override
+  String get channelActionMoveUp => '上移';
+
+  @override
+  String get channelActionMoveDown => '下移';
+
+  @override
+  String get channelActionPin => '置顶频道';
+
+  @override
+  String get channelActionUnpin => '取消置顶';
+
+  @override
+  String get channelActionMarkUnread => '标记为未读';
+
+  @override
+  String get channelActionEdit => '编辑频道';
+
+  @override
+  String get channelActionLeave => '离开频道';
+
+  @override
+  String get channelActionDelete => '删除频道';
+
+  @override
+  String get onboardingWelcomeTitle => '欢迎使用 Slock';
+
+  @override
+  String get onboardingBack => '返回';
+
+  @override
+  String get onboardingSkip => '跳过';
+
+  @override
+  String get onboardingFinish => '完成';
+
+  @override
+  String get onboardingNext => '下一步';
+
+  @override
+  String get onboardingSetupTitle => '设置你的工作区';
+
+  @override
+  String get onboardingSetupBody => 'Slock 已准备就绪。花一分钟配置通知和个人资料，然后开始使用。';
+
+  @override
+  String get onboardingNotificationsTitle => '保持同步';
+
+  @override
+  String get onboardingNotificationsBody => '启用通知，让提及、回复和任务及时到达你。';
+
+  @override
+  String get onboardingNotificationsButton => '启用通知';
+
+  @override
+  String get onboardingProfileTitle => '完善你的个人资料';
+
+  @override
+  String get onboardingProfileBody => '添加显示名称、简介或头像，让队友更容易认出你。';
+
+  @override
+  String get onboardingProfileButton => '编辑个人资料';
 }

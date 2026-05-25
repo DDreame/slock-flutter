@@ -1736,4 +1736,106 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get errorUnknown => 'Algo salió mal. Intenta de nuevo.';
+
+  @override
+  String get pendingNewMessages => 'New messages';
+
+  @override
+  String get pendingSending => 'Sending...';
+
+  @override
+  String get pendingQueued => 'Queued — waiting for connection';
+
+  @override
+  String get pendingSent => 'Sent';
+
+  @override
+  String get pendingFailedToSend => 'Failed to send';
+
+  @override
+  String get pendingRetry => 'Retry';
+
+  @override
+  String get pendingDismiss => 'Dismiss';
+
+  @override
+  String get pendingEarlierHistoryLimited => 'Earlier history is limited.';
+
+  @override
+  String get composerSendTooltip => 'Send';
+
+  @override
+  String get composerVoiceMessageTooltip => 'Voice message';
+
+  @override
+  String get composerFileTooLarge => 'File too large. Maximum size: 50 MB';
+
+  @override
+  String get messageSenderYou => 'You';
+
+  @override
+  String get channelActionMoveUp => 'Move up';
+
+  @override
+  String get channelActionMoveDown => 'Move down';
+
+  @override
+  String get channelActionPin => 'Pin channel';
+
+  @override
+  String get channelActionUnpin => 'Unpin channel';
+
+  @override
+  String get channelActionMarkUnread => 'Mark as Unread';
+
+  @override
+  String get channelActionEdit => 'Edit channel';
+
+  @override
+  String get channelActionLeave => 'Leave channel';
+
+  @override
+  String get channelActionDelete => 'Delete channel';
+
+  @override
+  String get onboardingWelcomeTitle => 'Welcome to Slock';
+
+  @override
+  String get onboardingBack => 'Back';
+
+  @override
+  String get onboardingSkip => 'Skip';
+
+  @override
+  String get onboardingFinish => 'Finish';
+
+  @override
+  String get onboardingNext => 'Next';
+
+  @override
+  String get onboardingSetupTitle => 'Set up your workspace';
+
+  @override
+  String get onboardingSetupBody =>
+      'Slock is ready. Take a minute to configure notifications and your profile before jumping in.';
+
+  @override
+  String get onboardingNotificationsTitle => 'Stay in the loop';
+
+  @override
+  String get onboardingNotificationsBody =>
+      'Enable notifications so mentions, replies, and tasks reach you quickly.';
+
+  @override
+  String get onboardingNotificationsButton => 'Enable notifications';
+
+  @override
+  String get onboardingProfileTitle => 'Complete your profile';
+
+  @override
+  String get onboardingProfileBody =>
+      'Add your display name, bio, or avatar so teammates can recognize you.';
+
+  @override
+  String get onboardingProfileButton => 'Edit profile';
 }

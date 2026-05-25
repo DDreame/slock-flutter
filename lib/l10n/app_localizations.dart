@@ -3250,6 +3250,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong. Please try again.'**
   String get errorUnknown;
+
+  /// No description provided for @pendingNewMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'New messages'**
+  String get pendingNewMessages;
+
+  /// No description provided for @pendingSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending...'**
+  String get pendingSending;
+
+  /// No description provided for @pendingQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued — waiting for connection'**
+  String get pendingQueued;
+
+  /// No description provided for @pendingSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get pendingSent;
+
+  /// No description provided for @pendingFailedToSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to send'**
+  String get pendingFailedToSend;
+
+  /// No description provided for @pendingRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get pendingRetry;
+
+  /// No description provided for @pendingDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get pendingDismiss;
+
+  /// No description provided for @pendingEarlierHistoryLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Earlier history is limited.'**
+  String get pendingEarlierHistoryLimited;
+
+  /// No description provided for @composerSendTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get composerSendTooltip;
+
+  /// No description provided for @composerVoiceMessageTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message'**
+  String get composerVoiceMessageTooltip;
+
+  /// No description provided for @composerFileTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'File too large. Maximum size: 50 MB'**
+  String get composerFileTooLarge;
+
+  /// No description provided for @messageSenderYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get messageSenderYou;
+
+  /// No description provided for @channelActionMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get channelActionMoveUp;
+
+  /// No description provided for @channelActionMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get channelActionMoveDown;
+
+  /// No description provided for @channelActionPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin channel'**
+  String get channelActionPin;
+
+  /// No description provided for @channelActionUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin channel'**
+  String get channelActionUnpin;
+
+  /// No description provided for @channelActionMarkUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as Unread'**
+  String get channelActionMarkUnread;
+
+  /// No description provided for @channelActionEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit channel'**
+  String get channelActionEdit;
+
+  /// No description provided for @channelActionLeave.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave channel'**
+  String get channelActionLeave;
+
+  /// No description provided for @channelActionDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete channel'**
+  String get channelActionDelete;
+
+  /// No description provided for @onboardingWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Slock'**
+  String get onboardingWelcomeTitle;
+
+  /// No description provided for @onboardingBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get onboardingBack;
+
+  /// No description provided for @onboardingSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get onboardingSkip;
+
+  /// No description provided for @onboardingFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish'**
+  String get onboardingFinish;
+
+  /// No description provided for @onboardingNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get onboardingNext;
+
+  /// No description provided for @onboardingSetupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up your workspace'**
+  String get onboardingSetupTitle;
+
+  /// No description provided for @onboardingSetupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Slock is ready. Take a minute to configure notifications and your profile before jumping in.'**
+  String get onboardingSetupBody;
+
+  /// No description provided for @onboardingNotificationsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay in the loop'**
+  String get onboardingNotificationsTitle;
+
+  /// No description provided for @onboardingNotificationsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable notifications so mentions, replies, and tasks reach you quickly.'**
+  String get onboardingNotificationsBody;
+
+  /// No description provided for @onboardingNotificationsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable notifications'**
+  String get onboardingNotificationsButton;
+
+  /// No description provided for @onboardingProfileTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete your profile'**
+  String get onboardingProfileTitle;
+
+  /// No description provided for @onboardingProfileBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your display name, bio, or avatar so teammates can recognize you.'**
+  String get onboardingProfileBody;
+
+  /// No description provided for @onboardingProfileButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit profile'**
+  String get onboardingProfileButton;
 }
 
 class _AppLocalizationsDelegate

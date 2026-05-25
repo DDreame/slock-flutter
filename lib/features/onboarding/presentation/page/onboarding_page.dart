@@ -9,6 +9,7 @@ import 'package:slock_app/app/widgets/section_card.dart';
 import 'package:slock_app/features/onboarding/application/onboarding_store.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/stores/notification/notification_store.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -50,7 +51,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
-      appBar: AppBar(title: const Text('Welcome to Slock')),
+      appBar: AppBar(title: Text(context.l10n.onboardingWelcomeTitle)),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.pageHorizontal),
@@ -81,20 +82,22 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     TextButton(
                       key: const ValueKey('onboarding-back'),
                       onPressed: () => setState(() => _step--),
-                      child: const Text('Back'),
+                      child: Text(context.l10n.onboardingBack),
                     ),
                   const Spacer(),
                   TextButton(
                     key: const ValueKey('onboarding-skip'),
                     onPressed: _finish,
-                    child: const Text('Skip'),
+                    child: Text(context.l10n.onboardingSkip),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   FilledButton(
                     key: const ValueKey('onboarding-next'),
                     onPressed:
                         _step == 2 ? _finish : () => setState(() => _step++),
-                    child: Text(_step == 2 ? 'Finish' : 'Next'),
+                    child: Text(_step == 2
+                        ? context.l10n.onboardingFinish
+                        : context.l10n.onboardingNext),
                   ),
                 ],
               ),
@@ -124,21 +127,20 @@ class _OnboardingStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return switch (step) {
       0 => _StepCard(
           key: const ValueKey('onboarding-welcome-step'),
           icon: Icons.handshake_outlined,
-          title: 'Set up your workspace',
-          body:
-              'Slock is ready. Take a minute to configure notifications and your profile before jumping in.',
+          title: l10n.onboardingSetupTitle,
+          body: l10n.onboardingSetupBody,
           colors: colors,
         ),
       1 => _StepCard(
           key: const ValueKey('onboarding-notifications-step'),
           icon: Icons.notifications_active_outlined,
-          title: 'Stay in the loop',
-          body:
-              'Enable notifications so mentions, replies, and tasks reach you quickly.',
+          title: l10n.onboardingNotificationsTitle,
+          body: l10n.onboardingNotificationsBody,
           colors: colors,
           action: OutlinedButton.icon(
             key: const ValueKey('onboarding-request-notifications'),
@@ -150,21 +152,20 @@ class _OnboardingStep extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.notifications_outlined),
-            label: const Text('Enable notifications'),
+            label: Text(l10n.onboardingNotificationsButton),
           ),
         ),
       _ => _StepCard(
           key: const ValueKey('onboarding-profile-step'),
           icon: Icons.account_circle_outlined,
-          title: 'Complete your profile',
-          body:
-              'Add your display name, bio, or avatar so teammates can recognize you.',
+          title: l10n.onboardingProfileTitle,
+          body: l10n.onboardingProfileBody,
           colors: colors,
           action: OutlinedButton.icon(
             key: const ValueKey('onboarding-edit-profile'),
             onPressed: onEditProfile,
             icon: const Icon(Icons.edit_outlined),
-            label: const Text('Edit profile'),
+            label: Text(l10n.onboardingProfileButton),
           ),
         ),
     };
