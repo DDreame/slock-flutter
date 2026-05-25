@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
@@ -312,6 +313,6 @@ class InboxItemTile extends StatelessWidget {
     if (diff.inMinutes < 60) return l10n.inboxTimeMinutes(diff.inMinutes);
     if (diff.inHours < 24) return l10n.inboxTimeHours(diff.inHours);
     if (diff.inDays < 7) return l10n.inboxTimeDays(diff.inDays);
-    return '${time.month}/${time.day}';
+    return DateFormat.MMMd(l10n.localeName).format(time);
   }
 }

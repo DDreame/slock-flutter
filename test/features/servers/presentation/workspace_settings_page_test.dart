@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
@@ -50,7 +51,10 @@ void main() {
     expect(find.text('My Workspace'), findsOneWidget);
     expect(find.text('my-workspace'), findsOneWidget);
     expect(find.text('Owner'), findsOneWidget);
-    expect(find.text('2026-01-15'), findsOneWidget);
+    expect(
+      find.text(DateFormat.yMMMd('en').format(DateTime(2026, 1, 15))),
+      findsOneWidget,
+    );
   });
 
   testWidgets('displays member role', (tester) async {

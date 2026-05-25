@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:slock_app/app/theme/app_status_tokens.dart';
 import 'package:slock_app/core/notifications/notification_initializer.dart';
 import 'package:slock_app/core/telemetry/diagnostics_collector.dart';
@@ -152,8 +153,11 @@ class _NotificationSettingsPageState
                   ),
                   title: Text(l10n.notificationSettingsLastRegistration),
                   subtitle: Text(
-                    notificationState.pushTokenUpdatedAt?.toIso8601String() ??
-                        l10n.notificationSettingsNotRegistered,
+                    notificationState.pushTokenUpdatedAt != null
+                        ? DateFormat.yMMMd(l10n.localeName)
+                            .add_Hm()
+                            .format(notificationState.pushTokenUpdatedAt!)
+                        : l10n.notificationSettingsNotRegistered,
                   ),
                 ),
                 const Divider(height: 1),
@@ -326,8 +330,11 @@ String _permissionSubtitle(
   final tokenState = state.pushToken == null
       ? l10n.notificationSettingsDeviceNotRegistered
       : l10n.notificationSettingsDeviceRegistered(
-          state.pushTokenUpdatedAt?.toIso8601String() ??
-              l10n.notificationSettingsDateRecently,
+          state.pushTokenUpdatedAt != null
+              ? DateFormat.yMMMd(l10n.localeName)
+                  .add_Hm()
+                  .format(state.pushTokenUpdatedAt!)
+              : l10n.notificationSettingsDateRecently,
         );
   return '$status\n$tokenState';
 }
