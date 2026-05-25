@@ -153,6 +153,7 @@ class _ProfileSuccessBody extends ConsumerWidget {
 
   Future<void> _handleAvatarEdit(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l10n = context.l10n;
 
     try {
       final picker = ref.read(imagePickerProvider);
@@ -169,8 +170,7 @@ class _ProfileSuccessBody extends ConsumerWidget {
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(
-            content: Text(e.failure?.userMessage(context.l10n) ??
-                context.l10n.errorUnknown)));
+            content: Text(e.failure?.userMessage(l10n) ?? l10n.errorUnknown)));
     } on Exception catch (e) {
       ref.read(diagnosticsCollectorProvider).error(
             'ProfilePage',
@@ -179,7 +179,7 @@ class _ProfileSuccessBody extends ConsumerWidget {
       messenger
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          const SnackBar(content: Text('Failed to update avatar.')),
+          SnackBar(content: Text(l10n.errorUnknown)),
         );
     }
   }

@@ -415,7 +415,7 @@ void main() {
 
       final state = container.read(pinnedMessagesStoreProvider);
       expect(state.status, PinnedMessagesStatus.failure);
-      expect(state.error, 'Not found.');
+      expect(state.failure, isA<AppFailure>());
     });
 
     test('removeMessage removes from list', () async {
