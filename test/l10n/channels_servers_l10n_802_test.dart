@@ -7,6 +7,7 @@
 // 3. CreateChannelPage renders without crash in ZH locale
 // 4. CreateChannelPage renders without crash in ES locale
 // 5. ServerSwitcherSheet renders without crash in ZH locale
+// 6. WorkspaceSettingsPage renders without crash in ZH locale
 // =============================================================================
 
 import 'dart:convert';
@@ -21,6 +22,8 @@ import 'package:slock_app/features/channels/presentation/page/create_channel_pag
 import 'package:slock_app/features/home/application/active_server_scope_provider.dart';
 import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
+import 'package:slock_app/features/servers/data/server_list_repository.dart';
+import 'package:slock_app/features/servers/presentation/page/workspace_settings_page.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
 import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/core/core.dart';
@@ -41,6 +44,19 @@ class _FakeServerListStore extends ServerListStore {
   ServerListState build() => const ServerListState(
         status: ServerListStatus.success,
         servers: [],
+      );
+
+  @override
+  Future<void> retry() async {}
+}
+
+class _FakeServerListStoreWithServer extends ServerListStore {
+  @override
+  ServerListState build() => const ServerListState(
+        status: ServerListStatus.success,
+        servers: [
+          ServerSummary(id: 'test-server', name: 'Test', role: 'owner'),
+        ],
       );
 
   @override
@@ -197,6 +213,34 @@ void main() {
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
               home: Scaffold(body: ServerSwitcherSheet()),
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Locale render — WorkspaceSettingsPage
+  // ---------------------------------------------------------------------------
+  group('WorkspaceSettingsPage locale render', () {
+    testWidgets(
+      'WorkspaceSettingsPage renders without crash in ZH locale '
+      '(INV-802-RENDER-4)',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              serverListStoreProvider
+                  .overrideWith(_FakeServerListStoreWithServer.new),
+            ],
+            child: const MaterialApp(
+              locale: Locale('zh'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: WorkspaceSettingsPage(serverId: 'test-server'),
             ),
           ),
         );
