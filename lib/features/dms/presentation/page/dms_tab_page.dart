@@ -57,10 +57,60 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
+  // INV-SELECT-809: Memoize sorted DM list. Only re-sort when the source
+  // list identity or sort preference changes — avoids O(n log n) on every
+  // rebuild triggered by unrelated field changes (e.g. unread counts).
+  List<HomeDirectMessageSummary>? _cachedSorted;
+  List<HomeDirectMessageSummary>? _lastAllDms;
+  DmSortPreference? _lastSortPreference;
+  String _lastSearchQuery = '';
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// INV-SELECT-809: Returns the sorted DM list, reusing the cached result
+  /// when the source list identity, sort preference, and search query have
+  /// not changed since the last call.
+  List<HomeDirectMessageSummary> _memoizedSort(
+    List<HomeDirectMessageSummary> filtered,
+    DmSortPreference sortPreference,
+  ) {
+    if (identical(filtered, _lastAllDms) &&
+        sortPreference == _lastSortPreference &&
+        _searchQuery == _lastSearchQuery &&
+        _cachedSorted != null) {
+      return _cachedSorted!;
+    }
+    _lastAllDms = filtered;
+    _lastSortPreference = sortPreference;
+    _lastSearchQuery = _searchQuery;
+
+    final result = List<HomeDirectMessageSummary>.of(filtered);
+    switch (sortPreference) {
+      case DmSortPreference.custom:
+        break;
+      case DmSortPreference.recentActivity:
+        result.sort((a, b) {
+          final aTime = a.lastActivityAt;
+          final bTime = b.lastActivityAt;
+          if (aTime == null && bTime == null) return 0;
+          if (aTime == null) return 1;
+          if (bTime == null) return -1;
+          return bTime.compareTo(aTime);
+        });
+      case DmSortPreference.alphabetical:
+        final lowerTitles = {
+          for (final dm in result) dm: dm.title.toLowerCase()
+        };
+        result.sort(
+          (a, b) => lowerTitles[a]!.compareTo(lowerTitles[b]!),
+        );
+    }
+    _cachedSorted = result;
+    return result;
   }
 
   @override
@@ -231,33 +281,11 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
                 .toList();
           }();
 
-    // INV-TAB-SORT-CACHE-2: Inline sort instead of Provider.family.
-    // Provider.family with List arg never caches (reference equality),
-    // causing unconditional re-sort and stale provider slot accumulation.
+    // INV-SELECT-809: Memoized sort — only re-sort when the source list,
+    // sort preference, or search query actually changes. Avoids O(n log n)
+    // on every rebuild triggered by unrelated state changes.
     final sortPreference = ref.watch(dmSortPreferenceProvider);
-    final sorted = List<HomeDirectMessageSummary>.of(filtered);
-    switch (sortPreference) {
-      case DmSortPreference.custom:
-        break;
-      case DmSortPreference.recentActivity:
-        sorted.sort((a, b) {
-          final aTime = a.lastActivityAt;
-          final bTime = b.lastActivityAt;
-          if (aTime == null && bTime == null) return 0;
-          if (aTime == null) return 1;
-          if (bTime == null) return -1;
-          return bTime.compareTo(aTime);
-        });
-      case DmSortPreference.alphabetical:
-        // Pre-compute lowercased titles to avoid O(n log n) redundant
-        // String allocations inside the comparator.
-        final lowerTitles = {
-          for (final dm in sorted) dm: dm.title.toLowerCase()
-        };
-        sorted.sort(
-          (a, b) => lowerTitles[a]!.compareTo(lowerTitles[b]!),
-        );
-    }
+    final sorted = _memoizedSort(filtered, sortPreference);
 
     final pinnedIds =
         state.pinnedDirectMessages.map((dm) => dm.scopeId.value).toSet();
