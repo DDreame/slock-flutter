@@ -10,7 +10,6 @@ import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
 import 'package:slock_app/features/inbox/application/conversation_projection.dart';
 import 'package:slock_app/features/realtime/application/list_typing_indicator_store.dart';
-import 'package:slock_app/l10n/app_localizations.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
 class HomeChannelRow extends ConsumerWidget {
