@@ -216,7 +216,7 @@ void main() {
 
           final convStore = _FakeConversationDetailStore(target: dmTarget);
           final homeStore = _FakeHomeListStore(
-            initialState: const HomeListState(
+            initialState: HomeListState(
               status: HomeListStatus.success,
               directMessages: [
                 HomeDirectMessageSummary(
@@ -290,7 +290,7 @@ void main() {
           final convStore = _FakeConversationDetailStore(target: dmTarget);
           // Home state has NO DMs — map lookup returns null.
           final homeStore = _FakeHomeListStore(
-            initialState: const HomeListState(
+            initialState: HomeListState(
               status: HomeListStatus.success,
             ),
           );

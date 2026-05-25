@@ -307,7 +307,7 @@ void main() {
             )),
           ),
           homeListStoreProvider.overrideWith(
-            () => _FakeHomeListStore(const HomeListState(
+            () => _FakeHomeListStore(HomeListState(
               status: HomeListStatus.initial,
             )),
           ),

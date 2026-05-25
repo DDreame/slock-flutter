@@ -49,7 +49,7 @@ void main() {
               inboxState ?? const InboxState(),
             )),
         homeListStoreProvider.overrideWith(() => _FakeHomeListStore(
-              homeState ?? const HomeListState(),
+              homeState ?? HomeListState(),
             )),
       ],
     );
@@ -97,7 +97,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           channels: [
             HomeChannelSummary(
@@ -139,7 +139,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           channels: [], // ch-random not listed
         ),
@@ -170,7 +170,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           directMessages: [
             HomeDirectMessageSummary(
@@ -207,7 +207,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           directMessages: [],
         ),
@@ -238,7 +238,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
         ),
       );
@@ -274,7 +274,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           directMessages: [
             HomeDirectMessageSummary(
@@ -330,7 +330,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           channels: [
             HomeChannelSummary(
@@ -379,7 +379,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           pinnedChannels: [
             HomeChannelSummary(
@@ -413,7 +413,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           pinnedDirectMessages: [
             HomeDirectMessageSummary(
@@ -454,7 +454,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.initial, // not loaded
         ),
       );
@@ -481,7 +481,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
           channels: [
             HomeChannelSummary(
@@ -517,7 +517,7 @@ void main() {
             ),
           ],
         ),
-        homeState: const HomeListState(
+        homeState: HomeListState(
           status: HomeListStatus.success,
         ),
       );

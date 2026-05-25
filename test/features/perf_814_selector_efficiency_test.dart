@@ -21,11 +21,10 @@ void main() {
     test(
       'activeTaskCount only counts in_progress and todo tasks',
       () {
-        // Use copyWith to mirror production path — it auto-computes
-        // activeTaskCount from taskItems.
-        final state = const HomeListState(
+        // Direct constructor auto-computes activeTaskCount from taskItems
+        // via initializer list — no copyWith needed.
+        final state = HomeListState(
           status: HomeListStatus.success,
-        ).copyWith(
           taskItems: [
             TaskItem(
               id: 't1',
@@ -78,7 +77,7 @@ void main() {
           ],
         );
 
-        // activeTaskCount is a stored field computed once by copyWith.
+        // activeTaskCount is derived in the initializer list.
         final activeCount = state.activeTaskCount;
         expect(activeCount, 2,
             reason: 'Only in_progress + todo counted as active');
@@ -103,10 +102,11 @@ void main() {
           ),
         ];
 
-        // Use copyWith to set taskItems — mirrors production store path.
-        final state1 = const HomeListState(
+        // Direct constructor — activeTaskCount auto-computed.
+        final state1 = HomeListState(
           status: HomeListStatus.success,
-        ).copyWith(taskItems: tasks);
+          taskItems: tasks,
+        );
         final state2 = state1.copyWith(isRefreshing: true);
         final state3 = state1.copyWith(machineCount: 5);
 
@@ -120,9 +120,8 @@ void main() {
     test(
       'activeTaskCount changes when task status mutates',
       () {
-        final state1 = const HomeListState(
+        final state1 = HomeListState(
           status: HomeListStatus.success,
-        ).copyWith(
           taskItems: [
             TaskItem(
               id: 't1',
@@ -165,9 +164,8 @@ void main() {
       'Riverpod select fires only when activeTaskCount changes',
       () async {
         final stateProvider = StateProvider<HomeListState>(
-          (_) => const HomeListState(
+          (_) => HomeListState(
             status: HomeListStatus.success,
-          ).copyWith(
             taskItems: [
               TaskItem(
                 id: 't1',

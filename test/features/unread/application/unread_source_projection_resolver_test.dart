@@ -54,7 +54,7 @@ void main() {
           () => _FakeInboxStore(inboxState ?? const InboxState()),
         ),
         homeListStoreProvider.overrideWith(
-          () => _FakeHomeListStore(homeState ?? const HomeListState()),
+          () => _FakeHomeListStore(homeState ?? HomeListState()),
         ),
       ],
     );

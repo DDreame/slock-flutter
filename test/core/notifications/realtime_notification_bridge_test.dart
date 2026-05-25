@@ -88,7 +88,7 @@ RealtimeEventEnvelope _messageNewEvent({
 }
 
 /// Default home list state with one channel and one DM.
-HomeListState _defaultHomeState() => const HomeListState(
+HomeListState _defaultHomeState() => HomeListState(
       serverScopeId: _testServerScope,
       status: HomeListStatus.success,
       channels: [
@@ -256,7 +256,7 @@ void main() {
         'thread channelId resolves type=thread with parent identity '
         'via threadItems', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           threadItems: [
@@ -491,7 +491,7 @@ void main() {
 
     test('thread message with visible thread target is suppressed', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           threadItems: [
@@ -691,7 +691,7 @@ void main() {
 
     test('pinned channel resolves correctly', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           pinnedChannels: [
@@ -724,7 +724,7 @@ void main() {
 
     test('hidden DM resolves as dm', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           hiddenDirectMessages: [
@@ -756,7 +756,7 @@ void main() {
 
     test('pinned DM resolves as dm', () async {
       container = buildContainer(
-        homeState: const HomeListState(
+        homeState: HomeListState(
           serverScopeId: _testServerScope,
           status: HomeListStatus.success,
           pinnedDirectMessages: [

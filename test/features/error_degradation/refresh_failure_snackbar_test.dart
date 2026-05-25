@@ -150,7 +150,7 @@ class _FakeAgentsStore extends AgentsStore {
 
 class _FakeHomeListStore extends HomeListStore {
   @override
-  HomeListState build() => const HomeListState(
+  HomeListState build() => HomeListState(
         status: HomeListStatus.success,
       );
 

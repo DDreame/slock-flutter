@@ -69,7 +69,7 @@ void main() {
       () {
         // Container A: home has channel named "general-v1".
         final containerA = createContainer(
-          homeState: const HomeListState(
+          homeState: HomeListState(
             status: HomeListStatus.success,
             channels: [
               HomeChannelSummary(
@@ -90,7 +90,7 @@ void main() {
         // If stale cache survived (file-scoped static), the resolver
         // would return "general-v1" from the cached map.
         final containerB = createContainer(
-          homeState: const HomeListState(
+          homeState: HomeListState(
             status: HomeListStatus.success,
             channels: [
               HomeChannelSummary(
@@ -118,7 +118,7 @@ void main() {
       'instance (closure-level memoization)',
       () {
         final container = createContainer(
-          homeState: const HomeListState(
+          homeState: HomeListState(
             status: HomeListStatus.success,
             channels: [
               HomeChannelSummary(

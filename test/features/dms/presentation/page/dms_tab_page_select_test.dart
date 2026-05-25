@@ -39,7 +39,7 @@ import 'package:slock_app/features/tasks/data/task_item.dart';
 
 class _ControllableHomeListStore extends HomeListStore {
   @override
-  HomeListState build() => const HomeListState(
+  HomeListState build() => HomeListState(
         status: HomeListStatus.success,
       );
 

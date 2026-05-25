@@ -97,7 +97,7 @@ class HomeListStore extends Notifier<HomeListState> {
 
     final serverScopeId = ref.watch(activeServerScopeIdProvider);
     if (serverScopeId == null) {
-      return const HomeListState(status: HomeListStatus.noActiveServer);
+      return HomeListState(status: HomeListStatus.noActiveServer);
     }
     Future.microtask(() {
       if (state.status == HomeListStatus.initial) {
@@ -110,7 +110,7 @@ class HomeListStore extends Notifier<HomeListState> {
   Future<void> load() async {
     final serverScopeId = ref.read(activeServerScopeIdProvider);
     if (serverScopeId == null) {
-      state = const HomeListState(status: HomeListStatus.noActiveServer);
+      state = HomeListState(status: HomeListStatus.noActiveServer);
       return;
     }
 

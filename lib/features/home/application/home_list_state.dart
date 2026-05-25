@@ -8,9 +8,13 @@ import 'package:slock_app/features/threads/data/thread_repository.dart';
 
 enum HomeListStatus { initial, loading, success, failure, noActiveServer }
 
-@immutable
+/// Home list state — holds tier-1 and tier-2 data for the home screen.
+///
+/// [activeTaskCount] is always derived from [taskItems] at construction
+/// time (initializer list), guaranteeing consistency regardless of
+/// whether the state is created via the constructor or [copyWith].
 class HomeListState {
-  const HomeListState({
+  HomeListState({
     this.serverScopeId,
     this.status = HomeListStatus.initial,
     this.pinnedChannels = const [],
@@ -23,7 +27,6 @@ class HomeListState {
     this.agents = const [],
     this.taskCount = 0,
     this.taskItems = const [],
-    this.activeTaskCount = 0,
     this.machineCount = 0,
     this.threadCount = 0,
     this.threadItems = const [],
@@ -31,7 +34,9 @@ class HomeListState {
     this.isRefreshing = false,
     this.failure,
     this.taskLoadFailure,
-  });
+  }) : activeTaskCount = taskItems
+            .where((t) => t.status == 'in_progress' || t.status == 'todo')
+            .length;
 
   final ServerScopeId? serverScopeId;
   final HomeListStatus status;
@@ -99,7 +104,6 @@ class HomeListState {
     AppFailure? taskLoadFailure,
     bool clearTaskLoadFailure = false,
   }) {
-    final resolvedTaskItems = taskItems ?? this.taskItems;
     return HomeListState(
       serverScopeId: serverScopeId ?? this.serverScopeId,
       status: status ?? this.status,
@@ -113,10 +117,7 @@ class HomeListState {
       pinnedAgents: pinnedAgents ?? this.pinnedAgents,
       agents: agents ?? this.agents,
       taskCount: taskCount ?? this.taskCount,
-      taskItems: resolvedTaskItems,
-      activeTaskCount: resolvedTaskItems
-          .where((t) => t.status == 'in_progress' || t.status == 'todo')
-          .length,
+      taskItems: taskItems ?? this.taskItems,
       machineCount: machineCount ?? this.machineCount,
       threadCount: threadCount ?? this.threadCount,
       threadItems: threadItems ?? this.threadItems,
