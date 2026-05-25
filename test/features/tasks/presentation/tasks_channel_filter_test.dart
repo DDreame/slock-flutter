@@ -295,7 +295,8 @@ void main() {
       await tester.pumpWidget(_buildApp(store));
       await tester.pumpAndSettle();
 
-      expect(find.text('Server error (500)'), findsOneWidget);
+      expect(
+          find.text('Server error. Please try again later.'), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
     });
 

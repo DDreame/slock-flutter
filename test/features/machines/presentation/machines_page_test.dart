@@ -152,7 +152,8 @@ void main() {
       tester,
       find.byKey(const ValueKey('machines-error')),
     );
-    expect(find.text('Load failed'), findsOneWidget);
+    expect(
+        find.text('Something went wrong. Please try again.'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Retry'));
     await _pumpUntilFound(

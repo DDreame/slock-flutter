@@ -12,6 +12,7 @@ import 'package:slock_app/features/threads/application/threads_inbox_store.dart'
 import 'package:slock_app/features/threads/application/threads_realtime_binding.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 import 'package:slock_app/features/threads/presentation/page/threads_page.dart';
+import 'package:slock_app/l10n/app_localizations.dart';
 
 // ---------------------------------------------------------------------------
 // #539: UI 统一 + 交互反馈 — Phase A
@@ -76,6 +77,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const ThreadsPage(serverId: 'server-1'),
           ),
         ),
@@ -113,6 +116,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: InboxItemTile(
               projection: const ConversationProjection(
@@ -175,6 +180,8 @@ void main() {
           ],
           child: MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const ThreadsPage(serverId: 'server-1'),
           ),
         ),
@@ -191,7 +198,7 @@ void main() {
 
       // Error message should be visible.
       expect(
-        find.text('Network error'),
+        find.text('Network error. Please check your connection and try again.'),
         findsOneWidget,
         reason: 'Error message must be shown in AppErrorView '
             '(INV-UIUNIFY-3)',
@@ -231,6 +238,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: AppErrorView(
               message: 'Something went wrong',
