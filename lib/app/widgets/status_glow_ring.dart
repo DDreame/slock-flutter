@@ -160,9 +160,16 @@ class _StatusGlowRingState extends State<StatusGlowRing>
       );
     }
 
-    return AnimatedBuilder(
-      animation: _breathAnimation,
-      builder: (context, _) => buildRing(_breathAnimation.value),
+    // INV-SEL-815: RepaintBoundary isolates the 60fps breathing animation
+    // from propagating repaint requests up to ancestor layers. Without this,
+    // every frame of the AnimationController.repeat() marks parent render
+    // objects as needing paint, causing unnecessary repaints of sibling
+    // widgets in the home agents list and DM rows.
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _breathAnimation,
+        builder: (context, _) => buildRing(_breathAnimation.value),
+      ),
     );
   }
 }

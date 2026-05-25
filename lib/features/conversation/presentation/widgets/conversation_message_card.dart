@@ -301,10 +301,13 @@ class ConversationMessageCardState
         (s) => s.savedMessageIds.contains(message.id),
       ),
     );
-    final currentUserId =
-        ref.watch(sessionStoreProvider.select((session) => session.userId));
-    final currentUserName = ref
-        .watch(sessionStoreProvider.select((session) => session.displayName));
+    // INV-SEL-815: Single consolidated .select() for session data — avoids
+    // 4 separate subscriptions that each independently compare state.
+    final (:currentUserId, :currentUserName) = ref.watch(
+      sessionStoreProvider.select(
+        (s) => (currentUserId: s.userId, currentUserName: s.displayName),
+      ),
+    );
     final visualKind =
         _resolveConversationMessageVisualKind(message, currentUserId);
     final senderLabel = switch (visualKind) {
@@ -601,8 +604,7 @@ class ConversationMessageCardState
             ReactionRow(
               reactions: message.reactions,
               messageId: message.id,
-              currentUserId:
-                  ref.watch(sessionStoreProvider.select((s) => s.userId)),
+              currentUserId: currentUserId,
             ),
             threadIndicator,
           ],
@@ -621,8 +623,7 @@ class ConversationMessageCardState
               ReactionRow(
                 reactions: message.reactions,
                 messageId: message.id,
-                currentUserId:
-                    ref.watch(sessionStoreProvider.select((s) => s.userId)),
+                currentUserId: currentUserId,
               ),
               threadIndicator,
               if (_showPreciseTimestamp)
