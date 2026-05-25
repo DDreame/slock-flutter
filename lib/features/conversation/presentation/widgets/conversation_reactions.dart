@@ -61,8 +61,7 @@ class _EditMessageDialogState extends State<EditMessageDialog> {
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Text(e.message ??
-                _conversationL10n(context).conversationEditFailedFallback),
+            content: Text(e.userMessage(_conversationL10n(context))),
           ),
         );
     } catch (_) {

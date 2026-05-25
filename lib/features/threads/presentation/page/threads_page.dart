@@ -8,6 +8,7 @@ import 'package:slock_app/app/widgets/swipe_action_wrapper.dart';
 import 'package:slock_app/core/core.dart';
 import 'package:slock_app/features/threads/application/threads_realtime_binding.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_state.dart';
+import 'package:slock_app/l10n/l10n.dart';
 import 'package:slock_app/features/threads/application/threads_inbox_store.dart';
 import 'package:slock_app/features/threads/data/thread_repository.dart';
 
@@ -56,7 +57,8 @@ class _ThreadsScreen extends ConsumerWidget {
         ThreadsInboxStatus.initial ||
         ThreadsInboxStatus.failure =>
           AppErrorView(
-            message: state.failure?.message ?? 'Unable to load threads.',
+            message: state.failure?.userMessage(context.l10n) ??
+                context.l10n.errorUnknown,
             onRetry: () => store.retry(),
           ),
         ThreadsInboxStatus.success when state.items.isEmpty => const Center(

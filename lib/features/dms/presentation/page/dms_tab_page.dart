@@ -166,7 +166,8 @@ class _DmsTabPageState extends ConsumerState<DmsTabPage> {
             ],
           ),
         HomeListStatus.failure => _DmsErrorState(
-            message: state.failure?.message ?? l10n.homeLoadFailedFallback,
+            message:
+                state.failure?.userMessage(l10n) ?? l10n.homeLoadFailedFallback,
             onRetry: homeStore.retry,
           ),
         HomeListStatus.success => RefreshIndicator(

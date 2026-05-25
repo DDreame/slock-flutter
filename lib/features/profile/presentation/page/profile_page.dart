@@ -106,7 +106,8 @@ class _ProfileDetailScreenState extends ConsumerState<_ProfileDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    failure?.message ?? 'Profile not available.',
+                    failure?.userMessage(context.l10n) ??
+                        context.l10n.errorUnknown,
                     textAlign: TextAlign.center,
                     style: AppTypography.body.copyWith(
                       color: colors.textSecondary,
@@ -167,7 +168,9 @@ class _ProfileSuccessBody extends ConsumerWidget {
     } on AvatarUploadException catch (e) {
       messenger
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(e.message)));
+        ..showSnackBar(SnackBar(
+            content: Text(e.failure?.userMessage(context.l10n) ??
+                context.l10n.errorUnknown)));
     } on Exception catch (e) {
       ref.read(diagnosticsCollectorProvider).error(
             'ProfilePage',

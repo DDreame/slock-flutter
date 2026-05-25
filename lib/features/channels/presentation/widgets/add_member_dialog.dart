@@ -128,7 +128,8 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
     if (memberState.status == MemberListStatus.failure) {
       return Center(
         child: Text(
-          memberState.failure?.message ?? 'Failed to load members.',
+          memberState.failure?.userMessage(context.l10n) ??
+              context.l10n.errorUnknown,
         ),
       );
     }
@@ -160,7 +161,8 @@ class _AddMemberDialogBodyState extends ConsumerState<_AddMemberDialogBody> {
     if (agentsState.status == AgentsStatus.failure) {
       return Center(
         child: Text(
-          agentsState.failure?.message ?? 'Failed to load agents.',
+          agentsState.failure?.userMessage(context.l10n) ??
+              context.l10n.errorUnknown,
         ),
       );
     }

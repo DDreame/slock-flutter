@@ -146,7 +146,10 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             channels: channels,
           ),
         TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
-            message: ref.read(tasksStoreProvider).failure?.message ??
+            message: ref
+                    .read(tasksStoreProvider)
+                    .failure
+                    ?.userMessage(context.l10n) ??
                 context.l10n.tasksLoadFailed,
             onRetry: ref.read(tasksStoreProvider.notifier).retry,
           ),

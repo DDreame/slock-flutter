@@ -249,6 +249,52 @@ void main() {
       expect(repo.batchCallCount, 2);
     });
 
+    test('LRU promotion produces new state identity — no in-place mutation',
+        () async {
+      // Regression: _promoteTranslations was mutating state.translations
+      // in-place (remove + re-insert) violating @immutable contract.
+      final repo = _FakeTranslationRepository(
+        batchResults: [
+          const TranslationResult(
+            messageId: 'msg-a',
+            translatedContent: 'translated-a',
+            sourceLanguage: 'en',
+            targetLanguage: 'ja',
+            status: TranslationStatus.translated,
+          ),
+          const TranslationResult(
+            messageId: 'msg-b',
+            translatedContent: 'translated-b',
+            sourceLanguage: 'en',
+            targetLanguage: 'ja',
+            status: TranslationStatus.translated,
+          ),
+        ],
+      );
+      final container = createContainer(repo: repo);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(translationCacheStoreProvider.notifier);
+      await notifier.translateMessages(['msg-a', 'msg-b']);
+
+      final stateBefore = container.read(translationCacheStoreProvider);
+      final mapBefore = stateBefore.translations;
+
+      // Access msg-a to trigger LRU promotion
+      notifier.getTranslation('msg-a');
+
+      final stateAfter = container.read(translationCacheStoreProvider);
+      final mapAfter = stateAfter.translations;
+
+      // State must be a NEW object (immutable contract)
+      expect(identical(mapBefore, mapAfter), isFalse,
+          reason: '_promoteTranslations must not mutate state in-place');
+      // Original map must be unmodified
+      expect(mapBefore.keys.toList(), ['msg-a', 'msg-b']);
+      // After promotion, msg-a is at the end (most recently used)
+      expect(mapAfter.keys.toList(), ['msg-b', 'msg-a']);
+    });
+
     test('repeated LRU touches and trim stay within hot-path budget', () async {
       final repo = _ScriptedTranslationRepository([
         [

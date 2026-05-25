@@ -62,8 +62,8 @@ class _WorkspacesScreenState extends ConsumerState<_WorkspacesScreen> {
             child: CircularProgressIndicator(),
           ),
         WorkspacesStatus.failure => _WorkspacesFailureView(
-            message:
-                state.failure?.message ?? context.l10n.workspacesLoadFailed,
+            message: state.failure?.userMessage(context.l10n) ??
+                context.l10n.workspacesLoadFailed,
             onRetry: ref.read(workspacesStoreProvider.notifier).load,
           ),
         WorkspacesStatus.success => _WorkspacesSuccessView(

@@ -252,7 +252,7 @@ void main() {
 
       // First load fails.
       await container.read(pinnedMessagesStoreProvider.notifier).load();
-      expect(container.read(pinnedMessagesStoreProvider).error, isNotNull);
+      expect(container.read(pinnedMessagesStoreProvider).failure, isNotNull);
 
       // Second load succeeds — error should be cleared.
       repo.throwNonAppFailure = false;
