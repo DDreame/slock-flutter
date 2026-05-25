@@ -100,7 +100,7 @@ void main() {
         homeState: HomeListState(
           status: HomeListStatus.success,
           channels: [
-            HomeChannelSummary(
+            const HomeChannelSummary(
               scopeId: channelGeneral,
               name: 'general',
             ),
@@ -173,7 +173,7 @@ void main() {
         homeState: HomeListState(
           status: HomeListStatus.success,
           directMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: dmAlice,
               title: 'Alice',
             ),
@@ -277,7 +277,7 @@ void main() {
         homeState: HomeListState(
           status: HomeListStatus.success,
           directMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: dmAlice,
               title: 'Alice',
             ),
@@ -333,14 +333,14 @@ void main() {
         homeState: HomeListState(
           status: HomeListStatus.success,
           channels: [
-            HomeChannelSummary(
+            const HomeChannelSummary(
               scopeId: channelGeneral,
               name: 'general',
             ),
             // ch-random NOT in home list → hidden
           ],
           directMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: dmAlice,
               title: 'Alice',
             ),
@@ -382,7 +382,7 @@ void main() {
         homeState: HomeListState(
           status: HomeListStatus.success,
           pinnedChannels: [
-            HomeChannelSummary(
+            const HomeChannelSummary(
               scopeId: channelGeneral,
               name: 'general',
             ),
@@ -416,7 +416,7 @@ void main() {
         homeState: HomeListState(
           status: HomeListStatus.success,
           pinnedDirectMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: dmAlice,
               title: 'Alice',
             ),
@@ -484,7 +484,7 @@ void main() {
         homeState: HomeListState(
           status: HomeListStatus.success,
           channels: [
-            HomeChannelSummary(
+            const HomeChannelSummary(
               scopeId: channelGeneral,
               name: 'general',
             ),

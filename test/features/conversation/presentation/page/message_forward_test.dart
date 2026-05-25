@@ -251,10 +251,10 @@ ConversationDetailSnapshot _makeSnapshot() {
 /// Home list state with a single channel available as a forward target.
 HomeListState _makeHomeState() {
   return HomeListState(
-    serverScopeId: ServerScopeId('server-1'),
+    serverScopeId: const ServerScopeId('server-1'),
     status: HomeListStatus.success,
     channels: [
-      HomeChannelSummary(
+      const HomeChannelSummary(
         scopeId: ChannelScopeId(
           serverId: ServerScopeId('server-1'),
           value: 'ch-forward',

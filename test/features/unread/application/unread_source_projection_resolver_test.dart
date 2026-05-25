@@ -73,10 +73,10 @@ void main() {
         final homeState = HomeListState(
           status: HomeListStatus.success,
           pinnedChannels: [
-            HomeChannelSummary(scopeId: chGeneral, name: 'general'),
+            const HomeChannelSummary(scopeId: chGeneral, name: 'general'),
           ],
           channels: [
-            HomeChannelSummary(scopeId: chRandom, name: 'random'),
+            const HomeChannelSummary(scopeId: chRandom, name: 'random'),
           ],
         );
 
@@ -124,10 +124,10 @@ void main() {
         final homeState = HomeListState(
           status: HomeListStatus.success,
           pinnedDirectMessages: [
-            HomeDirectMessageSummary(scopeId: dmAlice, title: 'Alice'),
+            const HomeDirectMessageSummary(scopeId: dmAlice, title: 'Alice'),
           ],
           directMessages: [
-            HomeDirectMessageSummary(scopeId: dmBob, title: 'Bob'),
+            const HomeDirectMessageSummary(scopeId: dmBob, title: 'Bob'),
           ],
         );
 
@@ -167,7 +167,7 @@ void main() {
         final homeState = HomeListState(
           status: HomeListStatus.success,
           directMessages: [
-            HomeDirectMessageSummary(
+            const HomeDirectMessageSummary(
               scopeId: dmAlice,
               title: 'Alice',
               peerId: 'user-alice',
@@ -219,7 +219,7 @@ void main() {
           status: HomeListStatus.success,
           agents: [agent],
           channels: [
-            HomeChannelSummary(scopeId: chGeneral, name: 'general'),
+            const HomeChannelSummary(scopeId: chGeneral, name: 'general'),
           ],
         );
 
@@ -256,7 +256,7 @@ void main() {
         final homeState = HomeListState(
           status: HomeListStatus.loading,
           channels: [
-            HomeChannelSummary(scopeId: chGeneral, name: 'general'),
+            const HomeChannelSummary(scopeId: chGeneral, name: 'general'),
           ],
         );
 

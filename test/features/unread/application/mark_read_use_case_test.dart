@@ -105,13 +105,13 @@ void main() {
             HomeListState(
               status: HomeListStatus.success,
               channels: [
-                HomeChannelSummary(
+                const HomeChannelSummary(
                   scopeId: channelGeneral,
                   name: 'general',
                 ),
               ],
               directMessages: [
-                HomeDirectMessageSummary(
+                const HomeDirectMessageSummary(
                   scopeId: dmAlice,
                   title: 'Alice',
                 ),

@@ -22,7 +22,7 @@ void main() {
       final state = HomeListState(
         status: HomeListStatus.success,
         directMessages: [
-          HomeDirectMessageSummary(
+          const HomeDirectMessageSummary(
             scopeId:
                 DirectMessageScopeId(serverId: serverId, value: 'dm-conv-1'),
             title: 'Alice',
@@ -52,7 +52,7 @@ void main() {
       final state = HomeListState(
         status: HomeListStatus.success,
         pinnedDirectMessages: [
-          HomeDirectMessageSummary(
+          const HomeDirectMessageSummary(
             scopeId:
                 DirectMessageScopeId(serverId: serverId, value: 'dm-conv-2'),
             title: 'Bob',
@@ -78,7 +78,7 @@ void main() {
       final state = HomeListState(
         status: HomeListStatus.success,
         hiddenDirectMessages: [
-          HomeDirectMessageSummary(
+          const HomeDirectMessageSummary(
             scopeId:
                 DirectMessageScopeId(serverId: serverId, value: 'dm-conv-3'),
             title: 'Eve',
