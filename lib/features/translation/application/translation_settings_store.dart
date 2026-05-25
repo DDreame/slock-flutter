@@ -53,8 +53,12 @@ final translationSettingsStoreProvider = AutoDisposeNotifierProvider<
 
 class TranslationSettingsStore
     extends AutoDisposeNotifier<TranslationSettingsState> {
+  bool _disposed = false;
+
   @override
   TranslationSettingsState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     // Watch active server so the store resets when switching workspaces.
     ref.watch(activeServerScopeIdProvider);
     return const TranslationSettingsState();
@@ -87,17 +91,20 @@ class TranslationSettingsStore
 
       final repo = ref.read(translationRepositoryProvider);
       final settings = await repo.getSettings(serverId);
+      if (_disposed) return;
 
       state = state.copyWith(
         status: TranslationSettingsStatus.success,
         settings: settings,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         status: TranslationSettingsStatus.failure,
         failure: failure,
       );
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('load', e, st);
       state = state.copyWith(
         status: TranslationSettingsStatus.failure,
@@ -133,12 +140,15 @@ class TranslationSettingsStore
     try {
       final repo = ref.read(translationRepositoryProvider);
       final updated = await repo.updateSettings(serverId, settings);
+      if (_disposed) return;
 
       state = state.copyWith(settings: updated);
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       // Revert on failure.
       state = previous.copyWith(failure: failure);
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('update', e, st);
       state = previous.copyWith(
         failure: UnknownFailure(

@@ -16,8 +16,12 @@ final machinesStoreProvider =
 );
 
 class MachinesStore extends AutoDisposeNotifier<MachinesState> {
+  bool _disposed = false;
+
   @override
   MachinesState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     ref.watch(currentMachinesServerIdProvider);
     return const MachinesState();
   }
@@ -38,6 +42,7 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
           .read(machinesRepositoryProvider)
           .loadMachines()
           .timeout(_storeLoadTimeout);
+      if (_disposed) return;
       state = state.copyWith(
         status: MachinesStatus.success,
         items: _sortMachines(snapshot.items),
@@ -45,8 +50,10 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(status: MachinesStatus.failure, failure: failure);
     } on TimeoutException {
+      if (_disposed) return;
       state = state.copyWith(
         status: MachinesStatus.failure,
         failure: const TimeoutFailure(
@@ -55,6 +62,7 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
         ),
       );
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _captureUnexpectedError(
         error,
         stackTrace,
@@ -77,27 +85,35 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
       final result = await ref
           .read(machinesRepositoryProvider)
           .registerMachine(name: name);
-      state = state.copyWith(
-        status: MachinesStatus.success,
-        isCreating: false,
-        items: _sortMachines([...state.items, result.machine]),
-        clearFailure: true,
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          status: MachinesStatus.success,
+          isCreating: false,
+          items: _sortMachines([...state.items, result.machine]),
+          clearFailure: true,
+        );
+      }
       return result;
     } on AppFailure catch (failure) {
-      state = state.copyWith(isCreating: false, failure: failure);
+      if (!_disposed) {
+        state = state.copyWith(isCreating: false, failure: failure);
+      }
       rethrow;
     } catch (error, stackTrace) {
-      _captureUnexpectedError(
-        error,
-        stackTrace,
-        operation: 'MachinesStore.registerMachine',
-      );
+      if (!_disposed) {
+        _captureUnexpectedError(
+          error,
+          stackTrace,
+          operation: 'MachinesStore.registerMachine',
+        );
+      }
       final failure = _unexpectedFailure(
         error,
         message: 'Failed to register machine.',
       );
-      state = state.copyWith(isCreating: false, failure: failure);
+      if (!_disposed) {
+        state = state.copyWith(isCreating: false, failure: failure);
+      }
       throw failure;
     }
   }
@@ -112,6 +128,7 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
       await ref
           .read(machinesRepositoryProvider)
           .renameMachine(machineId, name: name);
+      if (_disposed) return;
       state = state.copyWith(
         items: _sortMachines(
           state.items
@@ -126,12 +143,14 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         renamingMachineIds: {...state.renamingMachineIds}..remove(machineId),
         failure: failure,
       );
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _captureUnexpectedError(
         error,
         stackTrace,
@@ -159,41 +178,49 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
       final apiKey = await ref
           .read(machinesRepositoryProvider)
           .rotateMachineApiKey(machineId);
-      state = state.copyWith(
-        items: state.items
-            .map(
-              (machine) => machine.id == machineId
-                  ? machine.copyWith(apiKeyPrefix: deriveApiKeyPrefix(apiKey))
-                  : machine,
-            )
-            .toList(growable: false),
-        rotatingKeyMachineIds: {...state.rotatingKeyMachineIds}
-          ..remove(machineId),
-        clearFailure: true,
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          items: state.items
+              .map(
+                (machine) => machine.id == machineId
+                    ? machine.copyWith(apiKeyPrefix: deriveApiKeyPrefix(apiKey))
+                    : machine,
+              )
+              .toList(growable: false),
+          rotatingKeyMachineIds: {...state.rotatingKeyMachineIds}
+            ..remove(machineId),
+          clearFailure: true,
+        );
+      }
       return apiKey;
     } on AppFailure catch (failure) {
-      state = state.copyWith(
-        rotatingKeyMachineIds: {...state.rotatingKeyMachineIds}
-          ..remove(machineId),
-        failure: failure,
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          rotatingKeyMachineIds: {...state.rotatingKeyMachineIds}
+            ..remove(machineId),
+          failure: failure,
+        );
+      }
       rethrow;
     } catch (error, stackTrace) {
-      _captureUnexpectedError(
-        error,
-        stackTrace,
-        operation: 'MachinesStore.rotateMachineApiKey',
-      );
+      if (!_disposed) {
+        _captureUnexpectedError(
+          error,
+          stackTrace,
+          operation: 'MachinesStore.rotateMachineApiKey',
+        );
+      }
       final failure = _unexpectedFailure(
         error,
         message: 'Failed to rotate machine API key.',
       );
-      state = state.copyWith(
-        rotatingKeyMachineIds: {...state.rotatingKeyMachineIds}
-          ..remove(machineId),
-        failure: failure,
-      );
+      if (!_disposed) {
+        state = state.copyWith(
+          rotatingKeyMachineIds: {...state.rotatingKeyMachineIds}
+            ..remove(machineId),
+          failure: failure,
+        );
+      }
       throw failure;
     }
   }
@@ -206,6 +233,7 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
 
     try {
       await ref.read(machinesRepositoryProvider).deleteMachine(machineId);
+      if (_disposed) return;
       state = state.copyWith(
         status: MachinesStatus.success,
         items: state.items
@@ -215,12 +243,14 @@ class MachinesStore extends AutoDisposeNotifier<MachinesState> {
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         deletingMachineIds: {...state.deletingMachineIds}..remove(machineId),
         failure: failure,
       );
       rethrow;
     } catch (error, stackTrace) {
+      if (_disposed) return;
       _captureUnexpectedError(
         error,
         stackTrace,

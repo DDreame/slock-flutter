@@ -19,8 +19,12 @@ final workspacesStoreProvider =
 );
 
 class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
+  bool _disposed = false;
+
   @override
   WorkspacesState build() {
+    _disposed = false;
+    ref.onDispose(() => _disposed = true);
     return const WorkspacesState();
   }
 
@@ -35,17 +39,20 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
     try {
       final repo = ref.read(machinesRepositoryProvider);
       final workspaces = await repo.loadWorkspaces(machineId);
+      if (_disposed) return;
       state = state.copyWith(
         status: WorkspacesStatus.success,
         items: workspaces,
         clearFailure: true,
       );
     } on AppFailure catch (failure) {
+      if (_disposed) return;
       state = state.copyWith(
         status: WorkspacesStatus.failure,
         failure: failure,
       );
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('load', e, st);
       state = state.copyWith(
         status: WorkspacesStatus.failure,
@@ -70,6 +77,7 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
     try {
       final repo = ref.read(machinesRepositoryProvider);
       await repo.deleteWorkspace(machineId, workspaceId: workspaceId);
+      if (_disposed) return;
 
       // Success — clear deleting flag.
       state = state.copyWith(
@@ -77,6 +85,7 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
             state.deletingWorkspaceIds.difference({workspaceId}),
       );
     } on AppFailure {
+      if (_disposed) return;
       // Rollback: restore previous items and clear deleting flag.
       state = state.copyWith(
         items: previousItems,
@@ -85,6 +94,7 @@ class WorkspacesStore extends AutoDisposeNotifier<WorkspacesState> {
       );
       rethrow;
     } catch (e, st) {
+      if (_disposed) return;
       _reportUnexpectedError('deleteWorkspace', e, st);
       // Rollback: restore previous items and clear deleting flag.
       state = state.copyWith(
