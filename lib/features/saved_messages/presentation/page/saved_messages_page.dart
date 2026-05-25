@@ -55,7 +55,7 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Saved',
+          context.l10n.savedMessagesTitle,
           style: AppTypography.title.copyWith(color: colors.text),
         ),
         backgroundColor: colors.surface,
@@ -79,12 +79,11 @@ class _SavedMessagesScreenState extends ConsumerState<_SavedMessagesScreen> {
             onRetry: ref.read(savedMessagesStoreProvider.notifier).retry,
           ),
         SavedMessagesStatus.success when state.items.isEmpty =>
-          const EmptyStateWidget(
-            key: ValueKey('saved-messages-empty'),
+          EmptyStateWidget(
+            key: const ValueKey('saved-messages-empty'),
             icon: Icons.bookmark_outline,
-            title: 'No saved messages',
-            subtitle: 'Long-press a message and tap "Save" to bookmark it.\n'
-                'Saved messages appear here for quick reference.',
+            title: context.l10n.savedMessagesEmptyTitle,
+            subtitle: context.l10n.savedMessagesEmptySubtitle,
           ),
         SavedMessagesStatus.success => _SavedMessagesListSurface(state: state),
       },
@@ -266,7 +265,7 @@ class _SavedMessageCard extends StatelessWidget {
                       ),
                       const SizedBox(width: AppSpacing.xs),
                       Text(
-                        _sourceLabel(item),
+                        _sourceLabel(context, item),
                         style: AppTypography.caption
                             .copyWith(color: colors.textSecondary),
                         overflow: TextOverflow.ellipsis,
@@ -288,7 +287,7 @@ class _SavedMessageCard extends StatelessWidget {
                     minWidth: 32,
                     minHeight: 32,
                   ),
-                  tooltip: 'Unsave',
+                  tooltip: context.l10n.savedMessagesUnsaveTooltip,
                 ),
               ],
             ),
@@ -323,12 +322,12 @@ class _SavedMessageCard extends StatelessWidget {
     );
   }
 
-  String _sourceLabel(SavedMessageItem item) {
+  String _sourceLabel(BuildContext context, SavedMessageItem item) {
     if (item.surface == 'direct_message') {
-      return '\u00b7 DM';
+      return context.l10n.savedMessagesSourceDm;
     }
     if (item.channelName != null) {
-      return '\u00b7 # ${item.channelName}';
+      return context.l10n.savedMessagesSourceChannel(item.channelName!);
     }
     return '';
   }

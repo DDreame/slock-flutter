@@ -1100,5 +1100,40 @@
 
   "shareTargetTitle": "Compartir en...",
 
-  "translationFailed": "Traducción fallida. Toca para reintentar."
+  "translationFailed": "Traducción fallida. Toca para reintentar.",
+
+  "membersRemoveBody": "¿Eliminar a {name} de este servidor?",
+  "membersEmailValidationError": "Introduce una dirección de correo válida",
+  "membersInviteTitle": "Invitar persona",
+  "membersInviteEmailSection": "Enviar invitación por correo",
+  "membersInviteEmailLabel": "Correo",
+  "membersInviteEmailHint": "user@example.com",
+  "membersInviteLinkSection": "O compartir enlace de invitación",
+  "membersInviteCopyLink": "Copiar enlace",
+  "membersRoleAdminSubtitle": "Puede gestionar miembros e invitar",
+  "membersRoleMemberSubtitle": "Acceso estándar al espacio de trabajo",
+
+  "savedMessagesTitle": "Guardados",
+  "savedMessagesEmptyTitle": "No hay mensajes guardados",
+  "savedMessagesEmptySubtitle": "Mantén presionado un mensaje y toca \"Guardar\" para marcarlo.\nLos mensajes guardados aparecen aquí para referencia rápida.",
+  "savedMessagesUnsaveTooltip": "Quitar guardado",
+  "savedMessagesSourceDm": "\u00b7 MD",
+  "savedMessagesSourceChannel": "\u00b7 # {name}",
+
+  "biometricPrompt": "Autenticarse para continuar usando Slock",
+  "biometricLockTitle": "Autenticarse para continuar",
+  "biometricLockSubtitle": "Verifica tu identidad para acceder a Slock",
+  "biometricErrorLockout": "Demasiados intentos. Inténtalo más tarde.",
+  "biometricErrorPermanentLockout": "Biometría bloqueada. Usa el código de tu dispositivo.",
+  "biometricErrorNotAvailable": "Biometría no disponible. Inténtalo de nuevo.",
+  "biometricErrorNotEnrolled": "Sin biometría registrada. Inténtalo de nuevo.",
+  "biometricErrorGeneric": "Autenticación fallida. Intentar de nuevo ({count}/3).",
+
+  "shareSearchHint": "Buscar conversaciones...",
+  "shareSectionChannels": "Canales",
+  "shareSectionDirectMessages": "Mensajes directos",
+
+  "translationShowOriginal": "Mostrar original",
+  "translationShowTranslation": "Mostrar traducción",
+  "translationPending": "Traduciendo\u2026"
 }

@@ -167,7 +167,7 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
           child: TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search conversations...',
+              hintText: context.l10n.shareSearchHint,
               prefixIcon: const Icon(Icons.search, size: 20),
               isDense: true,
               border: OutlineInputBorder(
@@ -186,7 +186,8 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
           child: ListView(
             children: [
               if (filteredChannels.isNotEmpty) ...[
-                _SectionHeader(title: 'Channels', colors: colors),
+                _SectionHeader(
+                    title: context.l10n.shareSectionChannels, colors: colors),
                 ...filteredChannels.map(
                   (ch) => _ChannelTile(
                     channel: ch,
@@ -198,7 +199,9 @@ class _ShareTargetPickerPageState extends ConsumerState<ShareTargetPickerPage> {
                 ),
               ],
               if (filteredDms.isNotEmpty) ...[
-                _SectionHeader(title: 'Direct Messages', colors: colors),
+                _SectionHeader(
+                    title: context.l10n.shareSectionDirectMessages,
+                    colors: colors),
                 ...filteredDms.map(
                   (dm) => _DmTile(
                     directMessage: dm,

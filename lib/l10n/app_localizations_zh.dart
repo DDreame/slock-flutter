@@ -2925,4 +2925,101 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get translationFailed => '翻译失败。点击重试。';
+
+  @override
+  String membersRemoveBody(String name) {
+    return '确定要将 $name 从此服务器中移除吗？';
+  }
+
+  @override
+  String get membersEmailValidationError => '请输入有效的邮箱地址';
+
+  @override
+  String get membersInviteTitle => '邀请成员';
+
+  @override
+  String get membersInviteEmailSection => '发送邮件邀请';
+
+  @override
+  String get membersInviteEmailLabel => '邮箱';
+
+  @override
+  String get membersInviteEmailHint => 'user@example.com';
+
+  @override
+  String get membersInviteLinkSection => '或分享邀请链接';
+
+  @override
+  String get membersInviteCopyLink => '复制链接';
+
+  @override
+  String get membersRoleAdminSubtitle => '可以管理成员和邀请';
+
+  @override
+  String get membersRoleMemberSubtitle => '标准工作空间访问权限';
+
+  @override
+  String get savedMessagesTitle => '已保存';
+
+  @override
+  String get savedMessagesEmptyTitle => '没有已保存的消息';
+
+  @override
+  String get savedMessagesEmptySubtitle =>
+      '长按消息并点击「保存」即可收藏。\n已保存的消息将显示在此处以供快速查阅。';
+
+  @override
+  String get savedMessagesUnsaveTooltip => '取消保存';
+
+  @override
+  String get savedMessagesSourceDm => '· 私信';
+
+  @override
+  String savedMessagesSourceChannel(String name) {
+    return '· # $name';
+  }
+
+  @override
+  String get biometricPrompt => '验证身份以继续使用 Slock';
+
+  @override
+  String get biometricLockTitle => '验证身份以继续';
+
+  @override
+  String get biometricLockSubtitle => '验证您的身份以访问 Slock';
+
+  @override
+  String get biometricErrorLockout => '尝试次数过多，请稍后再试。';
+
+  @override
+  String get biometricErrorPermanentLockout => '生物识别已锁定，请使用设备密码。';
+
+  @override
+  String get biometricErrorNotAvailable => '生物识别不可用，请重试。';
+
+  @override
+  String get biometricErrorNotEnrolled => '未注册生物识别，请重试。';
+
+  @override
+  String biometricErrorGeneric(int count) {
+    return '认证失败。再试一次（$count/3）。';
+  }
+
+  @override
+  String get shareSearchHint => '搜索对话...';
+
+  @override
+  String get shareSectionChannels => '频道';
+
+  @override
+  String get shareSectionDirectMessages => '私信';
+
+  @override
+  String get translationShowOriginal => '显示原文';
+
+  @override
+  String get translationShowTranslation => '显示翻译';
+
+  @override
+  String get translationPending => '翻译中…';
 }

@@ -142,12 +142,14 @@ class _TranslationStatusRow extends ConsumerWidget {
                 .read(translationCacheStoreProvider.notifier)
                 .toggleTranslation(messageId),
             child: Text(
-              isShowingTranslation ? 'Show original' : 'Show translation',
+              isShowingTranslation
+                  ? context.l10n.translationShowOriginal
+                  : context.l10n.translationShowTranslation,
             ),
           )
         else if (entry.status == TranslationEntryStatus.pending)
           Text(
-            'Translating…',
+            context.l10n.translationPending,
             key: const ValueKey('translation-pending-text'),
             style: AppTypography.caption.copyWith(
               color: colors.textTertiary,

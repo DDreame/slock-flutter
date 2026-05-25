@@ -1030,5 +1030,40 @@
 
   "shareTargetTitle": "分享到...",
 
-  "translationFailed": "翻译失败。点击重试。"
+  "translationFailed": "翻译失败。点击重试。",
+
+  "membersRemoveBody": "确定要将 {name} 从此服务器中移除吗？",
+  "membersEmailValidationError": "请输入有效的邮箱地址",
+  "membersInviteTitle": "邀请成员",
+  "membersInviteEmailSection": "发送邮件邀请",
+  "membersInviteEmailLabel": "邮箱",
+  "membersInviteEmailHint": "user@example.com",
+  "membersInviteLinkSection": "或分享邀请链接",
+  "membersInviteCopyLink": "复制链接",
+  "membersRoleAdminSubtitle": "可以管理成员和邀请",
+  "membersRoleMemberSubtitle": "标准工作空间访问权限",
+
+  "savedMessagesTitle": "已保存",
+  "savedMessagesEmptyTitle": "没有已保存的消息",
+  "savedMessagesEmptySubtitle": "长按消息并点击「保存」即可收藏。\n已保存的消息将显示在此处以供快速查阅。",
+  "savedMessagesUnsaveTooltip": "取消保存",
+  "savedMessagesSourceDm": "\u00b7 私信",
+  "savedMessagesSourceChannel": "\u00b7 # {name}",
+
+  "biometricPrompt": "验证身份以继续使用 Slock",
+  "biometricLockTitle": "验证身份以继续",
+  "biometricLockSubtitle": "验证您的身份以访问 Slock",
+  "biometricErrorLockout": "尝试次数过多，请稍后再试。",
+  "biometricErrorPermanentLockout": "生物识别已锁定，请使用设备密码。",
+  "biometricErrorNotAvailable": "生物识别不可用，请重试。",
+  "biometricErrorNotEnrolled": "未注册生物识别，请重试。",
+  "biometricErrorGeneric": "认证失败。再试一次（{count}/3）。",
+
+  "shareSearchHint": "搜索对话...",
+  "shareSectionChannels": "频道",
+  "shareSectionDirectMessages": "私信",
+
+  "translationShowOriginal": "显示原文",
+  "translationShowTranslation": "显示翻译",
+  "translationPending": "翻译中\u2026"
 }

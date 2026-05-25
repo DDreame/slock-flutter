@@ -3028,4 +3028,105 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get translationFailed => 'Translation failed. Tap to retry.';
+
+  @override
+  String membersRemoveBody(String name) {
+    return 'Remove $name from this server?';
+  }
+
+  @override
+  String get membersEmailValidationError => 'Enter a valid email address';
+
+  @override
+  String get membersInviteTitle => 'Invite Human';
+
+  @override
+  String get membersInviteEmailSection => 'Send email invite';
+
+  @override
+  String get membersInviteEmailLabel => 'Email';
+
+  @override
+  String get membersInviteEmailHint => 'user@example.com';
+
+  @override
+  String get membersInviteLinkSection => 'Or share invite link';
+
+  @override
+  String get membersInviteCopyLink => 'Copy link';
+
+  @override
+  String get membersRoleAdminSubtitle => 'Can manage members and invite';
+
+  @override
+  String get membersRoleMemberSubtitle => 'Standard workspace access';
+
+  @override
+  String get savedMessagesTitle => 'Saved';
+
+  @override
+  String get savedMessagesEmptyTitle => 'No saved messages';
+
+  @override
+  String get savedMessagesEmptySubtitle =>
+      'Long-press a message and tap \"Save\" to bookmark it.\nSaved messages appear here for quick reference.';
+
+  @override
+  String get savedMessagesUnsaveTooltip => 'Unsave';
+
+  @override
+  String get savedMessagesSourceDm => '· DM';
+
+  @override
+  String savedMessagesSourceChannel(String name) {
+    return '· # $name';
+  }
+
+  @override
+  String get biometricPrompt => 'Authenticate to continue using Slock';
+
+  @override
+  String get biometricLockTitle => 'Authenticate to continue';
+
+  @override
+  String get biometricLockSubtitle => 'Verify your identity to access Slock';
+
+  @override
+  String get biometricErrorLockout =>
+      'Too many attempts. Please try again later.';
+
+  @override
+  String get biometricErrorPermanentLockout =>
+      'Biometrics locked. Please use your device passcode.';
+
+  @override
+  String get biometricErrorNotAvailable =>
+      'Biometrics unavailable. Please try again.';
+
+  @override
+  String get biometricErrorNotEnrolled =>
+      'No biometrics enrolled. Please try again.';
+
+  @override
+  String biometricErrorGeneric(int count) {
+    return 'Authentication failed. Try again ($count/3).';
+  }
+
+  @override
+  String get shareSearchHint => 'Search conversations...';
+
+  @override
+  String get shareSectionChannels => 'Channels';
+
+  @override
+  String get shareSectionDirectMessages => 'Direct Messages';
+
+  @override
+  String get translationShowOriginal => 'Show original';
+
+  @override
+  String get translationShowTranslation => 'Show translation';
+
+  @override
+  String get translationPending => 'Translating…';
 }

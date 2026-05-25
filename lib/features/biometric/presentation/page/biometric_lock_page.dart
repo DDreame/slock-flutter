@@ -46,7 +46,7 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
 
     final service = ref.read(biometricServiceProvider);
     final result = await service.authenticate(
-      localizedReason: 'Authenticate to continue using Slock',
+      localizedReason: context.l10n.biometricPrompt,
     );
 
     if (!mounted) return;
@@ -65,34 +65,34 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
         _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Too many attempts. Please try again later.';
+          _errorMessage = context.l10n.biometricErrorLockout;
         });
       case BiometricAuthResult.permanentLockout:
         _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Biometrics locked. Please use your device passcode.';
+          _errorMessage = context.l10n.biometricErrorPermanentLockout;
           _showDisableButton = true;
         });
       case BiometricAuthResult.notAvailable:
         _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Biometrics unavailable. Please try again.';
+          _errorMessage = context.l10n.biometricErrorNotAvailable;
           _showDisableButton = false;
         });
       case BiometricAuthResult.notEnrolled:
         _cancelCount = 0;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'No biometrics enrolled. Please try again.';
+          _errorMessage = context.l10n.biometricErrorNotEnrolled;
           _showDisableButton = false;
         });
       case BiometricAuthResult.error:
         _cancelCount++;
         setState(() {
           _isAuthenticating = false;
-          _errorMessage = 'Authentication failed. Try again ($_cancelCount/3).';
+          _errorMessage = context.l10n.biometricErrorGeneric(_cancelCount);
           _showDisableButton = false;
         });
     }
@@ -126,14 +126,14 @@ class _BiometricLockPageState extends ConsumerState<BiometricLockPage> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Authenticate to continue',
+                  context.l10n.biometricLockTitle,
                   key: const ValueKey('biometric-lock-title'),
                   style: theme.textTheme.headlineSmall,
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Verify your identity to access Slock',
+                  context.l10n.biometricLockSubtitle,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

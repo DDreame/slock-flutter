@@ -448,8 +448,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
             return AlertDialog(
               title: Text(context.l10n.membersRemoveTitle),
               content: Text(
-                'Remove ${member.displayName}'
-                ' from this server?',
+                context.l10n.membersRemoveBody(member.displayName),
               ),
               actions: [
                 TextButton(
@@ -629,7 +628,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
   String? get _emailErrorText {
     final email = _emailController.text.trim();
     if (email.isEmpty) return null;
-    if (!_isValidEmail) return 'Enter a valid email address';
+    if (!_isValidEmail) return context.l10n.membersEmailValidationError;
     return null;
   }
 
@@ -698,7 +697,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
               ),
             ),
             Text(
-              'Invite Human',
+              context.l10n.membersInviteTitle,
               style: AppTypography.headline.copyWith(
                 color: colors.text,
               ),
@@ -707,7 +706,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
 
             // --- Email section ---
             Text(
-              'Send email invite',
+              context.l10n.membersInviteEmailSection,
               style: AppTypography.title.copyWith(
                 color: colors.text,
               ),
@@ -724,8 +723,8 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
                     autofocus: true,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Email',
-                      hintText: 'user@example.com',
+                      labelText: context.l10n.membersInviteEmailLabel,
+                      hintText: context.l10n.membersInviteEmailHint,
                       errorText: _emailErrorText,
                     ),
                     onChanged: (_) => setState(() {}),
@@ -753,7 +752,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
 
             // --- Link section ---
             Text(
-              'Or share invite link',
+              context.l10n.membersInviteLinkSection,
               style: AppTypography.title.copyWith(
                 color: colors.text,
               ),
@@ -791,7 +790,7 @@ class _InviteHumanSheetState extends State<_InviteHumanSheet> {
                       ),
                       icon: const Icon(Icons.copy),
                       onPressed: _copyLink,
-                      tooltip: 'Copy link',
+                      tooltip: context.l10n.membersInviteCopyLink,
                     ),
                   ],
                 ),
@@ -862,8 +861,8 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
                 'members-role-option-admin',
               ),
               title: Text(context.l10n.membersRoleAdmin),
-              subtitle: const Text(
-                'Can manage members and invite',
+              subtitle: Text(
+                context.l10n.membersRoleAdminSubtitle,
               ),
               value: 'admin',
             ),
@@ -872,8 +871,8 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
                 'members-role-option-member',
               ),
               title: Text(context.l10n.membersRoleMember),
-              subtitle: const Text(
-                'Standard workspace access',
+              subtitle: Text(
+                context.l10n.membersRoleMemberSubtitle,
               ),
               value: 'member',
             ),

@@ -5692,6 +5692,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Translation failed. Tap to retry.'**
   String get translationFailed;
+
+  /// No description provided for @membersRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {name} from this server?'**
+  String membersRemoveBody(String name);
+
+  /// No description provided for @membersEmailValidationError.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address'**
+  String get membersEmailValidationError;
+
+  /// No description provided for @membersInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Invite Human'**
+  String get membersInviteTitle;
+
+  /// No description provided for @membersInviteEmailSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Send email invite'**
+  String get membersInviteEmailSection;
+
+  /// No description provided for @membersInviteEmailLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get membersInviteEmailLabel;
+
+  /// No description provided for @membersInviteEmailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'user@example.com'**
+  String get membersInviteEmailHint;
+
+  /// No description provided for @membersInviteLinkSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Or share invite link'**
+  String get membersInviteLinkSection;
+
+  /// No description provided for @membersInviteCopyLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy link'**
+  String get membersInviteCopyLink;
+
+  /// No description provided for @membersRoleAdminSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Can manage members and invite'**
+  String get membersRoleAdminSubtitle;
+
+  /// No description provided for @membersRoleMemberSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard workspace access'**
+  String get membersRoleMemberSubtitle;
+
+  /// No description provided for @savedMessagesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get savedMessagesTitle;
+
+  /// No description provided for @savedMessagesEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No saved messages'**
+  String get savedMessagesEmptyTitle;
+
+  /// No description provided for @savedMessagesEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Long-press a message and tap \"Save\" to bookmark it.\nSaved messages appear here for quick reference.'**
+  String get savedMessagesEmptySubtitle;
+
+  /// No description provided for @savedMessagesUnsaveTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsave'**
+  String get savedMessagesUnsaveTooltip;
+
+  /// No description provided for @savedMessagesSourceDm.
+  ///
+  /// In en, this message translates to:
+  /// **'· DM'**
+  String get savedMessagesSourceDm;
+
+  /// No description provided for @savedMessagesSourceChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'· # {name}'**
+  String savedMessagesSourceChannel(String name);
+
+  /// No description provided for @biometricPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate to continue using Slock'**
+  String get biometricPrompt;
+
+  /// No description provided for @biometricLockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Authenticate to continue'**
+  String get biometricLockTitle;
+
+  /// No description provided for @biometricLockSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify your identity to access Slock'**
+  String get biometricLockSubtitle;
+
+  /// No description provided for @biometricErrorLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many attempts. Please try again later.'**
+  String get biometricErrorLockout;
+
+  /// No description provided for @biometricErrorPermanentLockout.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometrics locked. Please use your device passcode.'**
+  String get biometricErrorPermanentLockout;
+
+  /// No description provided for @biometricErrorNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Biometrics unavailable. Please try again.'**
+  String get biometricErrorNotAvailable;
+
+  /// No description provided for @biometricErrorNotEnrolled.
+  ///
+  /// In en, this message translates to:
+  /// **'No biometrics enrolled. Please try again.'**
+  String get biometricErrorNotEnrolled;
+
+  /// No description provided for @biometricErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed. Try again ({count}/3).'**
+  String biometricErrorGeneric(int count);
+
+  /// No description provided for @shareSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search conversations...'**
+  String get shareSearchHint;
+
+  /// No description provided for @shareSectionChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Channels'**
+  String get shareSectionChannels;
+
+  /// No description provided for @shareSectionDirectMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct Messages'**
+  String get shareSectionDirectMessages;
+
+  /// No description provided for @translationShowOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Show original'**
+  String get translationShowOriginal;
+
+  /// No description provided for @translationShowTranslation.
+  ///
+  /// In en, this message translates to:
+  /// **'Show translation'**
+  String get translationShowTranslation;
+
+  /// No description provided for @translationPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Translating…'**
+  String get translationPending;
 }
 
 class _AppLocalizationsDelegate

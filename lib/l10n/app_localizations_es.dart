@@ -3064,4 +3064,108 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get translationFailed => 'Traducción fallida. Toca para reintentar.';
+
+  @override
+  String membersRemoveBody(String name) {
+    return '¿Eliminar a $name de este servidor?';
+  }
+
+  @override
+  String get membersEmailValidationError =>
+      'Introduce una dirección de correo válida';
+
+  @override
+  String get membersInviteTitle => 'Invitar persona';
+
+  @override
+  String get membersInviteEmailSection => 'Enviar invitación por correo';
+
+  @override
+  String get membersInviteEmailLabel => 'Correo';
+
+  @override
+  String get membersInviteEmailHint => 'user@example.com';
+
+  @override
+  String get membersInviteLinkSection => 'O compartir enlace de invitación';
+
+  @override
+  String get membersInviteCopyLink => 'Copiar enlace';
+
+  @override
+  String get membersRoleAdminSubtitle => 'Puede gestionar miembros e invitar';
+
+  @override
+  String get membersRoleMemberSubtitle =>
+      'Acceso estándar al espacio de trabajo';
+
+  @override
+  String get savedMessagesTitle => 'Guardados';
+
+  @override
+  String get savedMessagesEmptyTitle => 'No hay mensajes guardados';
+
+  @override
+  String get savedMessagesEmptySubtitle =>
+      'Mantén presionado un mensaje y toca \"Guardar\" para marcarlo.\nLos mensajes guardados aparecen aquí para referencia rápida.';
+
+  @override
+  String get savedMessagesUnsaveTooltip => 'Quitar guardado';
+
+  @override
+  String get savedMessagesSourceDm => '· MD';
+
+  @override
+  String savedMessagesSourceChannel(String name) {
+    return '· # $name';
+  }
+
+  @override
+  String get biometricPrompt => 'Autenticarse para continuar usando Slock';
+
+  @override
+  String get biometricLockTitle => 'Autenticarse para continuar';
+
+  @override
+  String get biometricLockSubtitle =>
+      'Verifica tu identidad para acceder a Slock';
+
+  @override
+  String get biometricErrorLockout =>
+      'Demasiados intentos. Inténtalo más tarde.';
+
+  @override
+  String get biometricErrorPermanentLockout =>
+      'Biometría bloqueada. Usa el código de tu dispositivo.';
+
+  @override
+  String get biometricErrorNotAvailable =>
+      'Biometría no disponible. Inténtalo de nuevo.';
+
+  @override
+  String get biometricErrorNotEnrolled =>
+      'Sin biometría registrada. Inténtalo de nuevo.';
+
+  @override
+  String biometricErrorGeneric(int count) {
+    return 'Autenticación fallida. Intentar de nuevo ($count/3).';
+  }
+
+  @override
+  String get shareSearchHint => 'Buscar conversaciones...';
+
+  @override
+  String get shareSectionChannels => 'Canales';
+
+  @override
+  String get shareSectionDirectMessages => 'Mensajes directos';
+
+  @override
+  String get translationShowOriginal => 'Mostrar original';
+
+  @override
+  String get translationShowTranslation => 'Mostrar traducción';
+
+  @override
+  String get translationPending => 'Traduciendo…';
 }
