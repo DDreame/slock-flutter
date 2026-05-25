@@ -285,6 +285,8 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(
               body: LinkPreviewCard(
                 metadata: LinkMetadata(
@@ -331,6 +333,8 @@ void main() {
           ProviderScope(
             child: MaterialApp(
               theme: AppTheme.light,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: const FilePreviewPage(
                 attachment: MessageAttachment(
                   name: 'photo.jpg',

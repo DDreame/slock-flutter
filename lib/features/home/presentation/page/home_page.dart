@@ -73,7 +73,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           IconButton(
             key: const ValueKey('home-search-button'),
             icon: const Icon(Icons.search),
-            tooltip: 'Search',
+            tooltip: context.l10n.homeSearchTooltip,
             onPressed: () {
               final serverId =
                   ref.read(activeServerScopeIdProvider)?.value ?? '';

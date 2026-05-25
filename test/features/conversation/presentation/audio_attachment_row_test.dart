@@ -7,6 +7,7 @@ import 'package:slock_app/features/conversation/data/conversation_repository.dar
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_attachment_renderers.dart';
 import 'package:slock_app/features/voice/application/voice_message_store.dart';
 import 'package:slock_app/features/voice/data/audio_player_service.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('AudioAttachmentRow', () {
@@ -160,6 +161,8 @@ void main() {
         UncontrolledProviderScope(
           container: container,
           child: const MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Scaffold(
               body: AttachmentSection(
                 attachments: [
@@ -209,6 +212,8 @@ Widget _audioHarness(
       }),
     ],
     child: MaterialApp(
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
         body: SingleChildScrollView(
           child: Center(

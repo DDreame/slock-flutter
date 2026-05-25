@@ -1065,5 +1065,50 @@
 
   "translationShowOriginal": "显示原文",
   "translationShowTranslation": "显示翻译",
-  "translationPending": "翻译中\u2026"
+  "translationPending": "翻译中\u2026",
+
+  "notificationPrefAllTitle": "所有消息",
+  "notificationPrefAllDescription": "接收所有消息的通知。",
+  "notificationPrefMentionsTitle": "仅提及和私信",
+  "notificationPrefMentionsDescription": "仅接收私信的通知。",
+  "notificationPrefMuteTitle": "静音",
+  "notificationPrefMuteDescription": "不显示任何前台通知。",
+
+  "membersInviteHumanTooltip": "邀请成员",
+  "membersErrorTitle": "成员不可用",
+  "membersErrorMessage": "目前无法加载工作区成员。",
+  "membersEmptyMessage": "暂无成员。",
+  "membersInviteSent": "已向 {email} 发送邀请邮件。",
+  "membersSearchHint": "搜索成员\u2026",
+  "membersSearchEmpty": "没有匹配的成员。",
+  "membersSectionHumans": "成员",
+  "membersSectionAgents": "智能体",
+  "membersRoleChanged": "{name} 现在是{role}。",
+  "membersRoleOwner": "所有者",
+  "membersRoleAdmin": "管理员",
+  "membersRoleMember": "成员",
+
+  "homeSearchTooltip": "搜索",
+
+  "audioPlaybackFailed": "音频播放失败",
+
+  "crashRecoveryTitle": "应用已恢复",
+  "crashRecoveryMessage": "应用在上次会话中意外停止。您可以导出诊断日志帮助我们调查。",
+  "crashRecoveryContinue": "继续",
+  "crashRecoveryExport": "导出诊断日志",
+
+  "filePreviewShareFailed": "文件分享失败。",
+  "filePreviewShareTooltip": "分享",
+  "filePreviewOpenExternal": "在外部应用中打开",
+  "filePreviewRetry": "重试",
+  "filePreviewOpenWith": "打开方式\u2026",
+
+  "annotationDraw": "画笔",
+  "annotationText": "文字",
+  "annotationArrow": "箭头",
+  "annotationUndo": "撤销",
+  "annotationRedo": "重做",
+
+  "voiceRecorderCancel": "取消录音",
+  "voiceRecorderSend": "发送语音消息"
 }

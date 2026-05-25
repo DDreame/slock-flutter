@@ -3022,4 +3022,113 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get translationPending => '翻译中…';
+
+  @override
+  String get notificationPrefAllTitle => '所有消息';
+
+  @override
+  String get notificationPrefAllDescription => '接收所有消息的通知。';
+
+  @override
+  String get notificationPrefMentionsTitle => '仅提及和私信';
+
+  @override
+  String get notificationPrefMentionsDescription => '仅接收私信的通知。';
+
+  @override
+  String get notificationPrefMuteTitle => '静音';
+
+  @override
+  String get notificationPrefMuteDescription => '不显示任何前台通知。';
+
+  @override
+  String get membersInviteHumanTooltip => '邀请成员';
+
+  @override
+  String get membersErrorTitle => '成员不可用';
+
+  @override
+  String get membersErrorMessage => '目前无法加载工作区成员。';
+
+  @override
+  String get membersEmptyMessage => '暂无成员。';
+
+  @override
+  String membersInviteSent(String email) {
+    return '已向 $email 发送邀请邮件。';
+  }
+
+  @override
+  String get membersSearchHint => '搜索成员…';
+
+  @override
+  String get membersSearchEmpty => '没有匹配的成员。';
+
+  @override
+  String get membersSectionHumans => '成员';
+
+  @override
+  String get membersSectionAgents => '智能体';
+
+  @override
+  String membersRoleChanged(String name, String role) {
+    return '$name 现在是$role。';
+  }
+
+  @override
+  String get membersRoleOwner => '所有者';
+
+  @override
+  String get homeSearchTooltip => '搜索';
+
+  @override
+  String get audioPlaybackFailed => '音频播放失败';
+
+  @override
+  String get crashRecoveryTitle => '应用已恢复';
+
+  @override
+  String get crashRecoveryMessage => '应用在上次会话中意外停止。您可以导出诊断日志帮助我们调查。';
+
+  @override
+  String get crashRecoveryContinue => '继续';
+
+  @override
+  String get crashRecoveryExport => '导出诊断日志';
+
+  @override
+  String get filePreviewShareFailed => '文件分享失败。';
+
+  @override
+  String get filePreviewShareTooltip => '分享';
+
+  @override
+  String get filePreviewOpenExternal => '在外部应用中打开';
+
+  @override
+  String get filePreviewRetry => '重试';
+
+  @override
+  String get filePreviewOpenWith => '打开方式…';
+
+  @override
+  String get annotationDraw => '画笔';
+
+  @override
+  String get annotationText => '文字';
+
+  @override
+  String get annotationArrow => '箭头';
+
+  @override
+  String get annotationUndo => '撤销';
+
+  @override
+  String get annotationRedo => '重做';
+
+  @override
+  String get voiceRecorderCancel => '取消录音';
+
+  @override
+  String get voiceRecorderSend => '发送语音消息';
 }

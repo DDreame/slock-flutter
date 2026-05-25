@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:slock_app/features/screenshot/data/annotation.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// Toolbar for the screenshot annotation editor.
 ///
@@ -48,19 +49,19 @@ class AnnotationToolbar extends StatelessWidget {
         children: [
           _ToolButton(
             icon: Icons.brush,
-            label: 'Draw',
+            label: context.l10n.annotationDraw,
             isSelected: selectedTool == AnnotationTool.freehand,
             onTap: () => onToolSelected(AnnotationTool.freehand),
           ),
           _ToolButton(
             icon: Icons.text_fields,
-            label: 'Text',
+            label: context.l10n.annotationText,
             isSelected: selectedTool == AnnotationTool.text,
             onTap: () => onToolSelected(AnnotationTool.text),
           ),
           _ToolButton(
             icon: Icons.arrow_forward,
-            label: 'Arrow',
+            label: context.l10n.annotationArrow,
             isSelected: selectedTool == AnnotationTool.arrow,
             onTap: () => onToolSelected(AnnotationTool.arrow),
           ),
@@ -73,13 +74,13 @@ class AnnotationToolbar extends StatelessWidget {
             icon: const Icon(Icons.undo),
             color: canUndo ? Colors.white : Colors.white38,
             onPressed: canUndo ? onUndo : null,
-            tooltip: 'Undo',
+            tooltip: context.l10n.annotationUndo,
           ),
           IconButton(
             icon: const Icon(Icons.redo),
             color: canRedo ? Colors.white : Colors.white38,
             onPressed: canRedo ? onRedo : null,
-            tooltip: 'Redo',
+            tooltip: context.l10n.annotationRedo,
           ),
           const VerticalDivider(
             width: 16,

@@ -113,8 +113,8 @@ class _NotificationSettingsPageState
                     if (index > 0) const Divider(height: 1),
                     RadioListTile<NotificationPreference>(
                       key: ValueKey('notification-preference-${pref.name}'),
-                      title: Text(pref.title),
-                      subtitle: Text(pref.description),
+                      title: Text(_notificationPrefTitle(pref, l10n)),
+                      subtitle: Text(_notificationPrefDescription(pref, l10n)),
                       value: pref,
                     ),
                   ],
@@ -369,5 +369,28 @@ String _platformName(TargetPlatform platform) {
     TargetPlatform.windows => 'windows',
     TargetPlatform.linux => 'linux',
     TargetPlatform.fuchsia => 'fuchsia',
+  };
+}
+
+String _notificationPrefTitle(
+  NotificationPreference pref,
+  AppLocalizations l10n,
+) {
+  return switch (pref) {
+    NotificationPreference.all => l10n.notificationPrefAllTitle,
+    NotificationPreference.mentionsOnly => l10n.notificationPrefMentionsTitle,
+    NotificationPreference.mute => l10n.notificationPrefMuteTitle,
+  };
+}
+
+String _notificationPrefDescription(
+  NotificationPreference pref,
+  AppLocalizations l10n,
+) {
+  return switch (pref) {
+    NotificationPreference.all => l10n.notificationPrefAllDescription,
+    NotificationPreference.mentionsOnly =>
+      l10n.notificationPrefMentionsDescription,
+    NotificationPreference.mute => l10n.notificationPrefMuteDescription,
   };
 }

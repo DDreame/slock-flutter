@@ -92,7 +92,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
                           icon: const Icon(
                             Icons.person_add_alt_1,
                           ),
-                          tooltip: 'Invite human',
+                          tooltip: context.l10n.membersInviteHumanTooltip,
                         ),
                 ),
               ]
@@ -105,15 +105,15 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
           ),
         MemberListStatus.failure => FriendlyErrorState(
             key: const ValueKey('members-error'),
-            title: 'Members unavailable',
-            message: 'We could not load workspace members right now.',
+            title: context.l10n.membersErrorTitle,
+            message: context.l10n.membersErrorMessage,
             onRetry: ref.read(memberListStoreProvider.notifier).load,
             onShareDiagnostics: () => DiagnosticShareSheet.show(context),
           ),
         MemberListStatus.success when isEmpty => _EmptyState(
             key: const ValueKey('members-empty'),
             icon: Icons.group_outlined,
-            message: 'No members yet.',
+            message: context.l10n.membersEmptyMessage,
             colors: colors,
           ),
         // INV-MEMBERS-663-SELECT-2: Success body is a separate consumer leaf
@@ -142,7 +142,7 @@ class _MembersScreenState extends ConsumerState<_MembersScreen> {
             messenger.showSnackBar(
               SnackBar(
                 content: Text(
-                  'Invite email sent to $email.',
+                  context.l10n.membersInviteSent(email),
                 ),
               ),
             );
@@ -238,7 +238,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
             key: const ValueKey('members-search'),
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search members\u2026',
+              hintText: context.l10n.membersSearchHint,
               prefixIcon: Icon(
                 Icons.search,
                 color: colors.textTertiary,
@@ -277,7 +277,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
               ? _EmptyState(
                   key: const ValueKey('members-search-empty'),
                   icon: Icons.search_off,
-                  message: 'No members match your search.',
+                  message: context.l10n.membersSearchEmpty,
                   colors: colors,
                 )
               : _buildMemberListView(
@@ -313,7 +313,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
           if (index == offset) {
             return _SectionHeader(
               key: const ValueKey('members-section-humans'),
-              label: 'Humans',
+              label: context.l10n.membersSectionHumans,
               count: humans.length,
               colors: colors,
             );
@@ -331,7 +331,7 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
           if (index == offset) {
             return _SectionHeader(
               key: const ValueKey('members-section-agents'),
-              label: 'Agents',
+              label: context.l10n.membersSectionAgents,
               count: agents.length,
               colors: colors,
             );
@@ -421,8 +421,10 @@ class _MembersBodyState extends ConsumerState<_MembersBody> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            '${member.displayName} is now'
-            ' ${formatMemberRoleLabel(newRole)}.',
+            context.l10n.membersRoleChanged(
+              member.displayName,
+              _localizedRoleLabel(newRole, context.l10n),
+            ),
           ),
         ),
       );
@@ -896,4 +898,13 @@ class _ChangeRoleDialogState extends State<_ChangeRoleDialog> {
       ],
     );
   }
+}
+
+String _localizedRoleLabel(String role, AppLocalizations l10n) {
+  return switch (role) {
+    'owner' => l10n.membersRoleOwner,
+    'admin' => l10n.membersRoleAdmin,
+    'member' => l10n.membersRoleMember,
+    _ => role,
+  };
 }

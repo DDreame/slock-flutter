@@ -5,6 +5,7 @@ import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/storage/secure_storage.dart';
 import 'package:slock_app/core/telemetry/crash_marker_service.dart';
 import 'package:slock_app/core/telemetry/crash_recovery_dialog.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 class _FakeSecureStorage implements SecureStorage {
   final Map<String, String> store = {};
@@ -40,6 +41,8 @@ void main() {
       ],
       child: MaterialApp(
         theme: AppTheme.light,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(builder: (context) => child),
       ),
     );

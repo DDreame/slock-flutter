@@ -764,7 +764,7 @@ class _AudioAttachmentRowState extends ConsumerState<_AudioAttachmentRow> {
     if (!mounted) return;
     setState(() => _hasPlaybackError = true);
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-      const SnackBar(content: Text('Audio playback failed')),
+      SnackBar(content: Text(context.l10n.audioPlaybackFailed)),
     );
   }
 

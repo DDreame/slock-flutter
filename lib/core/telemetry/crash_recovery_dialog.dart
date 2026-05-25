@@ -4,6 +4,7 @@ import 'package:slock_app/app/theme/app_colors.dart';
 import 'package:slock_app/app/theme/app_spacing.dart';
 import 'package:slock_app/app/theme/app_typography.dart';
 import 'package:slock_app/core/telemetry/crash_marker_service.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 /// A dialog shown on startup when a previous crash was detected.
 ///
@@ -48,7 +49,7 @@ class CrashRecoveryDialog extends ConsumerWidget {
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
-              'App Recovered',
+              context.l10n.crashRecoveryTitle,
               key: const ValueKey('crash-recovery-title'),
               style: AppTypography.title.copyWith(color: colors.text),
             ),
@@ -56,8 +57,7 @@ class CrashRecoveryDialog extends ConsumerWidget {
         ],
       ),
       content: Text(
-        'The app stopped unexpectedly during your last session. '
-        'You can export diagnostic logs to help us investigate.',
+        context.l10n.crashRecoveryMessage,
         key: const ValueKey('crash-recovery-message'),
         style: AppTypography.body.copyWith(color: colors.textSecondary),
       ),
@@ -71,7 +71,7 @@ class CrashRecoveryDialog extends ConsumerWidget {
             }
           },
           child: Text(
-            'Continue',
+            context.l10n.crashRecoveryContinue,
             style: AppTypography.label.copyWith(color: colors.textSecondary),
           ),
         ),
@@ -84,7 +84,7 @@ class CrashRecoveryDialog extends ConsumerWidget {
             }
           },
           icon: const Icon(Icons.upload_outlined),
-          label: const Text('Export Diagnostics'),
+          label: Text(context.l10n.crashRecoveryExport),
         ),
       ],
     );

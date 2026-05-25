@@ -1135,5 +1135,50 @@
 
   "translationShowOriginal": "Mostrar original",
   "translationShowTranslation": "Mostrar traducción",
-  "translationPending": "Traduciendo\u2026"
+  "translationPending": "Traduciendo\u2026",
+
+  "notificationPrefAllTitle": "Todos los mensajes",
+  "notificationPrefAllDescription": "Recibir notificaciones de todos los mensajes.",
+  "notificationPrefMentionsTitle": "Solo menciones y DMs",
+  "notificationPrefMentionsDescription": "Solo recibir notificaciones de mensajes directos.",
+  "notificationPrefMuteTitle": "Silenciar",
+  "notificationPrefMuteDescription": "No mostrar notificaciones en primer plano.",
+
+  "membersInviteHumanTooltip": "Invitar persona",
+  "membersErrorTitle": "Miembros no disponibles",
+  "membersErrorMessage": "No pudimos cargar los miembros del espacio de trabajo.",
+  "membersEmptyMessage": "Aún no hay miembros.",
+  "membersInviteSent": "Correo de invitación enviado a {email}.",
+  "membersSearchHint": "Buscar miembros\u2026",
+  "membersSearchEmpty": "Ningún miembro coincide con tu búsqueda.",
+  "membersSectionHumans": "Personas",
+  "membersSectionAgents": "Agentes",
+  "membersRoleChanged": "{name} ahora es {role}.",
+  "membersRoleOwner": "Propietario",
+  "membersRoleAdmin": "Administrador",
+  "membersRoleMember": "Miembro",
+
+  "homeSearchTooltip": "Buscar",
+
+  "audioPlaybackFailed": "Error en la reproducción de audio",
+
+  "crashRecoveryTitle": "Aplicación recuperada",
+  "crashRecoveryMessage": "La aplicación se detuvo inesperadamente durante tu última sesión. Puedes exportar registros de diagnóstico para ayudarnos a investigar.",
+  "crashRecoveryContinue": "Continuar",
+  "crashRecoveryExport": "Exportar diagnósticos",
+
+  "filePreviewShareFailed": "Error al compartir el archivo.",
+  "filePreviewShareTooltip": "Compartir",
+  "filePreviewOpenExternal": "Abrir en aplicación externa",
+  "filePreviewRetry": "Reintentar",
+  "filePreviewOpenWith": "Abrir con\u2026",
+
+  "annotationDraw": "Dibujar",
+  "annotationText": "Texto",
+  "annotationArrow": "Flecha",
+  "annotationUndo": "Deshacer",
+  "annotationRedo": "Rehacer",
+
+  "voiceRecorderCancel": "Cancelar grabación",
+  "voiceRecorderSend": "Enviar mensaje de voz"
 }
