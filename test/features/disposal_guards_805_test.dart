@@ -193,6 +193,38 @@ void main() {
       completer.complete();
       await future;
     });
+
+    test('dispose during openDirectMessage() returns fetched channelId',
+        () async {
+      final openDmCompleter = Completer<String>();
+      final repo = _DelayedMemberRepository(
+        openDirectMessageCompleter: openDmCompleter,
+      );
+      // Pre-load members so openDirectMessage can look up the target user.
+      repo.immediateListResult = const [
+        MemberProfile(id: 'user-1', displayName: 'Test User'),
+      ];
+
+      final container = ProviderContainer(overrides: [
+        currentMembersServerIdProvider.overrideWithValue(serverId),
+        memberRepositoryProvider.overrideWithValue(repo),
+      ]);
+
+      final sub = container.listen(memberListStoreProvider, (_, __) {});
+      final store = container.read(memberListStoreProvider.notifier);
+      // Pre-load so state.members is populated.
+      await store.load();
+
+      final future = store.openDirectMessage('user-1');
+
+      sub.close();
+      container.dispose();
+
+      openDmCompleter.complete('dm-channel-abc');
+      // Must still return the fetched channelId when disposed.
+      final result = await future;
+      expect(result, 'dm-channel-abc');
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -356,6 +388,7 @@ class _DelayedMemberRepository
     this.createInviteCompleter,
     this.updateRoleCompleter,
     this.removeCompleter,
+    this.openDirectMessageCompleter,
   });
 
   Completer<List<MemberProfile>>? listCompleter;
@@ -363,10 +396,19 @@ class _DelayedMemberRepository
   Completer<String>? createInviteCompleter;
   Completer<void>? updateRoleCompleter;
   Completer<void>? removeCompleter;
+  Completer<String>? openDirectMessageCompleter;
+
+  /// When non-null, listMembers returns this immediately instead of using
+  /// listCompleter.
+  List<MemberProfile>? immediateListResult;
 
   @override
-  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) =>
-      listCompleter!.future;
+  Future<List<MemberProfile>> listMembers(ServerScopeId serverId) {
+    if (immediateListResult != null) {
+      return Future.value(immediateListResult!);
+    }
+    return listCompleter!.future;
+  }
 
   @override
   Future<void> inviteByEmail(
@@ -393,6 +435,13 @@ class _DelayedMemberRepository
     required String userId,
   }) =>
       removeCompleter!.future;
+
+  @override
+  Future<String> openDirectMessage(
+    ServerScopeId serverId, {
+    required String userId,
+  }) =>
+      openDirectMessageCompleter!.future;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
