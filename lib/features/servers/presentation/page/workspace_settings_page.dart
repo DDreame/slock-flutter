@@ -19,7 +19,14 @@ class WorkspaceSettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final serverListState = ref.watch(serverListStoreProvider);
+    // INV-SELECT-810: Only rebuild when status, servers, or failure change.
+    // Unrelated fields (isCreating, isJoiningInvite, savingServerIds, etc.)
+    // must NOT trigger a page rebuild.
+    final serverListState = ref.watch(
+      serverListStoreProvider.select(
+        (s) => (status: s.status, servers: s.servers, failure: s.failure),
+      ),
+    );
     final l10n = context.l10n;
 
     return Scaffold(
@@ -44,10 +51,14 @@ class WorkspaceSettingsPage extends ConsumerWidget {
   Widget _buildSuccess(
     BuildContext context,
     WidgetRef ref,
-    ServerListState state,
+    ({
+      ServerListStatus status,
+      List<ServerSummary> servers,
+      AppFailure? failure
+    }) state,
   ) {
     final l10n = context.l10n;
-    final server = _findServer(state, serverId);
+    final server = _findServer(state.servers, serverId);
     if (server == null) {
       return Center(child: Text(l10n.workspaceSettingsNotFound));
     }
@@ -64,11 +75,10 @@ class WorkspaceSettingsPage extends ConsumerWidget {
   }
 
   ServerSummary? _findServer(
-    ServerListState state,
+    List<ServerSummary> servers,
     String serverId,
   ) {
-    if (state.status != ServerListStatus.success) return null;
-    for (final server in state.servers) {
+    for (final server in servers) {
       if (server.id == serverId) return server;
     }
     return null;
