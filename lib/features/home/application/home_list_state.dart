@@ -70,6 +70,12 @@ class HomeListState {
       pinnedAgents.isEmpty &&
       agents.isEmpty;
 
+  /// Number of tasks with status 'in_progress' or 'todo'.
+  /// Pre-computed for O(1) access in .select() callbacks.
+  int get activeTaskCount => taskItems
+      .where((t) => t.status == 'in_progress' || t.status == 'todo')
+      .length;
+
   HomeListState copyWith({
     ServerScopeId? serverScopeId,
     HomeListStatus? status,

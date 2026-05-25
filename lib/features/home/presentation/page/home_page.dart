@@ -26,7 +26,6 @@ import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
-import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -460,16 +459,10 @@ class _HomeTasksSection extends ConsumerWidget {
     // Memoized filtered+sorted+sliced task list from provider.
     final visibleTasks = ref.watch(homeTaskSectionProvider);
 
-    // INV-SELECT-669: Use .select() to derive active count from the store
-    // instead of O(n) inline .where() on every rebuild.
+    // INV-SELECT-669: Use pre-computed activeTaskCount getter — O(1) in
+    // selector instead of O(n) .where().length on every state emission.
     final activeCount = ref.watch(
-      homeListStoreProvider.select(
-        (s) => s.taskItems
-            .where(
-              (task) => task.status == 'in_progress' || task.status == 'todo',
-            )
-            .length,
-      ),
+      homeListStoreProvider.select((s) => s.activeTaskCount),
     );
     final overflowCount = activeCount - visibleTasks.length;
 
@@ -813,16 +806,14 @@ class _InboxUnreadSectionState extends ConsumerState<_InboxUnreadSection> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    // INV-SELECT-UNREAD-HOME: Only sources + isLoaded consumed — skip rebuilds
-    // from channelUnreadCounts / dmUnreadCounts map changes.
-    final (:sources, :isLoaded) = ref.watch(
+    // INV-SELECT-UNREAD-HOME: Use pre-computed cached field — eliminates
+    // O(n) .where().toList() pass per build.
+    final (:visibleSources, :isLoaded) = ref.watch(
       unreadSourceProjectionProvider.select(
-        (s) => (sources: s.sources, isLoaded: s.isLoaded),
+        (s) => (visibleSources: s.visibleSources, isLoaded: s.isLoaded),
       ),
     );
-    final unreadItems = sources
-        .where((s) => s.visibility == UnreadSourceVisibility.visible)
-        .toList();
+    final unreadItems = visibleSources;
 
     return _SummaryCardBase(
       accentColor: colors.error,
