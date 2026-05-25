@@ -6,25 +6,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Consumers rebuild automatically so timestamps / duration chips stay fresh.
 ///
 /// The stream emits immediately (no loading state) then every 60 seconds.
-/// Uses an explicit Timer + StreamController with [onCancel] to tear down the
-/// timer when the last subscriber (i.e. the widget) unsubscribes. This
-/// ensures the timer is cancelled at widget disposal time — before the test
-/// framework checks for pending timers.
+/// Uses non-autoDispose so the timer lifecycle is synchronous with
+/// [ProviderScope] disposal — ensures the timer is cancelled during widget
+/// tree teardown (before the test framework checks for pending timers).
+///
+/// Cost of non-autoDispose: one lightweight 60s timer persists when the user
+/// navigates away from time-displaying screens. Negligible for a
+/// `DateTime.now()` return value.
 ///
 /// Override in tests with `homeNowProvider.overrideWith((ref) => stream)`.
-final homeNowProvider = StreamProvider.autoDispose<DateTime>((ref) {
-  late final Timer timer;
-
-  final controller = StreamController<DateTime>(
-    onCancel: () {
-      timer.cancel();
-    },
-  );
+final homeNowProvider = StreamProvider<DateTime>((ref) {
+  final controller = StreamController<DateTime>();
 
   // Emit immediately so consumers never see AsyncLoading.
   controller.add(DateTime.now());
 
-  timer = Timer.periodic(
+  final timer = Timer.periodic(
     const Duration(minutes: 1),
     (_) {
       if (!controller.isClosed) {
@@ -35,9 +32,7 @@ final homeNowProvider = StreamProvider.autoDispose<DateTime>((ref) {
 
   ref.onDispose(() {
     timer.cancel();
-    if (!controller.isClosed) {
-      controller.close();
-    }
+    controller.close();
   });
 
   return controller.stream;
