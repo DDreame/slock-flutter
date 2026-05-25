@@ -459,8 +459,8 @@ class _HomeTasksSection extends ConsumerWidget {
     // Memoized filtered+sorted+sliced task list from provider.
     final visibleTasks = ref.watch(homeTaskSectionProvider);
 
-    // INV-SELECT-669: Use pre-computed activeTaskCount getter — O(1) in
-    // selector instead of O(n) .where().length on every state emission.
+    // INV-SELECT-669: activeTaskCount is a stored int field computed once
+    // at copyWith time — selector reads a cached value, truly O(1).
     final activeCount = ref.watch(
       homeListStoreProvider.select((s) => s.activeTaskCount),
     );

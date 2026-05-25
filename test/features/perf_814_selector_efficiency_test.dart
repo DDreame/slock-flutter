@@ -21,8 +21,11 @@ void main() {
     test(
       'activeTaskCount only counts in_progress and todo tasks',
       () {
-        final state = HomeListState(
+        // Use copyWith to mirror production path — it auto-computes
+        // activeTaskCount from taskItems.
+        final state = const HomeListState(
           status: HomeListStatus.success,
+        ).copyWith(
           taskItems: [
             TaskItem(
               id: 't1',
@@ -75,8 +78,7 @@ void main() {
           ],
         );
 
-        // Currently derived via .where().length; Phase B will use
-        // state.activeTaskCount field.
+        // activeTaskCount is a stored field computed once by copyWith.
         final activeCount = state.activeTaskCount;
         expect(activeCount, 2,
             reason: 'Only in_progress + todo counted as active');
@@ -101,10 +103,10 @@ void main() {
           ),
         ];
 
-        final state1 = HomeListState(
+        // Use copyWith to set taskItems — mirrors production store path.
+        final state1 = const HomeListState(
           status: HomeListStatus.success,
-          taskItems: tasks,
-        );
+        ).copyWith(taskItems: tasks);
         final state2 = state1.copyWith(isRefreshing: true);
         final state3 = state1.copyWith(machineCount: 5);
 
@@ -118,8 +120,9 @@ void main() {
     test(
       'activeTaskCount changes when task status mutates',
       () {
-        final state1 = HomeListState(
+        final state1 = const HomeListState(
           status: HomeListStatus.success,
+        ).copyWith(
           taskItems: [
             TaskItem(
               id: 't1',
@@ -162,8 +165,9 @@ void main() {
       'Riverpod select fires only when activeTaskCount changes',
       () async {
         final stateProvider = StateProvider<HomeListState>(
-          (_) => HomeListState(
+          (_) => const HomeListState(
             status: HomeListStatus.success,
+          ).copyWith(
             taskItems: [
               TaskItem(
                 id: 't1',

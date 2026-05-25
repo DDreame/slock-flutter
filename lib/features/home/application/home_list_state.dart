@@ -23,6 +23,7 @@ class HomeListState {
     this.agents = const [],
     this.taskCount = 0,
     this.taskItems = const [],
+    this.activeTaskCount = 0,
     this.machineCount = 0,
     this.threadCount = 0,
     this.threadItems = const [],
@@ -71,10 +72,9 @@ class HomeListState {
       agents.isEmpty;
 
   /// Number of tasks with status 'in_progress' or 'todo'.
-  /// Pre-computed for O(1) access in .select() callbacks.
-  int get activeTaskCount => taskItems
-      .where((t) => t.status == 'in_progress' || t.status == 'todo')
-      .length;
+  /// Pre-computed at construction/copyWith time for true O(1)
+  /// access in .select() callbacks — no per-emission scan.
+  final int activeTaskCount;
 
   HomeListState copyWith({
     ServerScopeId? serverScopeId,
@@ -99,6 +99,7 @@ class HomeListState {
     AppFailure? taskLoadFailure,
     bool clearTaskLoadFailure = false,
   }) {
+    final resolvedTaskItems = taskItems ?? this.taskItems;
     return HomeListState(
       serverScopeId: serverScopeId ?? this.serverScopeId,
       status: status ?? this.status,
@@ -112,7 +113,10 @@ class HomeListState {
       pinnedAgents: pinnedAgents ?? this.pinnedAgents,
       agents: agents ?? this.agents,
       taskCount: taskCount ?? this.taskCount,
-      taskItems: taskItems ?? this.taskItems,
+      taskItems: resolvedTaskItems,
+      activeTaskCount: resolvedTaskItems
+          .where((t) => t.status == 'in_progress' || t.status == 'todo')
+          .length,
       machineCount: machineCount ?? this.machineCount,
       threadCount: threadCount ?? this.threadCount,
       threadItems: threadItems ?? this.threadItems,
@@ -145,6 +149,7 @@ class HomeListState {
             listEquals(agents, other.agents) &&
             taskCount == other.taskCount &&
             listEquals(taskItems, other.taskItems) &&
+            activeTaskCount == other.activeTaskCount &&
             machineCount == other.machineCount &&
             threadCount == other.threadCount &&
             listEquals(threadItems, other.threadItems) &&
@@ -168,6 +173,7 @@ class HomeListState {
         Object.hashAll(agents),
         taskCount,
         Object.hashAll(taskItems),
+        activeTaskCount,
         machineCount,
         threadCount,
         Object.hashAll(threadItems),
