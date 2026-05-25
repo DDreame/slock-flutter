@@ -88,12 +88,14 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
     // scaffold rebuild — only status transitions and empty/non-empty threshold.
     // Items are watched independently by _TasksListSurface (ConsumerStatefulWidget)
     // via tasksStoreProvider.select((s) => s.items).
-    final (:status, :isEmpty, :isRefreshing) = ref.watch(
+    // INV-SELECT-TASKS-2: Include failure for the failure view (#800 P2-5).
+    final (:status, :isEmpty, :isRefreshing, :failure) = ref.watch(
       tasksStoreProvider.select(
         (s) => (
           status: s.status,
           isEmpty: s.items.isEmpty,
           isRefreshing: s.isRefreshing,
+          failure: s.failure,
         ),
       ),
     );
@@ -146,10 +148,7 @@ class _TasksScreenState extends ConsumerState<_TasksScreen> {
             channels: channels,
           ),
         TasksStatus.initial || TasksStatus.failure => _TasksFailureView(
-            message: ref
-                    .read(tasksStoreProvider)
-                    .failure
-                    ?.userMessage(context.l10n) ??
+            message: failure?.userMessage(context.l10n) ??
                 context.l10n.tasksLoadFailed,
             onRetry: ref.read(tasksStoreProvider.notifier).retry,
           ),
