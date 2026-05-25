@@ -26,6 +26,7 @@ import 'package:slock_app/features/servers/application/server_list_state.dart';
 import 'package:slock_app/features/servers/application/server_list_store.dart';
 import 'package:slock_app/features/servers/presentation/widgets/server_switcher_sheet.dart';
 import 'package:slock_app/features/unread/application/mark_read_use_case.dart';
+import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
 
@@ -799,14 +800,22 @@ class _InboxUnreadSectionState extends ConsumerState<_InboxUnreadSection> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final l10n = context.l10n;
-    final projectionState = ref.watch(unreadSourceProjectionProvider);
-    final unreadItems = projectionState.visibleSources;
+    // INV-SELECT-UNREAD-HOME: Only sources + isLoaded consumed — skip rebuilds
+    // from channelUnreadCounts / dmUnreadCounts map changes.
+    final (:sources, :isLoaded) = ref.watch(
+      unreadSourceProjectionProvider.select(
+        (s) => (sources: s.sources, isLoaded: s.isLoaded),
+      ),
+    );
+    final unreadItems = sources
+        .where((s) => s.visibility == UnreadSourceVisibility.visible)
+        .toList();
 
     return _SummaryCardBase(
       accentColor: colors.error,
       title: l10n.homeCardUnread,
       onViewAll: widget.onViewAll,
-      child: !projectionState.isLoaded
+      child: !isLoaded
           ? const _UnreadEmptyState(
               key: ValueKey('home-unread-loading'),
             )
