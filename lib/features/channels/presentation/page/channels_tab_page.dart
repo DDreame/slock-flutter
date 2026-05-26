@@ -38,6 +38,11 @@ class ChannelsTabPage extends ConsumerStatefulWidget {
   @visibleForTesting
   static int filterRecomputeCount = 0;
 
+  /// Number of times the pinnedIds Set was recomputed across all instances.
+  /// Exposed for testing to verify the memoization is load-bearing.
+  @visibleForTesting
+  static int pinnedIdsRecomputeCount = 0;
+
   @override
   ConsumerState<ChannelsTabPage> createState() => _ChannelsTabPageState();
 }
@@ -218,6 +223,7 @@ class _ChannelsTabPageState extends ConsumerState<ChannelsTabPage> {
     if (!identical(pinnedChannels, _cachedPinnedChannels)) {
       _cachedPinnedChannels = pinnedChannels;
       _cachedPinnedIds = pinnedChannels.map((c) => c.scopeId.value).toSet();
+      ChannelsTabPage.pinnedIdsRecomputeCount++;
     }
     final pinnedIds = _cachedPinnedIds!;
 

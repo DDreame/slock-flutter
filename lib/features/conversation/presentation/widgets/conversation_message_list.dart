@@ -25,6 +25,21 @@ class ConversationMessageList extends ConsumerWidget {
     this.messageKeyBuilder,
   });
 
+  /// Number of times the build method has been invoked across all instances.
+  /// Exposed for testing to verify that homeNowProvider ticks do NOT trigger
+  /// rebuilds of this widget.
+  @visibleForTesting
+  static int buildCount = 0;
+
+  /// Number of entries in the date separator DateFormat cache.
+  /// Exposed for testing to verify the cache grows once per locale.
+  @visibleForTesting
+  static int get dateSeparatorCacheSize => _dateSeparatorFormatCache.length;
+
+  /// Clears the date separator DateFormat cache for test isolation.
+  @visibleForTesting
+  static void clearDateSeparatorCache() => _dateSeparatorFormatCache.clear();
+
   final ScrollController controller;
   final void Function(
           String messageId, List<ConversationMessageSummary> messages)?
@@ -39,6 +54,7 @@ class ConversationMessageList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    buildCount++;
     // INV-CONV-MESSAGE-LIST-SELECT-1: Only watch the 9 fields consumed by
     // the message list. Draft, uploadProgress, replyTo, isSending, etc.
     // must NOT trigger full list rebuilds.

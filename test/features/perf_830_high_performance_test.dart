@@ -14,16 +14,23 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:intl/intl.dart';
 import 'package:slock_app/app/theme/app_theme.dart';
 import 'package:slock_app/core/core.dart';
+import 'package:slock_app/features/channels/application/channel_management_state.dart';
+import 'package:slock_app/features/channels/application/channel_management_store.dart';
+import 'package:slock_app/features/channels/presentation/page/channels_tab_page.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_state.dart';
 import 'package:slock_app/features/conversation/application/conversation_detail_store.dart';
 import 'package:slock_app/features/conversation/data/conversation_repository.dart';
 import 'package:slock_app/features/conversation/presentation/widgets/conversation_message_list.dart';
+import 'package:slock_app/features/home/application/channel_sort_preference.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 import 'package:slock_app/features/home/application/home_now_provider.dart';
 import 'package:slock_app/features/home/data/home_repository.dart';
+import 'package:slock_app/features/settings/data/channel_notification_preference.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection.dart';
 import 'package:slock_app/features/unread/application/unread_source_projection_store.dart';
 import 'package:slock_app/l10n/l10n.dart';
@@ -39,7 +46,7 @@ void main() {
     testWidgets(
       'homeNowProvider tick does NOT rebuild ConversationMessageList',
       (tester) async {
-        int listBuildCount = 0;
+        ConversationMessageList.buildCount = 0;
         final nowController = StreamController<DateTime>();
         nowController.add(DateTime(2024, 6, 1, 12, 0));
 
@@ -62,11 +69,8 @@ void main() {
               supportedLocales: AppLocalizations.supportedLocales,
               theme: AppTheme.light,
               home: Scaffold(
-                body: _BuildCountWrapper(
-                  onBuild: () => listBuildCount++,
-                  child: ConversationMessageList(
-                    controller: ScrollController(),
-                  ),
+                body: ConversationMessageList(
+                  controller: ScrollController(),
                 ),
               ),
             ),
@@ -74,18 +78,20 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final initialBuildCount = listBuildCount;
+        final initialBuildCount = ConversationMessageList.buildCount;
+        expect(initialBuildCount, greaterThan(0),
+            reason: 'Widget must have built at least once.');
 
         // Emit a new time tick — should NOT rebuild the list widget.
         nowController.add(DateTime(2024, 6, 1, 12, 1));
         await tester.pumpAndSettle();
 
         expect(
-          listBuildCount,
+          ConversationMessageList.buildCount,
           initialBuildCount,
-          reason: 'ConversationMessageList must NOT rebuild on homeNowProvider '
-              'tick — timestamps are now rendered by leaf RelativeTimeText '
-              'widgets inside each card.',
+          reason: 'ConversationMessageList.buildCount must NOT increment on '
+              'homeNowProvider tick. This test goes RED if ref.watch('
+              'homeNowProvider) is re-added to the list widget.',
         );
 
         nowController.close();
@@ -98,85 +104,150 @@ void main() {
   // ===========================================================================
 
   group('#830 — Date separator DateFormat caching', () {
-    test('DateFormat.MMMEd produces consistent output per locale', () {
-      // The production code caches DateFormat.MMMEd in
-      // _dateSeparatorFormatCache. Since that's private, we verify the
-      // pattern is correct by ensuring format output is deterministic.
-      final f1 = DateFormat.MMMEd('en');
-      final f2 = DateFormat.MMMEd('en');
-      final date = DateTime(2024, 3, 15);
+    setUp(() => ConversationMessageList.clearDateSeparatorCache());
 
-      expect(f1.format(date), equals(f2.format(date)));
-      expect(f1.format(date), isNotEmpty);
-    });
+    testWidgets(
+      'renders messages spanning dates with single cache entry per locale',
+      (tester) async {
+        // Provide messages on different days to force date separator rendering.
+        final store = _FakeConversationDetailStoreMultiDay();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              homeNowProvider.overrideWith(
+                (ref) => Stream.value(DateTime(2024, 6, 10, 12, 0)),
+              ),
+              conversationDetailStoreProvider.overrideWith(() => store),
+              unreadSourceProjectionProvider.overrideWithValue(
+                UnreadSourceProjectionState(),
+              ),
+              dateSeparatorToLocalProvider
+                  .overrideWithValue((d) => d.toLocal()),
+              dateSeparatorNowProvider.overrideWithValue(DateTime(2024, 6, 10)),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              locale: const Locale('en'),
+              theme: AppTheme.light,
+              home: Scaffold(
+                body: ConversationMessageList(
+                  controller: ScrollController(),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Cache should have exactly 1 entry (for 'en' locale).
+        expect(
+          ConversationMessageList.dateSeparatorCacheSize,
+          1,
+          reason: 'After rendering date separators with en locale, cache '
+              'should have exactly 1 entry. This test goes RED if the '
+              '_dateSeparatorFormatCache is removed from production code.',
+        );
+      },
+    );
   });
 
   // ===========================================================================
-  // 3. Channels/DMs pinnedIds memoization — compile-time proof
+  // 3. ChannelsTabPage pinnedIds memoization
   // ===========================================================================
 
-  group('#830 — Channels/DMs pinnedIds memoization', () {
-    test('memoization pattern: identical input list produces same Set', () {
-      // This tests the memoization invariant used in production code:
-      // if the input list reference is identical, the cached Set is reused.
-      // Production: `if (!identical(pinnedChannels, _cachedPinnedChannels)) { ... }`
-      const pinnedChannels = <HomeChannelSummary>[
-        HomeChannelSummary(
-          scopeId: ChannelScopeId(
-            serverId: ServerScopeId('srv-1'),
-            value: 'ch-1',
+  group('#830 — ChannelsTabPage pinnedIds memoization', () {
+    testWidgets(
+      'pinnedIdsRecomputeCount does not increment on unrelated rebuild',
+      (tester) async {
+        ChannelsTabPage.pinnedIdsRecomputeCount = 0;
+
+        final unreadState = StateProvider<UnreadSourceProjectionState>(
+          (ref) => UnreadSourceProjectionState(
+            channelUnreadCounts: {
+              const ChannelScopeId(
+                serverId: ServerScopeId('s1'),
+                value: 'ch-1',
+              ): 2,
+            },
+            isLoaded: true,
           ),
-          name: 'pinned-1',
-        ),
-      ];
+        );
 
-      // Simulate the memoization cache.
-      List<HomeChannelSummary>? cachedList;
-      Set<String>? cachedIds;
+        final container = ProviderContainer(
+          overrides: [
+            homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+            channelSortPreferenceProvider
+                .overrideWith(() => _FixedSortPreferenceNotifier()),
+            unreadSourceProjectionProvider.overrideWith(
+              (ref) => ref.watch(unreadState),
+            ),
+            channelManagementStoreProvider
+                .overrideWith(() => _FakeChannelManagementStore()),
+            channelMutedIdsProvider.overrideWith((ref) => <String>{}),
+            homeNowProvider.overrideWith(
+              (ref) => Stream.value(DateTime.now()),
+            ),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      Set<String> computePinnedIds(List<HomeChannelSummary> list) {
-        if (!identical(list, cachedList)) {
-          cachedList = list;
-          cachedIds = list.map((c) => c.scopeId.value).toSet();
-        }
-        return cachedIds!;
-      }
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp.router(
+              routerConfig: GoRouter(
+                initialLocation: '/channels',
+                routes: [
+                  GoRoute(
+                    path: '/channels',
+                    builder: (_, __) => const ChannelsTabPage(),
+                  ),
+                ],
+              ),
+              theme: AppTheme.light,
+              locale: const Locale('en'),
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // First call — computes.
-      final ids1 = computePinnedIds(pinnedChannels);
-      expect(ids1, {'ch-1'});
+        final countAfterInitial = ChannelsTabPage.pinnedIdsRecomputeCount;
+        expect(countAfterInitial, greaterThan(0),
+            reason: 'Initial render must compute pinnedIds at least once.');
 
-      // Second call with same reference — returns cached (identical).
-      final ids2 = computePinnedIds(pinnedChannels);
-      expect(identical(ids1, ids2), isTrue,
-          reason: 'Same list reference should return identical Set (cached).');
+        // Change unread counts — triggers widget rebuild but does NOT
+        // change pinnedChannels list identity.
+        container.read(unreadState.notifier).state =
+            UnreadSourceProjectionState(
+          channelUnreadCounts: {
+            const ChannelScopeId(
+              serverId: ServerScopeId('s1'),
+              value: 'ch-1',
+            ): 5,
+          },
+          isLoaded: true,
+        );
+        await tester.pumpAndSettle();
 
-      // Third call with different reference (same content) — recomputes.
-      final differentRef = List<HomeChannelSummary>.from(pinnedChannels);
-      final ids3 = computePinnedIds(differentRef);
-      expect(ids3, {'ch-1'});
-      expect(identical(ids2, ids3), isFalse,
-          reason: 'Different list reference should produce new Set.');
-    });
+        expect(
+          ChannelsTabPage.pinnedIdsRecomputeCount,
+          countAfterInitial,
+          reason: 'pinnedIdsRecomputeCount must NOT increment when only '
+              'channelUnreadCounts changes. This test goes RED if the '
+              'memoization is removed from channels_tab_page.dart.',
+        );
+      },
+    );
   });
 }
 
 // =============================================================================
 // Fakes
 // =============================================================================
-
-class _BuildCountWrapper extends StatelessWidget {
-  const _BuildCountWrapper({required this.onBuild, required this.child});
-
-  final VoidCallback onBuild;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    onBuild();
-    return child;
-  }
-}
 
 class _FakeConversationDetailStore
     extends AutoDisposeNotifier<ConversationDetailState>
@@ -204,6 +275,91 @@ class _FakeConversationDetailStore
       ],
     );
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+/// Provides messages spanning multiple days to force date separator rendering.
+class _FakeConversationDetailStoreMultiDay
+    extends AutoDisposeNotifier<ConversationDetailState>
+    implements ConversationDetailStore {
+  @override
+  ConversationDetailState build() {
+    return ConversationDetailState(
+      status: ConversationDetailStatus.success,
+      target: ConversationDetailTarget.channel(
+        const ChannelScopeId(
+          serverId: ServerScopeId('srv-1'),
+          value: 'ch-1',
+        ),
+      ),
+      messages: [
+        ConversationMessageSummary(
+          id: 'msg-1',
+          content: 'Hello',
+          createdAt: DateTime(2024, 6, 1, 10, 0),
+          senderType: 'human',
+          messageType: 'text',
+        ),
+        ConversationMessageSummary(
+          id: 'msg-2',
+          content: 'World',
+          createdAt: DateTime(2024, 6, 5, 14, 0),
+          senderType: 'human',
+          messageType: 'text',
+        ),
+      ],
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeHomeListStore extends Notifier<HomeListState>
+    implements HomeListStore {
+  @override
+  HomeListState build() => HomeListState(
+        status: HomeListStatus.success,
+        channels: const [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('s1'),
+              value: 'ch-1',
+            ),
+            name: 'general',
+          ),
+        ],
+        pinnedChannels: const [
+          HomeChannelSummary(
+            scopeId: ChannelScopeId(
+              serverId: ServerScopeId('s1'),
+              value: 'ch-pinned',
+            ),
+            name: 'pinned-channel',
+          ),
+        ],
+      );
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FixedSortPreferenceNotifier extends Notifier<ChannelSortPreference>
+    implements ChannelSortPreferenceNotifier {
+  @override
+  ChannelSortPreference build() => ChannelSortPreference.recentActivity;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeChannelManagementStore
+    extends AutoDisposeNotifier<ChannelManagementState>
+    implements ChannelManagementStore {
+  @override
+  ChannelManagementState build() => const ChannelManagementState();
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
