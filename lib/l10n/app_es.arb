@@ -1178,7 +1178,14 @@
   "annotationArrow": "Flecha",
   "annotationUndo": "Deshacer",
   "annotationRedo": "Rehacer",
+  "annotationColorRed": "Rojo",
+  "annotationColorGreen": "Verde",
+  "annotationColorBlue": "Azul",
+  "annotationColorYellow": "Amarillo",
+  "annotationColorWhite": "Blanco",
+  "annotationColorBlack": "Negro",
 
   "voiceRecorderCancel": "Cancelar grabación",
-  "voiceRecorderSend": "Enviar mensaje de voz"
+  "voiceRecorderSend": "Enviar mensaje de voz",
+  "voiceMessageScrubber": "Control de mensaje de voz"
 }

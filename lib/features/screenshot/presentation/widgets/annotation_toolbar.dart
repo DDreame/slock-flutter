@@ -38,6 +38,16 @@ class AnnotationToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final colorLabels = <Color, String>{
+      const Color(0xFFFF0000): l10n.annotationColorRed,
+      const Color(0xFF00FF00): l10n.annotationColorGreen,
+      const Color(0xFF0000FF): l10n.annotationColorBlue,
+      const Color(0xFFFFFF00): l10n.annotationColorYellow,
+      const Color(0xFFFFFFFF): l10n.annotationColorWhite,
+      const Color(0xFF000000): l10n.annotationColorBlack,
+    };
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -49,19 +59,19 @@ class AnnotationToolbar extends StatelessWidget {
         children: [
           _ToolButton(
             icon: Icons.brush,
-            label: context.l10n.annotationDraw,
+            label: l10n.annotationDraw,
             isSelected: selectedTool == AnnotationTool.freehand,
             onTap: () => onToolSelected(AnnotationTool.freehand),
           ),
           _ToolButton(
             icon: Icons.text_fields,
-            label: context.l10n.annotationText,
+            label: l10n.annotationText,
             isSelected: selectedTool == AnnotationTool.text,
             onTap: () => onToolSelected(AnnotationTool.text),
           ),
           _ToolButton(
             icon: Icons.arrow_forward,
-            label: context.l10n.annotationArrow,
+            label: l10n.annotationArrow,
             isSelected: selectedTool == AnnotationTool.arrow,
             onTap: () => onToolSelected(AnnotationTool.arrow),
           ),
@@ -74,13 +84,13 @@ class AnnotationToolbar extends StatelessWidget {
             icon: const Icon(Icons.undo),
             color: canUndo ? Colors.white : Colors.white38,
             onPressed: canUndo ? onUndo : null,
-            tooltip: context.l10n.annotationUndo,
+            tooltip: l10n.annotationUndo,
           ),
           IconButton(
             icon: const Icon(Icons.redo),
             color: canRedo ? Colors.white : Colors.white38,
             onPressed: canRedo ? onRedo : null,
-            tooltip: context.l10n.annotationRedo,
+            tooltip: l10n.annotationRedo,
           ),
           const VerticalDivider(
             width: 16,
@@ -89,6 +99,7 @@ class AnnotationToolbar extends StatelessWidget {
           ),
           ..._colors.map((color) => _ColorDot(
                 color: color,
+                label: colorLabels[color] ?? '',
                 isSelected: selectedColor == color,
                 onTap: () => onColorSelected(color),
               )),
@@ -138,28 +149,35 @@ class _ToolButton extends StatelessWidget {
 class _ColorDot extends StatelessWidget {
   const _ColorDot({
     required this.color,
+    required this.label,
     required this.isSelected,
     required this.onTap,
   });
 
   final Color color;
+  final String label;
   final bool isSelected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 24,
-        height: 24,
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected ? Colors.white : Colors.white38,
-            width: isSelected ? 2.5 : 1.0,
+    return Semantics(
+      label: label,
+      selected: isSelected,
+      button: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 24,
+          height: 24,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isSelected ? Colors.white : Colors.white38,
+              width: isSelected ? 2.5 : 1.0,
+            ),
           ),
         ),
       ),

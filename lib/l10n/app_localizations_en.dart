@@ -3239,8 +3239,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get annotationRedo => 'Redo';
 
   @override
+  String get annotationColorRed => 'Red';
+
+  @override
+  String get annotationColorGreen => 'Green';
+
+  @override
+  String get annotationColorBlue => 'Blue';
+
+  @override
+  String get annotationColorYellow => 'Yellow';
+
+  @override
+  String get annotationColorWhite => 'White';
+
+  @override
+  String get annotationColorBlack => 'Black';
+
+  @override
   String get voiceRecorderCancel => 'Cancel recording';
 
   @override
   String get voiceRecorderSend => 'Send voice message';
+
+  @override
+  String get voiceMessageScrubber => 'Voice message scrubber';
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:slock_app/features/voice/presentation/widgets/audio_waveform_painter.dart';
 import 'package:slock_app/features/voice/presentation/widgets/voice_message_bubble.dart';
+import 'package:slock_app/l10n/l10n.dart';
 
 void main() {
   group('VoiceMessageBubble', () {
@@ -14,6 +15,8 @@ void main() {
       ValueChanged<double>? onSeek,
     }) {
       return MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: VoiceMessageBubble(
             duration: duration,

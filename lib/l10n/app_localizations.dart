@@ -6071,6 +6071,42 @@ abstract class AppLocalizations {
   /// **'Redo'**
   String get annotationRedo;
 
+  /// No description provided for @annotationColorRed.
+  ///
+  /// In en, this message translates to:
+  /// **'Red'**
+  String get annotationColorRed;
+
+  /// No description provided for @annotationColorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get annotationColorGreen;
+
+  /// No description provided for @annotationColorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get annotationColorBlue;
+
+  /// No description provided for @annotationColorYellow.
+  ///
+  /// In en, this message translates to:
+  /// **'Yellow'**
+  String get annotationColorYellow;
+
+  /// No description provided for @annotationColorWhite.
+  ///
+  /// In en, this message translates to:
+  /// **'White'**
+  String get annotationColorWhite;
+
+  /// No description provided for @annotationColorBlack.
+  ///
+  /// In en, this message translates to:
+  /// **'Black'**
+  String get annotationColorBlack;
+
   /// No description provided for @voiceRecorderCancel.
   ///
   /// In en, this message translates to:
@@ -6082,6 +6118,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Send voice message'**
   String get voiceRecorderSend;
+
+  /// No description provided for @voiceMessageScrubber.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice message scrubber'**
+  String get voiceMessageScrubber;
 }
 
 class _AppLocalizationsDelegate
