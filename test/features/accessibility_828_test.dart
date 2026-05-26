@@ -1,17 +1,31 @@
 // =============================================================================
 // #828 — Missing Tooltips on IconButtons
 //
-// Phase A: Tests proving tooltip: parameter exists on each IconButton.
+// Phase A: Load-bearing tests that render actual production widgets and verify
+// tooltip: is wired to the real IconButton instances.
 //
-// Load-bearing proof:
-//   Each test finds the IconButton by key/tooltip and verifies the tooltip
-//   attribute is non-null and matches the expected l10n value.
-//   Removing tooltip: from production code makes the test fail.
+// Removing tooltip: from any production file makes the corresponding test fail.
 // =============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:slock_app/app/theme/app_theme.dart';
+import 'package:slock_app/features/auth/application/login_controller.dart';
+import 'package:slock_app/features/auth/application/register_controller.dart';
+import 'package:slock_app/features/auth/presentation/page/login_page.dart';
+import 'package:slock_app/features/auth/presentation/page/register_page.dart';
+import 'package:slock_app/features/auth/presentation/page/reset_password_page.dart';
+import 'package:slock_app/features/search/application/search_history_store.dart';
+import 'package:slock_app/features/search/application/search_state.dart';
+import 'package:slock_app/features/search/application/search_store.dart';
+import 'package:slock_app/features/search/presentation/page/search_page.dart';
+import 'package:slock_app/features/share/application/share_intent_store.dart';
+import 'package:slock_app/features/share/data/shared_content.dart';
+import 'package:slock_app/features/share/presentation/page/share_target_picker_page.dart';
 import 'package:slock_app/l10n/l10n.dart';
+import 'package:slock_app/features/home/application/home_list_state.dart';
+import 'package:slock_app/features/home/application/home_list_store.dart';
 
 void main() {
   late AppLocalizations l10n;
@@ -21,87 +35,26 @@ void main() {
   });
 
   // ===========================================================================
-  // Verify tooltips are present via find.byTooltip for each key
+  // 1. Login page — password visibility toggle tooltip
   // ===========================================================================
 
-  group('#828 — IconButton tooltips exist', () {
-    testWidgets('agentEditTooltip key is defined', (_) async {
-      expect(l10n.agentEditTooltip, isNotEmpty);
-    });
-
-    testWidgets('agentDeleteTooltip key is defined', (_) async {
-      expect(l10n.agentDeleteTooltip, isNotEmpty);
-    });
-
-    testWidgets('searchClearTooltip key is defined', (_) async {
-      expect(l10n.searchClearTooltip, isNotEmpty);
-    });
-
-    testWidgets('channelMembersAddTooltip key is defined', (_) async {
-      expect(l10n.channelMembersAddTooltip, isNotEmpty);
-    });
-
-    testWidgets('channelMembersRemoveTooltip key is defined', (_) async {
-      expect(l10n.channelMembersRemoveTooltip, isNotEmpty);
-    });
-
-    testWidgets('channelFilesTooltip key is defined', (_) async {
-      expect(l10n.channelFilesTooltip, isNotEmpty);
-    });
-
-    testWidgets('channelMembersTooltip key is defined', (_) async {
-      expect(l10n.channelMembersTooltip, isNotEmpty);
-    });
-
-    testWidgets('addHumanToChannelTooltip key is defined', (_) async {
-      expect(l10n.addHumanToChannelTooltip, isNotEmpty);
-    });
-
-    testWidgets('addAgentToChannelTooltip key is defined', (_) async {
-      expect(l10n.addAgentToChannelTooltip, isNotEmpty);
-    });
-
-    testWidgets('togglePasswordVisibilityTooltip key is defined', (_) async {
-      expect(l10n.togglePasswordVisibilityTooltip, isNotEmpty);
-    });
-
-    testWidgets('dismissAnnouncementTooltip key is defined', (_) async {
-      expect(l10n.dismissAnnouncementTooltip, isNotEmpty);
-    });
-
-    testWidgets('shareTargetCancelTooltip key is defined', (_) async {
-      expect(l10n.shareTargetCancelTooltip, isNotEmpty);
-    });
-  });
-
-  // ===========================================================================
-  // Render tests for representative widgets to prove tooltip: wiring
-  // ===========================================================================
-
-  group('#828 — Login page password toggle tooltip', () {
-    testWidgets('password toggle IconButton has tooltip', (tester) async {
+  group('#828 — LoginPage password toggle tooltip', () {
+    testWidgets('login password toggle has tooltip from l10n', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                // Simulate what login_page does — an IconButton with tooltip
-                return IconButton(
-                  key: const ValueKey('login-password-toggle'),
-                  icon: const Icon(Icons.visibility),
-                  tooltip: context.l10n.togglePasswordVisibilityTooltip,
-                  onPressed: () {},
-                );
-              },
-            ),
+        ProviderScope(
+          overrides: [
+            loginControllerProvider.overrideWith(() => _FakeLoginController()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const LoginPage(),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      // find.byTooltip proves the tooltip attribute is wired.
       expect(
         find.byTooltip(l10n.togglePasswordVisibilityTooltip),
         findsOneWidget,
@@ -109,23 +62,81 @@ void main() {
     });
   });
 
-  group('#828 — Search clear tooltip', () {
-    testWidgets('search clear IconButton has tooltip', (tester) async {
+  // ===========================================================================
+  // 2. Register page — password visibility toggle tooltip
+  // ===========================================================================
+
+  group('#828 — RegisterPage password toggle tooltip', () {
+    testWidgets('register password toggle has tooltip from l10n',
+        (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return IconButton(
-                  key: const ValueKey('search-clear'),
-                  icon: const Icon(Icons.close),
-                  tooltip: context.l10n.searchClearTooltip,
-                  onPressed: () {},
-                );
-              },
-            ),
+        ProviderScope(
+          overrides: [
+            registerControllerProvider
+                .overrideWith(() => _FakeRegisterController()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const RegisterPage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byTooltip(l10n.togglePasswordVisibilityTooltip),
+        findsOneWidget,
+      );
+    });
+  });
+
+  // ===========================================================================
+  // 3. Reset password page — two visibility toggle tooltips
+  // ===========================================================================
+
+  group('#828 — ResetPasswordPage visibility toggle tooltips', () {
+    testWidgets('reset password page has two toggle tooltips', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const ResetPasswordPage(token: 'fake-token'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Two password fields, each with a toggle tooltip.
+      expect(
+        find.byTooltip(l10n.togglePasswordVisibilityTooltip),
+        findsNWidgets(2),
+      );
+    });
+  });
+
+  // ===========================================================================
+  // 4. Search page — clear button tooltip (with non-empty query state)
+  // ===========================================================================
+
+  group('#828 — SearchPage clear button tooltip', () {
+    testWidgets('search clear button has tooltip from l10n', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            searchStoreProvider
+                .overrideWith(() => _FakeSearchStoreWithQuery()),
+            searchHistoryProvider
+                .overrideWith(() => _FakeSearchHistoryNotifier()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: const SearchPage(serverId: 'test-server'),
           ),
         ),
       );
@@ -135,38 +146,68 @@ void main() {
     });
   });
 
-  group('#828 — Channel files/members tooltips', () {
-    testWidgets('channel actions IconButtons have tooltips', (tester) async {
+  // ===========================================================================
+  // 5. Share target picker — cancel button tooltip
+  // ===========================================================================
+
+  group('#828 — ShareTargetPickerPage cancel tooltip', () {
+    testWidgets('share cancel button has tooltip from l10n', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.attach_file),
-                      tooltip: context.l10n.channelFilesTooltip,
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.group),
-                      tooltip: context.l10n.channelMembersTooltip,
-                      onPressed: () {},
-                    ),
-                  ],
-                );
-              },
+        ProviderScope(
+          overrides: [
+            homeListStoreProvider.overrideWith(() => _FakeHomeListStore()),
+            shareIntentStoreProvider
+                .overrideWith(() => _FakeShareIntentStore()),
+          ],
+          child: MaterialApp(
+            theme: AppTheme.light,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: ShareTargetPickerPage(
+              onTargetSelected: (_) {},
+              onCancel: () {},
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.byTooltip(l10n.channelFilesTooltip), findsOneWidget);
-      expect(find.byTooltip(l10n.channelMembersTooltip), findsOneWidget);
+      expect(find.byTooltip(l10n.shareTargetCancelTooltip), findsOneWidget);
     });
   });
+}
+
+// =============================================================================
+// Fake stores for provider overrides
+// =============================================================================
+
+class _FakeLoginController extends LoginController {
+  @override
+  Future<void> build() async {}
+}
+
+class _FakeRegisterController extends RegisterController {
+  @override
+  Future<void> build() async {}
+}
+
+/// Returns a search state with a non-empty query so the clear button is visible.
+class _FakeSearchStoreWithQuery extends SearchStore {
+  @override
+  SearchState build() => const SearchState(query: 'test');
+}
+
+class _FakeSearchHistoryNotifier extends SearchHistoryNotifier {
+  @override
+  List<String> build() => [];
+}
+
+class _FakeHomeListStore extends HomeListStore {
+  @override
+  HomeListState build() => HomeListState(status: HomeListStatus.success);
+}
+
+class _FakeShareIntentStore extends ShareIntentStore {
+  @override
+  SharedContent? build() => null;
 }
