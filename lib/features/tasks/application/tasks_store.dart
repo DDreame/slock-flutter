@@ -169,8 +169,9 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
 
   Future<void> deleteTask(String taskId) async {
     final serverId = ref.read(currentTasksServerIdProvider);
-    // INV-ROLLBACK-817: Snapshot only the deleted item for rollback.
-    final deletedItem = state.items.firstWhere((t) => t.id == taskId);
+    // INV-ROLLBACK-817: Snapshot the deleted item and its original index.
+    final deletedIndex = state.items.indexWhere((t) => t.id == taskId);
+    final deletedItem = state.items[deletedIndex];
     state = state.copyWith(
       items: state.items.where((t) => t.id != taskId).toList(),
     );
@@ -181,18 +182,29 @@ class TasksStore extends AutoDisposeNotifier<TasksState> {
       if (_disposed) return;
     } on AppFailure {
       if (_disposed) return;
-      // Per-item rollback: re-insert only the deleted item into current list.
-      state = state.copyWith(items: [...state.items, deletedItem]);
+      // Per-item rollback: re-insert at original position (clamped to current
+      // list length to handle concurrent removals that shrink the list).
+      _reinsertAtPosition(deletedItem, deletedIndex);
       rethrow;
     } catch (e, st) {
       if (_disposed) return;
       _reportUnexpectedError('deleteTask', e, st);
-      state = state.copyWith(items: [...state.items, deletedItem]);
+      _reinsertAtPosition(deletedItem, deletedIndex);
       throw UnknownFailure(
         message: 'Failed to delete task.',
         causeType: e.runtimeType.toString(),
       );
     }
+  }
+
+  /// Re-inserts [item] at [originalIndex], clamped to the current list length.
+  /// This preserves ordering in the simple case while tolerating concurrent
+  /// list mutations (additions/removals) that shift boundaries.
+  void _reinsertAtPosition(TaskItem item, int originalIndex) {
+    final current = [...state.items];
+    final insertAt = originalIndex.clamp(0, current.length);
+    current.insert(insertAt, item);
+    state = state.copyWith(items: current);
   }
 
   Future<void> claimTask(String taskId) async {

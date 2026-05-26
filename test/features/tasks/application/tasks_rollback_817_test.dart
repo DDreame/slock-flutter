@@ -231,6 +231,43 @@ void main() {
     );
 
     test(
+      'deleteTask failure restores item at original position '
+      '(ROLLBACK-ORDER)',
+      () async {
+        await seedTasks([
+          makeTask(id: 't1', taskNumber: 1),
+          makeTask(id: 't2', taskNumber: 2),
+          makeTask(id: 't3', taskNumber: 3),
+        ]);
+
+        final completer = Completer<void>();
+        fakeRepo.deleteCompleter = completer;
+
+        final future = store().deleteTask('t1');
+        await Future<void>.delayed(Duration.zero);
+
+        // t1 optimistically removed — list is [t2, t3].
+        expect(state().items.map((t) => t.id).toList(), ['t2', 't3']);
+
+        completer.completeError(
+          const UnknownFailure(message: 'fail', causeType: 'test'),
+        );
+
+        try {
+          await future;
+        } on AppFailure {
+          // expected
+        }
+
+        // t1 restored at original index 0 — order is [t1, t2, t3].
+        expect(
+          state().items.map((t) => t.id).toList(),
+          ['t1', 't2', 't3'],
+        );
+      },
+    );
+
+    test(
       'claimTask failure preserves concurrent realtime upsert '
       '(ROLLBACK-5)',
       () async {
